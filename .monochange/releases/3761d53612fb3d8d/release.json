@@ -1,0 +1,1628 @@
+{
+	"schema_version": "0.9",
+	"kind": "monochange.releaseRecord",
+	"created_at": "2026-10-03T12:32:38Z",
+	"command": "release",
+	"version": null,
+	"versions": {
+		"main": "0.16.1",
+		"monochange_classification": "0.4.1"
+	},
+	"release_targets": [
+		{
+			"id": "main",
+			"kind": "group",
+			"version": "0.16.1",
+			"version_format": "primary",
+			"tag": true,
+			"release": true,
+			"tag_name": "v0.16.1",
+			"rendered_title": "v0.16.1 (2026-10-03)",
+			"rendered_changelog_title": "[0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)",
+			"members": [
+				"@monochange/cli",
+				"@monochange/cli-darwin-arm64",
+				"@monochange/cli-darwin-x64",
+				"@monochange/cli-linux-arm64-gnu",
+				"@monochange/cli-linux-arm64-musl",
+				"@monochange/cli-linux-x64-gnu",
+				"@monochange/cli-linux-x64-musl",
+				"@monochange/cli-win32-arm64-msvc",
+				"@monochange/cli-win32-x64-msvc",
+				"@monochange/skill",
+				"monochange",
+				"monochange_analysis",
+				"monochange_cargo",
+				"monochange_changelog",
+				"monochange_config",
+				"monochange_core",
+				"monochange_dart",
+				"monochange_deno",
+				"monochange_ecmascript",
+				"monochange_forgejo",
+				"monochange_gitea",
+				"monochange_github",
+				"monochange_gitlab",
+				"monochange_go",
+				"monochange_graph",
+				"monochange_hosting",
+				"monochange_lint",
+				"monochange_linting",
+				"monochange_npm",
+				"monochange_publish",
+				"monochange_python",
+				"monochange_semver",
+				"monochange_telemetry",
+				"monochange_test_helpers"
+			]
+		},
+		{
+			"id": "monochange_classification",
+			"kind": "package",
+			"version": "0.4.1",
+			"version_format": "namespaced",
+			"tag": true,
+			"release": true,
+			"tag_name": "monochange_classification/v0.4.1",
+			"rendered_title": "monochange_classification v0.4.1 (2026-10-03)",
+			"rendered_changelog_title": "monochange_classification [0.4.1](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.4.1) (2026-10-03)",
+			"members": [
+				"monochange_classification"
+			]
+		}
+	],
+	"released_packages": [
+		"@monochange/cli",
+		"@monochange/cli-darwin-arm64",
+		"@monochange/cli-darwin-x64",
+		"@monochange/cli-linux-arm64-gnu",
+		"@monochange/cli-linux-arm64-musl",
+		"@monochange/cli-linux-x64-gnu",
+		"@monochange/cli-linux-x64-musl",
+		"@monochange/cli-win32-arm64-msvc",
+		"@monochange/cli-win32-x64-msvc",
+		"@monochange/skill",
+		"monochange",
+		"monochange_analysis",
+		"monochange_cargo",
+		"monochange_changelog",
+		"monochange_classification",
+		"monochange_config",
+		"monochange_core",
+		"monochange_dart",
+		"monochange_deno",
+		"monochange_ecmascript",
+		"monochange_forgejo",
+		"monochange_gitea",
+		"monochange_github",
+		"monochange_gitlab",
+		"monochange_go",
+		"monochange_graph",
+		"monochange_hosting",
+		"monochange_lint",
+		"monochange_linting",
+		"monochange_npm",
+		"monochange_publish",
+		"monochange_python",
+		"monochange_semver",
+		"monochange_telemetry",
+		"monochange_test_helpers"
+	],
+	"changed_files": [
+		"Cargo.lock",
+		"Cargo.toml",
+		"changelog.md",
+		"crates/monochange/Cargo.toml",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/Cargo.toml",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/Cargo.toml",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/Cargo.toml",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_classification/Cargo.toml",
+		"crates/monochange_classification/changelog.md",
+		"crates/monochange_config/Cargo.toml",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/Cargo.toml",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/Cargo.toml",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/Cargo.toml",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/Cargo.toml",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/Cargo.toml",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/Cargo.toml",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/Cargo.toml",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/Cargo.toml",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/Cargo.toml",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_graph/Cargo.toml",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/Cargo.toml",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/Cargo.toml",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/Cargo.toml",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/Cargo.toml",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/Cargo.toml",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/Cargo.toml",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_semver/Cargo.toml",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_telemetry/Cargo.toml",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/Cargo.toml",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli/package.json",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-arm64/package.json",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-darwin-x64/package.json",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/package.json",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/package.json",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/package.json",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/package.json",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/package.json",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/package.json",
+		"packages/monochange__skill/changelog.md",
+		"packages/monochange__skill/package.json"
+	],
+	"package_publications": [
+		{
+			"package": "@monochange/cli",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.16.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-arm64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.16.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-x64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.16.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.16.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.16.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.16.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.16.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-arm64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.16.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-x64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.16.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/skill",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.16.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.16.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_analysis",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.16.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_cargo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.16.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_changelog",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.16.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_classification",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.4.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_config",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.16.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_core",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.16.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_dart",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.16.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_deno",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.16.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_ecmascript",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.16.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_forgejo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.16.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitea",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.16.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_github",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.16.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitlab",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.16.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_go",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.16.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_graph",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.16.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_hosting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.16.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_lint",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.16.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_linting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.16.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_npm",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.16.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_publish",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.16.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_python",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.16.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_semver",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.16.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_telemetry",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.16.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_test_helpers",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.16.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		}
+	],
+	"updated_changelogs": [
+		"changelog.md",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_classification/changelog.md",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__skill/changelog.md"
+	],
+	"deleted_changesets": [
+		".changeset/changelog-namespaced-release-order.md"
+	],
+	"changesets": [
+		{
+			"path": ".changeset/changelog-namespaced-release-order.md",
+			"summary": "Insert new releases above namespaced changelog headings",
+			"details": "Changelogs owned by a package or group with `version_format = \"namespaced\"` collected their releases oldest first. The built-in namespaced changelog version title leads with the owner id (`## abi [0.20.0](…) (2026-09-23)`), but monochange only recognised an earlier release when its `##` heading started with `[` or a digit. With no recognised heading, every prepared release was appended to the end of the file, while `primary` owners stayed newest first. A custom `changelog_version_title` that started with text, such as `\"SDK {{ version }} ({{ date }})\"`, had the same problem.\n\nmonochange now treats any `##` heading that contains a semantic version as a release heading, whatever text surrounds the version, and inserts the new section directly above the first one. For a namespaced group changelog, `monochange step prepare-release` now writes:\n\n**Before:**\n\n```markdown\n## abi [0.20.0](https://github.com/acme/repo/releases/tag/abi/v0.20.0) (2026-09-23)\n\n## abi [0.21.0](https://github.com/acme/repo/releases/tag/abi/v0.21.0) (2026-09-30)\n```\n\n**After:**\n\n```markdown\n## abi [0.21.0](https://github.com/acme/repo/releases/tag/abi/v0.21.0) (2026-09-30)\n\n## abi [0.20.0](https://github.com/acme/repo/releases/tag/abi/v0.20.0) (2026-09-23)\n```\n\nThe rendered section is unchanged; only where it lands in the file moves. Hand-written headings without a version, including `## Unreleased` and Keep a Changelog's `## [Unreleased]`, now stay above the new release instead of being treated as releases. A custom title must render `{{ version }}` for monochange to find earlier releases, so a date-only title is no longer recognised.\n\nExisting changelogs that already collected releases oldest first are not reordered. Move those sections once by hand; later releases then land at the top. Workarounds that switched a namespaced owner to a title starting with `[`, such as `changelog_version_title = \"[{{ version }}]({{ tag_url }}) ({{ date }})\"`, can be removed.",
+			"targets": [
+				{
+					"id": "monochange_changelog",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "c1787b29cd520556698932b8865a4c63de4d8ac4",
+						"short_sha": "c1787b2",
+						"url": "https://github.com/monochange/monochange/commit/c1787b29cd520556698932b8865a4c63de4d8ac4",
+						"authored_at": "2026-10-03T12:03:33Z",
+						"committed_at": "2026-10-03T12:03:33Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#746",
+						"title": "fix(changelog): insert releases above namespaced release headings",
+						"url": "https://github.com/monochange/monochange/pull/746",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "c1787b29cd520556698932b8865a4c63de4d8ac4",
+						"short_sha": "c1787b2",
+						"url": "https://github.com/monochange/monochange/commit/c1787b29cd520556698932b8865a4c63de4d8ac4",
+						"authored_at": "2026-10-03T12:03:33Z",
+						"committed_at": "2026-10-03T12:03:33Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#746",
+						"title": "fix(changelog): insert releases above namespaced release headings",
+						"url": "https://github.com/monochange/monochange/pull/746",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		}
+	],
+	"changelogs": [
+		{
+			"owner_id": "main",
+			"owner_kind": "group",
+			"output": "default",
+			"stream": "default",
+			"path": "changelog.md",
+			"format": "monochange",
+			"notes": {
+				"title": "[0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)",
+				"summary": [
+					"Grouped release for `main`."
+				],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Insert new releases above namespaced changelog headings\n\n_Packages:_ 🟢 _monochange_changelog_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #746](https://github.com/monochange/monochange/pull/746)\n\nChangelogs owned by a package or group with `version_format = \"namespaced\"` collected their releases oldest first. The built-in namespaced changelog version title leads with the owner id (`## abi [0.20.0](…) (2026-09-23)`), but monochange only recognised an earlier release when its `##` heading started with `[` or a digit. With no recognised heading, every prepared release was appended to the end of the file, while `primary` owners stayed newest first. A custom `changelog_version_title` that started with text, such as `\"SDK {{ version }} ({{ date }})\"`, had the same problem.\n\nmonochange now treats any `##` heading that contains a semantic version as a release heading, whatever text surrounds the version, and inserts the new section directly above the first one. For a namespaced group changelog, `monochange step prepare-release` now writes:\n\n**Before:**\n\n```markdown\n## abi [0.20.0](https://github.com/acme/repo/releases/tag/abi/v0.20.0) (2026-09-23)\n\n## abi [0.21.0](https://github.com/acme/repo/releases/tag/abi/v0.21.0) (2026-09-30)\n```\n\n**After:**\n\n```markdown\n## abi [0.21.0](https://github.com/acme/repo/releases/tag/abi/v0.21.0) (2026-09-30)\n\n## abi [0.20.0](https://github.com/acme/repo/releases/tag/abi/v0.20.0) (2026-09-23)\n```\n\nThe rendered section is unchanged; only where it lands in the file moves. Hand-written headings without a version, including `## Unreleased` and Keep a Changelog's `## [Unreleased]`, now stay above the new release instead of being treated as releases. A custom title must render `{{ version }}` for monochange to find earlier releases, so a date-only title is no longer recognised.\n\nExisting changelogs that already collected releases oldest first are not reordered. Move those sections once by hand; later releases then land at the top. Workarounds that switched a namespaced owner to a title starting with `[`, such as `changelog_version_title = \"[{{ version }}]({{ tag_url }}) ({{ date }})\"`, can be removed."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)\n\nGrouped release for `main`.\n\n### 🐛 Fixed\n\n#### Insert new releases above namespaced changelog headings\n\n_Packages:_ 🟢 _monochange_changelog_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #746](https://github.com/monochange/monochange/pull/746)\n\nChangelogs owned by a package or group with `version_format = \"namespaced\"` collected their releases oldest first. The built-in namespaced changelog version title leads with the owner id (`## abi [0.20.0](…) (2026-09-23)`), but monochange only recognised an earlier release when its `##` heading started with `[` or a digit. With no recognised heading, every prepared release was appended to the end of the file, while `primary` owners stayed newest first. A custom `changelog_version_title` that started with text, such as `\"SDK {{ version }} ({{ date }})\"`, had the same problem.\n\nmonochange now treats any `##` heading that contains a semantic version as a release heading, whatever text surrounds the version, and inserts the new section directly above the first one. For a namespaced group changelog, `monochange step prepare-release` now writes:\n\n**Before:**\n\n```markdown\n## abi [0.20.0](https://github.com/acme/repo/releases/tag/abi/v0.20.0) (2026-09-23)\n\n## abi [0.21.0](https://github.com/acme/repo/releases/tag/abi/v0.21.0) (2026-09-30)\n```\n\n**After:**\n\n```markdown\n## abi [0.21.0](https://github.com/acme/repo/releases/tag/abi/v0.21.0) (2026-09-30)\n\n## abi [0.20.0](https://github.com/acme/repo/releases/tag/abi/v0.20.0) (2026-09-23)\n```\n\nThe rendered section is unchanged; only where it lands in the file moves. Hand-written headings without a version, including `## Unreleased` and Keep a Changelog's `## [Unreleased]`, now stay above the new release instead of being treated as releases. A custom title must render `{{ version }}` for monochange to find earlier releases, so a date-only title is no longer recognised.\n\nExisting changelogs that already collected releases oldest first are not reordered. Move those sections once by hand; later releases then land at the top. Workarounds that switched a namespaced owner to a title starting with `[`, such as `changelog_version_title = \"[{{ version }}]({{ tag_url }}) ({{ date }})\"`, can be removed."
+		},
+		{
+			"owner_id": "monochange",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange` was updated to 0.16.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange` was updated to 0.16.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_analysis",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_analysis/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_analysis` was updated to 0.16.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_analysis` was updated to 0.16.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_cargo",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_cargo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_cargo` was updated to 0.16.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_cargo` was updated to 0.16.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_changelog",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_changelog/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Insert new releases above namespaced changelog headings\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #746](https://github.com/monochange/monochange/pull/746)\n\nChangelogs owned by a package or group with `version_format = \"namespaced\"` collected their releases oldest first. The built-in namespaced changelog version title leads with the owner id (`## abi [0.20.0](…) (2026-09-23)`), but monochange only recognised an earlier release when its `##` heading started with `[` or a digit. With no recognised heading, every prepared release was appended to the end of the file, while `primary` owners stayed newest first. A custom `changelog_version_title` that started with text, such as `\"SDK {{ version }} ({{ date }})\"`, had the same problem.\n\nmonochange now treats any `##` heading that contains a semantic version as a release heading, whatever text surrounds the version, and inserts the new section directly above the first one. For a namespaced group changelog, `monochange step prepare-release` now writes:\n\n**Before:**\n\n```markdown\n## abi [0.20.0](https://github.com/acme/repo/releases/tag/abi/v0.20.0) (2026-09-23)\n\n## abi [0.21.0](https://github.com/acme/repo/releases/tag/abi/v0.21.0) (2026-09-30)\n```\n\n**After:**\n\n```markdown\n## abi [0.21.0](https://github.com/acme/repo/releases/tag/abi/v0.21.0) (2026-09-30)\n\n## abi [0.20.0](https://github.com/acme/repo/releases/tag/abi/v0.20.0) (2026-09-23)\n```\n\nThe rendered section is unchanged; only where it lands in the file moves. Hand-written headings without a version, including `## Unreleased` and Keep a Changelog's `## [Unreleased]`, now stay above the new release instead of being treated as releases. A custom title must render `{{ version }}` for monochange to find earlier releases, so a date-only title is no longer recognised.\n\nExisting changelogs that already collected releases oldest first are not reordered. Move those sections once by hand; later releases then land at the top. Workarounds that switched a namespaced owner to a title starting with `[`, such as `changelog_version_title = \"[{{ version }}]({{ tag_url }}) ({{ date }})\"`, can be removed."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)\n\n### 🐛 Fixed\n\n#### Insert new releases above namespaced changelog headings\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #746](https://github.com/monochange/monochange/pull/746)\n\nChangelogs owned by a package or group with `version_format = \"namespaced\"` collected their releases oldest first. The built-in namespaced changelog version title leads with the owner id (`## abi [0.20.0](…) (2026-09-23)`), but monochange only recognised an earlier release when its `##` heading started with `[` or a digit. With no recognised heading, every prepared release was appended to the end of the file, while `primary` owners stayed newest first. A custom `changelog_version_title` that started with text, such as `\"SDK {{ version }} ({{ date }})\"`, had the same problem.\n\nmonochange now treats any `##` heading that contains a semantic version as a release heading, whatever text surrounds the version, and inserts the new section directly above the first one. For a namespaced group changelog, `monochange step prepare-release` now writes:\n\n**Before:**\n\n```markdown\n## abi [0.20.0](https://github.com/acme/repo/releases/tag/abi/v0.20.0) (2026-09-23)\n\n## abi [0.21.0](https://github.com/acme/repo/releases/tag/abi/v0.21.0) (2026-09-30)\n```\n\n**After:**\n\n```markdown\n## abi [0.21.0](https://github.com/acme/repo/releases/tag/abi/v0.21.0) (2026-09-30)\n\n## abi [0.20.0](https://github.com/acme/repo/releases/tag/abi/v0.20.0) (2026-09-23)\n```\n\nThe rendered section is unchanged; only where it lands in the file moves. Hand-written headings without a version, including `## Unreleased` and Keep a Changelog's `## [Unreleased]`, now stay above the new release instead of being treated as releases. A custom title must render `{{ version }}` for monochange to find earlier releases, so a date-only title is no longer recognised.\n\nExisting changelogs that already collected releases oldest first are not reordered. Move those sections once by hand; later releases then land at the top. Workarounds that switched a namespaced owner to a title starting with `[`, such as `changelog_version_title = \"[{{ version }}]({{ tag_url }}) ({{ date }})\"`, can be removed."
+		},
+		{
+			"owner_id": "monochange_classification",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_classification/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "monochange_classification [0.4.1](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.4.1) (2026-10-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_classification` was updated to 0.4.1.**"
+						]
+					}
+				]
+			},
+			"rendered": "## monochange_classification [0.4.1](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.4.1) (2026-10-03)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_classification` was updated to 0.4.1.**"
+		},
+		{
+			"owner_id": "monochange_config",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_config/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_config` was updated to 0.16.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_config` was updated to 0.16.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_core",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_core/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_core` was updated to 0.16.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_core` was updated to 0.16.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_dart",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_dart/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_dart` was updated to 0.16.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_dart` was updated to 0.16.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_deno",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_deno/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_deno` was updated to 0.16.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_deno` was updated to 0.16.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_ecmascript",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_ecmascript/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_ecmascript` was updated to 0.16.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_ecmascript` was updated to 0.16.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_forgejo",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_forgejo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_forgejo` was updated to 0.16.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_forgejo` was updated to 0.16.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_gitea",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_gitea/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_gitea` was updated to 0.16.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_gitea` was updated to 0.16.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_github",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_github/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_github` was updated to 0.16.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_github` was updated to 0.16.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_gitlab",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_gitlab/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_gitlab` was updated to 0.16.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_gitlab` was updated to 0.16.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_go",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_go/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_go` was updated to 0.16.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_go` was updated to 0.16.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_graph",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_graph/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_graph` was updated to 0.16.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_graph` was updated to 0.16.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_hosting",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_hosting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_hosting` was updated to 0.16.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_hosting` was updated to 0.16.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_lint",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_lint/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_lint` was updated to 0.16.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_lint` was updated to 0.16.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_linting",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_linting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_linting` was updated to 0.16.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_linting` was updated to 0.16.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_npm",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_npm/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_npm` was updated to 0.16.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_npm` was updated to 0.16.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_publish",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_publish/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_publish` was updated to 0.16.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_publish` was updated to 0.16.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_python",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_python/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_python` was updated to 0.16.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_python` was updated to 0.16.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_semver",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_semver/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_semver` was updated to 0.16.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_semver` was updated to 0.16.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_telemetry",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_telemetry/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_telemetry` was updated to 0.16.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_telemetry` was updated to 0.16.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_test_helpers",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_test_helpers/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.16.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.16.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli` was updated to 0.16.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli` was updated to 0.16.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-arm64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-darwin-arm64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.16.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.16.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-x64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-darwin-x64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.16.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.16.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-arm64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.16.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.16.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-arm64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.16.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.16.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-x64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.16.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.16.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-x64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.16.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.16.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-win32-arm64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-win32-arm64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.16.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.16.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-win32-x64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-win32-x64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.16.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.16.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/skill",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__skill/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/skill` was updated to 0.16.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/skill` was updated to 0.16.1 as part of group `main`.**"
+		}
+	],
+	"provider": {
+		"kind": "github",
+		"owner": "monochange",
+		"repo": "monochange",
+		"host": null
+	}
+}
