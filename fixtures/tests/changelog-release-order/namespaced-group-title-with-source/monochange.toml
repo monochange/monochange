@@ -1,0 +1,18 @@
+[defaults]
+package_type = "cargo"
+
+[package.core]
+path = "crates/core"
+
+[group.abi]
+packages = ["core"]
+changelog = "changelog.md"
+version_format = "namespaced"
+
+[source]
+provider = "github"
+owner = "monochange"
+repo = "release-order"
+
+[ecosystems.cargo]
+enabled = true

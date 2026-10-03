@@ -1,0 +1,19 @@
+---
+source: crates/monochange_integration_tests/tests/changelog_release_order.rs
+expression: changelog
+---
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+## [1.1.0](https://github.com/monochange/release-order/releases/tag/v1.1.0) (2026-04-06)
+
+### Features
+
+- **Add release ordering coverage.** Ships a feature so the release prepares a second changelog section.
+
+## [1.0.0](https://github.com/monochange/release-order/releases/tag/v1.0.0) (2026-04-01)
+
+### Features
+
+- Ship the first release.

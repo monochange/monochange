@@ -996,17 +996,23 @@ fn append_changelog_section(
 	Ok(content)
 }
 
+/// Returns whether `line` is the heading of an earlier release section.
+///
+/// New sections are inserted above the first release heading so a changelog
+/// reads newest first. The heading text comes from the owner's configurable
+/// changelog version title, and the built-in namespaced title leads with the
+/// owner id (`## core [1.2.3](…) (2026-04-06)`), so the text before the version
+/// says nothing about whether a heading is a release. Every planned version
+/// renders as a valid semantic version, so a level-two heading that contains
+/// one marks a release, while intro headings such as `## Unreleased` do not.
 fn is_release_heading(line: &str) -> bool {
 	let Some(heading) = line.strip_prefix("## ") else {
 		return false;
 	};
 
-	let heading = heading.trim_start();
-	heading.starts_with('[')
-		|| heading
-			.chars()
-			.next()
-			.is_some_and(|character| character.is_ascii_digit())
+	heading
+		.split(|character: char| !character.is_ascii_digit() && character != '.')
+		.any(|candidate| semver::Version::parse(candidate.trim_matches('.')).is_ok())
 }
 
 fn dedup_changelog_updates(updates: Vec<ChangelogUpdate>) -> Vec<ChangelogUpdate> {

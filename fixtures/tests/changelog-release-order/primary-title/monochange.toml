@@ -1,0 +1,15 @@
+[defaults]
+package_type = "cargo"
+changelog = "{{ path }}/changelog.md"
+
+[package.core]
+path = "crates/core"
+version_format = "primary"
+
+[source]
+provider = "github"
+owner = "monochange"
+repo = "release-order"
+
+[ecosystems.cargo]
+enabled = true

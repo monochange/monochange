@@ -1,0 +1,11 @@
+[defaults]
+package_type = "cargo"
+changelog = "{{ path }}/changelog.md"
+
+[package.core]
+path = "crates/core"
+version_format = "primary"
+changelog_version_title = "Release v{{ version }} ({{ date }})"
+
+[ecosystems.cargo]
+enabled = true
