@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.16.1](https://github.com/monochange/monochange/releases/tag/v0.16.1) (2026-10-03)
+
+### Changed
+
+- **No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.16.1 as part of group `main`.**
+
 ## monochange_test_helpers [0.0.1](https://github.com/ifiokjr/monochange/releases/tag/monochange_test_helpers/v0.0.1) (2026-04-13)
 
 ### Fixes

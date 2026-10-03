@@ -2,6 +2,12 @@
 
 All notable changes to this crate are documented here. See [keep a changelog](https://keepachangelog.com/en/1.1.0/) for the format.
 
+## monochange_classification [0.4.1](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.4.1) (2026-10-03)
+
+### Changed
+
+- **No package-specific changes were recorded; `monochange_classification` was updated to 0.4.1.**
+
 ## monochange_classification [0.2.0](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.2.0) (2026-09-19)
 
 ### 💥 Breaking Change
