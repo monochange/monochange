@@ -424,6 +424,43 @@ fn build_changelog_updates_reports_package_and_group_append_errors() {
 }
 
 #[test]
+fn release_headings_are_level_two_headings_that_name_a_version() {
+	let cases = [
+		// Built-in primary titles, with and without a source link.
+		(
+			"## [1.2.3](https://github.com/monochange/monochange/releases/tag/v1.2.3) (2026-04-06)",
+			true,
+		),
+		("## 1.2.3 (2026-04-06)", true),
+		// Built-in namespaced titles lead with the owner id.
+		(
+			"## core [1.2.3](https://github.com/monochange/monochange/releases/tag/core/v1.2.3) (2026-04-06)",
+			true,
+		),
+		("## core 1.2.3 (2026-04-06)", true),
+		// Custom `changelog_version_title` templates.
+		("## Release v1.2.3 (2026-04-06)", true),
+		("## @scope/core@1.2.3", true),
+		("## 1.2.2 -> 1.2.3", true),
+		("## core 2.0.0-rc.1 (2026-04-06)", true),
+		// Intro and non-release headings.
+		("## Unreleased", false),
+		("## [Unreleased]", false),
+		("## Installation", false),
+		("## 2026-04-06", false),
+		("## Version 1.2", false),
+		// Other heading levels and plain lines.
+		("# 1.2.3", false),
+		("### 1.2.3", false),
+		("- 1.2.3", false),
+	];
+
+	for (line, expected) in cases {
+		assert_eq!(is_release_heading(line), expected, "{line}");
+	}
+}
+
+#[test]
 fn changelog_file_helpers_append_and_deduplicate_updates() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let changelog_path = tempdir.path().join("CHANGELOG.md");

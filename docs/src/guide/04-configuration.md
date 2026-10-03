@@ -1012,6 +1012,10 @@ release_title = "SDK {{ version }} ({{ date }})" # override for one group
 
 Titles are rendered once, when the release is prepared. The rendered release title is persisted in the release record, so publishing the provider release from git history (`monochange step publish-release --from-ref HEAD`) replays the exact prepare-time title and date; records written before schema v0.9 carry no persisted title and fall back to the built-in default for the target's version format, dated from the record.
 
+Changelog files read newest first. When a release is prepared, monochange inserts the new section directly above the first `##` heading in the file that contains a semantic version. Any text may surround the version, so the built-in primary heading (`## [1.2.3](…) (2026-04-06)`), the namespaced heading that leads with the owner id (`## core [1.2.3](…) (2026-04-06)`), and a custom heading such as `## Release v1.2.3` all mark an earlier release. Everything above that heading stays in place, including the file's title, its introduction, and `##` headings without a version such as `## Unreleased`. A file with no release heading yet gets the new section after its existing content, and a missing or empty file starts with the changelog's `initial_header`.
+
+Two rules follow from this. A custom `changelog_version_title` must render `{{ version }}`, otherwise monochange cannot find earlier releases and appends each new one to the end of the file. An introduction must not put a version number in a `##` heading, because monochange would treat that heading as the newest release; use a `###` heading there instead.
+
 ## GitHub release settings
 
 Use `[source]` plus `[source.releases]` when you want command steps such as `PublishRelease` to derive repository release payloads from the prepared release. GitHub remains the default provider when `provider` is omitted. Add `[source.releases]` to restrict tag and publish operations to commits reachable from allowed release branches; `branches` accepts multiple names and glob patterns such as `release/*`.

@@ -1,0 +1,4 @@
+[package]
+name = "release-order-core"
+version = "0.20.0"
+edition = "2021"
