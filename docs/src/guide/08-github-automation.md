@@ -405,6 +405,27 @@ After publishing, verify npm provenance from the package page or with npm's prov
 
 <!-- {/githubAutomationDogfoodNotes} -->
 
+## Bot-managed release pull requests
+
+Release pull requests created with `GITHUB_TOKEN` do not trigger your workflows, so the release PR never runs its own checks. The usual workaround is a personal access token, which is user-bound, needs workflow-scoped permissions, and produces commits that are not verified.
+
+Install the monochange GitHub App instead. monochange keeps the app credentials; your workflow only decides to use the hosted backend:
+
+```toml
+[cli.release]
+steps = [
+	{ type = "PrepareRelease", name = "plan release", allow_empty_changesets = true },
+	{ type = "CommitRelease", name = "create release commit", commit_backend = "hosted" },
+	{ type = "OpenReleaseRequest", name = "create the pr", backend = "hosted" },
+]
+```
+
+The workflow still computes the release locally. For the commit and the pull request, the CLI calls the monochange app, which commits through the app installation: the commit is created by the monochange bot, is verified by GitHub, triggers your workflows, and satisfies verified-commit branch protection.
+
+Grant `id-token: write` in the workflow `permissions` so the CLI can authenticate with a GitHub Actions OIDC token. On CI systems without OIDC, store a monochange API token as the `MONOCHANGE_TOKEN` secret instead. No personal token, deploy key, or commit-identity configuration is required.
+
+Repositories must install the monochange GitHub App so the app can act on them; the dashboard at [monochange.dev](https://monochange.dev) lists connected repositories after the install.
+
 ## Supported providers
 
 The `--provider` flag supports three source providers:

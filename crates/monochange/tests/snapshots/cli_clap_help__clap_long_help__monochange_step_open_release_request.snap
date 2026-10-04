@@ -7,7 +7,7 @@ Command: monochange step open-release-request
 
 Run the built-in open-release-request release workflow step
 
-[1m[97mUsage:[0m monochange step open-release-request [--dry-run] [--format <FORMAT>] [--no-verify] [--stage-all]
+[1m[97mUsage:[0m monochange step open-release-request [--dry-run] [--format <FORMAT>] [--no-verify] [--stage-all] [--backend <BACKEND>] [--hosted-auth <HOSTED_AUTH>] [--hosted-url <HOSTED_URL>]
 
 [1m[96mOptions:[0m
   [93m-h[0m, [93m--help[0m
@@ -28,6 +28,17 @@ Run the built-in open-release-request release workflow step
 
       [93m--stage-all[0m
           Stage every workspace change instead of release files only
+
+      [93m--backend[0m[95m [0m[95m<BACKEND>[0m
+          Backend that publishes the release request: local credentials or the hosted monochange app
+
+          [possible values: local, hosted]
+
+      [93m--hosted-auth[0m[95m [0m[95m<HOSTED_AUTH>[0m
+          Authentication the hosted backend uses: GitHub Actions OIDC or a monochange token
+
+      [93m--hosted-url[0m[95m [0m[95m<HOSTED_URL>[0m
+          Base URL of the hosted monochange app
 
 [1m[96mGlobal Options:[0m
   [93m-q[0m, [93m--quiet[0m

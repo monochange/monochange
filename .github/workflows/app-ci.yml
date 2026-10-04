@@ -1,0 +1,74 @@
+name: "app-ci"
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "app/**"
+      - ".github/workflows/app-ci.yml"
+  pull_request:
+    paths:
+      - "app/**"
+      - ".github/workflows/app-ci.yml"
+  workflow_dispatch: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    timeout-minutes: 40
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: install rust toolchain
+        uses: dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d # stable
+        with:
+          toolchain: nightly
+          components: clippy, rustfmt
+
+      - name: install cargo-binstall
+        uses: taiki-e/install-action@9983c65e42da123ff25d1f78505eb6de315aa172 # v2.87.20
+        with:
+          tool: cargo-binstall
+
+      - name: install cargo-leptos
+        run: cargo binstall cargo-leptos@0.3.6 --no-confirm
+
+      - name: add wasm target
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: cache cargo build
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: app
+
+      - name: cargo fmt
+        run: cargo fmt --all -- --check
+
+      - name: cargo clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: cargo test
+        run: cargo test --workspace
+        env:
+          DATABASE_URL: "sqlite::memory:"
+          JWT_SECRET: "ci-test-jwt-secret-key-123"
+          GITHUB_CLIENT_ID: "ci-test-client-id"
+          GITHUB_CLIENT_SECRET: "ci-test-client-secret"
+
+      - name: cargo leptos build
+        run: cargo leptos build

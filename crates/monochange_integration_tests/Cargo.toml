@@ -8,6 +8,7 @@ repository.workspace = true
 description = "Internal integration tests for monochange crates"
 
 [dev-dependencies]
+httpmock = { workspace = true, default-features = true }
 insta = { workspace = true, features = ["redactions"], default-features = true }
 insta-cmd = { workspace = true, default-features = true }
 jsonschema = { workspace = true, default-features = true }

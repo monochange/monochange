@@ -7,7 +7,7 @@ Command: monochange step commit-release
 
 Run the built-in commit-release release workflow step
 
-[1m[97mUsage:[0m monochange step commit-release [--dry-run] [--no-verify] [--update-release-json] [--stage-all]
+[1m[97mUsage:[0m monochange step commit-release [--dry-run] [--no-verify] [--update-release-json] [--stage-all] [--commit-backend <COMMIT_BACKEND>] [--hosted-auth <HOSTED_AUTH>] [--hosted-url <HOSTED_URL>] [--oidc-audience <OIDC_AUDIENCE>]
 
 [1m[96mOptions:[0m
   [93m-h[0m, [93m--help[0m
@@ -26,6 +26,22 @@ Run the built-in commit-release release workflow step
 
       [93m--stage-all[0m
           Stage every workspace change instead of release files only
+
+      [93m--commit-backend[0m[95m [0m[95m<COMMIT_BACKEND>[0m
+          Backend that writes the release commit: local git or the hosted monochange app
+
+          [possible values: local, hosted]
+
+      [93m--hosted-auth[0m[95m [0m[95m<HOSTED_AUTH>[0m
+          Authentication the hosted backend uses: GitHub Actions OIDC or a monochange token
+
+          [possible values: auto, oidc, token]
+
+      [93m--hosted-url[0m[95m [0m[95m<HOSTED_URL>[0m
+          Base URL of the hosted monochange app
+
+      [93m--oidc-audience[0m[95m [0m[95m<OIDC_AUDIENCE>[0m
+          Audience required in the GitHub Actions OIDC token for hosted commits
 
 [1m[96mGlobal Options:[0m
   [93m-q[0m, [93m--quiet[0m

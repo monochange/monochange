@@ -1796,3 +1796,876 @@ fn manifest_from_record_synthesis_survives_invalid_created_at() {
 		"synthesized title should keep the tag-style version with a date: {title}"
 	);
 }
+
+/// Run a git command inside a test repository root.
+fn hosted_test_git(root: &std::path::Path, arguments: &[&str]) -> String {
+	let output = std::process::Command::new("git")
+		.args(arguments)
+		.current_dir(root)
+		.output()
+		.unwrap_or_else(|error| panic!("git {arguments:?}: {error}"));
+	assert!(
+		output.status.success(),
+		"git {:?} failed: {}",
+		arguments,
+		String::from_utf8_lossy(&output.stderr)
+	);
+	String::from_utf8_lossy(&output.stdout).trim().to_string()
+}
+
+/// Create a temporary git repository with one commit on `main`.
+fn git_repo_with_commit() -> tempfile::TempDir {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	hosted_test_git(root, &["init", "-b", "main"]);
+	hosted_test_git(root, &["config", "user.name", "monochange tests"]);
+	hosted_test_git(root, &["config", "user.email", "monochange@example.com"]);
+	hosted_test_git(root, &["config", "commit.gpgsign", "false"]);
+	fs::write(root.join("readme.md"), "readme")
+		.unwrap_or_else(|error| panic!("write readme: {error}"));
+	hosted_test_git(root, &["add", "readme.md"]);
+	hosted_test_git(root, &["commit", "-m", "initial"]);
+	tempdir
+}
+
+// ── Hosted release commit backend tests ──
+
+#[test]
+fn resolve_hosted_commit_options_defaults_to_public_app() {
+	let options =
+		resolve_hosted_commit_options(monochange_core::HostedCommitAuth::Auto, None, None);
+	assert_eq!(options.url, "https://monochange.dev");
+	assert_eq!(options.oidc_audience, "monochange.dev");
+	assert_eq!(options.auth, monochange_core::HostedCommitAuth::Auto);
+}
+
+#[test]
+fn resolve_hosted_commit_options_strips_trailing_slashes() {
+	let options = resolve_hosted_commit_options(
+		monochange_core::HostedCommitAuth::Token,
+		Some("https://app.example.com/"),
+		None,
+	);
+	assert_eq!(options.url, "https://app.example.com");
+	assert_eq!(options.oidc_audience, "app.example.com");
+}
+
+#[test]
+fn resolve_hosted_commit_options_honors_explicit_audience() {
+	let options = resolve_hosted_commit_options(
+		monochange_core::HostedCommitAuth::Oidc,
+		Some("https://app.example.com"),
+		Some("custom-audience"),
+	);
+	assert_eq!(options.oidc_audience, "custom-audience");
+}
+
+#[test]
+fn hosted_oidc_audience_ignores_scheme_and_trailing_slash() {
+	assert_eq!(
+		hosted_oidc_audience("https://monochange.dev"),
+		"monochange.dev"
+	);
+	assert_eq!(
+		hosted_oidc_audience("http://localhost:3000/"),
+		"localhost:3000"
+	);
+}
+
+#[test]
+fn hosted_commit_file_reads_content_and_marks_deletions() {
+	let root = tempfile::tempdir().expect("tempdir");
+	fs::write(root.path().join("changelog.md"), "notes").expect("write changelog");
+
+	let present = hosted_commit_file(root.path(), std::path::Path::new("changelog.md"))
+		.unwrap_or_else(|error| panic!("read present file: {error}"));
+	assert_eq!(present.path, "changelog.md");
+	assert_eq!(present.content.as_deref(), Some("notes"));
+
+	let deleted = hosted_commit_file(root.path(), std::path::Path::new(".changeset/old.md"))
+		.unwrap_or_else(|error| panic!("read missing file: {error}"));
+	assert_eq!(deleted.path, ".changeset/old.md");
+	assert!(deleted.content.is_none());
+}
+
+#[test]
+fn build_hosted_commit_request_for_github_reads_environment_and_head() {
+	let root = git_repo_with_commit();
+
+	let prepared = PreparedReleaseCommit {
+		message: CommitMessage {
+			subject: "chore(release): prepare release".to_string(),
+			body: Some("release body".to_string()),
+		},
+		tracked_paths: vec![std::path::PathBuf::from("changelog.md")],
+	};
+	fs::write(root.path().join("changelog.md"), "notes").expect("write changelog");
+
+	let request = crate::tests::block_on_in_context(build_hosted_commit_request_for_github(
+		root.path(),
+		&prepared,
+		false,
+		"monochange/monochange",
+		Some("monochange/release/release"),
+		None,
+	))
+	.unwrap_or_else(|error| panic!("build hosted commit request: {error}"));
+
+	assert_eq!(request.provider, "github");
+	assert_eq!(request.owner, "monochange");
+	assert_eq!(request.repository, "monochange");
+	assert_eq!(request.branch, "monochange/release/release");
+	assert_eq!(request.subject, "chore(release): prepare release");
+	assert_eq!(request.body, "release body");
+	assert_eq!(request.files.len(), 1);
+	assert_eq!(request.files[0].path, "changelog.md");
+	assert_eq!(request.files[0].content.as_deref(), Some("notes"));
+	assert!(!request.base_commit.is_empty());
+}
+
+#[test]
+fn build_hosted_commit_request_for_github_rejects_malformed_repository() {
+	let root = git_repo_with_commit();
+	let prepared = PreparedReleaseCommit {
+		message: CommitMessage {
+			subject: "subject".to_string(),
+			body: None,
+		},
+		tracked_paths: Vec::new(),
+	};
+	let error = crate::tests::block_on_in_context(build_hosted_commit_request_for_github(
+		root.path(),
+		&prepared,
+		true,
+		"monochange-only",
+		None,
+		None,
+	))
+	.expect_err("repository without slash must fail");
+	assert!(
+		error.to_string().contains("owner/repo"),
+		"error should explain the required format: {error}"
+	);
+}
+
+#[test]
+fn build_hosted_commit_request_for_github_falls_back_to_current_branch() {
+	let root = git_repo_with_commit();
+	fs::write(root.path().join("changelog.md"), "notes").expect("write changelog");
+	let prepared = PreparedReleaseCommit {
+		message: CommitMessage {
+			subject: "subject".to_string(),
+			body: None,
+		},
+		tracked_paths: vec![std::path::PathBuf::from("changelog.md")],
+	};
+	let request = crate::tests::block_on_in_context(build_hosted_commit_request_for_github(
+		root.path(),
+		&prepared,
+		true,
+		"monochange/monochange",
+		None,
+		None,
+	))
+	.unwrap_or_else(|error| panic!("build hosted commit request: {error}"));
+	assert!(
+		!request.branch.is_empty() && request.branch != "HEAD",
+		"branch should fall back to the current git branch: {}",
+		request.branch
+	);
+}
+
+#[test]
+fn hosted_commit_idempotency_key_needs_run_environment() {
+	// Without GitHub Actions run variables there is no stable retry key.
+	assert!(hosted_commit_idempotency_key().is_none());
+}
+
+#[test]
+fn release_backend_parses_from_step_input_strings() {
+	assert_eq!(
+		"local".parse::<monochange_core::ReleaseBackend>().unwrap(),
+		monochange_core::ReleaseBackend::Local
+	);
+	assert_eq!(
+		"hosted".parse::<monochange_core::ReleaseBackend>().unwrap(),
+		monochange_core::ReleaseBackend::Hosted
+	);
+	assert!("deploy".parse::<monochange_core::ReleaseBackend>().is_err());
+
+	assert_eq!(
+		"auto".parse::<monochange_core::HostedCommitAuth>().unwrap(),
+		monochange_core::HostedCommitAuth::Auto
+	);
+	assert_eq!(
+		"oidc".parse::<monochange_core::HostedCommitAuth>().unwrap(),
+		monochange_core::HostedCommitAuth::Oidc
+	);
+	assert_eq!(
+		"token"
+			.parse::<monochange_core::HostedCommitAuth>()
+			.unwrap(),
+		monochange_core::HostedCommitAuth::Token
+	);
+	assert!(
+		"password"
+			.parse::<monochange_core::HostedCommitAuth>()
+			.is_err()
+	);
+}
+
+// ── Hosted release commit network and auth tests ──
+
+use httpmock::MockServer;
+use monochange_core::HostedCommitFile;
+
+use crate::tests::TEST_ENV_LOCK;
+
+fn hosted_request_fixture() -> HostedCommitRequest {
+	HostedCommitRequest {
+		provider: "github".to_string(),
+		owner: "monochange".to_string(),
+		repository: "monochange".to_string(),
+		branch: "monochange/release/release".to_string(),
+		base_commit: "abc123".to_string(),
+		subject: "chore(release): prepare release".to_string(),
+		body: String::new(),
+		files: vec![HostedCommitFile {
+			path: "changelog.md".to_string(),
+			content: Some("notes".to_string()),
+		}],
+		dry_run: false,
+		idempotency_key: Some("monochange/monochange:1:1:CommitRelease".to_string()),
+	}
+}
+
+#[tokio::test]
+async fn send_hosted_commit_request_parses_success_response() {
+	let server = MockServer::start();
+	let mock = server.mock(|when, then| {
+		when.method(httpmock::Method::POST)
+			.path("/api/release-commits")
+			.header("Authorization", "Bearer monochange-token");
+		then.status(200).json_body(serde_json::json!({
+			"commit": "def456",
+			"verified": true,
+			"status": "completed",
+		}));
+	});
+	let options = resolve_hosted_commit_options(
+		monochange_core::HostedCommitAuth::Token,
+		Some(&server.base_url()),
+		None,
+	);
+	let response =
+		send_hosted_commit_request(&hosted_request_fixture(), &options, "monochange-token")
+			.await
+			.unwrap_or_else(|error| panic!("send hosted commit request: {error}"));
+	assert_eq!(response.commit.as_deref(), Some("def456"));
+	assert!(response.verified);
+	assert_eq!(response.status.as_deref(), Some("completed"));
+	mock.assert();
+}
+
+#[tokio::test]
+async fn send_hosted_commit_request_reports_http_errors() {
+	let server = MockServer::start();
+	server.mock(|when, then| {
+		when.method(httpmock::Method::POST)
+			.path("/api/release-commits");
+		then.status(503).body("app not configured");
+	});
+	let options = resolve_hosted_commit_options(
+		monochange_core::HostedCommitAuth::Token,
+		Some(&server.base_url()),
+		None,
+	);
+	let error = send_hosted_commit_request(&hosted_request_fixture(), &options, "monochange-token")
+		.await
+		.expect_err("server error must fail");
+	assert!(
+		error.to_string().contains("503") && error.to_string().contains("app not configured"),
+		"error should include status and body: {error}"
+	);
+}
+
+#[tokio::test]
+async fn send_hosted_commit_request_rejects_invalid_json() {
+	let server = MockServer::start();
+	server.mock(|when, then| {
+		when.method(httpmock::Method::POST)
+			.path("/api/release-commits");
+		then.status(200).body("<html>not json</html>");
+	});
+	let options = resolve_hosted_commit_options(
+		monochange_core::HostedCommitAuth::Token,
+		Some(&server.base_url()),
+		None,
+	);
+	let error = send_hosted_commit_request(&hosted_request_fixture(), &options, "monochange-token")
+		.await
+		.expect_err("invalid JSON must fail");
+	assert!(
+		error.to_string().contains("invalid JSON"),
+		"error should explain the response was invalid JSON: {error}"
+	);
+}
+
+#[test]
+fn build_hosted_commit_request_requires_github_repository_environment() {
+	let root = git_repo_with_commit();
+	let prepared = PreparedReleaseCommit {
+		message: CommitMessage {
+			subject: "subject".to_string(),
+			body: None,
+		},
+		tracked_paths: Vec::new(),
+	};
+	let _env_lock = TEST_ENV_LOCK
+		.lock()
+		.unwrap_or_else(|error| panic!("test env lock poisoned: {error}"));
+	crate::tests::block_on_in_context(temp_env::async_with_vars(
+		[("GITHUB_REPOSITORY", None::<&str>)],
+		async {
+			let error = build_hosted_commit_request(root.path(), &prepared, true)
+				.await
+				.expect_err("missing GITHUB_REPOSITORY must fail");
+			assert!(
+				error.to_string().contains("GITHUB_REPOSITORY"),
+				"error should name the missing env: {error}"
+			);
+		},
+	));
+}
+
+// ── Hosted release auth tests (lock-protected env vars only) ──
+
+fn with_test_env_lock<T>(action: impl FnOnce() -> T) -> T {
+	let _env_lock = TEST_ENV_LOCK
+		.lock()
+		.unwrap_or_else(|error| panic!("test env lock poisoned: {error}"));
+	action()
+}
+
+#[test]
+fn hosted_bearer_token_reads_monochange_token_secret() {
+	with_test_env_lock(|| {
+		crate::tests::block_on_in_context(temp_env::async_with_vars(
+			[
+				("MONOCHANGE_TOKEN", Some("monochange-token")),
+				("ACTIONS_ID_TOKEN_REQUEST_URL", None::<&str>),
+			],
+			async {
+				let options = resolve_hosted_commit_options(
+					monochange_core::HostedCommitAuth::Token,
+					None,
+					None,
+				);
+				let token = hosted_commit_bearer_token(&options)
+					.await
+					.unwrap_or_else(|error| panic!("bearer token: {error}"));
+				assert_eq!(token, "monochange-token");
+			},
+		));
+	});
+}
+
+#[test]
+fn hosted_bearer_token_auto_falls_back_without_oidc_environment() {
+	with_test_env_lock(|| {
+		crate::tests::block_on_in_context(temp_env::async_with_vars(
+			[
+				("MONOCHANGE_TOKEN", Some("monochange-token")),
+				("ACTIONS_ID_TOKEN_REQUEST_URL", None::<&str>),
+			],
+			async {
+				let options = resolve_hosted_commit_options(
+					monochange_core::HostedCommitAuth::Auto,
+					None,
+					None,
+				);
+				let token = hosted_commit_bearer_token(&options)
+					.await
+					.unwrap_or_else(|error| panic!("bearer token: {error}"));
+				assert_eq!(token, "monochange-token");
+			},
+		));
+	});
+}
+
+#[test]
+fn hosted_bearer_token_errors_without_any_credentials() {
+	with_test_env_lock(|| {
+		crate::tests::block_on_in_context(temp_env::async_with_vars(
+			[
+				("MONOCHANGE_TOKEN", None::<&str>),
+				("ACTIONS_ID_TOKEN_REQUEST_URL", None::<&str>),
+			],
+			async {
+				let options = resolve_hosted_commit_options(
+					monochange_core::HostedCommitAuth::Token,
+					None,
+					None,
+				);
+				let error = hosted_commit_bearer_token(&options)
+					.await
+					.expect_err("missing credentials must fail");
+				assert!(
+					error.to_string().contains("MONOCHANGE_TOKEN"),
+					"error should name the missing secret: {error}"
+				);
+			},
+		));
+	});
+}
+
+#[test]
+fn hosted_oidc_token_requests_configured_audience() {
+	let server = MockServer::start();
+	let mock = server.mock(|when, then| {
+		when.method(httpmock::Method::GET)
+			.path("/oidc")
+			.query_param("audience", "monochange.dev")
+			.header("Authorization", "Bearer runner-token");
+		then.status(200)
+			.json_body(serde_json::json!({ "value": "oidc-jwt" }));
+	});
+	with_test_env_lock(|| {
+		crate::tests::block_on_in_context(temp_env::async_with_vars(
+			[
+				(
+					"ACTIONS_ID_TOKEN_REQUEST_URL",
+					Some(server.url("/oidc").as_str()),
+				),
+				("ACTIONS_ID_TOKEN_REQUEST_TOKEN", Some("runner-token")),
+				("MONOCHANGE_TOKEN", None::<&str>),
+			],
+			async {
+				let options = resolve_hosted_commit_options(
+					monochange_core::HostedCommitAuth::Auto,
+					None,
+					None,
+				);
+				let token = hosted_commit_bearer_token(&options)
+					.await
+					.unwrap_or_else(|error| panic!("bearer token: {error}"));
+				assert_eq!(token, "oidc-jwt");
+			},
+		));
+	});
+	mock.assert();
+}
+
+#[test]
+fn hosted_oidc_token_errors_without_runner_environment() {
+	with_test_env_lock(|| {
+		crate::tests::block_on_in_context(temp_env::async_with_vars(
+			[
+				("ACTIONS_ID_TOKEN_REQUEST_URL", None::<&str>),
+				("ACTIONS_ID_TOKEN_REQUEST_TOKEN", None::<&str>),
+			],
+			async {
+				let options = resolve_hosted_commit_options(
+					monochange_core::HostedCommitAuth::Oidc,
+					None,
+					None,
+				);
+				let error = hosted_commit_bearer_token(&options)
+					.await
+					.expect_err("oidc mode without runner env must fail");
+				assert!(
+					error.to_string().contains("ACTIONS_ID_TOKEN_REQUEST_URL"),
+					"error should name the missing env: {error}"
+				);
+			},
+		));
+	});
+}
+
+#[test]
+fn hosted_oidc_token_reports_error_statuses() {
+	let server = MockServer::start();
+	server.mock(|when, then| {
+		when.method(httpmock::Method::GET).path("/oidc");
+		then.status(403);
+	});
+	with_test_env_lock(|| {
+		crate::tests::block_on_in_context(temp_env::async_with_vars(
+			[
+				(
+					"ACTIONS_ID_TOKEN_REQUEST_URL",
+					Some(server.url("/oidc").as_str()),
+				),
+				("ACTIONS_ID_TOKEN_REQUEST_TOKEN", Some("runner-token")),
+			],
+			async {
+				let options = resolve_hosted_commit_options(
+					monochange_core::HostedCommitAuth::Oidc,
+					None,
+					None,
+				);
+				let error = hosted_commit_bearer_token(&options)
+					.await
+					.expect_err("oidc endpoint error must fail");
+				assert!(
+					error.to_string().contains("403"),
+					"error should include the status: {error}"
+				);
+			},
+		));
+	});
+}
+
+#[test]
+fn send_hosted_commit_request_reports_connection_failures() {
+	let options = resolve_hosted_commit_options(
+		monochange_core::HostedCommitAuth::Token,
+		// Port 9 (discard) on localhost refuses connections without a listener.
+		Some("http://127.0.0.1:9"),
+		None,
+	);
+	let error = crate::tests::block_on_in_context(send_hosted_commit_request(
+		&hosted_request_fixture(),
+		&options,
+		"monochange-token",
+	))
+	.expect_err("unreachable host must fail");
+	assert!(
+		error
+			.to_string()
+			.contains("hosted CommitRelease request failed"),
+		"error should explain the request failure: {error}"
+	);
+}
+
+#[test]
+fn hosted_commit_file_reports_unreadable_paths() {
+	let root = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	// A directory cannot be read as a file, so the read must fail loudly.
+	std::fs::create_dir(root.path().join("not-a-file.md"))
+		.unwrap_or_else(|error| panic!("create dir: {error}"));
+	let error = hosted_commit_file(root.path(), std::path::Path::new("not-a-file.md"))
+		.expect_err("directory read must fail");
+	assert!(
+		error.to_string().contains("read hosted commit file"),
+		"error should name the unreadable path: {error}"
+	);
+}
+
+#[test]
+fn hosted_oidc_token_errors_without_request_token() {
+	with_test_env_lock(|| {
+		crate::tests::block_on_in_context(temp_env::async_with_vars(
+			[
+				(
+					"ACTIONS_ID_TOKEN_REQUEST_URL",
+					Some("http://127.0.0.1:9/oidc"),
+				),
+				("ACTIONS_ID_TOKEN_REQUEST_TOKEN", None::<&str>),
+			],
+			async {
+				let options = resolve_hosted_commit_options(
+					monochange_core::HostedCommitAuth::Oidc,
+					None,
+					None,
+				);
+				let error = hosted_commit_bearer_token(&options)
+					.await
+					.expect_err("oidc mode without the request token must fail");
+				assert!(
+					error.to_string().contains("ACTIONS_ID_TOKEN_REQUEST_TOKEN"),
+					"error should name the missing env: {error}"
+				);
+			},
+		));
+	});
+}
+
+#[test]
+fn hosted_oidc_token_reports_connection_failures() {
+	with_test_env_lock(|| {
+		crate::tests::block_on_in_context(temp_env::async_with_vars(
+			[
+				(
+					"ACTIONS_ID_TOKEN_REQUEST_URL",
+					Some("http://127.0.0.1:9/oidc"),
+				),
+				("ACTIONS_ID_TOKEN_REQUEST_TOKEN", Some("runner-token")),
+			],
+			async {
+				let options = resolve_hosted_commit_options(
+					monochange_core::HostedCommitAuth::Oidc,
+					None,
+					None,
+				);
+				let error = hosted_commit_bearer_token(&options)
+					.await
+					.expect_err("unreachable oidc endpoint must fail");
+				assert!(
+					error.to_string().contains("OIDC token request failed"),
+					"error should explain the oidc request failure: {error}"
+				);
+			},
+		));
+	});
+}
+
+#[test]
+fn hosted_oidc_token_rejects_invalid_payloads() {
+	let server = MockServer::start();
+	server.mock(|when, then| {
+		when.method(httpmock::Method::GET).path("/oidc");
+		then.status(200).body("<html>not json</html>");
+	});
+	with_test_env_lock(|| {
+		crate::tests::block_on_in_context(temp_env::async_with_vars(
+			[
+				(
+					"ACTIONS_ID_TOKEN_REQUEST_URL",
+					Some(server.url("/oidc").as_str()),
+				),
+				("ACTIONS_ID_TOKEN_REQUEST_TOKEN", Some("runner-token")),
+			],
+			async {
+				let options = resolve_hosted_commit_options(
+					monochange_core::HostedCommitAuth::Oidc,
+					None,
+					None,
+				);
+				let error = hosted_commit_bearer_token(&options)
+					.await
+					.expect_err("non-json oidc payload must fail");
+				assert!(
+					error
+						.to_string()
+						.contains("OIDC token response was invalid"),
+					"error should explain the invalid payload: {error}"
+				);
+			},
+		));
+	});
+}
+
+// ── Hosted release request endpoint tests ──
+
+fn hosted_change_request_fixture() -> SourceChangeRequest {
+	SourceChangeRequest {
+		provider: monochange_core::SourceProvider::GitHub,
+		repository: "acme/actions".to_string(),
+		owner: "acme".to_string(),
+		repo: "actions".to_string(),
+		base_branch: "main".to_string(),
+		head_branch: "monochange/release/release".to_string(),
+		title: "chore(release): prepare release".to_string(),
+		body: "## Prepared release".to_string(),
+		labels: vec!["release".to_string()],
+		auto_merge: true,
+		commit_message: CommitMessage {
+			subject: "chore(release): prepare release".to_string(),
+			body: None,
+		},
+		body_truncation: None,
+	}
+}
+
+fn hosted_request_options(server: &MockServer) -> HostedCommitOptions {
+	resolve_hosted_commit_options(
+		monochange_core::HostedCommitAuth::Token,
+		Some(&server.base_url()),
+		None,
+	)
+}
+
+#[test]
+fn hosted_release_request_result_reports_created_pull_requests() {
+	let server = MockServer::start();
+	let mock = server.mock(|when, then| {
+		when.method(httpmock::Method::POST)
+			.path("/api/release-requests")
+			.header("Authorization", "Bearer monochange-token")
+			.body_includes("\"title\":\"chore(release): prepare release\"")
+			.body_includes("\"labels\":[\"release\"]");
+		then.status(200).json_body(serde_json::json!({
+			"number": 42,
+			"operation": "created",
+			"url": "https://github.com/acme/actions/pull/42",
+		}));
+	});
+	with_test_env_lock(|| {
+		crate::tests::block_on_in_context(temp_env::async_with_vars(
+			[
+				("MONOCHANGE_TOKEN", Some("monochange-token")),
+				("ACTIONS_ID_TOKEN_REQUEST_URL", None::<&str>),
+			],
+			async {
+				let options = hosted_request_options(&server);
+				let result = hosted_release_request_result(
+					false,
+					&options,
+					&hosted_change_request_fixture(),
+					&[std::path::PathBuf::from("crates/core/CHANGELOG.md")],
+				)
+				.await
+				.unwrap_or_else(|error| panic!("hosted release request: {error}"));
+				assert_eq!(
+					result,
+					"acme/actions #42 (created) via monochange app".to_string()
+				);
+			},
+		));
+	});
+	mock.assert();
+}
+
+#[test]
+fn hosted_release_request_result_reports_missing_outcome_fields() {
+	let server = MockServer::start();
+	server.mock(|when, then| {
+		when.method(httpmock::Method::POST)
+			.path("/api/release-requests");
+		then.status(200).json_body(serde_json::json!({
+			"head_branch": "monochange/release/release",
+		}));
+	});
+	with_test_env_lock(|| {
+		crate::tests::block_on_in_context(temp_env::async_with_vars(
+			[
+				("MONOCHANGE_TOKEN", Some("monochange-token")),
+				("ACTIONS_ID_TOKEN_REQUEST_URL", None::<&str>),
+			],
+			async {
+				let options = hosted_request_options(&server);
+				let result = hosted_release_request_result(
+					false,
+					&options,
+					&hosted_change_request_fixture(),
+					&[],
+				)
+				.await
+				.unwrap_or_else(|error| panic!("hosted release request: {error}"));
+				assert_eq!(
+					result,
+					"acme/actions (no pull request) via monochange app".to_string()
+				);
+			},
+		));
+	});
+}
+
+#[test]
+fn hosted_release_request_result_reports_http_errors() {
+	let server = MockServer::start();
+	server.mock(|when, then| {
+		when.method(httpmock::Method::POST)
+			.path("/api/release-requests");
+		then.status(503).body("app not configured");
+	});
+	with_test_env_lock(|| {
+		crate::tests::block_on_in_context(temp_env::async_with_vars(
+			[
+				("MONOCHANGE_TOKEN", Some("monochange-token")),
+				("ACTIONS_ID_TOKEN_REQUEST_URL", None::<&str>),
+			],
+			async {
+				let options = hosted_request_options(&server);
+				let error = hosted_release_request_result(
+					false,
+					&options,
+					&hosted_change_request_fixture(),
+					&[],
+				)
+				.await
+				.expect_err("server error must fail");
+				assert!(
+					error.to_string().contains("503")
+						&& error.to_string().contains("app not configured"),
+					"error should include status and body: {error}"
+				);
+			},
+		));
+	});
+}
+
+#[test]
+fn hosted_release_request_result_reports_invalid_json() {
+	let server = MockServer::start();
+	server.mock(|when, then| {
+		when.method(httpmock::Method::POST)
+			.path("/api/release-requests");
+		then.status(200).body("<html>not json</html>");
+	});
+	with_test_env_lock(|| {
+		crate::tests::block_on_in_context(temp_env::async_with_vars(
+			[
+				("MONOCHANGE_TOKEN", Some("monochange-token")),
+				("ACTIONS_ID_TOKEN_REQUEST_URL", None::<&str>),
+			],
+			async {
+				let options = hosted_request_options(&server);
+				let error = hosted_release_request_result(
+					false,
+					&options,
+					&hosted_change_request_fixture(),
+					&[],
+				)
+				.await
+				.expect_err("invalid JSON must fail");
+				assert!(
+					error.to_string().contains("invalid JSON"),
+					"error should explain the invalid payload: {error}"
+				);
+			},
+		));
+	});
+}
+
+#[test]
+fn hosted_release_request_result_dry_run_reports_without_network() {
+	let options =
+		resolve_hosted_commit_options(monochange_core::HostedCommitAuth::Token, None, None);
+	let result = crate::tests::block_on_in_context(hosted_release_request_result(
+		true,
+		&options,
+		&hosted_change_request_fixture(),
+		&[],
+	))
+	.unwrap_or_else(|error| panic!("dry-run hosted release request: {error}"));
+	assert!(
+		result.starts_with("dry-run acme/actions monochange/release/release -> main"),
+		"dry-run summary keeps the repository and branches: {result}"
+	);
+}
+
+#[test]
+fn hosted_release_request_result_reports_connection_failures() {
+	with_test_env_lock(|| {
+		crate::tests::block_on_in_context(temp_env::async_with_vars(
+			[
+				("MONOCHANGE_TOKEN", Some("monochange-token")),
+				("ACTIONS_ID_TOKEN_REQUEST_URL", None::<&str>),
+			],
+			async {
+				// Port 9 (discard) on loopback refuses connections.
+				let options = resolve_hosted_commit_options(
+					monochange_core::HostedCommitAuth::Token,
+					Some("http://127.0.0.1:9"),
+					None,
+				);
+				let error = hosted_release_request_result(
+					false,
+					&options,
+					&hosted_change_request_fixture(),
+					&[],
+				)
+				.await
+				.expect_err("unreachable hosted app must fail");
+				assert!(
+					error
+						.to_string()
+						.contains("hosted OpenReleaseRequest failed"),
+					"error should explain the request failure: {error}"
+				);
+			},
+		));
+	});
+}

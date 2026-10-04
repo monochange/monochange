@@ -1174,6 +1174,10 @@ pub(crate) async fn execute_cli_command_with_options(
 					no_verify,
 					update_release_json,
 					stage_all,
+					commit_backend,
+					hosted_auth,
+					hosted_url,
+					oidc_audience,
 					..
 				} => {
 					release_branch_policy::verify_release_ref_for_commit(
@@ -1208,16 +1212,44 @@ pub(crate) async fn execute_cli_command_with_options(
 							.unwrap_or(*update_release_json);
 					let stage_all =
 						parse_boolean_step_input(&step_inputs, "stage_all")?.unwrap_or(*stage_all);
-					let release_commit_report = commit_release(
-						root,
-						&context,
-						configuration.source.as_ref(),
-						&manifest,
-						no_verify,
-						update_release_json,
-						stage_all,
-					)
-					.await?;
+					let commit_backend = string_step_input(&step_inputs, "commit_backend")
+						.and_then(|value| value.parse::<ReleaseBackend>().ok())
+						.unwrap_or(*commit_backend);
+					let release_commit_report = match commit_backend {
+						ReleaseBackend::Local => {
+							commit_release(
+								root,
+								&context,
+								configuration.source.as_ref(),
+								&manifest,
+								no_verify,
+								update_release_json,
+								stage_all,
+							)
+							.await?
+						}
+						ReleaseBackend::Hosted => {
+							let hosted_auth = string_step_input(&step_inputs, "hosted_auth")
+								.and_then(|value| {
+									value.parse::<monochange_core::HostedCommitAuth>().ok()
+								})
+								.unwrap_or(*hosted_auth);
+							let options = resolve_hosted_commit_options(
+								hosted_auth,
+								hosted_url.as_deref(),
+								oidc_audience.as_deref(),
+							);
+							Box::pin(hosted_commit_release(
+								root,
+								&context,
+								configuration.source.as_ref(),
+								&manifest,
+								update_release_json,
+								&options,
+							))
+							.await?
+						}
+					};
 					context.release_commit_report = Some(release_commit_report);
 					output = None;
 					Ok(())
@@ -1225,6 +1257,9 @@ pub(crate) async fn execute_cli_command_with_options(
 				CliStepDefinition::OpenReleaseRequest {
 					no_verify,
 					stage_all,
+					backend,
+					hosted_auth,
+					hosted_url,
 					..
 				} => {
 					let build_file_diffs = context.show_diff;
@@ -1258,16 +1293,42 @@ pub(crate) async fn execute_cli_command_with_options(
 						parse_boolean_step_input(&step_inputs, "no_verify")?.unwrap_or(*no_verify);
 					let stage_all =
 						parse_boolean_step_input(&step_inputs, "stage_all")?.unwrap_or(*stage_all);
-					let result = build_release_request_result_for_source(
-						dry_run,
-						&source,
-						root,
-						&request,
-						&tracked_paths,
-						no_verify,
-						stage_all,
-					)
-					.await?;
+					let backend = string_step_input(&step_inputs, "backend")
+						.and_then(|value| value.parse::<ReleaseBackend>().ok())
+						.unwrap_or(*backend);
+					let result = match backend {
+						ReleaseBackend::Local => {
+							build_release_request_result_for_source(
+								dry_run,
+								&source,
+								root,
+								&request,
+								&tracked_paths,
+								no_verify,
+								stage_all,
+							)
+							.await?
+						}
+						ReleaseBackend::Hosted => {
+							let hosted_auth = string_step_input(&step_inputs, "hosted_auth")
+								.and_then(|value| {
+									value.parse::<monochange_core::HostedCommitAuth>().ok()
+								})
+								.unwrap_or(*hosted_auth);
+							let options = resolve_hosted_commit_options(
+								hosted_auth,
+								hosted_url.as_deref(),
+								None,
+							);
+							Box::pin(hosted_release_request_result(
+								dry_run,
+								&options,
+								&request,
+								&tracked_paths,
+							))
+							.await?
+						}
+					};
 					context.release_request_result = Some(result);
 					context.release_request = Some(request);
 					output = None;
@@ -3026,6 +3087,14 @@ pub(crate) fn parse_boolean_step_input(
 			}
 		})
 		.transpose()
+}
+
+/// Read the first string value of a step input, when it was provided.
+pub(crate) fn string_step_input(
+	inputs: &BTreeMap<String, Vec<String>>,
+	name: &str,
+) -> Option<String> {
+	inputs.get(name).and_then(|values| values.first()).cloned()
 }
 
 pub(crate) fn inferred_retarget_source_configuration(
