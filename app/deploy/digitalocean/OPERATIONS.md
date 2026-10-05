@@ -71,7 +71,7 @@ let revision = (git rev-parse HEAD)
 git archive HEAD | ssh -F app/deploy/digitalocean/ssh_config monochange-production $"set -eu; mkdir -p /opt/monochange/source-($revision); tar -xf - -C /opt/monochange/source-($revision); docker build -t monochange-app:($revision) /opt/monochange/source-($revision)"
 ```
 
-Update the Compose and Caddy files from the same revision. Back up SQLite before restarting:
+Update the Compose and Caddy files from the same revision. These public configuration files must be owned by `deploy`, as installed by the bootstrap guide, so ordinary updates can replace them. The secrets directory and service-account token remain root-owned. Back up SQLite before restarting:
 
 ```nu
 scp -F app/deploy/digitalocean/ssh_config app/deploy/digitalocean/docker-compose.yml app/deploy/digitalocean/Caddyfile monochange-production:/opt/monochange/

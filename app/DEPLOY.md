@@ -140,7 +140,7 @@ After this step, use `deploy@$DROPLET_IP` for ordinary deployment and `root@$DRO
 ```bash
 scp app/deploy/digitalocean/docker-compose.yml deploy@$DROPLET_IP:/tmp/docker-compose.yml
 scp app/deploy/digitalocean/Caddyfile deploy@$DROPLET_IP:/tmp/Caddyfile
-ssh root@$DROPLET_IP 'mv /tmp/docker-compose.yml /opt/monochange/docker-compose.yml && mv /tmp/Caddyfile /opt/monochange/Caddyfile'
+ssh root@$DROPLET_IP 'install -o deploy -g deploy -m 0644 /tmp/docker-compose.yml /opt/monochange/docker-compose.yml && install -o deploy -g deploy -m 0644 /tmp/Caddyfile /opt/monochange/Caddyfile && rm /tmp/docker-compose.yml /tmp/Caddyfile'
 ```
 
 Store the 1Password service account token as a Docker secret source file on the host:
