@@ -1,3 +1,7 @@
-{$MONOCHANGE_APP_DOMAIN} {
+monochange.dev {
 	reverse_proxy app:3000
+}
+
+app.monochange.dev, www.monochange.dev {
+	redir https://monochange.dev{uri} permanent
 }

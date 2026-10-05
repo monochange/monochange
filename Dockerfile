@@ -31,10 +31,10 @@ RUN arch="$(dpkg --print-architecture)" \
         arm64) tw_arch=arm64 ;; \
         *) echo "unsupported architecture: $arch" >&2; exit 1 ;; \
     esac \
-    && curl -sLO "https://github.com/tailwindlabs/tailwindcss/releases/download/v4.0.8/tailwindcss-linux-${tw_arch}" \
+    && curl -fsSLO "https://github.com/tailwindlabs/tailwindcss/releases/download/v4.0.8/tailwindcss-linux-${tw_arch}" \
     && chmod +x "tailwindcss-linux-${tw_arch}" \
     && mv "tailwindcss-linux-${tw_arch}" /usr/local/bin/tailwindcss \
-    && tailwindcss --version
+    && tailwindcss --help
 
 WORKDIR /app
 
@@ -52,7 +52,7 @@ FROM debian:bookworm-slim
 
 ARG OP_VERSION=v2.30.3
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates curl unzip \
+    && apt-get install -y --no-install-recommends ca-certificates curl unzip util-linux \
     && arch="$(dpkg --print-architecture)" \
     && case "$arch" in \
         amd64) op_arch=amd64 ;; \
@@ -81,13 +81,16 @@ RUN mkdir -p /data \
     && chmod +x /usr/local/bin/monochange-app-entrypoint \
     && chown -R app:app /app /data
 
-USER app
+# The entrypoint reads the root-only Compose secret and drops privileges before
+# starting the application. Local Compose secret mounts preserve host ownership.
+USER root
 WORKDIR /app
 
 ENV SECRETSPEC_PROFILE=development
 ENV DATABASE_URL=sqlite:///data/monochange_app.sqlite3
 ENV LEPTOS_SITE_ROOT=/app/site
 ENV LEPTOS_SITE_PKG_DIR=pkg
+ENV LEPTOS_ENV=PROD
 ENV RUST_LOG=info
 ENV PORT=3000
 

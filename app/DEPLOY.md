@@ -41,7 +41,7 @@ Recommended hardening baseline:
 - enable unattended security upgrades;
 - keep `/opt/monochange/secrets/op_service_account_token` mode `0600`;
 - keep the 1Password service account scoped to the minimal production vault/items;
-- run the app container as the non-root `app` user baked into the image;
+- let the entrypoint read the root-only token, then drop privileges to the non-root `app` user before starting the server;
 - use off-Droplet backups.
 
 ## prerequisites
@@ -53,11 +53,11 @@ brew install doctl
 doctl auth init
 ```
 
-- a domain pointed at the Droplet IPv4 address, for example `app.monochange.dev`;
+- `monochange.dev`, `app.monochange.dev`, and `www.monochange.dev` pointed at the Droplet IPv4 address; Caddy serves `monochange.dev` and redirects the aliases to it so host-only sign-in cookies use the same host as the OAuth callback;
 - a GitHub OAuth app with callback URL:
 
 ```text
-https://app.monochange.dev/api/oauth/callback
+https://monochange.dev/auth/callback
 ```
 
 - a 1Password service account scoped to the monochange production secrets;
@@ -66,7 +66,12 @@ https://app.monochange.dev/api/oauth/callback
   - `JWT_SECRET`
   - `GITHUB_CLIENT_ID`
   - `GITHUB_CLIENT_SECRET`
-  - optional `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `OPENROUTER_API_KEY`.
+  - `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` (the complete PEM text), and `GITHUB_APP_WEBHOOK_SECRET` to enable the release bot; all three must be configured together;
+  - optional `MONOCHANGE_OIDC_AUDIENCE` (defaults to `monochange.dev`) and `OPENROUTER_API_KEY`.
+
+Create a dedicated `monochange` vault and give the production service account read access to that vault only. Do not grant write access or reuse the shared development service account. The SecretSpec 1Password provider reads items titled `secretspec/monochange_app/production/<KEY>` with a concealed field named `value`. Store each production value in that layout. Keep the service account token separately as a password item for recovery; it is the only credential copied to the server.
+
+For the GitHub App, use homepage `https://monochange.dev`, setup URL `https://monochange.dev/install`, and webhook URL `https://monochange.dev/api/github/webhooks` with SSL verification enabled. Grant Contents and Pull requests read/write and the mandatory Metadata read permission. Keep the webhook secret in the production vault and the PEM private key out of source control.
 
 ## 1. create the Droplet
 
@@ -86,7 +91,7 @@ DROPLET_IP="$(doctl compute droplet get "$DROPLET_NAME" --format PublicIPv4 --no
 echo "$DROPLET_IP"
 ```
 
-Point DNS for `app.monochange.dev` at `DROPLET_IP` before starting Caddy.
+Point the root and `app` A records at `DROPLET_IP`, and point `www` at `monochange.dev`, before starting Caddy.
 
 ## 2. create the DigitalOcean firewall
 
@@ -150,7 +155,7 @@ EOF
 Runtime flow:
 
 1. Compose mounts `/opt/monochange/secrets/op_service_account_token` as `/run/secrets/onepassword_service_account_token`.
-2. The entrypoint exports it as `OP_SERVICE_ACCOUNT_TOKEN`.
+2. The entrypoint reads the root-owned `0600` file, exports it as `OP_SERVICE_ACCOUNT_TOKEN`, and uses `setpriv` to switch to UID/GID 1000 with no capabilities or new privileges. Local Compose file-backed secrets retain host file ownership, so the read must happen before dropping privileges.
 3. `monochange_app` loads `secretspec.toml` through the SecretSpec SDK.
 4. SecretSpec invokes the bundled `op` CLI and reads production secrets from 1Password.
 5. The typed secret set is stored in `AppState` for server handlers.
@@ -175,7 +180,7 @@ ssh root@$DROPLET_IP 'cd /opt/monochange && docker compose up -d'
 ## 7. verify
 
 ```bash
-curl -fsS https://app.monochange.dev/health | jq
+curl -fsS https://monochange.dev/health | jq
 ssh root@$DROPLET_IP 'cd /opt/monochange && docker compose ps && docker compose logs --tail=100 app'
 ```
 
@@ -256,7 +261,7 @@ DigitalOcean's API can manage infrastructure, firewalls, images, and Droplets, b
 docker build -t monochange-app:latest .
 docker save monochange-app:latest | gzip | ssh root@$DROPLET_IP 'gunzip | docker load'
 ssh root@$DROPLET_IP 'cd /opt/monochange && docker compose up -d'
-curl -fsS https://app.monochange.dev/health | jq
+curl -fsS https://monochange.dev/health | jq
 ```
 
 Expected downtime for this initial deploy shape is small, usually one app restart window. Static assets may remain cached by Cloudflare/Caddy, but SSR/API requests can fail during the restart.

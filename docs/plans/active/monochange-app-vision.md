@@ -329,7 +329,7 @@ When a fork is promoted, merge isn't clean because:
 
 3. Squash-merge into mainline (single commit):
    "feat: merge fork.dark-mode (2,341 users, 94% approval)"
-   
+
 4. Fork's changeset entries are migrated to mainline .changeset/
    → Each fork change gets its own changeset file
    → `caused_by` field links back to the fork

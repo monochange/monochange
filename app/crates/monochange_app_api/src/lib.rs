@@ -10,7 +10,9 @@
 #[path = "__tests__.rs"]
 mod tests;
 
+mod config;
 pub mod github_app;
+pub mod oauth;
 pub mod oidc;
 pub mod release_api;
 pub mod webhooks;
@@ -132,11 +134,15 @@ pub struct AppState {
 }
 
 impl AppState {
-	pub fn new(db: monochange_app_db::DbPool, secrets: AppSecrets) -> Self {
+	/// Initialize the shared state, rejecting incomplete or invalid bot credentials.
+	pub fn new(
+		db: monochange_app_db::DbPool,
+		secrets: AppSecrets,
+	) -> Result<Self, github_app::GitHubAppError> {
 		let jwt_secret = secrets.jwt_secret.clone().unwrap_or_default();
 		let github_client_id = secrets.github_client_id.clone().unwrap_or_default();
 		let github_client_secret = secrets.github_client_secret.clone().unwrap_or_default();
-		let github_app = github_app::GitHubAppAuth::from_env();
+		let github_app = config::github_app_credentials(&secrets)?;
 		let oidc_audience = std::env::var("MONOCHANGE_OIDC_AUDIENCE")
 			.ok()
 			.filter(|audience| !audience.is_empty())
@@ -150,10 +156,9 @@ impl AppState {
 		let http = reqwest::Client::builder()
 			.connect_timeout(std::time::Duration::from_secs(10))
 			.timeout(std::time::Duration::from_secs(30))
-			.build()
-			.unwrap_or_default();
+			.build()?;
 
-		Self {
+		Ok(Self {
 			db,
 			secrets: Arc::new(secrets),
 			jwt_secret,
@@ -162,6 +167,6 @@ impl AppState {
 			github_app,
 			oidc_audience,
 			http,
-		}
+		})
 	}
 }

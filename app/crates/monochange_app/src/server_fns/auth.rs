@@ -1,5 +1,9 @@
 //! Authentication server functions with database integration.
 
+#[cfg(test)]
+#[path = "__tests__/auth_tests.rs"]
+mod tests;
+
 use leptos::prelude::*;
 use leptos::server;
 use serde::Deserialize;
@@ -22,7 +26,10 @@ pub async fn get_session() -> Result<Option<SessionUser>, server_fn::ServerFnErr
 	use leptos_axum::extract;
 
 	let jar: CookieJar = extract().await?;
-	let Some(token) = jar.get("monochange_session").map(|c| c.value().to_string()) else {
+	let Some(token) = jar
+		.get(monochange_app_api::oauth::SESSION_COOKIE_NAME)
+		.map(|c| c.value().to_string())
+	else {
 		return Ok(None);
 	};
 
@@ -54,12 +61,21 @@ pub async fn get_session() -> Result<Option<SessionUser>, server_fn::ServerFnErr
 pub async fn get_login_url() -> Result<String, server_fn::ServerFnError> {
 	use std::sync::Arc;
 
+	use leptos_axum::ResponseOptions;
+
 	let state: Arc<monochange_app_api::AppState> = expect_context();
+	let (nonce, cookie) = monochange_app_api::oauth::login_state(&state.jwt_secret)
+		.map_err(|error| server_fn::ServerFnError::new(format!("OAuth state: {error}")))?;
+	let resp = expect_context::<ResponseOptions>();
+	resp.append_header(
+		axum::http::header::SET_COOKIE,
+		axum::http::HeaderValue::from_str(&cookie.encoded().to_string())
+			.map_err(|error| server_fn::ServerFnError::new(format!("Cookie: {error}")))?,
+	);
 
 	Ok(format!(
 		"https://github.com/login/oauth/authorize?client_id={}&state={}&scope=user:email,read:org",
-		state.github_client_id,
-		uuid::Uuid::new_v4(),
+		state.github_client_id, nonce,
 	))
 }
 
@@ -70,15 +86,25 @@ pub async fn exchange_code(
 ) -> Result<SessionUser, server_fn::ServerFnError> {
 	use std::sync::Arc;
 
-	use axum_extra::extract::cookie::Cookie;
+	use axum_extra::extract::cookie::CookieJar;
 	use leptos_axum::ResponseOptions;
+	use leptos_axum::extract;
 	use monochange_app_db::models::User;
 
 	let state: Arc<monochange_app_api::AppState> = expect_context();
-	let _ = state_param;
+	let jar: CookieJar = extract().await?;
+	monochange_app_api::oauth::verify_login_state(&state.jwt_secret, &jar, &state_param)
+		.map_err(|_| server_fn::ServerFnError::new("Invalid or expired OAuth state"))?;
+	let resp = expect_context::<ResponseOptions>();
+	let cookie = monochange_app_api::oauth::clear_login_state();
+	resp.append_header(
+		axum::http::header::SET_COOKIE,
+		axum::http::HeaderValue::from_str(&cookie.encoded().to_string())
+			.map_err(|error| server_fn::ServerFnError::new(format!("Cookie: {error}")))?,
+	);
 
 	// Exchange code for access token
-	let http = reqwest::Client::new();
+	let http = &state.http;
 	let token_response: serde_json::Value = http
 		.post("https://github.com/login/oauth/access_token")
 		.header("Accept", "application/json")
@@ -156,19 +182,12 @@ pub async fn exchange_code(
 	.map_err(|e| server_fn::ServerFnError::new(format!("JWT: {e}")))?;
 
 	// Cookie
-	let resp = expect_context::<ResponseOptions>();
-	let cookie = Cookie::build(("monochange_session", token))
-		.path("/")
-		.http_only(true)
-		.secure(false)
-		.same_site(axum_extra::extract::cookie::SameSite::Lax)
-		.max_age(time::Duration::days(7))
-		.build();
+	let cookie = monochange_app_api::oauth::session_cookie(token);
 
 	resp.append_header(
-		axum::http::HeaderName::from_static("set-cookie"),
+		axum::http::header::SET_COOKIE,
 		axum::http::HeaderValue::from_str(&cookie.encoded().to_string())
-			.unwrap_or(axum::http::HeaderValue::from_static("")),
+			.map_err(|error| server_fn::ServerFnError::new(format!("Cookie: {error}")))?,
 	);
 
 	Ok(SessionUser {
@@ -183,20 +202,15 @@ pub async fn exchange_code(
 #[allow(clippy::unused_async)]
 #[server]
 pub async fn logout() -> Result<(), server_fn::ServerFnError> {
-	use axum_extra::extract::cookie::Cookie;
 	use leptos_axum::ResponseOptions;
 
 	let resp = expect_context::<ResponseOptions>();
-	let cookie = Cookie::build(("monochange_session", ""))
-		.path("/")
-		.http_only(true)
-		.max_age(time::Duration::seconds(0))
-		.build();
+	let cookie = monochange_app_api::oauth::session_cookie(String::new());
 
 	resp.append_header(
-		axum::http::HeaderName::from_static("set-cookie"),
+		axum::http::header::SET_COOKIE,
 		axum::http::HeaderValue::from_str(&cookie.encoded().to_string())
-			.unwrap_or(axum::http::HeaderValue::from_static("")),
+			.map_err(|error| server_fn::ServerFnError::new(format!("Cookie: {error}")))?,
 	);
 
 	Ok(())

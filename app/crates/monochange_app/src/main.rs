@@ -104,7 +104,9 @@ async fn main() -> Result<(), MonochangeError> {
 		monochange_app_automation::spawn_sqlite_automation_worker(pool.clone(), automation_config);
 
 	// Create application state
-	let app_state = Arc::new(AppState::new(pool, secrets));
+	let app_state = Arc::new(
+		AppState::new(pool, secrets).map_err(|error| MonochangeError::Server(error.to_string()))?,
+	);
 
 	// Leptos configuration
 	let conf = get_configuration(None).map_err(|e| MonochangeError::Server(e.to_string()))?;

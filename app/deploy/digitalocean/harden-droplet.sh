@@ -52,7 +52,10 @@ PermitRootLogin prohibit-password
 X11Forwarding no
 AllowUsers ${DEPLOY_USER} root
 EOF
-systemctl reload ssh || systemctl reload sshd
+sshd -t
+# Ubuntu 24.04 can activate SSH through ssh.socket while ssh.service is stopped.
+systemctl start ssh
+systemctl reload ssh
 
 ufw default deny incoming
 ufw default allow outgoing
@@ -76,7 +79,8 @@ dpkg-reconfigure -f noninteractive unattended-upgrades
 systemctl enable --now unattended-upgrades
 
 install -d -m 755 /opt/monochange/data /opt/monochange/backups /opt/monochange/caddy/data /opt/monochange/caddy/config
-chown -R "${DEPLOY_USER}:${DEPLOY_USER}" /opt/monochange
+chown "${DEPLOY_USER}:${DEPLOY_USER}" /opt/monochange
+chown -R "${DEPLOY_USER}:${DEPLOY_USER}" /opt/monochange/data /opt/monochange/backups /opt/monochange/caddy
 install -d -m 700 /opt/monochange/secrets
 chown root:root /opt/monochange/secrets
 
