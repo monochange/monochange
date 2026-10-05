@@ -88,10 +88,19 @@ cat >/usr/local/bin/monochange-deploy <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 cd /opt/monochange
-docker compose pull app || true
-docker compose up -d
+IMAGE="${1:?usage: monochange-deploy monochange-app:<commit-sha>}"
+if [[ ! "$IMAGE" =~ ^monochange-app:[0-9a-f]{40}$ ]]; then
+	echo 'expected monochange-app:<40-character commit SHA>' >&2
+	exit 1
+fi
+docker image inspect "$IMAGE" >/dev/null
+# Keep the selected local image across subsequent Compose invocations.
+printf 'MONOCHANGE_IMAGE=%s\n' "$IMAGE" >.env
+docker compose up -d --pull never
 docker compose ps
-curl -fsS http://127.0.0.1:3000/health >/dev/null
+curl --fail --silent --show-error --retry 20 --retry-all-errors \
+	--retry-delay 1 --retry-max-time 60 --max-time 5 http://127.0.0.1:3000/health
+echo
 EOF
 chmod 0755 /usr/local/bin/monochange-deploy
 

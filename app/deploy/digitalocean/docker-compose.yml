@@ -1,6 +1,7 @@
 services:
   app:
-    image: monochange-app:latest
+    image: ${MONOCHANGE_IMAGE:-monochange-app:latest}
+    pull_policy: never
     restart: unless-stopped
     environment:
       SECRETSPEC_PROFILE: production

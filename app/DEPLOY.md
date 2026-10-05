@@ -25,10 +25,7 @@ If we later need lower downtime or multiple app instances, the right move is not
 
 ## automation and hardening approach
 
-Use two layers:
-
-1. `doctl` for the first documented deployment path.
-2. Later, codify the same shape with Pulumi/OpenTofu plus cloud-init or Ansible.
+Use `doctl` for infrastructure and SSH for app deployment. The repository's development shell includes both tools. Follow [CLI operations](deploy/digitalocean/OPERATIONS.md) for the existing production server, scoped API authentication, verified SSH, repeatable image updates, and the DNS API migration.
 
 Recommended hardening baseline:
 
@@ -46,11 +43,10 @@ Recommended hardening baseline:
 
 ## prerequisites
 
-- `doctl` authenticated locally:
+- `doctl` authenticated through Monosecret; use a scoped API token rather than storing a second plaintext copy with `doctl auth init`:
 
 ```bash
-brew install doctl
-doctl auth init
+devenv shell doctl version
 ```
 
 - `monochange.dev`, `app.monochange.dev`, and `www.monochange.dev` pointed at the Droplet IPv4 address; Caddy serves `monochange.dev` and redirects the aliases to it so host-only sign-in cookies use the same host as the OAuth callback;
@@ -75,10 +71,12 @@ For the GitHub App, use homepage `https://monochange.dev`, setup URL `https://mo
 
 ## 1. create the Droplet
 
+The routine deployment token is intentionally unable to create Droplets or list SSH keys. Initial provisioning requires a separate, appropriately scoped maintainer credential. Reuse the existing production target for app updates.
+
 ```bash
 REGION=lon1
 DROPLET_NAME=monochange-app
-SSH_KEY_ID="$(doctl compute ssh-key list --format ID --no-header | head -n1)"
+SSH_KEY_ID="<chosen-key-id>"
 
 doctl compute droplet create "$DROPLET_NAME" \
   --region "$REGION" \
@@ -87,7 +85,8 @@ doctl compute droplet create "$DROPLET_NAME" \
   --ssh-keys "$SSH_KEY_ID" \
   --wait
 
-DROPLET_IP="$(doctl compute droplet get "$DROPLET_NAME" --format PublicIPv4 --no-header)"
+DROPLET_ID="<id-from-create-output>"
+DROPLET_IP="$(doctl compute droplet get "$DROPLET_ID" --format PublicIPv4 --no-header)"
 echo "$DROPLET_IP"
 ```
 
@@ -101,7 +100,7 @@ Create a cloud firewall before starting the app. By default this allows SSH, HTT
 # Optional, more secure if your IP is stable:
 # export SSH_SOURCES="$(curl -fsS https://ifconfig.me)/32"
 
-DROPLET_NAME=$DROPLET_NAME \
+DROPLET_ID=$DROPLET_ID \
   app/deploy/digitalocean/create-firewall.sh
 ```
 
@@ -169,7 +168,7 @@ docker build -t monochange-app:latest .
 docker save monochange-app:latest | gzip | ssh root@$DROPLET_IP 'gunzip | docker load'
 ```
 
-Later, CI should build the image, push it to GHCR or DigitalOcean Container Registry, then SSH to the Droplet and run `docker compose pull app && docker compose up -d`.
+Use a commit-specific image tag for updates. The CLI operations guide uploads an image archive over SSH, so deployment does not require publishing to a registry. A future registry workflow requires a separate maintainer decision.
 
 ## 6. start the app
 
@@ -245,24 +244,13 @@ Store `./monochange_actions_deploy` as a GitHub Actions environment secret named
 - `DO_HOST`: Droplet IP or hostname;
 - `DO_USER`: `deploy`.
 
-For stronger CI lockdown, prefix the GitHub Actions public key in `authorized_keys` with a forced command so that key can only run the deploy script:
-
-```text
-command="/usr/local/bin/monochange-deploy",no-agent-forwarding,no-X11-forwarding,no-pty ssh-ed25519 AAAA... github-actions-monochange-deploy
-```
-
-With that restriction, GitHub Actions can trigger deployment but cannot open an arbitrary shell with that key. Local deploy keys should stay unrestricted for maintenance.
+For stronger CI lockdown, use a forced-command wrapper that validates the requested commit image and invokes `/usr/local/bin/monochange-deploy` with that image. The deploy helper requires `monochange-app:<full-commit-sha>` as an argument; an argument-free forced command will fail. The wrapper and CI grant must be implemented and reviewed before adding that key. Local deploy keys remain available for maintenance.
 
 DigitalOcean's API can manage infrastructure, firewalls, images, and Droplets, but it is not a general remote-command API for a raw Droplet. For `docker compose up -d`, SSH or a small deploy agent is still required. SSH with a dedicated deploy key and optional forced command is the simplest secure path.
 
 ## update deploy
 
-```bash
-docker build -t monochange-app:latest .
-docker save monochange-app:latest | gzip | ssh root@$DROPLET_IP 'gunzip | docker load'
-ssh root@$DROPLET_IP 'cd /opt/monochange && docker compose up -d'
-curl -fsS https://monochange.dev/health | jq
-```
+Follow [CLI operations](deploy/digitalocean/OPERATIONS.md) to build and upload a commit-specific image, back up SQLite, and invoke the health-checked deploy helper as `deploy`.
 
 Expected downtime for this initial deploy shape is small, usually one app restart window. Static assets may remain cached by Cloudflare/Caddy, but SSR/API requests can fail during the restart.
 
@@ -270,7 +258,7 @@ Expected downtime for this initial deploy shape is small, usually one app restar
 
 A separate block volume is not the path to lower downtime for SQLite. Safe next steps:
 
-1. Add image registry deploys and health-gated restart.
+1. Add a container readiness check and health-gated restart.
 2. Add Caddy with two local app upstreams for same-Droplet blue/green.
 3. Keep only one writer active during migration windows.
 4. If we need multi-Droplet or true zero-downtime writes, move from SQLite to PostgreSQL, Turso/libSQL, or another networked DB.

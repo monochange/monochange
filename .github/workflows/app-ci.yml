@@ -102,14 +102,14 @@ jobs:
             -e GITHUB_CLIENT_ID=ci-docker-client \
             -e GITHUB_CLIENT_SECRET=ci-docker-client-secret \
             monochange-app:ci
-          curl --fail --silent --show-error --retry 20 --retry-connrefused \
-            --retry-delay 1 --max-time 5 http://127.0.0.1:3000/health \
+          curl --fail --silent --show-error --retry 20 --retry-all-errors \
+            --retry-delay 1 --retry-max-time 60 --max-time 5 http://127.0.0.1:3000/health \
             | jq -e '.status == "ok" and .http == "up"'
           docker exec monochange-smoke sh -c 'test "$(awk "/^Uid:/{print \$2}" /proc/1/status)" = 1000'
           docker exec monochange-smoke sh -c 'test "$(awk "/^NoNewPrivs:/{print \$2}" /proc/1/status)" = 1'
           curl --fail --silent --show-error http://127.0.0.1:3000/ -o /tmp/monochange-home.html
           curl --fail --silent --show-error http://127.0.0.1:3000/pkg/monochange_app.js -o /dev/null
-          curl --fail --silent --show-error http://127.0.0.1:3000/pkg/monochange_app_bg.wasm -o /dev/null
+          curl --fail --silent --show-error http://127.0.0.1:3000/pkg/monochange_app.wasm -o /dev/null
           curl --fail --silent --show-error http://127.0.0.1:3000/pkg/monochange_app.css -o /dev/null
 
       - name: collect server logs and clean up

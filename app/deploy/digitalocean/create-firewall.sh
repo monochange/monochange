@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-DROPLET_NAME="${DROPLET_NAME:-monochange-app}"
+DROPLET_ID="${DROPLET_ID:?set the numeric DigitalOcean Droplet ID}"
+FIREWALL_ID="${FIREWALL_ID:-}"
 FIREWALL_NAME="${FIREWALL_NAME:-monochange-app-firewall}"
 SSH_SOURCES="${SSH_SOURCES:-0.0.0.0/0,::/0}"
 
-DROPLET_ID="$(doctl compute droplet get "${DROPLET_NAME}" --format ID --no-header)"
+doctl compute droplet get "${DROPLET_ID}" --format ID --no-header >/dev/null
 
-if doctl compute firewall get "${FIREWALL_NAME}" >/dev/null 2>&1; then
-	doctl compute firewall add-droplets "${FIREWALL_NAME}" --droplet-ids "${DROPLET_ID}"
+if [ -n "${FIREWALL_ID}" ]; then
+	doctl compute firewall add-droplets "${FIREWALL_ID}" --droplet-ids "${DROPLET_ID}"
 else
 	doctl compute firewall create \
 		--name "${FIREWALL_NAME}" \
