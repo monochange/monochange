@@ -1,0 +1,121 @@
+name: "app-ci"
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "app/**"
+      - "Dockerfile"
+      - ".github/workflows/app-ci.yml"
+  pull_request:
+    paths:
+      - "app/**"
+      - "Dockerfile"
+      - ".github/workflows/app-ci.yml"
+  workflow_dispatch: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    timeout-minutes: 40
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: install rust toolchain
+        uses: dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d # stable
+        with:
+          toolchain: nightly
+          components: clippy, rustfmt
+
+      - name: install cargo-binstall
+        uses: taiki-e/install-action@9983c65e42da123ff25d1f78505eb6de315aa172 # v2.87.20
+        with:
+          tool: cargo-binstall
+
+      - name: install cargo-leptos
+        run: cargo binstall cargo-leptos@0.3.6 --no-confirm
+
+      - name: add wasm target
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: cache cargo build
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: app
+
+      - name: cargo fmt
+        run: cargo fmt --all -- --check
+
+      - name: cargo clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: cargo test
+        run: cargo test --workspace
+        env:
+          DATABASE_URL: "sqlite::memory:"
+          JWT_SECRET: "ci-test-jwt-secret-key-123"
+          GITHUB_CLIENT_ID: "ci-test-client-id"
+          GITHUB_CLIENT_SECRET: "ci-test-client-secret"
+
+      - name: cargo leptos build
+        run: cargo leptos build
+
+  docker:
+    timeout-minutes: 60
+    runs-on: ubuntu-24.04
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: build deployment image
+        run: docker build --progress=plain -t monochange-app:ci .
+
+      - name: verify deployment image
+        run: |
+          printf '%s' ci-service-account-test-token > /tmp/monochange-smoke-token
+          chmod 600 /tmp/monochange-smoke-token
+          docker run -d --name monochange-smoke \
+            -p 127.0.0.1:3000:3000 \
+            --mount type=bind,source=/tmp/monochange-smoke-token,target=/run/secrets/onepassword_service_account_token,readonly \
+            -e SECRETSPEC_PROFILE=production \
+            -e SECRETSPEC_PROVIDER=env \
+            -e OP_SERVICE_ACCOUNT_TOKEN_FILE=/run/secrets/onepassword_service_account_token \
+            -e DATABASE_URL=sqlite:///data/monochange_app.sqlite3 \
+            -e JWT_SECRET=ci-docker-test-signing-key-not-a-secret \
+            -e GITHUB_CLIENT_ID=ci-docker-client \
+            -e GITHUB_CLIENT_SECRET=ci-docker-client-secret \
+            monochange-app:ci
+          curl --fail --silent --show-error --retry 20 --retry-all-errors \
+            --retry-delay 1 --retry-max-time 60 --max-time 5 http://127.0.0.1:3000/health \
+            | jq -e '.status == "ok" and .http == "up"'
+          docker exec monochange-smoke sh -c 'test "$(awk "/^Uid:/{print \$2}" /proc/1/status)" = 1000'
+          docker exec monochange-smoke sh -c 'test "$(awk "/^NoNewPrivs:/{print \$2}" /proc/1/status)" = 1'
+          curl --fail --silent --show-error http://127.0.0.1:3000/ -o /tmp/monochange-home.html
+          curl --fail --silent --show-error http://127.0.0.1:3000/pkg/monochange_app.js -o /dev/null
+          curl --fail --silent --show-error http://127.0.0.1:3000/pkg/monochange_app.wasm -o /dev/null
+          curl --fail --silent --show-error http://127.0.0.1:3000/pkg/monochange_app.css -o /dev/null
+
+      - name: collect server logs and clean up
+        if: always()
+        run: |
+          if docker inspect monochange-smoke >/dev/null 2>&1; then
+            docker logs monochange-smoke
+            docker rm -f monochange-smoke
+          fi

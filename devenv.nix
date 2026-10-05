@@ -21,6 +21,7 @@ in
       cargo-run-bin
       cacert
       custom.mdt
+      doctl
       dprint
       gh
       git
@@ -29,6 +30,7 @@ in
       jq
       mdbook
       nixfmt
+      openssh
       pnpm
       nodejs_24
       python3

@@ -2079,6 +2079,7 @@ dependencies = [
  "monochange_gitlab",
  "monochange_go",
  "monochange_graph",
+ "monochange_hosting",
  "monochange_lint",
  "monochange_npm",
  "monochange_publish",
@@ -2476,6 +2477,7 @@ dependencies = [
 name = "monochange_integration_tests"
 version = "0.0.0"
 dependencies = [
+ "httpmock",
  "insta",
  "insta-cmd",
  "jsonschema",

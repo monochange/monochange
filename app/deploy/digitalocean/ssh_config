@@ -1,0 +1,8 @@
+Host monochange-production
+    HostName 167.172.51.148
+    User deploy
+    IdentityFile ~/.ssh/id_ed25519
+    IdentitiesOnly yes
+    BatchMode yes
+    StrictHostKeyChecking yes
+    UserKnownHostsFile app/deploy/digitalocean/known_hosts

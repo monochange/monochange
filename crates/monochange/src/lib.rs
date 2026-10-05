@@ -82,8 +82,13 @@ use monochange_core::Ecosystem;
 use monochange_core::FloatingTagFormat;
 use monochange_core::HostedActorRef;
 use monochange_core::HostedActorSourceKind;
+use monochange_core::HostedCommitFile;
 use monochange_core::HostedCommitRef;
+use monochange_core::HostedCommitRequest;
+use monochange_core::HostedCommitResponse;
 use monochange_core::HostedIssueCommentPlan;
+use monochange_core::HostedReleaseRequest;
+use monochange_core::HostedReleaseResponse;
 use monochange_core::HostingCapabilities;
 use monochange_core::HostingProviderKind;
 use monochange_core::MonochangeError;
@@ -92,6 +97,7 @@ use monochange_core::PackagePublicationTarget;
 use monochange_core::PackageRecord;
 use monochange_core::PreparedChangeset;
 use monochange_core::PreparedChangesetTarget;
+use monochange_core::ReleaseBackend;
 use monochange_core::ReleaseManifest;
 use monochange_core::ReleaseManifestChangelog;
 use monochange_core::ReleaseManifestCompatibilityEvidence;
@@ -1686,27 +1692,31 @@ async fn dispatch_cli_args(
 				));
 			};
 			let configuration = configuration?;
-			execute_matches_with_progress(
+			// Boxed: the step-dispatch future grew past clippy's large-futures
+			// budget once the hosted release backends joined the match.
+			Box::pin(execute_matches_with_progress(
 				root,
 				&configuration,
 				cli_command_name,
 				cli_command_matches,
 				quiet,
 				Some(progress),
-			)
+			))
 			.await
 		}
 		// Commands defined in monochange.toml, invoked as `monochange <name>`.
 		Some((cli_command_name, cli_command_matches)) => {
 			let configuration = configuration?;
-			execute_matches_with_progress(
+			// Boxed: the step-dispatch future grew past clippy's large-futures
+			// budget once the hosted release backends joined the match.
+			Box::pin(execute_matches_with_progress(
 				root,
 				&configuration,
 				cli_command_name,
 				cli_command_matches,
 				quiet,
 				Some(progress),
-			)
+			))
 			.await
 		}
 		None => Err(MonochangeError::Config("Usage: monochange".to_string())),

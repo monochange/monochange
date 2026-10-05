@@ -706,6 +706,23 @@
 							"default": false,
 							"type": "boolean"
 						},
+						"commit_backend": {
+							"$ref": "#/$defs/ReleaseBackend",
+							"default": "local",
+							"description": "Backend that writes the release commit. Defaults to `local`; hosted\nsends the prepared files to the monochange app so the monochange\nGitHub App creates a verified commit that triggers workflows."
+						},
+						"hosted_auth": {
+							"$ref": "#/$defs/HostedCommitAuth",
+							"default": "auto",
+							"description": "Authentication the hosted backend uses to reach the monochange app."
+						},
+						"hosted_url": {
+							"description": "Base URL of the hosted monochange app. Defaults to `https://monochange.dev`.",
+							"type": [
+								"string",
+								"null"
+							]
+						},
 						"inputs": {
 							"$ref": "#/$defs/CliStepInputsSchema",
 							"default": []
@@ -720,6 +737,13 @@
 						"no_verify": {
 							"default": false,
 							"type": "boolean"
+						},
+						"oidc_audience": {
+							"description": "Audience for the GitHub Actions OIDC token. Defaults to the hosted\nURL host, e.g. `monochange.dev`.",
+							"type": [
+								"string",
+								"null"
+							]
 						},
 						"stage_all": {
 							"default": false,
@@ -933,6 +957,23 @@
 						"always_run": {
 							"default": false,
 							"type": "boolean"
+						},
+						"backend": {
+							"$ref": "#/$defs/ReleaseBackend",
+							"default": "local",
+							"description": "Backend that publishes the release request. Defaults to `local`;\nhosted asks the monochange app to open the pull request through the\nmonochange GitHub App installation so the pull request, its\ncomments, and its checks run under the bot identity."
+						},
+						"hosted_auth": {
+							"$ref": "#/$defs/HostedCommitAuth",
+							"default": "auto",
+							"description": "Authentication the hosted backend uses to reach the monochange app."
+						},
+						"hosted_url": {
+							"description": "Base URL of the hosted monochange app. Defaults to `https://monochange.dev`.",
+							"type": [
+								"string",
+								"null"
+							]
 						},
 						"inputs": {
 							"$ref": "#/$defs/CliStepInputsSchema",
@@ -1425,6 +1466,26 @@
 				}
 			]
 		},
+		"HostedCommitAuth": {
+			"description": "How the hosted `CommitRelease` backend authenticates to the monochange app.",
+			"oneOf": [
+				{
+					"const": "auto",
+					"description": "Prefer a GitHub Actions OIDC token and fall back to `MONOCHANGE_TOKEN`.",
+					"type": "string"
+				},
+				{
+					"const": "oidc",
+					"description": "Require a GitHub Actions OIDC token.",
+					"type": "string"
+				},
+				{
+					"const": "token",
+					"description": "Require the `MONOCHANGE_TOKEN` secret.",
+					"type": "string"
+				}
+			]
+		},
 		"LockfileCommandDefinition": {
 			"additionalProperties": false,
 			"properties": {
@@ -1797,6 +1858,21 @@
 				}
 			},
 			"type": "object"
+		},
+		"ReleaseBackend": {
+			"description": "How a `CommitRelease` step writes the release commit.\n\nThe default `Local` backend keeps the existing behaviour: stage and commit\nrelease files with the local git client. The `Hosted` backend sends the\nprepared release files to the monochange app so the monochange GitHub App\ncreates a verified commit that triggers repository workflows.",
+			"oneOf": [
+				{
+					"const": "local",
+					"description": "Stage and commit release files with the local git client.",
+					"type": "string"
+				},
+				{
+					"const": "hosted",
+					"description": "Send prepared release files to the monochange app, which commits\nthrough the monochange GitHub App installation.",
+					"type": "string"
+				}
+			]
 		},
 		"ReleaseNotesStyleOverrides": {
 			"additionalProperties": false,

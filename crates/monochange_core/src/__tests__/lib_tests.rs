@@ -1658,6 +1658,10 @@ fn cli_step_definition_kind_name_covers_all_variants() {
 				no_verify: false,
 				update_release_json: false,
 				stage_all: false,
+				commit_backend: crate::ReleaseBackend::default(),
+				hosted_auth: crate::HostedCommitAuth::default(),
+				hosted_url: None,
+				oidc_audience: None,
 				inputs: BTreeMap::new(),
 			},
 			"CommitRelease",
@@ -1678,6 +1682,9 @@ fn cli_step_definition_kind_name_covers_all_variants() {
 				always_run: false,
 				no_verify: false,
 				stage_all: false,
+				backend: crate::ReleaseBackend::default(),
+				hosted_auth: crate::HostedCommitAuth::default(),
+				hosted_url: None,
 				inputs: BTreeMap::new(),
 			},
 			"OpenReleaseRequest",
@@ -1828,6 +1835,10 @@ fn cli_step_name_returns_explicit_names_for_all_variants() {
 			no_verify: false,
 			update_release_json: false,
 			stage_all: false,
+			commit_backend: crate::ReleaseBackend::default(),
+			hosted_auth: crate::HostedCommitAuth::default(),
+			hosted_url: None,
+			oidc_audience: None,
 			inputs: BTreeMap::new(),
 		},
 		CliStepDefinition::PublishRelease {
@@ -1842,6 +1853,9 @@ fn cli_step_name_returns_explicit_names_for_all_variants() {
 			always_run: false,
 			no_verify: false,
 			stage_all: false,
+			backend: crate::ReleaseBackend::default(),
+			hosted_auth: crate::HostedCommitAuth::default(),
+			hosted_url: None,
 			inputs: BTreeMap::new(),
 		},
 		CliStepDefinition::CommentReleasedIssues {
@@ -1923,12 +1937,20 @@ fn valid_input_names_returns_no_verify_and_update_release_json_for_commit_releas
 		no_verify: false,
 		update_release_json: false,
 		stage_all: false,
+		commit_backend: crate::ReleaseBackend::default(),
+		hosted_auth: crate::HostedCommitAuth::default(),
+		hosted_url: None,
+		oidc_audience: None,
 		inputs: BTreeMap::new(),
 	};
-	assert_eq!(
-		step.valid_input_names(),
-		Some(["no_verify", "update_release_json", "stage_all"].as_slice())
-	);
+	let names = step.valid_input_names().unwrap();
+	assert!(names.contains(&"no_verify"));
+	assert!(names.contains(&"update_release_json"));
+	assert!(names.contains(&"stage_all"));
+	assert!(names.contains(&"commit_backend"));
+	assert!(names.contains(&"hosted_auth"));
+	assert!(names.contains(&"hosted_url"));
+	assert!(names.contains(&"oidc_audience"));
 }
 
 #[test]
@@ -2121,6 +2143,10 @@ fn always_run_accessor_returns_value_for_all_variants() {
 		name: None,
 		when: None,
 		always_run: false,
+		commit_backend: crate::ReleaseBackend::default(),
+		hosted_auth: crate::HostedCommitAuth::default(),
+		hosted_url: None,
+		oidc_audience: None,
 		inputs: BTreeMap::new(),
 		no_verify: false,
 		update_release_json: false,
@@ -2166,6 +2192,9 @@ fn always_run_accessor_returns_value_for_all_variants() {
 		always_run: true,
 		no_verify: false,
 		stage_all: false,
+		backend: crate::ReleaseBackend::default(),
+		hosted_auth: crate::HostedCommitAuth::default(),
+		hosted_url: None,
 		inputs: BTreeMap::new(),
 	};
 	assert!(open_request.always_run());
@@ -2327,6 +2356,10 @@ fn expected_input_kind_returns_none_for_commit_release() {
 		no_verify: false,
 		update_release_json: false,
 		stage_all: false,
+		commit_backend: crate::ReleaseBackend::default(),
+		hosted_auth: crate::HostedCommitAuth::default(),
+		hosted_url: None,
+		oidc_audience: None,
 		inputs: BTreeMap::new(),
 	};
 	assert_eq!(step.expected_input_kind("format"), None);

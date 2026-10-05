@@ -3603,6 +3603,21 @@ pub enum CliStepDefinition {
 		update_release_json: bool,
 		#[serde(default)]
 		stage_all: bool,
+		/// Backend that writes the release commit. Defaults to `local`; hosted
+		/// sends the prepared files to the monochange app so the monochange
+		/// GitHub App creates a verified commit that triggers workflows.
+		#[serde(default)]
+		commit_backend: ReleaseBackend,
+		/// Authentication the hosted backend uses to reach the monochange app.
+		#[serde(default)]
+		hosted_auth: HostedCommitAuth,
+		/// Base URL of the hosted monochange app. Defaults to `https://monochange.dev`.
+		#[serde(default, skip_serializing_if = "Option::is_none")]
+		hosted_url: Option<String>,
+		/// Audience for the GitHub Actions OIDC token. Defaults to the hosted
+		/// URL host, e.g. `monochange.dev`.
+		#[serde(default, skip_serializing_if = "Option::is_none")]
+		oidc_audience: Option<String>,
 		#[serde(
 			default,
 			deserialize_with = "deserialize_cli_step_inputs",
@@ -3709,6 +3724,18 @@ pub enum CliStepDefinition {
 		no_verify: bool,
 		#[serde(default)]
 		stage_all: bool,
+		/// Backend that publishes the release request. Defaults to `local`;
+		/// hosted asks the monochange app to open the pull request through the
+		/// monochange GitHub App installation so the pull request, its
+		/// comments, and its checks run under the bot identity.
+		#[serde(default)]
+		backend: ReleaseBackend,
+		/// Authentication the hosted backend uses to reach the monochange app.
+		#[serde(default)]
+		hosted_auth: HostedCommitAuth,
+		/// Base URL of the hosted monochange app. Defaults to `https://monochange.dev`.
+		#[serde(default, skip_serializing_if = "Option::is_none")]
+		hosted_url: Option<String>,
 		#[serde(
 			default,
 			deserialize_with = "deserialize_cli_step_inputs",
@@ -4071,7 +4098,17 @@ impl CliStepDefinition {
 	pub fn valid_input_names(&self) -> Option<&'static [&'static str]> {
 		match self {
 			Self::Validate { .. } => Some(&[]),
-			Self::CommitRelease { .. } => Some(&["no_verify", "update_release_json", "stage_all"]),
+			Self::CommitRelease { .. } => {
+				Some(&[
+					"no_verify",
+					"update_release_json",
+					"stage_all",
+					"commit_backend",
+					"hosted_auth",
+					"hosted_url",
+					"oidc_audience",
+				])
+			}
 			Self::VerifyReleaseBranch { .. } => Some(&["from"]),
 			Self::Config { .. } | Self::Discover { .. } | Self::DisplayVersions { .. } => {
 				Some(&["format"])
@@ -4083,7 +4120,16 @@ impl CliStepDefinition {
 				Some(&["format", "from-ref", "auto-close-issues"])
 			}
 			Self::PublishRelease { .. } => Some(&["format", "from-ref", "draft"]),
-			Self::OpenReleaseRequest { .. } => Some(&["format", "no_verify", "stage_all"]),
+			Self::OpenReleaseRequest { .. } => {
+				Some(&[
+					"format",
+					"no_verify",
+					"stage_all",
+					"backend",
+					"hosted_auth",
+					"hosted_url",
+				])
+			}
 			Self::PlaceholderPublish { .. } => Some(&["format", "package", "show-all", "otp"]),
 			Self::PublishPackages { .. } => {
 				Some(&[
@@ -4136,7 +4182,6 @@ impl CliStepDefinition {
 			| Self::PrepareRelease { .. }
 			| Self::PublishRelease { .. }
 			| Self::CommentReleasedIssues { .. }
-			| Self::OpenReleaseRequest { .. }
 			| Self::AffectedPackages { .. }
 			| Self::DiagnoseChangesets { .. }
 			| Self::ReleaseRecord { .. }
@@ -4163,7 +4208,21 @@ impl CliStepDefinition {
 					_ => None,
 				}
 			}
-			Self::RetargetRelease { .. } | _ => None,
+			Self::CommitRelease { .. } => {
+				match name {
+					"commit_backend" => Some(&["local", "hosted"]),
+					"hosted_auth" => Some(&["auto", "oidc", "token"]),
+					_ => None,
+				}
+			}
+			Self::OpenReleaseRequest { .. } => {
+				match name {
+					"format" => Some(&["text", "json", "json-min", "md"]),
+					"backend" => Some(&["local", "hosted"]),
+					_ => None,
+				}
+			}
+			_ => None,
 		}
 	}
 
@@ -4178,6 +4237,8 @@ impl CliStepDefinition {
 					"no_verify" | "update_release_json" | "stage_all" => {
 						Some(CliInputKind::Boolean)
 					}
+					"commit_backend" | "hosted_auth" => Some(CliInputKind::Choice),
+					"hosted_url" | "oidc_audience" => Some(CliInputKind::String),
 					_ => None,
 				}
 			}
@@ -4216,8 +4277,9 @@ impl CliStepDefinition {
 			}
 			Self::OpenReleaseRequest { .. } => {
 				match name {
-					"format" => Some(CliInputKind::Choice),
+					"format" | "backend" | "hosted_auth" => Some(CliInputKind::Choice),
 					"no_verify" | "stage_all" => Some(CliInputKind::Boolean),
+					"hosted_url" => Some(CliInputKind::String),
 					_ => None,
 				}
 			}
@@ -4377,6 +4439,17 @@ fn step_input_help_text(name: &str) -> &'static str {
 		"no_verify" => "Skip Git commit hooks for this operation",
 		"update_release_json" => "Update the committed release record before committing",
 		"stage_all" => "Stage every workspace change instead of release files only",
+		"commit_backend" => {
+			"Backend that writes the release commit: local git or the hosted monochange app"
+		}
+		"backend" => {
+			"Backend that publishes the release request: local credentials or the hosted monochange app"
+		}
+		"hosted_auth" => {
+			"Authentication the hosted backend uses: GitHub Actions OIDC or a monochange token"
+		}
+		"hosted_url" => "Base URL of the hosted monochange app",
+		"oidc_audience" => "Audience required in the GitHub Actions OIDC token for hosted commits",
 		"from" => "Git ref to use as the release, comparison, or verification source",
 		"write_empty_release_record" => "Write a release record even when no packages change",
 		"release_json" => "Write the prepared release record as JSON",
@@ -6762,6 +6835,71 @@ pub struct CommitMessage {
 	pub body: Option<String>,
 }
 
+/// How a `CommitRelease` step writes the release commit.
+///
+/// The default `Local` backend keeps the existing behaviour: stage and commit
+/// release files with the local git client. The `Hosted` backend sends the
+/// prepared release files to the monochange app so the monochange GitHub App
+/// creates a verified commit that triggers repository workflows.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ReleaseBackend {
+	/// Stage and commit release files with the local git client.
+	#[default]
+	Local,
+	/// Send prepared release files to the monochange app, which commits
+	/// through the monochange GitHub App installation.
+	Hosted,
+}
+
+impl std::str::FromStr for ReleaseBackend {
+	type Err = MonochangeError;
+
+	fn from_str(value: &str) -> Result<Self, Self::Err> {
+		match value {
+			"local" => Ok(Self::Local),
+			"hosted" => Ok(Self::Hosted),
+			other => {
+				Err(MonochangeError::Config(format!(
+					"invalid commit backend `{other}`; expected `local` or `hosted`"
+				)))
+			}
+		}
+	}
+}
+
+/// How the hosted `CommitRelease` backend authenticates to the monochange app.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum HostedCommitAuth {
+	/// Prefer a GitHub Actions OIDC token and fall back to `MONOCHANGE_TOKEN`.
+	#[default]
+	Auto,
+	/// Require a GitHub Actions OIDC token.
+	Oidc,
+	/// Require the `MONOCHANGE_TOKEN` secret.
+	Token,
+}
+
+impl std::str::FromStr for HostedCommitAuth {
+	type Err = MonochangeError;
+
+	fn from_str(value: &str) -> Result<Self, Self::Err> {
+		match value {
+			"auto" => Ok(Self::Auto),
+			"oidc" => Ok(Self::Oidc),
+			"token" => Ok(Self::Token),
+			other => {
+				Err(MonochangeError::Config(format!(
+					"invalid hosted auth `{other}`; expected `auto`, `oidc`, or `token`"
+				)))
+			}
+		}
+	}
+}
+
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct SourceChangeRequest {
@@ -6810,6 +6948,114 @@ pub struct SourceChangeRequestOutcome {
 	pub head_branch: String,
 	pub operation: SourceChangeRequestOperation,
 	pub url: Option<String>,
+}
+
+/// A request for the monochange app to create a release commit through the
+/// monochange GitHub App installation on the caller's repository.
+///
+/// The CLI still computes the release locally: it reads every tracked release
+/// file, resolves the target branch and the commit the files were prepared
+/// against, and posts this compact request so the server can recreate the
+/// commit remotely without a local checkout.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct HostedCommitRequest {
+	/// Source provider for the repository. Only `github` is hosted today.
+	pub provider: String,
+	/// Repository owner, e.g. `monochange`.
+	pub owner: String,
+	/// Repository name, e.g. `monochange`.
+	pub repository: String,
+	/// Branch the commit must land on, e.g. `monochange/release/release`.
+	pub branch: String,
+	/// Commit SHA the files were prepared from. The server rejects the request
+	/// when the branch has moved so a rerun never overwrites newer work.
+	pub base_commit: String,
+	/// Release commit subject, e.g. `chore(release): prepare release`.
+	pub subject: String,
+	/// Release commit body.
+	#[serde(default)]
+	pub body: String,
+	/// Release-managed files to commit. A `None` content deletes the path.
+	pub files: Vec<HostedCommitFile>,
+	/// Whether this request is a dry run; the server validates without writing.
+	#[serde(default)]
+	pub dry_run: bool,
+	/// Idempotency key for safe retries, e.g. `owner/repo:run-id:attempt:command`.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub idempotency_key: Option<String>,
+}
+
+/// One release-managed file inside a [`HostedCommitRequest`].
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct HostedCommitFile {
+	/// Repository-relative path with forward slashes.
+	pub path: String,
+	/// File contents; `None` deletes the path from the commit.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub content: Option<String>,
+}
+
+/// The monochange app's response to a [`HostedCommitRequest`].
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct HostedCommitResponse {
+	/// SHA of the commit the monochange GitHub App created.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub commit: Option<String>,
+	/// Whether GitHub reports the commit as verified.
+	#[serde(default)]
+	pub verified: bool,
+	/// Machine-readable server status, e.g. `completed` or `dry_run`.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub status: Option<String>,
+	/// Human-readable explanation for failures or skipped verification.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub message: Option<String>,
+}
+
+/// A request for the monochange app to open or refresh the release pull
+/// request through the monochange GitHub App installation.
+///
+/// The CLI computes the full `SourceChangeRequest` locally (title, rendered
+/// body, labels, base and head branch) and posts it; the server only needs to
+/// create or update the pull request with its installation token.
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct HostedReleaseRequest {
+	/// The locally computed change request to publish.
+	pub request: SourceChangeRequest,
+	/// Paths the commit tracked, reported back for CLI output.
+	#[serde(default)]
+	pub tracked_paths: Vec<String>,
+	/// Whether this request is a dry run.
+	#[serde(default)]
+	pub dry_run: bool,
+}
+
+/// The monochange app's response to a [`HostedReleaseRequest`].
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct HostedReleaseResponse {
+	/// Pull request number, when a pull request exists.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub number: Option<u64>,
+	/// Whether the pull request was created, updated, or skipped.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub operation: Option<SourceChangeRequestOperation>,
+	/// Pull request URL.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub url: Option<String>,
+	/// Head branch the pull request tracks.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub head_branch: Option<String>,
+	/// Human-readable explanation for failures.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub message: Option<String>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -7068,6 +7314,10 @@ pub fn all_step_variants() -> Vec<CliStepDefinition> {
 			no_verify: false,
 			update_release_json: false,
 			stage_all: false,
+			commit_backend: ReleaseBackend::default(),
+			hosted_auth: HostedCommitAuth::default(),
+			hosted_url: None,
+			oidc_audience: None,
 			inputs: BTreeMap::new(),
 		},
 		CliStepDefinition::VerifyReleaseBranch {
@@ -7106,6 +7356,9 @@ pub fn all_step_variants() -> Vec<CliStepDefinition> {
 			always_run: false,
 			no_verify: false,
 			stage_all: false,
+			backend: ReleaseBackend::default(),
+			hosted_auth: HostedCommitAuth::default(),
+			hosted_url: None,
 			inputs: BTreeMap::new(),
 		},
 		CliStepDefinition::CommentReleasedIssues {

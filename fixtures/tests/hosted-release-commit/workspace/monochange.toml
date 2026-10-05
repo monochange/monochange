@@ -1,0 +1,54 @@
+[defaults]
+package_type = "cargo"
+changelog = "{{ path }}/CHANGELOG.md"
+
+[package.core]
+path = "crates/core"
+tag = true
+release = true
+
+[source]
+provider = "github"
+owner = "acme"
+repo = "actions"
+
+[source.releases]
+source = "github_generated"
+generate_notes = true
+
+[source.pull_requests]
+base = "main"
+branch_prefix = "monochange/release"
+labels = ["release"]
+auto_merge = true
+
+[ecosystems.cargo]
+enabled = true
+
+[cli.release]
+help_text = "Prepare and publish the release pull request through the hosted monochange app."
+
+[[cli.release.inputs]]
+name = "format"
+type = "choice"
+choices = ["text", "json"]
+default = "json"
+
+[[cli.release.inputs]]
+name = "no_verify"
+type = "boolean"
+default = true
+
+[[cli.release.steps]]
+type = "PrepareRelease"
+inputs = { format = "{{ inputs.format }}", release_json = true }
+
+[[cli.release.steps]]
+type = "CommitRelease"
+inputs = ["no_verify"]
+commit_backend = "hosted"
+
+[[cli.release.steps]]
+type = "OpenReleaseRequest"
+inputs = ["no_verify"]
+backend = "hosted"

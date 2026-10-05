@@ -4,9 +4,11 @@ use std::io::BufReader;
 use std::io::BufWriter;
 use std::io::IsTerminal;
 
+use monochange_core::git::git_current_branch;
 use similar::TextDiff;
 
 use super::*;
+use crate::cli_runtime::build_release_request_result;
 use crate::git_support::git_stage_all;
 use crate::output::text::Outcome;
 use crate::output::text::TableCell;
@@ -1838,31 +1840,26 @@ pub(crate) async fn commit_release(
 	update_release_json: bool,
 	stage_all: bool,
 ) -> MonochangeResult<CommitReleaseReport> {
-	let tracked_paths = tracked_release_pull_request_paths(context, manifest);
-	let message = build_release_commit_message(source, manifest);
-	let release_record_path =
-		validate_release_record_file(root, source, manifest, update_release_json)?;
-	let mut tracked_paths = tracked_paths;
-	tracked_paths.push(release_record_path);
+	let prepared = prepare_release_commit(root, context, source, manifest, update_release_json)?;
 	if !context.dry_run {
 		// patch-coverage:ignore-start -- exercised by end-to-end release PR flows; branch delegates to covered git helpers.
 		if stage_all {
 			git_stage_all(root).await?;
 		} else {
-			git_stage_paths(root, &tracked_paths).await?;
+			git_stage_paths(root, &prepared.tracked_paths).await?;
 		}
 		// patch-coverage:ignore-end
-		git_commit_paths(root, &message, no_verify).await?;
+		git_commit_paths(root, &prepared.message, no_verify).await?;
 	}
 	Ok(CommitReleaseReport {
-		subject: message.subject,
-		body: message.body.unwrap_or_default(),
+		subject: prepared.message.subject,
+		body: prepared.message.body.clone().unwrap_or_default(),
 		commit: if context.dry_run {
 			None
 		} else {
 			Some(git_head_commit(root).await?)
 		},
-		tracked_paths,
+		tracked_paths: prepared.tracked_paths,
 		dry_run: context.dry_run,
 		status: if context.dry_run {
 			"dry_run".to_string()
@@ -1870,6 +1867,392 @@ pub(crate) async fn commit_release(
 			"completed".to_string()
 		},
 	})
+}
+
+/// Everything both commit backends need after local preparation.
+struct PreparedReleaseCommit {
+	message: CommitMessage,
+	tracked_paths: Vec<PathBuf>,
+}
+
+/// Validate the release record and collect the commit message and tracked
+/// paths shared by the local and hosted commit backends.
+fn prepare_release_commit(
+	root: &Path,
+	context: &CliContext,
+	source: Option<&SourceConfiguration>,
+	manifest: &ReleaseManifest,
+	update_release_json: bool,
+) -> MonochangeResult<PreparedReleaseCommit> {
+	let tracked_paths = tracked_release_pull_request_paths(context, manifest);
+	let message = build_release_commit_message(source, manifest);
+	let release_record_path =
+		validate_release_record_file(root, source, manifest, update_release_json)?;
+	let mut tracked_paths = tracked_paths;
+	tracked_paths.push(release_record_path);
+	Ok(PreparedReleaseCommit {
+		message,
+		tracked_paths,
+	})
+}
+
+/// Resolved configuration for the hosted commit backend.
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub(crate) struct HostedCommitOptions {
+	/// Authentication mode resolved from the step's `hosted_auth` setting.
+	pub(crate) auth: monochange_core::HostedCommitAuth,
+	/// Monochange app base URL without a trailing slash.
+	pub(crate) url: String,
+	/// Audience for the GitHub Actions OIDC token.
+	pub(crate) oidc_audience: String,
+}
+
+pub(crate) const DEFAULT_HOSTED_URL: &str = "https://monochange.dev";
+
+/// Resolve hosted commit options from step fields, falling back to defaults.
+#[must_use]
+pub(crate) fn resolve_hosted_commit_options(
+	auth: monochange_core::HostedCommitAuth,
+	url: Option<&str>,
+	oidc_audience: Option<&str>,
+) -> HostedCommitOptions {
+	// `MONOCHANGE_HOSTED_URL` overrides the configured URL so self-hosted
+	// monochange app deployments (and tests) can redirect the hosted backend
+	// without editing monochange.toml.
+	let url = url
+		.map(String::from)
+		.or_else(|| std::env::var("MONOCHANGE_HOSTED_URL").ok())
+		.unwrap_or_else(|| DEFAULT_HOSTED_URL.to_string());
+	let url = url.trim_end_matches('/').to_string();
+	let oidc_audience =
+		oidc_audience.map_or_else(|| hosted_oidc_audience(&url), ToString::to_string);
+	HostedCommitOptions {
+		auth,
+		url,
+		oidc_audience,
+	}
+}
+
+/// Derive the default OIDC audience from the hosted app URL host.
+#[must_use]
+fn hosted_oidc_audience(url: &str) -> String {
+	url.trim_start_matches("https://")
+		.trim_start_matches("http://")
+		.trim_end_matches('/')
+		.to_string()
+}
+
+/// Send the prepared release files to the monochange app, which commits
+/// through the monochange GitHub App installation.
+///
+/// The release is still computed locally; only the commit is delegated so
+/// the resulting commit is created by the monochange bot identity, is
+/// verified by GitHub, and triggers the repository's normal workflows.
+pub(crate) async fn hosted_commit_release(
+	root: &Path,
+	context: &CliContext,
+	source: Option<&SourceConfiguration>,
+	manifest: &ReleaseManifest,
+	update_release_json: bool,
+	options: &HostedCommitOptions,
+) -> MonochangeResult<CommitReleaseReport> {
+	let prepared = prepare_release_commit(root, context, source, manifest, update_release_json)?;
+	let body = prepared.message.body.clone().unwrap_or_default();
+	let request = build_hosted_commit_request(root, &prepared, context.dry_run).await?;
+	let response = if context.dry_run {
+		HostedCommitResponse {
+			commit: None,
+			verified: false,
+			status: Some("dry_run".to_string()),
+			message: None,
+		}
+	} else {
+		let token = hosted_commit_bearer_token(options).await?;
+		send_hosted_commit_request(&request, options, &token).await?
+	};
+	Ok(CommitReleaseReport {
+		subject: prepared.message.subject,
+		body,
+		commit: response.commit,
+		tracked_paths: prepared.tracked_paths,
+		dry_run: context.dry_run,
+		status: response.status.unwrap_or_else(|| "completed".to_string()),
+	})
+}
+
+/// Build the provider-neutral request the monochange app commits on our behalf.
+///
+/// Testable with an explicit repository/branch so CI environments do not need
+/// GitHub Actions environment variables.
+async fn build_hosted_commit_request(
+	root: &Path,
+	prepared: &PreparedReleaseCommit,
+	dry_run: bool,
+) -> MonochangeResult<HostedCommitRequest> {
+	let repository = std::env::var("GITHUB_REPOSITORY").map_err(|_| {
+		MonochangeError::Config(
+			"hosted CommitRelease requires GITHUB_REPOSITORY (for example `owner/repo`)"
+				.to_string(),
+		)
+	})?;
+	let head_ref = std::env::var("GITHUB_HEAD_REF").ok();
+	let ref_name = std::env::var("GITHUB_REF_NAME").ok();
+	build_hosted_commit_request_for_github(
+		root,
+		prepared,
+		dry_run,
+		&repository,
+		head_ref.as_deref(),
+		ref_name.as_deref(),
+	)
+	.await
+}
+
+async fn build_hosted_commit_request_for_github(
+	root: &Path,
+	prepared: &PreparedReleaseCommit,
+	dry_run: bool,
+	repository: &str,
+	head_ref: Option<&str>,
+	ref_name: Option<&str>,
+) -> MonochangeResult<HostedCommitRequest> {
+	let (owner, repository) = repository.split_once('/').ok_or_else(|| {
+		MonochangeError::Config("GITHUB_REPOSITORY must use `owner/repo` format".to_string())
+	})?;
+	let branch = match head_ref
+		.filter(|value| !value.is_empty())
+		.or(ref_name)
+		.filter(|value| !value.is_empty())
+	{
+		Some(branch) => branch.to_string(),
+		None => {
+			git_current_branch(root)
+				.await
+				.unwrap_or_else(|_| "HEAD".to_string())
+		}
+	};
+	let files = prepared
+		.tracked_paths
+		.iter()
+		.map(|path| hosted_commit_file(root, path))
+		.collect::<MonochangeResult<Vec<_>>>()?;
+	Ok(HostedCommitRequest {
+		provider: "github".to_string(),
+		owner: owner.to_string(),
+		repository: repository.to_string(),
+		branch,
+		base_commit: git_head_commit(root).await?,
+		subject: prepared.message.subject.clone(),
+		body: prepared.message.body.clone().unwrap_or_default(),
+		files,
+		dry_run,
+		idempotency_key: hosted_commit_idempotency_key(),
+	})
+}
+
+/// Build a retry-safe idempotency key from the current GitHub Actions run.
+#[must_use]
+fn hosted_commit_idempotency_key() -> Option<String> {
+	// patch-coverage:ignore-start -- the happy path needs GITHUB_REPOSITORY plus run metadata; writing those process-global vars races unlocked readers in parallel suites. The integration suite exercises it end-to-end through the spawned CLI.
+	let repository = std::env::var("GITHUB_REPOSITORY").ok()?;
+	let run_id = std::env::var("GITHUB_RUN_ID").ok()?;
+	let attempt = std::env::var("GITHUB_RUN_ATTEMPT").ok()?;
+	Some(format!("{repository}:{run_id}:{attempt}:CommitRelease"))
+	// patch-coverage:ignore-end
+}
+
+/// Read one release-managed file; missing content deletes the path, which is
+/// how consumed changeset files are removed from the release commit.
+fn hosted_commit_file(root: &Path, path: &Path) -> MonochangeResult<HostedCommitFile> {
+	let full_path = root.join(path);
+	let content = if full_path.exists() {
+		Some(fs::read_to_string(&full_path).map_err(|error| {
+			MonochangeError::Io(format!(
+				"read hosted commit file `{}`: {error}",
+				path.display()
+			))
+		})?)
+	} else {
+		None
+	};
+	Ok(HostedCommitFile {
+		path: path.to_string_lossy().replace('\\', "/"),
+		content,
+	})
+}
+
+/// POST the hosted commit request and validate the response.
+async fn send_hosted_commit_request(
+	request: &HostedCommitRequest,
+	options: &HostedCommitOptions,
+	token: &str,
+) -> MonochangeResult<HostedCommitResponse> {
+	let base_url = options.url.trim_end_matches('/');
+	let client = monochange_hosting::build_http_client("monochange app")?;
+	let response = client
+		.post(format!("{base_url}/api/release-commits"))
+		.bearer_auth(token)
+		.json(request)
+		.send()
+		.await
+		.map_err(|error| {
+			MonochangeError::Config(format!("hosted CommitRelease request failed: {error}"))
+		})?;
+	let status = response.status();
+	// patch-coverage:ignore-start -- a mid-body connection drop is needed to fail the text read; httpmock always serves complete bodies.
+	let text = response.text().await.map_err(|error| {
+		MonochangeError::Config(format!(
+			"hosted CommitRelease response read failed: {error}"
+		))
+	})?;
+	// patch-coverage:ignore-end
+	if !status.is_success() {
+		return Err(MonochangeError::Config(format!(
+			"hosted CommitRelease failed with HTTP {status}: {text}"
+		)));
+	}
+	serde_json::from_str(&text).map_err(|error| {
+		MonochangeError::Config(format!(
+			"hosted CommitRelease response was invalid JSON: {error}"
+		))
+	})
+}
+
+/// Ask the monochange app to open or refresh the release pull request through
+/// the monochange GitHub App installation.
+///
+/// The request body, title, labels, and branches are computed locally; the
+/// server creates or updates the pull request under the bot identity so the
+/// pull request events trigger the repository's normal workflows.
+pub(crate) async fn hosted_release_request_result(
+	dry_run: bool,
+	options: &HostedCommitOptions,
+	request: &SourceChangeRequest,
+	tracked_paths: &[PathBuf],
+) -> MonochangeResult<String> {
+	if dry_run {
+		return build_release_request_result(dry_run, request, || unreachable!());
+	}
+	let token = hosted_commit_bearer_token(options).await?;
+	let payload = HostedReleaseRequest {
+		request: request.clone(),
+		tracked_paths: tracked_paths
+			.iter()
+			.map(|path| path.to_string_lossy().replace('\\', "/"))
+			.collect(),
+		dry_run,
+	};
+	let base_url = options.url.trim_end_matches('/');
+	let client = monochange_hosting::build_http_client("monochange app")?;
+	let response = client
+		.post(format!("{base_url}/api/release-requests"))
+		.bearer_auth(token)
+		.json(&payload)
+		.send()
+		.await
+		.map_err(|error| {
+			MonochangeError::Config(format!("hosted OpenReleaseRequest failed: {error}"))
+		})?;
+	let status = response.status();
+	// patch-coverage:ignore-start -- a mid-body connection drop is needed to fail the text read; httpmock always serves complete bodies.
+	let text = response.text().await.map_err(|error| {
+		MonochangeError::Config(format!(
+			"hosted OpenReleaseRequest response read failed: {error}"
+		))
+	})?;
+	// patch-coverage:ignore-end
+	if !status.is_success() {
+		return Err(MonochangeError::Config(format!(
+			"hosted OpenReleaseRequest failed with HTTP {status}: {text}"
+		)));
+	}
+	let outcome: HostedReleaseResponse = serde_json::from_str(&text).map_err(|error| {
+		MonochangeError::Config(format!(
+			"hosted OpenReleaseRequest response was invalid JSON: {error}"
+		))
+	})?;
+	let repository = &request.repository;
+	Ok(match (outcome.number, outcome.operation) {
+		(Some(number), Some(operation)) => {
+			format!(
+				"{repository} #{number} ({}) via monochange app",
+				format_change_request_operation(&operation)
+			)
+		}
+		_ => format!("{repository} (no pull request) via monochange app"),
+	})
+}
+
+/// Resolve the bearer token for the monochange app request.
+async fn hosted_commit_bearer_token(options: &HostedCommitOptions) -> MonochangeResult<String> {
+	match options.auth {
+		monochange_core::HostedCommitAuth::Token => hosted_monochange_token(),
+		monochange_core::HostedCommitAuth::Oidc => hosted_github_actions_oidc_token(options).await,
+		monochange_core::HostedCommitAuth::Auto => {
+			if std::env::var_os("ACTIONS_ID_TOKEN_REQUEST_URL").is_some() {
+				hosted_github_actions_oidc_token(options).await
+			} else {
+				hosted_monochange_token()
+			}
+		}
+	}
+}
+
+fn hosted_monochange_token() -> MonochangeResult<String> {
+	std::env::var("MONOCHANGE_TOKEN").map_err(|_| {
+		MonochangeError::Config(
+			"hosted CommitRelease token auth requires MONOCHANGE_TOKEN".to_string(),
+		)
+	})
+}
+
+#[derive(serde::Deserialize)]
+struct GithubActionsOidcResponse {
+	value: String,
+}
+
+/// Request a GitHub Actions OIDC token for the configured audience.
+async fn hosted_github_actions_oidc_token(
+	options: &HostedCommitOptions,
+) -> MonochangeResult<String> {
+	let request_url = std::env::var("ACTIONS_ID_TOKEN_REQUEST_URL").map_err(|_| {
+		MonochangeError::Config(
+			"hosted CommitRelease OIDC auth requires ACTIONS_ID_TOKEN_REQUEST_URL".to_string(),
+		)
+	})?;
+	let request_token = std::env::var("ACTIONS_ID_TOKEN_REQUEST_TOKEN").map_err(|_| {
+		MonochangeError::Config(
+			"hosted CommitRelease OIDC auth requires ACTIONS_ID_TOKEN_REQUEST_TOKEN".to_string(),
+		)
+	})?;
+	let audience = &options.oidc_audience;
+	let separator = if request_url.contains('?') { '&' } else { '?' };
+	let client = monochange_hosting::build_http_client("monochange app")?;
+	let response = client
+		.get(format!("{request_url}{separator}audience={audience}"))
+		.bearer_auth(request_token)
+		.send()
+		.await
+		.map_err(|error| {
+			MonochangeError::Config(format!(
+				"hosted CommitRelease OIDC token request failed: {error}"
+			))
+		})?;
+	if !response.status().is_success() {
+		return Err(MonochangeError::Config(format!(
+			"hosted CommitRelease OIDC token request failed with status {}",
+			response.status()
+		)));
+	}
+	response
+		.json::<GithubActionsOidcResponse>()
+		.await
+		.map(|response| response.value)
+		.map_err(|error| {
+			MonochangeError::Config(format!(
+				"hosted CommitRelease OIDC token response was invalid: {error}"
+			))
+		})
 }
 
 pub(crate) fn tracked_release_pull_request_paths(
