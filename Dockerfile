@@ -21,8 +21,20 @@ RUN rustup toolchain install ${NIGHTLY_TOOLCHAIN} \
     && rustup default ${NIGHTLY_TOOLCHAIN} \
     && rustup target add wasm32-unknown-unknown
 
-# Install cargo-leptos (pin to a version known to work with leptos 0.8)
-RUN cargo install cargo-leptos --version 0.3.6 --locked
+# Use the official pinned binary so a small deployment host need not compile
+# cargo-leptos itself. Verify the release archive before executing its contents.
+RUN arch="$(dpkg --print-architecture)" \
+    && case "$arch" in \
+        amd64) leptos_arch=x86_64; leptos_sha=895cc7ff10702b4f64b3ea5f9f0872e169c870692429650e13a3ae5550b0cdeb ;; \
+        arm64) leptos_arch=aarch64; leptos_sha=d45cd862c45628c9bbca43499eb7755e10f166a752a1dbc2ef2b34b3fd6fe622 ;; \
+        *) echo "unsupported architecture: $arch" >&2; exit 1 ;; \
+    esac \
+    && leptos_target="${leptos_arch}-unknown-linux-musl" \
+    && curl -fsSL "https://github.com/leptos-rs/cargo-leptos/releases/download/v0.3.6/cargo-leptos-${leptos_target}.tar.gz" -o /tmp/cargo-leptos.tar.gz \
+    && echo "${leptos_sha}  /tmp/cargo-leptos.tar.gz" | sha256sum -c - \
+    && tar -xzf /tmp/cargo-leptos.tar.gz -C /usr/local/bin --strip-components=1 "cargo-leptos-${leptos_target}/cargo-leptos" \
+    && rm /tmp/cargo-leptos.tar.gz \
+    && cargo leptos --version
 
 # Install Tailwind CSS v4 standalone binary (Linux glibc)
 RUN arch="$(dpkg --print-architecture)" \
