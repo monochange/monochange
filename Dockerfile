@@ -9,6 +9,8 @@ ARG NIGHTLY_TOOLCHAIN=nightly-2026-05-08
 # Install build dependencies
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
+        build-essential \
+        perl \
         pkg-config \
         libssl-dev \
         curl \
