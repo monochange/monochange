@@ -98,6 +98,9 @@ RUN mkdir -p /data \
 USER root
 WORKDIR /app
 
+# SecretSpec and the 1Password CLI must use the unprivileged user's home after
+# the entrypoint drops privileges, rather than probing root's private config.
+ENV HOME=/home/app
 ENV SECRETSPEC_PROFILE=development
 ENV DATABASE_URL=sqlite:///data/monochange_app.sqlite3
 ENV LEPTOS_SITE_ROOT=/app/site
