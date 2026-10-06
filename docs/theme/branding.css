@@ -1,0 +1,19 @@
+.monochange-guide-logo {
+	margin-bottom: 2rem;
+}
+
+.monochange-logo-dark {
+	display: none;
+}
+
+html.coal .monochange-logo-light,
+html.navy .monochange-logo-light,
+html.ayu .monochange-logo-light {
+	display: none;
+}
+
+html.coal .monochange-logo-dark,
+html.navy .monochange-logo-dark,
+html.ayu .monochange-logo-dark {
+	display: inline-block;
+}

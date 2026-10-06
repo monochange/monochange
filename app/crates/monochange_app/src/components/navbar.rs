@@ -66,7 +66,7 @@ fn NavContent() -> impl IntoView {
 				// Logo + brand
 				<a href="/" class="flex items-center gap-2.5 group">
 					<img
-						src="/branding/logos/18-delta-mc.svg"
+						src="/branding/mark.svg"
 						alt="monochange"
 						class="size-8 transition-transform duration-300 group-hover:scale-110"
 					/>

@@ -27,13 +27,18 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
 			<head>
 				<meta charset="utf-8" />
 				<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-				<meta name="theme-color" content="#0c8ee7" />
+				<meta name="theme-color" content="#4f46e5" />
 				<meta
 					name="description"
 					content="Release planning toolkit for monorepos. Automated changesets, AI-powered roadmaps, and beautiful changelogs."
 				/>
-				<link rel="icon" type="image/svg+xml" href="/branding/logos/18-delta-mc.svg" />
-				<link rel="apple-touch-icon" href="/branding/logos/18-delta-mc.svg" />
+				<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+				<link rel="icon" sizes="any" href="/favicon.ico" />
+				<link rel="manifest" href="/site.webmanifest" />
+				<meta property="og:image" content="https://monochange.dev/branding/social.png" />
+				<meta property="og:image:alt" content="monochange — release planning for monorepos" />
+				<meta name="twitter:card" content="summary_large_image" />
+				<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
 				<link rel="preconnect" href="https://fonts.googleapis.com" />
 				<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 				<link
@@ -97,7 +102,7 @@ fn LoginPage() -> impl IntoView {
 			<div class="w-full max-w-md text-center">
 				// Logo mark
 				<div class="mx-auto mb-8 flex size-20 items-center justify-center rounded-2xl bg-brand-50 p-4 dark:bg-brand-950">
-					<img src="/branding/logos/18-delta-mc.svg" alt="monochange" class="size-12" />
+					<img src="/branding/mark.svg" alt="monochange" class="size-12" />
 				</div>
 
 				<h2 class="text-2xl font-bold text-gray-900 dark:text-white">
@@ -231,7 +236,7 @@ fn Footer() -> impl IntoView {
 					// Brand
 					<div>
 						<div class="flex items-center gap-2">
-							<img src="/branding/logos/18-delta-mc.svg" alt="monochange" class="size-8" />
+							<img src="/branding/mark.svg" alt="monochange" class="size-8" />
 							<span class="text-lg font-bold text-gray-900 dark:text-white">monochange</span>
 						</div>
 						<p class="mt-3 text-sm text-gray-500 dark:text-gray-400">

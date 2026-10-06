@@ -3,3 +3,6 @@ authors = ["Ifiok Jr."]
 language = "en"
 src = "src"
 title = "monochange"
+
+[output.html]
+additional-css = ["theme/branding.css"]

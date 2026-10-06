@@ -21,7 +21,7 @@ pub fn HomePage() -> impl IntoView {
 					// Logo mark — large centered
 					<div class="mx-auto mb-10 flex size-24 items-center justify-center rounded-3xl bg-gradient-to-br from-brand-50 to-brand-100 p-5 shadow-lg shadow-brand-100/50 dark:from-brand-950 dark:to-brand-900 dark:shadow-brand-900/30">
 						<img
-							src="/branding/logos/18-delta-mc.svg"
+							src="/branding/mark.svg"
 							alt="monochange"
 							class="size-14 transition-transform duration-500 hover:scale-110"
 						/>
