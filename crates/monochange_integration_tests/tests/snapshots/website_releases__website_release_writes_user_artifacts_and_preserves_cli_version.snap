@@ -1,0 +1,36 @@
+---
+source: crates/monochange_integration_tests/tests/website_releases.rs
+expression: "serde_json::json!({\n    \"targets\": result[\"release_targets\"], \"artifacts\": artifacts\n})"
+---
+{
+  "artifacts": [
+    {
+      "output": "website",
+      "owner": "monochange_app",
+      "path": "app/changelog.md",
+      "stream": "website"
+    },
+    {
+      "output": "website_json",
+      "owner": "monochange_app",
+      "path": "app/public/releases/0.1.1.json",
+      "stream": "website"
+    }
+  ],
+  "targets": [
+    {
+      "id": "monochange_app",
+      "kind": "package",
+      "members": [
+        "monochange_app"
+      ],
+      "release": true,
+      "rendered_changelog_title": "0.1.1",
+      "rendered_title": "monochange_app v0.1.1 (2026-10-06)",
+      "tag": true,
+      "tag_name": "monochange_app/v0.1.1",
+      "version": "0.1.1",
+      "version_format": "namespaced"
+    }
+  ]
+}

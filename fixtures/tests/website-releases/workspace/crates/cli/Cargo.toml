@@ -1,0 +1,4 @@
+[package]
+name = "cli"
+version.workspace = true
+edition = "2024"

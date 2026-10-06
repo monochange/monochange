@@ -48,7 +48,7 @@ jobs:
           persist-credentials: false
 
       - name: setup
-        uses: ./.github/actions/devenv
+        uses: $/.github/actions/devenv
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -98,7 +98,7 @@ jobs:
           persist-credentials: false
 
       - name: setup
-        uses: ./.github/actions/devenv
+        uses: $/.github/actions/devenv
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           free-runner-space: "true"
@@ -134,7 +134,7 @@ jobs:
 
       - name: setup devenv
         if: runner.os != 'Windows'
-        uses: ./.github/actions/devenv
+        uses: $/.github/actions/devenv
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           free-runner-space: ${{ runner.os == 'Linux' && 'true' || 'false' }}
@@ -201,7 +201,7 @@ jobs:
           persist-credentials: false
 
       - name: setup
-        uses: ./.github/actions/devenv
+        uses: $/.github/actions/devenv
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           free-runner-space: "true"
@@ -241,7 +241,7 @@ jobs:
           persist-credentials: false
 
       - name: setup
-        uses: ./.github/actions/devenv
+        uses: $/.github/actions/devenv
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           free-runner-space: "true"
@@ -266,7 +266,7 @@ jobs:
           persist-credentials: false
 
       - name: setup
-        uses: ./.github/actions/devenv
+        uses: $/.github/actions/devenv
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           free-runner-space: "true"
@@ -372,7 +372,7 @@ jobs:
           persist-credentials: false
 
       - name: setup
-        uses: ./.github/actions/devenv
+        uses: $/.github/actions/devenv
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           free-runner-space: "true"
@@ -414,7 +414,7 @@ jobs:
           persist-credentials: false
 
       - name: setup
-        uses: ./.github/actions/devenv
+        uses: $/.github/actions/devenv
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           free-runner-space: "true"
@@ -482,7 +482,7 @@ jobs:
           persist-credentials: false
 
       - name: setup
-        uses: ./.github/actions/devenv
+        uses: $/.github/actions/devenv
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           free-runner-space: "true"
@@ -534,7 +534,7 @@ jobs:
           persist-credentials: false
 
       - name: setup
-        uses: ./.github/actions/devenv
+        uses: $/.github/actions/devenv
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           free-runner-space: "true"
@@ -580,7 +580,7 @@ jobs:
           persist-credentials: false
 
       - name: setup
-        uses: ./.github/actions/devenv
+        uses: $/.github/actions/devenv
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           free-runner-space: "true"
@@ -629,7 +629,7 @@ jobs:
           persist-credentials: false
 
       - name: setup
-        uses: ./.github/actions/devenv
+        uses: $/.github/actions/devenv
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           free-runner-space: "true"
@@ -711,7 +711,7 @@ jobs:
           persist-credentials: false
 
       - name: setup
-        uses: ./.github/actions/devenv
+        uses: $/.github/actions/devenv
         with:
           github-token: ${{ secrets.RELEASE_PR_MERGE_TOKEN }}
 
@@ -817,6 +817,8 @@ jobs:
   release-post-merge:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository_owner == 'monochange'
     needs: release-pr
+    outputs:
+      website_tag: ${{ steps.website_release.outputs.tag }}
     timeout-minutes: 10
     runs-on: ubuntu-latest
     permissions:
@@ -832,7 +834,7 @@ jobs:
           persist-credentials: false
 
       - name: setup
-        uses: ./.github/actions/devenv
+        uses: $/.github/actions/devenv
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -869,6 +871,18 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: monochange step publish-release --from-ref="HEAD" --draft --format json | tee /tmp/publish-release.json
         shell: devenv shell -- bash -e {0}
+
+      - name: select website deployment
+        id: website_release
+        if: steps.tag_release.outputs.is_release_commit == 'true'
+        env:
+          RELEASE_COMMIT: ${{ github.sha }}
+        shell: devenv shell -- bash -e {0}
+        run: |
+          set -euo pipefail
+          monochange step release-record --from "$RELEASE_COMMIT" --format json > /tmp/website-release.json
+          tag="$(jq -r '.record.release_targets[] | select(.id == "monochange_app" and .release == true) | .tag_name' /tmp/website-release.json)"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
       - name: comment on released issues
         if: steps.tag_release.outputs.is_release_commit == 'true'
@@ -913,3 +927,13 @@ jobs:
             --repo "${{ github.repository }}" \
             --ref "$tag" \
             -f "tag=$tag"
+
+  website-deployment:
+    needs: release-post-merge
+    if: ${{ !cancelled() && needs.release-post-merge.outputs.website_tag != '' }}
+    uses: $/.github/workflows/app-deploy.yml
+    with:
+      commit: ${{ github.sha }}
+      tag: ${{ needs.release-post-merge.outputs.website_tag }}
+    permissions:
+      contents: write

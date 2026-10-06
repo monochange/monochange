@@ -1,0 +1,46 @@
+[defaults]
+package_type = "cargo"
+
+[package.cli]
+path = "crates/cli"
+
+[group.main]
+packages = ["cli"]
+version_format = "primary"
+tag = true
+release = true
+
+[package.monochange_app]
+path = "app/crates/monochange_app"
+publish = { enabled = false }
+changelog = false
+tag = true
+release = true
+ignore_ecosystem_versioned_files = true
+changelog_version_title = "{{ version }}"
+
+[ecosystems.cargo]
+enabled = true
+versioned_files = ["Cargo.toml"]
+
+[changelog.streams.website]
+description = "Website users"
+
+[changelog.types.website_feature]
+bump = "minor"
+section = "feat"
+stream = "website"
+
+[changelog.outputs.website]
+stream = "website"
+targets = ["monochange_app"]
+path = "app/changelog.md"
+format = "keep_a_changelog"
+mode = "append"
+
+[changelog.outputs.website_json]
+stream = "website"
+targets = ["monochange_app"]
+path = "app/public/releases/{{ version }}.json"
+format = "json"
+mode = "release"

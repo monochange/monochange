@@ -62,6 +62,7 @@ impl std::error::Error for MonochangeError {}
 struct HealthResponse {
 	status: &'static str,
 	http: &'static str,
+	version: &'static str,
 }
 
 // `#[tokio::main]` generates `Builder::expect("Failed building the Runtime")`
@@ -155,6 +156,7 @@ async fn main() -> Result<(), MonochangeError> {
 				async move {
 					Json(HealthResponse {
 						status: "ok",
+						version: env!("CARGO_PKG_VERSION"),
 						http: "up",
 					})
 				}

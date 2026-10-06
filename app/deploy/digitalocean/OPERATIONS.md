@@ -16,6 +16,22 @@ Run these commands from the repository root. `devenv shell` supplies DigitalOcea
 
 The committed `ssh_config` uses the existing personal SSH key and refuses interactive authentication or unknown host keys. Its ed25519 host key was verified through the authenticated DigitalOcean console: `SHA256:IDrE9qR3H3uh1KYauCGDRPGjeEj8pbtXfrmgCMHC6aE`. A replacement Droplet needs a newly verified host key and updated target; never bypass this check.
 
+## Automated website releases
+
+`ci.yml` calls `app-deploy.yml` after an approved release commit contains a `monochange_app` release target. Library-only releases leave the website alone. The deployment validates the release record and builds the exact tagged commit on GitHub Actions, so the small Droplet only loads the image and restarts the application.
+
+Install `ci-deploy.sh` as root-owned `/usr/local/bin/monochange-ci-deploy` with mode 0755. Add the dedicated key to the deploy user's `authorized_keys` with these options:
+
+```text
+restrict,command="/usr/local/bin/monochange-ci-deploy" ssh-ed25519 <public-key> monochange-website-actions
+```
+
+The key accepts only `deploy <full-commit-sha> <stable-version>` with a compressed image on stdin. It cannot request a shell, port forwarding, or a PTY. The forced command locks deployment, rejects an older version, loads the image, verifies its commit tag, backs up SQLite, and calls the existing deploy helper. Treat this key as production access: deployed application code can access runtime secrets through the container.
+
+Store its private key as the `WEBSITE_DEPLOY_SSH_KEY` secret in the `website-production` Actions environment, restricted to the `main` branch, and as a concealed field in the private monochange deployment recovery vault through the scoped Monosecret service account. Do not copy the personal SSH key into CI. Rotation means installing a new dedicated public key, replacing both stored copies, verifying deployment, and removing the old authorized key.
+
+No API token, registry credential, DNS change, or additional paid service is required. Runtime passwords remain on the server. A failed build leaves production untouched; a failed rollout keeps the release draft. Inspect Actions and the current database before retrying or restoring a backup.
+
 ## API credential
 
 Create a custom-scoped DigitalOcean token named `monochange deployment`, expiring after 90 days. Use `account:read`, `actions:read`, `droplet:read`, `domain:create`, `domain:read`, `domain:update`, `firewall:create`, `firewall:read`, and `firewall:update`. DigitalOcean adds the required read scopes for regions, sizes, images, and snapshots. These are resource-type scopes across the team; they are not restricted to one Droplet. Creating or deleting Droplets, deleting DNS/firewalls, billing, registries, and app-platform access are outside this token's permissions.
@@ -104,6 +120,6 @@ doctl compute domain records update monochange.dev --record-id <record-id> --rec
 
 Use IDs from the list output and re-read the record after an update. Keep the zone migration and delegation change as explicit maintenance steps; creating an app image never edits DNS.
 
-## initial setup still required
+## Remaining setup
 
-The API token must be created and stored before authenticated API commands work. The runtime 1Password service account, production secrets, and GitHub OAuth/App credentials must be completed before the first public deployment. Local daily backups exist; offsite backup delivery is still pending. Keep this checklist current as each setup step is verified.
+The API token must be created and stored before authenticated DigitalOcean API commands work. The website is live with its runtime service account and GitHub OAuth credentials. GitHub release App credentials remain pending; supply all three bot credentials together before enabling installation-backed automation. Local daily backups exist; offsite backup delivery is still pending. Routine website release deployment uses SSH and does not depend on the API token or release App setup.
