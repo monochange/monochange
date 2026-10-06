@@ -1,3 +1,12 @@
+<!-- {=projectGuideLogo} -->
+
+<div class="monochange-guide-logo">
+  <img class="monochange-logo-light" src="branding/logo-280.png" alt="monochange" width="280" height="171">
+  <img class="monochange-logo-dark" src="branding/logo-dark-280.png" alt="monochange" width="280" height="171">
+</div>
+
+<!-- {/projectGuideLogo} -->
+
 # Introduction
 
 `monochange` is a cross-ecosystem release planner for monorepos.

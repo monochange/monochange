@@ -4,10 +4,14 @@
 
 > manage versions and releases for your multiplatform, multilanguage monorepo
 
+<!-- {=projectBrandLogo:"https://raw.githubusercontent.com/monochange/monochange/main/assets"} -->
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/monochange/monochange/main/assets/logo-dark-280.png">
-  <img src="https://raw.githubusercontent.com/monochange/monochange/main/assets/logo-280.png" alt="monochange logo" width="280">
+  <img src="https://raw.githubusercontent.com/monochange/monochange/main/assets/logo-280.png" alt="monochange" width="280" height="171">
 </picture>
+
+<!-- {/projectBrandLogo} -->
 
 <!-- {=crateReadmeBadgeRow:"monochange"} -->
 

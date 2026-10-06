@@ -8,6 +8,10 @@
 //! train through this crate's `SCHEMA_VERSION`, mirroring the durable schema
 //! pattern used for configuration and release records.
 
+#![doc(
+	html_logo_url = "https://raw.githubusercontent.com/monochange/monochange/main/assets/logo-512.png",
+	html_favicon_url = "https://raw.githubusercontent.com/monochange/monochange/main/assets/favicon.ico"
+)]
 #![allow(unstable_features)]
 #![cfg_attr(test, allow(unused_imports, unused_qualifications))]
 #![feature(coverage_attribute)]
