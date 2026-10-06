@@ -1,8 +1,8 @@
 ---
-main: docs
-snapshot: docs
-monochange_schema: docs
-monochange_classification: docs
+main: patch
+snapshot: patch
+monochange_schema: patch
+monochange_classification: patch
 ---
 
 # Use the coloured monochange identity in documentation
