@@ -3,6 +3,9 @@
 //! This is compiled to WebAssembly and hydrates the Leptos app
 //! on the client side for interactivity after SSR.
 
+// Leptos' generated view types exceed Rust's default depth during release builds.
+#![recursion_limit = "256"]
+
 pub mod app;
 pub mod color_mode;
 pub mod components;

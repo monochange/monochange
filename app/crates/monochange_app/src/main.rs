@@ -21,6 +21,9 @@
 //! secretspec run --profile ci --provider env -- cargo leptos build
 //! ```
 
+// The server also computes layouts for Leptos' generated view types.
+#![recursion_limit = "256"]
+
 use std::sync::Arc;
 
 use axum::Router;
