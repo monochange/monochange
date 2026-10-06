@@ -1,7 +1,30 @@
 ---
-main: patch
-snapshot: patch
+monochange: patch
+monochange_analysis: patch
+monochange_cargo: patch
+monochange_changelog: patch
+monochange_config: patch
+monochange_core: patch
+monochange_dart: patch
+monochange_deno: patch
+monochange_ecmascript: patch
+monochange_forgejo: patch
+monochange_gitea: patch
+monochange_github: patch
+monochange_gitlab: patch
+monochange_go: patch
+monochange_graph: patch
+monochange_hosting: patch
+monochange_lint: patch
+monochange_linting: patch
+monochange_npm: patch
+monochange_publish: patch
+monochange_python: patch
 monochange_schema: patch
+monochange_semver: patch
+monochange_snapshot: patch
+monochange_telemetry: patch
+monochange_test_helpers: patch
 monochange_classification: patch
 ---
 
