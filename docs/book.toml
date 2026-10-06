@@ -6,3 +6,4 @@ title = "monochange"
 
 [output.html]
 additional-css = ["theme/branding.css"]
+additional-js = ["theme/site-navigation.js"]

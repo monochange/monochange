@@ -17,3 +17,13 @@ html.navy .monochange-logo-dark,
 html.ayu .monochange-logo-dark {
 	display: inline-block;
 }
+
+.monochange-site-link {
+	display: inline-flex;
+	align-items: center;
+	min-height: 50px;
+	padding-inline: 1rem;
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--fg);
+}

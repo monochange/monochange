@@ -103,7 +103,7 @@ If you are working on the monochange repository itself, use the reproducible dev
 devenv shell
 install:all
 monochange step validate
-monochange step discover --format json
+monochange discover --format json
 monochange run change --package monochange --bump minor --reason "add release planning"
 monochange step diagnose-changesets --format json
 monochange run release --dry-run --format json

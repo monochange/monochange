@@ -1,0 +1,7 @@
+name: Broken
+file_extensions: [broken]
+scope: source.broken
+contexts:
+  main:
+    - match: broken
+      push: missing-context

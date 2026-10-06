@@ -2,7 +2,7 @@
 
 Use this guide after installation when you want one local, beginner-safe walkthrough.
 
-You will stop at `monochange run release --dry-run --format json`, so nothing is published.
+You will stop at `monochange preview`, which shows the release plan without changing files or publishing anything.
 
 ## 1. Generate a starter config with `monochange init`
 
@@ -14,7 +14,7 @@ monochange init
 
 `monochange init` detects packages, writes an annotated `monochange.toml`, and gives you a better starting point than hand-authoring a first config from scratch.
 
-The generated file is intentionally minimal and does not create default `[cli.*]` workflow aliases. Every built-in step is available directly as an immutable `monochange step *` command, for example `monochange step discover`, `monochange step create-change-file`, and `monochange step prepare-release`.
+The generated file is minimal and does not create default `[cli.*]` workflow aliases. Built-ins such as `monochange discover`, `monochange create`, and `monochange preview` work immediately. The step reference also lists their expanded `monochange step *` forms.
 
 Add `[cli.*]` tables only when you want repository-specific named workflows that chain steps, expose custom inputs, or run shell `Command` steps.
 
@@ -93,7 +93,7 @@ If validation fails, fix the reported problem first, then rerun `monochange step
 <!-- {=projectDiscoverCommand} -->
 
 ```bash
-monochange step discover --format json
+monochange discover
 ```
 
 <!-- {/projectDiscoverCommand} -->
@@ -105,7 +105,7 @@ If you are unsure what id to use later, rerun discovery and copy one from the ou
 ## 4. Create one change file
 
 ```bash
-monochange run change --package <id> --bump patch --reason "describe the change"
+monochange create --package <id> --bump patch --reason "describe the change"
 ```
 
 Most changes should target a package id.
@@ -117,7 +117,7 @@ monochange will propagate bumps to dependents and synchronize configured groups 
 <!-- {=projectDryRunCommand} -->
 
 ```bash
-monochange run release --dry-run --format json
+monochange preview
 ```
 
 <!-- {/projectDryRunCommand} -->
@@ -128,9 +128,9 @@ You get a concrete preview of the release plan without publishing anything or op
 
 When you are ready to move beyond planning:
 
-- use `monochange step placeholder-publish --dry-run --format json` if some packages still need a bootstrap `0.0.0` release so they exist in their registries first
-- use `monochange step publish-packages --dry-run --format json` to preview built-in package publication to `crates.io`, `npm`, `jsr`, or `pub.dev`
-- before real package publication, optionally write a readiness artifact with `monochange step publish-readiness --from HEAD --output .monochange/readiness.json` for preflight review, then run `monochange step publish-packages`
+- use `monochange publish placeholder --dry-run` if some packages still need a bootstrap `0.0.0` release so they exist in their registries first
+- use `monochange publish packages --dry-run` to preview built-in package publication to `crates.io`, `npm`, `jsr`, or `pub.dev`
+- before real package publication, optionally write a readiness artifact with `monochange publish readiness --from HEAD --output .monochange/local/readiness.json` for preflight review, then run `monochange publish packages`
 - use `monochange step publish-release --dry-run --format json` only for hosted/provider releases such as GitHub releases
 
 ## Package ids vs. group ids
@@ -156,9 +156,9 @@ monochange init --force
 
 Fix the reported issue first. `monochange step validate` is the fastest way to get back to a known-good workspace.
 
-### `monochange run change` says the package id is unknown
+### `monochange create` says the package id is unknown
 
-Run `monochange step discover --format json` again and copy an id directly from the output.
+Run `monochange discover` again and copy an id directly from the output.
 
 ### You are not ready to hand-edit config yet
 

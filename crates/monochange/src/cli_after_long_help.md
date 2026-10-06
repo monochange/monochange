@@ -17,7 +17,7 @@ monochange step validate
 3. Inspect detected package ids and groups when authoring changesets or workflow inputs:
 
 ```bash
-monochange step discover --format json
+monochange discover --format json
 ```
 
 4. Check what the next version will be before preparing a release. This reads pending changesets and writes nothing:
@@ -33,7 +33,7 @@ monochange next --format json
 
 ```bash
 monochange run release --dry-run --diff
-monochange step prepare-release --dry-run --diff
+monochange preview --diff
 ```
 
 Run `monochange help <command>` or `monochange help step <name>` for command-specific options.

@@ -20,7 +20,7 @@ Run discovery:
 <!-- {=projectDiscoverCommand} -->
 
 ```bash
-monochange step discover --format json
+monochange discover
 ```
 
 <!-- {/projectDiscoverCommand} -->

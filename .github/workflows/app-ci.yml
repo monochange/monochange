@@ -11,6 +11,8 @@ on:
       - ".github/workflows/app-deploy.yml"
       - "monochange.toml"
       - "fixtures/tests/website-releases/**"
+      - "fixtures/tests/website-book/**"
+      - "docs/src/**"
   pull_request:
     paths:
       - "app/**"
@@ -19,6 +21,8 @@ on:
       - ".github/workflows/app-deploy.yml"
       - "monochange.toml"
       - "fixtures/tests/website-releases/**"
+      - "fixtures/tests/website-book/**"
+      - "docs/src/**"
   workflow_dispatch: {}
 
 concurrency:

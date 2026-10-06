@@ -7,6 +7,8 @@
 #![recursion_limit = "256"]
 
 pub mod app;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod book;
 pub mod color_mode;
 pub mod components;
 pub mod error;

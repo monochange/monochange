@@ -30,7 +30,7 @@ pub fn NavBar() -> impl IntoView {
 				<a href="/" class="brand-link" aria-label="monochange home"><img src="/branding/mark.svg" width="36" height="36" alt="" /><img src="/branding/wordmark.svg" width="154" height="29" alt="" class="brand-wordmark brand-wordmark-light" /><img src="/branding/wordmark-dark.svg" width="154" height="29" alt="" class="brand-wordmark brand-wordmark-dark" /></a>
 				<div class="desktop-links">
 					<a href="/install" aria-current=move || (location.pathname.get() == "/install").then_some("page")>"Install"</a>
-					<a href=BOOK_URL>"Docs"</a>
+					<a href=BOOK_URL aria-current=move || location.pathname.get().starts_with(BOOK_URL).then_some("page")>"Docs"</a>
 					<a href="/changelog" aria-current=move || (location.pathname.get() == "/changelog").then_some("page")>"What's new"</a>
 					<a href="/pricing" aria-current=move || (location.pathname.get() == "/pricing").then_some("page")>"Pricing"</a>
 				</div>

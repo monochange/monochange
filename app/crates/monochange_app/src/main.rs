@@ -78,6 +78,9 @@ async fn main() -> Result<(), MonochangeError> {
 		)
 		.init();
 
+	// Check the compiled book before accepting traffic or loading credentials.
+	monochange_app::book::compiled_book().map_err(MonochangeError::Server)?;
+
 	// Load typed application secrets through the SecretSpec SDK.
 	// In production, SECRETSPEC_PROVIDER points at OnePassword and the
 	// Docker entrypoint exposes OP_SERVICE_ACCOUNT_TOKEN from a Docker secret.
