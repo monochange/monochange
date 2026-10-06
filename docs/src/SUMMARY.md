@@ -6,6 +6,7 @@
 
 - [Start here](guide/00-start-here.md)
 - [Installation](guide/01-installation.md)
+- [GitHub App installation](guide/github-app.md)
 - [Your first release plan](guide/02-setup.md)
 - [Discovery](guide/03-discovery.md)
 - [Ecosystems](guide/ecosystems.md)

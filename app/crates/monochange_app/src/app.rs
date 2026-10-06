@@ -1,7 +1,4 @@
-//! Root application component with polished design.
-//!
-//! Features WASM code splitting, scroll-aware navbar, animated content,
-//! and the monochange brand logo.
+//! Shared document shell, public routes, and GitHub sign-in pages.
 
 use leptos::prelude::*;
 use leptos_meta::MetaTags;
@@ -15,9 +12,23 @@ use leptos_router::path;
 
 use crate::components::navbar::NavBar;
 use crate::error::ErrorTemplate;
+use crate::links::BOOK_URL;
+use crate::links::SOURCE_URL;
 use crate::pages::dashboard::DashboardPage;
 use crate::pages::home::HomePage;
 use crate::pages::install::InstallPage;
+use crate::pages::pricing::PricingPage;
+
+// Leptos strips literal comments. The inert template below preserves this
+// contract in server output and occupies the same node during hydration.
+const WEBSITE_DIRECTION: &str = "<!--
+THESIS: Show one concrete release plan, avoiding a grid of feature promises.
+OWN-WORLD: Indigo fields, lavender and ink grounds, rounded display type, ruled version rows, and the selected flowing identity.
+STORY: Understand coordinated releases, believe the preview, install the free CLI or open the book.
+FIRST VIEWPORT: Desktop pairs large promise and actions with the full manifest; mobile stacks a compact introduction above readable package/version rows.
+FORM: Shipping manifest, candidate 5 of seven; seed 19d35619. Switching individual/shared versions is the signature interaction.
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+-->";
 
 /// Server-rendered document shell.
 pub fn shell(options: LeptosOptions) -> impl IntoView {
@@ -30,7 +41,7 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
 				<meta name="theme-color" content="#4f46e5" />
 				<meta
 					name="description"
-					content="Release planning toolkit for monorepos. Automated changesets, AI-powered roadmaps, and beautiful changelogs."
+					content="Free, open-source release planning for monorepos. Coordinate changesets, package versions, dependencies, and release notes across six ecosystems."
 				/>
 				<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 				<link rel="icon" sizes="any" href="/favicon.ico" />
@@ -39,12 +50,6 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
 				<meta property="og:image:alt" content="monochange — release planning for monorepos" />
 				<meta name="twitter:card" content="summary_large_image" />
 				<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-				<link rel="preconnect" href="https://fonts.googleapis.com" />
-				<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-				<link
-					href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap"
-					rel="stylesheet"
-				/>
 				<AutoReload options=options.clone() />
 				<HydrationScripts options=options />
 				<MetaTags />
@@ -62,11 +67,12 @@ pub fn App() -> impl IntoView {
 	provide_meta_context();
 
 	view! {
+		<template id="website-direction" inner_html=WEBSITE_DIRECTION />
 		<Stylesheet id="leptos" href="/pkg/monochange_app.css" />
 		<Title text="monochange — Release planning for monorepos" />
 		<Router>
 			<NavBar />
-			<main class="min-h-screen">
+			<main id="main-content" class="min-h-screen">
 				<Routes fallback=|| {
 					view! { <ErrorTemplate status=404 message="Page not found" /> }
 				}>
@@ -74,6 +80,7 @@ pub fn App() -> impl IntoView {
 					<Route path=path!("/dashboard") view=DashboardPage />
 					<Route path=path!("/install") view=InstallPage />
 					<Route path=path!("/login") view=LoginPage />
+					<Route path=path!("/pricing") view=PricingPage />
 					<Route path=path!("/auth/callback") view=AuthCallbackPage />
 				</Routes>
 			</main>
@@ -98,18 +105,19 @@ fn LoginPage() -> impl IntoView {
 	);
 
 	view! {
-		<div class="flex min-h-[80vh] items-center justify-center px-4">
-			<div class="w-full max-w-md text-center">
+		<section class="login-section site-width">
+			<div class="login-copy"><h1>"Your workspace," <br /> "all together."</h1><p>"Sign in to see your connected repositories and manage your monochange workspace."</p><a href=BOOK_URL class="text-link">"Just looking for the CLI? Read the book."</a></div>
+			<div class="login-panel">
 				// Logo mark
-				<div class="mx-auto mb-8 flex size-20 items-center justify-center rounded-2xl bg-brand-50 p-4 dark:bg-brand-950">
+				<div class="login-mark">
 					<img src="/branding/mark.svg" alt="monochange" class="size-12" />
 				</div>
 
-				<h2 class="text-2xl font-bold text-gray-900 dark:text-white">
+				<h2>
 					Sign in to monochange
 				</h2>
-				<p class="mt-2 text-gray-600 dark:text-gray-400">
-					Connect your GitHub account to manage releases, roadmaps, and changelogs.
+				<p class="login-description">
+					Use your GitHub account to continue.
 				</p>
 
 				<div class="mt-10">
@@ -123,7 +131,7 @@ fn LoginPage() -> impl IntoView {
 								view! {
 									<div class="rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950">
 										<p class="text-sm text-red-600 dark:text-red-400">
-											OAuth is not configured. Set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET.
+											GitHub sign-in is unavailable right now. Please try again later.
 										</p>
 									</div>
 								}.into_any()
@@ -131,9 +139,9 @@ fn LoginPage() -> impl IntoView {
 								view! {
 									<a
 										href=url
-										class="group inline-flex items-center gap-x-2 rounded-xl bg-gray-900 px-8 py-4 text-sm font-semibold text-white shadow-lg shadow-gray-900/10 transition-all hover:bg-gray-800 hover:shadow-gray-900/20 hover:-translate-y-0.5 dark:bg-white dark:text-gray-900 dark:shadow-white/10 dark:hover:bg-gray-100"
+										class="button button-brand"
 									>
-										<svg class="size-5 fill-white dark:fill-gray-900" viewBox="0 0 16 16">
+										<svg class="size-5" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
 											<path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
 										</svg>
 										Continue with GitHub
@@ -147,11 +155,11 @@ fn LoginPage() -> impl IntoView {
 					</Suspense>
 				</div>
 
-				<p class="mt-6 text-xs text-gray-400 dark:text-gray-500">
-					{"By signing in, you agree to monochange's Terms of Service and Privacy Policy."}
+				<p class="login-notice">
+					"GitHub will show the account access requested before you continue."
 				</p>
 			</div>
-		</div>
+		</section>
 	}
 }
 
@@ -197,7 +205,7 @@ fn AuthCallbackPage() -> impl IntoView {
 							</div>
 							<h2 class="text-2xl font-bold text-gray-900 dark:text-white">Signed in!</h2>
 							<p class="mt-2 text-gray-600 dark:text-gray-400">Welcome, {user.github_login}!</p>
-							<a href="/" class="mt-8 inline-flex items-center gap-x-2 rounded-xl bg-brand-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 transition-colors">
+							<a href="/dashboard" class="mt-8 inline-flex items-center gap-x-2 rounded-xl bg-brand-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 transition-colors">
 								Go to dashboard
 								<svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
 									<path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
@@ -225,62 +233,15 @@ fn AuthCallbackPage() -> impl IntoView {
 	}
 }
 
-// ── Footer ──
-
+/// Shared public footer with verified destinations.
 #[component]
 fn Footer() -> impl IntoView {
 	view! {
-		<footer class="border-t border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-950">
-			<div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-				<div class="grid gap-8 sm:grid-cols-3">
-					// Brand
-					<div>
-						<div class="flex items-center gap-2">
-							<img src="/branding/mark.svg" alt="monochange" class="size-8" />
-							<span class="text-lg font-bold text-gray-900 dark:text-white">monochange</span>
-						</div>
-						<p class="mt-3 text-sm text-gray-500 dark:text-gray-400">
-							Release planning for monorepos. Built with Rust and Leptos.
-						</p>
-					</div>
-
-					// Links
-					<div class="flex justify-center gap-12">
-						<div>
-							<h4 class="text-sm font-semibold text-gray-900 dark:text-white">Product</h4>
-							<div class="mt-3 space-y-2">
-								<a href="/" class="block text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">Home</a>
-								<a href="/docs" class="block text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">Docs</a>
-								<a href="/pricing" class="block text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">Pricing</a>
-							</div>
-						</div>
-						<div>
-							<h4 class="text-sm font-semibold text-gray-900 dark:text-white">Company</h4>
-							<div class="mt-3 space-y-2">
-								<a href="https://github.com/monochange/monochange" class="block text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">GitHub</a>
-								<a href="/blog" class="block text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">Blog</a>
-								<a href="/privacy" class="block text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">Privacy</a>
-							</div>
-						</div>
-					</div>
-
-					// Status
-					<div class="text-right">
-						<div class="inline-flex items-center gap-x-1.5 rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20 dark:bg-green-950 dark:text-green-300 dark:ring-green-400/20">
-							<span class="relative flex size-1.5">
-								<span class="absolute inline-flex size-full animate-ping rounded-full bg-green-400 opacity-75" />
-								<span class="relative inline-flex size-1.5 rounded-full bg-green-500" />
-							</span>
-							All systems operational
-						</div>
-					</div>
-				</div>
-
-				<div class="mt-8 border-t border-gray-100 pt-8 dark:border-gray-800">
-					<p class="text-center text-xs text-gray-400 dark:text-gray-500">
-						{"© 2026 monochange. All rights reserved."}
-					</p>
-				</div>
+		<footer class="site-footer">
+			<div class="site-width footer-layout">
+				<div><a href="/" class="brand-link" aria-label="monochange home"><img src="/branding/mark.svg" width="36" height="36" alt="" /><img src="/branding/wordmark.svg" width="154" height="29" alt="" class="brand-wordmark brand-wordmark-light" /><img src="/branding/wordmark-dark.svg" width="154" height="29" alt="" class="brand-wordmark brand-wordmark-dark" /></a><p>"Many packages. One release plan."</p></div>
+				<nav aria-label="Footer navigation"><a href="/install">"Install"</a><a href=BOOK_URL>"Read the book"</a><a href="/pricing">"It's free"</a><a href=SOURCE_URL>"GitHub"</a></nav>
+				<p class="footer-credit">"Free and open source."<br />"Made by "<a href="https://github.com/ifiokjr">"Ifiok Jr."</a></p>
 			</div>
 		</footer>
 	}

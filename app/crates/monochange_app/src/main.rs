@@ -145,6 +145,7 @@ async fn main() -> Result<(), MonochangeError> {
 		.with_state(leptos_options.clone());
 
 	let app = Router::<()>::new()
+		.merge(monochange_app::public_routes::book_redirects())
 		.route(
 			"/health",
 			axum::routing::get(|| {

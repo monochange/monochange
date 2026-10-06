@@ -7,13 +7,16 @@ pub mod app;
 pub mod color_mode;
 pub mod components;
 pub mod error;
+pub mod links;
 pub mod pages;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod public_routes;
 pub mod server_fns;
 
 pub use app::App;
 
 #[cfg(test)]
-#[path = "__tests.rs"]
+#[path = "__tests__/lib_tests.rs"]
 mod tests;
 
 /// Hydrate the Leptos app on the client (WASM only).

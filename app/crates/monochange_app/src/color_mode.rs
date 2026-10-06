@@ -31,21 +31,18 @@ pub struct ColorModeState {
 /// Provide color mode context and return the state.
 ///
 /// On the server (SSR), defaults to Light since browser APIs are unavailable.
-/// On the client (WASM), reads from localStorage and OS preference.
+/// The client restores its preference after hydration, keeping the initial
+/// markup identical to the server's light-mode render.
 pub fn provide_color_mode() -> ColorModeState {
-	// Read initial mode — on SSR, default to Light
-	let initial = initial_mode();
-
-	let (mode, set_mode) = signal(initial);
+	let (mode, set_mode) = signal(ColorMode::Light);
 
 	// Apply mode changes to DOM and localStorage (client only)
 	#[cfg(target_arch = "wasm32")]
 	{
-		let mode = mode;
-		// Apply initial mode
-		apply_mode(initial);
-		// Watch for changes
-		let _ = Effect::new(move || {
+		let _ = Effect::new(move |previous: Option<()>| {
+			if previous.is_none() {
+				set_mode.set(initial_mode());
+			}
 			apply_mode(mode.get());
 		});
 	}
@@ -76,7 +73,7 @@ pub fn provide_color_mode() -> ColorModeState {
 /// Determine initial color mode.
 ///
 /// On the client (WASM): checks localStorage, then OS preference, defaults to Light.
-/// On the server (SSR): always Light.
+#[cfg(target_arch = "wasm32")]
 fn initial_mode() -> ColorMode {
 	#[cfg(target_arch = "wasm32")]
 	{
@@ -121,3 +118,7 @@ pub fn use_color_mode() -> ColorModeState {
 	use_context::<ColorModeState>()
 		.expect("ColorModeState not provided. Call provide_color_mode() first.")
 }
+
+#[cfg(test)]
+#[path = "__tests__/color_mode_tests.rs"]
+mod tests;

@@ -1,0 +1,315 @@
+{
+	"schemaVersion": 2,
+	"generatedAt": "2026-10-06T08:51:17Z",
+	"title": "Design System: monochange",
+	"extensions": {
+		"sourceFiles": [
+			"crates/monochange_app/style/input.css",
+			"crates/monochange_app/src/components/navbar.rs",
+			"crates/monochange_app/src/pages/home.rs",
+			"crates/monochange_app/src/pages/install.rs",
+			"crates/monochange_app/src/pages/pricing.rs",
+			"crates/monochange_app/src/pages/dashboard.rs",
+			"crates/monochange_app/src/app.rs"
+		],
+		"colorMeta": {
+			"brand-50": {
+				"role": "neutral",
+				"displayName": "Lavender ground"
+			},
+			"brand-100": {
+				"role": "neutral",
+				"displayName": "Selected lavender"
+			},
+			"brand-200": {
+				"role": "neutral",
+				"displayName": "Lavender on indigo"
+			},
+			"brand-300": {
+				"role": "primary",
+				"displayName": "Dark-theme lavender accent"
+			},
+			"brand-500": {
+				"role": "primary",
+				"displayName": "Mark violet"
+			},
+			"brand-600": {
+				"role": "primary",
+				"displayName": "Action indigo"
+			},
+			"brand-700": {
+				"role": "primary",
+				"displayName": "Version indigo"
+			},
+			"brand-800": {
+				"role": "primary",
+				"displayName": "Section indigo"
+			},
+			"brand-900": {
+				"role": "primary",
+				"displayName": "Indigo on lavender"
+			},
+			"brand-950": {
+				"role": "neutral",
+				"displayName": "Ink ground"
+			},
+			"surface-light": {
+				"role": "neutral",
+				"displayName": "White panel"
+			},
+			"surface-dark": {
+				"role": "neutral",
+				"displayName": "Dark panel"
+			},
+			"muted-light": {
+				"role": "neutral",
+				"displayName": "Light-theme secondary text"
+			},
+			"muted-dark": {
+				"role": "neutral",
+				"displayName": "Dark-theme secondary text"
+			},
+			"rule-light": {
+				"role": "neutral",
+				"displayName": "Light-theme rule"
+			},
+			"rule-dark": {
+				"role": "neutral",
+				"displayName": "Dark-theme rule"
+			},
+			"rule-manifest": {
+				"role": "neutral",
+				"displayName": "Manifest rule"
+			}
+		},
+		"typographyMeta": {
+			"display": {
+				"displayName": "Home heading",
+				"purpose": "Desktop home promise."
+			},
+			"display-mobile": {
+				"displayName": "Mobile home heading",
+				"purpose": "Home promise at the narrow breakpoint."
+			},
+			"page-title": {
+				"displayName": "Page introduction",
+				"purpose": "Installation and login introduction."
+			},
+			"headline": {
+				"displayName": "Section heading",
+				"purpose": "Large public sections."
+			},
+			"title": {
+				"displayName": "Workspace title",
+				"purpose": "Installation and workspace sections."
+			},
+			"body": {
+				"displayName": "Reading text",
+				"purpose": "App copy with inherited base size."
+			},
+			"label": {
+				"displayName": "Strategy label",
+				"purpose": "Individual and shared version controls."
+			},
+			"button-label": {
+				"displayName": "Button label",
+				"purpose": "Bold actions with inherited size and tighter line height."
+			},
+			"code": {
+				"displayName": "Command text",
+				"purpose": "Whitespace-preserving CLI examples."
+			}
+		},
+		"shadows": [
+			{
+				"name": "release-manifest",
+				"value": "0 24px 48px #19152e35",
+				"purpose": "The public example plan stands above the indigo hero."
+			}
+		],
+		"motion": [
+			{
+				"name": "button-colors",
+				"value": "background-color .18s ease, color .18s ease",
+				"purpose": "Primary, light, and outline button state transitions."
+			},
+			{
+				"name": "manifest-arrive",
+				"value": ".7s cubic-bezier(.16,1,.3,1)",
+				"purpose": "Translate from 12px below to the final position; no opacity change."
+			},
+			{
+				"name": "reduced-motion",
+				"value": "animation: none !important; transition: none !important; scroll-behavior: auto",
+				"purpose": "Honor prefers-reduced-motion: reduce."
+			}
+		],
+		"breakpoints": [
+			{
+				"name": "intermediate",
+				"value": "1050px"
+			},
+			{
+				"name": "narrow",
+				"value": "760px"
+			}
+		],
+		"assets": {
+			"mark": "public/branding/mark.svg",
+			"wordmarkLight": "public/branding/wordmark.svg",
+			"wordmarkDark": "public/branding/wordmark-dark.svg",
+			"fonts": [
+				"public/fonts/bricolage-800.ttf",
+				"public/fonts/hanken-400.ttf",
+				"public/fonts/hanken-700.ttf"
+			],
+			"rule": "Use the exact selected vector paths and lettering. Component previews do not substitute generated or font-rendered logos."
+		},
+		"accessibility": {
+			"focus": "3px solid var(--accent), offset 4px; indigo public sections use brand-200.",
+			"controls": "Theme, menu, and version-strategy controls have a 44px minimum. Standard buttons have a 48px minimum.",
+			"navigation": "Skip link targets main-content. Mobile navigation exposes expanded state, closes on Escape and route changes, and retains readable row targets.",
+			"releaseManifest": "Illustrative caption, scoped table headers, aria-pressed strategy controls, and a polite atomic live region.",
+			"theme": "Stored preference, then system preference, restored after hydration."
+		},
+		"surfaceNotes": [
+			{
+				"scope": "Public home route /",
+				"mode": "Persuade",
+				"direction": "Shipping manifest",
+				"seed": "19d35619",
+				"composition": "Indigo promise and actions paired with a white interactive release plan, followed by a ruled ecosystem ledger, dark sequential walkthrough, and installation close.",
+				"signatureInteraction": "Switch individual and shared example package versions.",
+				"responsiveEvidence": "The reviewed 375 × 812 viewport shows the npm and Cargo current/next rows.",
+				"truth": "Example workspace, not visitor data. Free CLI installation and the published book are the next actions."
+			},
+			{
+				"scope": "Public installation and pricing routes",
+				"mode": "Persuade",
+				"composition": "Installation pairs executable CLI instructions with the book, then an explicit pending GitHub App notice. Pricing uses the indigo statement 'Hey, this is free' with no paid tiers.",
+				"book": "https://monochange.github.io/monochange/",
+				"truth": "The CLI is available. Hosted GitHub App installation and bot operations are not available yet."
+			},
+			{
+				"scope": "Login and dashboard",
+				"mode": "Operate",
+				"composition": "Login uses a theme-aware GitHub sign-in panel. The workspace uses connected-repository rows and explicit loading, failure, and empty states.",
+				"truth": "No fabricated connected repositories or release metrics."
+			},
+			{
+				"scope": "Published monochange book",
+				"mode": "Read",
+				"composition": "The book has its own reading layout; the public marketing composition does not constrain it."
+			}
+		],
+		"previewLimits": "HTML/CSS previews show component appearance. Leptos owns runtime version switching, theme persistence, mobile-menu state, OAuth, and repository loading. No text-input or chip component exists in these app pages."
+	},
+	"components": [
+		{
+			"name": "Brand button",
+			"kind": "button",
+			"refersTo": "button-brand",
+			"description": "Primary installation and sign-in action. The arrow is decorative.",
+			"html": "<a class=\"ds-button-brand\" href=\"/install\">Get started for free <svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 12h16m-6-6 6 6-6 6\"/></svg></a>",
+			"css": ".ds-button-brand { font-family: var(--font-sans, \"Hanken Grotesk\", sans-serif); min-height: 48px; padding: .85rem 1.35rem; display: inline-flex; align-items: center; justify-content: center; gap: 1rem; border-radius: 12px; font-weight: 700; line-height: 1.4; text-decoration: none; transition: background-color .18s ease, color .18s ease; background: var(--color-brand-600, #4f46e5); color: #fff; } .ds-button-brand:hover { background: var(--color-brand-800, #3730a3); } .ds-button-brand:focus-visible { outline: 3px solid var(--accent, #4f46e5); outline-offset: 4px; } @media (prefers-reduced-motion: reduce) { .ds-button-brand { transition: none; } }"
+		},
+		{
+			"name": "Light button",
+			"kind": "button",
+			"refersTo": "button-light",
+			"description": "Installation action inside the fixed indigo public sections.",
+			"html": "<div class=\"ds-light-context\"><a class=\"ds-button-light\" href=\"/install\">Install monochange <svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 12h16m-6-6 6 6-6 6\"/></svg></a></div>",
+			"css": ".ds-light-context { background: var(--color-brand-800, #3730a3); padding: 1rem; } .ds-button-light { font-family: var(--font-sans, \"Hanken Grotesk\", sans-serif); min-height: 48px; padding: .85rem 1.35rem; display: inline-flex; align-items: center; justify-content: center; gap: 1rem; border-radius: 12px; font-weight: 700; line-height: 1.4; text-decoration: none; transition: background-color .18s ease, color .18s ease; background: var(--color-brand-50, #f5f3ff); color: var(--color-brand-900, #312e81); } .ds-button-light:hover { background: var(--color-brand-200, #ddd6fe); } .ds-button-light:focus-visible { outline: 3px solid var(--color-brand-200, #ddd6fe); outline-offset: 4px; } @media (prefers-reduced-motion: reduce) { .ds-button-light { transition: none; } }"
+		},
+		{
+			"name": "Outline button",
+			"kind": "button",
+			"refersTo": "button-outline",
+			"description": "Secondary book action inside the fixed indigo public sections.",
+			"html": "<div class=\"ds-outline-context\"><a class=\"ds-button-outline\" href=\"https://monochange.github.io/monochange/\">Read the book</a></div>",
+			"css": ".ds-outline-context { background: var(--color-brand-800, #3730a3); padding: 1rem; } .ds-button-outline { font-family: var(--font-sans, \"Hanken Grotesk\", sans-serif); min-height: 48px; padding: .85rem 1.35rem; display: inline-flex; align-items: center; justify-content: center; gap: 1rem; border-radius: 12px; font-weight: 700; line-height: 1.4; text-decoration: none; transition: background-color .18s ease, color .18s ease; border: 1px solid var(--color-brand-300, #c4b5fd); color: var(--color-brand-50, #f5f3ff); } .ds-button-outline:hover { background: var(--color-brand-800, #3730a3); } .ds-button-outline:focus-visible { outline: 3px solid var(--color-brand-200, #ddd6fe); outline-offset: 4px; } @media (prefers-reduced-motion: reduce) { .ds-button-outline { transition: none; } }"
+		},
+		{
+			"name": "Book text link",
+			"kind": "button",
+			"description": "Underlined text action with the current theme accent.",
+			"html": "<a class=\"ds-text-link\" href=\"https://monochange.github.io/monochange/\">Open the monochange book <svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 12h16m-6-6 6 6-6 6\"/></svg></a>",
+			"css": ".ds-text-link { font-family: var(--font-sans, \"Hanken Grotesk\", sans-serif); color: var(--accent, #4f46e5); font-weight: 700; line-height: 1.6; text-decoration: underline; text-underline-offset: .22em; display: inline-block; padding-block: .65rem; } .ds-text-link svg { display: inline-block; vertical-align: middle; margin-left: .3rem; } .ds-text-link:focus-visible { outline: 3px solid var(--accent, #4f46e5); outline-offset: 4px; }"
+		},
+		{
+			"name": "Navigation links and theme control",
+			"kind": "nav",
+			"description": "Desktop navigation fragment. The production header also uses the canonical SVG mark and wordmark. Runtime theme and mobile-menu behavior remain in the Leptos component.",
+			"html": "<nav class=\"ds-navigation\" aria-label=\"Main navigation\"><div class=\"ds-navigation-links\"><a href=\"/install\" aria-current=\"page\">Install</a><a href=\"https://monochange.github.io/monochange/\">Docs</a><a href=\"/pricing\">Pricing</a></div><button class=\"ds-theme-control\" aria-label=\"Use dark theme\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" width=\"20\" height=\"20\" aria-hidden=\"true\"><path d=\"M20.5 14.3A9 9 0 0 1 9.7 3.5 9 9 0 1 0 20.5 14.3Z\"/></svg></button></nav>",
+			"css": ".ds-navigation { font-family: var(--font-sans, \"Hanken Grotesk\", sans-serif); display: flex; align-items: center; justify-content: space-between; gap: 2rem; min-height: 88px; color: var(--ink, #19152e); background: var(--page, #f5f3ff); border-bottom: 1px solid var(--rule, #d8d2e9); line-height: 1.6; } .ds-navigation-links { display: flex; align-items: center; gap: 2rem; } .ds-navigation-links a { padding-block: .65rem; font-weight: 700; color: inherit; text-decoration: none; } .ds-navigation-links a:hover, .ds-navigation-links a[aria-current=\"page\"] { color: var(--accent, #4f46e5); } .ds-theme-control { display: grid; place-items: center; min-width: 44px; min-height: 44px; border-radius: 10px; color: inherit; background: transparent; border: 0; cursor: pointer; } .ds-theme-control:hover { background: var(--surface, #fff); } .ds-navigation a:focus-visible, .ds-theme-control:focus-visible { outline: 3px solid var(--accent, #4f46e5); outline-offset: 4px; }"
+		},
+		{
+			"name": "Example version strategy",
+			"kind": "custom",
+			"refersTo": "strategy-selected",
+			"description": "Pressed-state appearance of the public example controls. The app changes example versions and announces the table; this standalone preview shows the individual-version state.",
+			"html": "<div class=\"ds-strategy\" role=\"group\" aria-label=\"Example version strategy\"><button aria-pressed=\"true\">Individual versions</button><button aria-pressed=\"false\">Shared version</button></div>",
+			"css": ".ds-strategy { display: flex; gap: .4rem; flex-wrap: wrap; } .ds-strategy button { font-family: var(--font-sans, \"Hanken Grotesk\", sans-serif); padding: .7rem .9rem; min-height: 44px; color: #5b5472; background: transparent; border: 0; font-size: .9rem; font-weight: 700; line-height: 1.6; border-radius: 8px; cursor: pointer; } .ds-strategy button[aria-pressed=\"true\"] { background: var(--color-brand-100, #ede9fe); color: var(--color-brand-700, #4338ca); } .ds-strategy button:hover { background: var(--color-brand-50, #f5f3ff); } .ds-strategy button:focus-visible { outline: 3px solid var(--color-brand-600, #4f46e5); outline-offset: 4px; }"
+		},
+		{
+			"name": "Example release manifest",
+			"kind": "card",
+			"refersTo": "release-manifest",
+			"description": "Fixed white release-plan panel in either theme. This data is illustrative. The app places the version-strategy controls between the heading and table.",
+			"html": "<section class=\"ds-manifest\"><div class=\"ds-manifest-heading\"><h2>Your next release</h2><p>Example workspace</p></div><div class=\"ds-manifest-table\"><table><caption>Illustrative release plan</caption><thead><tr><th scope=\"col\">Package</th><th scope=\"col\">Current</th><th scope=\"col\">Next</th></tr></thead><tbody><tr><th scope=\"row\"><strong>@acme/ui</strong><span>npm</span></th><td>1.4.2</td><td>1.5.0</td></tr><tr><th scope=\"row\"><strong>acme-core</strong><span>Cargo</span></th><td>0.8.1</td><td>0.9.0</td></tr><tr><th scope=\"row\"><strong>acme-mobile</strong><span>Dart</span></th><td>2.1.0</td><td>2.1.1</td></tr></tbody></table></div><p class=\"ds-manifest-explanation\">Each package keeps its own version, in one coordinated plan.</p><div class=\"ds-manifest-footer\"><span>Preview first.</span><span>Publish when ready.</span></div></section>",
+			"css": ".ds-manifest { font-family: var(--font-sans, \"Hanken Grotesk\", sans-serif); background: #fff; color: #19152e; padding: 2rem; border-radius: 16px; box-shadow: 0 24px 48px #19152e35; line-height: 1.6; animation: ds-manifest-arrive .7s cubic-bezier(.16,1,.3,1); } .ds-manifest-heading { display: flex; align-items: start; justify-content: space-between; gap: 1rem; } .ds-manifest-heading h2 { font-family: \"Bricolage Grotesque\", sans-serif; font-size: 1.9rem; font-weight: 800; line-height: 1.06; letter-spacing: -.035em; margin: 0; } .ds-manifest-heading p { color: #5b5472; font-size: .85rem; text-align: right; max-width: 12ch; margin: 0; } .ds-manifest-table { overflow-x: auto; margin-top: 1.5rem; } .ds-manifest table { width: 100%; border-collapse: collapse; text-align: left; font-variant-numeric: tabular-nums; } .ds-manifest caption { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; } .ds-manifest thead th { font-size: .75rem; color: #5b5472; font-weight: 700; padding-block: .5rem; } .ds-manifest tr { border-bottom: 1px solid #ded8ea; } .ds-manifest tbody th, .ds-manifest td { padding-block: 1.15rem; } .ds-manifest tbody strong { display: block; font-size: 1.1rem; } .ds-manifest tbody th span { display: block; color: #5b5472; font-size: .8rem; font-weight: 400; } .ds-manifest td { white-space: nowrap; font-size: .95rem; } .ds-manifest td:last-child { color: #4338ca; font-weight: 700; } .ds-manifest-explanation { min-height: 3.5rem; color: #5b5472; font-size: .85rem; margin: 1.2rem 0 0; max-width: 48ch; } .ds-manifest-footer { display: flex; justify-content: space-between; gap: 1rem; color: #4338ca; font-weight: 700; font-size: .85rem; padding-top: .8rem; } @keyframes ds-manifest-arrive { from { transform: translateY(12px); } to { transform: translateY(0); } } @media (max-width: 1050px) { .ds-manifest { padding: 1.4rem; } .ds-manifest-heading { flex-direction: column; gap: .4rem; } .ds-manifest-heading p { max-width: none; } } @media (max-width: 760px) { .ds-manifest-heading { flex-direction: row; } .ds-manifest-heading h2 { font-size: 1.6rem; } .ds-manifest-heading p { max-width: 12ch; } .ds-manifest tbody th, .ds-manifest td { padding-block: .85rem; } .ds-manifest td { font-size: .85rem; } .ds-manifest tbody strong { font-size: .95rem; } } @media (prefers-reduced-motion: reduce) { .ds-manifest { animation: none; } }"
+		},
+		{
+			"name": "GitHub App availability notice",
+			"kind": "card",
+			"refersTo": "availability-note",
+			"description": "Theme-aware notice on the installation page. Keep hosted-bot availability separate from the working CLI path.",
+			"html": "<p class=\"ds-availability\">GitHub App installation is being finalized. The CLI is available now; hosted bot operations aren't available yet.</p>",
+			"css": ".ds-availability { font-family: var(--font-sans, \"Hanken Grotesk\", sans-serif); background: var(--surface, #fff); color: var(--muted, #5b5472); padding: 1.5rem; border-radius: 12px; font-weight: 700; line-height: 1.6; max-width: 50ch; }"
+		},
+		{
+			"name": "Installation command",
+			"kind": "custom",
+			"refersTo": "command-block",
+			"description": "Whitespace-preserving CLI example with local horizontal scrolling.",
+			"html": "<pre class=\"ds-command\"><code>npm install -g @monochange/cli\nmonochange --help</code></pre>",
+			"css": ".ds-command { padding: 1.5rem; background: var(--color-brand-950, #19152e); color: var(--color-brand-100, #ede9fe); border-radius: 12px; overflow-x: auto; white-space: pre; font-family: var(--font-mono, ui-monospace, \"SFMono-Regular\", Consolas, monospace); font-size: .9rem; line-height: 1.6; } .ds-command code { font-family: inherit; font-size: inherit; }"
+		}
+	],
+	"narrative": {
+		"northStar": "Shipping manifest",
+		"overview": "The flowing three-part mark and exact custom SVG wordmark identify monochange. Rounded display lettering gives headings their character. Package names, versions, commands, and repository rows carry the product detail in a readable layout with clear rules between records.\n\nLight pages use a pale lavender ground. Dark pages use an ink ground. The same violet and indigo identity connects both themes, with tinted secondary text and theme-aware borders. Panels have modest curves; controls use bold text and visible keyboard focus.\n\nThis document records the implemented app in `crates/monochange_app/style/input.css` and its Rust components. The frontmatter contains the reusable values. `.impeccable/design.json` adds component previews, motion, breakpoints, and notes scoped to the public pages. The published book has its own reading layout.",
+		"keyCharacteristics": [
+			"The selected SVG mark and custom lettering remain the identity.",
+			"Bricolage Grotesque headings pair with Hanken Grotesk reading text and controls.",
+			"Color fields establish sections; ruled rows make release data easy to compare.",
+			"Theme, keyboard, touch, and reduced-motion behavior are part of each component."
+		],
+		"rules": [
+			{
+				"name": "The Theme Pairing Rule",
+				"body": "Use the existing `--page`, `--surface`, `--ink`, `--muted`, `--rule`, and `--accent` properties for ordinary app content. Keep the manifest and indigo section color pairs intact.",
+				"section": "colors"
+			},
+			{
+				"name": "The Wordmark Rule",
+				"body": "Render the exact lettering in `public/branding/wordmark.svg` or `public/branding/wordmark-dark.svg`. A font-rendered product name is not a replacement for these assets.",
+				"section": "typography"
+			}
+		],
+		"dos": [
+			"Do use the exact selected mark and SVG lettering in their established proportions.",
+			"Do pair theme-aware backgrounds with their corresponding foreground and border properties.",
+			"Do preserve visible focus, the skip link, descriptive control labels, and the menu's keyboard behavior.",
+			"Do keep public primary controls at least `44px` tall and preserve the existing `48px` button minimum.",
+			"Do label example release data and keep package names, ecosystems, and versions readable on mobile.",
+			"Do describe the CLI as available and free, link documentation to the published book, and state that hosted GitHub App installation is pending."
+		],
+		"donts": [
+			"Don't typeset a substitute wordmark or generate a new logo for an app component.",
+			"Don't add paid tiers, checkout controls, usage figures, customer proof, or an available GitHub App installation claim.",
+			"Don't turn the public-home composition into a requirement for the book or workspace dashboard.",
+			"Don't rely on motion, hover, or color alone to communicate a control's selected state or a release version."
+		]
+	}
+}
