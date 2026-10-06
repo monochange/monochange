@@ -31,6 +31,7 @@ pub fn NavBar() -> impl IntoView {
 				<div class="desktop-links">
 					<a href="/install" aria-current=move || (location.pathname.get() == "/install").then_some("page")>"Install"</a>
 					<a href=BOOK_URL>"Docs"</a>
+					<a href="/changelog" aria-current=move || (location.pathname.get() == "/changelog").then_some("page")>"What's new"</a>
 					<a href="/pricing" aria-current=move || (location.pathname.get() == "/pricing").then_some("page")>"Pricing"</a>
 				</div>
 				<div class="nav-actions">
@@ -49,7 +50,7 @@ pub fn NavBar() -> impl IntoView {
 					</button>
 				</div>
 				<div id="mobile-navigation" class="mobile-links" hidden=move || !mobile_open.get()>
-					<a href="/install">"Install"</a><a href=BOOK_URL>"Docs"</a><a href="/pricing">"Pricing"</a><a href="/login">"Sign in"</a>
+					<a href="/install">"Install"</a><a href=BOOK_URL>"Docs"</a><a href="/changelog">"What's new"</a><a href="/pricing">"Pricing"</a><a href="/login">"Sign in"</a>
 				</div>
 			</nav>
 		</header>

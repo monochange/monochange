@@ -9,5 +9,6 @@
 pub mod ai;
 pub mod auth;
 pub mod feedback;
+pub mod releases;
 pub mod repos;
 pub mod roadmap;

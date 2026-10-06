@@ -14,6 +14,7 @@ use crate::components::navbar::NavBar;
 use crate::error::ErrorTemplate;
 use crate::links::BOOK_URL;
 use crate::links::SOURCE_URL;
+use crate::pages::changelog::ChangelogPage;
 use crate::pages::dashboard::DashboardPage;
 use crate::pages::home::HomePage;
 use crate::pages::install::InstallPage;
@@ -81,6 +82,7 @@ pub fn App() -> impl IntoView {
 					<Route path=path!("/install") view=InstallPage />
 					<Route path=path!("/login") view=LoginPage />
 					<Route path=path!("/pricing") view=PricingPage />
+					<Route path=path!("/changelog") view=ChangelogPage />
 					<Route path=path!("/auth/callback") view=AuthCallbackPage />
 				</Routes>
 			</main>
@@ -240,8 +242,8 @@ fn Footer() -> impl IntoView {
 		<footer class="site-footer">
 			<div class="site-width footer-layout">
 				<div><a href="/" class="brand-link" aria-label="monochange home"><img src="/branding/mark.svg" width="36" height="36" alt="" /><img src="/branding/wordmark.svg" width="154" height="29" alt="" class="brand-wordmark brand-wordmark-light" /><img src="/branding/wordmark-dark.svg" width="154" height="29" alt="" class="brand-wordmark brand-wordmark-dark" /></a><p>"Many packages. One release plan."</p></div>
-				<nav aria-label="Footer navigation"><a href="/install">"Install"</a><a href=BOOK_URL>"Read the book"</a><a href="/pricing">"It's free"</a><a href=SOURCE_URL>"GitHub"</a></nav>
-				<p class="footer-credit">"Free and open source."<br />"Made by "<a href="https://github.com/ifiokjr">"Ifiok Jr."</a></p>
+				<nav aria-label="Footer navigation"><a href="/install">"Install"</a><a href=BOOK_URL>"Read the book"</a><a href="/changelog">"What's new"</a><a href="/pricing">"It's free"</a><a href=SOURCE_URL>"GitHub"</a></nav>
+				<p class="footer-credit">"Free and open source."<br />"Made by "<a href="https://github.com/ifiokjr">"Ifiok Jr."</a><br /><a href="/changelog">{format!("Website v{}", env!("CARGO_PKG_VERSION"))}</a></p>
 			</div>
 		</footer>
 	}

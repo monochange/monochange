@@ -226,3 +226,25 @@
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+/* Website notes reuse the ruled release-manifest layout. */
+.release-intro { padding-block: clamp(3rem, 8vw, 6rem) 3rem; max-width: 78rem; }
+.release-intro h1 { font-size: clamp(3.5rem, 9vw, 7rem); line-height: .95; margin-block: 1rem 1.5rem; }
+.release-intro > p:last-child { max-width: 42rem; font-size: 1.125rem; }
+.release-layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(15rem, 1fr); gap: 4rem; padding-bottom: 6rem; }
+.release-card, .release-empty { border-top: 1px solid var(--rule); padding-block: 2rem; }
+.release-heading { display: flex; align-items: baseline; flex-wrap: wrap; gap: 1rem; }
+.release-heading h2 { font-size: 2.5rem; }
+.release-heading .text-link { margin-left: auto; }
+.release-section { margin-top: 2rem; }
+.release-section h3 { color: var(--accent); font-size: 1rem; margin-bottom: 1rem; }
+.release-section ul { list-style: none; padding: 0; }
+.release-section li { margin-block: 1.5rem; }
+.release-section h4 { font-size: 1.25rem; margin-bottom: .5rem; }
+.release-details p, .release-details ul, .release-details ol { margin-block: .75rem; }
+.release-details ul { list-style: disc; padding-left: 1.5rem; }
+.release-details pre { overflow-x: auto; padding: 1rem; background: var(--surface); border: 1px solid var(--rule); border-radius: .75rem; }
+.release-details a { text-decoration: underline; }
+.release-example { align-self: start; padding: 2rem; background: var(--surface); border: 1px solid var(--rule); border-radius: 1.5rem; }
+.release-example h2 { font-size: 1.75rem; margin-block: 1.25rem .75rem; }
+.release-example .text-link { display: inline-flex; min-height: 44px; align-items: center; margin-top: 1rem; }
+@media (max-width: 760px) { .release-layout { grid-template-columns: 1fr; gap: 2rem; } .release-heading .eyebrow { width: 100%; } }

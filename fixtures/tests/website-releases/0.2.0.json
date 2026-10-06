@@ -1,0 +1,20 @@
+{
+	"title": "0.2.0",
+	"summary": [],
+	"sections": [{
+		"title": "New",
+		"collapsed": false,
+		"entries": [{
+			"summary": "Read website updates",
+			"details_markdown": "Show updates in **your website**. [Read notes](https://monochange.dev/changelog). <script>alert(1)</script><img src=x onerror=alert(1)>[bad link](javascript:alert(1))",
+			"packages": [],
+			"bump": "minor",
+			"stream": "website"
+		}, {
+			"summary": "Keep update pages readable",
+			"packages": [],
+			"bump": "patch",
+			"stream": "website"
+		}]
+	}]
+}
