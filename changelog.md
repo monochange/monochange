@@ -4,6 +4,100 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)
+
+Grouped release for `main`.
+
+### 💥 Breaking Change
+
+#### Hosted release commits through the monochange GitHub App
+
+_Packages:_ 🟠 _monochange_, 🔴 _monochange_core_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #373](https://github.com/monochange/monochange/pull/373)
+
+`CommitRelease` and `OpenReleaseRequest` can now delegate their writes to the monochange app so the monochange GitHub App creates the release commit and the release pull request. A release PR built this way is committed by the bot identity, is verified by GitHub, triggers the repository's normal workflows, and satisfies verified-commit branch protection — without a personal access token.
+
+Set `commit_backend = "hosted"` on `CommitRelease` and `backend = "hosted"` on `OpenReleaseRequest`:
+
+```toml
+[cli.release]
+steps = [
+	{ type = "PrepareRelease", name = "plan release", allow_empty_changesets = true },
+	{ type = "CommitRelease", name = "create release commit", commit_backend = "hosted" },
+	{ type = "OpenReleaseRequest", name = "create the pr", backend = "hosted" },
+]
+```
+
+The local `git commit` path remains the default and is unchanged. The release is still computed in the workflow: monochange reads the prepared release files, resolves the target branch and the base commit, and posts a compact request to the app's `/api/release-commits` and `/api/release-requests` endpoints. The server verifies GitHub's OIDC token for the run (or the `MONOCHANGE_TOKEN` secret on CI systems without OIDC), mints a one-hour installation token, creates blobs/tree/commit through the Git Database API, guards against a branch that moved since preparation, and opens or updates the pull request under the bot identity.
+
+New step inputs:
+
+- `commit_backend` (`local` | `hosted`) — how the release commit is written.
+- `hosted_auth` (`auto` | `oidc` | `token`) — how the hosted backend authenticates; `auto` prefers the GitHub Actions OIDC token and falls back to `MONOCHANGE_TOKEN`.
+- `hosted_url` — the app base URL (default `https://monochange.dev`).
+- `oidc_audience` — the audience required in the OIDC token (default: the hosted URL host).
+- `backend` (`local` | `hosted`) on `OpenReleaseRequest` — how the pull request is published.
+
+Workflows using the hosted backend need `permissions: id-token: write` for OIDC, or the `MONOCHANGE_TOKEN` secret as a fallback. A rerun whose branch moved fails with a conflict instead of overwriting newer work, and consumed changeset deletions travel in the same request as file updates.
+
+##### Breaking change in `monochange_core`
+
+`CliStepDefinition::CommitRelease` gained the fields `commit_backend`, `hosted_auth`, `hosted_url`, and `oidc_audience`; `CliStepDefinition::OpenReleaseRequest` gained `backend`, `hosted_auth`, and `hosted_url`. Every exhaustive struct literal for these variants must add the new fields — use `..Default::default()`-style struct update or the listed defaults:
+
+```rust
+// before
+CliStepDefinition::CommitRelease { name: None, when: None, always_run: false, no_verify: false, update_release_json: false, stage_all: false, inputs: BTreeMap::new() }
+// after
+CliStepDefinition::CommitRelease { name: None, when: None, always_run: false, no_verify: false, update_release_json: false, stage_all: false, commit_backend: Default::default(), hosted_auth: Default::default(), hosted_url: None, oidc_audience: None, inputs: BTreeMap::new() }
+```
+
+Deserialization is unaffected: every new field has a serde default, so existing `monochange.toml` step tables keep parsing identically and the local backends remain the default behaviour.
+
+### 🐛 Fixed
+
+- **Use short built-in commands in introductory documentation.** Start with `monochange discover` and `monochange preview` in the README and crate introduction. These existing commands accept the same options as their step forms; `preview` always runs without writing release files. _Packages:_ 🟢 _@monochange/cli_, 🟢 _monochange_ _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #752](https://github.com/monochange/monochange/pull/752)
+
+#### Use the coloured monochange identity in documentation
+
+_Packages:_ 🟢 _monochange_, 🟢 _monochange_analysis_, 🟢 _monochange_cargo_, 🟢 _monochange_changelog_, 🟢 _monochange_config_, 🟢 _monochange_core_, 🟢 _monochange_dart_, 🟢 _monochange_deno_, 🟢 _monochange_ecmascript_, 🟢 _monochange_forgejo_, 🟢 _monochange_gitea_, 🟢 _monochange_github_, 🟢 _monochange_gitlab_, 🟢 _monochange_go_, 🟢 _monochange_graph_, 🟢 _monochange_hosting_, 🟢 _monochange_lint_, 🟢 _monochange_linting_, 🟢 _monochange_npm_, 🟢 _monochange_publish_, 🟢 _monochange_python_, 🟢 _monochange_semver_, 🟢 _monochange_telemetry_, 🟢 _monochange_test_helpers_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)
+
+The README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.
+
+Existing Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes.
+
+#### Insert new releases above namespaced changelog headings
+
+_Packages:_ 🟢 _monochange_changelog_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #746](https://github.com/monochange/monochange/pull/746)
+
+Changelogs owned by a package or group with `version_format = "namespaced"` collected their releases oldest first. The built-in namespaced changelog version title leads with the owner id (`## abi [0.20.0](…) (2026-09-23)`), but monochange only recognised an earlier release when its `##` heading started with `[` or a digit. With no recognised heading, every prepared release was appended to the end of the file, while `primary` owners stayed newest first. A custom `changelog_version_title` that started with text, such as `"SDK {{ version }} ({{ date }})"`, had the same problem.
+
+monochange now treats any `##` heading that contains a semantic version as a release heading, whatever text surrounds the version, and inserts the new section directly above the first one. For a namespaced group changelog, `monochange step prepare-release` now writes:
+
+**Before:**
+
+```markdown
+## abi [0.20.0](https://github.com/acme/repo/releases/tag/abi/v0.20.0) (2026-09-23)
+
+## abi [0.21.0](https://github.com/acme/repo/releases/tag/abi/v0.21.0) (2026-09-30)
+```
+
+**After:**
+
+```markdown
+## abi [0.21.0](https://github.com/acme/repo/releases/tag/abi/v0.21.0) (2026-09-30)
+
+## abi [0.20.0](https://github.com/acme/repo/releases/tag/abi/v0.20.0) (2026-09-23)
+```
+
+The rendered section is unchanged; only where it lands in the file moves. Hand-written headings without a version, including `## Unreleased` and Keep a Changelog's `## [Unreleased]`, now stay above the new release instead of being treated as releases. A custom title must render `{{ version }}` for monochange to find earlier releases, so a date-only title is no longer recognised.
+
+Existing changelogs that already collected releases oldest first are not reordered. Move those sections once by hand; later releases then land at the top. Workarounds that switched a namespaced owner to a title starting with `[`, such as `changelog_version_title = "[{{ version }}]({{ tag_url }}) ({{ date }})"`, can be removed.
+
 ## [0.16.0](https://github.com/monochange/monochange/releases/tag/v0.16.0) (2026-09-30)
 
 Grouped release for `main`.

@@ -1,0 +1,90 @@
+{
+	"title": "0.2.0",
+	"summary": [],
+	"sections": [
+		{
+			"title": "Changed",
+			"collapsed": false,
+			"entries": [
+				{
+					"summary": "Use the website's book address for new documentation links",
+					"details_markdown": "> The website's documentation destination is now `/book` on `monochange.dev`.\n\nPoint new documentation links and bookmarks to `https://monochange.dev/book`. Existing `/docs` links redirect to the matching chapter. The standalone book remains available, with a link back to the website.\n\nFor example, update a documentation link in Markdown:\n\n```markdown\n[Read the book](https://monochange.dev/book)\n```",
+					"change_type": "website_change",
+					"bump": "major",
+					"stream": "website",
+					"style": "expanded",
+					"provenance": {
+						"source_path": ".changeset/book-location.md",
+						"changeset_path": ".changeset/book-location.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #752",
+							"url": "https://github.com/monochange/monochange/pull/752"
+						},
+						"introduced_commit": {
+							"label": "7b8e431",
+							"url": "https://github.com/monochange/monochange/commit/7b8e4312d77aeb7e147d5981e9bf9f61413efc78"
+						}
+					}
+				}
+			]
+		},
+		{
+			"title": "New",
+			"collapsed": false,
+			"entries": [
+				{
+					"summary": "Read the monochange book without leaving the website",
+					"details_markdown": "The book now lives at `monochange.dev/book`, with the same navigation, typography, and light and dark themes as the rest of the website. Follow chapter links, copy highlighted code examples, and return to the homepage at any time. The homepage now uses `monochange preview`, and ecosystem marks make supported tools easier to recognize.",
+					"change_type": "website_feature",
+					"bump": "minor",
+					"stream": "website",
+					"style": "compact",
+					"provenance": {
+						"source_path": ".changeset/integrated-book.md",
+						"changeset_path": ".changeset/integrated-book.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #752",
+							"url": "https://github.com/monochange/monochange/pull/752"
+						},
+						"introduced_commit": {
+							"label": "7b8e431",
+							"url": "https://github.com/monochange/monochange/commit/7b8e4312d77aeb7e147d5981e9bf9f61413efc78"
+						}
+					}
+				},
+				{
+					"summary": "Follow what's new on monochange.dev",
+					"details_markdown": "Read the website's release notes on the new What's new page. Website updates now have their own versions, separate from the CLI, and approved releases deploy automatically.",
+					"change_type": "website_feature",
+					"bump": "minor",
+					"stream": "website",
+					"style": "compact",
+					"provenance": {
+						"source_path": ".changeset/website-release-notes.md",
+						"changeset_path": ".changeset/website-release-notes.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #751",
+							"url": "https://github.com/monochange/monochange/pull/751"
+						},
+						"introduced_commit": {
+							"label": "2c948af",
+							"url": "https://github.com/monochange/monochange/commit/2c948af336e7b886bb07f9fe2543e1722ad993ba"
+						}
+					}
+				}
+			]
+		}
+	]
+}

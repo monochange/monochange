@@ -4,6 +4,62 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)
+
+### 💥 Breaking Change
+
+#### Hosted release commits through the monochange GitHub App
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #373](https://github.com/monochange/monochange/pull/373)
+
+`CommitRelease` and `OpenReleaseRequest` can now delegate their writes to the monochange app so the monochange GitHub App creates the release commit and the release pull request. A release PR built this way is committed by the bot identity, is verified by GitHub, triggers the repository's normal workflows, and satisfies verified-commit branch protection — without a personal access token.
+
+Set `commit_backend = "hosted"` on `CommitRelease` and `backend = "hosted"` on `OpenReleaseRequest`:
+
+```toml
+[cli.release]
+steps = [
+	{ type = "PrepareRelease", name = "plan release", allow_empty_changesets = true },
+	{ type = "CommitRelease", name = "create release commit", commit_backend = "hosted" },
+	{ type = "OpenReleaseRequest", name = "create the pr", backend = "hosted" },
+]
+```
+
+The local `git commit` path remains the default and is unchanged. The release is still computed in the workflow: monochange reads the prepared release files, resolves the target branch and the base commit, and posts a compact request to the app's `/api/release-commits` and `/api/release-requests` endpoints. The server verifies GitHub's OIDC token for the run (or the `MONOCHANGE_TOKEN` secret on CI systems without OIDC), mints a one-hour installation token, creates blobs/tree/commit through the Git Database API, guards against a branch that moved since preparation, and opens or updates the pull request under the bot identity.
+
+New step inputs:
+
+- `commit_backend` (`local` | `hosted`) — how the release commit is written.
+- `hosted_auth` (`auto` | `oidc` | `token`) — how the hosted backend authenticates; `auto` prefers the GitHub Actions OIDC token and falls back to `MONOCHANGE_TOKEN`.
+- `hosted_url` — the app base URL (default `https://monochange.dev`).
+- `oidc_audience` — the audience required in the OIDC token (default: the hosted URL host).
+- `backend` (`local` | `hosted`) on `OpenReleaseRequest` — how the pull request is published.
+
+Workflows using the hosted backend need `permissions: id-token: write` for OIDC, or the `MONOCHANGE_TOKEN` secret as a fallback. A rerun whose branch moved fails with a conflict instead of overwriting newer work, and consumed changeset deletions travel in the same request as file updates.
+
+##### Breaking change in `monochange_core`
+
+`CliStepDefinition::CommitRelease` gained the fields `commit_backend`, `hosted_auth`, `hosted_url`, and `oidc_audience`; `CliStepDefinition::OpenReleaseRequest` gained `backend`, `hosted_auth`, and `hosted_url`. Every exhaustive struct literal for these variants must add the new fields — use `..Default::default()`-style struct update or the listed defaults:
+
+```rust
+// before
+CliStepDefinition::CommitRelease { name: None, when: None, always_run: false, no_verify: false, update_release_json: false, stage_all: false, inputs: BTreeMap::new() }
+// after
+CliStepDefinition::CommitRelease { name: None, when: None, always_run: false, no_verify: false, update_release_json: false, stage_all: false, commit_backend: Default::default(), hosted_auth: Default::default(), hosted_url: None, oidc_audience: None, inputs: BTreeMap::new() }
+```
+
+Deserialization is unaffected: every new field has a serde default, so existing `monochange.toml` step tables keep parsing identically and the local backends remain the default behaviour.
+
+### 🐛 Fixed
+
+#### Use the coloured monochange identity in documentation
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)
+
+The README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.
+
+Existing Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes.
+
 ## [0.16.0](https://github.com/monochange/monochange/releases/tag/v0.16.0) (2026-09-30)
 
 ### 💥 Breaking Change

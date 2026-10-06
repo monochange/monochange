@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## snapshot [0.1.2](https://github.com/monochange/monochange/releases/tag/snapshot/v0.1.2) (2026-10-06)
+
+Grouped release for `snapshot`.
+
+### 🐛 Fixed
+
+#### Use the coloured monochange identity in documentation
+
+_Packages:_ 🟢 _monochange_snapshot_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)
+
+The README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.
+
+Existing Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes.
+
 ## snapshot [0.1.0](https://github.com/monochange/monochange/releases/tag/snapshot/v0.1.0) (2026-06-04)
 
 Grouped release for `snapshot`.
