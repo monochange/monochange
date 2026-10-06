@@ -23,7 +23,7 @@ pub fn ChangelogPage() -> impl IntoView {
 					{move || releases.get().map(release_history)}
 				</Suspense>
 			</div>
-			<aside class="release-example"><img src="/branding/mark.svg" width="64" height="64" alt="" /><h2>"Your notes. Your layout."</h2><p>"This page uses monochange's generated JSON. Use the same release notes in your own website, app, or update feed."</p><a class="text-link" href="https://monochange.github.io/monochange/guide/website-release-notes.html">"Build your own changelog"</a></aside>
+			<aside class="release-example"><img src="/branding/mark.svg" width="64" height="64" alt="" /><h2>"Your notes. Your layout."</h2><p>"This page uses monochange's generated JSON. Use the same release notes in your own website, app, or update feed."</p><a class="text-link" href="/book/guide/website-release-notes">"Build your own changelog"</a></aside>
 		</section>
 	}
 }

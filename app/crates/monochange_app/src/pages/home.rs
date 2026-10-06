@@ -1,8 +1,10 @@
 //! Public introduction with an interactive, illustrative release manifest.
 
 use leptos::prelude::*;
+use leptos_meta::Title;
 
 use crate::components::arrow::ArrowIcon;
+use crate::components::brand_icon::BrandIcon;
 use crate::links::BOOK_URL;
 use crate::links::SOURCE_URL;
 
@@ -10,6 +12,7 @@ use crate::links::SOURCE_URL;
 #[component]
 pub fn HomePage() -> impl IntoView {
 	view! {
+		<Title text="monochange — Release planning for monorepos" />
 		<section class="hero">
 			<div class="site-width hero-layout">
 				<div class="hero-copy">
@@ -30,12 +33,12 @@ pub fn HomePage() -> impl IntoView {
 				<p>"Keep the tools your packages already use. monochange discovers your workspace, tracks dependencies, and brings the release decisions together."</p>
 			</div>
 			<ul class="ecosystem-list" aria-label="Supported package ecosystems">
-				<li><strong>"Cargo"</strong><span>"Rust crates"</span></li>
-				<li><strong>"npm"</strong><span>"JavaScript & TypeScript"</span></li>
-				<li><strong>"Dart"</strong><span>"Dart & Flutter packages"</span></li>
-				<li><strong>"Python"</strong><span>"Python packages"</span></li>
-				<li><strong>"Go"</strong><span>"Go modules"</span></li>
-				<li><strong>"Deno"</strong><span>"Deno & JSR packages"</span></li>
+				<li><strong><BrandIcon name="rust" />"Cargo"</strong><span>"Rust crates"</span></li>
+				<li><strong><BrandIcon name="npm" />"npm"</strong><span>"JavaScript & TypeScript"</span></li>
+				<li><strong><BrandIcon name="dart" />"Dart"</strong><span>"Dart & Flutter packages"</span></li>
+				<li><strong><BrandIcon name="python" />"Python"</strong><span>"Python packages"</span></li>
+				<li><strong><BrandIcon name="go" />"Go"</strong><span>"Go modules"</span></li>
+				<li><strong><BrandIcon name="deno" />"Deno"</strong><span>"Deno & JSR packages"</span></li>
 			</ul>
 		</section>
 		<section class="workflow-section">
@@ -43,7 +46,7 @@ pub fn HomePage() -> impl IntoView {
 				<div>
 					<h2>"Know what ships." <br /> "Before you ship it."</h2>
 					<p>"Start with a change. Review the versions and notes it produces. Publish when you're ready."</p>
-					<div class="command-block"><code>"monochange step prepare-release"<br />"  --dry-run --format json"</code></div>
+					<div class="command-block"><code>"monochange preview"</code></div>
 					<a href=BOOK_URL class="text-link">"Follow your first release plan" <ArrowIcon /></a>
 				</div>
 				<ol class="workflow-list">
@@ -80,9 +83,9 @@ fn ReleaseManifest() -> impl IntoView {
 					<caption class="sr-only">"Illustrative release plan; choose individual or shared package versions above."</caption>
 					<thead><tr><th scope="col">"Package"</th><th scope="col">"Current"</th><th scope="col">"Next"</th></tr></thead>
 					<tbody>
-						<tr><th scope="row"><strong>"@acme/ui"</strong><span>"npm"</span></th><td>"1.4.2"</td><td>"1.5.0"</td></tr>
-						<tr><th scope="row"><strong>"acme-core"</strong><span>"Cargo"</span></th><td>{move || if shared.get() { "1.4.2" } else { "0.8.1" }}</td><td>{move || if shared.get() { "1.5.0" } else { "0.9.0" }}</td></tr>
-						<tr><th scope="row"><strong>"acme-mobile"</strong><span>"Dart"</span></th><td>{move || if shared.get() { "1.4.2" } else { "2.1.0" }}</td><td>{move || if shared.get() { "1.5.0" } else { "2.1.1" }}</td></tr>
+						<tr><th scope="row"><strong>"@acme/ui"</strong><span><BrandIcon name="npm" />"npm"</span></th><td>"1.4.2"</td><td>"1.5.0"</td></tr>
+						<tr><th scope="row"><strong>"acme-core"</strong><span><BrandIcon name="rust" />"Cargo"</span></th><td>{move || if shared.get() { "1.4.2" } else { "0.8.1" }}</td><td>{move || if shared.get() { "1.5.0" } else { "0.9.0" }}</td></tr>
+						<tr><th scope="row"><strong>"acme-mobile"</strong><span><BrandIcon name="dart" />"Dart"</span></th><td>{move || if shared.get() { "1.4.2" } else { "2.1.0" }}</td><td>{move || if shared.get() { "1.5.0" } else { "2.1.1" }}</td></tr>
 					</tbody>
 				</table>
 			</div>

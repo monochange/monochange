@@ -8,6 +8,7 @@
 
 pub mod ai;
 pub mod auth;
+pub mod book;
 pub mod feedback;
 pub mod releases;
 pub mod repos;

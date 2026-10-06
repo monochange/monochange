@@ -248,3 +248,50 @@
 .release-example h2 { font-size: 1.75rem; margin-block: 1.25rem .75rem; }
 .release-example .text-link { display: inline-flex; min-height: 44px; align-items: center; margin-top: 1rem; }
 @media (max-width: 760px) { .release-layout { grid-template-columns: 1fr; gap: 2rem; } .release-heading .eyebrow { width: 100%; } }
+
+/* The book uses the public shell and a compact chapter rail. */
+.brand-icon { display: inline-block; flex: none; width: 1.2em; height: 1.2em; background: currentColor; mask: var(--brand-icon) center / contain no-repeat; vertical-align: -.15em; }
+.ecosystem-list strong, .footer-github, .manifest-table-wrap th span { display: inline-flex; align-items: center; gap: .65rem; }
+.ecosystem-list strong .brand-icon { color: var(--ink); }
+.manifest-table-wrap th .brand-icon { width: 1em; height: 1em; }
+.book-layout { display: grid; grid-template-columns: 16rem minmax(0, 1fr); gap: clamp(2rem, 5vw, 5rem); padding-block: 3rem 6rem; }
+.book-sidebar { position: sticky; top: 6rem; align-self: start; max-height: calc(100vh - 8rem); overflow-y: auto; padding-right: 1rem; }
+.book-home { display: inline-flex; min-height: 44px; align-items: center; margin-bottom: 1.5rem; color: var(--accent); }
+.book-chapters-toggle { display: none; font-weight: 700; cursor: pointer; min-height: 44px; width: 100%; text-align: left; }
+.book-chapters nav { padding-block: .5rem; }
+.book-chapters nav a { display: block; padding: .6rem .75rem; border-left: 2px solid var(--rule); font-size: .95rem; }
+.book-chapters nav a span { display: block; font-size: .7rem; color: var(--muted); }
+.book-chapters nav a[aria-current=page] { border-color: var(--accent); background: var(--surface); color: var(--accent); }
+.book-chapters nav a:hover { background: var(--surface); }
+.book-article { min-width: 0; max-width: 56rem; }
+.book-prose { overflow-wrap: anywhere; line-height: 1.8; }
+.book-prose h1 { font-size: clamp(2.75rem, 6vw, 4.5rem); line-height: 1.1; margin-block: 1rem 2rem; }
+.book-prose h2 { font-size: 2rem; line-height: 1.25; margin-block: 3rem 1rem; }
+.book-prose h3 { font-size: 1.5rem; margin-block: 2rem 1rem; }
+.book-prose h4 { font-size: 1.2rem; margin-block: 1.5rem .75rem; }
+.book-prose :is(h1,h2,h3,h4,h5,h6) { scroll-margin-top: 7rem; }
+.book-prose :is(p,ul,ol,blockquote,table,pre) { margin-block: 1.25rem; }
+.book-prose :is(ul,ol) { padding-left: 1.5rem; }
+.book-prose ul { list-style: disc; }
+.book-prose ol { list-style: decimal; }
+.book-prose li { margin-block: .35rem; }
+.book-prose a { color: var(--accent); text-decoration: underline; text-underline-offset: .2em; }
+.book-prose blockquote { border-left: 3px solid var(--accent); padding-left: 1.25rem; color: var(--muted); }
+.book-prose table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; font-size: .95rem; }
+.book-prose :is(th,td) { border-bottom: 1px solid var(--rule); padding: .65rem .9rem; text-align: left; }
+.book-prose pre { overflow-x: auto; background: #19152e; color: #f5f3ff; padding: 1.25rem; border-radius: .75rem; font-size: .9rem; line-height: 1.6; overflow-wrap: normal; }
+.book-prose :not(pre) > code { background: var(--surface); padding: .15em .35em; border-radius: .3rem; font-size: .9em; }
+.book-prose pre .comment { color: #b7aecf; }
+.book-prose pre :is(.keyword,.storage) { color: #c4b5fd; }
+.book-prose pre .string { color: #a7f3d0; }
+.book-prose pre :is(.constant,.numeric) { color: #fcd34d; }
+.book-prose pre .entity { color: #93c5fd; }
+.book-prose img { max-width: 100%; height: auto; }
+.book-prose .monochange-logo-dark { display: none; }
+:root.dark .book-prose .monochange-logo-light { display: none; }
+:root.dark .book-prose .monochange-logo-dark { display: block; }
+.book-pagination { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem; border-top: 1px solid var(--rule); margin-top: 3rem; padding-top: 1.5rem; }
+.book-pagination a { min-height: 44px; color: var(--accent); }
+.book-pagination span { display: block; color: var(--muted); font-size: .8rem; }
+.book-edit { display: inline-flex; align-items: center; min-height: 44px; margin-top: 2rem; color: var(--muted); font-size: .9rem; }
+@media (max-width: 900px) { .book-layout { grid-template-columns: 1fr; gap: 2rem; padding-top: 1.5rem; } .book-sidebar { position: static; max-height: none; border-bottom: 1px solid var(--rule); padding-bottom: 1rem; } .book-chapters-toggle { display: block; } .book-chapter-navigation { display: none; } .book-chapter-navigation.is-open { display: block; max-height: 50vh; overflow-y: auto; } .book-home { margin-bottom: .5rem; } }

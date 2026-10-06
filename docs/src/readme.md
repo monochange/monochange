@@ -57,7 +57,7 @@ monochange step validate
 Discover the package ids you will use in commands and changesets:
 
 ```bash
-monochange step discover --format json
+monochange discover --format json
 ```
 
 Create one change file for a package id:
@@ -135,7 +135,7 @@ These are common commands for repositories using monochange. Optional `[cli.*]` 
 | Goal                             | Command                                                             | Use it when                                                                                                                        |
 | -------------------------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | Validate config and changesets   | `monochange step validate`                                          | You changed `monochange.toml` or `.changeset/*.md` files                                                                           |
-| Inspect package ids and groups   | `monochange step discover --format json`                            | You need the normalized workspace model                                                                                            |
+| Inspect package ids and groups   | `monochange discover --format json`                                 | You need the normalized workspace model                                                                                            |
 | Sync internal dependency ranges  | `monochange versions sync --dry-run`                                | You want internal dependency references to match canonical workspace package versions                                              |
 | Check the next version           | `monochange next`                                                   | You want the next release group and package versions from pending changesets, without writing any release state                    |
 | Create release intent            | `monochange create --package <id> --bump <severity> --reason "..."` | You need a new `.changeset/*.md` file                                                                                              |

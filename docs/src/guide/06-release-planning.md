@@ -166,7 +166,7 @@ Generate a plan directly when you want to inspect the raw planner output:
 <!-- {=projectPlanCommand} -->
 
 ```bash
-monochange run release --dry-run --format json
+monochange preview
 ```
 
 <!-- {/projectPlanCommand} -->
@@ -178,7 +178,7 @@ Preferred repository command flow:
 <!-- {=projectDryRunCommand} -->
 
 ```bash
-monochange run release --dry-run --format json
+monochange preview
 ```
 
 <!-- {/projectDryRunCommand} -->

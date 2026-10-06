@@ -84,7 +84,7 @@ Preview the named output before preparing a release:
 
 ```bash
 monochange step validate
-monochange step prepare-release --dry-run --format json
+monochange preview --format json
 monochange notes --output website_json --target monochange_app
 ```
 

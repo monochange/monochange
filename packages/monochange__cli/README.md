@@ -68,7 +68,7 @@ monochange step validate
 Discover the package ids you will use in commands and changesets:
 
 ```bash
-monochange step discover --format json
+monochange discover --format json
 ```
 
 Create one change file for a package id:
@@ -270,7 +270,7 @@ Enter the reproducible development shell and install workspace tooling:
 devenv shell
 install:all
 monochange step validate
-monochange step discover --format json
+monochange discover --format json
 monochange run change --package monochange --bump minor --reason "add release planning"
 monochange step diagnose-changesets --format json
 monochange run release --dry-run --format json

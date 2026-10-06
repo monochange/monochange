@@ -54,6 +54,7 @@ WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
 COPY crates/ crates/
 COPY app/ app/
+COPY docs/src/ docs/src/
 
 # Build the Leptos SSR application
 WORKDIR /app/app

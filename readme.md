@@ -58,7 +58,7 @@ monochange step validate
 3. Inspect detected package ids and groups when authoring changesets or workflow inputs:
 
 ```bash
-monochange step discover --format json
+monochange discover --format json
 ```
 
 4. Check what the next version will be before preparing a release. This reads pending changesets and writes nothing:
@@ -74,7 +74,7 @@ monochange next --format json
 
 ```bash
 monochange run release --dry-run --diff
-monochange step prepare-release --dry-run --diff
+monochange preview --diff
 ```
 
 Run `monochange help <command>` or `monochange help step <name>` for command-specific options.
@@ -131,7 +131,7 @@ monochange step validate
 Discover the package ids you will use in commands and changesets:
 
 ```bash
-monochange step discover --format json
+monochange discover --format json
 ```
 
 Create one change file for a package id:
@@ -238,7 +238,7 @@ These are common commands for repositories using monochange. Optional `[cli.*]` 
 | Goal                             | Command                                                             | Use it when                                                                                                                        |
 | -------------------------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | Validate config and changesets   | `monochange step validate`                                          | You changed `monochange.toml` or `.changeset/*.md` files                                                                           |
-| Inspect package ids and groups   | `monochange step discover --format json`                            | You need the normalized workspace model                                                                                            |
+| Inspect package ids and groups   | `monochange discover --format json`                                 | You need the normalized workspace model                                                                                            |
 | Sync internal dependency ranges  | `monochange versions sync --dry-run`                                | You want internal dependency references to match canonical workspace package versions                                              |
 | Check the next version           | `monochange next`                                                   | You want the next release group and package versions from pending changesets, without writing any release state                    |
 | Create release intent            | `monochange create --package <id> --bump <severity> --reason "..."` | You need a new `.changeset/*.md` file                                                                                              |
@@ -273,23 +273,23 @@ The report also records the dependency-corrected `publish_order` and validates i
 
 <!-- {=projectCapabilityMatrix} -->
 
-| Capability                                                                     | Current status                                                                                                                             |
-| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| Multi-ecosystem discovery                                                      | Cargo, npm/pnpm/Bun, Deno, Dart, Flutter, Python, Go                                                                                       |
-| Package release planning                                                       | Built in                                                                                                                                   |
-| Grouped/shared versioning                                                      | Built in                                                                                                                                   |
-| Internal dependency version synchronization                                    | All supported ecosystems via `monochange versions`; release planning also updates supported ecosystems during releases                     |
-| Dry-run release diff previews                                                  | Built in via `monochange step prepare-release --dry-run --diff`; configured workflows may expose `monochange run release --dry-run --diff` |
-| Durable release history and post-merge tagging                                 | Built in via `ReleaseRecord`, `monochange step release-record`, `monochange step tag-release`, and `monochange step retarget-release`      |
-| Hosted provider releases                                                       | GitHub, GitLab, Gitea, Forgejo                                                                                                             |
-| Hosted release requests                                                        | GitHub, GitLab, Gitea, Forgejo                                                                                                             |
-| Python release planning                                                        | Built in for discovery, version rewrites, dependency rewrites, lockfile command inference, and PyPI publishing                             |
-| Go release planning                                                            | Built in for `go.mod` discovery, dependency rewrites, `go mod tidy` inference, and Go proxy tag publishing                                 |
-| Built-in registry publishing                                                   | `crates.io`, `npm`, `jsr`, `pub.dev`, `pypi`, Go proxy tags; use external mode for custom registries                                       |
-| GitHub npm trusted-publishing diagnostics                                      | Built in; registry-side enrollment stays manual or external                                                                                |
-| GitHub trusted-publishing guidance for `crates.io`, `jsr`, `pub.dev`, and PyPI | Built in, but manual registry enrollment is still required                                                                                 |
-| GitLab trusted-publishing auto-derivation                                      | Not built in                                                                                                                               |
-| Release-retarget sync for hosted releases                                      | GitHub first                                                                                                                               |
+| Capability                                                                     | Current status                                                                                                                        |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Multi-ecosystem discovery                                                      | Cargo, npm/pnpm/Bun, Deno, Dart, Flutter, Python, Go                                                                                  |
+| Package release planning                                                       | Built in                                                                                                                              |
+| Grouped/shared versioning                                                      | Built in                                                                                                                              |
+| Internal dependency version synchronization                                    | All supported ecosystems via `monochange versions`; release planning also updates supported ecosystems during releases                |
+| Dry-run release diff previews                                                  | Built in via `monochange preview --diff`; configured workflows may expose `monochange run release --dry-run --diff`                   |
+| Durable release history and post-merge tagging                                 | Built in via `ReleaseRecord`, `monochange step release-record`, `monochange step tag-release`, and `monochange step retarget-release` |
+| Hosted provider releases                                                       | GitHub, GitLab, Gitea, Forgejo                                                                                                        |
+| Hosted release requests                                                        | GitHub, GitLab, Gitea, Forgejo                                                                                                        |
+| Python release planning                                                        | Built in for discovery, version rewrites, dependency rewrites, lockfile command inference, and PyPI publishing                        |
+| Go release planning                                                            | Built in for `go.mod` discovery, dependency rewrites, `go mod tidy` inference, and Go proxy tag publishing                            |
+| Built-in registry publishing                                                   | `crates.io`, `npm`, `jsr`, `pub.dev`, `pypi`, Go proxy tags; use external mode for custom registries                                  |
+| GitHub npm trusted-publishing diagnostics                                      | Built in; registry-side enrollment stays manual or external                                                                           |
+| GitHub trusted-publishing guidance for `crates.io`, `jsr`, `pub.dev`, and PyPI | Built in, but manual registry enrollment is still required                                                                            |
+| GitLab trusted-publishing auto-derivation                                      | Not built in                                                                                                                          |
+| Release-retarget sync for hosted releases                                      | GitHub first                                                                                                                          |
 
 <!-- {/projectCapabilityMatrix} -->
 
@@ -482,7 +482,7 @@ Enter the reproducible development shell and install workspace tooling:
 devenv shell
 install:all
 monochange step validate
-monochange step discover --format json
+monochange discover --format json
 monochange run change --package monochange --bump minor --reason "add release planning"
 monochange step diagnose-changesets --format json
 monochange run release --dry-run --format json
