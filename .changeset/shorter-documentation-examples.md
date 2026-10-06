@@ -1,6 +1,6 @@
 ---
-"monochange": none
-"@monochange/cli": none
+"monochange": patch
+"@monochange/cli": patch
 ---
 
 # Use short built-in commands in introductory documentation
