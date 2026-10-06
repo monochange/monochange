@@ -395,11 +395,6 @@ in
     "lint:workflows" = {
       exec = ''
         set -euo pipefail
-        export PATH="$HOME/.cargo/bin:$PATH"
-        if ! command -v zizmor >/dev/null 2>&1; then
-          echo "Installing zizmor via cargo-binstall..."
-          cargo binstall zizmor --no-confirm
-        fi
         zizmor .github/workflows/ .github/actions/
       '';
       description = "Scan GitHub Actions workflows for security vulnerabilities with zizmor.";
@@ -559,10 +554,6 @@ in
     "fix:workflows" = {
       exec = ''
         set -euo pipefail
-        if ! command -v zizmor >/dev/null 2>&1; then
-          echo "Installing zizmor via cargo-binstall..."
-          cargo binstall zizmor --no-confirm
-        fi
         zizmor --fix .github/workflows/ .github/actions/
       '';
       description = "Auto-fix zizmor findings in GitHub Actions workflows where possible.";

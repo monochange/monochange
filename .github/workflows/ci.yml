@@ -48,7 +48,7 @@ jobs:
           persist-credentials: false
 
       - name: setup
-        uses: ./.github/actions/devenv
+        uses: $/.github/actions/devenv
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -98,7 +98,7 @@ jobs:
           persist-credentials: false
 
       - name: setup
-        uses: ./.github/actions/devenv
+        uses: $/.github/actions/devenv
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           free-runner-space: "true"
@@ -134,7 +134,7 @@ jobs:
 
       - name: setup devenv
         if: runner.os != 'Windows'
-        uses: ./.github/actions/devenv
+        uses: $/.github/actions/devenv
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           free-runner-space: ${{ runner.os == 'Linux' && 'true' || 'false' }}
@@ -201,7 +201,7 @@ jobs:
           persist-credentials: false
 
       - name: setup
-        uses: ./.github/actions/devenv
+        uses: $/.github/actions/devenv
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           free-runner-space: "true"
@@ -241,7 +241,7 @@ jobs:
           persist-credentials: false
 
       - name: setup
-        uses: ./.github/actions/devenv
+        uses: $/.github/actions/devenv
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           free-runner-space: "true"
@@ -266,7 +266,7 @@ jobs:
           persist-credentials: false
 
       - name: setup
-        uses: ./.github/actions/devenv
+        uses: $/.github/actions/devenv
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           free-runner-space: "true"
@@ -372,7 +372,7 @@ jobs:
           persist-credentials: false
 
       - name: setup
-        uses: ./.github/actions/devenv
+        uses: $/.github/actions/devenv
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           free-runner-space: "true"
@@ -414,7 +414,7 @@ jobs:
           persist-credentials: false
 
       - name: setup
-        uses: ./.github/actions/devenv
+        uses: $/.github/actions/devenv
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           free-runner-space: "true"
@@ -482,7 +482,7 @@ jobs:
           persist-credentials: false
 
       - name: setup
-        uses: ./.github/actions/devenv
+        uses: $/.github/actions/devenv
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           free-runner-space: "true"
@@ -534,7 +534,7 @@ jobs:
           persist-credentials: false
 
       - name: setup
-        uses: ./.github/actions/devenv
+        uses: $/.github/actions/devenv
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           free-runner-space: "true"
@@ -580,7 +580,7 @@ jobs:
           persist-credentials: false
 
       - name: setup
-        uses: ./.github/actions/devenv
+        uses: $/.github/actions/devenv
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           free-runner-space: "true"
@@ -629,7 +629,7 @@ jobs:
           persist-credentials: false
 
       - name: setup
-        uses: ./.github/actions/devenv
+        uses: $/.github/actions/devenv
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           free-runner-space: "true"
@@ -711,7 +711,7 @@ jobs:
           persist-credentials: false
 
       - name: setup
-        uses: ./.github/actions/devenv
+        uses: $/.github/actions/devenv
         with:
           github-token: ${{ secrets.RELEASE_PR_MERGE_TOKEN }}
 
@@ -834,7 +834,7 @@ jobs:
           persist-credentials: false
 
       - name: setup
-        uses: ./.github/actions/devenv
+        uses: $/.github/actions/devenv
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -931,7 +931,7 @@ jobs:
   website-deployment:
     needs: release-post-merge
     if: ${{ !cancelled() && needs.release-post-merge.outputs.website_tag != '' }}
-    uses: ./.github/workflows/app-deploy.yml
+    uses: $/.github/workflows/app-deploy.yml
     with:
       commit: ${{ github.sha }}
       tag: ${{ needs.release-post-merge.outputs.website_tag }}

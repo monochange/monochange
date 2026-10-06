@@ -36,7 +36,7 @@ jobs:
           persist-credentials: false
 
       - name: setup release tooling
-        uses: ./.github/actions/devenv
+        uses: $/.github/actions/devenv
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 

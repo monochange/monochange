@@ -306,7 +306,7 @@ jobs:
           echo "Verified: checked-out commit matches tag $expected_tag and is on main"
 
       - name: setup current monochange cli
-        uses: ./.github/actions/devenv
+        uses: $/.github/actions/devenv
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
