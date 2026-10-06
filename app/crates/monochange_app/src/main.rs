@@ -21,6 +21,9 @@
 //! secretspec run --profile ci --provider env -- cargo leptos build
 //! ```
 
+// The server also computes layouts for Leptos' generated view types.
+#![recursion_limit = "256"]
+
 use std::sync::Arc;
 
 use axum::Router;
@@ -145,6 +148,7 @@ async fn main() -> Result<(), MonochangeError> {
 		.with_state(leptos_options.clone());
 
 	let app = Router::<()>::new()
+		.merge(monochange_app::public_routes::book_redirects())
 		.route(
 			"/health",
 			axum::routing::get(|| {

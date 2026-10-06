@@ -2,13 +2,14 @@
 
 The selected identity is the flowing three-part mark with custom lowercase lettering. The shapes were traced from Ifiok's selected artwork into SVG paths, preserving the original silhouette and lettering without requiring a font. The colour treatment was explored with the built-in image-generation tool, then applied to the SVG sources for clean edges and consistent exports.
 
-| Asset                        | Purpose                                                               |
-| ---------------------------- | --------------------------------------------------------------------- |
-| `mark.svg`                   | Transparent square mark for navigation and compact placements         |
-| `avatar.svg`                 | Square mark on pale lavender for organization and application avatars |
-| `avatar-dark.svg`            | Square mark on ink for dark surfaces                                  |
-| `logo.svg` / `logo-dark.svg` | Stacked mark and wordmark on transparent backgrounds                  |
-| `social.svg`                 | Source for the website's 1200 × 630 sharing card                      |
+| Asset                                | Purpose                                                               |
+| ------------------------------------ | --------------------------------------------------------------------- |
+| `mark.svg`                           | Transparent square mark for navigation and compact placements         |
+| `wordmark.svg` / `wordmark-dark.svg` | Approved custom lettering for horizontal navigation lockups           |
+| `avatar.svg`                         | Square mark on pale lavender for organization and application avatars |
+| `avatar-dark.svg`                    | Square mark on ink for dark surfaces                                  |
+| `logo.svg` / `logo-dark.svg`         | Stacked mark and wordmark on transparent backgrounds                  |
+| `social.svg`                         | Source for the website's 1200 × 630 sharing card                      |
 
 The mark runs from violet `#8b5cf6` to indigo `#4f46e5`. Lettering is ink `#19152e` on light surfaces and pale lavender `#f5f3ff` on dark surfaces. Preserve the aspect ratio, negative-space cuts, and padding. Use the mark alone at small sizes; the wordmark is for larger placements.
 

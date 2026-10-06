@@ -11,6 +11,10 @@ monochange --help
 
 Then continue with [Start here](./00-start-here.md) or [Your first release plan](./02-setup.md).
 
+## Optional: GitHub App
+
+You can also use the monochange GitHub App for hosted release commits and pull requests under the bot identity. See [GitHub App installation](./github-app.md) for availability, repository permissions, and workflow configuration. GitHub App installation is separate from installing the CLI or signing in to the website. monochange is free.
+
 ## Alternative: Nix / devenv
 
 If you use [devenv](https://devenv.sh/) or the Nix package manager, monochange is available via the [ifiokjr/nixpkgs](https://github.com/ifiokjr/nixpkgs) flake:
