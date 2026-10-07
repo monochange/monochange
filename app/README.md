@@ -107,7 +107,7 @@ The application keeps its version in `app/crates/monochange_app/Cargo.toml`. Reg
 ```toml
 [package.monochange_app]
 path = "app/crates/monochange_app"
-additional_paths = ["app/**", "Dockerfile", ".github/workflows/app-deploy.yml"]
+additional_paths = ["app/**", "Dockerfile", ".github/workflows/ci.yml"]
 publish = { enabled = false }
 changelog = false
 tag = true
@@ -194,9 +194,9 @@ The `/changelog` components and stylesheet own the visual layout. Change those f
 
 ## Deploy after release approval
 
-The existing release workflow prepares a release PR. A maintainer approves and merges that PR through the repository's required checks. Post-merge automation creates release tags and draft releases, then calls `app-deploy.yml` only when the release record contains `monochange_app`.
+The existing release workflow prepares a release PR. A maintainer approves and merges that PR through the repository's required checks. Post-merge automation creates release tags and draft releases, then runs the `website-deployment` job in `ci.yml` only when the release record contains `monochange_app`.
 
-The deployment workflow verifies the exact commit, tag, and recorded website artifacts. It builds and smoke-tests a Linux image, transfers it through a pinned SSH connection, backs up SQLite, and restarts the application with its existing runtime credentials. Public HTTPS, health, JSON, and changelog checks must pass before automation publishes the website's GitHub release with the recorded user notes. CLI publication remains separate.
+The deployment job reads its dedicated SSH key directly from the `website-production` environment and validates it before setting up tooling or building an image. It verifies the exact commit, tag, and recorded website artifacts, then builds and smoke-tests a Linux image, transfers it through a pinned SSH connection, backs up SQLite, and restarts the application with its existing runtime credentials. It removes the temporary key even if an earlier step fails. Public HTTPS, health, JSON, and changelog checks must pass before automation publishes the website's GitHub release with the recorded user notes. CLI publication remains separate.
 
 Production deployments are serialized. Failed deployments leave the website release as a draft and report the failure in Actions. Inspect migrations and backups before a rollback, because an older image may not support the new database schema. Re-run the failed deployment job after fixing its cause; do not create another tag or release record.
 

@@ -18,7 +18,7 @@ The committed `ssh_config` uses the existing personal SSH key and refuses intera
 
 ## Automated website releases
 
-`ci.yml` calls `app-deploy.yml` after an approved release commit contains a `monochange_app` release target. Library-only releases leave the website alone. The deployment validates the release record and builds the exact tagged commit on GitHub Actions, so the small Droplet only loads the image and restarts the application.
+The `website-deployment` job in `ci.yml` runs after an approved release commit contains a `monochange_app` release target. It reads the dedicated deployment key directly from the `website-production` environment and validates the key before tooling setup or image building. Library-only releases leave the website alone. The deployment validates the release record and builds the exact tagged commit on GitHub Actions, so the small Droplet only loads the image and restarts the application. The temporary key is removed even if an earlier step fails.
 
 Install `ci-deploy.sh` as root-owned `/usr/local/bin/monochange-ci-deploy` with mode 0755. Add the dedicated key to the deploy user's `authorized_keys` with these options:
 

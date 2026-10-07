@@ -335,7 +335,7 @@ cli = { name = "monochange", snapshot = "monochange snapshot --view index" }
 
 [package.monochange_app]
 path = "app/crates/monochange_app"
-additional_paths = ["app/**", "docs/src/**", "Dockerfile", ".github/workflows/app-deploy.yml"]
+additional_paths = ["app/**", "docs/src/**", "Dockerfile", ".github/workflows/ci.yml"]
 publish = { enabled = false }
 changelog = false
 tag = true
