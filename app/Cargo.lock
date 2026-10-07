@@ -2842,6 +2842,7 @@ dependencies = [
  "chrono",
  "console_error_panic_hook",
  "console_log",
+ "httpmock",
  "include_dir",
  "jsonwebtoken",
  "leptos",
@@ -2858,6 +2859,7 @@ dependencies = [
  "monochange_hosting",
  "pulldown-cmark",
  "reqwest",
+ "rsa",
  "rstest",
  "semver",
  "serde",
@@ -2882,7 +2884,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_app_api"
-version = "0.1.0"
+version = "0.2.1"
 dependencies = [
  "axum",
  "axum-extra",
@@ -2917,7 +2919,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_app_automation"
-version = "0.1.0"
+version = "0.2.1"
 dependencies = [
  "async-trait",
  "chrono",
@@ -2933,7 +2935,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_app_db"
-version = "0.1.0"
+version = "0.2.1"
 dependencies = [
  "chrono",
  "rstest",
@@ -2950,7 +2952,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_core"
-version = "0.16.0"
+version = "0.17.1"
 dependencies = [
  "async-trait",
  "glob",
@@ -2967,7 +2969,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_github"
-version = "0.16.0"
+version = "0.17.1"
 dependencies = [
  "async-trait",
  "monochange_core",
@@ -2987,7 +2989,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_hosting"
-version = "0.16.0"
+version = "0.17.1"
 dependencies = [
  "monochange_core",
  "reqwest",
@@ -2997,7 +2999,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_publish"
-version = "0.16.0"
+version = "0.17.1"
 dependencies = [
  "monochange_core",
  "reqwest",
@@ -3012,7 +3014,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_schema"
-version = "0.9.0"
+version = "0.9.2"
 dependencies = [
  "serde",
  "serde_json",

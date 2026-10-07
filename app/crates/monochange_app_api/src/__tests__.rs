@@ -343,3 +343,5 @@ mod oidc_tests {
 		assert!(verifier.verify("").await.is_err());
 	}
 }
+#[path = "__tests__/installation_tests.rs"]
+mod installation_tests;

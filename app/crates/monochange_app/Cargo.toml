@@ -78,6 +78,8 @@ tailwind-input-file = "style/input.css"
 hydrate = ["leptos/hydrate"]
 
 [dev-dependencies]
+httpmock = { workspace = true }
+rsa = { version = "0.9", features = ["sha2"] }
 rstest = { workspace = true }
 tempfile = "3"
 tokio = { workspace = true, features = ["rt", "rt-multi-thread", "macros"] }

@@ -10,6 +10,7 @@ pub mod ai;
 pub mod auth;
 pub mod book;
 pub mod feedback;
+pub mod installation;
 pub mod releases;
 pub mod repos;
 pub mod roadmap;

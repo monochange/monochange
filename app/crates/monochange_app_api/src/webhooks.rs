@@ -28,17 +28,23 @@ enum WebhookEvent {
 	Created {
 		installation: InstallationPayload,
 		#[serde(default)]
+		sender: Option<InstallationAccount>,
+		#[serde(default)]
 		repositories: Vec<WebhookRepository>,
 	},
 	#[serde(rename = "added")]
 	Added {
 		installation: InstallationPayload,
+		#[serde(default)]
+		sender: Option<InstallationAccount>,
 		#[serde(default, rename = "repositories_added")]
 		repositories_added: Vec<WebhookRepository>,
 	},
 	#[serde(rename = "removed")]
 	Removed {
 		installation: InstallationPayload,
+		#[serde(default)]
+		sender: Option<InstallationAccount>,
 		#[serde(default, rename = "repositories_removed")]
 		repositories_removed: Vec<WebhookRepository>,
 	},
@@ -61,6 +67,8 @@ struct InstallationPayload {
 
 #[derive(Debug, Deserialize)]
 struct InstallationAccount {
+	#[serde(default)]
+	id: Option<i64>,
 	login: Option<String>,
 	#[serde(default)]
 	r#type: Option<String>,
@@ -82,7 +90,12 @@ pub async fn github_webhook(
 	body: axum::body::Bytes,
 ) -> Result<StatusCode, (StatusCode, Json<WebhookError>)> {
 	let Some(app) = state.github_app.as_ref() else {
-		return Ok(StatusCode::OK);
+		return Err((
+			StatusCode::SERVICE_UNAVAILABLE,
+			Json(WebhookError {
+				message: "GitHub App is not configured".to_string(),
+			}),
+		));
 	};
 	if !app.webhook_configured() {
 		return Err((
@@ -105,6 +118,13 @@ pub async fn github_webhook(
 				}),
 			)
 		})?;
+	let event_name = headers
+		.get("x-github-event")
+		.and_then(|value| value.to_str().ok())
+		.unwrap_or_default();
+	if !matches!(event_name, "installation" | "installation_repositories") {
+		return Ok(StatusCode::OK);
+	}
 
 	let event: WebhookEvent = serde_json::from_slice(&body).map_err(|error| {
 		(
@@ -114,15 +134,32 @@ pub async fn github_webhook(
 			}),
 		)
 	})?;
+	if matches!(
+		(event_name, &event),
+		(
+			"installation",
+			WebhookEvent::Added { .. } | WebhookEvent::Removed { .. }
+		) | (
+			"installation_repositories",
+			WebhookEvent::Created { .. }
+				| WebhookEvent::Deleted { .. }
+				| WebhookEvent::Suspend { .. }
+				| WebhookEvent::Unsuspend { .. }
+		)
+	) {
+		return Ok(StatusCode::OK);
+	}
 
 	match event {
 		WebhookEvent::Created {
 			installation,
+			sender,
 			repositories,
 		} => {
 			sync_installation(
 				&state,
 				&installation,
+				sender.as_ref(),
 				repositories
 					.into_iter()
 					.map(WebhookRepository::into_repo)
@@ -133,11 +170,13 @@ pub async fn github_webhook(
 		}
 		WebhookEvent::Added {
 			installation,
+			sender,
 			repositories_added,
 		} => {
 			sync_installation(
 				&state,
 				&installation,
+				sender.as_ref(),
 				repositories_added
 					.into_iter()
 					.map(WebhookRepository::into_repo)
@@ -148,11 +187,13 @@ pub async fn github_webhook(
 		}
 		WebhookEvent::Removed {
 			installation,
+			sender,
 			repositories_removed,
 		} => {
 			sync_installation(
 				&state,
 				&installation,
+				sender.as_ref(),
 				repositories_removed
 					.into_iter()
 					.map(WebhookRepository::into_repo)
@@ -195,9 +236,11 @@ impl WebhookRepository {
 async fn sync_installation(
 	state: &AppState,
 	installation: &InstallationPayload,
+	sender: Option<&InstallationAccount>,
 	repositories: Vec<InstallationRepository>,
 	add: bool,
 ) -> Result<StatusCode, (StatusCode, Json<WebhookError>)> {
+	let mut transaction = state.db.begin().await.map_err(|error| db_error(&error))?;
 	let account = installation.account.as_ref();
 	let login = account
 		.and_then(|account| account.login.clone())
@@ -209,22 +252,44 @@ async fn sync_installation(
 	let installation_id: i32 =
 		sqlx::query_scalar("SELECT id FROM installations WHERE github_installation_id = $1")
 			.bind(installation.id)
-			.fetch_optional(&state.db)
+			.fetch_optional(&mut *transaction)
 			.await
 			.map_err(|error| db_error(&error))?
 			.unwrap_or(0);
 
-	// The app installs before any user session exists; user_id 0 is the
-	// unclaimed placeholder an installer claims after signing in.
+	// A verified installation can arrive before OAuth. Store its real owner
+	// identity so OAuth's GitHub-id upsert finds the same account later.
 	let installation_id = if installation_id == 0 {
+		let owner = if account_type == "User" {
+			account
+		} else {
+			sender
+		};
+		let github_id = owner.and_then(|owner| owner.id).filter(|id| *id > 0);
+		let owner_login = owner
+			.and_then(|owner| owner.login.as_deref())
+			.filter(|login| !login.is_empty());
+		let (Some(github_id), Some(owner_login)) = (github_id, owner_login) else {
+			return Err((
+				StatusCode::BAD_REQUEST,
+				Json(WebhookError {
+					message: "installation owner identity is missing".to_string(),
+				}),
+			));
+		};
+		let user_id: i32 = sqlx::query_scalar(
+			"INSERT INTO users (github_id, github_login, github_access_token)
+			 VALUES ($1, $2, '') ON CONFLICT(github_id) DO UPDATE SET github_login = excluded.github_login RETURNING id",
+		).bind(github_id).bind(owner_login).fetch_one(&mut *transaction).await.map_err(|error| db_error(&error))?;
 		let id: i32 = sqlx::query_scalar(
 			"INSERT INTO installations (user_id, github_installation_id, github_account_login, github_account_type, target_type)
-			 VALUES (0, $1, $2, $3, 'selected') RETURNING id",
+			 VALUES ($1, $2, $3, $4, 'selected') RETURNING id",
 		)
+		.bind(user_id)
 		.bind(installation.id)
 		.bind(&login)
 		.bind(&account_type)
-		.fetch_one(&state.db)
+		.fetch_one(&mut *transaction)
 		.await
 		.map_err(|error| db_error(&error))?;
 		id
@@ -235,7 +300,7 @@ async fn sync_installation(
 		.bind(installation_id)
 		.bind(&login)
 		.bind(chrono::Utc::now().to_rfc3339())
-		.execute(&state.db)
+		.execute(&mut *transaction)
 		.await
 		.map_err(|error| db_error(&error))?;
 		installation_id
@@ -246,7 +311,7 @@ async fn sync_installation(
 			let exists: Option<i32> =
 				sqlx::query_scalar("SELECT id FROM repositories WHERE github_repo_id = $1")
 					.bind(repository.id)
-					.fetch_optional(&state.db)
+					.fetch_optional(&mut *transaction)
 					.await
 					.map_err(|error| db_error(&error))?;
 			if exists.is_some() {
@@ -258,7 +323,7 @@ async fn sync_installation(
 				.bind(&repository.full_name)
 				.bind(repository.private)
 				.bind(chrono::Utc::now().to_rfc3339())
-				.execute(&state.db)
+					.execute(&mut *transaction)
 				.await
 				.map_err(|error| db_error(&error))?;
 			} else {
@@ -271,18 +336,25 @@ async fn sync_installation(
 				.bind(&repository.full_name)
 				.bind(repository.private)
 				.bind(chrono::Utc::now().to_rfc3339())
-				.execute(&state.db)
+					.execute(&mut *transaction)
 				.await
 				.map_err(|error| db_error(&error))?;
 			}
 		} else {
-			sqlx::query("DELETE FROM repositories WHERE github_repo_id = $1")
-				.bind(repository.id)
-				.execute(&state.db)
-				.await
-				.map_err(|error| db_error(&error))?;
+			sqlx::query(
+				"DELETE FROM repositories WHERE github_repo_id = $1 AND installation_id = $2",
+			)
+			.bind(repository.id)
+			.bind(installation_id)
+			.execute(&mut *transaction)
+			.await
+			.map_err(|error| db_error(&error))?;
 		}
 	}
+	transaction
+		.commit()
+		.await
+		.map_err(|error| db_error(&error))?;
 
 	tracing::info!(
 		installation = installation.id,

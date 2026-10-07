@@ -50,6 +50,7 @@
 .desktop-links a { padding-block: .65rem; font-weight: 700; }
 .desktop-links a:hover, .desktop-links a[aria-current="page"] { color: var(--accent); }
 .nav-actions { gap: 1rem; }
+.nav-session { display: flex; align-items: center; gap: 1rem; }
 .theme-toggle, .menu-toggle { display: grid; place-items: center; min-width: 44px; min-height: 44px; border-radius: 10px; }
 .theme-toggle:hover, .menu-toggle:hover { background: var(--surface); }
 .menu-toggle, .mobile-links { display: none; }
@@ -183,16 +184,19 @@
   .ecosystem-list { grid-template-columns: repeat(2, 1fr); }
   .workflow-layout, .login-section { gap: 3rem; }
 }
-@media (max-width: 760px) {
-  .site-width { width: calc(100% - 2.5rem); }
+@media (max-width: 900px) {
   .nav-layout { min-height: 76px; gap: 1rem; flex-wrap: wrap; }
   .brand-link { font-size: 1.3rem; gap: .55rem; }
   .brand-wordmark { width: 138px; }
-  .desktop-links, .nav-sign-in { display: none; }
+  .desktop-links, .nav-session { display: none; }
   .nav-actions { gap: .25rem; }
   .menu-toggle { display: grid; }
   .mobile-links { display: flex; flex-direction: column; width: 100%; padding-bottom: 1rem; }
   .mobile-links a { padding: .7rem 1rem; min-height: 44px; border-top: 1px solid var(--rule); }
+  .mobile-links form button { width: 100%; min-height: 44px; padding: .7rem 1rem; text-align: left; }
+}
+@media (max-width: 760px) {
+  .site-width { width: calc(100% - 2.5rem); }
   .hero-layout, .section-intro, .workflow-layout, .install-layout, .github-app-section, .login-section { grid-template-columns: 1fr; }
   .hero-layout { gap: 1.5rem; padding-block: 2rem; }
   .hero h1 { font-size: clamp(2.4rem, 9vw, 3.6rem); }

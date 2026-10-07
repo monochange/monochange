@@ -1,5 +1,8 @@
 //! Unit tests for Leptos components and app structure.
 
+#[path = "auth_flow_tests.rs"]
+pub(crate) mod auth_flows;
+
 use rstest::rstest;
 
 use crate::color_mode::*;
