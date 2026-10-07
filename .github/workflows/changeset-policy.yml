@@ -32,10 +32,21 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: read current pull request labels
+        id: pull_request_labels
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          labels="$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/labels" --jq 'map(.name) | @json')"
+          printf 'labels=%s\n' "$labels" >> "$GITHUB_OUTPUT"
+
       - name: run changeset policy
         uses: monochange/actions/changeset-policy@6866cbbd35932bdfb496f5b144578c9274d36ca0 # v0.10.0
         with:
           setup-monochange: devenv shell monochange
           from: origin/main
-          labels: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+          labels: ${{ join(fromJSON(steps.pull_request_labels.outputs.labels), ',') }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
