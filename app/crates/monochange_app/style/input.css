@@ -125,6 +125,7 @@
 .page-intro > p, .login-copy > p { color: var(--muted); font-size: 1.2rem; max-width: 55ch; margin-top: 1.5rem; }
 .install-section { padding-block: 5rem; }
 .install-layout { display: grid; grid-template-columns: 1.1fr 1fr; gap: 4rem; margin-top: 4rem; }
+.install-layout > * { min-width: 0; }
 .install-layout h2 { font-size: 2rem; margin-bottom: 1rem; }
 .install-layout p { max-width: 50ch; color: var(--muted); }
 .install-command pre { margin-top: 1.5rem; padding: 1.5rem; background: #19152e; color: #ede9fe; border-radius: 12px; overflow-x: auto; font-family: var(--font-mono); font-size: .9rem; }
