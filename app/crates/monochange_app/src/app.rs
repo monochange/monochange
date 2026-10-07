@@ -99,7 +99,7 @@ pub fn App() -> impl IntoView {
 
 #[component]
 fn LoginPage() -> impl IntoView {
-	let login_url = Resource::new(
+	let login_url = Resource::new_blocking(
 		|| (),
 		|()| {
 			async {
@@ -175,7 +175,8 @@ fn LoginPage() -> impl IntoView {
 fn AuthCallbackPage() -> impl IntoView {
 	let params = leptos_router::hooks::use_query_map();
 
-	let result = Resource::new(
+	// Cookie headers must be complete before SSR starts sending the page.
+	let result = Resource::new_blocking(
 		move || params.get(),
 		|params| {
 			async move {
@@ -252,3 +253,7 @@ fn Footer() -> impl IntoView {
 		</footer>
 	}
 }
+
+#[cfg(test)]
+#[path = "__tests__/app_tests.rs"]
+mod tests;

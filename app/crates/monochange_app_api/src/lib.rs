@@ -125,6 +125,10 @@ pub struct AppState {
 	pub jwt_secret: String,
 	pub github_client_id: String,
 	pub github_client_secret: String,
+	/// GitHub's OAuth web origin, separated from the API origin.
+	pub github_oauth_origin: String,
+	/// GitHub API origin used for authenticated user requests.
+	pub github_api_origin: String,
 	/// GitHub App credentials for the monochange bot; `None` in development.
 	pub github_app: Option<github_app::GitHubAppAuth>,
 	/// OIDC audience required in GitHub Actions tokens.
@@ -164,6 +168,8 @@ impl AppState {
 			jwt_secret,
 			github_client_id,
 			github_client_secret,
+			github_oauth_origin: "https://github.com".to_string(),
+			github_api_origin: "https://api.github.com".to_string(),
 			github_app,
 			oidc_audience,
 			http,

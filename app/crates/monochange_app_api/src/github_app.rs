@@ -9,6 +9,10 @@
 //! - Installation tokens: minted from the app JWT, valid for 1 hour.
 //! - Webhooks: HMAC-SHA256 verified with the app webhook secret.
 
+#[cfg(test)]
+#[path = "__tests__/github_app_tests.rs"]
+mod tests;
+
 use hmac::Hmac;
 use hmac::Mac;
 use jsonwebtoken::EncodingKey;
@@ -43,6 +47,8 @@ pub enum GitHubAppError {
 	UnverifiedCommit,
 	#[error("invalid webhook signature")]
 	WebhookSignature,
+	#[error("invalid GitHub app slug")]
+	InvalidAppSlug,
 }
 
 /// Monochange GitHub App credentials resolved from the environment.
@@ -126,6 +132,43 @@ impl GitHubAppAuth {
 			.map_err(GitHubAppError::Jwt)
 	}
 
+	/// Resolve the configured app's repository installation page.
+	///
+	/// The app identity comes from GitHub's authenticated metadata rather than
+	/// an assumed public slug. Only a single valid path segment is accepted,
+	/// and the resulting link always points to GitHub.
+	///
+	/// # Errors
+	/// Returns an error if app signing, the GitHub request, or slug validation fails.
+	pub async fn installation_url(&self, http: &reqwest::Client) -> Result<String, GitHubAppError> {
+		let response = http
+			.get(format!("{}/app", self.api_url))
+			.bearer_auth(self.app_jwt()?)
+			.header("Accept", "application/vnd.github+json")
+			.header("User-Agent", "monochange")
+			.send()
+			.await?;
+
+		if !response.status().is_success() {
+			let status = response.status();
+			let body = response.text().await?;
+			return Err(GitHubAppError::Status("read app metadata", status, body));
+		}
+
+		let metadata: AppMetadata = response.json().await?;
+		let slug = metadata.slug;
+
+		if slug.is_empty()
+			|| !slug
+				.bytes()
+				.all(|character| character.is_ascii_alphanumeric() || character == b'-')
+		{
+			return Err(GitHubAppError::InvalidAppSlug);
+		}
+
+		Ok(format!("https://github.com/apps/{slug}/installations/new"))
+	}
+
 	/// Mint a one-hour installation token for one GitHub App installation.
 	pub async fn installation_token(
 		&self,
@@ -174,6 +217,11 @@ fn webhook_signature(secret: &str, payload: &[u8]) -> String {
 		.unwrap_or_else(|error| panic!("HMAC accepts any key length: {error}"));
 	mac.update(payload);
 	format!("sha256={}", hex::encode(mac.finalize().into_bytes()))
+}
+
+#[derive(Debug, Deserialize)]
+struct AppMetadata {
+	slug: String,
 }
 
 #[derive(Debug, Deserialize)]

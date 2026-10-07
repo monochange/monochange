@@ -1,26 +1,30 @@
 <!-- {@hostedAppInstallation} -->
 
-The monochange GitHub App adds a bot identity to the hosted release workflow. It creates release commits and release pull requests for the repositories you grant it access to. The CLI remains available without the app, and monochange is free.
+The monochange GitHub App connects the repositories you grant it access to. Hosted release commits and pull requests under its bot identity require a separate rollout. The CLI remains available without the app, and monochange is free.
 
 ## Availability
 
-Check [the installation page](https://monochange.dev/install#github-app) for current hosted app availability. The public GitHub App installation is still being finalized; the CLI and local release planning are available now. GitHub sign-in on the website is separate from installing the bot on a repository.
+Sign in at [monochange.dev](https://monochange.dev/login) and open the dashboard to check repository connection availability. When the deployment has a configured GitHub App, **Connect repositories on GitHub** opens that app's installation page. If connection is unavailable, the dashboard says so; the CLI and local release planning remain available.
+
+Website sign-in identifies your account. Installing the GitHub App grants access to the repositories you choose. A connected repository does not mean hosted release automation is enabled: hosted bot operations still require a separate verified rollout.
 
 ## Install the GitHub App
 
-Once installation is available:
+When the dashboard offers repository connection:
 
-1. Open the installation page and choose **Install on GitHub**.
+1. Sign in and choose **Connect repositories on GitHub** in the dashboard.
 2. Select the GitHub account or organization that owns the repository. An organization owner may need to approve the installation.
-3. Choose **Only select repositories** and select the repositories monochange should manage.
-4. Review the requested access. The hosted release workflow needs repository contents and pull-request write access; GitHub also grants the required metadata read access.
-5. Complete installation, then follow the hosted workflow configuration below.
+3. Choose **All repositories** for that account, or **Only select repositories** for a smaller selection. Repeat installation for another account or organization when needed.
+4. Review the requested access. Repository connection needs the required metadata read permission. Contents and pull-request write access are only needed for a later hosted release workflow.
+5. Complete installation and return to the dashboard. Refresh the repository list after GitHub delivers the installation webhook.
+
+Personal installations belong to the account owner. Organization installations appear for the user who installed the app while GitHub confirms they remain an organization owner; the dashboard does not automatically share them with every organization member.
 
 You can change the selected repositories, suspend access, or uninstall the app in GitHub's installed-app settings. Installing the bot does not publish packages automatically.
 
 ## Connect the release workflow
 
-Configure the release workflow's commit and pull-request steps to use the hosted backend:
+After hosted bot operations have been enabled and verified, configure the release workflow's commit and pull-request steps to use the hosted backend:
 
 ```toml
 steps = [

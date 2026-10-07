@@ -7,6 +7,9 @@ use crate::color_mode::ColorMode;
 use crate::color_mode::provide_color_mode;
 use crate::color_mode::use_color_mode;
 use crate::links::BOOK_URL;
+use crate::server_fns::auth::Logout;
+use crate::server_fns::auth::SessionUser;
+use crate::server_fns::auth::get_session;
 
 /// Public navigation, including a direct link to the published book.
 #[component]
@@ -15,6 +18,11 @@ pub fn NavBar() -> impl IntoView {
 	let color_mode = use_color_mode();
 	let (mobile_open, set_mobile_open) = signal(false);
 	let location = use_location();
+	let sign_out = ServerAction::<Logout>::new();
+	let session = Resource::new_blocking(
+		move || (location.pathname.get(), sign_out.version().get()),
+		|_| get_session(),
+	);
 
 	Effect::new(move || {
 		location.pathname.get();
@@ -44,15 +52,36 @@ pub fn NavBar() -> impl IntoView {
 							<circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5" />
 						</svg>
 					</button>
-					<a href="/login" class="button button-brand nav-sign-in">"Sign in"</a>
+					<div class="nav-session"><SessionLinks session=session sign_out=sign_out /></div>
 					<button class="menu-toggle" aria-label="Toggle navigation menu" aria-expanded=move || mobile_open.get().to_string() aria-controls="mobile-navigation" on:click=move |_| set_mobile_open.update(|open| *open = !*open)>
 						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="22" height="22" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
 					</button>
 				</div>
 				<div id="mobile-navigation" class="mobile-links" hidden=move || !mobile_open.get()>
-					<a href="/install">"Install"</a><a href=BOOK_URL>"Docs"</a><a href="/changelog">"What's new"</a><a href="/pricing">"Pricing"</a><a href="/login">"Sign in"</a>
+					<a href="/install">"Install"</a><a href=BOOK_URL>"Docs"</a><a href="/changelog">"What's new"</a><a href="/pricing">"Pricing"</a><SessionLinks session=session sign_out=sign_out />
 				</div>
 			</nav>
 		</header>
+	}
+}
+
+#[component]
+fn SessionLinks(
+	session: Resource<Result<Option<SessionUser>, server_fn::ServerFnError>>,
+	sign_out: ServerAction<Logout>,
+) -> impl IntoView {
+	view! {
+		<Suspense fallback=|| view! { <span role="status">"Loading account…"</span> }>
+			{move || session.get().map(|result| match result {
+				Ok(Some(user)) => view! {
+					<a href="/dashboard" class="button button-brand nav-sign-in" title=format!("Signed in as {}", user.github_login)>"Dashboard"</a>
+					<ActionForm action=sign_out>
+						<button type="submit" class="text-link" disabled=move || sign_out.pending().get()>"Sign out"</button>
+					</ActionForm>
+				}.into_any(),
+				Ok(None) => view! { <a href="/login" class="button button-brand nav-sign-in">"Sign in"</a> }.into_any(),
+				Err(_) => view! { <a href="/login" class="button button-brand nav-sign-in">"Sign in again"</a> }.into_any(),
+			})}
+		</Suspense>
 	}
 }

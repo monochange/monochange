@@ -62,12 +62,14 @@ https://monochange.dev/auth/callback
   - `JWT_SECRET`
   - `GITHUB_CLIENT_ID`
   - `GITHUB_CLIENT_SECRET`
-  - `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` (the complete PEM text), and `GITHUB_APP_WEBHOOK_SECRET` to enable the release bot; all three must be configured together;
+  - `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` (the complete PEM text), and `GITHUB_APP_WEBHOOK_SECRET` to enable repository connection; all three must be configured together;
   - optional `MONOCHANGE_OIDC_AUDIENCE` (defaults to `monochange.dev`) and `OPENROUTER_API_KEY`.
 
 Create a dedicated `monochange` vault and give the production service account read access to that vault only. Do not grant write access or reuse the shared development service account. The SecretSpec 1Password provider reads items titled `secretspec/monochange_app/production/<KEY>` with a concealed field named `value`. Store each production value in that layout. Keep the service account token separately as a password item for recovery; it is the only credential copied to the server.
 
-For the GitHub App, use homepage `https://monochange.dev`, setup URL `https://monochange.dev/install`, and webhook URL `https://monochange.dev/api/github/webhooks` with SSL verification enabled. Grant Contents and Pull requests read/write and the mandatory Metadata read permission. Keep the webhook secret in the production vault and the PEM private key out of source control.
+For repository connection, follow the [GitHub App registration checklist](deploy/github-app-registration.md). Use homepage `https://monochange.dev`, setup URL `https://monochange.dev/dashboard`, and an active webhook at `https://monochange.dev/api/github/webhooks` with SSL verification enabled. Metadata read access is sufficient for connection and listing. Contents and Pull requests write access belong to a separate hosted release rollout. Keep the webhook secret in the production vault and the complete PEM private key out of source control.
+
+The existing website OAuth registration still uses `https://monochange.dev/auth/callback`. It is separate from the GitHub App installation setup URL. Do not register a second OAuth app, rotate working login credentials, or change DNS to enable repository connection.
 
 ## 1. create the Droplet
 

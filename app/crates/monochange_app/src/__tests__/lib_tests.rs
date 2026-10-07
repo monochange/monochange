@@ -5,6 +5,17 @@ use rstest::rstest;
 use crate::color_mode::*;
 use crate::error::*;
 
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) fn routes() -> Vec<leptos_axum::AxumRouteListing> {
+	// Route discovery temporarily suppresses resource loads process-wide.
+	// Match production startup: discover once before any request can run.
+	static ROUTES: std::sync::OnceLock<Vec<leptos_axum::AxumRouteListing>> =
+		std::sync::OnceLock::new();
+	ROUTES
+		.get_or_init(|| leptos_axum::generate_route_list(crate::app::App))
+		.clone()
+}
+
 // ── AppError tests ──
 
 #[rstest]
