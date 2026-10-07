@@ -1853,7 +1853,9 @@ pub struct VersionedFileDefinition {
 	/// Template rendered into this file's value instead of the plain version.
 	///
 	/// Supports the version template namespace, including declared values such
-	/// as `{{ build }}`. When set, `regex` and `fields` are not used.
+	/// as `{{ build }}`. With an explicit `format` and `fields`, the rendered
+	/// value is written to those structured fields. Otherwise the first
+	/// version-looking value in the file is replaced, and `regex` is not used.
 	#[serde(default, skip_serializing_if = "Option::is_none")]
 	pub value_template: Option<String>,
 }

@@ -7172,6 +7172,43 @@ pub fn validate_versioned_files_content_with_config(
 	// so the same glob pattern may appear 50+ times. Only validate it once.
 	let mut seen_globs: Vec<String> = Vec::new();
 
+	// Warn when one owner declares several entries for the same file: the
+	// entries apply in declaration order, so a divergent later entry can
+	// overwrite an earlier write. Different owners legitimately share files
+	// (workspace lockfiles, shared manifests), so the check stays per owner
+	// and exact duplicates are silent because the writer already collapses
+	// them.
+	let mut warned_owner_paths: Vec<(&str, &str)> = Vec::new();
+	for (owner_kind, owner_id, definitions) in &sources {
+		let mut seen_definitions: Vec<(&str, &VersionedFileDefinition)> = Vec::new();
+		for definition in *definitions {
+			if path_uses_glob(&definition.path) {
+				continue;
+			}
+			if seen_definitions
+				.iter()
+				.any(|(path, previous)| *path == definition.path && **previous == *definition)
+			{
+				continue;
+			}
+			let path_already_declared = seen_definitions
+				.iter()
+				.any(|(path, _)| *path == definition.path);
+			if path_already_declared
+				&& !warned_owner_paths
+					.iter()
+					.any(|(owner, path)| *owner == owner_id.as_str() && *path == definition.path)
+			{
+				warned_owner_paths.push((owner_id, &definition.path));
+				warnings.push(format!(
+					"{owner_kind} `{owner_id}` declares multiple versioned file entries for `{}`; entries apply in declaration order, so a later entry can overwrite an earlier write — merge the fields into one entry or move each value to its own file",
+					definition.path
+				));
+			}
+			seen_definitions.push((&definition.path, definition));
+		}
+	}
+
 	let mut errors = Vec::new();
 	for (owner_kind, owner_id, definitions) in &sources {
 		for definition in *definitions {

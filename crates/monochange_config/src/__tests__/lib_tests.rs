@@ -7587,6 +7587,26 @@ fn validate_versioned_files_content_warns_on_empty_glob() {
 }
 
 #[test]
+fn validate_versioned_files_content_warns_once_per_owner_on_duplicate_paths() {
+	let root = fixture_path("config/versioned-file-duplicate-path");
+	let warnings = crate::validate_versioned_files_content(&root, &EcosystemRegistry::new())
+		.unwrap_or_else(|error| panic!("expected Ok with warnings, got error: {error}"));
+	assert_eq!(
+		warnings.len(),
+		1,
+		"exact duplicates and cross-owner sharing must stay silent, got: {warnings:?}"
+	);
+	let warning = warnings.first().unwrap();
+	assert!(
+		warning.contains(
+			"package `core` declares multiple versioned file entries for `deploy/artifact.json`"
+		),
+		"got: {warning}"
+	);
+	assert!(warning.contains("declaration order"), "got: {warning}");
+}
+
+#[test]
 fn validate_versioned_files_content_with_config_deduplicates_glob_patterns() {
 	// When multiple packages inherit the same ecosystem-level glob pattern,
 	// validate_versioned_files_content_with_config should only validate each

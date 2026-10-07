@@ -5727,6 +5727,86 @@ fn should_execute_cli_step_skips_with_not_operator() {
 }
 
 #[test]
+fn should_execute_cli_step_gates_on_release_streams_and_outputs() {
+	let mut context = cli_context_for_when_evaluation_tests();
+	let changelog = |output: &str, stream: &str| {
+		crate::PreparedChangelog {
+			owner_id: "main".to_string(),
+			owner_kind: monochange_core::ReleaseOwnerKind::Group,
+			output: output.to_string(),
+			stream: stream.to_string(),
+			path: PathBuf::from("deploy/upgrade-notes/2.0.0.md"),
+			format: monochange_core::ChangelogFormat::Monochange,
+			notes: monochange_core::ReleaseNotesDocument {
+				title: String::new(),
+				summary: Vec::new(),
+				sections: Vec::new(),
+			},
+			rendered: String::new(),
+		}
+	};
+	context.prepared_release = Some(crate::PreparedRelease {
+		plan: monochange_core::ReleasePlan {
+			workspace_root: PathBuf::from("."),
+			decisions: Vec::new(),
+			groups: Vec::new(),
+			warnings: Vec::new(),
+			unresolved_items: Vec::new(),
+			compatibility_evidence: Vec::new(),
+		},
+		changeset_paths: Vec::new(),
+		changesets: Vec::new(),
+		released_packages: vec!["transfer".to_string()],
+		package_publications: Vec::new(),
+		version: Some("2.0.0".to_string()),
+		group_version: Some("2.0.0".to_string()),
+		release_targets: Vec::new(),
+		changed_files: Vec::new(),
+		// A duplicated default stream exercises the deduplicated stream list.
+		changelogs: vec![
+			changelog("upgrade_notes", "onchain"),
+			changelog("default", "default"),
+			changelog("default", "default"),
+		],
+		updated_changelogs: Vec::new(),
+		deleted_changesets: Vec::new(),
+		dry_run: false,
+		versioning: crate::versioning_state::ResolvedReleaseValues::default(),
+	});
+	let step_inputs = BTreeMap::new();
+	let step_for = |condition: &str| {
+		monochange_core::CliStepDefinition::Command {
+			show_progress: None,
+			name: None,
+			when: Some(condition.to_string()),
+			always_run: false,
+			command: "printf hi".to_string(),
+			dry_run_command: None,
+			shell: monochange_core::ShellConfig::default(),
+			id: None,
+			variables: None,
+			inputs: BTreeMap::new(),
+		}
+	};
+	let evaluate = |condition: &str| {
+		should_execute_cli_step(&step_for(condition), &context, &step_inputs)
+			.unwrap_or_else(|error| panic!("when condition `{condition}`: {error}"))
+	};
+	assert!(
+		evaluate("{{ 'onchain' in release.streams }}"),
+		"a release that rendered the onchain stream owes the deploy step"
+	);
+	assert!(
+		!evaluate("{{ 'store' in release.streams }}"),
+		"a stream the release did not render must not gate the step on"
+	);
+	assert!(
+		evaluate("{{ 'upgrade_notes' in release.outputs }}"),
+		"named outputs are exposed alongside streams"
+	);
+}
+
+#[test]
 fn should_execute_cli_step_rejects_unknown_template_reference() {
 	let context = cli_context_for_when_evaluation_tests();
 	let step_inputs = BTreeMap::from([("run".to_string(), vec!["true".to_string()])]);
