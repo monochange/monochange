@@ -2769,6 +2769,43 @@ fn build_release_template_value(context: &CliContext) -> serde_json::Value {
 		.collect();
 	release_map.insert("targets".to_string(), serde_json::Value::Array(targets));
 
+	// The streams and named outputs this release rendered, so Command steps
+	// can gate on audience rather than parsing changelog paths. A release that
+	// owes an on-chain upgrade, a store submission, or an OTA patch is the
+	// release that rendered the matching stream.
+	let mut streams: Vec<&str> = prepared
+		.changelogs
+		.iter()
+		.map(|changelog| changelog.stream.as_str())
+		.collect();
+	streams.sort_unstable();
+	streams.dedup();
+	release_map.insert(
+		"streams".to_string(),
+		serde_json::Value::Array(
+			streams
+				.into_iter()
+				.map(|stream| serde_json::Value::String(stream.to_string()))
+				.collect(),
+		),
+	);
+	let mut outputs: Vec<&str> = prepared
+		.changelogs
+		.iter()
+		.map(|changelog| changelog.output.as_str())
+		.collect();
+	outputs.sort_unstable();
+	outputs.dedup();
+	release_map.insert(
+		"outputs".to_string(),
+		serde_json::Value::Array(
+			outputs
+				.into_iter()
+				.map(|output| serde_json::Value::String(output.to_string()))
+				.collect(),
+		),
+	);
+
 	serde_json::Value::Object(release_map)
 }
 

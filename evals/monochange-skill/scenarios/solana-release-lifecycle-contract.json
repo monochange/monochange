@@ -1,0 +1,44 @@
+{
+	"id": "solana-release-lifecycle-contract",
+	"title": "The durable release record carries on-chain deploy eligibility, artifact digest, and stream discipline",
+	"fixture": "solana-workspace",
+	"agent": false,
+	"prompt": "",
+	"setupFiles": {
+		".changeset/upgrade-vault.md": "---\n\"transfer\": program_breaking\n---\n\nRequire a nonzero `value` on the initialize\ninstruction so empty initializations can never reach the on-chain program.\n"
+	},
+	"setupCommands": [
+		"git init -b main -q && git add -A && git commit -S -qm \"chore: initialize transfer workspace\" && git tag v1.2.0"
+	],
+	"expectation": "The full release lifecycle works for a Pina workspace on committed history: prepare, commit-release, and tag-release produce the v2.0.0 tag, and the release record read back from that tag carries the group version, the SDK-only publication set, the onchain-stream changelog entry (the auditable answer to \"did this release owe an on-chain deployment?\"), and the artifact digest of the exact SBF binary. Stream discipline keeps that answer unambiguous: a changeset mixing an onchain-stream program change with a user-stream SDK change is rejected at planning, and after the program release an SDK-only changeset plans a minor release that owes no upgrade note.",
+	"checks": [
+		{
+			"id": "lifecycle-produces-the-release-tag",
+			"kind": "command",
+			"command": "monochange prepare >/dev/null 2>&1 && monochange step commit-release >/dev/null 2>&1 && monochange step tag-release --from HEAD --push=false >/dev/null 2>&1 && test \"$(git tag -l v2.0.0)\" = \"v2.0.0\"",
+			"why": "Prepare, commit-release, and tag-release must compose into a real v2.0.0 tag on a signed release commit, because tag-release, publish-readiness, and provider releases all read the record from git history."
+		},
+		{
+			"id": "record-carries-eligibility-digest-and-publications",
+			"kind": "command",
+			"command": "monochange step release-record --from v2.0.0 --format json > .record.json && node -e \"const a=require('node:assert/strict'),fs=require('node:fs'),c=require('node:crypto');const d=JSON.parse(fs.readFileSync('.record.json','utf8')).record;a.equal(d.versions['main'],'2.0.0');a.deepEqual(d.package_publications.map(p=>p.package),['transfer-sdk']);const digest=c.createHash('sha256').update(fs.readFileSync('target/deploy/transfer.so')).digest('hex').slice(0,16);a.equal(d.values['transfer.artifact_digest'],digest);const upgrade=d.changelogs.find(x=>x.output==='upgrade_notes');a.ok(upgrade,'onchain upgrade note missing from record');a.equal(upgrade.stream,'onchain');a.equal(upgrade.path,'deploy/upgrade-notes/2.0.0.md');console.log('record ok');\"; rc=$?; rm -f .record.json; exit $rc",
+			"why": "The durable record is the audit trail for a Solana release: the version, the fact that only the SDK was registry-published, the on-chain upgrade eligibility (stream + output + path), and the digest of the exact binary that shipped must all be recoverable from the tag alone, months later, with the working tree gone."
+		},
+		{
+			"id": "mixed-stream-changeset-rejected",
+			"kind": "command",
+			"command": "mkdir -p .changeset; printf -- '---\\n\"transfer\": program_breaking\\n\"transfer-sdk\": sdk_feature\\n---\\n\\nProgram payload change plus an SDK helper exposing it.\\n' > .changeset/mixed.md; monochange preview; rc=$?; rm -f .changeset/mixed.md; test $rc -eq 1",
+			"expectOutput": [
+				"changeset targets resolve to multiple changelog streams",
+				"split the changes into one file per stream"
+			],
+			"why": "Deploy eligibility is derived from streams, so a file mixing an onchain-stream program change with a user-stream SDK change would make \"does this release owe an upgrade?\" ambiguous. Release planning must reject it with the remedy."
+		},
+		{
+			"id": "sdk-only-release-owes-no-upgrade",
+			"kind": "command",
+			"command": "mkdir -p .changeset; printf -- '---\\n\"transfer-sdk\": sdk_feature\\n---\\n\\nAdd a `waitForRentEpoch` helper so clients can await vault migrations.\\n' > .changeset/sdk-helper.md; monochange preview --format json > .preview.json; rc=$?; node -e \"const a=require('node:assert/strict'),fs=require('node:fs');const d=JSON.parse(fs.readFileSync('.preview.json','utf8'));a.equal(d.version,'2.1.0');a.ok(!d.changelogs.some(x=>x.output==='upgrade_notes'),'upgrade note must not be owed');a.ok(!d.changed_files.some(f=>f.includes('upgrade-notes')),'upgrade note file must not be written');a.deepEqual(d.package_publications.map(p=>p.package),['transfer-sdk']);console.log('sdk-only ok');\"; rc2=$?; rm -f .preview.json .changeset/sdk-helper.md; test $rc -eq 0 -a $rc2 -eq 0",
+			"why": "An SDK-only change still releases the lockstep group (both packages move to 2.1.0 so the client never drifts from the program), but it must not owe an on-chain upgrade: no onchain-stream output, no upgrade note file, and still only the SDK in the publication set."
+		}
+	]
+}

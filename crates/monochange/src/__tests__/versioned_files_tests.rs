@@ -889,6 +889,178 @@ fn value_template_reports_a_file_without_a_semver_to_replace() {
 }
 
 #[test]
+fn value_template_with_format_fields_writes_the_rendered_value_into_each_field() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	std::fs::write(
+		root.join("deploy.json"),
+		"{\n  \"version\": \"1.2.0\",\n  \"sha256\": \"0000000000000000\"\n}\n",
+	)
+	.unwrap_or_else(|error| panic!("write deploy manifest: {error}"));
+	let configuration =
+		monochange_config::load_workspace_configuration(&fixture_path("monochange/release-base"))
+			.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let context = VersionedFileUpdateContext {
+		package_by_config_id: BTreeMap::new(),
+		package_by_native_name: BTreeMap::new(),
+		current_versions_by_native_name: BTreeMap::new(),
+		released_versions_by_native_name: BTreeMap::new(),
+		configuration: &configuration,
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		release_values: BTreeMap::from([(
+			"app".to_string(),
+			BTreeMap::from([("digest".to_string(), "a88cb6254c22fd13".to_string())]),
+		)]),
+	};
+	let mut definition = value_template_definition("deploy.json", "{{ digest }}", None);
+	definition.format = Some(monochange_core::VersionedFileFormat::Json);
+	definition.fields = Some(vec!["sha256".to_string()]);
+	let mut updates = BTreeMap::new();
+	apply_versioned_file_definition(
+		root,
+		&mut updates,
+		&definition,
+		"2.0.0",
+		None,
+		&["app".to_string()],
+		&context,
+	)
+	.unwrap_or_else(|error| panic!("apply value template with fields: {error}"));
+	let contents = match updates.get(&root.join("deploy.json")) {
+		Some(CachedDocument::Text(contents)) => contents.clone(),
+		other => panic!("expected a text update for deploy.json, got: {other:?}"),
+	};
+	assert!(
+		contents.contains("\"sha256\": \"a88cb6254c22fd13\""),
+		"the rendered digest must land in the declared field, got: {contents}"
+	);
+	assert!(
+		contents.contains("\"version\": \"1.2.0\""),
+		"a fields-scoped template must leave other fields untouched, got: {contents}"
+	);
+}
+
+#[test]
+fn value_template_with_format_fields_reports_an_unresolved_variable() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	std::fs::write(root.join("deploy.json"), "{\n  \"sha256\": \"0000\"\n}\n")
+		.unwrap_or_else(|error| panic!("write deploy manifest: {error}"));
+	let configuration =
+		monochange_config::load_workspace_configuration(&fixture_path("monochange/release-base"))
+			.unwrap_or_else(|error| panic!("configuration: {error}"));
+	// No `digest` value is declared for the package, so the template cannot
+	// resolve and must fail instead of writing an unresolved placeholder.
+	let context = VersionedFileUpdateContext {
+		package_by_config_id: BTreeMap::new(),
+		package_by_native_name: BTreeMap::new(),
+		current_versions_by_native_name: BTreeMap::new(),
+		released_versions_by_native_name: BTreeMap::new(),
+		configuration: &configuration,
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		release_values: BTreeMap::new(),
+	};
+	let mut definition = value_template_definition("deploy.json", "{{ digest }}", None);
+	definition.format = Some(monochange_core::VersionedFileFormat::Json);
+	definition.fields = Some(vec!["sha256".to_string()]);
+	let mut updates = BTreeMap::new();
+	let error = apply_versioned_file_definition(
+		root,
+		&mut updates,
+		&definition,
+		"2.0.0",
+		None,
+		&["app".to_string()],
+		&context,
+	)
+	.expect_err("an unresolved template variable must fail");
+	assert!(error.to_string().contains("unresolved"), "got: {error}");
+}
+
+#[test]
+fn value_template_with_format_fields_reports_unparseable_contents() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	std::fs::write(root.join("deploy.json"), "not json at all\n")
+		.unwrap_or_else(|error| panic!("write deploy manifest: {error}"));
+	let configuration =
+		monochange_config::load_workspace_configuration(&fixture_path("monochange/release-base"))
+			.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let context = VersionedFileUpdateContext {
+		package_by_config_id: BTreeMap::new(),
+		package_by_native_name: BTreeMap::new(),
+		current_versions_by_native_name: BTreeMap::new(),
+		released_versions_by_native_name: BTreeMap::new(),
+		configuration: &configuration,
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		release_values: BTreeMap::new(),
+	};
+	let mut definition = value_template_definition("deploy.json", "{{ identity }}", None);
+	definition.format = Some(monochange_core::VersionedFileFormat::Json);
+	definition.fields = Some(vec!["sha256".to_string()]);
+	let mut updates = BTreeMap::new();
+	let error = apply_versioned_file_definition(
+		root,
+		&mut updates,
+		&definition,
+		"2.0.0",
+		None,
+		&["app".to_string()],
+		&context,
+	)
+	.expect_err("unparseable format contents must fail");
+	assert!(
+		error
+			.to_string()
+			.contains("failed to parse json versioned file"),
+		"got: {error}"
+	);
+}
+
+#[test]
+fn value_template_with_format_and_missing_fields_is_an_error() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	std::fs::write(root.join("deploy.json"), "{\n  \"version\": \"1.2.0\"\n}\n")
+		.unwrap_or_else(|error| panic!("write deploy manifest: {error}"));
+	let configuration =
+		monochange_config::load_workspace_configuration(&fixture_path("monochange/release-base"))
+			.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let context = VersionedFileUpdateContext {
+		package_by_config_id: BTreeMap::new(),
+		package_by_native_name: BTreeMap::new(),
+		current_versions_by_native_name: BTreeMap::new(),
+		released_versions_by_native_name: BTreeMap::new(),
+		configuration: &configuration,
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		release_values: BTreeMap::new(),
+	};
+	let mut definition = value_template_definition("deploy.json", "{{ identity }}", None);
+	definition.format = Some(monochange_core::VersionedFileFormat::Json);
+	let mut updates = BTreeMap::new();
+	let error = apply_versioned_file_definition(
+		root,
+		&mut updates,
+		&definition,
+		"2.0.0",
+		None,
+		&["app".to_string()],
+		&context,
+	)
+	.expect_err("format mode without fields must fail");
+	assert!(
+		error
+			.to_string()
+			.contains("with format mode is missing fields"),
+		"got: {error}"
+	);
+}
+
+#[test]
 fn value_template_uses_each_ecosystem_name_in_the_context() {
 	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();

@@ -63,7 +63,7 @@ Reports record the checkout commit, executable and installed skill SHA-256 hashe
 
 The runner executes its cells sequentially. Cohorts launched concurrently by an external orchestrator share machine resources and can contend for runtime capacity, so their recorded durations cannot establish a fair latency comparison between skills. Compare outcomes across those cohorts; measure latency with an otherwise idle machine and consistent scheduling.
 
-Harness unit tests and Rust fixture regressions are durable gates in the required CI test job. Local `test:all` also runs all 22 agent-free contracts. Those contracts create signed fixture commits using the caller's existing Git identity and GPG setup, so they are not scheduled in hosted CI without that configuration. These gates do not call a paid agent runtime. Paid skill comparisons remain explicit evaluation runs; their completed evidence is recorded in [FINDINGS.md](FINDINGS.md) and compact JSON under `reports/`.
+Harness unit tests and Rust fixture regressions are durable gates in the required CI test job. Local `test:all` also runs all 25 agent-free contracts. Those contracts create signed fixture commits using the caller's existing Git identity and GPG setup, so they are not scheduled in hosted CI without that configuration. These gates do not call a paid agent runtime. Paid skill comparisons remain explicit evaluation runs; their completed evidence is recorded in [FINDINGS.md](FINDINGS.md) and compact JSON under `reports/`.
 
 ## How isolation works
 
@@ -81,7 +81,7 @@ Fixture and grading copies provide Git and artifact isolation, not filesystem co
 
 ## Scenario inventory
 
-60 scenarios: 38 agent tasks and 22 agent-free contracts. `devenv shell eval:skill --list` prints the current set.
+63 scenarios: 38 agent tasks and 25 agent-free contracts. `devenv shell eval:skill --list` prints the current set.
 
 `COVERAGE.md` maps every CLI decision surface to the scenario that pins it and records what is deliberately not tested. Run that file before adding a scenario, both to avoid duplicating a check and to find the gaps it lists.
 
@@ -121,14 +121,15 @@ A scenario may also declare `setupFiles` (paths to write into the workdir before
 
 ## Fixtures
 
-| Fixture          | Shape                                                                          | Used for                      |
-| ---------------- | ------------------------------------------------------------------------------ | ----------------------------- |
-| `mixed-monorepo` | Cargo crates plus scoped npm packages, no config                               | adoption                      |
-| `npm-monorepo`   | pnpm workspace, three packages in one version group, a `user` changelog stream | changesets, streams, releases |
-| `rust-workspace` | two independently-versioned crates, one depending on the other                 | propagation, gitignore        |
-| `python-uv`      | uv workspace, two `pyproject.toml` packages, no config                         | adoption, versioned files     |
-| `go-modules`     | two Go modules in one repository                                               | discovery probes              |
-| `dart-workspace` | pub workspace with two packages                                                | discovery probes              |
+| Fixture            | Shape                                                                                                                                        | Used for                      |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| `mixed-monorepo`   | Cargo crates plus scoped npm packages, no config                                                                                             | adoption                      |
+| `npm-monorepo`     | pnpm workspace, three packages in one version group, a `user` changelog stream                                                               | changesets, streams, releases |
+| `rust-workspace`   | two independently-versioned crates, one depending on the other                                                                               | propagation, gitignore        |
+| `python-uv`        | uv workspace, two `pyproject.toml` packages, no config                                                                                       | adoption, versioned files     |
+| `go-modules`       | two Go modules in one repository                                                                                                             | discovery probes              |
+| `dart-workspace`   | pub workspace with two packages                                                                                                              | discovery probes              |
+| `solana-workspace` | Pina-shaped workspace: on-chain program crate, npm SDK, checked-in Codama IDL, migrations manifest, deploy manifest, SBF stub, deploy script | on-chain release contracts    |
 
 The adoption and ecosystem cohorts exercise Cargo, npm, Python, Go, Dart/Flutter, and Deno JSONC. Planning tasks cover groups, prereleases, explicit versions, dependency prefixes, custom command inputs, structured and regex version stamps, and audience-specific outputs. Guardrail tasks cover diagnostic recovery, invalid targets, private packages, initialization refusal, and skill installation/read/update boundaries.
 

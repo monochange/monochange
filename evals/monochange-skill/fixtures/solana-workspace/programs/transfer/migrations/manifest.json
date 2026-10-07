@@ -1,0 +1,37 @@
+{
+	"abiVersion": "0.21",
+	"programId": "AHHpfUJp58rrX3Xg7Fw57iF4a5waLz7iMr4ZUrnKXnck",
+	"versionType": "u8",
+	"auto": [
+		"accounts",
+		"instructions",
+		"events"
+	],
+	"contracts": {
+		"instruction:1:00": {
+			"rustName": "InitializeInstruction",
+			"envelope": false,
+			"versions": [
+				{
+					"schema": {
+						"layout": "fixed",
+						"fields": [
+							{
+								"name": "value",
+								"rustType": "u8"
+							}
+						]
+					},
+					"process": {
+						"accounts": [
+							{
+								"name": "authority",
+								"signer": true
+							}
+						]
+					}
+				}
+			]
+		}
+	}
+}

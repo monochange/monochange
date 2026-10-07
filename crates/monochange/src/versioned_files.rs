@@ -1501,6 +1501,39 @@ pub(crate) fn apply_versioned_file_definition_to_paths<N: AsRef<str>>(
 	// files such as an Expo app manifest or a Flutter pubspec.
 	if let Some(template) = definition.value_template.as_deref() {
 		let name = dep_names.first().map(AsRef::as_ref);
+		// An explicit `format` with `fields` names exactly where the rendered
+		// value belongs. Replacing the first version-looking text in the file
+		// instead could stamp an unrelated field, or fail outright when the
+		// file carries no SemVer at all (for example a pure digest manifest).
+		if let Some(format) = definition.format {
+			let fields = definition.fields.as_deref().ok_or_else(|| {
+				MonochangeError::Config(format!(
+					"versioned file `{}` with format mode is missing fields",
+					definition.path
+				))
+			})?;
+			for resolved_path in resolved_paths {
+				let resolved_path = resolved_path.clone();
+				let contents = read_cached_text_document(updates, &resolved_path)?;
+				let value = render_versioned_file_value(
+					template,
+					owner_version,
+					name,
+					context,
+					definition.ecosystem_type,
+				)?;
+				let changed_text = update_format_versioned_file_text(
+					&contents,
+					format,
+					fields,
+					&value,
+					name,
+					definition.missing_field_behavior,
+				)?;
+				updates.insert(resolved_path, CachedDocument::Text(changed_text));
+			}
+			return Ok(());
+		}
 		for resolved_path in resolved_paths {
 			let resolved_path = resolved_path.clone();
 			let contents = read_cached_text_document(updates, &resolved_path)?;

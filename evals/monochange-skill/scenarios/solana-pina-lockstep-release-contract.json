@@ -1,0 +1,34 @@
+{
+	"id": "solana-pina-lockstep-release-contract",
+	"title": "A Pina program and its SDK release in lockstep with on-chain deploy eligibility",
+	"fixture": "solana-workspace",
+	"agent": false,
+	"prompt": "",
+	"setupFiles": {
+		".changeset/upgrade-vault.md": "---\n\"transfer\": program_breaking\n---\n\nRequire a nonzero `value` on the initialize\ninstruction so empty initializations can never reach the on-chain program.\n"
+	},
+	"setupCommands": [
+		"git init -b main -q && git add -A && git commit -S -qm \"chore: initialize transfer workspace\" && git tag v1.2.0"
+	],
+	"expectation": "A Solana program release with today's primitives: the Pina program crate and its npm SDK share group `main`, so one breaking program change plans 2.0.0 for both under a single v2.0.0 tag. The program is not registry-published (publish disabled), so package publications name only the SDK. The `onchain` stream routes the change to the upgrade-notes output, which is what marks the release as owing an on-chain program deployment; the user-stream SDK notes are not owed. The declared artifact digest resolves from the SBF stub, and preparing the release stamps the program crate, the npm SDK, the checked-in Codama IDL (program.version), and the deploy manifest to 2.0.0 while rendering the upgrade note.",
+	"checks": [
+		{
+			"id": "workspace-validates",
+			"kind": "command",
+			"command": "monochange step validate",
+			"why": "A cross-ecosystem cargo+npm config with custom streams, format versioned files, a declared hash value, and a disabled publish must load and resolve its targets."
+		},
+		{
+			"id": "lockstep-plan-with-digest-and-stream-routing",
+			"kind": "command",
+			"command": "monochange preview --format json > .preview.json && node -e \"const a=require('node:assert/strict'),fs=require('node:fs'),c=require('node:crypto');const d=JSON.parse(fs.readFileSync('.preview.json','utf8'));const t=d.release_targets[0];a.equal(t.id,'main');a.equal(t.version,'2.0.0');a.equal(t.tag_name,'v2.0.0');a.deepEqual([...t.members].sort(),['transfer','transfer-sdk']);a.deepEqual(d.package_publications.map(p=>p.package),['transfer-sdk']);const digest=c.createHash('sha256').update(fs.readFileSync('target/deploy/transfer.so')).digest('hex').slice(0,16);a.equal(d.values['transfer.artifact_digest'],digest);const outs=d.changelogs.map(x=>x.output+':'+x.stream);a.ok(outs.includes('upgrade_notes:onchain'),'upgrade note missing from plan');a.ok(!outs.includes('sdk_notes:user'),'sdk note must not be owed');console.log('lockstep plan ok');\"; rc=$?; rm -f .preview.json; exit $rc",
+			"why": "The release plan must answer the three questions a Solana release has: what version (2.0.0 lockstep across both packages under one tag), what ships where (only the SDK is registry-published), and whether an on-chain upgrade is owed (the onchain-stream output exists because a program change landed). The digest of the exact ELF must resolve into the plan's values."
+		},
+		{
+			"id": "prepare-stamps-every-artifact-and-renders-upgrade-note",
+			"kind": "command",
+			"command": "monochange prepare >/dev/null 2>&1 && grep -F 'version = \"2.0.0\"' programs/transfer/Cargo.toml && grep -F '\"version\": \"2.0.0\"' apps/sdk/package.json && grep -F '\"version\": \"2.0.0\"' idl/transfer.json && grep -F '\"version\": \"2.0.0\"' deploy/mainnet.json && grep -F 'nonzero' deploy/upgrade-notes/2.0.0.md && test ! -e apps/sdk/release-notes/2.0.0.md",
+			"why": "Preparing the release must move every artifact that carries the version \u2014 the program crate, the SDK manifest, the checked-in Codama IDL (its program.version; the top-level Codama standard version must be untouched), and the deploy manifest \u2014 and render the upgrade note for the on-chain change. A user-stream note must not appear because no user-stream changeset exists; an SDK-only release owes no on-chain deployment and this release owes no SDK note."
+		}
+	]
+}

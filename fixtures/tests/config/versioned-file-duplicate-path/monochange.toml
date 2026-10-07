@@ -1,0 +1,18 @@
+[defaults]
+package_type = "cargo"
+
+[package.core]
+path = "crates/core"
+# The first two entries are exact duplicates and must stay silent; the third
+# diverges on `fields`, so `core` is warned about once. The `other` package
+# shares the same file from a different owner, which is legitimate and must
+# not warn.
+versioned_files = [
+	{ path = "deploy/artifact.json", format = "json", fields = ["version"] },
+	{ path = "deploy/artifact.json", format = "json", fields = ["version"] },
+	{ path = "deploy/artifact.json", format = "json", fields = ["sha256"] },
+]
+
+[package.other]
+path = "crates/other"
+versioned_files = [{ path = "deploy/artifact.json", format = "json", fields = ["version"] }]

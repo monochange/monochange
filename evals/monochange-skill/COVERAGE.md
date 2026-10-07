@@ -1,6 +1,6 @@
 # Coverage: monochange skill evaluation matrix
 
-The committed scenario inventory contains 60 scenarios: 38 agent tasks and 22 deterministic contracts, with 315 checks across 23 fixture families. There are 22 primary scenario fixtures; the Go tag contract also copies the supplemental `planning-go-tag-baselines` family for custom-format and prerelease-suffix checks. This file describes authored coverage; passing execution results and skill comparisons belong in [FINDINGS.md](FINDINGS.md).
+The committed scenario inventory contains 63 scenarios: 38 agent tasks and 25 deterministic contracts, with 324 checks across 24 fixture families. There are 23 primary scenario fixtures; the Go tag contract also copies the supplemental `planning-go-tag-baselines` family for custom-format and prerelease-suffix checks. This file describes authored coverage; passing execution results and skill comparisons belong in [FINDINGS.md](FINDINGS.md).
 
 ## What the matrix exercises
 
@@ -8,7 +8,7 @@ The committed scenario inventory contains 60 scenarios: 38 agent tasks and 22 de
 - Ecosystem decisions: Cargo dependencies, scoped npm ids, Deno JSON and JSONC, Dart workspace roots, the Flutter alias, PEP 621 and Poetry version fields, Go tagged and first-release baselines, and colliding manifest names.
 - Release planning: propagation modes, pre-1.0 shifts, explicit stable versions, group baselines, prerelease preview stability and fixed-base preparation, typed dependency prefixes, structured and regex version stamps, custom command input forwarding, changelog filtering, titles, and audience outputs.
 - Guardrails: invalid config and target recovery, initialization refusal, skill installation/update errors and symlink boundaries, fixed skill-topic inventory, release-state tracking, readiness gates, and preparation without publication.
-- Deterministic CLI contracts: format/filter behavior, changeset dry runs, cross-stream detection, quoted pnpm lockfile rewriting and command replacement, custom Go tag baselines and prerelease suffix parsing, lifecycle records, release-note selection, and generated subagent guidance.
+- Deterministic CLI contracts: format/filter behavior, changeset dry runs, cross-stream detection, quoted pnpm lockfile rewriting and command replacement, custom Go tag baselines and prerelease suffix parsing, lifecycle records, release-note selection, generated subagent guidance, and a Solana/Pina release shape (lockstep program-plus-SDK group, stream-derived on-chain deploy eligibility, SBF digest identity, pina deploy command workflow, and the durable record read back from the tag).
 
 Agent tasks evaluate decisions and resulting artifacts. Contracts run without a model and pin mechanical CLI behavior; running them under several variant labels does not compare the skills. The full inventory below is derived from the scenario JSON files. A scenario's checks define its precise boundary, so read them before extending an existing case.
 

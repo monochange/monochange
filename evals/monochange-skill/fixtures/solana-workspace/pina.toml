@@ -1,0 +1,8 @@
+[project]
+program = "programs/transfer"
+
+[clients]
+output = "clients"
+languages = ["cpi", "rust", "typescript"]
+mode = "auto"
+scaffold = true

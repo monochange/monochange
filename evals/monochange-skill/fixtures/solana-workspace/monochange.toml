@@ -1,0 +1,128 @@
+#:schema https://monochange.github.io/monochange/schemas/monochange.schema.json
+#
+# Release configuration for a Pina workspace: the `transfer` on-chain
+# program (a Rust crate that `pina build` compiles to an SBF .so) and its
+# TypeScript SDK release in lockstep as group `main`. Solana programs have no
+# registry and no on-chain version field; the git tag is the version, the
+# sha256 of the .so is the binary identity, and the `onchain` changelog stream
+# records which releases owe a program deployment. Pina's own migration
+# manifest (migrations/manifest.json) versions on-chain schemas separately and
+# is never touched by release planning.
+
+[defaults]
+parent_bump = "patch"
+
+[defaults.changelog]
+path = "{{ path }}/CHANGELOG.md"
+format = "keep_a_changelog"
+
+# ── Change types and streams ─────────────────────────────────────────────
+# Types without `stream` land in the built-in developer-facing `default`
+# stream. On-chain program changes route to the `onchain` stream, SDK-visible
+# changes route to `user`. One stream per changeset file is enforced at
+# release planning, so "does this release owe an on-chain upgrade?" has an
+# unambiguous answer: did any changeset land in the `onchain` stream?
+
+[changelog.sections]
+added = { heading = "Added", description = "New functionality" }
+changed = { heading = "Changed", description = "Changes in existing functionality" }
+fixed = { heading = "Fixed", description = "Bug fixes" }
+onchain = { heading = "On-chain program", description = "Changes shipped by upgrading the deployed program", priority = 10 }
+sdk = { heading = "SDK", description = "Changes visible to client developers", priority = 20 }
+
+[changelog.types]
+fix = { bump = "patch", section = "fixed", description = "Bug fixes and error corrections" }
+feat = { bump = "minor", section = "added", description = "Developer-facing improvements" }
+breaking = { bump = "major", section = "changed", description = "Breaking developer-facing changes" }
+program_breaking = { bump = "major", section = "onchain", description = "Breaking on-chain program change; the deployed program must be upgraded", stream = "onchain" }
+program_feature = { bump = "minor", section = "onchain", description = "Backward-compatible on-chain program change; eligible for a program upgrade", stream = "onchain" }
+sdk_feature = { bump = "minor", section = "sdk", description = "SDK feature visible to client developers", stream = "user" }
+
+[changelog.streams.onchain]
+description = "Changes that must ship to the chain via a program upgrade"
+
+[changelog.streams.user]
+description = "Notes for SDK consumers"
+
+# The rendered upgrade note doubles as the deploy-eligibility record: a release
+# that owes an on-chain upgrade renders one of these files, a release that
+# does not renders none.
+[changelog.outputs.upgrade_notes]
+stream = "onchain"
+targets = ["main"]
+path = "deploy/upgrade-notes/{{ version }}.md"
+format = "monochange"
+mode = "release"
+
+[changelog.outputs.sdk_notes]
+stream = "user"
+targets = ["main"]
+path = "apps/sdk/release-notes/{{ version }}.md"
+format = "monochange"
+mode = "release"
+
+# ── Packages ─────────────────────────────────────────────────────────────
+
+[package.transfer]
+path = "programs/transfer"
+type = "cargo"
+# Solana programs are not published to crates.io; the tag and release record
+# are the release. Publish planning stays honest about that by skipping this
+# package entirely.
+publish = { enabled = false }
+
+# Checked-in Codama IDL refreshed by `pina build`: the program version lives
+# at `program.version` (the top-level `version` is the Codama standard version
+# and must stay untouched).
+[[package.transfer.versioned_files]]
+path = "idl/transfer.json"
+format = "json"
+fields = ["program.version"]
+
+# On-chain deploy manifest: which program version the release ships.
+[[package.transfer.versioned_files]]
+path = "deploy/mainnet.json"
+format = "json"
+fields = ["version"]
+
+# Binary identity: the first 16 hex chars of the ELF's sha256. Declared values
+# resolve into the release manifest and the durable release record, giving
+# every released version a verifiable artifact fingerprint without inventing
+# an on-chain version field Solana does not have.
+[package.transfer.values.artifact_digest]
+hash = "target/deploy/transfer.so"
+algorithm = "sha256"
+encoding = "hex"
+length = 16
+
+[package."transfer-sdk"]
+path = "apps/sdk"
+type = "npm"
+
+# ── Lockstep group ───────────────────────────────────────────────────────
+# One version, one tag, one GitHub release covers the program and the SDK.
+# The SDK cannot drift from the program it wraps.
+
+[group.main]
+packages = ["transfer", "transfer-sdk"]
+tag = true
+release = true
+version_format = "primary"
+
+[ecosystems.cargo]
+enabled = true
+
+[ecosystems.npm]
+enabled = true
+
+# ── Deploy workflow ──────────────────────────────────────────────────────
+# Execution is a user-supplied command today: monochange plans the release and
+# records what shipped; `pina deploy` (here, a recording stub) wraps
+# `solana program deploy` against the target cluster. `dry_run_command` keeps
+# `monochange run deploy --dry-run` safe to run anywhere.
+
+[cli.deploy]
+help_text = "Upgrade the on-chain program for the current release"
+steps = [
+	{ type = "Command", name = "upgrade on-chain program", command = "sh scripts/deploy-program.sh", dry_run_command = "echo \"dry-run: would run sh scripts/deploy-program.sh\"" },
+]
