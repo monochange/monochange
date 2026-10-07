@@ -2,6 +2,18 @@
 
 All notable changes to this crate are documented here. See [keep a changelog](https://keepachangelog.com/en/1.1.0/) for the format.
 
+## monochange_classification [0.4.1](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.4.1) (2026-10-06)
+
+### 🐛 Fixed
+
+#### Use the coloured monochange identity in documentation
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)
+
+The README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.
+
+Existing Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes.
+
 ## monochange_classification [0.2.0](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.2.0) (2026-09-19)
 
 ### 💥 Breaking Change

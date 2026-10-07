@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)
+
+### 🐛 Fixed
+
+- **Use short built-in commands in introductory documentation.** Start with `monochange discover` and `monochange preview` in the README and crate introduction. These existing commands accept the same options as their step forms; `preview` always runs without writing release files. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #752](https://github.com/monochange/monochange/pull/752)
+
 ## [0.16.0](https://github.com/monochange/monochange/releases/tag/v0.16.0) (2026-09-30)
 
 ### 🐛 Fixed

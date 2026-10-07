@@ -1,0 +1,2823 @@
+{
+	"schema_version": "0.9",
+	"kind": "monochange.releaseRecord",
+	"created_at": "2026-10-06T17:13:59Z",
+	"command": "release",
+	"version": null,
+	"versions": {
+		"main": "0.17.0",
+		"monochange_app": "0.2.0",
+		"monochange_classification": "0.4.1",
+		"monochange_schema": "0.9.1",
+		"snapshot": "0.1.2"
+	},
+	"release_targets": [
+		{
+			"id": "main",
+			"kind": "group",
+			"version": "0.17.0",
+			"version_format": "primary",
+			"tag": true,
+			"release": true,
+			"tag_name": "v0.17.0",
+			"rendered_title": "v0.17.0 (2026-10-06)",
+			"rendered_changelog_title": "[0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)",
+			"members": [
+				"@monochange/cli",
+				"@monochange/cli-darwin-arm64",
+				"@monochange/cli-darwin-x64",
+				"@monochange/cli-linux-arm64-gnu",
+				"@monochange/cli-linux-arm64-musl",
+				"@monochange/cli-linux-x64-gnu",
+				"@monochange/cli-linux-x64-musl",
+				"@monochange/cli-win32-arm64-msvc",
+				"@monochange/cli-win32-x64-msvc",
+				"@monochange/skill",
+				"monochange",
+				"monochange_analysis",
+				"monochange_cargo",
+				"monochange_changelog",
+				"monochange_config",
+				"monochange_core",
+				"monochange_dart",
+				"monochange_deno",
+				"monochange_ecmascript",
+				"monochange_forgejo",
+				"monochange_gitea",
+				"monochange_github",
+				"monochange_gitlab",
+				"monochange_go",
+				"monochange_graph",
+				"monochange_hosting",
+				"monochange_lint",
+				"monochange_linting",
+				"monochange_npm",
+				"monochange_publish",
+				"monochange_python",
+				"monochange_semver",
+				"monochange_telemetry",
+				"monochange_test_helpers"
+			]
+		},
+		{
+			"id": "monochange_app",
+			"kind": "package",
+			"version": "0.2.0",
+			"version_format": "namespaced",
+			"tag": true,
+			"release": true,
+			"tag_name": "monochange_app/v0.2.0",
+			"rendered_title": "monochange.dev 0.2.0",
+			"rendered_changelog_title": "0.2.0",
+			"members": [
+				"monochange_app"
+			]
+		},
+		{
+			"id": "monochange_classification",
+			"kind": "package",
+			"version": "0.4.1",
+			"version_format": "namespaced",
+			"tag": true,
+			"release": true,
+			"tag_name": "monochange_classification/v0.4.1",
+			"rendered_title": "monochange_classification v0.4.1 (2026-10-06)",
+			"rendered_changelog_title": "monochange_classification [0.4.1](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.4.1) (2026-10-06)",
+			"members": [
+				"monochange_classification"
+			]
+		},
+		{
+			"id": "monochange_schema",
+			"kind": "package",
+			"version": "0.9.1",
+			"version_format": "namespaced",
+			"tag": true,
+			"release": true,
+			"tag_name": "monochange_schema/v0.9.1",
+			"rendered_title": "monochange_schema v0.9.1 (2026-10-06)",
+			"rendered_changelog_title": "monochange_schema [0.9.1](https://github.com/monochange/monochange/releases/tag/monochange_schema/v0.9.1) (2026-10-06)",
+			"members": [
+				"monochange_schema"
+			]
+		},
+		{
+			"id": "snapshot",
+			"kind": "group",
+			"version": "0.1.2",
+			"version_format": "namespaced",
+			"tag": true,
+			"release": true,
+			"tag_name": "snapshot/v0.1.2",
+			"rendered_title": "snapshot v0.1.2 (2026-10-06)",
+			"rendered_changelog_title": "snapshot [0.1.2](https://github.com/monochange/monochange/releases/tag/snapshot/v0.1.2) (2026-10-06)",
+			"members": [
+				"monochange_snapshot"
+			]
+		}
+	],
+	"released_packages": [
+		"@monochange/cli",
+		"@monochange/cli-darwin-arm64",
+		"@monochange/cli-darwin-x64",
+		"@monochange/cli-linux-arm64-gnu",
+		"@monochange/cli-linux-arm64-musl",
+		"@monochange/cli-linux-x64-gnu",
+		"@monochange/cli-linux-x64-musl",
+		"@monochange/cli-win32-arm64-msvc",
+		"@monochange/cli-win32-x64-msvc",
+		"@monochange/skill",
+		"monochange",
+		"monochange_analysis",
+		"monochange_app",
+		"monochange_cargo",
+		"monochange_changelog",
+		"monochange_classification",
+		"monochange_config",
+		"monochange_core",
+		"monochange_dart",
+		"monochange_deno",
+		"monochange_ecmascript",
+		"monochange_forgejo",
+		"monochange_gitea",
+		"monochange_github",
+		"monochange_gitlab",
+		"monochange_go",
+		"monochange_graph",
+		"monochange_hosting",
+		"monochange_lint",
+		"monochange_linting",
+		"monochange_npm",
+		"monochange_publish",
+		"monochange_python",
+		"monochange_schema",
+		"monochange_semver",
+		"monochange_snapshot",
+		"monochange_telemetry",
+		"monochange_test_helpers"
+	],
+	"changed_files": [
+		"Cargo.lock",
+		"Cargo.toml",
+		"app/Cargo.lock",
+		"app/Cargo.toml",
+		"app/changelog.md",
+		"app/crates/monochange_app/Cargo.toml",
+		"app/public/releases/0.2.0.json",
+		"changelog.md",
+		"crates/monochange/Cargo.toml",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/Cargo.toml",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/Cargo.toml",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/Cargo.toml",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_classification/Cargo.toml",
+		"crates/monochange_classification/changelog.md",
+		"crates/monochange_config/Cargo.toml",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/Cargo.toml",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/Cargo.toml",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/Cargo.toml",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/Cargo.toml",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/Cargo.toml",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/Cargo.toml",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/Cargo.toml",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/Cargo.toml",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/Cargo.toml",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_graph/Cargo.toml",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/Cargo.toml",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/Cargo.toml",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/Cargo.toml",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/Cargo.toml",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/Cargo.toml",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/Cargo.toml",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_schema/Cargo.toml",
+		"crates/monochange_schema/changelog.md",
+		"crates/monochange_semver/Cargo.toml",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_snapshot/Cargo.toml",
+		"crates/monochange_snapshot/changelog.md",
+		"crates/monochange_telemetry/Cargo.toml",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/Cargo.toml",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli/package.json",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-arm64/package.json",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-darwin-x64/package.json",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/package.json",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/package.json",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/package.json",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/package.json",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/package.json",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/package.json",
+		"packages/monochange__skill/changelog.md",
+		"packages/monochange__skill/package.json"
+	],
+	"package_publications": [
+		{
+			"package": "@monochange/cli",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.17.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-arm64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.17.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-x64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.17.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.17.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.17.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.17.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.17.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-arm64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.17.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-x64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.17.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/skill",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.17.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_analysis",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_cargo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_changelog",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_classification",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.4.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_config",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_core",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_dart",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_deno",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_ecmascript",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_forgejo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitea",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_github",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitlab",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_go",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_graph",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_hosting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_lint",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_linting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_npm",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_publish",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_python",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_schema",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_semver",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_snapshot",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.1.2",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_telemetry",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_test_helpers",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		}
+	],
+	"updated_changelogs": [
+		"app/changelog.md",
+		"app/public/releases/0.2.0.json",
+		"changelog.md",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_classification/changelog.md",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_schema/changelog.md",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_snapshot/changelog.md",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__skill/changelog.md"
+	],
+	"deleted_changesets": [
+		".changeset/book-location.md",
+		".changeset/changelog-namespaced-release-order.md",
+		".changeset/coloured-project-identity.md",
+		".changeset/hosted-release-commit-backend.md",
+		".changeset/integrated-book.md",
+		".changeset/shorter-documentation-examples.md",
+		".changeset/website-release-notes.md",
+		".changeset/workflow-linter-environment.md"
+	],
+	"changesets": [
+		{
+			"path": ".changeset/book-location.md",
+			"summary": "Use the website's book address for new documentation links",
+			"details": "> The website's documentation destination is now `/book` on `monochange.dev`.\n\nPoint new documentation links and bookmarks to `https://monochange.dev/book`. Existing `/docs` links redirect to the matching chapter. The standalone book remains available, with a link back to the website.\n\nFor example, update a documentation link in Markdown:\n\n```markdown\n[Read the book](https://monochange.dev/book)\n```",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "major",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "website_change"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "7b8e4312d77aeb7e147d5981e9bf9f61413efc78",
+						"short_sha": "7b8e431",
+						"url": "https://github.com/monochange/monochange/commit/7b8e4312d77aeb7e147d5981e9bf9f61413efc78",
+						"authored_at": "2026-10-06T16:43:11Z",
+						"committed_at": "2026-10-06T16:43:11Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#752",
+						"title": "feat(web)!: integrate the book and add ecosystem icons",
+						"url": "https://github.com/monochange/monochange/pull/752",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "7b8e4312d77aeb7e147d5981e9bf9f61413efc78",
+						"short_sha": "7b8e431",
+						"url": "https://github.com/monochange/monochange/commit/7b8e4312d77aeb7e147d5981e9bf9f61413efc78",
+						"authored_at": "2026-10-06T16:43:11Z",
+						"committed_at": "2026-10-06T16:43:11Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#752",
+						"title": "feat(web)!: integrate the book and add ecosystem icons",
+						"url": "https://github.com/monochange/monochange/pull/752",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/changelog-namespaced-release-order.md",
+			"summary": "Insert new releases above namespaced changelog headings",
+			"details": "Changelogs owned by a package or group with `version_format = \"namespaced\"` collected their releases oldest first. The built-in namespaced changelog version title leads with the owner id (`## abi [0.20.0](…) (2026-09-23)`), but monochange only recognised an earlier release when its `##` heading started with `[` or a digit. With no recognised heading, every prepared release was appended to the end of the file, while `primary` owners stayed newest first. A custom `changelog_version_title` that started with text, such as `\"SDK {{ version }} ({{ date }})\"`, had the same problem.\n\nmonochange now treats any `##` heading that contains a semantic version as a release heading, whatever text surrounds the version, and inserts the new section directly above the first one. For a namespaced group changelog, `monochange step prepare-release` now writes:\n\n**Before:**\n\n```markdown\n## abi [0.20.0](https://github.com/acme/repo/releases/tag/abi/v0.20.0) (2026-09-23)\n\n## abi [0.21.0](https://github.com/acme/repo/releases/tag/abi/v0.21.0) (2026-09-30)\n```\n\n**After:**\n\n```markdown\n## abi [0.21.0](https://github.com/acme/repo/releases/tag/abi/v0.21.0) (2026-09-30)\n\n## abi [0.20.0](https://github.com/acme/repo/releases/tag/abi/v0.20.0) (2026-09-23)\n```\n\nThe rendered section is unchanged; only where it lands in the file moves. Hand-written headings without a version, including `## Unreleased` and Keep a Changelog's `## [Unreleased]`, now stay above the new release instead of being treated as releases. A custom title must render `{{ version }}` for monochange to find earlier releases, so a date-only title is no longer recognised.\n\nExisting changelogs that already collected releases oldest first are not reordered. Move those sections once by hand; later releases then land at the top. Workarounds that switched a namespaced owner to a title starting with `[`, such as `changelog_version_title = \"[{{ version }}]({{ tag_url }}) ({{ date }})\"`, can be removed.",
+			"targets": [
+				{
+					"id": "monochange_changelog",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "c1787b29cd520556698932b8865a4c63de4d8ac4",
+						"short_sha": "c1787b2",
+						"url": "https://github.com/monochange/monochange/commit/c1787b29cd520556698932b8865a4c63de4d8ac4",
+						"authored_at": "2026-10-03T12:03:33Z",
+						"committed_at": "2026-10-03T12:03:33Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#746",
+						"title": "fix(changelog): insert releases above namespaced release headings",
+						"url": "https://github.com/monochange/monochange/pull/746",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "c1787b29cd520556698932b8865a4c63de4d8ac4",
+						"short_sha": "c1787b2",
+						"url": "https://github.com/monochange/monochange/commit/c1787b29cd520556698932b8865a4c63de4d8ac4",
+						"authored_at": "2026-10-03T12:03:33Z",
+						"committed_at": "2026-10-03T12:03:33Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#746",
+						"title": "fix(changelog): insert releases above namespaced release headings",
+						"url": "https://github.com/monochange/monochange/pull/746",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/coloured-project-identity.md",
+			"summary": "Use the coloured monochange identity in documentation",
+			"details": "The README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_analysis",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_cargo",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_changelog",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_config",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_core",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_dart",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_deno",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_ecmascript",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_forgejo",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_gitea",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_github",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_gitlab",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_go",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_graph",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_hosting",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_lint",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_linting",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_npm",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_publish",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_python",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_schema",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_semver",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_snapshot",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_telemetry",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_test_helpers",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_classification",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "dc6ee80b17d4b6362738f78fd720344773e49e3e",
+						"short_sha": "dc6ee80",
+						"url": "https://github.com/monochange/monochange/commit/dc6ee80b17d4b6362738f78fd720344773e49e3e",
+						"authored_at": "2026-10-06T08:08:09Z",
+						"committed_at": "2026-10-06T08:08:09Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#749",
+						"title": "feat(brand): apply the coloured monochange identity",
+						"url": "https://github.com/monochange/monochange/pull/749",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "dc6ee80b17d4b6362738f78fd720344773e49e3e",
+						"short_sha": "dc6ee80",
+						"url": "https://github.com/monochange/monochange/commit/dc6ee80b17d4b6362738f78fd720344773e49e3e",
+						"authored_at": "2026-10-06T08:08:09Z",
+						"committed_at": "2026-10-06T08:08:09Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#749",
+						"title": "feat(brand): apply the coloured monochange identity",
+						"url": "https://github.com/monochange/monochange/pull/749",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/hosted-release-commit-backend.md",
+			"summary": "Hosted release commits through the monochange GitHub App",
+			"details": "`CommitRelease` and `OpenReleaseRequest` can now delegate their writes to the monochange app so the monochange GitHub App creates the release commit and the release pull request. A release PR built this way is committed by the bot identity, is verified by GitHub, triggers the repository's normal workflows, and satisfies verified-commit branch protection — without a personal access token.\n\nSet `commit_backend = \"hosted\"` on `CommitRelease` and `backend = \"hosted\"` on `OpenReleaseRequest`:\n\n```toml\n[cli.release]\nsteps = [\n\t{ type = \"PrepareRelease\", name = \"plan release\", allow_empty_changesets = true },\n\t{ type = \"CommitRelease\", name = \"create release commit\", commit_backend = \"hosted\" },\n\t{ type = \"OpenReleaseRequest\", name = \"create the pr\", backend = \"hosted\" },\n]\n```\n\nThe local `git commit` path remains the default and is unchanged. The release is still computed in the workflow: monochange reads the prepared release files, resolves the target branch and the base commit, and posts a compact request to the app's `/api/release-commits` and `/api/release-requests` endpoints. The server verifies GitHub's OIDC token for the run (or the `MONOCHANGE_TOKEN` secret on CI systems without OIDC), mints a one-hour installation token, creates blobs/tree/commit through the Git Database API, guards against a branch that moved since preparation, and opens or updates the pull request under the bot identity.\n\nNew step inputs:\n\n- `commit_backend` (`local` | `hosted`) — how the release commit is written.\n- `hosted_auth` (`auto` | `oidc` | `token`) — how the hosted backend authenticates; `auto` prefers the GitHub Actions OIDC token and falls back to `MONOCHANGE_TOKEN`.\n- `hosted_url` — the app base URL (default `https://monochange.dev`).\n- `oidc_audience` — the audience required in the OIDC token (default: the hosted URL host).\n- `backend` (`local` | `hosted`) on `OpenReleaseRequest` — how the pull request is published.\n\nWorkflows using the hosted backend need `permissions: id-token: write` for OIDC, or the `MONOCHANGE_TOKEN` secret as a fallback. A rerun whose branch moved fails with a conflict instead of overwriting newer work, and consumed changeset deletions travel in the same request as file updates.\n\n##### Breaking change in `monochange_core`\n\n`CliStepDefinition::CommitRelease` gained the fields `commit_backend`, `hosted_auth`, `hosted_url`, and `oidc_audience`; `CliStepDefinition::OpenReleaseRequest` gained `backend`, `hosted_auth`, and `hosted_url`. Every exhaustive struct literal for these variants must add the new fields — use `..Default::default()`-style struct update or the listed defaults:\n\n```rust\n// before\nCliStepDefinition::CommitRelease { name: None, when: None, always_run: false, no_verify: false, update_release_json: false, stage_all: false, inputs: BTreeMap::new() }\n// after\nCliStepDefinition::CommitRelease { name: None, when: None, always_run: false, no_verify: false, update_release_json: false, stage_all: false, commit_backend: Default::default(), hosted_auth: Default::default(), hosted_url: None, oidc_audience: None, inputs: BTreeMap::new() }\n```\n\nDeserialization is unaffected: every new field has a serde default, so existing `monochange.toml` step tables keep parsing identically and the local backends remain the default behaviour.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monochange_core",
+					"kind": "package",
+					"bump": "major",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "major"
+				},
+				{
+					"id": "monochange_schema",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "e1d14a9615dd71890158d2e821b94e8d3c2bf3d1",
+						"short_sha": "e1d14a9",
+						"url": "https://github.com/monochange/monochange/commit/e1d14a9615dd71890158d2e821b94e8d3c2bf3d1",
+						"authored_at": "2026-10-05T09:52:23Z",
+						"committed_at": "2026-10-05T09:52:23Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#373",
+						"title": "feat: hosted release commits via the monochange GitHub App",
+						"url": "https://github.com/monochange/monochange/pull/373",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "e1d14a9615dd71890158d2e821b94e8d3c2bf3d1",
+						"short_sha": "e1d14a9",
+						"url": "https://github.com/monochange/monochange/commit/e1d14a9615dd71890158d2e821b94e8d3c2bf3d1",
+						"authored_at": "2026-10-05T09:52:23Z",
+						"committed_at": "2026-10-05T09:52:23Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#373",
+						"title": "feat: hosted release commits via the monochange GitHub App",
+						"url": "https://github.com/monochange/monochange/pull/373",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/integrated-book.md",
+			"summary": "Read the monochange book without leaving the website",
+			"details": "The book now lives at `monochange.dev/book`, with the same navigation, typography, and light and dark themes as the rest of the website. Follow chapter links, copy highlighted code examples, and return to the homepage at any time. The homepage now uses `monochange preview`, and ecosystem marks make supported tools easier to recognize.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "website_feature"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "7b8e4312d77aeb7e147d5981e9bf9f61413efc78",
+						"short_sha": "7b8e431",
+						"url": "https://github.com/monochange/monochange/commit/7b8e4312d77aeb7e147d5981e9bf9f61413efc78",
+						"authored_at": "2026-10-06T16:43:11Z",
+						"committed_at": "2026-10-06T16:43:11Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#752",
+						"title": "feat(web)!: integrate the book and add ecosystem icons",
+						"url": "https://github.com/monochange/monochange/pull/752",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "7b8e4312d77aeb7e147d5981e9bf9f61413efc78",
+						"short_sha": "7b8e431",
+						"url": "https://github.com/monochange/monochange/commit/7b8e4312d77aeb7e147d5981e9bf9f61413efc78",
+						"authored_at": "2026-10-06T16:43:11Z",
+						"committed_at": "2026-10-06T16:43:11Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#752",
+						"title": "feat(web)!: integrate the book and add ecosystem icons",
+						"url": "https://github.com/monochange/monochange/pull/752",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/shorter-documentation-examples.md",
+			"summary": "Use short built-in commands in introductory documentation",
+			"details": "Start with `monochange discover` and `monochange preview` in the README and crate introduction. These existing commands accept the same options as their step forms; `preview` always runs without writing release files.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "@monochange/cli",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "7b8e4312d77aeb7e147d5981e9bf9f61413efc78",
+						"short_sha": "7b8e431",
+						"url": "https://github.com/monochange/monochange/commit/7b8e4312d77aeb7e147d5981e9bf9f61413efc78",
+						"authored_at": "2026-10-06T16:43:11Z",
+						"committed_at": "2026-10-06T16:43:11Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#752",
+						"title": "feat(web)!: integrate the book and add ecosystem icons",
+						"url": "https://github.com/monochange/monochange/pull/752",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "7b8e4312d77aeb7e147d5981e9bf9f61413efc78",
+						"short_sha": "7b8e431",
+						"url": "https://github.com/monochange/monochange/commit/7b8e4312d77aeb7e147d5981e9bf9f61413efc78",
+						"authored_at": "2026-10-06T16:43:11Z",
+						"committed_at": "2026-10-06T16:43:11Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#752",
+						"title": "feat(web)!: integrate the book and add ecosystem icons",
+						"url": "https://github.com/monochange/monochange/pull/752",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/website-release-notes.md",
+			"summary": "Follow what's new on monochange.dev",
+			"details": "Read the website's release notes on the new What's new page. Website updates now have their own versions, separate from the CLI, and approved releases deploy automatically.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "website_feature"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "2c948af336e7b886bb07f9fe2543e1722ad993ba",
+						"short_sha": "2c948af",
+						"url": "https://github.com/monochange/monochange/commit/2c948af336e7b886bb07f9fe2543e1722ad993ba",
+						"authored_at": "2026-10-06T15:41:04Z",
+						"committed_at": "2026-10-06T15:41:04Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#751",
+						"title": "feat(web): automate website releases with user-facing changelogs",
+						"url": "https://github.com/monochange/monochange/pull/751",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "2c948af336e7b886bb07f9fe2543e1722ad993ba",
+						"short_sha": "2c948af",
+						"url": "https://github.com/monochange/monochange/commit/2c948af336e7b886bb07f9fe2543e1722ad993ba",
+						"authored_at": "2026-10-06T15:41:04Z",
+						"committed_at": "2026-10-06T15:41:04Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#751",
+						"title": "feat(web): automate website releases with user-facing changelogs",
+						"url": "https://github.com/monochange/monochange/pull/751",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/workflow-linter-environment.md",
+			"summary": "Use the workflow linter supplied by devenv",
+			"details": "`lint:workflows` and `fix:workflows` use the declared devenv tool instead of overriding it with a potentially older personal installation. This keeps validation compatible with GitHub's self-repository workflow and action references.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "none",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "none"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "2c948af336e7b886bb07f9fe2543e1722ad993ba",
+						"short_sha": "2c948af",
+						"url": "https://github.com/monochange/monochange/commit/2c948af336e7b886bb07f9fe2543e1722ad993ba",
+						"authored_at": "2026-10-06T15:41:04Z",
+						"committed_at": "2026-10-06T15:41:04Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#751",
+						"title": "feat(web): automate website releases with user-facing changelogs",
+						"url": "https://github.com/monochange/monochange/pull/751",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "2c948af336e7b886bb07f9fe2543e1722ad993ba",
+						"short_sha": "2c948af",
+						"url": "https://github.com/monochange/monochange/commit/2c948af336e7b886bb07f9fe2543e1722ad993ba",
+						"authored_at": "2026-10-06T15:41:04Z",
+						"committed_at": "2026-10-06T15:41:04Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#751",
+						"title": "feat(web): automate website releases with user-facing changelogs",
+						"url": "https://github.com/monochange/monochange/pull/751",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		}
+	],
+	"changelogs": [
+		{
+			"owner_id": "monochange_app",
+			"owner_kind": "package",
+			"output": "website",
+			"stream": "website",
+			"path": "app/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "0.2.0",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### Use the website's book address for new documentation links\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #752](https://github.com/monochange/monochange/pull/752)\n\n> The website's documentation destination is now `/book` on `monochange.dev`.\n\nPoint new documentation links and bookmarks to `https://monochange.dev/book`. Existing `/docs` links redirect to the matching chapter. The standalone book remains available, with a link back to the website.\n\nFor example, update a documentation link in Markdown:\n\n```markdown\n[Read the book](https://monochange.dev/book)\n```"
+						]
+					},
+					{
+						"title": "New",
+						"collapsed": false,
+						"entries": [
+							"- **Read the monochange book without leaving the website.** The book now lives at `monochange.dev/book`, with the same navigation, typography, and light and dark themes as the rest of the website. Follow chapter links, copy highlighted code examples, and return to the homepage at any time. The homepage now uses `monochange preview`, and ecosystem marks make supported tools easier to recognize.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #752](https://github.com/monochange/monochange/pull/752)",
+							"- **Follow what's new on monochange.dev.** Read the website's release notes on the new What's new page. Website updates now have their own versions, separate from the CLI, and approved releases deploy automatically.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #751](https://github.com/monochange/monochange/pull/751)"
+						]
+					}
+				]
+			},
+			"rendered": "## 0.2.0\n\n### Changed\n\n#### Use the website's book address for new documentation links\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #752](https://github.com/monochange/monochange/pull/752)\n\n> The website's documentation destination is now `/book` on `monochange.dev`.\n\nPoint new documentation links and bookmarks to `https://monochange.dev/book`. Existing `/docs` links redirect to the matching chapter. The standalone book remains available, with a link back to the website.\n\nFor example, update a documentation link in Markdown:\n\n```markdown\n[Read the book](https://monochange.dev/book)\n```\n\n### New\n\n- **Read the monochange book without leaving the website.** The book now lives at `monochange.dev/book`, with the same navigation, typography, and light and dark themes as the rest of the website. Follow chapter links, copy highlighted code examples, and return to the homepage at any time. The homepage now uses `monochange preview`, and ecosystem marks make supported tools easier to recognize.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #752](https://github.com/monochange/monochange/pull/752)\n- **Follow what's new on monochange.dev.** Read the website's release notes on the new What's new page. Website updates now have their own versions, separate from the CLI, and approved releases deploy automatically.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #751](https://github.com/monochange/monochange/pull/751)"
+		},
+		{
+			"owner_id": "monochange_app",
+			"owner_kind": "package",
+			"output": "website_json",
+			"stream": "website",
+			"path": "app/public/releases/0.2.0.json",
+			"format": "json",
+			"notes": {
+				"title": "0.2.0",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### Use the website's book address for new documentation links\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #752](https://github.com/monochange/monochange/pull/752)\n\n> The website's documentation destination is now `/book` on `monochange.dev`.\n\nPoint new documentation links and bookmarks to `https://monochange.dev/book`. Existing `/docs` links redirect to the matching chapter. The standalone book remains available, with a link back to the website.\n\nFor example, update a documentation link in Markdown:\n\n```markdown\n[Read the book](https://monochange.dev/book)\n```"
+						]
+					},
+					{
+						"title": "New",
+						"collapsed": false,
+						"entries": [
+							"- **Read the monochange book without leaving the website.** The book now lives at `monochange.dev/book`, with the same navigation, typography, and light and dark themes as the rest of the website. Follow chapter links, copy highlighted code examples, and return to the homepage at any time. The homepage now uses `monochange preview`, and ecosystem marks make supported tools easier to recognize.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #752](https://github.com/monochange/monochange/pull/752)",
+							"- **Follow what's new on monochange.dev.** Read the website's release notes on the new What's new page. Website updates now have their own versions, separate from the CLI, and approved releases deploy automatically.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #751](https://github.com/monochange/monochange/pull/751)"
+						]
+					}
+				]
+			},
+			"rendered": "{\n  \"title\": \"0.2.0\",\n  \"summary\": [],\n  \"sections\": [\n    {\n      \"title\": \"Changed\",\n      \"collapsed\": false,\n      \"entries\": [\n        {\n          \"summary\": \"Use the website's book address for new documentation links\",\n          \"details_markdown\": \"> The website's documentation destination is now `/book` on `monochange.dev`.\\n\\nPoint new documentation links and bookmarks to `https://monochange.dev/book`. Existing `/docs` links redirect to the matching chapter. The standalone book remains available, with a link back to the website.\\n\\nFor example, update a documentation link in Markdown:\\n\\n```markdown\\n[Read the book](https://monochange.dev/book)\\n```\",\n          \"change_type\": \"website_change\",\n          \"bump\": \"major\",\n          \"stream\": \"website\",\n          \"style\": \"expanded\",\n          \"provenance\": {\n            \"source_path\": \".changeset/book-location.md\",\n            \"changeset_path\": \".changeset/book-location.md\",\n            \"change_owner\": {\n              \"label\": \"@ifiokjr\",\n              \"url\": \"https://github.com/ifiokjr\"\n            },\n            \"review_request\": {\n              \"label\": \"PR #752\",\n              \"url\": \"https://github.com/monochange/monochange/pull/752\"\n            },\n            \"introduced_commit\": {\n              \"label\": \"7b8e431\",\n              \"url\": \"https://github.com/monochange/monochange/commit/7b8e4312d77aeb7e147d5981e9bf9f61413efc78\"\n            }\n          }\n        }\n      ]\n    },\n    {\n      \"title\": \"New\",\n      \"collapsed\": false,\n      \"entries\": [\n        {\n          \"summary\": \"Read the monochange book without leaving the website\",\n          \"details_markdown\": \"The book now lives at `monochange.dev/book`, with the same navigation, typography, and light and dark themes as the rest of the website. Follow chapter links, copy highlighted code examples, and return to the homepage at any time. The homepage now uses `monochange preview`, and ecosystem marks make supported tools easier to recognize.\",\n          \"change_type\": \"website_feature\",\n          \"bump\": \"minor\",\n          \"stream\": \"website\",\n          \"style\": \"compact\",\n          \"provenance\": {\n            \"source_path\": \".changeset/integrated-book.md\",\n            \"changeset_path\": \".changeset/integrated-book.md\",\n            \"change_owner\": {\n              \"label\": \"@ifiokjr\",\n              \"url\": \"https://github.com/ifiokjr\"\n            },\n            \"review_request\": {\n              \"label\": \"PR #752\",\n              \"url\": \"https://github.com/monochange/monochange/pull/752\"\n            },\n            \"introduced_commit\": {\n              \"label\": \"7b8e431\",\n              \"url\": \"https://github.com/monochange/monochange/commit/7b8e4312d77aeb7e147d5981e9bf9f61413efc78\"\n            }\n          }\n        },\n        {\n          \"summary\": \"Follow what's new on monochange.dev\",\n          \"details_markdown\": \"Read the website's release notes on the new What's new page. Website updates now have their own versions, separate from the CLI, and approved releases deploy automatically.\",\n          \"change_type\": \"website_feature\",\n          \"bump\": \"minor\",\n          \"stream\": \"website\",\n          \"style\": \"compact\",\n          \"provenance\": {\n            \"source_path\": \".changeset/website-release-notes.md\",\n            \"changeset_path\": \".changeset/website-release-notes.md\",\n            \"change_owner\": {\n              \"label\": \"@ifiokjr\",\n              \"url\": \"https://github.com/ifiokjr\"\n            },\n            \"review_request\": {\n              \"label\": \"PR #751\",\n              \"url\": \"https://github.com/monochange/monochange/pull/751\"\n            },\n            \"introduced_commit\": {\n              \"label\": \"2c948af\",\n              \"url\": \"https://github.com/monochange/monochange/commit/2c948af336e7b886bb07f9fe2543e1722ad993ba\"\n            }\n          }\n        }\n      ]\n    }\n  ]\n}"
+		},
+		{
+			"owner_id": "main",
+			"owner_kind": "group",
+			"output": "default",
+			"stream": "default",
+			"path": "changelog.md",
+			"format": "monochange",
+			"notes": {
+				"title": "[0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)",
+				"summary": [
+					"Grouped release for `main`."
+				],
+				"sections": [
+					{
+						"title": "💥 Breaking Change",
+						"collapsed": false,
+						"entries": [
+							"#### Hosted release commits through the monochange GitHub App\n\n_Packages:_ 🟠 _monochange_, 🔴 _monochange_core_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #373](https://github.com/monochange/monochange/pull/373)\n\n`CommitRelease` and `OpenReleaseRequest` can now delegate their writes to the monochange app so the monochange GitHub App creates the release commit and the release pull request. A release PR built this way is committed by the bot identity, is verified by GitHub, triggers the repository's normal workflows, and satisfies verified-commit branch protection — without a personal access token.\n\nSet `commit_backend = \"hosted\"` on `CommitRelease` and `backend = \"hosted\"` on `OpenReleaseRequest`:\n\n```toml\n[cli.release]\nsteps = [\n\t{ type = \"PrepareRelease\", name = \"plan release\", allow_empty_changesets = true },\n\t{ type = \"CommitRelease\", name = \"create release commit\", commit_backend = \"hosted\" },\n\t{ type = \"OpenReleaseRequest\", name = \"create the pr\", backend = \"hosted\" },\n]\n```\n\nThe local `git commit` path remains the default and is unchanged. The release is still computed in the workflow: monochange reads the prepared release files, resolves the target branch and the base commit, and posts a compact request to the app's `/api/release-commits` and `/api/release-requests` endpoints. The server verifies GitHub's OIDC token for the run (or the `MONOCHANGE_TOKEN` secret on CI systems without OIDC), mints a one-hour installation token, creates blobs/tree/commit through the Git Database API, guards against a branch that moved since preparation, and opens or updates the pull request under the bot identity.\n\nNew step inputs:\n\n- `commit_backend` (`local` | `hosted`) — how the release commit is written.\n- `hosted_auth` (`auto` | `oidc` | `token`) — how the hosted backend authenticates; `auto` prefers the GitHub Actions OIDC token and falls back to `MONOCHANGE_TOKEN`.\n- `hosted_url` — the app base URL (default `https://monochange.dev`).\n- `oidc_audience` — the audience required in the OIDC token (default: the hosted URL host).\n- `backend` (`local` | `hosted`) on `OpenReleaseRequest` — how the pull request is published.\n\nWorkflows using the hosted backend need `permissions: id-token: write` for OIDC, or the `MONOCHANGE_TOKEN` secret as a fallback. A rerun whose branch moved fails with a conflict instead of overwriting newer work, and consumed changeset deletions travel in the same request as file updates.\n\n##### Breaking change in `monochange_core`\n\n`CliStepDefinition::CommitRelease` gained the fields `commit_backend`, `hosted_auth`, `hosted_url`, and `oidc_audience`; `CliStepDefinition::OpenReleaseRequest` gained `backend`, `hosted_auth`, and `hosted_url`. Every exhaustive struct literal for these variants must add the new fields — use `..Default::default()`-style struct update or the listed defaults:\n\n```rust\n// before\nCliStepDefinition::CommitRelease { name: None, when: None, always_run: false, no_verify: false, update_release_json: false, stage_all: false, inputs: BTreeMap::new() }\n// after\nCliStepDefinition::CommitRelease { name: None, when: None, always_run: false, no_verify: false, update_release_json: false, stage_all: false, commit_backend: Default::default(), hosted_auth: Default::default(), hosted_url: None, oidc_audience: None, inputs: BTreeMap::new() }\n```\n\nDeserialization is unaffected: every new field has a serde default, so existing `monochange.toml` step tables keep parsing identically and the local backends remain the default behaviour."
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"- **Use short built-in commands in introductory documentation.** Start with `monochange discover` and `monochange preview` in the README and crate introduction. These existing commands accept the same options as their step forms; `preview` always runs without writing release files.\n  _Packages:_ 🟢 _@monochange/cli_, 🟢 _monochange_\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #752](https://github.com/monochange/monochange/pull/752)",
+							"#### Use the coloured monochange identity in documentation\n\n_Packages:_ 🟢 _monochange_, 🟢 _monochange_analysis_, 🟢 _monochange_cargo_, 🟢 _monochange_changelog_, 🟢 _monochange_config_, 🟢 _monochange_core_, 🟢 _monochange_dart_, 🟢 _monochange_deno_, 🟢 _monochange_ecmascript_, 🟢 _monochange_forgejo_, 🟢 _monochange_gitea_, 🟢 _monochange_github_, 🟢 _monochange_gitlab_, 🟢 _monochange_go_, 🟢 _monochange_graph_, 🟢 _monochange_hosting_, 🟢 _monochange_lint_, 🟢 _monochange_linting_, 🟢 _monochange_npm_, 🟢 _monochange_publish_, 🟢 _monochange_python_, 🟢 _monochange_semver_, 🟢 _monochange_telemetry_, 🟢 _monochange_test_helpers_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes.",
+							"#### Insert new releases above namespaced changelog headings\n\n_Packages:_ 🟢 _monochange_changelog_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #746](https://github.com/monochange/monochange/pull/746)\n\nChangelogs owned by a package or group with `version_format = \"namespaced\"` collected their releases oldest first. The built-in namespaced changelog version title leads with the owner id (`## abi [0.20.0](…) (2026-09-23)`), but monochange only recognised an earlier release when its `##` heading started with `[` or a digit. With no recognised heading, every prepared release was appended to the end of the file, while `primary` owners stayed newest first. A custom `changelog_version_title` that started with text, such as `\"SDK {{ version }} ({{ date }})\"`, had the same problem.\n\nmonochange now treats any `##` heading that contains a semantic version as a release heading, whatever text surrounds the version, and inserts the new section directly above the first one. For a namespaced group changelog, `monochange step prepare-release` now writes:\n\n**Before:**\n\n```markdown\n## abi [0.20.0](https://github.com/acme/repo/releases/tag/abi/v0.20.0) (2026-09-23)\n\n## abi [0.21.0](https://github.com/acme/repo/releases/tag/abi/v0.21.0) (2026-09-30)\n```\n\n**After:**\n\n```markdown\n## abi [0.21.0](https://github.com/acme/repo/releases/tag/abi/v0.21.0) (2026-09-30)\n\n## abi [0.20.0](https://github.com/acme/repo/releases/tag/abi/v0.20.0) (2026-09-23)\n```\n\nThe rendered section is unchanged; only where it lands in the file moves. Hand-written headings without a version, including `## Unreleased` and Keep a Changelog's `## [Unreleased]`, now stay above the new release instead of being treated as releases. A custom title must render `{{ version }}` for monochange to find earlier releases, so a date-only title is no longer recognised.\n\nExisting changelogs that already collected releases oldest first are not reordered. Move those sections once by hand; later releases then land at the top. Workarounds that switched a namespaced owner to a title starting with `[`, such as `changelog_version_title = \"[{{ version }}]({{ tag_url }}) ({{ date }})\"`, can be removed."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)\n\nGrouped release for `main`.\n\n### 💥 Breaking Change\n\n#### Hosted release commits through the monochange GitHub App\n\n_Packages:_ 🟠 _monochange_, 🔴 _monochange_core_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #373](https://github.com/monochange/monochange/pull/373)\n\n`CommitRelease` and `OpenReleaseRequest` can now delegate their writes to the monochange app so the monochange GitHub App creates the release commit and the release pull request. A release PR built this way is committed by the bot identity, is verified by GitHub, triggers the repository's normal workflows, and satisfies verified-commit branch protection — without a personal access token.\n\nSet `commit_backend = \"hosted\"` on `CommitRelease` and `backend = \"hosted\"` on `OpenReleaseRequest`:\n\n```toml\n[cli.release]\nsteps = [\n\t{ type = \"PrepareRelease\", name = \"plan release\", allow_empty_changesets = true },\n\t{ type = \"CommitRelease\", name = \"create release commit\", commit_backend = \"hosted\" },\n\t{ type = \"OpenReleaseRequest\", name = \"create the pr\", backend = \"hosted\" },\n]\n```\n\nThe local `git commit` path remains the default and is unchanged. The release is still computed in the workflow: monochange reads the prepared release files, resolves the target branch and the base commit, and posts a compact request to the app's `/api/release-commits` and `/api/release-requests` endpoints. The server verifies GitHub's OIDC token for the run (or the `MONOCHANGE_TOKEN` secret on CI systems without OIDC), mints a one-hour installation token, creates blobs/tree/commit through the Git Database API, guards against a branch that moved since preparation, and opens or updates the pull request under the bot identity.\n\nNew step inputs:\n\n- `commit_backend` (`local` | `hosted`) — how the release commit is written.\n- `hosted_auth` (`auto` | `oidc` | `token`) — how the hosted backend authenticates; `auto` prefers the GitHub Actions OIDC token and falls back to `MONOCHANGE_TOKEN`.\n- `hosted_url` — the app base URL (default `https://monochange.dev`).\n- `oidc_audience` — the audience required in the OIDC token (default: the hosted URL host).\n- `backend` (`local` | `hosted`) on `OpenReleaseRequest` — how the pull request is published.\n\nWorkflows using the hosted backend need `permissions: id-token: write` for OIDC, or the `MONOCHANGE_TOKEN` secret as a fallback. A rerun whose branch moved fails with a conflict instead of overwriting newer work, and consumed changeset deletions travel in the same request as file updates.\n\n##### Breaking change in `monochange_core`\n\n`CliStepDefinition::CommitRelease` gained the fields `commit_backend`, `hosted_auth`, `hosted_url`, and `oidc_audience`; `CliStepDefinition::OpenReleaseRequest` gained `backend`, `hosted_auth`, and `hosted_url`. Every exhaustive struct literal for these variants must add the new fields — use `..Default::default()`-style struct update or the listed defaults:\n\n```rust\n// before\nCliStepDefinition::CommitRelease { name: None, when: None, always_run: false, no_verify: false, update_release_json: false, stage_all: false, inputs: BTreeMap::new() }\n// after\nCliStepDefinition::CommitRelease { name: None, when: None, always_run: false, no_verify: false, update_release_json: false, stage_all: false, commit_backend: Default::default(), hosted_auth: Default::default(), hosted_url: None, oidc_audience: None, inputs: BTreeMap::new() }\n```\n\nDeserialization is unaffected: every new field has a serde default, so existing `monochange.toml` step tables keep parsing identically and the local backends remain the default behaviour.\n\n### 🐛 Fixed\n\n- **Use short built-in commands in introductory documentation.** Start with `monochange discover` and `monochange preview` in the README and crate introduction. These existing commands accept the same options as their step forms; `preview` always runs without writing release files.\n  _Packages:_ 🟢 _@monochange/cli_, 🟢 _monochange_\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #752](https://github.com/monochange/monochange/pull/752)\n#### Use the coloured monochange identity in documentation\n\n_Packages:_ 🟢 _monochange_, 🟢 _monochange_analysis_, 🟢 _monochange_cargo_, 🟢 _monochange_changelog_, 🟢 _monochange_config_, 🟢 _monochange_core_, 🟢 _monochange_dart_, 🟢 _monochange_deno_, 🟢 _monochange_ecmascript_, 🟢 _monochange_forgejo_, 🟢 _monochange_gitea_, 🟢 _monochange_github_, 🟢 _monochange_gitlab_, 🟢 _monochange_go_, 🟢 _monochange_graph_, 🟢 _monochange_hosting_, 🟢 _monochange_lint_, 🟢 _monochange_linting_, 🟢 _monochange_npm_, 🟢 _monochange_publish_, 🟢 _monochange_python_, 🟢 _monochange_semver_, 🟢 _monochange_telemetry_, 🟢 _monochange_test_helpers_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes.\n\n#### Insert new releases above namespaced changelog headings\n\n_Packages:_ 🟢 _monochange_changelog_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #746](https://github.com/monochange/monochange/pull/746)\n\nChangelogs owned by a package or group with `version_format = \"namespaced\"` collected their releases oldest first. The built-in namespaced changelog version title leads with the owner id (`## abi [0.20.0](…) (2026-09-23)`), but monochange only recognised an earlier release when its `##` heading started with `[` or a digit. With no recognised heading, every prepared release was appended to the end of the file, while `primary` owners stayed newest first. A custom `changelog_version_title` that started with text, such as `\"SDK {{ version }} ({{ date }})\"`, had the same problem.\n\nmonochange now treats any `##` heading that contains a semantic version as a release heading, whatever text surrounds the version, and inserts the new section directly above the first one. For a namespaced group changelog, `monochange step prepare-release` now writes:\n\n**Before:**\n\n```markdown\n## abi [0.20.0](https://github.com/acme/repo/releases/tag/abi/v0.20.0) (2026-09-23)\n\n## abi [0.21.0](https://github.com/acme/repo/releases/tag/abi/v0.21.0) (2026-09-30)\n```\n\n**After:**\n\n```markdown\n## abi [0.21.0](https://github.com/acme/repo/releases/tag/abi/v0.21.0) (2026-09-30)\n\n## abi [0.20.0](https://github.com/acme/repo/releases/tag/abi/v0.20.0) (2026-09-23)\n```\n\nThe rendered section is unchanged; only where it lands in the file moves. Hand-written headings without a version, including `## Unreleased` and Keep a Changelog's `## [Unreleased]`, now stay above the new release instead of being treated as releases. A custom title must render `{{ version }}` for monochange to find earlier releases, so a date-only title is no longer recognised.\n\nExisting changelogs that already collected releases oldest first are not reordered. Move those sections once by hand; later releases then land at the top. Workarounds that switched a namespaced owner to a title starting with `[`, such as `changelog_version_title = \"[{{ version }}]({{ tag_url }}) ({{ date }})\"`, can be removed."
+		},
+		{
+			"owner_id": "monochange",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Hosted release commits through the monochange GitHub App\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #373](https://github.com/monochange/monochange/pull/373)\n\n`CommitRelease` and `OpenReleaseRequest` can now delegate their writes to the monochange app so the monochange GitHub App creates the release commit and the release pull request. A release PR built this way is committed by the bot identity, is verified by GitHub, triggers the repository's normal workflows, and satisfies verified-commit branch protection — without a personal access token.\n\nSet `commit_backend = \"hosted\"` on `CommitRelease` and `backend = \"hosted\"` on `OpenReleaseRequest`:\n\n```toml\n[cli.release]\nsteps = [\n\t{ type = \"PrepareRelease\", name = \"plan release\", allow_empty_changesets = true },\n\t{ type = \"CommitRelease\", name = \"create release commit\", commit_backend = \"hosted\" },\n\t{ type = \"OpenReleaseRequest\", name = \"create the pr\", backend = \"hosted\" },\n]\n```\n\nThe local `git commit` path remains the default and is unchanged. The release is still computed in the workflow: monochange reads the prepared release files, resolves the target branch and the base commit, and posts a compact request to the app's `/api/release-commits` and `/api/release-requests` endpoints. The server verifies GitHub's OIDC token for the run (or the `MONOCHANGE_TOKEN` secret on CI systems without OIDC), mints a one-hour installation token, creates blobs/tree/commit through the Git Database API, guards against a branch that moved since preparation, and opens or updates the pull request under the bot identity.\n\nNew step inputs:\n\n- `commit_backend` (`local` | `hosted`) — how the release commit is written.\n- `hosted_auth` (`auto` | `oidc` | `token`) — how the hosted backend authenticates; `auto` prefers the GitHub Actions OIDC token and falls back to `MONOCHANGE_TOKEN`.\n- `hosted_url` — the app base URL (default `https://monochange.dev`).\n- `oidc_audience` — the audience required in the OIDC token (default: the hosted URL host).\n- `backend` (`local` | `hosted`) on `OpenReleaseRequest` — how the pull request is published.\n\nWorkflows using the hosted backend need `permissions: id-token: write` for OIDC, or the `MONOCHANGE_TOKEN` secret as a fallback. A rerun whose branch moved fails with a conflict instead of overwriting newer work, and consumed changeset deletions travel in the same request as file updates.\n\n##### Breaking change in `monochange_core`\n\n`CliStepDefinition::CommitRelease` gained the fields `commit_backend`, `hosted_auth`, `hosted_url`, and `oidc_audience`; `CliStepDefinition::OpenReleaseRequest` gained `backend`, `hosted_auth`, and `hosted_url`. Every exhaustive struct literal for these variants must add the new fields — use `..Default::default()`-style struct update or the listed defaults:\n\n```rust\n// before\nCliStepDefinition::CommitRelease { name: None, when: None, always_run: false, no_verify: false, update_release_json: false, stage_all: false, inputs: BTreeMap::new() }\n// after\nCliStepDefinition::CommitRelease { name: None, when: None, always_run: false, no_verify: false, update_release_json: false, stage_all: false, commit_backend: Default::default(), hosted_auth: Default::default(), hosted_url: None, oidc_audience: None, inputs: BTreeMap::new() }\n```\n\nDeserialization is unaffected: every new field has a serde default, so existing `monochange.toml` step tables keep parsing identically and the local backends remain the default behaviour."
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes.",
+							"- **Use short built-in commands in introductory documentation.** Start with `monochange discover` and `monochange preview` in the README and crate introduction. These existing commands accept the same options as their step forms; `preview` always runs without writing release files.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #752](https://github.com/monochange/monochange/pull/752)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)\n\n### 🚀 Feature\n\n#### Hosted release commits through the monochange GitHub App\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #373](https://github.com/monochange/monochange/pull/373)\n\n`CommitRelease` and `OpenReleaseRequest` can now delegate their writes to the monochange app so the monochange GitHub App creates the release commit and the release pull request. A release PR built this way is committed by the bot identity, is verified by GitHub, triggers the repository's normal workflows, and satisfies verified-commit branch protection — without a personal access token.\n\nSet `commit_backend = \"hosted\"` on `CommitRelease` and `backend = \"hosted\"` on `OpenReleaseRequest`:\n\n```toml\n[cli.release]\nsteps = [\n\t{ type = \"PrepareRelease\", name = \"plan release\", allow_empty_changesets = true },\n\t{ type = \"CommitRelease\", name = \"create release commit\", commit_backend = \"hosted\" },\n\t{ type = \"OpenReleaseRequest\", name = \"create the pr\", backend = \"hosted\" },\n]\n```\n\nThe local `git commit` path remains the default and is unchanged. The release is still computed in the workflow: monochange reads the prepared release files, resolves the target branch and the base commit, and posts a compact request to the app's `/api/release-commits` and `/api/release-requests` endpoints. The server verifies GitHub's OIDC token for the run (or the `MONOCHANGE_TOKEN` secret on CI systems without OIDC), mints a one-hour installation token, creates blobs/tree/commit through the Git Database API, guards against a branch that moved since preparation, and opens or updates the pull request under the bot identity.\n\nNew step inputs:\n\n- `commit_backend` (`local` | `hosted`) — how the release commit is written.\n- `hosted_auth` (`auto` | `oidc` | `token`) — how the hosted backend authenticates; `auto` prefers the GitHub Actions OIDC token and falls back to `MONOCHANGE_TOKEN`.\n- `hosted_url` — the app base URL (default `https://monochange.dev`).\n- `oidc_audience` — the audience required in the OIDC token (default: the hosted URL host).\n- `backend` (`local` | `hosted`) on `OpenReleaseRequest` — how the pull request is published.\n\nWorkflows using the hosted backend need `permissions: id-token: write` for OIDC, or the `MONOCHANGE_TOKEN` secret as a fallback. A rerun whose branch moved fails with a conflict instead of overwriting newer work, and consumed changeset deletions travel in the same request as file updates.\n\n##### Breaking change in `monochange_core`\n\n`CliStepDefinition::CommitRelease` gained the fields `commit_backend`, `hosted_auth`, `hosted_url`, and `oidc_audience`; `CliStepDefinition::OpenReleaseRequest` gained `backend`, `hosted_auth`, and `hosted_url`. Every exhaustive struct literal for these variants must add the new fields — use `..Default::default()`-style struct update or the listed defaults:\n\n```rust\n// before\nCliStepDefinition::CommitRelease { name: None, when: None, always_run: false, no_verify: false, update_release_json: false, stage_all: false, inputs: BTreeMap::new() }\n// after\nCliStepDefinition::CommitRelease { name: None, when: None, always_run: false, no_verify: false, update_release_json: false, stage_all: false, commit_backend: Default::default(), hosted_auth: Default::default(), hosted_url: None, oidc_audience: None, inputs: BTreeMap::new() }\n```\n\nDeserialization is unaffected: every new field has a serde default, so existing `monochange.toml` step tables keep parsing identically and the local backends remain the default behaviour.\n\n### 🐛 Fixed\n\n#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes.\n\n- **Use short built-in commands in introductory documentation.** Start with `monochange discover` and `monochange preview` in the README and crate introduction. These existing commands accept the same options as their step forms; `preview` always runs without writing release files.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #752](https://github.com/monochange/monochange/pull/752)"
+		},
+		{
+			"owner_id": "monochange_analysis",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_analysis/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)\n\n### 🐛 Fixed\n\n#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+		},
+		{
+			"owner_id": "monochange_cargo",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_cargo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)\n\n### 🐛 Fixed\n\n#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+		},
+		{
+			"owner_id": "monochange_changelog",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_changelog/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Insert new releases above namespaced changelog headings\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #746](https://github.com/monochange/monochange/pull/746)\n\nChangelogs owned by a package or group with `version_format = \"namespaced\"` collected their releases oldest first. The built-in namespaced changelog version title leads with the owner id (`## abi [0.20.0](…) (2026-09-23)`), but monochange only recognised an earlier release when its `##` heading started with `[` or a digit. With no recognised heading, every prepared release was appended to the end of the file, while `primary` owners stayed newest first. A custom `changelog_version_title` that started with text, such as `\"SDK {{ version }} ({{ date }})\"`, had the same problem.\n\nmonochange now treats any `##` heading that contains a semantic version as a release heading, whatever text surrounds the version, and inserts the new section directly above the first one. For a namespaced group changelog, `monochange step prepare-release` now writes:\n\n**Before:**\n\n```markdown\n## abi [0.20.0](https://github.com/acme/repo/releases/tag/abi/v0.20.0) (2026-09-23)\n\n## abi [0.21.0](https://github.com/acme/repo/releases/tag/abi/v0.21.0) (2026-09-30)\n```\n\n**After:**\n\n```markdown\n## abi [0.21.0](https://github.com/acme/repo/releases/tag/abi/v0.21.0) (2026-09-30)\n\n## abi [0.20.0](https://github.com/acme/repo/releases/tag/abi/v0.20.0) (2026-09-23)\n```\n\nThe rendered section is unchanged; only where it lands in the file moves. Hand-written headings without a version, including `## Unreleased` and Keep a Changelog's `## [Unreleased]`, now stay above the new release instead of being treated as releases. A custom title must render `{{ version }}` for monochange to find earlier releases, so a date-only title is no longer recognised.\n\nExisting changelogs that already collected releases oldest first are not reordered. Move those sections once by hand; later releases then land at the top. Workarounds that switched a namespaced owner to a title starting with `[`, such as `changelog_version_title = \"[{{ version }}]({{ tag_url }}) ({{ date }})\"`, can be removed.",
+							"#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)\n\n### 🐛 Fixed\n\n#### Insert new releases above namespaced changelog headings\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #746](https://github.com/monochange/monochange/pull/746)\n\nChangelogs owned by a package or group with `version_format = \"namespaced\"` collected their releases oldest first. The built-in namespaced changelog version title leads with the owner id (`## abi [0.20.0](…) (2026-09-23)`), but monochange only recognised an earlier release when its `##` heading started with `[` or a digit. With no recognised heading, every prepared release was appended to the end of the file, while `primary` owners stayed newest first. A custom `changelog_version_title` that started with text, such as `\"SDK {{ version }} ({{ date }})\"`, had the same problem.\n\nmonochange now treats any `##` heading that contains a semantic version as a release heading, whatever text surrounds the version, and inserts the new section directly above the first one. For a namespaced group changelog, `monochange step prepare-release` now writes:\n\n**Before:**\n\n```markdown\n## abi [0.20.0](https://github.com/acme/repo/releases/tag/abi/v0.20.0) (2026-09-23)\n\n## abi [0.21.0](https://github.com/acme/repo/releases/tag/abi/v0.21.0) (2026-09-30)\n```\n\n**After:**\n\n```markdown\n## abi [0.21.0](https://github.com/acme/repo/releases/tag/abi/v0.21.0) (2026-09-30)\n\n## abi [0.20.0](https://github.com/acme/repo/releases/tag/abi/v0.20.0) (2026-09-23)\n```\n\nThe rendered section is unchanged; only where it lands in the file moves. Hand-written headings without a version, including `## Unreleased` and Keep a Changelog's `## [Unreleased]`, now stay above the new release instead of being treated as releases. A custom title must render `{{ version }}` for monochange to find earlier releases, so a date-only title is no longer recognised.\n\nExisting changelogs that already collected releases oldest first are not reordered. Move those sections once by hand; later releases then land at the top. Workarounds that switched a namespaced owner to a title starting with `[`, such as `changelog_version_title = \"[{{ version }}]({{ tag_url }}) ({{ date }})\"`, can be removed.\n\n#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+		},
+		{
+			"owner_id": "monochange_classification",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_classification/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "monochange_classification [0.4.1](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.4.1) (2026-10-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+						]
+					}
+				]
+			},
+			"rendered": "## monochange_classification [0.4.1](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.4.1) (2026-10-06)\n\n### 🐛 Fixed\n\n#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+		},
+		{
+			"owner_id": "monochange_config",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_config/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)\n\n### 🐛 Fixed\n\n#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+		},
+		{
+			"owner_id": "monochange_core",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_core/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "💥 Breaking Change",
+						"collapsed": false,
+						"entries": [
+							"#### Hosted release commits through the monochange GitHub App\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #373](https://github.com/monochange/monochange/pull/373)\n\n`CommitRelease` and `OpenReleaseRequest` can now delegate their writes to the monochange app so the monochange GitHub App creates the release commit and the release pull request. A release PR built this way is committed by the bot identity, is verified by GitHub, triggers the repository's normal workflows, and satisfies verified-commit branch protection — without a personal access token.\n\nSet `commit_backend = \"hosted\"` on `CommitRelease` and `backend = \"hosted\"` on `OpenReleaseRequest`:\n\n```toml\n[cli.release]\nsteps = [\n\t{ type = \"PrepareRelease\", name = \"plan release\", allow_empty_changesets = true },\n\t{ type = \"CommitRelease\", name = \"create release commit\", commit_backend = \"hosted\" },\n\t{ type = \"OpenReleaseRequest\", name = \"create the pr\", backend = \"hosted\" },\n]\n```\n\nThe local `git commit` path remains the default and is unchanged. The release is still computed in the workflow: monochange reads the prepared release files, resolves the target branch and the base commit, and posts a compact request to the app's `/api/release-commits` and `/api/release-requests` endpoints. The server verifies GitHub's OIDC token for the run (or the `MONOCHANGE_TOKEN` secret on CI systems without OIDC), mints a one-hour installation token, creates blobs/tree/commit through the Git Database API, guards against a branch that moved since preparation, and opens or updates the pull request under the bot identity.\n\nNew step inputs:\n\n- `commit_backend` (`local` | `hosted`) — how the release commit is written.\n- `hosted_auth` (`auto` | `oidc` | `token`) — how the hosted backend authenticates; `auto` prefers the GitHub Actions OIDC token and falls back to `MONOCHANGE_TOKEN`.\n- `hosted_url` — the app base URL (default `https://monochange.dev`).\n- `oidc_audience` — the audience required in the OIDC token (default: the hosted URL host).\n- `backend` (`local` | `hosted`) on `OpenReleaseRequest` — how the pull request is published.\n\nWorkflows using the hosted backend need `permissions: id-token: write` for OIDC, or the `MONOCHANGE_TOKEN` secret as a fallback. A rerun whose branch moved fails with a conflict instead of overwriting newer work, and consumed changeset deletions travel in the same request as file updates.\n\n##### Breaking change in `monochange_core`\n\n`CliStepDefinition::CommitRelease` gained the fields `commit_backend`, `hosted_auth`, `hosted_url`, and `oidc_audience`; `CliStepDefinition::OpenReleaseRequest` gained `backend`, `hosted_auth`, and `hosted_url`. Every exhaustive struct literal for these variants must add the new fields — use `..Default::default()`-style struct update or the listed defaults:\n\n```rust\n// before\nCliStepDefinition::CommitRelease { name: None, when: None, always_run: false, no_verify: false, update_release_json: false, stage_all: false, inputs: BTreeMap::new() }\n// after\nCliStepDefinition::CommitRelease { name: None, when: None, always_run: false, no_verify: false, update_release_json: false, stage_all: false, commit_backend: Default::default(), hosted_auth: Default::default(), hosted_url: None, oidc_audience: None, inputs: BTreeMap::new() }\n```\n\nDeserialization is unaffected: every new field has a serde default, so existing `monochange.toml` step tables keep parsing identically and the local backends remain the default behaviour."
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)\n\n### 💥 Breaking Change\n\n#### Hosted release commits through the monochange GitHub App\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #373](https://github.com/monochange/monochange/pull/373)\n\n`CommitRelease` and `OpenReleaseRequest` can now delegate their writes to the monochange app so the monochange GitHub App creates the release commit and the release pull request. A release PR built this way is committed by the bot identity, is verified by GitHub, triggers the repository's normal workflows, and satisfies verified-commit branch protection — without a personal access token.\n\nSet `commit_backend = \"hosted\"` on `CommitRelease` and `backend = \"hosted\"` on `OpenReleaseRequest`:\n\n```toml\n[cli.release]\nsteps = [\n\t{ type = \"PrepareRelease\", name = \"plan release\", allow_empty_changesets = true },\n\t{ type = \"CommitRelease\", name = \"create release commit\", commit_backend = \"hosted\" },\n\t{ type = \"OpenReleaseRequest\", name = \"create the pr\", backend = \"hosted\" },\n]\n```\n\nThe local `git commit` path remains the default and is unchanged. The release is still computed in the workflow: monochange reads the prepared release files, resolves the target branch and the base commit, and posts a compact request to the app's `/api/release-commits` and `/api/release-requests` endpoints. The server verifies GitHub's OIDC token for the run (or the `MONOCHANGE_TOKEN` secret on CI systems without OIDC), mints a one-hour installation token, creates blobs/tree/commit through the Git Database API, guards against a branch that moved since preparation, and opens or updates the pull request under the bot identity.\n\nNew step inputs:\n\n- `commit_backend` (`local` | `hosted`) — how the release commit is written.\n- `hosted_auth` (`auto` | `oidc` | `token`) — how the hosted backend authenticates; `auto` prefers the GitHub Actions OIDC token and falls back to `MONOCHANGE_TOKEN`.\n- `hosted_url` — the app base URL (default `https://monochange.dev`).\n- `oidc_audience` — the audience required in the OIDC token (default: the hosted URL host).\n- `backend` (`local` | `hosted`) on `OpenReleaseRequest` — how the pull request is published.\n\nWorkflows using the hosted backend need `permissions: id-token: write` for OIDC, or the `MONOCHANGE_TOKEN` secret as a fallback. A rerun whose branch moved fails with a conflict instead of overwriting newer work, and consumed changeset deletions travel in the same request as file updates.\n\n##### Breaking change in `monochange_core`\n\n`CliStepDefinition::CommitRelease` gained the fields `commit_backend`, `hosted_auth`, `hosted_url`, and `oidc_audience`; `CliStepDefinition::OpenReleaseRequest` gained `backend`, `hosted_auth`, and `hosted_url`. Every exhaustive struct literal for these variants must add the new fields — use `..Default::default()`-style struct update or the listed defaults:\n\n```rust\n// before\nCliStepDefinition::CommitRelease { name: None, when: None, always_run: false, no_verify: false, update_release_json: false, stage_all: false, inputs: BTreeMap::new() }\n// after\nCliStepDefinition::CommitRelease { name: None, when: None, always_run: false, no_verify: false, update_release_json: false, stage_all: false, commit_backend: Default::default(), hosted_auth: Default::default(), hosted_url: None, oidc_audience: None, inputs: BTreeMap::new() }\n```\n\nDeserialization is unaffected: every new field has a serde default, so existing `monochange.toml` step tables keep parsing identically and the local backends remain the default behaviour.\n\n### 🐛 Fixed\n\n#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+		},
+		{
+			"owner_id": "monochange_dart",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_dart/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)\n\n### 🐛 Fixed\n\n#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+		},
+		{
+			"owner_id": "monochange_deno",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_deno/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)\n\n### 🐛 Fixed\n\n#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+		},
+		{
+			"owner_id": "monochange_ecmascript",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_ecmascript/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)\n\n### 🐛 Fixed\n\n#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+		},
+		{
+			"owner_id": "monochange_forgejo",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_forgejo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)\n\n### 🐛 Fixed\n\n#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+		},
+		{
+			"owner_id": "monochange_gitea",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_gitea/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)\n\n### 🐛 Fixed\n\n#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+		},
+		{
+			"owner_id": "monochange_github",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_github/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)\n\n### 🐛 Fixed\n\n#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+		},
+		{
+			"owner_id": "monochange_gitlab",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_gitlab/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)\n\n### 🐛 Fixed\n\n#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+		},
+		{
+			"owner_id": "monochange_go",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_go/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)\n\n### 🐛 Fixed\n\n#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+		},
+		{
+			"owner_id": "monochange_graph",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_graph/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)\n\n### 🐛 Fixed\n\n#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+		},
+		{
+			"owner_id": "monochange_hosting",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_hosting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)\n\n### 🐛 Fixed\n\n#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+		},
+		{
+			"owner_id": "monochange_lint",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_lint/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)\n\n### 🐛 Fixed\n\n#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+		},
+		{
+			"owner_id": "monochange_linting",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_linting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)\n\n### 🐛 Fixed\n\n#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+		},
+		{
+			"owner_id": "monochange_npm",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_npm/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)\n\n### 🐛 Fixed\n\n#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+		},
+		{
+			"owner_id": "monochange_publish",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_publish/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)\n\n### 🐛 Fixed\n\n#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+		},
+		{
+			"owner_id": "monochange_python",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_python/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)\n\n### 🐛 Fixed\n\n#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+		},
+		{
+			"owner_id": "monochange_schema",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_schema/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "monochange_schema [0.9.1](https://github.com/monochange/monochange/releases/tag/monochange_schema/v0.9.1) (2026-10-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes.",
+							"#### Hosted release commits through the monochange GitHub App\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #373](https://github.com/monochange/monochange/pull/373)\n\n`CommitRelease` and `OpenReleaseRequest` can now delegate their writes to the monochange app so the monochange GitHub App creates the release commit and the release pull request. A release PR built this way is committed by the bot identity, is verified by GitHub, triggers the repository's normal workflows, and satisfies verified-commit branch protection — without a personal access token.\n\nSet `commit_backend = \"hosted\"` on `CommitRelease` and `backend = \"hosted\"` on `OpenReleaseRequest`:\n\n```toml\n[cli.release]\nsteps = [\n\t{ type = \"PrepareRelease\", name = \"plan release\", allow_empty_changesets = true },\n\t{ type = \"CommitRelease\", name = \"create release commit\", commit_backend = \"hosted\" },\n\t{ type = \"OpenReleaseRequest\", name = \"create the pr\", backend = \"hosted\" },\n]\n```\n\nThe local `git commit` path remains the default and is unchanged. The release is still computed in the workflow: monochange reads the prepared release files, resolves the target branch and the base commit, and posts a compact request to the app's `/api/release-commits` and `/api/release-requests` endpoints. The server verifies GitHub's OIDC token for the run (or the `MONOCHANGE_TOKEN` secret on CI systems without OIDC), mints a one-hour installation token, creates blobs/tree/commit through the Git Database API, guards against a branch that moved since preparation, and opens or updates the pull request under the bot identity.\n\nNew step inputs:\n\n- `commit_backend` (`local` | `hosted`) — how the release commit is written.\n- `hosted_auth` (`auto` | `oidc` | `token`) — how the hosted backend authenticates; `auto` prefers the GitHub Actions OIDC token and falls back to `MONOCHANGE_TOKEN`.\n- `hosted_url` — the app base URL (default `https://monochange.dev`).\n- `oidc_audience` — the audience required in the OIDC token (default: the hosted URL host).\n- `backend` (`local` | `hosted`) on `OpenReleaseRequest` — how the pull request is published.\n\nWorkflows using the hosted backend need `permissions: id-token: write` for OIDC, or the `MONOCHANGE_TOKEN` secret as a fallback. A rerun whose branch moved fails with a conflict instead of overwriting newer work, and consumed changeset deletions travel in the same request as file updates.\n\n##### Breaking change in `monochange_core`\n\n`CliStepDefinition::CommitRelease` gained the fields `commit_backend`, `hosted_auth`, `hosted_url`, and `oidc_audience`; `CliStepDefinition::OpenReleaseRequest` gained `backend`, `hosted_auth`, and `hosted_url`. Every exhaustive struct literal for these variants must add the new fields — use `..Default::default()`-style struct update or the listed defaults:\n\n```rust\n// before\nCliStepDefinition::CommitRelease { name: None, when: None, always_run: false, no_verify: false, update_release_json: false, stage_all: false, inputs: BTreeMap::new() }\n// after\nCliStepDefinition::CommitRelease { name: None, when: None, always_run: false, no_verify: false, update_release_json: false, stage_all: false, commit_backend: Default::default(), hosted_auth: Default::default(), hosted_url: None, oidc_audience: None, inputs: BTreeMap::new() }\n```\n\nDeserialization is unaffected: every new field has a serde default, so existing `monochange.toml` step tables keep parsing identically and the local backends remain the default behaviour."
+						]
+					}
+				]
+			},
+			"rendered": "## monochange_schema [0.9.1](https://github.com/monochange/monochange/releases/tag/monochange_schema/v0.9.1) (2026-10-06)\n\n### 🐛 Fixed\n\n#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes.\n\n#### Hosted release commits through the monochange GitHub App\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #373](https://github.com/monochange/monochange/pull/373)\n\n`CommitRelease` and `OpenReleaseRequest` can now delegate their writes to the monochange app so the monochange GitHub App creates the release commit and the release pull request. A release PR built this way is committed by the bot identity, is verified by GitHub, triggers the repository's normal workflows, and satisfies verified-commit branch protection — without a personal access token.\n\nSet `commit_backend = \"hosted\"` on `CommitRelease` and `backend = \"hosted\"` on `OpenReleaseRequest`:\n\n```toml\n[cli.release]\nsteps = [\n\t{ type = \"PrepareRelease\", name = \"plan release\", allow_empty_changesets = true },\n\t{ type = \"CommitRelease\", name = \"create release commit\", commit_backend = \"hosted\" },\n\t{ type = \"OpenReleaseRequest\", name = \"create the pr\", backend = \"hosted\" },\n]\n```\n\nThe local `git commit` path remains the default and is unchanged. The release is still computed in the workflow: monochange reads the prepared release files, resolves the target branch and the base commit, and posts a compact request to the app's `/api/release-commits` and `/api/release-requests` endpoints. The server verifies GitHub's OIDC token for the run (or the `MONOCHANGE_TOKEN` secret on CI systems without OIDC), mints a one-hour installation token, creates blobs/tree/commit through the Git Database API, guards against a branch that moved since preparation, and opens or updates the pull request under the bot identity.\n\nNew step inputs:\n\n- `commit_backend` (`local` | `hosted`) — how the release commit is written.\n- `hosted_auth` (`auto` | `oidc` | `token`) — how the hosted backend authenticates; `auto` prefers the GitHub Actions OIDC token and falls back to `MONOCHANGE_TOKEN`.\n- `hosted_url` — the app base URL (default `https://monochange.dev`).\n- `oidc_audience` — the audience required in the OIDC token (default: the hosted URL host).\n- `backend` (`local` | `hosted`) on `OpenReleaseRequest` — how the pull request is published.\n\nWorkflows using the hosted backend need `permissions: id-token: write` for OIDC, or the `MONOCHANGE_TOKEN` secret as a fallback. A rerun whose branch moved fails with a conflict instead of overwriting newer work, and consumed changeset deletions travel in the same request as file updates.\n\n##### Breaking change in `monochange_core`\n\n`CliStepDefinition::CommitRelease` gained the fields `commit_backend`, `hosted_auth`, `hosted_url`, and `oidc_audience`; `CliStepDefinition::OpenReleaseRequest` gained `backend`, `hosted_auth`, and `hosted_url`. Every exhaustive struct literal for these variants must add the new fields — use `..Default::default()`-style struct update or the listed defaults:\n\n```rust\n// before\nCliStepDefinition::CommitRelease { name: None, when: None, always_run: false, no_verify: false, update_release_json: false, stage_all: false, inputs: BTreeMap::new() }\n// after\nCliStepDefinition::CommitRelease { name: None, when: None, always_run: false, no_verify: false, update_release_json: false, stage_all: false, commit_backend: Default::default(), hosted_auth: Default::default(), hosted_url: None, oidc_audience: None, inputs: BTreeMap::new() }\n```\n\nDeserialization is unaffected: every new field has a serde default, so existing `monochange.toml` step tables keep parsing identically and the local backends remain the default behaviour."
+		},
+		{
+			"owner_id": "monochange_semver",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_semver/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)\n\n### 🐛 Fixed\n\n#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+		},
+		{
+			"owner_id": "snapshot",
+			"owner_kind": "group",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_snapshot/changelog.md",
+			"format": "monochange",
+			"notes": {
+				"title": "snapshot [0.1.2](https://github.com/monochange/monochange/releases/tag/snapshot/v0.1.2) (2026-10-06)",
+				"summary": [
+					"Grouped release for `snapshot`."
+				],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Use the coloured monochange identity in documentation\n\n_Packages:_ 🟢 _monochange_snapshot_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+						]
+					}
+				]
+			},
+			"rendered": "## snapshot [0.1.2](https://github.com/monochange/monochange/releases/tag/snapshot/v0.1.2) (2026-10-06)\n\nGrouped release for `snapshot`.\n\n### 🐛 Fixed\n\n#### Use the coloured monochange identity in documentation\n\n_Packages:_ 🟢 _monochange_snapshot_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+		},
+		{
+			"owner_id": "monochange_telemetry",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_telemetry/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)\n\n### 🐛 Fixed\n\n#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+		},
+		{
+			"owner_id": "monochange_test_helpers",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_test_helpers/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)\n\n### 🐛 Fixed\n\n#### Use the coloured monochange identity in documentation\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)\n\nThe README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.\n\nExisting Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes."
+		},
+		{
+			"owner_id": "@monochange/cli",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"- **Use short built-in commands in introductory documentation.** Start with `monochange discover` and `monochange preview` in the README and crate introduction. These existing commands accept the same options as their step forms; `preview` always runs without writing release files.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #752](https://github.com/monochange/monochange/pull/752)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)\n\n### 🐛 Fixed\n\n- **Use short built-in commands in introductory documentation.** Start with `monochange discover` and `monochange preview` in the README and crate introduction. These existing commands accept the same options as their step forms; `preview` always runs without writing release files.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #752](https://github.com/monochange/monochange/pull/752)"
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-arm64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-darwin-arm64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.17.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.17.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-x64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-darwin-x64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.17.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.17.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-arm64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.17.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.17.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-arm64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.17.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.17.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-x64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.17.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.17.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-x64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.17.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.17.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-win32-arm64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-win32-arm64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.17.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.17.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-win32-x64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-win32-x64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.17.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.17.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/skill",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__skill/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/skill` was updated to 0.17.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/skill` was updated to 0.17.0 as part of group `main`."
+		}
+	],
+	"provider": {
+		"kind": "github",
+		"owner": "monochange",
+		"repo": "monochange",
+		"host": null
+	}
+}
