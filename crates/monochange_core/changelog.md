@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)
+
+### 🐛 Fixed
+
+#### Make versioned file templates field-aware and expose release streams
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #757](https://github.com/monochange/monochange/pull/757)
+
+A `value_template` on a format-mode versioned file ignored its declared `fields` and replaced the first SemVer-looking text in the file, so a derived value such as an artifact digest could land in the wrong field, or the write could fail outright when the file carried no version at all. The template now writes into the explicit `fields` when `format` mode declares them:
+
+```toml
+[[package.program.versioned_files]]
+path = "deploy/artifact.json"
+format = "json"
+fields = ["sha256"]
+value_template = "{{ artifact_digest }}"
+```
+
+Separately, one owner declaring multiple `versioned_files` entries for the same path was silent even though the entries apply in declaration order and a divergent later entry can overwrite an earlier write. `monochange check` and `monochange step validate` now warn once per owner, with exact duplicates and cross-owner file sharing left alone because both are legitimate. Command steps can also gate on what a release rendered: `release.streams` and `release.outputs` list the prepared release's changelog streams and named outputs, so a deployment workflow can express `when = "{{ 'onchain' in release.streams }}"`.
+
 ## [0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)
 
 ### 💥 Breaking Change
