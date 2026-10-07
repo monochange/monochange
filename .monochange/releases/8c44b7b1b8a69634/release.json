@@ -1,0 +1,2104 @@
+{
+	"schema_version": "0.9",
+	"kind": "monochange.releaseRecord",
+	"created_at": "2026-10-07T11:22:08Z",
+	"command": "release",
+	"version": null,
+	"versions": {
+		"main": "0.17.1",
+		"monochange_app": "0.2.1",
+		"monochange_classification": "0.4.2",
+		"monochange_schema": "0.9.2"
+	},
+	"release_targets": [
+		{
+			"id": "main",
+			"kind": "group",
+			"version": "0.17.1",
+			"version_format": "primary",
+			"tag": true,
+			"release": true,
+			"tag_name": "v0.17.1",
+			"rendered_title": "v0.17.1 (2026-10-07)",
+			"rendered_changelog_title": "[0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)",
+			"members": [
+				"@monochange/cli",
+				"@monochange/cli-darwin-arm64",
+				"@monochange/cli-darwin-x64",
+				"@monochange/cli-linux-arm64-gnu",
+				"@monochange/cli-linux-arm64-musl",
+				"@monochange/cli-linux-x64-gnu",
+				"@monochange/cli-linux-x64-musl",
+				"@monochange/cli-win32-arm64-msvc",
+				"@monochange/cli-win32-x64-msvc",
+				"@monochange/skill",
+				"monochange",
+				"monochange_analysis",
+				"monochange_cargo",
+				"monochange_changelog",
+				"monochange_config",
+				"monochange_core",
+				"monochange_dart",
+				"monochange_deno",
+				"monochange_ecmascript",
+				"monochange_forgejo",
+				"monochange_gitea",
+				"monochange_github",
+				"monochange_gitlab",
+				"monochange_go",
+				"monochange_graph",
+				"monochange_hosting",
+				"monochange_lint",
+				"monochange_linting",
+				"monochange_npm",
+				"monochange_publish",
+				"monochange_python",
+				"monochange_semver",
+				"monochange_telemetry",
+				"monochange_test_helpers"
+			]
+		},
+		{
+			"id": "monochange_app",
+			"kind": "package",
+			"version": "0.2.1",
+			"version_format": "namespaced",
+			"tag": true,
+			"release": true,
+			"tag_name": "monochange_app/v0.2.1",
+			"rendered_title": "monochange.dev 0.2.1",
+			"rendered_changelog_title": "0.2.1",
+			"members": [
+				"monochange_app"
+			]
+		},
+		{
+			"id": "monochange_classification",
+			"kind": "package",
+			"version": "0.4.2",
+			"version_format": "namespaced",
+			"tag": true,
+			"release": true,
+			"tag_name": "monochange_classification/v0.4.2",
+			"rendered_title": "monochange_classification v0.4.2 (2026-10-07)",
+			"rendered_changelog_title": "monochange_classification [0.4.2](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.4.2) (2026-10-07)",
+			"members": [
+				"monochange_classification"
+			]
+		},
+		{
+			"id": "monochange_schema",
+			"kind": "package",
+			"version": "0.9.2",
+			"version_format": "namespaced",
+			"tag": true,
+			"release": true,
+			"tag_name": "monochange_schema/v0.9.2",
+			"rendered_title": "monochange_schema v0.9.2 (2026-10-07)",
+			"rendered_changelog_title": "monochange_schema [0.9.2](https://github.com/monochange/monochange/releases/tag/monochange_schema/v0.9.2) (2026-10-07)",
+			"members": [
+				"monochange_schema"
+			]
+		}
+	],
+	"released_packages": [
+		"@monochange/cli",
+		"@monochange/cli-darwin-arm64",
+		"@monochange/cli-darwin-x64",
+		"@monochange/cli-linux-arm64-gnu",
+		"@monochange/cli-linux-arm64-musl",
+		"@monochange/cli-linux-x64-gnu",
+		"@monochange/cli-linux-x64-musl",
+		"@monochange/cli-win32-arm64-msvc",
+		"@monochange/cli-win32-x64-msvc",
+		"@monochange/skill",
+		"monochange",
+		"monochange_analysis",
+		"monochange_app",
+		"monochange_cargo",
+		"monochange_changelog",
+		"monochange_classification",
+		"monochange_config",
+		"monochange_core",
+		"monochange_dart",
+		"monochange_deno",
+		"monochange_ecmascript",
+		"monochange_forgejo",
+		"monochange_gitea",
+		"monochange_github",
+		"monochange_gitlab",
+		"monochange_go",
+		"monochange_graph",
+		"monochange_hosting",
+		"monochange_lint",
+		"monochange_linting",
+		"monochange_npm",
+		"monochange_publish",
+		"monochange_python",
+		"monochange_schema",
+		"monochange_semver",
+		"monochange_telemetry",
+		"monochange_test_helpers"
+	],
+	"changed_files": [
+		"Cargo.lock",
+		"Cargo.toml",
+		"app/Cargo.lock",
+		"app/Cargo.toml",
+		"app/changelog.md",
+		"app/crates/monochange_app/Cargo.toml",
+		"app/public/releases/0.2.1.json",
+		"changelog.md",
+		"crates/monochange/Cargo.toml",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/Cargo.toml",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/Cargo.toml",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/Cargo.toml",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_classification/Cargo.toml",
+		"crates/monochange_classification/changelog.md",
+		"crates/monochange_config/Cargo.toml",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/Cargo.toml",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/Cargo.toml",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/Cargo.toml",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/Cargo.toml",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/Cargo.toml",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/Cargo.toml",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/Cargo.toml",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/Cargo.toml",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/Cargo.toml",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_graph/Cargo.toml",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/Cargo.toml",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/Cargo.toml",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/Cargo.toml",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/Cargo.toml",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/Cargo.toml",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/Cargo.toml",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_schema/Cargo.toml",
+		"crates/monochange_schema/changelog.md",
+		"crates/monochange_semver/Cargo.toml",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_telemetry/Cargo.toml",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/Cargo.toml",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli/package.json",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-arm64/package.json",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-darwin-x64/package.json",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/package.json",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/package.json",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/package.json",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/package.json",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/package.json",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/package.json",
+		"packages/monochange__skill/changelog.md",
+		"packages/monochange__skill/package.json"
+	],
+	"package_publications": [
+		{
+			"package": "@monochange/cli",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.17.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-arm64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.17.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-x64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.17.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.17.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.17.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.17.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.17.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-arm64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.17.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-x64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.17.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/skill",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.17.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_analysis",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_cargo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_changelog",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_classification",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.4.2",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_config",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_core",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_dart",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_deno",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_ecmascript",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_forgejo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitea",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_github",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitlab",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_go",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_graph",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_hosting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_lint",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_linting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_npm",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_publish",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_python",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_schema",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.9.2",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_semver",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_telemetry",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_test_helpers",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.17.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		}
+	],
+	"updated_changelogs": [
+		"app/changelog.md",
+		"app/public/releases/0.2.1.json",
+		"changelog.md",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_classification/changelog.md",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_schema/changelog.md",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__skill/changelog.md"
+	],
+	"deleted_changesets": [
+		".changeset/solana-release-primitives.md",
+		".changeset/website-install-width.md",
+		".changeset/website-release-environment.md",
+		".changeset/website-release-labels.md"
+	],
+	"changesets": [
+		{
+			"path": ".changeset/solana-release-primitives.md",
+			"summary": "Make versioned file templates field-aware and expose release streams",
+			"details": "A `value_template` on a format-mode versioned file ignored its declared `fields` and replaced the first SemVer-looking text in the file, so a derived value such as an artifact digest could land in the wrong field, or the write could fail outright when the file carried no version at all. The template now writes into the explicit `fields` when `format` mode declares them:\n\n```toml\n[[package.program.versioned_files]]\npath = \"deploy/artifact.json\"\nformat = \"json\"\nfields = [\"sha256\"]\nvalue_template = \"{{ artifact_digest }}\"\n```\n\nSeparately, one owner declaring multiple `versioned_files` entries for the same path was silent even though the entries apply in declaration order and a divergent later entry can overwrite an earlier write. `monochange check` and `monochange step validate` now warn once per owner, with exact duplicates and cross-owner file sharing left alone because both are legitimate. Command steps can also gate on what a release rendered: `release.streams` and `release.outputs` list the prepared release's changelog streams and named outputs, so a deployment workflow can express `when = \"{{ 'onchain' in release.streams }}\"`.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_config",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monochange_core",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monochange_schema",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "daab0be9507cd96d97f13632894924c632231f1c",
+						"short_sha": "daab0be",
+						"url": "https://github.com/monochange/monochange/commit/daab0be9507cd96d97f13632894924c632231f1c",
+						"authored_at": "2026-10-07T10:46:44Z",
+						"committed_at": "2026-10-07T10:46:44Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#757",
+						"title": "feat: honor explicit fields for value templates and expose release streams",
+						"url": "https://github.com/monochange/monochange/pull/757",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "daab0be9507cd96d97f13632894924c632231f1c",
+						"short_sha": "daab0be",
+						"url": "https://github.com/monochange/monochange/commit/daab0be9507cd96d97f13632894924c632231f1c",
+						"authored_at": "2026-10-07T10:46:44Z",
+						"committed_at": "2026-10-07T10:46:44Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#757",
+						"title": "feat: honor explicit fields for value templates and expose release streams",
+						"url": "https://github.com/monochange/monochange/pull/757",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/website-install-width.md",
+			"summary": "Read installation alternatives comfortably on phones",
+			"details": "Expanding the Cargo and Nix installation instructions keeps the page within your phone's screen. Long commands scroll inside their code block, so the next steps and navigation stay in place. No settings need to change.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "website_fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "56bdb50c22c0e60bc56b1e44f4cd224444dc9093",
+						"short_sha": "56bdb50",
+						"url": "https://github.com/monochange/monochange/commit/56bdb50c22c0e60bc56b1e44f4cd224444dc9093",
+						"authored_at": "2026-10-07T10:32:18Z",
+						"committed_at": "2026-10-07T10:32:18Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#758",
+						"title": "fix(web): contain long installation commands",
+						"url": "https://github.com/monochange/monochange/pull/758",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "56bdb50c22c0e60bc56b1e44f4cd224444dc9093",
+						"short_sha": "56bdb50",
+						"url": "https://github.com/monochange/monochange/commit/56bdb50c22c0e60bc56b1e44f4cd224444dc9093",
+						"authored_at": "2026-10-07T10:32:18Z",
+						"committed_at": "2026-10-07T10:32:18Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#758",
+						"title": "fix(web): contain long installation commands",
+						"url": "https://github.com/monochange/monochange/pull/758",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/website-release-environment.md",
+			"summary": "Deliver approved website updates automatically",
+			"details": "Website releases can now reach production after approval instead of stopping before deployment. This restores delivery of the integrated book, ecosystem icons, and website changelog. Visitors do not need to change any settings.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "website_fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "6cb51f575579554f218e2b0013506cc174d30e0f",
+						"short_sha": "6cb51f5",
+						"url": "https://github.com/monochange/monochange/commit/6cb51f575579554f218e2b0013506cc174d30e0f",
+						"authored_at": "2026-10-07T08:00:25Z",
+						"committed_at": "2026-10-07T08:00:25Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#754",
+						"title": "fix(ci): preserve the approved website release commit",
+						"url": "https://github.com/monochange/monochange/pull/754",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "6cb51f575579554f218e2b0013506cc174d30e0f",
+						"short_sha": "6cb51f5",
+						"url": "https://github.com/monochange/monochange/commit/6cb51f575579554f218e2b0013506cc174d30e0f",
+						"authored_at": "2026-10-07T08:00:25Z",
+						"committed_at": "2026-10-07T08:00:25Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#754",
+						"title": "fix(ci): preserve the approved website release commit",
+						"url": "https://github.com/monochange/monochange/pull/754",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/website-release-labels.md",
+			"summary": "Keep prepared website updates moving through approval",
+			"details": "Newly prepared website updates are recognized correctly by their release checks, so an update is not held for a second change note. This removes a timing problem that could delay improvements reaching the website. Visitors do not need to change any settings.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "website_fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "93f68dd830912b08b14ada086c652a5094af46bf",
+						"short_sha": "93f68dd",
+						"url": "https://github.com/monochange/monochange/commit/93f68dd830912b08b14ada086c652a5094af46bf",
+						"authored_at": "2026-10-07T09:31:15Z",
+						"committed_at": "2026-10-07T09:31:15Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#756",
+						"title": "fix(ci): read current labels for release checks",
+						"url": "https://github.com/monochange/monochange/pull/756",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "93f68dd830912b08b14ada086c652a5094af46bf",
+						"short_sha": "93f68dd",
+						"url": "https://github.com/monochange/monochange/commit/93f68dd830912b08b14ada086c652a5094af46bf",
+						"authored_at": "2026-10-07T09:31:15Z",
+						"committed_at": "2026-10-07T09:31:15Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#756",
+						"title": "fix(ci): read current labels for release checks",
+						"url": "https://github.com/monochange/monochange/pull/756",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		}
+	],
+	"changelogs": [
+		{
+			"owner_id": "monochange_app",
+			"owner_kind": "package",
+			"output": "website",
+			"stream": "website",
+			"path": "app/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "0.2.1",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Improved",
+						"collapsed": false,
+						"entries": [
+							"- **Read installation alternatives comfortably on phones.** Expanding the Cargo and Nix installation instructions keeps the page within your phone's screen. Long commands scroll inside their code block, so the next steps and navigation stay in place. No settings need to change.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #758](https://github.com/monochange/monochange/pull/758)",
+							"- **Deliver approved website updates automatically.** Website releases can now reach production after approval instead of stopping before deployment. This restores delivery of the integrated book, ecosystem icons, and website changelog. Visitors do not need to change any settings.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #754](https://github.com/monochange/monochange/pull/754)",
+							"- **Keep prepared website updates moving through approval.** Newly prepared website updates are recognized correctly by their release checks, so an update is not held for a second change note. This removes a timing problem that could delay improvements reaching the website. Visitors do not need to change any settings.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #756](https://github.com/monochange/monochange/pull/756)"
+						]
+					}
+				]
+			},
+			"rendered": "## 0.2.1\n\n### Improved\n\n- **Read installation alternatives comfortably on phones.** Expanding the Cargo and Nix installation instructions keeps the page within your phone's screen. Long commands scroll inside their code block, so the next steps and navigation stay in place. No settings need to change.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #758](https://github.com/monochange/monochange/pull/758)\n- **Deliver approved website updates automatically.** Website releases can now reach production after approval instead of stopping before deployment. This restores delivery of the integrated book, ecosystem icons, and website changelog. Visitors do not need to change any settings.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #754](https://github.com/monochange/monochange/pull/754)\n- **Keep prepared website updates moving through approval.** Newly prepared website updates are recognized correctly by their release checks, so an update is not held for a second change note. This removes a timing problem that could delay improvements reaching the website. Visitors do not need to change any settings.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #756](https://github.com/monochange/monochange/pull/756)"
+		},
+		{
+			"owner_id": "monochange_app",
+			"owner_kind": "package",
+			"output": "website_json",
+			"stream": "website",
+			"path": "app/public/releases/0.2.1.json",
+			"format": "json",
+			"notes": {
+				"title": "0.2.1",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Improved",
+						"collapsed": false,
+						"entries": [
+							"- **Read installation alternatives comfortably on phones.** Expanding the Cargo and Nix installation instructions keeps the page within your phone's screen. Long commands scroll inside their code block, so the next steps and navigation stay in place. No settings need to change.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #758](https://github.com/monochange/monochange/pull/758)",
+							"- **Deliver approved website updates automatically.** Website releases can now reach production after approval instead of stopping before deployment. This restores delivery of the integrated book, ecosystem icons, and website changelog. Visitors do not need to change any settings.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #754](https://github.com/monochange/monochange/pull/754)",
+							"- **Keep prepared website updates moving through approval.** Newly prepared website updates are recognized correctly by their release checks, so an update is not held for a second change note. This removes a timing problem that could delay improvements reaching the website. Visitors do not need to change any settings.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #756](https://github.com/monochange/monochange/pull/756)"
+						]
+					}
+				]
+			},
+			"rendered": "{\n  \"title\": \"0.2.1\",\n  \"summary\": [],\n  \"sections\": [\n    {\n      \"title\": \"Improved\",\n      \"collapsed\": false,\n      \"entries\": [\n        {\n          \"summary\": \"Read installation alternatives comfortably on phones\",\n          \"details_markdown\": \"Expanding the Cargo and Nix installation instructions keeps the page within your phone's screen. Long commands scroll inside their code block, so the next steps and navigation stay in place. No settings need to change.\",\n          \"change_type\": \"website_fix\",\n          \"bump\": \"patch\",\n          \"stream\": \"website\",\n          \"style\": \"compact\",\n          \"provenance\": {\n            \"source_path\": \".changeset/website-install-width.md\",\n            \"changeset_path\": \".changeset/website-install-width.md\",\n            \"change_owner\": {\n              \"label\": \"@ifiokjr\",\n              \"url\": \"https://github.com/ifiokjr\"\n            },\n            \"review_request\": {\n              \"label\": \"PR #758\",\n              \"url\": \"https://github.com/monochange/monochange/pull/758\"\n            },\n            \"introduced_commit\": {\n              \"label\": \"56bdb50\",\n              \"url\": \"https://github.com/monochange/monochange/commit/56bdb50c22c0e60bc56b1e44f4cd224444dc9093\"\n            }\n          }\n        },\n        {\n          \"summary\": \"Deliver approved website updates automatically\",\n          \"details_markdown\": \"Website releases can now reach production after approval instead of stopping before deployment. This restores delivery of the integrated book, ecosystem icons, and website changelog. Visitors do not need to change any settings.\",\n          \"change_type\": \"website_fix\",\n          \"bump\": \"patch\",\n          \"stream\": \"website\",\n          \"style\": \"compact\",\n          \"provenance\": {\n            \"source_path\": \".changeset/website-release-environment.md\",\n            \"changeset_path\": \".changeset/website-release-environment.md\",\n            \"change_owner\": {\n              \"label\": \"@ifiokjr\",\n              \"url\": \"https://github.com/ifiokjr\"\n            },\n            \"review_request\": {\n              \"label\": \"PR #754\",\n              \"url\": \"https://github.com/monochange/monochange/pull/754\"\n            },\n            \"introduced_commit\": {\n              \"label\": \"6cb51f5\",\n              \"url\": \"https://github.com/monochange/monochange/commit/6cb51f575579554f218e2b0013506cc174d30e0f\"\n            }\n          }\n        },\n        {\n          \"summary\": \"Keep prepared website updates moving through approval\",\n          \"details_markdown\": \"Newly prepared website updates are recognized correctly by their release checks, so an update is not held for a second change note. This removes a timing problem that could delay improvements reaching the website. Visitors do not need to change any settings.\",\n          \"change_type\": \"website_fix\",\n          \"bump\": \"patch\",\n          \"stream\": \"website\",\n          \"style\": \"compact\",\n          \"provenance\": {\n            \"source_path\": \".changeset/website-release-labels.md\",\n            \"changeset_path\": \".changeset/website-release-labels.md\",\n            \"change_owner\": {\n              \"label\": \"@ifiokjr\",\n              \"url\": \"https://github.com/ifiokjr\"\n            },\n            \"review_request\": {\n              \"label\": \"PR #756\",\n              \"url\": \"https://github.com/monochange/monochange/pull/756\"\n            },\n            \"introduced_commit\": {\n              \"label\": \"93f68dd\",\n              \"url\": \"https://github.com/monochange/monochange/commit/93f68dd830912b08b14ada086c652a5094af46bf\"\n            }\n          }\n        }\n      ]\n    }\n  ]\n}"
+		},
+		{
+			"owner_id": "main",
+			"owner_kind": "group",
+			"output": "default",
+			"stream": "default",
+			"path": "changelog.md",
+			"format": "monochange",
+			"notes": {
+				"title": "[0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)",
+				"summary": [
+					"Grouped release for `main`."
+				],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Make versioned file templates field-aware and expose release streams\n\n_Packages:_ 🟠 _monochange_, 🟠 _monochange_config_, 🟢 _monochange_core_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #757](https://github.com/monochange/monochange/pull/757)\n\nA `value_template` on a format-mode versioned file ignored its declared `fields` and replaced the first SemVer-looking text in the file, so a derived value such as an artifact digest could land in the wrong field, or the write could fail outright when the file carried no version at all. The template now writes into the explicit `fields` when `format` mode declares them:\n\n```toml\n[[package.program.versioned_files]]\npath = \"deploy/artifact.json\"\nformat = \"json\"\nfields = [\"sha256\"]\nvalue_template = \"{{ artifact_digest }}\"\n```\n\nSeparately, one owner declaring multiple `versioned_files` entries for the same path was silent even though the entries apply in declaration order and a divergent later entry can overwrite an earlier write. `monochange check` and `monochange step validate` now warn once per owner, with exact duplicates and cross-owner file sharing left alone because both are legitimate. Command steps can also gate on what a release rendered: `release.streams` and `release.outputs` list the prepared release's changelog streams and named outputs, so a deployment workflow can express `when = \"{{ 'onchain' in release.streams }}\"`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)\n\nGrouped release for `main`.\n\n### 🚀 Feature\n\n#### Make versioned file templates field-aware and expose release streams\n\n_Packages:_ 🟠 _monochange_, 🟠 _monochange_config_, 🟢 _monochange_core_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #757](https://github.com/monochange/monochange/pull/757)\n\nA `value_template` on a format-mode versioned file ignored its declared `fields` and replaced the first SemVer-looking text in the file, so a derived value such as an artifact digest could land in the wrong field, or the write could fail outright when the file carried no version at all. The template now writes into the explicit `fields` when `format` mode declares them:\n\n```toml\n[[package.program.versioned_files]]\npath = \"deploy/artifact.json\"\nformat = \"json\"\nfields = [\"sha256\"]\nvalue_template = \"{{ artifact_digest }}\"\n```\n\nSeparately, one owner declaring multiple `versioned_files` entries for the same path was silent even though the entries apply in declaration order and a divergent later entry can overwrite an earlier write. `monochange check` and `monochange step validate` now warn once per owner, with exact duplicates and cross-owner file sharing left alone because both are legitimate. Command steps can also gate on what a release rendered: `release.streams` and `release.outputs` list the prepared release's changelog streams and named outputs, so a deployment workflow can express `when = \"{{ 'onchain' in release.streams }}\"`."
+		},
+		{
+			"owner_id": "monochange",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Make versioned file templates field-aware and expose release streams\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #757](https://github.com/monochange/monochange/pull/757)\n\nA `value_template` on a format-mode versioned file ignored its declared `fields` and replaced the first SemVer-looking text in the file, so a derived value such as an artifact digest could land in the wrong field, or the write could fail outright when the file carried no version at all. The template now writes into the explicit `fields` when `format` mode declares them:\n\n```toml\n[[package.program.versioned_files]]\npath = \"deploy/artifact.json\"\nformat = \"json\"\nfields = [\"sha256\"]\nvalue_template = \"{{ artifact_digest }}\"\n```\n\nSeparately, one owner declaring multiple `versioned_files` entries for the same path was silent even though the entries apply in declaration order and a divergent later entry can overwrite an earlier write. `monochange check` and `monochange step validate` now warn once per owner, with exact duplicates and cross-owner file sharing left alone because both are legitimate. Command steps can also gate on what a release rendered: `release.streams` and `release.outputs` list the prepared release's changelog streams and named outputs, so a deployment workflow can express `when = \"{{ 'onchain' in release.streams }}\"`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)\n\n### 🚀 Feature\n\n#### Make versioned file templates field-aware and expose release streams\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #757](https://github.com/monochange/monochange/pull/757)\n\nA `value_template` on a format-mode versioned file ignored its declared `fields` and replaced the first SemVer-looking text in the file, so a derived value such as an artifact digest could land in the wrong field, or the write could fail outright when the file carried no version at all. The template now writes into the explicit `fields` when `format` mode declares them:\n\n```toml\n[[package.program.versioned_files]]\npath = \"deploy/artifact.json\"\nformat = \"json\"\nfields = [\"sha256\"]\nvalue_template = \"{{ artifact_digest }}\"\n```\n\nSeparately, one owner declaring multiple `versioned_files` entries for the same path was silent even though the entries apply in declaration order and a divergent later entry can overwrite an earlier write. `monochange check` and `monochange step validate` now warn once per owner, with exact duplicates and cross-owner file sharing left alone because both are legitimate. Command steps can also gate on what a release rendered: `release.streams` and `release.outputs` list the prepared release's changelog streams and named outputs, so a deployment workflow can express `when = \"{{ 'onchain' in release.streams }}\"`."
+		},
+		{
+			"owner_id": "monochange_analysis",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_analysis/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_analysis` was updated to 0.17.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_analysis` was updated to 0.17.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_cargo",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_cargo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_cargo` was updated to 0.17.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_cargo` was updated to 0.17.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_changelog",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_changelog/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_changelog` was updated to 0.17.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_changelog` was updated to 0.17.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_classification",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_classification/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "monochange_classification [0.4.2](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.4.2) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_classification` was updated to 0.4.2.**"
+						]
+					}
+				]
+			},
+			"rendered": "## monochange_classification [0.4.2](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.4.2) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_classification` was updated to 0.4.2.**"
+		},
+		{
+			"owner_id": "monochange_config",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_config/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Make versioned file templates field-aware and expose release streams\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #757](https://github.com/monochange/monochange/pull/757)\n\nA `value_template` on a format-mode versioned file ignored its declared `fields` and replaced the first SemVer-looking text in the file, so a derived value such as an artifact digest could land in the wrong field, or the write could fail outright when the file carried no version at all. The template now writes into the explicit `fields` when `format` mode declares them:\n\n```toml\n[[package.program.versioned_files]]\npath = \"deploy/artifact.json\"\nformat = \"json\"\nfields = [\"sha256\"]\nvalue_template = \"{{ artifact_digest }}\"\n```\n\nSeparately, one owner declaring multiple `versioned_files` entries for the same path was silent even though the entries apply in declaration order and a divergent later entry can overwrite an earlier write. `monochange check` and `monochange step validate` now warn once per owner, with exact duplicates and cross-owner file sharing left alone because both are legitimate. Command steps can also gate on what a release rendered: `release.streams` and `release.outputs` list the prepared release's changelog streams and named outputs, so a deployment workflow can express `when = \"{{ 'onchain' in release.streams }}\"`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)\n\n### 🚀 Feature\n\n#### Make versioned file templates field-aware and expose release streams\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #757](https://github.com/monochange/monochange/pull/757)\n\nA `value_template` on a format-mode versioned file ignored its declared `fields` and replaced the first SemVer-looking text in the file, so a derived value such as an artifact digest could land in the wrong field, or the write could fail outright when the file carried no version at all. The template now writes into the explicit `fields` when `format` mode declares them:\n\n```toml\n[[package.program.versioned_files]]\npath = \"deploy/artifact.json\"\nformat = \"json\"\nfields = [\"sha256\"]\nvalue_template = \"{{ artifact_digest }}\"\n```\n\nSeparately, one owner declaring multiple `versioned_files` entries for the same path was silent even though the entries apply in declaration order and a divergent later entry can overwrite an earlier write. `monochange check` and `monochange step validate` now warn once per owner, with exact duplicates and cross-owner file sharing left alone because both are legitimate. Command steps can also gate on what a release rendered: `release.streams` and `release.outputs` list the prepared release's changelog streams and named outputs, so a deployment workflow can express `when = \"{{ 'onchain' in release.streams }}\"`."
+		},
+		{
+			"owner_id": "monochange_core",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_core/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Make versioned file templates field-aware and expose release streams\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #757](https://github.com/monochange/monochange/pull/757)\n\nA `value_template` on a format-mode versioned file ignored its declared `fields` and replaced the first SemVer-looking text in the file, so a derived value such as an artifact digest could land in the wrong field, or the write could fail outright when the file carried no version at all. The template now writes into the explicit `fields` when `format` mode declares them:\n\n```toml\n[[package.program.versioned_files]]\npath = \"deploy/artifact.json\"\nformat = \"json\"\nfields = [\"sha256\"]\nvalue_template = \"{{ artifact_digest }}\"\n```\n\nSeparately, one owner declaring multiple `versioned_files` entries for the same path was silent even though the entries apply in declaration order and a divergent later entry can overwrite an earlier write. `monochange check` and `monochange step validate` now warn once per owner, with exact duplicates and cross-owner file sharing left alone because both are legitimate. Command steps can also gate on what a release rendered: `release.streams` and `release.outputs` list the prepared release's changelog streams and named outputs, so a deployment workflow can express `when = \"{{ 'onchain' in release.streams }}\"`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)\n\n### 🐛 Fixed\n\n#### Make versioned file templates field-aware and expose release streams\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #757](https://github.com/monochange/monochange/pull/757)\n\nA `value_template` on a format-mode versioned file ignored its declared `fields` and replaced the first SemVer-looking text in the file, so a derived value such as an artifact digest could land in the wrong field, or the write could fail outright when the file carried no version at all. The template now writes into the explicit `fields` when `format` mode declares them:\n\n```toml\n[[package.program.versioned_files]]\npath = \"deploy/artifact.json\"\nformat = \"json\"\nfields = [\"sha256\"]\nvalue_template = \"{{ artifact_digest }}\"\n```\n\nSeparately, one owner declaring multiple `versioned_files` entries for the same path was silent even though the entries apply in declaration order and a divergent later entry can overwrite an earlier write. `monochange check` and `monochange step validate` now warn once per owner, with exact duplicates and cross-owner file sharing left alone because both are legitimate. Command steps can also gate on what a release rendered: `release.streams` and `release.outputs` list the prepared release's changelog streams and named outputs, so a deployment workflow can express `when = \"{{ 'onchain' in release.streams }}\"`."
+		},
+		{
+			"owner_id": "monochange_dart",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_dart/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_dart` was updated to 0.17.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_dart` was updated to 0.17.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_deno",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_deno/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_deno` was updated to 0.17.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_deno` was updated to 0.17.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_ecmascript",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_ecmascript/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_ecmascript` was updated to 0.17.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_ecmascript` was updated to 0.17.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_forgejo",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_forgejo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_forgejo` was updated to 0.17.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_forgejo` was updated to 0.17.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_gitea",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_gitea/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_gitea` was updated to 0.17.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_gitea` was updated to 0.17.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_github",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_github/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_github` was updated to 0.17.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_github` was updated to 0.17.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_gitlab",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_gitlab/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_gitlab` was updated to 0.17.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_gitlab` was updated to 0.17.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_go",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_go/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_go` was updated to 0.17.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_go` was updated to 0.17.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_graph",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_graph/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_graph` was updated to 0.17.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_graph` was updated to 0.17.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_hosting",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_hosting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_hosting` was updated to 0.17.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_hosting` was updated to 0.17.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_lint",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_lint/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_lint` was updated to 0.17.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_lint` was updated to 0.17.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_linting",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_linting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_linting` was updated to 0.17.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_linting` was updated to 0.17.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_npm",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_npm/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_npm` was updated to 0.17.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_npm` was updated to 0.17.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_publish",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_publish/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_publish` was updated to 0.17.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_publish` was updated to 0.17.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_python",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_python/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_python` was updated to 0.17.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_python` was updated to 0.17.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_schema",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_schema/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "monochange_schema [0.9.2](https://github.com/monochange/monochange/releases/tag/monochange_schema/v0.9.2) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Make versioned file templates field-aware and expose release streams\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #757](https://github.com/monochange/monochange/pull/757)\n\nA `value_template` on a format-mode versioned file ignored its declared `fields` and replaced the first SemVer-looking text in the file, so a derived value such as an artifact digest could land in the wrong field, or the write could fail outright when the file carried no version at all. The template now writes into the explicit `fields` when `format` mode declares them:\n\n```toml\n[[package.program.versioned_files]]\npath = \"deploy/artifact.json\"\nformat = \"json\"\nfields = [\"sha256\"]\nvalue_template = \"{{ artifact_digest }}\"\n```\n\nSeparately, one owner declaring multiple `versioned_files` entries for the same path was silent even though the entries apply in declaration order and a divergent later entry can overwrite an earlier write. `monochange check` and `monochange step validate` now warn once per owner, with exact duplicates and cross-owner file sharing left alone because both are legitimate. Command steps can also gate on what a release rendered: `release.streams` and `release.outputs` list the prepared release's changelog streams and named outputs, so a deployment workflow can express `when = \"{{ 'onchain' in release.streams }}\"`."
+						]
+					}
+				]
+			},
+			"rendered": "## monochange_schema [0.9.2](https://github.com/monochange/monochange/releases/tag/monochange_schema/v0.9.2) (2026-10-07)\n\n### 🐛 Fixed\n\n#### Make versioned file templates field-aware and expose release streams\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #757](https://github.com/monochange/monochange/pull/757)\n\nA `value_template` on a format-mode versioned file ignored its declared `fields` and replaced the first SemVer-looking text in the file, so a derived value such as an artifact digest could land in the wrong field, or the write could fail outright when the file carried no version at all. The template now writes into the explicit `fields` when `format` mode declares them:\n\n```toml\n[[package.program.versioned_files]]\npath = \"deploy/artifact.json\"\nformat = \"json\"\nfields = [\"sha256\"]\nvalue_template = \"{{ artifact_digest }}\"\n```\n\nSeparately, one owner declaring multiple `versioned_files` entries for the same path was silent even though the entries apply in declaration order and a divergent later entry can overwrite an earlier write. `monochange check` and `monochange step validate` now warn once per owner, with exact duplicates and cross-owner file sharing left alone because both are legitimate. Command steps can also gate on what a release rendered: `release.streams` and `release.outputs` list the prepared release's changelog streams and named outputs, so a deployment workflow can express `when = \"{{ 'onchain' in release.streams }}\"`."
+		},
+		{
+			"owner_id": "monochange_semver",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_semver/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_semver` was updated to 0.17.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_semver` was updated to 0.17.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_telemetry",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_telemetry/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_telemetry` was updated to 0.17.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_telemetry` was updated to 0.17.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_test_helpers",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_test_helpers/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.17.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.17.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli` was updated to 0.17.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli` was updated to 0.17.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-arm64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-darwin-arm64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.17.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.17.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-x64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-darwin-x64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.17.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.17.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-arm64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.17.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.17.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-arm64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.17.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.17.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-x64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.17.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.17.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-x64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.17.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.17.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-win32-arm64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-win32-arm64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.17.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.17.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-win32-x64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-win32-x64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.17.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.17.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/skill",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__skill/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/skill` was updated to 0.17.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/skill` was updated to 0.17.1 as part of group `main`.**"
+		}
+	],
+	"provider": {
+		"kind": "github",
+		"owner": "monochange",
+		"repo": "monochange",
+		"host": null
+	}
+}

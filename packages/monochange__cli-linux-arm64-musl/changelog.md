@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)
+
+### Changed
+
+- **No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.17.1 as part of group `main`.**
+
 ## [0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)
 
 ### Changed

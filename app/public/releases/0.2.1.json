@@ -1,0 +1,84 @@
+{
+	"title": "0.2.1",
+	"summary": [],
+	"sections": [
+		{
+			"title": "Improved",
+			"collapsed": false,
+			"entries": [
+				{
+					"summary": "Read installation alternatives comfortably on phones",
+					"details_markdown": "Expanding the Cargo and Nix installation instructions keeps the page within your phone's screen. Long commands scroll inside their code block, so the next steps and navigation stay in place. No settings need to change.",
+					"change_type": "website_fix",
+					"bump": "patch",
+					"stream": "website",
+					"style": "compact",
+					"provenance": {
+						"source_path": ".changeset/website-install-width.md",
+						"changeset_path": ".changeset/website-install-width.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #758",
+							"url": "https://github.com/monochange/monochange/pull/758"
+						},
+						"introduced_commit": {
+							"label": "56bdb50",
+							"url": "https://github.com/monochange/monochange/commit/56bdb50c22c0e60bc56b1e44f4cd224444dc9093"
+						}
+					}
+				},
+				{
+					"summary": "Deliver approved website updates automatically",
+					"details_markdown": "Website releases can now reach production after approval instead of stopping before deployment. This restores delivery of the integrated book, ecosystem icons, and website changelog. Visitors do not need to change any settings.",
+					"change_type": "website_fix",
+					"bump": "patch",
+					"stream": "website",
+					"style": "compact",
+					"provenance": {
+						"source_path": ".changeset/website-release-environment.md",
+						"changeset_path": ".changeset/website-release-environment.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #754",
+							"url": "https://github.com/monochange/monochange/pull/754"
+						},
+						"introduced_commit": {
+							"label": "6cb51f5",
+							"url": "https://github.com/monochange/monochange/commit/6cb51f575579554f218e2b0013506cc174d30e0f"
+						}
+					}
+				},
+				{
+					"summary": "Keep prepared website updates moving through approval",
+					"details_markdown": "Newly prepared website updates are recognized correctly by their release checks, so an update is not held for a second change note. This removes a timing problem that could delay improvements reaching the website. Visitors do not need to change any settings.",
+					"change_type": "website_fix",
+					"bump": "patch",
+					"stream": "website",
+					"style": "compact",
+					"provenance": {
+						"source_path": ".changeset/website-release-labels.md",
+						"changeset_path": ".changeset/website-release-labels.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #756",
+							"url": "https://github.com/monochange/monochange/pull/756"
+						},
+						"introduced_commit": {
+							"label": "93f68dd",
+							"url": "https://github.com/monochange/monochange/commit/93f68dd830912b08b14ada086c652a5094af46bf"
+						}
+					}
+				}
+			]
+		}
+	]
+}
