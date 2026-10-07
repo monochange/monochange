@@ -413,3 +413,7 @@ fn db_error(error: &sqlx::Error) -> (StatusCode, Json<WebhookError>) {
 		}),
 	)
 }
+
+#[cfg(test)]
+#[path = "__tests__/webhooks_tests.rs"]
+mod tests;

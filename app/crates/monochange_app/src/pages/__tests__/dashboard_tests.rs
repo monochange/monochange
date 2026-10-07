@@ -7,7 +7,7 @@ use super::*;
 
 #[tokio::test]
 async fn expired_session_offers_sign_in_instead_of_repository_installation() {
-	crate::tests::auth_flows::routes();
+	crate::tests::routes();
 	let render = leptos_axum::render_app_to_stream_in_order(|| {
 		let connection = Resource::new_blocking(
 			|| (),

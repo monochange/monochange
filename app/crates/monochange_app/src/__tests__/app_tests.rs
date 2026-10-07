@@ -80,15 +80,6 @@ async fn configured_state(server: &MockServer) -> Arc<AppState> {
 	state
 }
 
-pub(crate) fn routes() -> Vec<leptos_axum::AxumRouteListing> {
-	// Route discovery temporarily suppresses resource loads process-wide.
-	// Match production startup: discover once before any request can run.
-	static ROUTES: OnceLock<Vec<leptos_axum::AxumRouteListing>> = OnceLock::new();
-	ROUTES
-		.get_or_init(|| leptos_axum::generate_route_list(crate::app::App))
-		.clone()
-}
-
 fn router(state: Arc<AppState>) -> Router {
 	let options = LeptosOptions::builder()
 		.output_name("monochange_app")
@@ -99,7 +90,7 @@ fn router(state: Arc<AppState>) -> Router {
 				.into_owned(),
 		)
 		.build();
-	let routes = routes();
+	let routes = crate::tests::routes();
 	let request_state = state.clone();
 	Router::<LeptosOptions>::new()
 		.leptos_routes_with_context(

@@ -253,3 +253,7 @@ fn Footer() -> impl IntoView {
 		</footer>
 	}
 }
+
+#[cfg(test)]
+#[path = "__tests__/app_tests.rs"]
+mod tests;
