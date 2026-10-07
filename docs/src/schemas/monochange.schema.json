@@ -2233,7 +2233,7 @@
 					"default": null
 				},
 				"value_template": {
-					"description": "Template rendered into this file's value instead of the plain version.\n\nSupports the version template namespace, including declared values such\nas `{{ build }}`. When set, `regex` and `fields` are not used.",
+					"description": "Template rendered into this file's value instead of the plain version.\n\nSupports the version template namespace, including declared values such\nas `{{ build }}`. With an explicit `format` and `fields`, the rendered\nvalue is written to those structured fields. Otherwise the first\nversion-looking value in the file is replaced, and `regex` is not used.",
 					"type": [
 						"string",
 						"null"

@@ -1,0 +1,31 @@
+[package]
+name = "transfer"
+version = "1.2.0"
+edition = "2024"
+publish = false
+
+[package.metadata.cli]
+solana = "3.0.0"
+
+[lib]
+# `cdylib` only: a second `lib`/`rlib` crate type makes rustc reject LTO for
+# the program, which costs deployed program size.
+crate-type = ["cdylib"]
+
+[features]
+default = []
+# Formatted failure diagnostics and caller locations; costs `core::fmt` in the
+# deployed binary, so it is a debugging aid rather than a production deploy.
+verbose-logs = ["pina/verbose-logs"]
+bpf-entrypoint = []
+
+[dependencies]
+# `account-resize` backs the reserved `Migrate` route that the discriminator
+# entrypoint generates, which is how a scaffolded program serves migrations.
+pina = { version = "0.23.0", features = ["account-resize", "logs", "derive"] }
+
+[lints.rust.unexpected_cfgs]
+level = "warn"
+check-cfg = [
+	'cfg(target_os, values("solana"))',
+]

@@ -1,0 +1,11 @@
+{
+	"kind": "rootNode",
+	"standard": "codama",
+	"version": "1.8.0",
+	"program": {
+		"kind": "programNode",
+		"name": "transfer",
+		"publicKey": "AHHpfUJp58rrX3Xg7Fw57iF4a5waLz7iMr4ZUrnKXnck",
+		"version": "1.2.0"
+	}
+}

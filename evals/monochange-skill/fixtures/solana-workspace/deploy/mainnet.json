@@ -1,0 +1,6 @@
+{
+	"cluster": "mainnet-beta",
+	"program_id": "AHHpfUJp58rrX3Xg7Fw57iF4a5waLz7iMr4ZUrnKXnck",
+	"artifact": "target/deploy/transfer.so",
+	"version": "1.2.0"
+}

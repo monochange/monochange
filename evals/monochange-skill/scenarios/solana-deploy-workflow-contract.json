@@ -1,0 +1,30 @@
+{
+	"id": "solana-deploy-workflow-contract",
+	"title": "The on-chain deploy workflow runs a user-supplied command, and dry-run provably does not",
+	"fixture": "solana-workspace",
+	"agent": false,
+	"prompt": "",
+	"expectation": "Deployment is execution, not release planning, so it lives in a configured `[cli.deploy]` workflow as a Command step wrapping the workspace's own deploy script (a stand-in for `pina deploy --cluster <rpc> ... --yes`, which wraps `solana program deploy`). `monochange run deploy --dry-run` must exit 0, report the dry-run command, and leave no deploy marker; the real run must execute the script and leave the marker. These mechanical properties are tested without a model and without the Solana toolchain.",
+	"checks": [
+		{
+			"id": "dry-run-prints-and-does-not-deploy",
+			"kind": "command",
+			"command": "rm -f .deploy-ran; monochange run deploy --dry-run; rc=$?; test $rc -eq 0 && test ! -f .deploy-ran",
+			"expectOutput": [
+				"dry-run: would run sh scripts/deploy-program.sh",
+				"completed (dry-run)"
+			],
+			"why": "A deploy dry run must be safe to run anywhere: it prints the command it would run and must not execute the mutating side of the deploy script."
+		},
+		{
+			"id": "real-run-executes-the-deploy-command",
+			"kind": "command",
+			"command": "monochange run deploy; rc=$?; test $rc -eq 0 && test -f .deploy-ran; rc2=$?; rm -f .deploy-ran; test $rc -eq 0 -a $rc2 -eq 0",
+			"expectOutput": [
+				"upgrade: deploying version",
+				"of transfer to mainnet"
+			],
+			"why": "The real run must execute the configured command exactly once and surface its output, which is the entire execution story for on-chain upgrades today: monochange plans and records, the user's command deploys."
+		}
+	]
+}

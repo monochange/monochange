@@ -1,0 +1,9 @@
+{
+	"name": "@acme/transfer-sdk",
+	"version": "1.2.0",
+	"description": "TypeScript client for the transfer on-chain program",
+	"main": "dist/index.js",
+	"scripts": {
+		"build": "tsc"
+	}
+}
