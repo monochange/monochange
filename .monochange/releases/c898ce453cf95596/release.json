@@ -1,0 +1,2497 @@
+{
+	"schema_version": "0.10",
+	"kind": "monochange.releaseRecord",
+	"created_at": "2026-10-08T18:19:22Z",
+	"command": "release",
+	"version": null,
+	"versions": {
+		"main": "0.18.0",
+		"monochange_app": "0.2.2",
+		"monochange_classification": "0.4.3",
+		"monochange_schema": "0.10.0"
+	},
+	"release_targets": [
+		{
+			"id": "main",
+			"kind": "group",
+			"version": "0.18.0",
+			"version_format": "primary",
+			"tag": true,
+			"release": true,
+			"tag_name": "v0.18.0",
+			"rendered_title": "v0.18.0 (2026-10-08)",
+			"rendered_changelog_title": "[0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)",
+			"members": [
+				"@monochange/cli",
+				"@monochange/cli-darwin-arm64",
+				"@monochange/cli-darwin-x64",
+				"@monochange/cli-linux-arm64-gnu",
+				"@monochange/cli-linux-arm64-musl",
+				"@monochange/cli-linux-x64-gnu",
+				"@monochange/cli-linux-x64-musl",
+				"@monochange/cli-win32-arm64-msvc",
+				"@monochange/cli-win32-x64-msvc",
+				"@monochange/skill",
+				"monochange",
+				"monochange_analysis",
+				"monochange_cargo",
+				"monochange_changelog",
+				"monochange_config",
+				"monochange_core",
+				"monochange_dart",
+				"monochange_deno",
+				"monochange_ecmascript",
+				"monochange_forgejo",
+				"monochange_gitea",
+				"monochange_github",
+				"monochange_gitlab",
+				"monochange_go",
+				"monochange_graph",
+				"monochange_hosting",
+				"monochange_lint",
+				"monochange_linting",
+				"monochange_npm",
+				"monochange_publish",
+				"monochange_python",
+				"monochange_semver",
+				"monochange_telemetry",
+				"monochange_test_helpers"
+			]
+		},
+		{
+			"id": "monochange_app",
+			"kind": "package",
+			"version": "0.2.2",
+			"version_format": "namespaced",
+			"tag": true,
+			"release": true,
+			"tag_name": "monochange_app/v0.2.2",
+			"rendered_title": "monochange.dev 0.2.2",
+			"rendered_changelog_title": "0.2.2",
+			"members": [
+				"monochange_app"
+			]
+		},
+		{
+			"id": "monochange_classification",
+			"kind": "package",
+			"version": "0.4.3",
+			"version_format": "namespaced",
+			"tag": true,
+			"release": true,
+			"tag_name": "monochange_classification/v0.4.3",
+			"rendered_title": "monochange_classification v0.4.3 (2026-10-08)",
+			"rendered_changelog_title": "monochange_classification [0.4.3](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.4.3) (2026-10-08)",
+			"members": [
+				"monochange_classification"
+			]
+		},
+		{
+			"id": "monochange_schema",
+			"kind": "package",
+			"version": "0.10.0",
+			"version_format": "namespaced",
+			"tag": true,
+			"release": true,
+			"tag_name": "monochange_schema/v0.10.0",
+			"rendered_title": "monochange_schema v0.10.0 (2026-10-08)",
+			"rendered_changelog_title": "monochange_schema [0.10.0](https://github.com/monochange/monochange/releases/tag/monochange_schema/v0.10.0) (2026-10-08)",
+			"members": [
+				"monochange_schema"
+			]
+		}
+	],
+	"released_packages": [
+		"@monochange/cli",
+		"@monochange/cli-darwin-arm64",
+		"@monochange/cli-darwin-x64",
+		"@monochange/cli-linux-arm64-gnu",
+		"@monochange/cli-linux-arm64-musl",
+		"@monochange/cli-linux-x64-gnu",
+		"@monochange/cli-linux-x64-musl",
+		"@monochange/cli-win32-arm64-msvc",
+		"@monochange/cli-win32-x64-msvc",
+		"@monochange/skill",
+		"monochange",
+		"monochange_analysis",
+		"monochange_app",
+		"monochange_cargo",
+		"monochange_changelog",
+		"monochange_classification",
+		"monochange_config",
+		"monochange_core",
+		"monochange_dart",
+		"monochange_deno",
+		"monochange_ecmascript",
+		"monochange_forgejo",
+		"monochange_gitea",
+		"monochange_github",
+		"monochange_gitlab",
+		"monochange_go",
+		"monochange_graph",
+		"monochange_hosting",
+		"monochange_lint",
+		"monochange_linting",
+		"monochange_npm",
+		"monochange_publish",
+		"monochange_python",
+		"monochange_schema",
+		"monochange_semver",
+		"monochange_telemetry",
+		"monochange_test_helpers"
+	],
+	"changed_files": [
+		"Cargo.lock",
+		"Cargo.toml",
+		"app/Cargo.lock",
+		"app/Cargo.toml",
+		"app/changelog.md",
+		"app/crates/monochange_app/Cargo.toml",
+		"app/developer-changelog.md",
+		"app/public/releases/0.2.2.json",
+		"changelog.md",
+		"crates/monochange/Cargo.toml",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/Cargo.toml",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/Cargo.toml",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/Cargo.toml",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_classification/Cargo.toml",
+		"crates/monochange_classification/changelog.md",
+		"crates/monochange_config/Cargo.toml",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/Cargo.toml",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/Cargo.toml",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/Cargo.toml",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/Cargo.toml",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/Cargo.toml",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/Cargo.toml",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/Cargo.toml",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/Cargo.toml",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/Cargo.toml",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_graph/Cargo.toml",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/Cargo.toml",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/Cargo.toml",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/Cargo.toml",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/Cargo.toml",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/Cargo.toml",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/Cargo.toml",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_schema/Cargo.toml",
+		"crates/monochange_schema/changelog.md",
+		"crates/monochange_semver/Cargo.toml",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_telemetry/Cargo.toml",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/Cargo.toml",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli/package.json",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-arm64/package.json",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-darwin-x64/package.json",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/package.json",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/package.json",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/package.json",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/package.json",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/package.json",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/package.json",
+		"packages/monochange__skill/changelog.md",
+		"packages/monochange__skill/package.json"
+	],
+	"package_publications": [
+		{
+			"package": "@monochange/cli",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.18.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-arm64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.18.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-x64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.18.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.18.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.18.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.18.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.18.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-arm64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.18.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-x64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.18.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/skill",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.18.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.18.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_analysis",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.18.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_cargo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.18.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_changelog",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.18.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_classification",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.4.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_config",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.18.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_core",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.18.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_dart",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.18.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_deno",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.18.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_ecmascript",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.18.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_forgejo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.18.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitea",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.18.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_github",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.18.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitlab",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.18.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_go",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.18.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_graph",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.18.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_hosting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.18.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_lint",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.18.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_linting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.18.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_npm",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.18.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_publish",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.18.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_python",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.18.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_schema",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.10.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_semver",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.18.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_telemetry",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.18.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_test_helpers",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.18.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		}
+	],
+	"updated_changelogs": [
+		"app/changelog.md",
+		"app/developer-changelog.md",
+		"app/public/releases/0.2.2.json",
+		"changelog.md",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_classification/changelog.md",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_schema/changelog.md",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__skill/changelog.md"
+	],
+	"deleted_changesets": [
+		".changeset/npm-staged-publishing-api.md",
+		".changeset/npm-staged-publishing-docs.md",
+		".changeset/npm-staged-publishing.md",
+		".changeset/release-note-audiences.md",
+		".changeset/website-deployment-credentials.md",
+		".changeset/website-repository-connection.md",
+		".changeset/website-session-persistence.md"
+	],
+	"changesets": [
+		{
+			"path": ".changeset/npm-staged-publishing-api.md",
+			"summary": "Breaking publish API additions for the staged publish flow",
+			"details": "> Constructing the affected structs or matching on the affected enums outside this workspace now requires updates. `PublishRequest`, `PublishSettings`, and `PackagePublicationTarget` gained a `flow` field, `PackagePublishStatus` gained a `Staged` variant, `PackagePublishSummary` gained a `staged` counter, and `PublishProgressEvent::RunFinished` gained a `staged` field.\n\nAdd `flow: PublishFlow::Direct` (or the desired flow) to every `PublishRequest`, `PublishSettings`, and `PackagePublicationTarget` struct literal:\n\n```rust\n// Before\nPublishRequest { package_id, /* … */ mode, version, /* … */ }\n\n// After\nPublishRequest { package_id, /* … */ mode, flow: PublishFlow::Direct, version, /* … */ }\n```\n\nHandle the new `PackagePublishStatus::Staged` variant in every exhaustive match; a staged outcome means the upload succeeded but the version is not installable until a maintainer approves it with 2FA. `PackagePublishSummary::staged` defaults to `0` during deserialization, and `PublishProgressEvent::RunFinished { staged, .. }` can be ignored when only totals matter.\n\nThe serialized forms stay backward compatible: JSON reports and release records without the new fields deserialize with `flow = \"direct\"` and `staged = 0`.",
+			"targets": [
+				{
+					"id": "monochange_core",
+					"kind": "package",
+					"bump": "major",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "major"
+				},
+				{
+					"id": "monochange_publish",
+					"kind": "package",
+					"bump": "major",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "major"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "0969e9a3fa10fed20dd651f1ac34cb09f1319948",
+						"short_sha": "0969e9a",
+						"url": "https://github.com/monochange/monochange/commit/0969e9a3fa10fed20dd651f1ac34cb09f1319948",
+						"authored_at": "2026-10-08T17:52:05Z",
+						"committed_at": "2026-10-08T17:52:05Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#764",
+						"title": "feat(publish): add npm staged publishing flow option",
+						"url": "https://github.com/monochange/monochange/pull/764",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "0969e9a3fa10fed20dd651f1ac34cb09f1319948",
+						"short_sha": "0969e9a",
+						"url": "https://github.com/monochange/monochange/commit/0969e9a3fa10fed20dd651f1ac34cb09f1319948",
+						"authored_at": "2026-10-08T17:52:05Z",
+						"committed_at": "2026-10-08T17:52:05Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#764",
+						"title": "feat(publish): add npm staged publishing flow option",
+						"url": "https://github.com/monochange/monochange/pull/764",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/npm-staged-publishing-docs.md",
+			"summary": "Document npm staged publishing in the guide",
+			"details": "The documentation now explains the difference between direct publishing, trusted publishing, and npm's staged publishing, and when to combine them. The configuration guide covers the new `publish.flow` option for npm packages, so you can read how to hold each release for maintainer approval with 2FA before it becomes installable.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "website_feature"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "0969e9a3fa10fed20dd651f1ac34cb09f1319948",
+						"short_sha": "0969e9a",
+						"url": "https://github.com/monochange/monochange/commit/0969e9a3fa10fed20dd651f1ac34cb09f1319948",
+						"authored_at": "2026-10-08T17:52:05Z",
+						"committed_at": "2026-10-08T17:52:05Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#764",
+						"title": "feat(publish): add npm staged publishing flow option",
+						"url": "https://github.com/monochange/monochange/pull/764",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "0969e9a3fa10fed20dd651f1ac34cb09f1319948",
+						"short_sha": "0969e9a",
+						"url": "https://github.com/monochange/monochange/commit/0969e9a3fa10fed20dd651f1ac34cb09f1319948",
+						"authored_at": "2026-10-08T17:52:05Z",
+						"committed_at": "2026-10-08T17:52:05Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#764",
+						"title": "feat(publish): add npm staged publishing flow option",
+						"url": "https://github.com/monochange/monochange/pull/764",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/npm-staged-publishing.md",
+			"summary": "Add npm staged publishing with `publish.flow`",
+			"details": "npm packages can now defer the moment a release goes live. Set `flow = \"staged\"` and release publishes run `npm stage publish` instead of `npm publish`, so a version waits in the npm staging queue until a maintainer approves it with 2FA (`npm stage approve <stage-id>` or the Staged Packages tab on npmjs.com). Staging needs no 2FA, so CI stays unattended while every release gains a human approval gate.\n\n```toml\n# Before: every release publish goes live immediately.\n[ecosystems.npm.publish]\ntrusted_publishing = true\n\n# After: CI stages token-free; a maintainer approves each release with 2FA.\n[ecosystems.npm.publish]\ntrusted_publishing = true\nflow = \"staged\"\n\n# Opt a single package back into immediate publishes.\n[package.legacy.publish]\nflow = \"direct\"\n```\n\nDetails:\n\n- `flow` accepts `\"direct\"` (default, current behavior) or `\"staged\"` on `[ecosystems.npm.publish]` and `[package.<id>.publish]`; package values override ecosystem defaults like every other publish option. Other ecosystems reject `\"staged\"` at config load.\n- Staged publishing composes with trusted publishing: the trusted-publisher workflow stages through OIDC and approval requires interactive 2FA that CI cannot supply. This survives a compromised CI context, which a direct trusted publish does not.\n- Successful staged publishes report a `staged` status (not `published`) with a `staged` summary count, and publish resume treats them as complete. Staged versions are invisible to the registry version probe, so re-running before approval stages again instead of skipping.\n- Placeholder publishing always stays direct, matching the existing rule that placeholder publishing ignores publish modes; a placeholder must register the package immediately.\n- Requires npm CLI 11.15+ and Node 22.14+; pnpm workspaces stage through `pnpm stage publish` (pnpm 11.3+).\n- Release records now carry `flow` on each package publication target, so the release decision stays auditable. Older release records without the field parse as `direct`. The release-record and config schema contracts advance to schema version `0.10` with a no-op migration edge from `0.9` (the optional field defaults to `direct`); the published `v0.9` schema assets stay frozen.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monochange_config",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monochange_schema",
+					"kind": "package",
+					"bump": "major",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "major"
+				},
+				{
+					"id": "@monochange/skill",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "0969e9a3fa10fed20dd651f1ac34cb09f1319948",
+						"short_sha": "0969e9a",
+						"url": "https://github.com/monochange/monochange/commit/0969e9a3fa10fed20dd651f1ac34cb09f1319948",
+						"authored_at": "2026-10-08T17:52:05Z",
+						"committed_at": "2026-10-08T17:52:05Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#764",
+						"title": "feat(publish): add npm staged publishing flow option",
+						"url": "https://github.com/monochange/monochange/pull/764",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "0969e9a3fa10fed20dd651f1ac34cb09f1319948",
+						"short_sha": "0969e9a",
+						"url": "https://github.com/monochange/monochange/commit/0969e9a3fa10fed20dd651f1ac34cb09f1319948",
+						"authored_at": "2026-10-08T17:52:05Z",
+						"committed_at": "2026-10-08T17:52:05Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#764",
+						"title": "feat(publish): add npm staged publishing flow option",
+						"url": "https://github.com/monochange/monochange/pull/764",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/release-note-audiences.md",
+			"summary": "Choose release-note streams by audience for every package type",
+			"details": "Generated release-agent instructions and the bundled skill now require agents to read configured stream and type descriptions and inspect output destinations before writing changesets. Application packages can use developer types for deployment or CI changes and product types for visible behavior. Agents create separate notes for the same package only when both audiences need them, then preview and render each output for review.\n\nUse `monochange subagents <target> --force` to refresh an existing generated agent definition. Review local edits before replacing it. Inspect each audience with `monochange notes --output <id> --target <package>`; notes with a selected stream still need human or agent review of their prose.\n\nThe website now retains operational notes in `app/developer-changelog.md` instead of putting them in its public feed. Its implicit default changelog remains disabled. A named default-stream output retains those entries alongside the existing website outputs:\n\n```toml\n[changelog.outputs.website_developer]\nstream = \"default\"\ntargets = [\"monochange_app\"]\npath = \"app/developer-changelog.md\"\nformat = \"keep_a_changelog\"\nmode = \"append\"\n```",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				},
+				{
+					"id": "@monochange/skill",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				},
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "a2215e91bd078a67318dc8c5a57bc5e6b2220319",
+						"short_sha": "a2215e9",
+						"url": "https://github.com/monochange/monochange/commit/a2215e91bd078a67318dc8c5a57bc5e6b2220319",
+						"authored_at": "2026-10-08T08:20:58Z",
+						"committed_at": "2026-10-08T08:20:58Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#762",
+						"title": "fix(releases): choose release-note streams by audience",
+						"url": "https://github.com/monochange/monochange/pull/762",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "a2215e91bd078a67318dc8c5a57bc5e6b2220319",
+						"short_sha": "a2215e9",
+						"url": "https://github.com/monochange/monochange/commit/a2215e91bd078a67318dc8c5a57bc5e6b2220319",
+						"authored_at": "2026-10-08T08:20:58Z",
+						"committed_at": "2026-10-08T08:20:58Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#762",
+						"title": "fix(releases): choose release-note streams by audience",
+						"url": "https://github.com/monochange/monochange/pull/762",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/website-deployment-credentials.md",
+			"summary": "Resolve production deployment credentials in the environment-bound job",
+			"details": "The website deployment job now runs directly in `ci.yml` with the `website-production` environment, so its SSH key reaches the deployment step without crossing a reusable-workflow secret boundary. The job validates key presence and parsing before building the update and removes the temporary key after use. Operators receive an early error when deployment credentials are missing or malformed.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "5f92c391d814df7a3cef608e306551dbad711253",
+						"short_sha": "5f92c39",
+						"url": "https://github.com/monochange/monochange/commit/5f92c391d814df7a3cef608e306551dbad711253",
+						"authored_at": "2026-10-07T14:28:39Z",
+						"committed_at": "2026-10-07T14:28:39Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#759",
+						"title": "fix(ci): bind website deployment to its production environment",
+						"url": "https://github.com/monochange/monochange/pull/759",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "a2215e91bd078a67318dc8c5a57bc5e6b2220319",
+						"short_sha": "a2215e9",
+						"url": "https://github.com/monochange/monochange/commit/a2215e91bd078a67318dc8c5a57bc5e6b2220319",
+						"authored_at": "2026-10-08T08:20:58Z",
+						"committed_at": "2026-10-08T08:20:58Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#762",
+						"title": "fix(releases): choose release-note streams by audience",
+						"url": "https://github.com/monochange/monochange/pull/762",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/website-repository-connection.md",
+			"summary": "Connect repositories from your workspace",
+			"details": "When repository connection is available, open its GitHub installation page from your dashboard. Choose all repositories or selected repositories on GitHub, then return to the dashboard. If connection is unavailable, the workspace explains that setup is still needed instead of implying that signing in connected your repositories.\n\nFirst-time connections now appear even when you connect on GitHub before signing in to the website. Your workspace follows repository selection changes, paused connections and removals for each connected account. Connecting repositories does not enable hosted release automation.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "website_feature"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "4200be9369851004264b7a13597f9516b241c45a",
+						"short_sha": "4200be9",
+						"url": "https://github.com/monochange/monochange/commit/4200be9369851004264b7a13597f9516b241c45a",
+						"authored_at": "2026-10-07T19:41:19Z",
+						"committed_at": "2026-10-07T19:41:19Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#761",
+						"title": "fix(app): preserve GitHub sessions and connect repositories",
+						"url": "https://github.com/monochange/monochange/pull/761",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "a2215e91bd078a67318dc8c5a57bc5e6b2220319",
+						"short_sha": "a2215e9",
+						"url": "https://github.com/monochange/monochange/commit/a2215e91bd078a67318dc8c5a57bc5e6b2220319",
+						"authored_at": "2026-10-08T08:20:58Z",
+						"committed_at": "2026-10-08T08:20:58Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#762",
+						"title": "fix(releases): choose release-note streams by audience",
+						"url": "https://github.com/monochange/monochange/pull/762",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/website-session-persistence.md",
+			"summary": "Keep your workspace signed in after GitHub login",
+			"details": "The dashboard and navigation now recognize a completed GitHub sign-in, including after a reload. Signing out clears the browser session and returns you to the public website. Failed or expired sign-ins ask you to try again without creating a session.\n\nConnected public and private repositories are limited to your account. Organization repositories are shown to the installer only while GitHub confirms they remain an active organization owner.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "website_fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "4200be9369851004264b7a13597f9516b241c45a",
+						"short_sha": "4200be9",
+						"url": "https://github.com/monochange/monochange/commit/4200be9369851004264b7a13597f9516b241c45a",
+						"authored_at": "2026-10-07T19:41:19Z",
+						"committed_at": "2026-10-07T19:41:19Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#761",
+						"title": "fix(app): preserve GitHub sessions and connect repositories",
+						"url": "https://github.com/monochange/monochange/pull/761",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "4200be9369851004264b7a13597f9516b241c45a",
+						"short_sha": "4200be9",
+						"url": "https://github.com/monochange/monochange/commit/4200be9369851004264b7a13597f9516b241c45a",
+						"authored_at": "2026-10-07T19:41:19Z",
+						"committed_at": "2026-10-07T19:41:19Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#761",
+						"title": "fix(app): preserve GitHub sessions and connect repositories",
+						"url": "https://github.com/monochange/monochange/pull/761",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		}
+	],
+	"changelogs": [
+		{
+			"owner_id": "monochange_app",
+			"owner_kind": "package",
+			"output": "website",
+			"stream": "website",
+			"path": "app/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "0.2.2",
+				"summary": [],
+				"sections": [
+					{
+						"title": "New",
+						"collapsed": false,
+						"entries": [
+							"- **Document npm staged publishing in the guide.** The documentation now explains the difference between direct publishing, trusted publishing, and npm's staged publishing, and when to combine them. The configuration guide covers the new `publish.flow` option for npm packages, so you can read how to hold each release for maintainer approval with 2FA before it becomes installable.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #764](https://github.com/monochange/monochange/pull/764)",
+							"#### Connect repositories from your workspace\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #761](https://github.com/monochange/monochange/pull/761)\n\nWhen repository connection is available, open its GitHub installation page from your dashboard. Choose all repositories or selected repositories on GitHub, then return to the dashboard. If connection is unavailable, the workspace explains that setup is still needed instead of implying that signing in connected your repositories.\n\nFirst-time connections now appear even when you connect on GitHub before signing in to the website. Your workspace follows repository selection changes, paused connections and removals for each connected account. Connecting repositories does not enable hosted release automation."
+						]
+					},
+					{
+						"title": "Improved",
+						"collapsed": false,
+						"entries": [
+							"#### Keep your workspace signed in after GitHub login\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #761](https://github.com/monochange/monochange/pull/761)\n\nThe dashboard and navigation now recognize a completed GitHub sign-in, including after a reload. Signing out clears the browser session and returns you to the public website. Failed or expired sign-ins ask you to try again without creating a session.\n\nConnected public and private repositories are limited to your account. Organization repositories are shown to the installer only while GitHub confirms they remain an active organization owner."
+						]
+					}
+				]
+			},
+			"rendered": "## 0.2.2\n\n### New\n\n- **Document npm staged publishing in the guide.** The documentation now explains the difference between direct publishing, trusted publishing, and npm's staged publishing, and when to combine them. The configuration guide covers the new `publish.flow` option for npm packages, so you can read how to hold each release for maintainer approval with 2FA before it becomes installable.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #764](https://github.com/monochange/monochange/pull/764)\n#### Connect repositories from your workspace\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #761](https://github.com/monochange/monochange/pull/761)\n\nWhen repository connection is available, open its GitHub installation page from your dashboard. Choose all repositories or selected repositories on GitHub, then return to the dashboard. If connection is unavailable, the workspace explains that setup is still needed instead of implying that signing in connected your repositories.\n\nFirst-time connections now appear even when you connect on GitHub before signing in to the website. Your workspace follows repository selection changes, paused connections and removals for each connected account. Connecting repositories does not enable hosted release automation.\n\n### Improved\n\n#### Keep your workspace signed in after GitHub login\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #761](https://github.com/monochange/monochange/pull/761)\n\nThe dashboard and navigation now recognize a completed GitHub sign-in, including after a reload. Signing out clears the browser session and returns you to the public website. Failed or expired sign-ins ask you to try again without creating a session.\n\nConnected public and private repositories are limited to your account. Organization repositories are shown to the installer only while GitHub confirms they remain an active organization owner."
+		},
+		{
+			"owner_id": "monochange_app",
+			"owner_kind": "package",
+			"output": "website_developer",
+			"stream": "default",
+			"path": "app/developer-changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "0.2.2",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Choose release-note streams by audience for every package type\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #762](https://github.com/monochange/monochange/pull/762)\n\nGenerated release-agent instructions and the bundled skill now require agents to read configured stream and type descriptions and inspect output destinations before writing changesets. Application packages can use developer types for deployment or CI changes and product types for visible behavior. Agents create separate notes for the same package only when both audiences need them, then preview and render each output for review.\n\nUse `monochange subagents <target> --force` to refresh an existing generated agent definition. Review local edits before replacing it. Inspect each audience with `monochange notes --output <id> --target <package>`; notes with a selected stream still need human or agent review of their prose.\n\nThe website now retains operational notes in `app/developer-changelog.md` instead of putting them in its public feed. Its implicit default changelog remains disabled. A named default-stream output retains those entries alongside the existing website outputs:\n\n```toml\n[changelog.outputs.website_developer]\nstream = \"default\"\ntargets = [\"monochange_app\"]\npath = \"app/developer-changelog.md\"\nformat = \"keep_a_changelog\"\nmode = \"append\"\n```",
+							"- **Resolve production deployment credentials in the environment-bound job.** The website deployment job now runs directly in `ci.yml` with the `website-production` environment, so its SSH key reaches the deployment step without crossing a reusable-workflow secret boundary. The job validates key presence and parsing before building the update and removes the temporary key after use. Operators receive an early error when deployment credentials are missing or malformed.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #759](https://github.com/monochange/monochange/pull/759)"
+						]
+					}
+				]
+			},
+			"rendered": "## 0.2.2\n\n### 🐛 Fixed\n\n#### Choose release-note streams by audience for every package type\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #762](https://github.com/monochange/monochange/pull/762)\n\nGenerated release-agent instructions and the bundled skill now require agents to read configured stream and type descriptions and inspect output destinations before writing changesets. Application packages can use developer types for deployment or CI changes and product types for visible behavior. Agents create separate notes for the same package only when both audiences need them, then preview and render each output for review.\n\nUse `monochange subagents <target> --force` to refresh an existing generated agent definition. Review local edits before replacing it. Inspect each audience with `monochange notes --output <id> --target <package>`; notes with a selected stream still need human or agent review of their prose.\n\nThe website now retains operational notes in `app/developer-changelog.md` instead of putting them in its public feed. Its implicit default changelog remains disabled. A named default-stream output retains those entries alongside the existing website outputs:\n\n```toml\n[changelog.outputs.website_developer]\nstream = \"default\"\ntargets = [\"monochange_app\"]\npath = \"app/developer-changelog.md\"\nformat = \"keep_a_changelog\"\nmode = \"append\"\n```\n\n- **Resolve production deployment credentials in the environment-bound job.** The website deployment job now runs directly in `ci.yml` with the `website-production` environment, so its SSH key reaches the deployment step without crossing a reusable-workflow secret boundary. The job validates key presence and parsing before building the update and removes the temporary key after use. Operators receive an early error when deployment credentials are missing or malformed.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #759](https://github.com/monochange/monochange/pull/759)"
+		},
+		{
+			"owner_id": "monochange_app",
+			"owner_kind": "package",
+			"output": "website_json",
+			"stream": "website",
+			"path": "app/public/releases/0.2.2.json",
+			"format": "json",
+			"notes": {
+				"title": "0.2.2",
+				"summary": [],
+				"sections": [
+					{
+						"title": "New",
+						"collapsed": false,
+						"entries": [
+							"- **Document npm staged publishing in the guide.** The documentation now explains the difference between direct publishing, trusted publishing, and npm's staged publishing, and when to combine them. The configuration guide covers the new `publish.flow` option for npm packages, so you can read how to hold each release for maintainer approval with 2FA before it becomes installable.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #764](https://github.com/monochange/monochange/pull/764)",
+							"#### Connect repositories from your workspace\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #761](https://github.com/monochange/monochange/pull/761)\n\nWhen repository connection is available, open its GitHub installation page from your dashboard. Choose all repositories or selected repositories on GitHub, then return to the dashboard. If connection is unavailable, the workspace explains that setup is still needed instead of implying that signing in connected your repositories.\n\nFirst-time connections now appear even when you connect on GitHub before signing in to the website. Your workspace follows repository selection changes, paused connections and removals for each connected account. Connecting repositories does not enable hosted release automation."
+						]
+					},
+					{
+						"title": "Improved",
+						"collapsed": false,
+						"entries": [
+							"#### Keep your workspace signed in after GitHub login\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #761](https://github.com/monochange/monochange/pull/761)\n\nThe dashboard and navigation now recognize a completed GitHub sign-in, including after a reload. Signing out clears the browser session and returns you to the public website. Failed or expired sign-ins ask you to try again without creating a session.\n\nConnected public and private repositories are limited to your account. Organization repositories are shown to the installer only while GitHub confirms they remain an active organization owner."
+						]
+					}
+				]
+			},
+			"rendered": "{\n  \"title\": \"0.2.2\",\n  \"summary\": [],\n  \"sections\": [\n    {\n      \"title\": \"New\",\n      \"collapsed\": false,\n      \"entries\": [\n        {\n          \"summary\": \"Document npm staged publishing in the guide\",\n          \"details_markdown\": \"The documentation now explains the difference between direct publishing, trusted publishing, and npm's staged publishing, and when to combine them. The configuration guide covers the new `publish.flow` option for npm packages, so you can read how to hold each release for maintainer approval with 2FA before it becomes installable.\",\n          \"change_type\": \"website_feature\",\n          \"bump\": \"minor\",\n          \"stream\": \"website\",\n          \"style\": \"compact\",\n          \"provenance\": {\n            \"source_path\": \".changeset/npm-staged-publishing-docs.md\",\n            \"changeset_path\": \".changeset/npm-staged-publishing-docs.md\",\n            \"change_owner\": {\n              \"label\": \"@ifiokjr\",\n              \"url\": \"https://github.com/ifiokjr\"\n            },\n            \"review_request\": {\n              \"label\": \"PR #764\",\n              \"url\": \"https://github.com/monochange/monochange/pull/764\"\n            },\n            \"introduced_commit\": {\n              \"label\": \"0969e9a\",\n              \"url\": \"https://github.com/monochange/monochange/commit/0969e9a3fa10fed20dd651f1ac34cb09f1319948\"\n            }\n          }\n        },\n        {\n          \"summary\": \"Connect repositories from your workspace\",\n          \"details_markdown\": \"When repository connection is available, open its GitHub installation page from your dashboard. Choose all repositories or selected repositories on GitHub, then return to the dashboard. If connection is unavailable, the workspace explains that setup is still needed instead of implying that signing in connected your repositories.\\n\\nFirst-time connections now appear even when you connect on GitHub before signing in to the website. Your workspace follows repository selection changes, paused connections and removals for each connected account. Connecting repositories does not enable hosted release automation.\",\n          \"change_type\": \"website_feature\",\n          \"bump\": \"minor\",\n          \"stream\": \"website\",\n          \"style\": \"expanded\",\n          \"provenance\": {\n            \"source_path\": \".changeset/website-repository-connection.md\",\n            \"changeset_path\": \".changeset/website-repository-connection.md\",\n            \"change_owner\": {\n              \"label\": \"@ifiokjr\",\n              \"url\": \"https://github.com/ifiokjr\"\n            },\n            \"review_request\": {\n              \"label\": \"PR #761\",\n              \"url\": \"https://github.com/monochange/monochange/pull/761\"\n            },\n            \"introduced_commit\": {\n              \"label\": \"4200be9\",\n              \"url\": \"https://github.com/monochange/monochange/commit/4200be9369851004264b7a13597f9516b241c45a\"\n            },\n            \"last_updated_commit\": {\n              \"label\": \"a2215e9\",\n              \"url\": \"https://github.com/monochange/monochange/commit/a2215e91bd078a67318dc8c5a57bc5e6b2220319\"\n            }\n          }\n        }\n      ]\n    },\n    {\n      \"title\": \"Improved\",\n      \"collapsed\": false,\n      \"entries\": [\n        {\n          \"summary\": \"Keep your workspace signed in after GitHub login\",\n          \"details_markdown\": \"The dashboard and navigation now recognize a completed GitHub sign-in, including after a reload. Signing out clears the browser session and returns you to the public website. Failed or expired sign-ins ask you to try again without creating a session.\\n\\nConnected public and private repositories are limited to your account. Organization repositories are shown to the installer only while GitHub confirms they remain an active organization owner.\",\n          \"change_type\": \"website_fix\",\n          \"bump\": \"patch\",\n          \"stream\": \"website\",\n          \"style\": \"expanded\",\n          \"provenance\": {\n            \"source_path\": \".changeset/website-session-persistence.md\",\n            \"changeset_path\": \".changeset/website-session-persistence.md\",\n            \"change_owner\": {\n              \"label\": \"@ifiokjr\",\n              \"url\": \"https://github.com/ifiokjr\"\n            },\n            \"review_request\": {\n              \"label\": \"PR #761\",\n              \"url\": \"https://github.com/monochange/monochange/pull/761\"\n            },\n            \"introduced_commit\": {\n              \"label\": \"4200be9\",\n              \"url\": \"https://github.com/monochange/monochange/commit/4200be9369851004264b7a13597f9516b241c45a\"\n            }\n          }\n        }\n      ]\n    }\n  ]\n}"
+		},
+		{
+			"owner_id": "main",
+			"owner_kind": "group",
+			"output": "default",
+			"stream": "default",
+			"path": "changelog.md",
+			"format": "monochange",
+			"notes": {
+				"title": "[0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)",
+				"summary": [
+					"Grouped release for `main`."
+				],
+				"sections": [
+					{
+						"title": "💥 Breaking Change",
+						"collapsed": false,
+						"entries": [
+							"#### Breaking publish API additions for the staged publish flow\n\n_Packages:_ 🔴 _monochange_core_, 🔴 _monochange_publish_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #764](https://github.com/monochange/monochange/pull/764)\n\n> Constructing the affected structs or matching on the affected enums outside this workspace now requires updates. `PublishRequest`, `PublishSettings`, and `PackagePublicationTarget` gained a `flow` field, `PackagePublishStatus` gained a `Staged` variant, `PackagePublishSummary` gained a `staged` counter, and `PublishProgressEvent::RunFinished` gained a `staged` field.\n\nAdd `flow: PublishFlow::Direct` (or the desired flow) to every `PublishRequest`, `PublishSettings`, and `PackagePublicationTarget` struct literal:\n\n```rust\n// Before\nPublishRequest { package_id, /* … */ mode, version, /* … */ }\n\n// After\nPublishRequest { package_id, /* … */ mode, flow: PublishFlow::Direct, version, /* … */ }\n```\n\nHandle the new `PackagePublishStatus::Staged` variant in every exhaustive match; a staged outcome means the upload succeeded but the version is not installable until a maintainer approves it with 2FA. `PackagePublishSummary::staged` defaults to `0` during deserialization, and `PublishProgressEvent::RunFinished { staged, .. }` can be ignored when only totals matter.\n\nThe serialized forms stay backward compatible: JSON reports and release records without the new fields deserialize with `flow = \"direct\"` and `staged = 0`."
+						]
+					},
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Add npm staged publishing with `publish.flow`\n\n_Packages:_ 🟢 _@monochange/skill_, 🟠 _monochange_, 🟠 _monochange_config_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #764](https://github.com/monochange/monochange/pull/764)\n\nnpm packages can now defer the moment a release goes live. Set `flow = \"staged\"` and release publishes run `npm stage publish` instead of `npm publish`, so a version waits in the npm staging queue until a maintainer approves it with 2FA (`npm stage approve <stage-id>` or the Staged Packages tab on npmjs.com). Staging needs no 2FA, so CI stays unattended while every release gains a human approval gate.\n\n```toml\n# Before: every release publish goes live immediately.\n[ecosystems.npm.publish]\ntrusted_publishing = true\n\n# After: CI stages token-free; a maintainer approves each release with 2FA.\n[ecosystems.npm.publish]\ntrusted_publishing = true\nflow = \"staged\"\n\n# Opt a single package back into immediate publishes.\n[package.legacy.publish]\nflow = \"direct\"\n```\n\nDetails:\n\n- `flow` accepts `\"direct\"` (default, current behavior) or `\"staged\"` on `[ecosystems.npm.publish]` and `[package.<id>.publish]`; package values override ecosystem defaults like every other publish option. Other ecosystems reject `\"staged\"` at config load.\n- Staged publishing composes with trusted publishing: the trusted-publisher workflow stages through OIDC and approval requires interactive 2FA that CI cannot supply. This survives a compromised CI context, which a direct trusted publish does not.\n- Successful staged publishes report a `staged` status (not `published`) with a `staged` summary count, and publish resume treats them as complete. Staged versions are invisible to the registry version probe, so re-running before approval stages again instead of skipping.\n- Placeholder publishing always stays direct, matching the existing rule that placeholder publishing ignores publish modes; a placeholder must register the package immediately.\n- Requires npm CLI 11.15+ and Node 22.14+; pnpm workspaces stage through `pnpm stage publish` (pnpm 11.3+).\n- Release records now carry `flow` on each package publication target, so the release decision stays auditable. Older release records without the field parse as `direct`. The release-record and config schema contracts advance to schema version `0.10` with a no-op migration edge from `0.9` (the optional field defaults to `direct`); the published `v0.9` schema assets stay frozen."
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Choose release-note streams by audience for every package type\n\n_Packages:_ 🟢 _@monochange/skill_, 🟢 _monochange_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #762](https://github.com/monochange/monochange/pull/762)\n\nGenerated release-agent instructions and the bundled skill now require agents to read configured stream and type descriptions and inspect output destinations before writing changesets. Application packages can use developer types for deployment or CI changes and product types for visible behavior. Agents create separate notes for the same package only when both audiences need them, then preview and render each output for review.\n\nUse `monochange subagents <target> --force` to refresh an existing generated agent definition. Review local edits before replacing it. Inspect each audience with `monochange notes --output <id> --target <package>`; notes with a selected stream still need human or agent review of their prose.\n\nThe website now retains operational notes in `app/developer-changelog.md` instead of putting them in its public feed. Its implicit default changelog remains disabled. A named default-stream output retains those entries alongside the existing website outputs:\n\n```toml\n[changelog.outputs.website_developer]\nstream = \"default\"\ntargets = [\"monochange_app\"]\npath = \"app/developer-changelog.md\"\nformat = \"keep_a_changelog\"\nmode = \"append\"\n```"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)\n\nGrouped release for `main`.\n\n### 💥 Breaking Change\n\n#### Breaking publish API additions for the staged publish flow\n\n_Packages:_ 🔴 _monochange_core_, 🔴 _monochange_publish_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #764](https://github.com/monochange/monochange/pull/764)\n\n> Constructing the affected structs or matching on the affected enums outside this workspace now requires updates. `PublishRequest`, `PublishSettings`, and `PackagePublicationTarget` gained a `flow` field, `PackagePublishStatus` gained a `Staged` variant, `PackagePublishSummary` gained a `staged` counter, and `PublishProgressEvent::RunFinished` gained a `staged` field.\n\nAdd `flow: PublishFlow::Direct` (or the desired flow) to every `PublishRequest`, `PublishSettings`, and `PackagePublicationTarget` struct literal:\n\n```rust\n// Before\nPublishRequest { package_id, /* … */ mode, version, /* … */ }\n\n// After\nPublishRequest { package_id, /* … */ mode, flow: PublishFlow::Direct, version, /* … */ }\n```\n\nHandle the new `PackagePublishStatus::Staged` variant in every exhaustive match; a staged outcome means the upload succeeded but the version is not installable until a maintainer approves it with 2FA. `PackagePublishSummary::staged` defaults to `0` during deserialization, and `PublishProgressEvent::RunFinished { staged, .. }` can be ignored when only totals matter.\n\nThe serialized forms stay backward compatible: JSON reports and release records without the new fields deserialize with `flow = \"direct\"` and `staged = 0`.\n\n### 🚀 Feature\n\n#### Add npm staged publishing with `publish.flow`\n\n_Packages:_ 🟢 _@monochange/skill_, 🟠 _monochange_, 🟠 _monochange_config_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #764](https://github.com/monochange/monochange/pull/764)\n\nnpm packages can now defer the moment a release goes live. Set `flow = \"staged\"` and release publishes run `npm stage publish` instead of `npm publish`, so a version waits in the npm staging queue until a maintainer approves it with 2FA (`npm stage approve <stage-id>` or the Staged Packages tab on npmjs.com). Staging needs no 2FA, so CI stays unattended while every release gains a human approval gate.\n\n```toml\n# Before: every release publish goes live immediately.\n[ecosystems.npm.publish]\ntrusted_publishing = true\n\n# After: CI stages token-free; a maintainer approves each release with 2FA.\n[ecosystems.npm.publish]\ntrusted_publishing = true\nflow = \"staged\"\n\n# Opt a single package back into immediate publishes.\n[package.legacy.publish]\nflow = \"direct\"\n```\n\nDetails:\n\n- `flow` accepts `\"direct\"` (default, current behavior) or `\"staged\"` on `[ecosystems.npm.publish]` and `[package.<id>.publish]`; package values override ecosystem defaults like every other publish option. Other ecosystems reject `\"staged\"` at config load.\n- Staged publishing composes with trusted publishing: the trusted-publisher workflow stages through OIDC and approval requires interactive 2FA that CI cannot supply. This survives a compromised CI context, which a direct trusted publish does not.\n- Successful staged publishes report a `staged` status (not `published`) with a `staged` summary count, and publish resume treats them as complete. Staged versions are invisible to the registry version probe, so re-running before approval stages again instead of skipping.\n- Placeholder publishing always stays direct, matching the existing rule that placeholder publishing ignores publish modes; a placeholder must register the package immediately.\n- Requires npm CLI 11.15+ and Node 22.14+; pnpm workspaces stage through `pnpm stage publish` (pnpm 11.3+).\n- Release records now carry `flow` on each package publication target, so the release decision stays auditable. Older release records without the field parse as `direct`. The release-record and config schema contracts advance to schema version `0.10` with a no-op migration edge from `0.9` (the optional field defaults to `direct`); the published `v0.9` schema assets stay frozen.\n\n### 🐛 Fixed\n\n#### Choose release-note streams by audience for every package type\n\n_Packages:_ 🟢 _@monochange/skill_, 🟢 _monochange_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #762](https://github.com/monochange/monochange/pull/762)\n\nGenerated release-agent instructions and the bundled skill now require agents to read configured stream and type descriptions and inspect output destinations before writing changesets. Application packages can use developer types for deployment or CI changes and product types for visible behavior. Agents create separate notes for the same package only when both audiences need them, then preview and render each output for review.\n\nUse `monochange subagents <target> --force` to refresh an existing generated agent definition. Review local edits before replacing it. Inspect each audience with `monochange notes --output <id> --target <package>`; notes with a selected stream still need human or agent review of their prose.\n\nThe website now retains operational notes in `app/developer-changelog.md` instead of putting them in its public feed. Its implicit default changelog remains disabled. A named default-stream output retains those entries alongside the existing website outputs:\n\n```toml\n[changelog.outputs.website_developer]\nstream = \"default\"\ntargets = [\"monochange_app\"]\npath = \"app/developer-changelog.md\"\nformat = \"keep_a_changelog\"\nmode = \"append\"\n```"
+		},
+		{
+			"owner_id": "monochange",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Add npm staged publishing with `publish.flow`\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #764](https://github.com/monochange/monochange/pull/764)\n\nnpm packages can now defer the moment a release goes live. Set `flow = \"staged\"` and release publishes run `npm stage publish` instead of `npm publish`, so a version waits in the npm staging queue until a maintainer approves it with 2FA (`npm stage approve <stage-id>` or the Staged Packages tab on npmjs.com). Staging needs no 2FA, so CI stays unattended while every release gains a human approval gate.\n\n```toml\n# Before: every release publish goes live immediately.\n[ecosystems.npm.publish]\ntrusted_publishing = true\n\n# After: CI stages token-free; a maintainer approves each release with 2FA.\n[ecosystems.npm.publish]\ntrusted_publishing = true\nflow = \"staged\"\n\n# Opt a single package back into immediate publishes.\n[package.legacy.publish]\nflow = \"direct\"\n```\n\nDetails:\n\n- `flow` accepts `\"direct\"` (default, current behavior) or `\"staged\"` on `[ecosystems.npm.publish]` and `[package.<id>.publish]`; package values override ecosystem defaults like every other publish option. Other ecosystems reject `\"staged\"` at config load.\n- Staged publishing composes with trusted publishing: the trusted-publisher workflow stages through OIDC and approval requires interactive 2FA that CI cannot supply. This survives a compromised CI context, which a direct trusted publish does not.\n- Successful staged publishes report a `staged` status (not `published`) with a `staged` summary count, and publish resume treats them as complete. Staged versions are invisible to the registry version probe, so re-running before approval stages again instead of skipping.\n- Placeholder publishing always stays direct, matching the existing rule that placeholder publishing ignores publish modes; a placeholder must register the package immediately.\n- Requires npm CLI 11.15+ and Node 22.14+; pnpm workspaces stage through `pnpm stage publish` (pnpm 11.3+).\n- Release records now carry `flow` on each package publication target, so the release decision stays auditable. Older release records without the field parse as `direct`. The release-record and config schema contracts advance to schema version `0.10` with a no-op migration edge from `0.9` (the optional field defaults to `direct`); the published `v0.9` schema assets stay frozen."
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Choose release-note streams by audience for every package type\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #762](https://github.com/monochange/monochange/pull/762)\n\nGenerated release-agent instructions and the bundled skill now require agents to read configured stream and type descriptions and inspect output destinations before writing changesets. Application packages can use developer types for deployment or CI changes and product types for visible behavior. Agents create separate notes for the same package only when both audiences need them, then preview and render each output for review.\n\nUse `monochange subagents <target> --force` to refresh an existing generated agent definition. Review local edits before replacing it. Inspect each audience with `monochange notes --output <id> --target <package>`; notes with a selected stream still need human or agent review of their prose.\n\nThe website now retains operational notes in `app/developer-changelog.md` instead of putting them in its public feed. Its implicit default changelog remains disabled. A named default-stream output retains those entries alongside the existing website outputs:\n\n```toml\n[changelog.outputs.website_developer]\nstream = \"default\"\ntargets = [\"monochange_app\"]\npath = \"app/developer-changelog.md\"\nformat = \"keep_a_changelog\"\nmode = \"append\"\n```"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)\n\n### 🚀 Feature\n\n#### Add npm staged publishing with `publish.flow`\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #764](https://github.com/monochange/monochange/pull/764)\n\nnpm packages can now defer the moment a release goes live. Set `flow = \"staged\"` and release publishes run `npm stage publish` instead of `npm publish`, so a version waits in the npm staging queue until a maintainer approves it with 2FA (`npm stage approve <stage-id>` or the Staged Packages tab on npmjs.com). Staging needs no 2FA, so CI stays unattended while every release gains a human approval gate.\n\n```toml\n# Before: every release publish goes live immediately.\n[ecosystems.npm.publish]\ntrusted_publishing = true\n\n# After: CI stages token-free; a maintainer approves each release with 2FA.\n[ecosystems.npm.publish]\ntrusted_publishing = true\nflow = \"staged\"\n\n# Opt a single package back into immediate publishes.\n[package.legacy.publish]\nflow = \"direct\"\n```\n\nDetails:\n\n- `flow` accepts `\"direct\"` (default, current behavior) or `\"staged\"` on `[ecosystems.npm.publish]` and `[package.<id>.publish]`; package values override ecosystem defaults like every other publish option. Other ecosystems reject `\"staged\"` at config load.\n- Staged publishing composes with trusted publishing: the trusted-publisher workflow stages through OIDC and approval requires interactive 2FA that CI cannot supply. This survives a compromised CI context, which a direct trusted publish does not.\n- Successful staged publishes report a `staged` status (not `published`) with a `staged` summary count, and publish resume treats them as complete. Staged versions are invisible to the registry version probe, so re-running before approval stages again instead of skipping.\n- Placeholder publishing always stays direct, matching the existing rule that placeholder publishing ignores publish modes; a placeholder must register the package immediately.\n- Requires npm CLI 11.15+ and Node 22.14+; pnpm workspaces stage through `pnpm stage publish` (pnpm 11.3+).\n- Release records now carry `flow` on each package publication target, so the release decision stays auditable. Older release records without the field parse as `direct`. The release-record and config schema contracts advance to schema version `0.10` with a no-op migration edge from `0.9` (the optional field defaults to `direct`); the published `v0.9` schema assets stay frozen.\n\n### 🐛 Fixed\n\n#### Choose release-note streams by audience for every package type\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #762](https://github.com/monochange/monochange/pull/762)\n\nGenerated release-agent instructions and the bundled skill now require agents to read configured stream and type descriptions and inspect output destinations before writing changesets. Application packages can use developer types for deployment or CI changes and product types for visible behavior. Agents create separate notes for the same package only when both audiences need them, then preview and render each output for review.\n\nUse `monochange subagents <target> --force` to refresh an existing generated agent definition. Review local edits before replacing it. Inspect each audience with `monochange notes --output <id> --target <package>`; notes with a selected stream still need human or agent review of their prose.\n\nThe website now retains operational notes in `app/developer-changelog.md` instead of putting them in its public feed. Its implicit default changelog remains disabled. A named default-stream output retains those entries alongside the existing website outputs:\n\n```toml\n[changelog.outputs.website_developer]\nstream = \"default\"\ntargets = [\"monochange_app\"]\npath = \"app/developer-changelog.md\"\nformat = \"keep_a_changelog\"\nmode = \"append\"\n```"
+		},
+		{
+			"owner_id": "monochange_analysis",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_analysis/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_analysis` was updated to 0.18.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_analysis` was updated to 0.18.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_cargo",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_cargo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_cargo` was updated to 0.18.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_cargo` was updated to 0.18.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_changelog",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_changelog/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_changelog` was updated to 0.18.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_changelog` was updated to 0.18.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_classification",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_classification/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "monochange_classification [0.4.3](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.4.3) (2026-10-08)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_classification` was updated to 0.4.3.**"
+						]
+					}
+				]
+			},
+			"rendered": "## monochange_classification [0.4.3](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.4.3) (2026-10-08)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_classification` was updated to 0.4.3.**"
+		},
+		{
+			"owner_id": "monochange_config",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_config/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Add npm staged publishing with `publish.flow`\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #764](https://github.com/monochange/monochange/pull/764)\n\nnpm packages can now defer the moment a release goes live. Set `flow = \"staged\"` and release publishes run `npm stage publish` instead of `npm publish`, so a version waits in the npm staging queue until a maintainer approves it with 2FA (`npm stage approve <stage-id>` or the Staged Packages tab on npmjs.com). Staging needs no 2FA, so CI stays unattended while every release gains a human approval gate.\n\n```toml\n# Before: every release publish goes live immediately.\n[ecosystems.npm.publish]\ntrusted_publishing = true\n\n# After: CI stages token-free; a maintainer approves each release with 2FA.\n[ecosystems.npm.publish]\ntrusted_publishing = true\nflow = \"staged\"\n\n# Opt a single package back into immediate publishes.\n[package.legacy.publish]\nflow = \"direct\"\n```\n\nDetails:\n\n- `flow` accepts `\"direct\"` (default, current behavior) or `\"staged\"` on `[ecosystems.npm.publish]` and `[package.<id>.publish]`; package values override ecosystem defaults like every other publish option. Other ecosystems reject `\"staged\"` at config load.\n- Staged publishing composes with trusted publishing: the trusted-publisher workflow stages through OIDC and approval requires interactive 2FA that CI cannot supply. This survives a compromised CI context, which a direct trusted publish does not.\n- Successful staged publishes report a `staged` status (not `published`) with a `staged` summary count, and publish resume treats them as complete. Staged versions are invisible to the registry version probe, so re-running before approval stages again instead of skipping.\n- Placeholder publishing always stays direct, matching the existing rule that placeholder publishing ignores publish modes; a placeholder must register the package immediately.\n- Requires npm CLI 11.15+ and Node 22.14+; pnpm workspaces stage through `pnpm stage publish` (pnpm 11.3+).\n- Release records now carry `flow` on each package publication target, so the release decision stays auditable. Older release records without the field parse as `direct`. The release-record and config schema contracts advance to schema version `0.10` with a no-op migration edge from `0.9` (the optional field defaults to `direct`); the published `v0.9` schema assets stay frozen."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)\n\n### 🚀 Feature\n\n#### Add npm staged publishing with `publish.flow`\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #764](https://github.com/monochange/monochange/pull/764)\n\nnpm packages can now defer the moment a release goes live. Set `flow = \"staged\"` and release publishes run `npm stage publish` instead of `npm publish`, so a version waits in the npm staging queue until a maintainer approves it with 2FA (`npm stage approve <stage-id>` or the Staged Packages tab on npmjs.com). Staging needs no 2FA, so CI stays unattended while every release gains a human approval gate.\n\n```toml\n# Before: every release publish goes live immediately.\n[ecosystems.npm.publish]\ntrusted_publishing = true\n\n# After: CI stages token-free; a maintainer approves each release with 2FA.\n[ecosystems.npm.publish]\ntrusted_publishing = true\nflow = \"staged\"\n\n# Opt a single package back into immediate publishes.\n[package.legacy.publish]\nflow = \"direct\"\n```\n\nDetails:\n\n- `flow` accepts `\"direct\"` (default, current behavior) or `\"staged\"` on `[ecosystems.npm.publish]` and `[package.<id>.publish]`; package values override ecosystem defaults like every other publish option. Other ecosystems reject `\"staged\"` at config load.\n- Staged publishing composes with trusted publishing: the trusted-publisher workflow stages through OIDC and approval requires interactive 2FA that CI cannot supply. This survives a compromised CI context, which a direct trusted publish does not.\n- Successful staged publishes report a `staged` status (not `published`) with a `staged` summary count, and publish resume treats them as complete. Staged versions are invisible to the registry version probe, so re-running before approval stages again instead of skipping.\n- Placeholder publishing always stays direct, matching the existing rule that placeholder publishing ignores publish modes; a placeholder must register the package immediately.\n- Requires npm CLI 11.15+ and Node 22.14+; pnpm workspaces stage through `pnpm stage publish` (pnpm 11.3+).\n- Release records now carry `flow` on each package publication target, so the release decision stays auditable. Older release records without the field parse as `direct`. The release-record and config schema contracts advance to schema version `0.10` with a no-op migration edge from `0.9` (the optional field defaults to `direct`); the published `v0.9` schema assets stay frozen."
+		},
+		{
+			"owner_id": "monochange_core",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_core/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "💥 Breaking Change",
+						"collapsed": false,
+						"entries": [
+							"#### Breaking publish API additions for the staged publish flow\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #764](https://github.com/monochange/monochange/pull/764)\n\n> Constructing the affected structs or matching on the affected enums outside this workspace now requires updates. `PublishRequest`, `PublishSettings`, and `PackagePublicationTarget` gained a `flow` field, `PackagePublishStatus` gained a `Staged` variant, `PackagePublishSummary` gained a `staged` counter, and `PublishProgressEvent::RunFinished` gained a `staged` field.\n\nAdd `flow: PublishFlow::Direct` (or the desired flow) to every `PublishRequest`, `PublishSettings`, and `PackagePublicationTarget` struct literal:\n\n```rust\n// Before\nPublishRequest { package_id, /* … */ mode, version, /* … */ }\n\n// After\nPublishRequest { package_id, /* … */ mode, flow: PublishFlow::Direct, version, /* … */ }\n```\n\nHandle the new `PackagePublishStatus::Staged` variant in every exhaustive match; a staged outcome means the upload succeeded but the version is not installable until a maintainer approves it with 2FA. `PackagePublishSummary::staged` defaults to `0` during deserialization, and `PublishProgressEvent::RunFinished { staged, .. }` can be ignored when only totals matter.\n\nThe serialized forms stay backward compatible: JSON reports and release records without the new fields deserialize with `flow = \"direct\"` and `staged = 0`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)\n\n### 💥 Breaking Change\n\n#### Breaking publish API additions for the staged publish flow\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #764](https://github.com/monochange/monochange/pull/764)\n\n> Constructing the affected structs or matching on the affected enums outside this workspace now requires updates. `PublishRequest`, `PublishSettings`, and `PackagePublicationTarget` gained a `flow` field, `PackagePublishStatus` gained a `Staged` variant, `PackagePublishSummary` gained a `staged` counter, and `PublishProgressEvent::RunFinished` gained a `staged` field.\n\nAdd `flow: PublishFlow::Direct` (or the desired flow) to every `PublishRequest`, `PublishSettings`, and `PackagePublicationTarget` struct literal:\n\n```rust\n// Before\nPublishRequest { package_id, /* … */ mode, version, /* … */ }\n\n// After\nPublishRequest { package_id, /* … */ mode, flow: PublishFlow::Direct, version, /* … */ }\n```\n\nHandle the new `PackagePublishStatus::Staged` variant in every exhaustive match; a staged outcome means the upload succeeded but the version is not installable until a maintainer approves it with 2FA. `PackagePublishSummary::staged` defaults to `0` during deserialization, and `PublishProgressEvent::RunFinished { staged, .. }` can be ignored when only totals matter.\n\nThe serialized forms stay backward compatible: JSON reports and release records without the new fields deserialize with `flow = \"direct\"` and `staged = 0`."
+		},
+		{
+			"owner_id": "monochange_dart",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_dart/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_dart` was updated to 0.18.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_dart` was updated to 0.18.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_deno",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_deno/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_deno` was updated to 0.18.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_deno` was updated to 0.18.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_ecmascript",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_ecmascript/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_ecmascript` was updated to 0.18.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_ecmascript` was updated to 0.18.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_forgejo",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_forgejo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_forgejo` was updated to 0.18.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_forgejo` was updated to 0.18.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_gitea",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_gitea/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_gitea` was updated to 0.18.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_gitea` was updated to 0.18.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_github",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_github/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_github` was updated to 0.18.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_github` was updated to 0.18.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_gitlab",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_gitlab/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_gitlab` was updated to 0.18.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_gitlab` was updated to 0.18.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_go",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_go/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_go` was updated to 0.18.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_go` was updated to 0.18.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_graph",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_graph/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_graph` was updated to 0.18.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_graph` was updated to 0.18.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_hosting",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_hosting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_hosting` was updated to 0.18.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_hosting` was updated to 0.18.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_lint",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_lint/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_lint` was updated to 0.18.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_lint` was updated to 0.18.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_linting",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_linting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_linting` was updated to 0.18.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_linting` was updated to 0.18.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_npm",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_npm/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_npm` was updated to 0.18.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_npm` was updated to 0.18.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_publish",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_publish/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "💥 Breaking Change",
+						"collapsed": false,
+						"entries": [
+							"#### Breaking publish API additions for the staged publish flow\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #764](https://github.com/monochange/monochange/pull/764)\n\n> Constructing the affected structs or matching on the affected enums outside this workspace now requires updates. `PublishRequest`, `PublishSettings`, and `PackagePublicationTarget` gained a `flow` field, `PackagePublishStatus` gained a `Staged` variant, `PackagePublishSummary` gained a `staged` counter, and `PublishProgressEvent::RunFinished` gained a `staged` field.\n\nAdd `flow: PublishFlow::Direct` (or the desired flow) to every `PublishRequest`, `PublishSettings`, and `PackagePublicationTarget` struct literal:\n\n```rust\n// Before\nPublishRequest { package_id, /* … */ mode, version, /* … */ }\n\n// After\nPublishRequest { package_id, /* … */ mode, flow: PublishFlow::Direct, version, /* … */ }\n```\n\nHandle the new `PackagePublishStatus::Staged` variant in every exhaustive match; a staged outcome means the upload succeeded but the version is not installable until a maintainer approves it with 2FA. `PackagePublishSummary::staged` defaults to `0` during deserialization, and `PublishProgressEvent::RunFinished { staged, .. }` can be ignored when only totals matter.\n\nThe serialized forms stay backward compatible: JSON reports and release records without the new fields deserialize with `flow = \"direct\"` and `staged = 0`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)\n\n### 💥 Breaking Change\n\n#### Breaking publish API additions for the staged publish flow\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #764](https://github.com/monochange/monochange/pull/764)\n\n> Constructing the affected structs or matching on the affected enums outside this workspace now requires updates. `PublishRequest`, `PublishSettings`, and `PackagePublicationTarget` gained a `flow` field, `PackagePublishStatus` gained a `Staged` variant, `PackagePublishSummary` gained a `staged` counter, and `PublishProgressEvent::RunFinished` gained a `staged` field.\n\nAdd `flow: PublishFlow::Direct` (or the desired flow) to every `PublishRequest`, `PublishSettings`, and `PackagePublicationTarget` struct literal:\n\n```rust\n// Before\nPublishRequest { package_id, /* … */ mode, version, /* … */ }\n\n// After\nPublishRequest { package_id, /* … */ mode, flow: PublishFlow::Direct, version, /* … */ }\n```\n\nHandle the new `PackagePublishStatus::Staged` variant in every exhaustive match; a staged outcome means the upload succeeded but the version is not installable until a maintainer approves it with 2FA. `PackagePublishSummary::staged` defaults to `0` during deserialization, and `PublishProgressEvent::RunFinished { staged, .. }` can be ignored when only totals matter.\n\nThe serialized forms stay backward compatible: JSON reports and release records without the new fields deserialize with `flow = \"direct\"` and `staged = 0`."
+		},
+		{
+			"owner_id": "monochange_python",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_python/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_python` was updated to 0.18.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_python` was updated to 0.18.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_schema",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_schema/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "monochange_schema [0.10.0](https://github.com/monochange/monochange/releases/tag/monochange_schema/v0.10.0) (2026-10-08)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "💥 Breaking Change",
+						"collapsed": false,
+						"entries": [
+							"#### Add npm staged publishing with `publish.flow`\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #764](https://github.com/monochange/monochange/pull/764)\n\nnpm packages can now defer the moment a release goes live. Set `flow = \"staged\"` and release publishes run `npm stage publish` instead of `npm publish`, so a version waits in the npm staging queue until a maintainer approves it with 2FA (`npm stage approve <stage-id>` or the Staged Packages tab on npmjs.com). Staging needs no 2FA, so CI stays unattended while every release gains a human approval gate.\n\n```toml\n# Before: every release publish goes live immediately.\n[ecosystems.npm.publish]\ntrusted_publishing = true\n\n# After: CI stages token-free; a maintainer approves each release with 2FA.\n[ecosystems.npm.publish]\ntrusted_publishing = true\nflow = \"staged\"\n\n# Opt a single package back into immediate publishes.\n[package.legacy.publish]\nflow = \"direct\"\n```\n\nDetails:\n\n- `flow` accepts `\"direct\"` (default, current behavior) or `\"staged\"` on `[ecosystems.npm.publish]` and `[package.<id>.publish]`; package values override ecosystem defaults like every other publish option. Other ecosystems reject `\"staged\"` at config load.\n- Staged publishing composes with trusted publishing: the trusted-publisher workflow stages through OIDC and approval requires interactive 2FA that CI cannot supply. This survives a compromised CI context, which a direct trusted publish does not.\n- Successful staged publishes report a `staged` status (not `published`) with a `staged` summary count, and publish resume treats them as complete. Staged versions are invisible to the registry version probe, so re-running before approval stages again instead of skipping.\n- Placeholder publishing always stays direct, matching the existing rule that placeholder publishing ignores publish modes; a placeholder must register the package immediately.\n- Requires npm CLI 11.15+ and Node 22.14+; pnpm workspaces stage through `pnpm stage publish` (pnpm 11.3+).\n- Release records now carry `flow` on each package publication target, so the release decision stays auditable. Older release records without the field parse as `direct`. The release-record and config schema contracts advance to schema version `0.10` with a no-op migration edge from `0.9` (the optional field defaults to `direct`); the published `v0.9` schema assets stay frozen."
+						]
+					}
+				]
+			},
+			"rendered": "## monochange_schema [0.10.0](https://github.com/monochange/monochange/releases/tag/monochange_schema/v0.10.0) (2026-10-08)\n\n### 💥 Breaking Change\n\n#### Add npm staged publishing with `publish.flow`\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #764](https://github.com/monochange/monochange/pull/764)\n\nnpm packages can now defer the moment a release goes live. Set `flow = \"staged\"` and release publishes run `npm stage publish` instead of `npm publish`, so a version waits in the npm staging queue until a maintainer approves it with 2FA (`npm stage approve <stage-id>` or the Staged Packages tab on npmjs.com). Staging needs no 2FA, so CI stays unattended while every release gains a human approval gate.\n\n```toml\n# Before: every release publish goes live immediately.\n[ecosystems.npm.publish]\ntrusted_publishing = true\n\n# After: CI stages token-free; a maintainer approves each release with 2FA.\n[ecosystems.npm.publish]\ntrusted_publishing = true\nflow = \"staged\"\n\n# Opt a single package back into immediate publishes.\n[package.legacy.publish]\nflow = \"direct\"\n```\n\nDetails:\n\n- `flow` accepts `\"direct\"` (default, current behavior) or `\"staged\"` on `[ecosystems.npm.publish]` and `[package.<id>.publish]`; package values override ecosystem defaults like every other publish option. Other ecosystems reject `\"staged\"` at config load.\n- Staged publishing composes with trusted publishing: the trusted-publisher workflow stages through OIDC and approval requires interactive 2FA that CI cannot supply. This survives a compromised CI context, which a direct trusted publish does not.\n- Successful staged publishes report a `staged` status (not `published`) with a `staged` summary count, and publish resume treats them as complete. Staged versions are invisible to the registry version probe, so re-running before approval stages again instead of skipping.\n- Placeholder publishing always stays direct, matching the existing rule that placeholder publishing ignores publish modes; a placeholder must register the package immediately.\n- Requires npm CLI 11.15+ and Node 22.14+; pnpm workspaces stage through `pnpm stage publish` (pnpm 11.3+).\n- Release records now carry `flow` on each package publication target, so the release decision stays auditable. Older release records without the field parse as `direct`. The release-record and config schema contracts advance to schema version `0.10` with a no-op migration edge from `0.9` (the optional field defaults to `direct`); the published `v0.9` schema assets stay frozen."
+		},
+		{
+			"owner_id": "monochange_semver",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_semver/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_semver` was updated to 0.18.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_semver` was updated to 0.18.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_telemetry",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_telemetry/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_telemetry` was updated to 0.18.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_telemetry` was updated to 0.18.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_test_helpers",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_test_helpers/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.18.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.18.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli` was updated to 0.18.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli` was updated to 0.18.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-arm64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-darwin-arm64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.18.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.18.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-x64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-darwin-x64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.18.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.18.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-arm64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.18.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.18.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-arm64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.18.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.18.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-x64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.18.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.18.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-x64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.18.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.18.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-win32-arm64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-win32-arm64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.18.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.18.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-win32-x64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-win32-x64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.18.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.18.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/skill",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__skill/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Add npm staged publishing with `publish.flow`\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #764](https://github.com/monochange/monochange/pull/764)\n\nnpm packages can now defer the moment a release goes live. Set `flow = \"staged\"` and release publishes run `npm stage publish` instead of `npm publish`, so a version waits in the npm staging queue until a maintainer approves it with 2FA (`npm stage approve <stage-id>` or the Staged Packages tab on npmjs.com). Staging needs no 2FA, so CI stays unattended while every release gains a human approval gate.\n\n```toml\n# Before: every release publish goes live immediately.\n[ecosystems.npm.publish]\ntrusted_publishing = true\n\n# After: CI stages token-free; a maintainer approves each release with 2FA.\n[ecosystems.npm.publish]\ntrusted_publishing = true\nflow = \"staged\"\n\n# Opt a single package back into immediate publishes.\n[package.legacy.publish]\nflow = \"direct\"\n```\n\nDetails:\n\n- `flow` accepts `\"direct\"` (default, current behavior) or `\"staged\"` on `[ecosystems.npm.publish]` and `[package.<id>.publish]`; package values override ecosystem defaults like every other publish option. Other ecosystems reject `\"staged\"` at config load.\n- Staged publishing composes with trusted publishing: the trusted-publisher workflow stages through OIDC and approval requires interactive 2FA that CI cannot supply. This survives a compromised CI context, which a direct trusted publish does not.\n- Successful staged publishes report a `staged` status (not `published`) with a `staged` summary count, and publish resume treats them as complete. Staged versions are invisible to the registry version probe, so re-running before approval stages again instead of skipping.\n- Placeholder publishing always stays direct, matching the existing rule that placeholder publishing ignores publish modes; a placeholder must register the package immediately.\n- Requires npm CLI 11.15+ and Node 22.14+; pnpm workspaces stage through `pnpm stage publish` (pnpm 11.3+).\n- Release records now carry `flow` on each package publication target, so the release decision stays auditable. Older release records without the field parse as `direct`. The release-record and config schema contracts advance to schema version `0.10` with a no-op migration edge from `0.9` (the optional field defaults to `direct`); the published `v0.9` schema assets stay frozen.",
+							"#### Choose release-note streams by audience for every package type\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #762](https://github.com/monochange/monochange/pull/762)\n\nGenerated release-agent instructions and the bundled skill now require agents to read configured stream and type descriptions and inspect output destinations before writing changesets. Application packages can use developer types for deployment or CI changes and product types for visible behavior. Agents create separate notes for the same package only when both audiences need them, then preview and render each output for review.\n\nUse `monochange subagents <target> --force` to refresh an existing generated agent definition. Review local edits before replacing it. Inspect each audience with `monochange notes --output <id> --target <package>`; notes with a selected stream still need human or agent review of their prose.\n\nThe website now retains operational notes in `app/developer-changelog.md` instead of putting them in its public feed. Its implicit default changelog remains disabled. A named default-stream output retains those entries alongside the existing website outputs:\n\n```toml\n[changelog.outputs.website_developer]\nstream = \"default\"\ntargets = [\"monochange_app\"]\npath = \"app/developer-changelog.md\"\nformat = \"keep_a_changelog\"\nmode = \"append\"\n```"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)\n\n### 🐛 Fixed\n\n#### Add npm staged publishing with `publish.flow`\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #764](https://github.com/monochange/monochange/pull/764)\n\nnpm packages can now defer the moment a release goes live. Set `flow = \"staged\"` and release publishes run `npm stage publish` instead of `npm publish`, so a version waits in the npm staging queue until a maintainer approves it with 2FA (`npm stage approve <stage-id>` or the Staged Packages tab on npmjs.com). Staging needs no 2FA, so CI stays unattended while every release gains a human approval gate.\n\n```toml\n# Before: every release publish goes live immediately.\n[ecosystems.npm.publish]\ntrusted_publishing = true\n\n# After: CI stages token-free; a maintainer approves each release with 2FA.\n[ecosystems.npm.publish]\ntrusted_publishing = true\nflow = \"staged\"\n\n# Opt a single package back into immediate publishes.\n[package.legacy.publish]\nflow = \"direct\"\n```\n\nDetails:\n\n- `flow` accepts `\"direct\"` (default, current behavior) or `\"staged\"` on `[ecosystems.npm.publish]` and `[package.<id>.publish]`; package values override ecosystem defaults like every other publish option. Other ecosystems reject `\"staged\"` at config load.\n- Staged publishing composes with trusted publishing: the trusted-publisher workflow stages through OIDC and approval requires interactive 2FA that CI cannot supply. This survives a compromised CI context, which a direct trusted publish does not.\n- Successful staged publishes report a `staged` status (not `published`) with a `staged` summary count, and publish resume treats them as complete. Staged versions are invisible to the registry version probe, so re-running before approval stages again instead of skipping.\n- Placeholder publishing always stays direct, matching the existing rule that placeholder publishing ignores publish modes; a placeholder must register the package immediately.\n- Requires npm CLI 11.15+ and Node 22.14+; pnpm workspaces stage through `pnpm stage publish` (pnpm 11.3+).\n- Release records now carry `flow` on each package publication target, so the release decision stays auditable. Older release records without the field parse as `direct`. The release-record and config schema contracts advance to schema version `0.10` with a no-op migration edge from `0.9` (the optional field defaults to `direct`); the published `v0.9` schema assets stay frozen.\n\n#### Choose release-note streams by audience for every package type\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #762](https://github.com/monochange/monochange/pull/762)\n\nGenerated release-agent instructions and the bundled skill now require agents to read configured stream and type descriptions and inspect output destinations before writing changesets. Application packages can use developer types for deployment or CI changes and product types for visible behavior. Agents create separate notes for the same package only when both audiences need them, then preview and render each output for review.\n\nUse `monochange subagents <target> --force` to refresh an existing generated agent definition. Review local edits before replacing it. Inspect each audience with `monochange notes --output <id> --target <package>`; notes with a selected stream still need human or agent review of their prose.\n\nThe website now retains operational notes in `app/developer-changelog.md` instead of putting them in its public feed. Its implicit default changelog remains disabled. A named default-stream output retains those entries alongside the existing website outputs:\n\n```toml\n[changelog.outputs.website_developer]\nstream = \"default\"\ntargets = [\"monochange_app\"]\npath = \"app/developer-changelog.md\"\nformat = \"keep_a_changelog\"\nmode = \"append\"\n```"
+		}
+	],
+	"provider": {
+		"kind": "github",
+		"owner": "monochange",
+		"repo": "monochange",
+		"host": null
+	}
+}

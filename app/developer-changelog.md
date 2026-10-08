@@ -1,10 +1,14 @@
----
-monochange: fix
-"@monochange/skill": fix
-monochange_app: fix
----
+# Developer updates for monochange.dev
 
-# Choose release-note streams by audience for every package type
+Release notes for website developers and operators.
+
+## 0.2.2
+
+### 🐛 Fixed
+
+#### Choose release-note streams by audience for every package type
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #762](https://github.com/monochange/monochange/pull/762)
 
 Generated release-agent instructions and the bundled skill now require agents to read configured stream and type descriptions and inspect output destinations before writing changesets. Application packages can use developer types for deployment or CI changes and product types for visible behavior. Agents create separate notes for the same package only when both audiences need them, then preview and render each output for review.
 
@@ -20,3 +24,5 @@ path = "app/developer-changelog.md"
 format = "keep_a_changelog"
 mode = "append"
 ```
+
+- **Resolve production deployment credentials in the environment-bound job.** The website deployment job now runs directly in `ci.yml` with the `website-production` environment, so its SSH key reaches the deployment step without crossing a reusable-workflow secret boundary. The job validates key presence and parsing before building the update and removes the temporary key after use. Operators receive an early error when deployment credentials are missing or malformed. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #759](https://github.com/monochange/monochange/pull/759)
