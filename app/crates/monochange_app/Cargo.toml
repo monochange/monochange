@@ -78,6 +78,7 @@ tailwind-input-file = "style/input.css"
 hydrate = ["leptos/hydrate"]
 
 [dev-dependencies]
+hmac = "0.12"
 httpmock = { workspace = true }
 rsa = { version = "0.9", features = ["sha2"] }
 rstest = { workspace = true }

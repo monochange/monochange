@@ -2842,6 +2842,7 @@ dependencies = [
  "chrono",
  "console_error_panic_hook",
  "console_log",
+ "hmac",
  "httpmock",
  "include_dir",
  "jsonwebtoken",
