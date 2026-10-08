@@ -1,8 +1,6 @@
 ---
 "monochange": minor
-"monochange_core": minor
 "monochange_config": minor
-"monochange_publish": minor
 "monochange_schema": patch
 "@monochange/skill": patch
 ---
