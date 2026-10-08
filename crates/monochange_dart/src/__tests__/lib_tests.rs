@@ -94,6 +94,7 @@ fn sample_publish_request(root: &Path) -> PublishRequest {
 		package_manager: None,
 		package_metadata: BTreeMap::new(),
 		mode: PublishMode::Builtin,
+		flow: monochange_core::PublishFlow::Direct,
 		version: "0.0.0".to_string(),
 		placeholder: true,
 		trusted_publishing: TrustedPublishingSettings::default(),

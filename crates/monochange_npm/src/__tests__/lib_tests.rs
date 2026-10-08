@@ -1219,6 +1219,7 @@ fn npm_trust_command_wraps_npm_with_pnpm_for_pnpm_managed_packages() {
 		package_manager: Some("pnpm".to_string()),
 		package_metadata: BTreeMap::new(),
 		mode: PublishMode::Builtin,
+		flow: monochange_core::PublishFlow::Direct,
 		version: "1.0.0".to_string(),
 		placeholder: false,
 		trusted_publishing: TrustedPublishingSettings::default(),

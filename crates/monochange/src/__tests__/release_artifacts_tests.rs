@@ -669,6 +669,7 @@ fn build_package_publication_targets_filters_disabled_and_preserves_publish_meta
 				registry: Some(PublishRegistry::Builtin(RegistryKind::CratesIo)),
 				version: "1.2.0".to_string(),
 				mode: PublishMode::Builtin,
+				flow: monochange_core::PublishFlow::Direct,
 				trusted_publishing: monochange_core::TrustedPublishingSettings::default(),
 				attestations: monochange_core::PublishAttestationSettings::default(),
 				timeout: PublishTimeoutSettings {
@@ -683,6 +684,7 @@ fn build_package_publication_targets_filters_disabled_and_preserves_publish_meta
 				registry: Some(PublishRegistry::Builtin(RegistryKind::Npm)),
 				version: "2.0.1".to_string(),
 				mode: PublishMode::External,
+				flow: monochange_core::PublishFlow::Direct,
 				trusted_publishing: monochange_core::TrustedPublishingSettings::default(),
 				attestations: monochange_core::PublishAttestationSettings::default(),
 				timeout: PublishTimeoutSettings::default(),
@@ -726,6 +728,7 @@ fn build_release_manifest_copies_package_publications_from_prepared_release() {
 			registry: Some(PublishRegistry::Builtin(RegistryKind::CratesIo)),
 			version: "1.2.3".to_string(),
 			mode: PublishMode::Builtin,
+			flow: monochange_core::PublishFlow::Direct,
 			trusted_publishing: monochange_core::TrustedPublishingSettings::default(),
 			attestations: monochange_core::PublishAttestationSettings::default(),
 			timeout: PublishTimeoutSettings::default(),

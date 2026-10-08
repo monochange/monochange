@@ -344,6 +344,7 @@ fn publication_target(package: &str, ecosystem: Ecosystem) -> PackagePublication
 		registry: None,
 		version: "1.0.0".to_string(),
 		mode: PublishMode::default(),
+		flow: PublishFlow::default(),
 		trusted_publishing: TrustedPublishingSettings::default(),
 		attestations: PublishAttestationSettings::default(),
 		timeout: PublishTimeoutSettings::default(),
@@ -421,6 +422,7 @@ fn sample_publish_request_for_registry(registry: RegistryKind) -> PublishRequest
 		package_manager: None,
 		package_metadata: BTreeMap::new(),
 		mode: PublishMode::Builtin,
+		flow: PublishFlow::Direct,
 		version: "1.0.0".to_string(),
 		placeholder: false,
 		trusted_publishing: TrustedPublishingSettings::default(),
@@ -429,6 +431,90 @@ fn sample_publish_request_for_registry(registry: RegistryKind) -> PublishRequest
 		fail_on_duplicate: false,
 		placeholder_readme: "placeholder".to_string(),
 	}
+}
+
+#[test]
+fn build_npm_release_publish_command_uses_stage_subcommand_for_staged_flow() {
+	let mut request = sample_publish_request_for_registry(RegistryKind::Npm);
+	request.flow = PublishFlow::Staged;
+
+	let command = build_npm_release_publish_command(&request);
+
+	assert_eq!(command.program, "npm");
+	assert_eq!(
+		command.args.iter().map(String::as_str).collect::<Vec<_>>(),
+		vec!["stage", "publish", "--access", "public"]
+	);
+}
+
+#[test]
+fn build_npm_release_publish_command_keeps_provenance_for_staged_flow() {
+	let mut request = sample_publish_request_for_registry(RegistryKind::Npm);
+	request.flow = PublishFlow::Staged;
+	request.attestations.require_registry_provenance = true;
+
+	let command = build_npm_release_publish_command(&request);
+
+	assert_eq!(
+		command.args.iter().map(String::as_str).collect::<Vec<_>>(),
+		vec!["stage", "publish", "--access", "public", "--provenance"]
+	);
+}
+
+#[test]
+fn build_npm_release_publish_command_uses_pnpm_for_staged_pnpm_workspaces() {
+	let mut request = sample_publish_request_for_registry(RegistryKind::Npm);
+	request.flow = PublishFlow::Staged;
+	request.package_manager = Some("pnpm".to_string());
+	request.trusted_publishing.enabled = false;
+
+	let command = build_npm_release_publish_command(&request);
+
+	assert_eq!(command.program, "pnpm");
+	assert_eq!(command.args.first().map(String::as_str), Some("stage"));
+}
+
+#[test]
+fn build_npm_release_publish_command_appends_dry_run_after_stage_args() {
+	let mut request = sample_publish_request_for_registry(RegistryKind::Npm);
+	request.flow = PublishFlow::Staged;
+
+	let command = build_publish_command(&request, PackagePublishRunMode::Release, None, true);
+
+	assert_eq!(
+		command.args.iter().map(String::as_str).collect::<Vec<_>>(),
+		vec!["stage", "publish", "--access", "public", "--dry-run"]
+	);
+}
+
+#[test]
+fn build_npm_placeholder_publish_command_stays_direct_for_staged_flow() {
+	let mut request = sample_publish_request_for_registry(RegistryKind::Npm);
+	request.flow = PublishFlow::Staged;
+	request.placeholder = true;
+
+	let command = build_npm_placeholder_publish_command(&request, Path::new("/tmp/placeholder"));
+
+	assert_eq!(command.args.first().map(String::as_str), Some("publish"));
+}
+
+#[test]
+fn package_publication_target_without_flow_deserializes_as_direct() {
+	let legacy_record = r#"{
+		"package": "web",
+		"ecosystem": "npm",
+		"version": "1.0.0"
+	}"#;
+	let target: PackagePublicationTarget =
+		serde_json::from_str(legacy_record).unwrap_or_else(|error| panic!("deserialize: {error}"));
+	assert_eq!(target.flow, PublishFlow::Direct);
+}
+
+#[test]
+fn package_publish_status_is_resumable_complete_accepts_staged() {
+	assert!(package_publish_status_is_resumable_complete(
+		PackagePublishStatus::Staged
+	));
 }
 
 #[test]
@@ -744,6 +830,7 @@ fn assert_complete_failed_publish_run(
 		PackagePublishSummary {
 			planned: 0,
 			published: 0,
+			staged: 0,
 			already_exists: 0,
 			blocked: requests.len() - 1,
 			failed: 1,
@@ -785,6 +872,7 @@ fn assert_complete_failed_publish_run(
 			mode,
 			total,
 			published: 0,
+			staged: 0,
 			skipped,
 			failed: 1,
 		}) if *mode == report.mode
@@ -1027,6 +1115,7 @@ async fn real_publish_failure_records_tail_outcomes_and_progress_summary() {
 		PackagePublishSummary {
 			planned: 0,
 			published: 1,
+			staged: 0,
 			already_exists: 0,
 			blocked: 1,
 			failed: 1,
@@ -1157,6 +1246,7 @@ async fn release_run_skips_already_published_version_by_default() {
 		PackagePublishSummary {
 			planned: 0,
 			published: 0,
+			staged: 0,
 			already_exists: 1,
 			blocked: 0,
 			failed: 0,
@@ -1236,6 +1326,7 @@ async fn release_run_fails_duplicate_versions_when_fail_on_duplicate_is_enabled(
 		PackagePublishSummary {
 			planned: 0,
 			published: 0,
+			staged: 0,
 			already_exists: 0,
 			blocked: 1,
 			failed: 1,
@@ -1402,6 +1493,7 @@ async fn real_publish_spawn_failure_records_every_unattempted_package() {
 		PackagePublishSummary {
 			planned: 0,
 			published: 0,
+			staged: 0,
 			already_exists: 0,
 			blocked: 2,
 			failed: 1,
@@ -2508,6 +2600,7 @@ fn publish_order_request_for_package(package: &PackageRecord) -> PublishRequest 
 		package_manager: None,
 		package_metadata: BTreeMap::new(),
 		mode: PublishMode::Builtin,
+		flow: PublishFlow::Direct,
 		version: "1.0.0".to_string(),
 		placeholder: false,
 		trusted_publishing: TrustedPublishingSettings::default(),
@@ -2529,6 +2622,7 @@ fn publish_order_request(package: &str) -> PublishRequest {
 		package_manager: None,
 		package_metadata: BTreeMap::new(),
 		mode: PublishMode::Builtin,
+		flow: PublishFlow::Direct,
 		version: "1.0.0".to_string(),
 		placeholder: false,
 		trusted_publishing: TrustedPublishingSettings::default(),
@@ -2601,6 +2695,7 @@ fn cargo_publish_request() -> PublishRequest {
 		package_manager: None,
 		package_metadata: BTreeMap::new(),
 		mode: PublishMode::Builtin,
+		flow: PublishFlow::Direct,
 		version: "1.2.3".to_string(),
 		placeholder: false,
 		trusted_publishing: TrustedPublishingSettings {

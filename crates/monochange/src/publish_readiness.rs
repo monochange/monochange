@@ -657,7 +657,8 @@ fn readiness_status_from_publish_status(
 ) -> PublishReadinessPackageStatus {
 	match status {
 		package_publish::PackagePublishStatus::Planned
-		| package_publish::PackagePublishStatus::Published => PublishReadinessPackageStatus::Ready,
+		| package_publish::PackagePublishStatus::Published
+		| package_publish::PackagePublishStatus::Staged => PublishReadinessPackageStatus::Ready,
 		package_publish::PackagePublishStatus::SkippedExisting => {
 			PublishReadinessPackageStatus::AlreadyPublished
 		}
