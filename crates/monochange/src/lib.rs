@@ -558,6 +558,8 @@ struct CommitReleaseReport {
 	commit: Option<String>,
 	tracked_paths: Vec<PathBuf>,
 	dry_run: bool,
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	verified: Option<bool>,
 	status: String,
 }
 
