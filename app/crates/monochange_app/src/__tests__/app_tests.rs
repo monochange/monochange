@@ -115,6 +115,28 @@ fn router(state: Arc<AppState>) -> Router {
 }
 
 #[tokio::test]
+async fn public_navigation_names_the_changelog_in_desktop_mobile_and_footer_links() {
+	let server = MockServer::start_async().await;
+	let response = router(state(&server).await)
+		.oneshot(
+			Request::builder()
+				.uri("/install")
+				.body(Body::empty())
+				.unwrap(),
+		)
+		.await
+		.unwrap();
+	assert_eq!(response.status(), StatusCode::OK);
+	let body = html(response).await;
+	let named_links = body
+		.split("href=\"/changelog\"")
+		.skip(1)
+		.filter(|link| link.split("</a>").next().unwrap().contains("Changelog"))
+		.count();
+	assert_eq!(named_links, 3);
+}
+
+#[tokio::test]
 async fn unknown_route_renders_an_actionable_not_found_page() {
 	let server = MockServer::start_async().await;
 	let response = router(state(&server).await)
