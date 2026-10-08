@@ -1,0 +1,871 @@
+{
+	"schema_version": "0.10",
+	"kind": "monochange.releaseRecord",
+	"created_at": "2026-10-08T23:29:56Z",
+	"command": "release",
+	"version": "0.2.3",
+	"versions": {
+		"monochange_app": "0.2.3"
+	},
+	"release_targets": [
+		{
+			"id": "monochange_app",
+			"kind": "package",
+			"version": "0.2.3",
+			"version_format": "namespaced",
+			"tag": true,
+			"release": true,
+			"tag_name": "monochange_app/v0.2.3",
+			"rendered_title": "monochange.dev 0.2.3",
+			"rendered_changelog_title": "0.2.3",
+			"members": [
+				"monochange_app"
+			]
+		}
+	],
+	"released_packages": [
+		"monochange_app"
+	],
+	"changed_files": [
+		"app/Cargo.lock",
+		"app/Cargo.toml",
+		"app/changelog.md",
+		"app/crates/monochange_app/Cargo.toml",
+		"app/developer-changelog.md",
+		"app/public/releases/0.2.3.json"
+	],
+	"package_publications": [],
+	"updated_changelogs": [
+		"app/changelog.md",
+		"app/developer-changelog.md",
+		"app/public/releases/0.2.3.json"
+	],
+	"deleted_changesets": [
+		".changeset/release-finalization-timeout.md",
+		".changeset/release-pr-maintainer-authorship.md",
+		".changeset/website-app-guide-link.md",
+		".changeset/website-changelog-mobile-width.md",
+		".changeset/website-changelog-navigation.md",
+		".changeset/website-migration-guide-links.md",
+		".changeset/website-repository-journey-tests.md"
+	],
+	"changesets": [
+		{
+			"path": ".changeset/release-finalization-timeout.md",
+			"summary": "Allow release finalization to finish its cache cleanup",
+			"details": "Increase `release-post-merge.timeout-minutes` in `.github/workflows/ci.yml` from `10` to `20`. Pinned tooling setup, CLI compilation, release operations, and cache cleanup share this job deadline. The previous limit canceled release finalization while saving the Rust cache, after tags, draft releases, and the publish dispatch had succeeded. The larger budget leaves time for cleanup without changing release commands, permissions, or deployment checks.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "ca04da92f5ffd12a6352abcbcf59c1cbe2a1eadc",
+						"short_sha": "ca04da9",
+						"url": "https://github.com/monochange/monochange/commit/ca04da92f5ffd12a6352abcbcf59c1cbe2a1eadc",
+						"authored_at": "2026-10-08T21:05:28Z",
+						"committed_at": "2026-10-08T21:05:28Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#767",
+						"title": "ci(release): allow finalization cache cleanup to finish",
+						"url": "https://github.com/monochange/monochange/pull/767",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "ca04da92f5ffd12a6352abcbcf59c1cbe2a1eadc",
+						"short_sha": "ca04da9",
+						"url": "https://github.com/monochange/monochange/commit/ca04da92f5ffd12a6352abcbcf59c1cbe2a1eadc",
+						"authored_at": "2026-10-08T21:05:28Z",
+						"committed_at": "2026-10-08T21:05:28Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#767",
+						"title": "ci(release): allow finalization cache cleanup to finish",
+						"url": "https://github.com/monochange/monochange/pull/767",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/release-pr-maintainer-authorship.md",
+			"summary": "Use the maintainer identity for automated release pull requests",
+			"details": "The repository's release workflow now opens release pull requests with the same existing maintainer token used to prepare their commits. Previously, the separate bot token made GitHub choose `github-actions[bot]` as the author of the queued squash commit and add the maintainer as a co-author.\n\nThe workflow now uses `RELEASE_PR_MERGE_TOKEN` for both operations. No new credential or permission is required. Existing bot-authored release pull requests must be replaced under the maintainer account before merging when sole maintainer authorship is required; changing the token does not change their author.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "6fd194d021139237049d17c1298ca5c27dfa20a7",
+						"short_sha": "6fd194d",
+						"url": "https://github.com/monochange/monochange/commit/6fd194d021139237049d17c1298ca5c27dfa20a7",
+						"authored_at": "2026-10-08T19:58:45Z",
+						"committed_at": "2026-10-08T19:58:45Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#766",
+						"title": "ci(release): create release pull requests as the maintainer",
+						"url": "https://github.com/monochange/monochange/pull/766",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "6fd194d021139237049d17c1298ca5c27dfa20a7",
+						"short_sha": "6fd194d",
+						"url": "https://github.com/monochange/monochange/commit/6fd194d021139237049d17c1298ca5c27dfa20a7",
+						"authored_at": "2026-10-08T19:58:45Z",
+						"committed_at": "2026-10-08T19:58:45Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#766",
+						"title": "ci(release): create release pull requests as the maintainer",
+						"url": "https://github.com/monochange/monochange/pull/766",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/website-app-guide-link.md",
+			"summary": "Open the GitHub App guide from the installation page",
+			"details": "The installation page's setup-guide link now opens the GitHub App chapter in the website's book. You can read about repository connection without reaching a missing page.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "website_fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "bece6ae0b1a466afb73674c8e580333839fe344f",
+						"short_sha": "bece6ae",
+						"url": "https://github.com/monochange/monochange/commit/bece6ae0b1a466afb73674c8e580333839fe344f",
+						"authored_at": "2026-10-08T21:16:00Z",
+						"committed_at": "2026-10-08T21:16:00Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#769",
+						"title": "fix(website): repair guide link and mobile release history",
+						"url": "https://github.com/monochange/monochange/pull/769",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "bece6ae0b1a466afb73674c8e580333839fe344f",
+						"short_sha": "bece6ae",
+						"url": "https://github.com/monochange/monochange/commit/bece6ae0b1a466afb73674c8e580333839fe344f",
+						"authored_at": "2026-10-08T21:16:00Z",
+						"committed_at": "2026-10-08T21:16:00Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#769",
+						"title": "fix(website): repair guide link and mobile release history",
+						"url": "https://github.com/monochange/monochange/pull/769",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/website-changelog-mobile-width.md",
+			"summary": "Read website updates without sideways page scrolling",
+			"details": "Website release notes now fit narrow phone screens, including historical notes with long commands. Commands scroll inside their own code blocks while the release text and navigation stay within the screen.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "website_fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "bece6ae0b1a466afb73674c8e580333839fe344f",
+						"short_sha": "bece6ae",
+						"url": "https://github.com/monochange/monochange/commit/bece6ae0b1a466afb73674c8e580333839fe344f",
+						"authored_at": "2026-10-08T21:16:00Z",
+						"committed_at": "2026-10-08T21:16:00Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#769",
+						"title": "fix(website): repair guide link and mobile release history",
+						"url": "https://github.com/monochange/monochange/pull/769",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "bece6ae0b1a466afb73674c8e580333839fe344f",
+						"short_sha": "bece6ae",
+						"url": "https://github.com/monochange/monochange/commit/bece6ae0b1a466afb73674c8e580333839fe344f",
+						"authored_at": "2026-10-08T21:16:00Z",
+						"committed_at": "2026-10-08T21:16:00Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#769",
+						"title": "fix(website): repair guide link and mobile release history",
+						"url": "https://github.com/monochange/monochange/pull/769",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/website-changelog-navigation.md",
+			"summary": "Find the changelog in website navigation",
+			"details": "The desktop menu, mobile menu and footer now have a clearly named Changelog link. Open it to read current and past website updates.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "website_fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "cde054dd432c1bb29cb1263d64591fa4110dcc7c",
+						"short_sha": "cde054d",
+						"url": "https://github.com/monochange/monochange/commit/cde054dd432c1bb29cb1263d64591fa4110dcc7c",
+						"authored_at": "2026-10-08T22:22:23Z",
+						"committed_at": "2026-10-08T22:22:23Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#770",
+						"title": "fix(website): clarify changelog navigation and repair book links",
+						"url": "https://github.com/monochange/monochange/pull/770",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "cde054dd432c1bb29cb1263d64591fa4110dcc7c",
+						"short_sha": "cde054d",
+						"url": "https://github.com/monochange/monochange/commit/cde054dd432c1bb29cb1263d64591fa4110dcc7c",
+						"authored_at": "2026-10-08T22:22:23Z",
+						"committed_at": "2026-10-08T22:22:23Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#770",
+						"title": "fix(website): clarify changelog navigation and repair book links",
+						"url": "https://github.com/monochange/monochange/pull/770",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/website-migration-guide-links.md",
+			"summary": "Follow configuration and automation links from the migration guide",
+			"details": "The guide for moving from Knope now opens the configuration and GitHub automation chapters correctly. You can follow both links without reaching a missing page.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "website_fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "cde054dd432c1bb29cb1263d64591fa4110dcc7c",
+						"short_sha": "cde054d",
+						"url": "https://github.com/monochange/monochange/commit/cde054dd432c1bb29cb1263d64591fa4110dcc7c",
+						"authored_at": "2026-10-08T22:22:23Z",
+						"committed_at": "2026-10-08T22:22:23Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#770",
+						"title": "fix(website): clarify changelog navigation and repair book links",
+						"url": "https://github.com/monochange/monochange/pull/770",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "cde054dd432c1bb29cb1263d64591fa4110dcc7c",
+						"short_sha": "cde054d",
+						"url": "https://github.com/monochange/monochange/commit/cde054dd432c1bb29cb1263d64591fa4110dcc7c",
+						"authored_at": "2026-10-08T22:22:23Z",
+						"committed_at": "2026-10-08T22:22:23Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#770",
+						"title": "fix(website): clarify changelog navigation and repair book links",
+						"url": "https://github.com/monochange/monochange/pull/770",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/website-repository-journey-tests.md",
+			"summary": "Verify repository changes through the dashboard",
+			"details": "The native SSR regression suite now delivers signed GitHub installation and repository-selection webhooks through the real API router, reloads the dashboard, and verifies additions, removals, suspension, uninstall and isolation between accounts. A second journey checks that organization repositories disappear when the installer loses ownership, and expired GitHub authorization shows a retry/sign-in state instead of an empty workspace. Only GitHub's external responses are replaced; cookies, SQLite, webhook signature verification and rendering stay real.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "12c797502913082f2772fa5fb2ad9943258b3188",
+						"short_sha": "12c7975",
+						"url": "https://github.com/monochange/monochange/commit/12c797502913082f2772fa5fb2ad9943258b3188",
+						"authored_at": "2026-10-08T22:54:48Z",
+						"committed_at": "2026-10-08T22:54:48Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#771",
+						"title": "test(website): cover repository changes through dashboard journeys",
+						"url": "https://github.com/monochange/monochange/pull/771",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "12c797502913082f2772fa5fb2ad9943258b3188",
+						"short_sha": "12c7975",
+						"url": "https://github.com/monochange/monochange/commit/12c797502913082f2772fa5fb2ad9943258b3188",
+						"authored_at": "2026-10-08T22:54:48Z",
+						"committed_at": "2026-10-08T22:54:48Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#771",
+						"title": "test(website): cover repository changes through dashboard journeys",
+						"url": "https://github.com/monochange/monochange/pull/771",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		}
+	],
+	"changelogs": [
+		{
+			"owner_id": "monochange_app",
+			"owner_kind": "package",
+			"output": "website",
+			"stream": "website",
+			"path": "app/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "0.2.3",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Improved",
+						"collapsed": false,
+						"entries": [
+							"- **Open the GitHub App guide from the installation page.** The installation page's setup-guide link now opens the GitHub App chapter in the website's book. You can read about repository connection without reaching a missing page.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #769](https://github.com/monochange/monochange/pull/769)",
+							"- **Read website updates without sideways page scrolling.** Website release notes now fit narrow phone screens, including historical notes with long commands. Commands scroll inside their own code blocks while the release text and navigation stay within the screen.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #769](https://github.com/monochange/monochange/pull/769)",
+							"- **Find the changelog in website navigation.** The desktop menu, mobile menu and footer now have a clearly named Changelog link. Open it to read current and past website updates.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #770](https://github.com/monochange/monochange/pull/770)",
+							"- **Follow configuration and automation links from the migration guide.** The guide for moving from Knope now opens the configuration and GitHub automation chapters correctly. You can follow both links without reaching a missing page.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #770](https://github.com/monochange/monochange/pull/770)"
+						]
+					}
+				]
+			},
+			"rendered": "## 0.2.3\n\n### Improved\n\n- **Open the GitHub App guide from the installation page.** The installation page's setup-guide link now opens the GitHub App chapter in the website's book. You can read about repository connection without reaching a missing page.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #769](https://github.com/monochange/monochange/pull/769)\n- **Read website updates without sideways page scrolling.** Website release notes now fit narrow phone screens, including historical notes with long commands. Commands scroll inside their own code blocks while the release text and navigation stay within the screen.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #769](https://github.com/monochange/monochange/pull/769)\n- **Find the changelog in website navigation.** The desktop menu, mobile menu and footer now have a clearly named Changelog link. Open it to read current and past website updates.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #770](https://github.com/monochange/monochange/pull/770)\n- **Follow configuration and automation links from the migration guide.** The guide for moving from Knope now opens the configuration and GitHub automation chapters correctly. You can follow both links without reaching a missing page.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #770](https://github.com/monochange/monochange/pull/770)"
+		},
+		{
+			"owner_id": "monochange_app",
+			"owner_kind": "package",
+			"output": "website_developer",
+			"stream": "default",
+			"path": "app/developer-changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "0.2.3",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"- **Allow release finalization to finish its cache cleanup.** Increase `release-post-merge.timeout-minutes` in `.github/workflows/ci.yml` from `10` to `20`. Pinned tooling setup, CLI compilation, release operations, and cache cleanup share this job deadline. The previous limit canceled release finalization while saving the Rust cache, after tags, draft releases, and the publish dispatch had succeeded. The larger budget leaves time for cleanup without changing release commands, permissions, or deployment checks.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #767](https://github.com/monochange/monochange/pull/767)",
+							"#### Use the maintainer identity for automated release pull requests\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #766](https://github.com/monochange/monochange/pull/766)\n\nThe repository's release workflow now opens release pull requests with the same existing maintainer token used to prepare their commits. Previously, the separate bot token made GitHub choose `github-actions[bot]` as the author of the queued squash commit and add the maintainer as a co-author.\n\nThe workflow now uses `RELEASE_PR_MERGE_TOKEN` for both operations. No new credential or permission is required. Existing bot-authored release pull requests must be replaced under the maintainer account before merging when sole maintainer authorship is required; changing the token does not change their author.",
+							"- **Verify repository changes through the dashboard.** The native SSR regression suite now delivers signed GitHub installation and repository-selection webhooks through the real API router, reloads the dashboard, and verifies additions, removals, suspension, uninstall and isolation between accounts. A second journey checks that organization repositories disappear when the installer loses ownership, and expired GitHub authorization shows a retry/sign-in state instead of an empty workspace. Only GitHub's external responses are replaced; cookies, SQLite, webhook signature verification and rendering stay real.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #771](https://github.com/monochange/monochange/pull/771)"
+						]
+					}
+				]
+			},
+			"rendered": "## 0.2.3\n\n### 🐛 Fixed\n\n- **Allow release finalization to finish its cache cleanup.** Increase `release-post-merge.timeout-minutes` in `.github/workflows/ci.yml` from `10` to `20`. Pinned tooling setup, CLI compilation, release operations, and cache cleanup share this job deadline. The previous limit canceled release finalization while saving the Rust cache, after tags, draft releases, and the publish dispatch had succeeded. The larger budget leaves time for cleanup without changing release commands, permissions, or deployment checks.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #767](https://github.com/monochange/monochange/pull/767)\n#### Use the maintainer identity for automated release pull requests\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #766](https://github.com/monochange/monochange/pull/766)\n\nThe repository's release workflow now opens release pull requests with the same existing maintainer token used to prepare their commits. Previously, the separate bot token made GitHub choose `github-actions[bot]` as the author of the queued squash commit and add the maintainer as a co-author.\n\nThe workflow now uses `RELEASE_PR_MERGE_TOKEN` for both operations. No new credential or permission is required. Existing bot-authored release pull requests must be replaced under the maintainer account before merging when sole maintainer authorship is required; changing the token does not change their author.\n\n- **Verify repository changes through the dashboard.** The native SSR regression suite now delivers signed GitHub installation and repository-selection webhooks through the real API router, reloads the dashboard, and verifies additions, removals, suspension, uninstall and isolation between accounts. A second journey checks that organization repositories disappear when the installer loses ownership, and expired GitHub authorization shows a retry/sign-in state instead of an empty workspace. Only GitHub's external responses are replaced; cookies, SQLite, webhook signature verification and rendering stay real.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #771](https://github.com/monochange/monochange/pull/771)"
+		},
+		{
+			"owner_id": "monochange_app",
+			"owner_kind": "package",
+			"output": "website_json",
+			"stream": "website",
+			"path": "app/public/releases/0.2.3.json",
+			"format": "json",
+			"notes": {
+				"title": "0.2.3",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Improved",
+						"collapsed": false,
+						"entries": [
+							"- **Open the GitHub App guide from the installation page.** The installation page's setup-guide link now opens the GitHub App chapter in the website's book. You can read about repository connection without reaching a missing page.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #769](https://github.com/monochange/monochange/pull/769)",
+							"- **Read website updates without sideways page scrolling.** Website release notes now fit narrow phone screens, including historical notes with long commands. Commands scroll inside their own code blocks while the release text and navigation stay within the screen.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #769](https://github.com/monochange/monochange/pull/769)",
+							"- **Find the changelog in website navigation.** The desktop menu, mobile menu and footer now have a clearly named Changelog link. Open it to read current and past website updates.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #770](https://github.com/monochange/monochange/pull/770)",
+							"- **Follow configuration and automation links from the migration guide.** The guide for moving from Knope now opens the configuration and GitHub automation chapters correctly. You can follow both links without reaching a missing page.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #770](https://github.com/monochange/monochange/pull/770)"
+						]
+					}
+				]
+			},
+			"rendered": "{\n  \"title\": \"0.2.3\",\n  \"summary\": [],\n  \"sections\": [\n    {\n      \"title\": \"Improved\",\n      \"collapsed\": false,\n      \"entries\": [\n        {\n          \"summary\": \"Open the GitHub App guide from the installation page\",\n          \"details_markdown\": \"The installation page's setup-guide link now opens the GitHub App chapter in the website's book. You can read about repository connection without reaching a missing page.\",\n          \"change_type\": \"website_fix\",\n          \"bump\": \"patch\",\n          \"stream\": \"website\",\n          \"style\": \"compact\",\n          \"provenance\": {\n            \"source_path\": \".changeset/website-app-guide-link.md\",\n            \"changeset_path\": \".changeset/website-app-guide-link.md\",\n            \"change_owner\": {\n              \"label\": \"@ifiokjr\",\n              \"url\": \"https://github.com/ifiokjr\"\n            },\n            \"review_request\": {\n              \"label\": \"PR #769\",\n              \"url\": \"https://github.com/monochange/monochange/pull/769\"\n            },\n            \"introduced_commit\": {\n              \"label\": \"bece6ae\",\n              \"url\": \"https://github.com/monochange/monochange/commit/bece6ae0b1a466afb73674c8e580333839fe344f\"\n            }\n          }\n        },\n        {\n          \"summary\": \"Read website updates without sideways page scrolling\",\n          \"details_markdown\": \"Website release notes now fit narrow phone screens, including historical notes with long commands. Commands scroll inside their own code blocks while the release text and navigation stay within the screen.\",\n          \"change_type\": \"website_fix\",\n          \"bump\": \"patch\",\n          \"stream\": \"website\",\n          \"style\": \"compact\",\n          \"provenance\": {\n            \"source_path\": \".changeset/website-changelog-mobile-width.md\",\n            \"changeset_path\": \".changeset/website-changelog-mobile-width.md\",\n            \"change_owner\": {\n              \"label\": \"@ifiokjr\",\n              \"url\": \"https://github.com/ifiokjr\"\n            },\n            \"review_request\": {\n              \"label\": \"PR #769\",\n              \"url\": \"https://github.com/monochange/monochange/pull/769\"\n            },\n            \"introduced_commit\": {\n              \"label\": \"bece6ae\",\n              \"url\": \"https://github.com/monochange/monochange/commit/bece6ae0b1a466afb73674c8e580333839fe344f\"\n            }\n          }\n        },\n        {\n          \"summary\": \"Find the changelog in website navigation\",\n          \"details_markdown\": \"The desktop menu, mobile menu and footer now have a clearly named Changelog link. Open it to read current and past website updates.\",\n          \"change_type\": \"website_fix\",\n          \"bump\": \"patch\",\n          \"stream\": \"website\",\n          \"style\": \"compact\",\n          \"provenance\": {\n            \"source_path\": \".changeset/website-changelog-navigation.md\",\n            \"changeset_path\": \".changeset/website-changelog-navigation.md\",\n            \"change_owner\": {\n              \"label\": \"@ifiokjr\",\n              \"url\": \"https://github.com/ifiokjr\"\n            },\n            \"review_request\": {\n              \"label\": \"PR #770\",\n              \"url\": \"https://github.com/monochange/monochange/pull/770\"\n            },\n            \"introduced_commit\": {\n              \"label\": \"cde054d\",\n              \"url\": \"https://github.com/monochange/monochange/commit/cde054dd432c1bb29cb1263d64591fa4110dcc7c\"\n            }\n          }\n        },\n        {\n          \"summary\": \"Follow configuration and automation links from the migration guide\",\n          \"details_markdown\": \"The guide for moving from Knope now opens the configuration and GitHub automation chapters correctly. You can follow both links without reaching a missing page.\",\n          \"change_type\": \"website_fix\",\n          \"bump\": \"patch\",\n          \"stream\": \"website\",\n          \"style\": \"compact\",\n          \"provenance\": {\n            \"source_path\": \".changeset/website-migration-guide-links.md\",\n            \"changeset_path\": \".changeset/website-migration-guide-links.md\",\n            \"change_owner\": {\n              \"label\": \"@ifiokjr\",\n              \"url\": \"https://github.com/ifiokjr\"\n            },\n            \"review_request\": {\n              \"label\": \"PR #770\",\n              \"url\": \"https://github.com/monochange/monochange/pull/770\"\n            },\n            \"introduced_commit\": {\n              \"label\": \"cde054d\",\n              \"url\": \"https://github.com/monochange/monochange/commit/cde054dd432c1bb29cb1263d64591fa4110dcc7c\"\n            }\n          }\n        }\n      ]\n    }\n  ]\n}"
+		}
+	],
+	"provider": {
+		"kind": "github",
+		"owner": "monochange",
+		"repo": "monochange",
+		"host": null
+	}
+}
