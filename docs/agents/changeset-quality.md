@@ -1,16 +1,16 @@
 # Changeset quality
 
-A changeset is a permanent record of how the project changed from the perspective of the person using it, not just a version bump marker. Write changesets so a user who has never seen the source code can understand exactly what moved, why it matters, and how to adapt.
+A changeset is a permanent record for its intended readers, who may be product users, developers, or operators. Explain what changed, why it matters to that audience, and how to adapt without reading the source diff.
 
 ## Required content
 
 Every changeset body must include:
 
-1. **One H1 headline** (`# Short outcome`) describing what changed in user-facing terms, with no trailing period.
-2. **An impact summary** explaining why the change matters to users or callers.
+1. **One H1 headline** (`# Short outcome`) describing what changed for the selected audience, with no trailing period.
+2. **An impact summary** explaining why the change matters to those readers.
 3. **A focused example when callers must change an invocation, API, configuration, migration, or expected output shape.**
 
-A one-liner that only restates the PR title is not acceptable. The body must be detailed enough that a user reading the release notes can act on the information without consulting the source diff.
+A one-liner that only restates the PR title is not acceptable. The body must give its readers enough detail to act without consulting the source diff.
 
 Do not repeat the headline as the first sentence of the impact summary. Start with the consequence, affected audience, or action instead. monochange selects the final changelog heading depth and package-label placement; authors should not encode either concern in the changeset source.
 
@@ -28,12 +28,19 @@ section = "features"
 stream = "user"
 ```
 
-Keep the files separate when a change needs more than one audience:
+<!-- {=changesetAudienceRules} -->
 
-- The default/developer changeset explains the affected API, implementation contract, migration, configuration, or operational consequence.
-- The user changeset explains the visible outcome in product language, including who benefits and whether the user must do anything.
+Read the stream and type descriptions in `[changelog.streams]` and `[changelog.types]`, then inspect destinations in `[changelog.outputs]` in `monochange.toml` before choosing a type. The type selects the stream. The package id identifies what changed; it does not select the audience. An application can use both developer and product streams.
 
-Do not put both audiences in one body and do not copy identical prose into both streams. The separate files are intentional audit records: each can be reviewed, edited, and published independently, while its type deterministically records the release policy.
+- Use the default/developer stream for API contracts, deployment, CI, credentials, migrations, and internal maintenance that only developers or operators need to know about. For example, an app's deployment-key validation can use `app: fix` when `fix` belongs to `default`.
+- Use a product stream for outcomes people experience while using the app, such as staying signed in after a reload or connecting a repository. For example, `app: website_fix` selects product notes only when that type is configured with `stream = "website"`.
+- Write two changesets for the same package when both audiences need an entry. Explain the operational contract in one and the visible outcome in the other. A developer-only change needs no product entry; do not invent a user benefit to fill that stream.
+
+Every target in one changeset file must resolve to the same stream. Within that audience, choose a type whose configured bump matches the release policy. Stream and bump are separate decisions; a native-binary requirement still applies even when the note is developer-facing.
+
+Ensure each intended stream has an output for the package. A package with `changelog = false` has no implicit default output. Check whether a group retains its developer notes; otherwise configure a named developer output. Run `monochange step validate`, preview with `monochange preview --format json`, and inspect each artifact's `output`, `stream`, `owner_id`, and `path`. Render each intended output with `monochange notes --output <id> [--target <id>]`. The preview checks stream consistency; it cannot determine the audience of prose. Review the rendered notes for audience fit.
+
+<!-- {/changesetAudienceRules} -->
 
 For mobile app release policies, a repository may configure `native` as a major/default-stream type and `app_feature` as a minor/user-stream type. Use `native` whenever the diff changes native code or otherwise requires a new store binary; use `app_feature` only when the release is eligible for a patch system such as Shorebird.
 

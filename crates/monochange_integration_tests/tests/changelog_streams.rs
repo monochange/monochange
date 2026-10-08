@@ -107,6 +107,15 @@ fn normalize_io_error(contents: &str) -> String {
 #[test]
 fn release_outputs_filter_changesets_by_stream() {
 	let workspace = setup_workspace();
+	let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
+		.join("../../fixtures/tests/config/changelog-streams-cases/app-deployment.md");
+	std::fs::copy(
+		fixture,
+		workspace.path().join(".changeset/app-deployment.md"),
+	)
+	.unwrap_or_else(|error| panic!("copy app deployment changeset: {error}"));
+	git(workspace.path(), &["add", "."]);
+	git(workspace.path(), &["commit", "--amend", "--no-edit"]);
 	let manifest = prepare_release(workspace.path());
 	let changelog_identities = manifest
 		.changelogs
@@ -133,6 +142,11 @@ fn release_outputs_filter_changesets_by_stream() {
 		std::fs::read_to_string(workspace.path().join("crates/core/CHANGELOG.md"))
 			.unwrap_or_else(|error| panic!("developer notes: {error}")),
 	);
+	let app_developer_notes = normalize_head_commit(
+		workspace.path(),
+		std::fs::read_to_string(workspace.path().join("crates/app/INTERNAL.md"))
+			.unwrap_or_else(|error| panic!("app developer notes: {error}")),
+	);
 	let user_text = normalize_head_commit(
 		workspace.path(),
 		std::fs::read_to_string(workspace.path().join("crates/app/release-notes/2.0.0.txt"))
@@ -153,6 +167,7 @@ fn release_outputs_filter_changesets_by_stream() {
 	let user_group = serde_json::from_str::<serde_json::Value>(&user_group)
 		.unwrap_or_else(|error| panic!("parse user group notes: {error}"));
 	assert_json_snapshot!("user_release_notes", user_notes);
+	assert_snapshot!("app_developer_release_notes", app_developer_notes);
 	assert_snapshot!("user_text_release_notes", user_text);
 	assert_json_snapshot!("user_group_release_notes", user_group);
 	assert_eq!(

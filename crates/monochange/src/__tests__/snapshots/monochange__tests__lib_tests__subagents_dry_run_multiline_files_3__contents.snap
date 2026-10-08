@@ -31,10 +31,11 @@ When working on release planning, versioning, changesets, changelogs, or monocha
    - `<cli> change classify --format json --dependency-propagation public`
    - `<cli> preview --format json --diff` (or `<cli> step prepare-release --dry-run --format json`)
 6. Before writing release intent, account for every package in the classification report. Use `decision.proposed_changeset_bump` for the current change, trace its `decision.finding_ids`, and treat `review_required: true` as a review task. Read each package's `existing_changesets` and `action` before creating another `.changeset/*.md` file.
-7. Run `<cli> changeset validate --api`, `<cli> check`, and `<cli> step validate` after editing release intent.
-8. Do not run mutating release or publish commands unless the user explicitly asks.
-9. Gitignore only `.monochange/local/`. Never add `.monochange/` as a whole to `.gitignore`: release records (`.monochange/releases/<id>/release.json`) and prerelease state are committed release state that publish, tag, and readiness steps read from git history, so ignoring them makes releases unpublishable.
-10. If monochange MCP tools are available, use `monochange_classify_changes` as a secondary structured fallback when the CLI is unavailable.
+7. Before selecting a changeset type, read stream and type descriptions in `[changelog.streams]` and `[changelog.types]` and inspect destinations in `[changelog.outputs]`. Choose the audience from the actual change, independently of package or artifact type. An app can use a default/developer type for deployment, CI, or credentials and a product type for login or repository-connection behavior. Write separate files for the same package when both audiences need notes; do not invent a product entry for an operator-only change. All targets in a file must resolve to one stream. Within that stream, choose the configured bump required by release policy and ensure an output retains the notes.
+8. Run `<cli> changeset validate --api`, `<cli> check`, and `<cli> step validate` after editing release intent. Preview again to reject mixed-stream files, then render each intended output with `<cli> notes --output <id> [--target <id>]` and review its audience fit. Validation cannot determine the audience of prose.
+9. Do not run mutating release or publish commands unless the user explicitly asks.
+10. Gitignore only `.monochange/local/`. Never add `.monochange/` as a whole to `.gitignore`: release records (`.monochange/releases/<id>/release.json`) and prerelease state are committed release state that publish, tag, and readiness steps read from git history, so ignoring them makes releases unpublishable.
+11. If monochange MCP tools are available, use `monochange_classify_changes` as a secondary structured fallback when the CLI is unavailable.
 
 Recommended workflow:
 - validate configuration and changesets: `monochange step validate`
