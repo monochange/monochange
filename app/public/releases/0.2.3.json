@@ -1,0 +1,108 @@
+{
+	"title": "0.2.3",
+	"summary": [],
+	"sections": [
+		{
+			"title": "Improved",
+			"collapsed": false,
+			"entries": [
+				{
+					"summary": "Open the GitHub App guide from the installation page",
+					"details_markdown": "The installation page's setup-guide link now opens the GitHub App chapter in the website's book. You can read about repository connection without reaching a missing page.",
+					"change_type": "website_fix",
+					"bump": "patch",
+					"stream": "website",
+					"style": "compact",
+					"provenance": {
+						"source_path": ".changeset/website-app-guide-link.md",
+						"changeset_path": ".changeset/website-app-guide-link.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #769",
+							"url": "https://github.com/monochange/monochange/pull/769"
+						},
+						"introduced_commit": {
+							"label": "bece6ae",
+							"url": "https://github.com/monochange/monochange/commit/bece6ae0b1a466afb73674c8e580333839fe344f"
+						}
+					}
+				},
+				{
+					"summary": "Read website updates without sideways page scrolling",
+					"details_markdown": "Website release notes now fit narrow phone screens, including historical notes with long commands. Commands scroll inside their own code blocks while the release text and navigation stay within the screen.",
+					"change_type": "website_fix",
+					"bump": "patch",
+					"stream": "website",
+					"style": "compact",
+					"provenance": {
+						"source_path": ".changeset/website-changelog-mobile-width.md",
+						"changeset_path": ".changeset/website-changelog-mobile-width.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #769",
+							"url": "https://github.com/monochange/monochange/pull/769"
+						},
+						"introduced_commit": {
+							"label": "bece6ae",
+							"url": "https://github.com/monochange/monochange/commit/bece6ae0b1a466afb73674c8e580333839fe344f"
+						}
+					}
+				},
+				{
+					"summary": "Find the changelog in website navigation",
+					"details_markdown": "The desktop menu, mobile menu and footer now have a clearly named Changelog link. Open it to read current and past website updates.",
+					"change_type": "website_fix",
+					"bump": "patch",
+					"stream": "website",
+					"style": "compact",
+					"provenance": {
+						"source_path": ".changeset/website-changelog-navigation.md",
+						"changeset_path": ".changeset/website-changelog-navigation.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #770",
+							"url": "https://github.com/monochange/monochange/pull/770"
+						},
+						"introduced_commit": {
+							"label": "cde054d",
+							"url": "https://github.com/monochange/monochange/commit/cde054dd432c1bb29cb1263d64591fa4110dcc7c"
+						}
+					}
+				},
+				{
+					"summary": "Follow configuration and automation links from the migration guide",
+					"details_markdown": "The guide for moving from Knope now opens the configuration and GitHub automation chapters correctly. You can follow both links without reaching a missing page.",
+					"change_type": "website_fix",
+					"bump": "patch",
+					"stream": "website",
+					"style": "compact",
+					"provenance": {
+						"source_path": ".changeset/website-migration-guide-links.md",
+						"changeset_path": ".changeset/website-migration-guide-links.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #770",
+							"url": "https://github.com/monochange/monochange/pull/770"
+						},
+						"introduced_commit": {
+							"label": "cde054d",
+							"url": "https://github.com/monochange/monochange/commit/cde054dd432c1bb29cb1263d64591fa4110dcc7c"
+						}
+					}
+				}
+			]
+		}
+	]
+}
