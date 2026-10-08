@@ -80,6 +80,216 @@ async fn configured_state(server: &MockServer) -> Arc<AppState> {
 	state
 }
 
+async fn dashboard_html(app: &Router, cookie: &str) -> String {
+	let response = app
+		.clone()
+		.oneshot(
+			Request::builder()
+				.uri("/dashboard")
+				.header(COOKIE, cookie)
+				.body(Body::empty())
+				.unwrap(),
+		)
+		.await
+		.unwrap();
+	assert_eq!(response.status(), StatusCode::OK);
+	html(response).await
+}
+
+async fn deliver_repository_event(app: &Router, event: &str, payload: serde_json::Value) {
+	use hmac::Hmac;
+	use hmac::Mac;
+	use rsa::sha2::Sha256;
+
+	let payload = payload.to_string();
+	let mut mac = Hmac::<Sha256>::new_from_slice(b"test-only-webhook-secret").unwrap();
+	mac.update(payload.as_bytes());
+	let signature = format!("sha256={:x}", mac.finalize().into_bytes());
+	let response = app
+		.clone()
+		.oneshot(
+			Request::builder()
+				.method("POST")
+				.uri("/api/github/webhooks")
+				.header("x-hub-signature-256", signature)
+				.header("x-github-event", event)
+				.body(Body::from(payload))
+				.unwrap(),
+		)
+		.await
+		.unwrap();
+	assert_eq!(response.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn repository_lifecycle_updates_the_dashboard_and_keeps_connection_available() {
+	let server = MockServer::start_async().await;
+	server
+		.mock_async(|when, then| {
+			when.method(GET).path("/app").header_exists("authorization");
+			then.json_body(serde_json::json!({"slug":"test-app"}));
+		})
+		.await;
+	let state = configured_state(&server).await;
+	sqlx::query("INSERT INTO users (id, github_id, github_login, github_access_token) VALUES (1, 101, 'alice', 'test-only-alice-token'), (2, 202, 'bob', 'test-only-bob-token')").execute(&state.db).await.unwrap();
+	let alice_token = monochange_app_api::create_token(&state.jwt_secret, 1, 101, "alice").unwrap();
+	let alice_cookie = format!("{}={alice_token}", oauth::SESSION_COOKIE_NAME);
+	let bob_token = monochange_app_api::create_token(&state.jwt_secret, 2, 202, "bob").unwrap();
+	let bob_cookie = format!("{}={bob_token}", oauth::SESSION_COOKIE_NAME);
+	let app = router(state.clone()).merge(monochange_app_api::api_router((*state).clone()));
+	let owner = serde_json::json!({"id":1001,"account":{"id":101,"login":"alice","type":"User"},"repository_selection":"all"});
+	let empty = dashboard_html(&app, &alice_cookie).await;
+	assert!(empty.contains("No repositories connected yet"));
+	assert!(empty.contains("Connect repositories on GitHub"));
+	assert!(empty.contains("href=\"https://github.com/apps/test-app/installations/new\""));
+
+	deliver_repository_event(&app, "installation", serde_json::json!({
+		"action":"created", "installation":owner,
+		"repositories":[{"id":11,"full_name":"alice/public","private":false},{"id":12,"full_name":"alice/private","private":true}]
+	})).await;
+	deliver_repository_event(
+		&app,
+		"installation",
+		serde_json::json!({
+			"action":"created", "installation":{"id":2002,"account":{"id":202,"login":"bob","type":"User"}},
+			"repositories":[{"id":21,"full_name":"bob/private","private":true}]
+		}),
+	)
+	.await;
+	let connected = dashboard_html(&app, &alice_cookie).await;
+	assert!(connected.contains("alice/public"));
+	assert!(connected.contains("alice/private"));
+	assert!(connected.contains("Connect repositories on GitHub"));
+	assert!(!connected.contains("No repositories connected yet"));
+	assert!(!connected.contains("bob/private"));
+	let other_account = dashboard_html(&app, &bob_cookie).await;
+	assert!(other_account.contains("bob/private"));
+	assert!(!other_account.contains("alice/private"));
+
+	deliver_repository_event(
+		&app,
+		"installation_repositories",
+		serde_json::json!({
+			"action":"added", "installation":owner,
+			"repositories_added":[{"id":13,"full_name":"alice/added-later","private":true}]
+		}),
+	)
+	.await;
+	let added = dashboard_html(&app, &alice_cookie).await;
+	assert!(added.contains("alice/added-later"));
+	assert!(added.contains("alice/public"));
+	assert!(added.contains("Connect repositories on GitHub"));
+
+	deliver_repository_event(
+		&app,
+		"installation_repositories",
+		serde_json::json!({
+			"action":"removed", "installation":owner,
+			"repositories_removed":[{"id":11,"full_name":"alice/public","private":false}]
+		}),
+	)
+	.await;
+	let selected = dashboard_html(&app, &alice_cookie).await;
+	assert!(!selected.contains("alice/public"));
+	assert!(selected.contains("alice/private"));
+	assert!(selected.contains("alice/added-later"));
+	assert!(selected.contains("Connect repositories on GitHub"));
+
+	for (action, suspended) in [("suspend", true), ("unsuspend", false)] {
+		deliver_repository_event(
+			&app,
+			"installation",
+			serde_json::json!({
+				"action":action, "installation":owner
+			}),
+		)
+		.await;
+		let page = dashboard_html(&app, &alice_cookie).await;
+		assert_eq!(page.contains("Installation suspended"), suspended);
+		assert!(page.contains("alice/added-later"));
+		assert!(page.contains("Connect repositories on GitHub"));
+	}
+
+	deliver_repository_event(
+		&app,
+		"installation",
+		serde_json::json!({
+			"action":"deleted", "installation":owner
+		}),
+	)
+	.await;
+	let removed = dashboard_html(&app, &alice_cookie).await;
+	assert!(removed.contains("No repositories connected yet"));
+	assert!(removed.contains("Connect repositories on GitHub"));
+	assert!(!removed.contains("alice/private"));
+	assert!(!removed.contains("alice/added-later"));
+	assert!(
+		dashboard_html(&app, &bob_cookie)
+			.await
+			.contains("bob/private")
+	);
+}
+
+#[tokio::test]
+async fn dashboard_rechecks_organization_ownership_and_reports_expired_authorization() {
+	let server = MockServer::start_async().await;
+	server
+		.mock_async(|when, then| {
+			when.method(GET).path("/app");
+			then.json_body(serde_json::json!({"slug":"test-app"}));
+		})
+		.await;
+	let membership = server
+		.mock_async(|when, then| {
+			when.method(GET).path("/user/memberships/orgs/acme");
+			then.json_body(serde_json::json!({"state":"active","role":"admin"}));
+		})
+		.await;
+	let state = configured_state(&server).await;
+	sqlx::query("INSERT INTO users (id, github_id, github_login, github_access_token) VALUES (1, 101, 'alice', 'test-only-alice-token')").execute(&state.db).await.unwrap();
+	sqlx::query("INSERT INTO installations (id, user_id, github_installation_id, github_account_login, github_account_type) VALUES (1, 1, 1001, 'acme', 'Organization')").execute(&state.db).await.unwrap();
+	sqlx::query("INSERT INTO repositories (installation_id, github_repo_id, github_full_name, github_private) VALUES (1, 11, 'acme/private', 1)").execute(&state.db).await.unwrap();
+	let token = monochange_app_api::create_token(&state.jwt_secret, 1, 101, "alice").unwrap();
+	let cookie = format!("{}={token}", oauth::SESSION_COOKIE_NAME);
+	let app = router(state);
+	assert!(dashboard_html(&app, &cookie).await.contains("acme/private"));
+	membership.delete_async().await;
+	let membership = server
+		.mock_async(|when, then| {
+			when.method(GET).path("/user/memberships/orgs/acme");
+			then.json_body(serde_json::json!({"state":"active","role":"member"}));
+		})
+		.await;
+	let revoked = dashboard_html(&app, &cookie).await;
+	assert!(!revoked.contains("acme/private"));
+	assert!(revoked.contains("No repositories connected yet"));
+	assert!(revoked.contains("Connect repositories on GitHub"));
+	membership.delete_async().await;
+	let membership = server
+		.mock_async(|when, then| {
+			when.method(GET).path("/user/memberships/orgs/acme");
+			then.json_body(serde_json::json!({"state":"active","role":"admin"}));
+		})
+		.await;
+	let restored = dashboard_html(&app, &cookie).await;
+	assert!(restored.contains("acme/private"));
+	assert!(restored.contains("Connect repositories on GitHub"));
+	membership.delete_async().await;
+	server
+		.mock_async(|when, then| {
+			when.method(GET).path("/user/memberships/orgs/acme");
+			then.status(401)
+				.body("test-only-sensitive-provider-response");
+		})
+		.await;
+	let expired = dashboard_html(&app, &cookie).await;
+	assert!(expired.contains("Repositories couldn't be loaded"));
+	assert!(expired.contains("Sign in with GitHub"));
+	assert!(!expired.contains("acme/private"));
+	assert!(!expired.contains("No repositories connected yet"));
+	assert!(!expired.contains("test-only-sensitive-provider-response"));
+}
+
 fn router(state: Arc<AppState>) -> Router {
 	let options = LeptosOptions::builder()
 		.output_name("monochange_app")
