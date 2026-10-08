@@ -8,11 +8,11 @@ info:
     - "--format"
     - json
   env:
-    MONOCHANGE_CRATES_IO_API_URL: "http://127.0.0.1:42055"
-    MONOCHANGE_JSR_BASE_URL: "http://127.0.0.1:42055"
+    MONOCHANGE_CRATES_IO_API_URL: "http://127.0.0.1:57743"
+    MONOCHANGE_JSR_BASE_URL: "http://127.0.0.1:57743"
     MONOCHANGE_NO_PROGRESS: "1"
-    MONOCHANGE_NPM_REGISTRY_URL: "http://127.0.0.1:42055"
-    MONOCHANGE_PUB_DEV_API_URL: "http://127.0.0.1:42055"
+    MONOCHANGE_NPM_REGISTRY_URL: "http://127.0.0.1:57743"
+    MONOCHANGE_PUB_DEV_API_URL: "http://127.0.0.1:57743"
     NO_COLOR: "1"
 ---
 success: true
@@ -64,7 +64,8 @@ exit_code: 0
       "failed": 0,
       "not_attempted": 0,
       "planned": 2,
-      "published": 0
+      "published": 0,
+      "staged": 0
     }
   },
   "publish_rate_limits": {
