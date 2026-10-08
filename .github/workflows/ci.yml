@@ -819,7 +819,7 @@ jobs:
     needs: release-pr
     outputs:
       website_tag: ${{ steps.website_release.outputs.tag }}
-    timeout-minutes: 10
+    timeout-minutes: 20
     runs-on: ubuntu-latest
     permissions:
       actions: write
