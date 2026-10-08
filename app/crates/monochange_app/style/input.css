@@ -252,7 +252,7 @@
 .release-example { align-self: start; padding: 2rem; background: var(--surface); border: 1px solid var(--rule); border-radius: 1.5rem; }
 .release-example h2 { font-size: 1.75rem; margin-block: 1.25rem .75rem; }
 .release-example .text-link { display: inline-flex; min-height: 44px; align-items: center; margin-top: 1rem; }
-@media (max-width: 760px) { .release-layout { grid-template-columns: 1fr; gap: 2rem; } .release-heading .eyebrow { width: 100%; } }
+@media (max-width: 760px) { .release-layout { grid-template-columns: minmax(0, 1fr); gap: 2rem; } .release-heading .eyebrow { width: 100%; } }
 
 /* The book uses the public shell and a compact chapter rail. */
 .brand-icon { display: inline-block; flex: none; width: 1.2em; height: 1.2em; background: currentColor; mask: var(--brand-icon) center / contain no-repeat; vertical-align: -.15em; }
