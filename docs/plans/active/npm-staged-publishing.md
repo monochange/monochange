@@ -64,7 +64,7 @@ Command surface: `npm stage publish`, `npm stage list [<spec>]`, `npm stage view
 - [x] Template, root config annotations, guide docs, skill docs, schema regeneration.
 - [x] Changesets (feature, breaking API, website docs; `monochange_schema: major` drives the schema bump).
 - [x] Schema contract advance to `0.10` with a no-op `0.9 → 0.10` migration edge and frozen `v0.10` assets.
-- [ ] `fix:all`, focused tests, `monochange step validate`, `monochange step affected-packages --from origin/main --verify`, docs/schema checks.
+- [x] `fix:all`, focused tests, `monochange step validate`, `monochange step affected-packages --from origin/main --verify`, docs/schema checks, patch coverage at 100%.
 
 ## Validation commands
 
