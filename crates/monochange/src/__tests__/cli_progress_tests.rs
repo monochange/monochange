@@ -972,6 +972,7 @@ fn publish_rendering_and_json_cover_every_event_variant() {
 		},
 		PublishProgressEvent::PackagePlanned(package.clone()),
 		PublishProgressEvent::PackagePublished(package.clone()),
+		PublishProgressEvent::PackageStaged(package.clone()),
 		PublishProgressEvent::PackageFailed {
 			package,
 			message: "registry rejected package".to_string(),
@@ -997,7 +998,9 @@ fn publish_rendering_and_json_cover_every_event_variant() {
 	);
 	assert!(rendered[3].contains("already exists"));
 	assert!(rendered[5].contains("published 1.2.3"));
-	assert_eq!(rendered[7], "✖ Publish complete: 1 published, 1 failed");
+	assert!(rendered[6].contains("staged 1.2.3"));
+	assert!(rendered[6].contains("awaiting approval"));
+	assert_eq!(rendered[8], "✖ Publish complete: 1 published, 1 failed");
 	assert_eq!(
 		render_publish_event(
 			&PublishProgressEvent::RunFinished {
@@ -1013,6 +1016,24 @@ fn publish_rendering_and_json_cover_every_event_variant() {
 			false,
 		),
 		"+ Publish complete: 1 published, 4 not attempted"
+	);
+	// Staged packages finished their run without going live; the summary
+	// keeps them visible next to the published count.
+	assert_eq!(
+		render_publish_event(
+			&PublishProgressEvent::RunFinished {
+				mode: PackagePublishRunMode::Release,
+				total: 2,
+				published: 1,
+				staged: 1,
+				skipped: 0,
+				failed: 0,
+			},
+			&ASCII_SYMBOLS,
+			false,
+			false,
+		),
+		"+ Publish complete: 1 published, 1 staged awaiting approval"
 	);
 	// Nothing published is a neutral outcome, not a success or a failure.
 	assert_eq!(
@@ -1081,6 +1102,7 @@ fn publish_rendering_and_json_cover_every_event_variant() {
 			"publish_package_skipped",
 			"publish_package_planned",
 			"publish_package_published",
+			"publish_package_staged",
 			"publish_package_failed",
 			"publish_run_finished",
 		]

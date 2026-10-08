@@ -44,6 +44,7 @@ use crate::PackageType;
 use crate::PrereleaseConfiguration;
 use crate::ProviderMergeRequestSettings;
 use crate::ProviderReleaseSettings;
+use crate::PublishFlow;
 use crate::PublishMode;
 use crate::PublishOrderSettings;
 use crate::PublishSettings;
@@ -358,6 +359,13 @@ fn publish_mode_and_registry_kind_display_canonical_names() {
 	assert_eq!(PublishMode::External.as_str(), "external");
 	assert_eq!(PublishMode::Builtin.to_string(), "builtin");
 	assert_eq!(PublishMode::External.to_string(), "external");
+
+	assert_eq!(PublishFlow::Direct.as_str(), "direct");
+	assert_eq!(PublishFlow::Staged.as_str(), "staged");
+	assert_eq!(PublishFlow::Direct.to_string(), "direct");
+	assert_eq!(PublishFlow::Staged.to_string(), "staged");
+	assert!(PublishFlow::Direct.is_default());
+	assert!(!PublishFlow::Staged.is_default());
 
 	assert_eq!(RegistryKind::CratesIo.as_str(), "crates_io");
 	assert_eq!(RegistryKind::Npm.as_str(), "npm");
