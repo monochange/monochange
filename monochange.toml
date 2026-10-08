@@ -201,10 +201,11 @@ docs = { bump = "none", section = "docs", description = "Documentation updates a
 security = { bump = "none", section = "security", description = "Security improvements, advisories, and vulnerability fixes" }
 perf = { bump = "none", section = "perf", description = "Performance and benchmarking improvements" }
 
-# Website notes describe visible product changes, independently of CLI notes.
-website_feature = { bump = "minor", section = "website_added", stream = "website", description = "New website functionality" }
-website_fix = { bump = "patch", section = "website_fixed", stream = "website", description = "Website corrections" }
-website_change = { bump = "major", section = "website_changed", stream = "website", description = "Website changes requiring user action" }
+# Website types describe product outcomes. Use default-stream types such as fix
+# for monochange_app deployment, CI, credentials, and other operator-only changes.
+website_feature = { bump = "minor", section = "website_added", stream = "website", description = "New functionality that website users can use" }
+website_fix = { bump = "patch", section = "website_fixed", stream = "website", description = "Corrections to behavior experienced by website users" }
+website_change = { bump = "major", section = "website_changed", stream = "website", description = "Product changes requiring action from website users" }
 
 [changelog.sections.website_added]
 heading = "New"
@@ -219,7 +220,15 @@ heading = "Changed"
 priority = 10
 
 [changelog.streams.website]
-description = "User-facing updates for monochange.dev"
+description = "Product updates for monochange.dev users. Excludes deployment, CI, credentials, and internal maintenance intended only for developers or operators."
+
+[changelog.outputs.website_developer]
+stream = "default"
+targets = ["monochange_app"]
+path = "app/developer-changelog.md"
+format = "keep_a_changelog"
+mode = "append"
+initial_header = "# Developer updates for monochange.dev\n\nRelease notes for website developers and operators.\n"
 
 [changelog.outputs.website]
 stream = "website"

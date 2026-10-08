@@ -1,0 +1,10 @@
+---
+source: crates/monochange_integration_tests/tests/changelog_streams.rs
+expression: app_developer_notes
+---
+## sdk 2.0.0 (2026-09-02)
+
+### Fixes
+
+- **Validate deployment credentials before building.** The deployment job rejects missing or malformed SSH keys before building an application image. Operators can correct the production environment credentials without waiting for a build to finish.
+  _Owner:_ test · _Introduced in:_ [COMMIT]

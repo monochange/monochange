@@ -1169,6 +1169,8 @@ Stream, output, type, and section ids must start with a lowercase letter and con
 
 Each changeset file resolves to exactly one stream. If one implementation needs both developer-facing detail and user-facing wording, author two small changesets and choose a type from each stream. This keeps each entry understandable on its own and prevents internal details from leaking into product notes.
 
+Audience belongs to the type, independently of the package's artifact type. The same app can use `fix` in `default` for deployment credentials and a configured product type for login behavior. Describe each stream's intended readers and exclusions in its `description`, and explain when to use each type in its `description`, so agents can choose from the repository's policy. Validate and preview the stream assignments, then review the prose; monochange routes the selected type without inferring an audience from the text.
+
 ```toml
 [changelog.streams.user]
 description = "Product release notes for app users"

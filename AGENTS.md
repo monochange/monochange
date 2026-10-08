@@ -59,6 +59,7 @@ The agent must only write code, open and update pull requests, review code, run 
 ## Release-note streams and changeset writing
 
 - Treat every `.changeset/*.md` file as one audience-specific release-note entry. All targets in that file must resolve to the same changelog stream.
+- Choose the audience independently of package type. Applications can use developer streams for deployment or CI and product streams for visible behavior. See [Audience selection](docs/agents/changeset-generation.md#audience-selection) before writing notes; operator-only changes need no product entry.
 - Types without an explicit `stream` belong to the built-in `default` stream, which is normally developer-facing. Custom streams such as `user` are declared in `monochange.toml` and reached through their configured types.
 - When one code change matters to developers and users, write two changesets: one with precise API, function, migration, or operational detail in the default stream, and one with product-language outcomes in the user stream. Do not duplicate the same prose.
 - Developer notes should name the affected API or behavior and include actionable migration/config examples. User notes should describe the visible outcome, who benefits, and any action the user must take; omit internal function names and implementation detail.

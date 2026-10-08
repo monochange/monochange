@@ -22,7 +22,7 @@ changelog_version_title = "{{ version }}"
 ignore_ecosystem_versioned_files = true
 ```
 
-`changelog = false` disables the implicit developer-facing file for this target. The named outputs below own its website history. `publish.enabled = false` keeps the application out of registry publication while retaining versioning and release records. `ignore_ecosystem_versioned_files = true` avoids stamping the repository's root Cargo manifest with the website version. The Cargo adapter still updates the app's native manifest and lockfile.
+`changelog = false` disables the implicit developer-facing file for this target. The named outputs below retain developer notes separately from the public website history. `publish.enabled = false` keeps the application out of registry publication while retaining versioning and release records. `ignore_ecosystem_versioned_files = true` avoids stamping the repository's root Cargo manifest with the website version. The Cargo adapter still updates the app's native manifest and lockfile.
 
 ## Write for website users
 
@@ -30,7 +30,7 @@ Types choose the audience stream. Declare a website stream and types for feature
 
 ```toml
 [changelog.streams.website]
-description = "User-facing updates for monochange.dev"
+description = "Product updates for monochange.dev users. Excludes deployment, CI, credentials, and internal maintenance intended only for developers or operators."
 
 [changelog.types]
 website_feature = { bump = "minor", section = "website_added", stream = "website" }
@@ -55,13 +55,21 @@ monochange_app: website_feature
 Read website updates on the What's new page, with versions separate from the CLI.
 ```
 
-Keep API and implementation notes in a separate changeset using the default stream. Do not combine audiences in one file. Bumps follow the repository's SemVer policy, including its policy for versions below 1.0.
+The same `monochange_app` package uses default-stream types such as `fix` for deployment credentials, CI, and internal maintenance intended only for operators. Those changes need no website entry. When a change also affects visitors, write a separate website changeset describing that visible outcome. Bumps follow the repository's SemVer policy, including its policy for versions below 1.0.
 
 ## Generate Markdown and JSON from the same notes
 
-Create one cumulative Markdown output and one immutable JSON file per website version:
+Keep a developer changelog alongside the cumulative website Markdown output and one immutable public JSON file per website version:
 
 ```toml
+[changelog.outputs.website_developer]
+stream = "default"
+targets = ["monochange_app"]
+path = "app/developer-changelog.md"
+format = "keep_a_changelog"
+mode = "append"
+initial_header = "# Developer updates for monochange.dev\n\nRelease notes for website developers and operators.\n"
+
 [changelog.outputs.website]
 stream = "website"
 targets = ["monochange_app"]
@@ -86,6 +94,7 @@ Preview the named output before preparing a release:
 monochange step validate
 monochange preview --format json
 monochange notes --output website_json --target monochange_app
+monochange notes --output website_developer --target monochange_app
 ```
 
 Inspect `output`, `stream`, `owner_id`, and `path` in the dry-run artifacts. The notes command renders prospective notes without changing package versions or consuming changesets. Release preparation commits the JSON files with the version bump and the durable release record.

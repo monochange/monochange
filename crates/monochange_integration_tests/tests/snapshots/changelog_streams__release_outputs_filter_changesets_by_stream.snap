@@ -11,6 +11,13 @@ expression: changelog_identities
     "stream": "default"
   },
   {
+    "format": "monochange",
+    "output": "developer_app",
+    "owner": "app",
+    "path": "crates/app/INTERNAL.md",
+    "stream": "default"
+  },
+  {
     "format": "json",
     "output": "user_json",
     "owner": "app",
