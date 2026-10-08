@@ -1797,6 +1797,21 @@
 			},
 			"type": "object"
 		},
+		"PublishFlow": {
+			"description": "How a release publish reaches its registry.\n\nnpm supports two publish flows:\n- `Direct` – the publish command makes the version installable immediately.\n- `Staged` – `npm stage publish` uploads the version to a staging queue and\n  a maintainer must approve it with 2FA before it becomes installable.\n\nStaged publishing is currently npm-only; other ecosystems reject the\noverride at configuration load time. Placeholder publishing is never\nstaged because placeholders must register the package immediately.",
+			"oneOf": [
+				{
+					"const": "direct",
+					"description": "The publish command makes the version installable immediately.",
+					"type": "string"
+				},
+				{
+					"const": "staged",
+					"description": "The version waits in the registry's staging queue for maintainer\napproval (npm staged publishing).",
+					"type": "string"
+				}
+			]
+		},
 		"PublishMode": {
 			"description": "Whether monochange's built-in publisher handles release publishing for a package.\n\n- `Builtin` – monochange runs the ecosystem-specific publish command (e.g. `npm\n  publish`, `cargo publish`) during `PublishPackages`.\n- `External` – the package is skipped during `PublishPackages`; your own CI or\n  scripts handle release publishing instead.\n\nThis setting does **not** affect placeholder publishing (`PlaceholderPublish`),\nwhich processes all packages with `publish.enabled = true` regardless of mode.\nPlaceholder publishing is a bootstrap utility, not a release publishing step.",
 			"oneOf": [
@@ -3192,6 +3207,17 @@
 						"boolean",
 						"null"
 					]
+				},
+				"flow": {
+					"anyOf": [
+						{
+							"$ref": "#/$defs/PublishFlow"
+						},
+						{
+							"type": "null"
+						}
+					],
+					"default": null
 				},
 				"mode": {
 					"anyOf": [

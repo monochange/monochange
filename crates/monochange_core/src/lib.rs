@@ -2704,6 +2704,50 @@ impl fmt::Display for PublishMode {
 	}
 }
 
+/// How a release publish reaches its registry.
+///
+/// npm supports two publish flows:
+/// - `Direct` – the publish command makes the version installable immediately.
+/// - `Staged` – `npm stage publish` uploads the version to a staging queue and
+///   a maintainer must approve it with 2FA before it becomes installable.
+///
+/// Staged publishing is currently npm-only; other ecosystems reject the
+/// override at configuration load time. Placeholder publishing is never
+/// staged because placeholders must register the package immediately.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum PublishFlow {
+	#[default]
+	/// The publish command makes the version installable immediately.
+	Direct,
+	/// The version waits in the registry's staging queue for maintainer
+	/// approval (npm staged publishing).
+	Staged,
+}
+
+impl PublishFlow {
+	/// Return the canonical serialized name for the publish flow.
+	#[must_use]
+	pub fn as_str(self) -> &'static str {
+		match self {
+			Self::Direct => "direct",
+			Self::Staged => "staged",
+		}
+	}
+
+	#[must_use]
+	pub fn is_default(&self) -> bool {
+		*self == Self::default()
+	}
+}
+
+impl fmt::Display for PublishFlow {
+	fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+		formatter.write_str(self.as_str())
+	}
+}
+
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -2880,6 +2924,8 @@ pub struct PublishSettings {
 	pub mode: PublishMode,
 	#[serde(default)]
 	pub registry: Option<PublishRegistry>,
+	#[serde(default, skip_serializing_if = "PublishFlow::is_default")]
+	pub flow: PublishFlow,
 	#[serde(default)]
 	pub trusted_publishing: TrustedPublishingSettings,
 	#[serde(
@@ -2903,6 +2949,7 @@ impl Default for PublishSettings {
 			enabled: true,
 			mode: PublishMode::default(),
 			registry: None,
+			flow: PublishFlow::default(),
 			trusted_publishing: TrustedPublishingSettings::default(),
 			attestations: PublishAttestationSettings::default(),
 			rate_limits: PublishRateLimitSettings::default(),
@@ -5327,6 +5374,8 @@ pub struct PackagePublicationTarget {
 	pub version: String,
 	#[serde(default)]
 	pub mode: PublishMode,
+	#[serde(default, skip_serializing_if = "PublishFlow::is_default")]
+	pub flow: PublishFlow,
 	#[serde(default)]
 	pub trusted_publishing: TrustedPublishingSettings,
 	#[serde(

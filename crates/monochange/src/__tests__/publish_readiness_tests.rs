@@ -976,6 +976,7 @@ fn trust_request_for(
 		package_manager: None,
 		package_metadata: BTreeMap::new(),
 		mode: monochange_core::PublishMode::Builtin,
+		flow: monochange_core::PublishFlow::Direct,
 		version: version.to_string(),
 		placeholder: false,
 		trusted_publishing: monochange_core::TrustedPublishingSettings {
@@ -1187,6 +1188,7 @@ async fn build_report_notes_release_record_order_mismatch_without_blocking() {
 			registry: None,
 			version: "1.0.0".to_string(),
 			mode: monochange_core::PublishMode::Builtin,
+			flow: monochange_core::PublishFlow::Direct,
 			trusted_publishing: monochange_core::TrustedPublishingSettings::default(),
 			attestations: monochange_core::PublishAttestationSettings::default(),
 			timeout: monochange_core::PublishTimeoutSettings::default(),

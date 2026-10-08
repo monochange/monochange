@@ -3208,6 +3208,7 @@ fn render_package_publish_report(
 				package.status,
 				package_publish::PackagePublishStatus::Planned
 					| package_publish::PackagePublishStatus::Published
+					| package_publish::PackagePublishStatus::Staged
 			)
 		})
 		.collect::<Vec<_>>();
@@ -3325,10 +3326,23 @@ fn package_publish_headline(
 			publish_package_count(report.mode, summary.blocked)
 		);
 	}
+	if summary.published > 0 && summary.staged > 0 {
+		return format!(
+			"Published {}; staged {} awaiting approval",
+			publish_package_count(report.mode, summary.published),
+			publish_package_count(report.mode, summary.staged),
+		);
+	}
 	if summary.published > 0 {
 		return format!(
 			"Published {}",
 			publish_package_count(report.mode, summary.published)
+		);
+	}
+	if summary.staged > 0 {
+		return format!(
+			"Staged {} awaiting approval",
+			publish_package_count(report.mode, summary.staged)
 		);
 	}
 
@@ -3371,6 +3385,12 @@ fn package_publish_counts(
 		} else {
 			format!("{} package versions already exist", summary.already_exists)
 		});
+	}
+	if summary.staged > 0 {
+		parts.push(format!(
+			"{} staged awaiting approval (`npm stage list`, then `npm stage approve <stage-id>`)",
+			summary.staged
+		));
 	}
 	if summary.blocked > 0 {
 		parts.push(format!("{} blocked", summary.blocked));
@@ -3611,6 +3631,7 @@ fn package_publish_status_label(status: package_publish::PackagePublishStatus) -
 	match status {
 		package_publish::PackagePublishStatus::Planned => "planned",
 		package_publish::PackagePublishStatus::Published => "published",
+		package_publish::PackagePublishStatus::Staged => "staged (awaiting approval)",
 		package_publish::PackagePublishStatus::SkippedExisting => "already exists",
 		package_publish::PackagePublishStatus::SkippedExternal => "not attempted",
 		package_publish::PackagePublishStatus::Blocked => "blocked",

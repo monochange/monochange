@@ -356,6 +356,7 @@ pub(crate) fn build_package_publication_targets(
 				registry: package_definition.publish.registry.clone(),
 				version: version.to_string(),
 				mode: package_definition.publish.mode,
+				flow: package_definition.publish.flow,
 				trusted_publishing: package_definition.publish.trusted_publishing.clone(),
 				attestations: package_definition.publish.attestations.clone(),
 				timeout: package_definition.publish.timeout.clone(),

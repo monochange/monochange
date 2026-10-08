@@ -405,6 +405,16 @@ warn_on_group_mismatch = true
 #                             ecosystem: "crates_io", "npm", "jsr", or
 #                             "pub_dev". Custom/private registries must use
 #                             mode = "external".
+#     flow                  - npm-only release flow: "direct" (default) runs
+#                             `npm publish` so the version is installable
+#                             immediately, or "staged" runs `npm stage publish`
+#                             so the version waits in the npm staging queue
+#                             until a maintainer approves it with 2FA
+#                             (`npm stage approve <stage-id>` or the Staged
+#                             Packages tab on npmjs.com). Staged publishing
+#                             needs npm CLI 11.15+ and composes with trusted
+#                             publishing; placeholder publishes always stay
+#                             direct. Other ecosystems reject this override.
 #     trusted_publishing    - whether this package is expected to use registry
 #                             trusted/OIDC publishing flows when available.
 #                             Set `trusted_publishing = true` for defaults, or
@@ -444,6 +454,7 @@ changelog = "{{ pkg.changelog }}"
 # enabled = true
 # mode = "builtin"
 # trusted_publishing = true
+# flow = "direct"
 # [package.{{ pkg.toml_key }}.publish.trusted_publishing]
 # enabled = true
 # repository = "owner/repo"
@@ -568,6 +579,10 @@ version_format = "primary"
 #     registry       — default public registry for this ecosystem. Built-in
 #                      publishing only supports the ecosystem's canonical public
 #                      registry.
+#     flow           — npm-only release flow (default: "direct"); "staged" makes
+#                      matching npm packages publish through `npm stage publish`
+#                      so versions await maintainer approval with 2FA before
+#                      they become installable
 #     trusted_publishing — whether packages in this ecosystem should default to
 #                      trusted/OIDC publishing flows when available. Set
 #                      `trusted_publishing = true` for defaults, or use a table

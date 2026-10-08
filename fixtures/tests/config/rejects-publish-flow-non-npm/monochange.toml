@@ -1,0 +1,6 @@
+[ecosystems.python.publish]
+flow = "staged"
+
+[package.api]
+path = "packages/api"
+type = "python"

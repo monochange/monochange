@@ -59,6 +59,7 @@ use monochange_core::ProviderMergeRequestSettings;
 use monochange_core::ProviderReleaseNotesSource;
 use monochange_core::ProviderReleaseSettings;
 use monochange_core::PublishAttestationSettings;
+use monochange_core::PublishFlow;
 use monochange_core::PublishMode;
 use monochange_core::PublishOrderSettings;
 use monochange_core::PublishRegistry;
@@ -546,6 +547,8 @@ pub(crate) struct RawPublishSettings {
 	mode: Option<PublishMode>,
 	#[serde(default)]
 	registry: Option<PublishRegistry>,
+	#[serde(default)]
+	flow: Option<PublishFlow>,
 	#[serde(default)]
 	trusted_publishing: Option<RawTrustedPublishingSettings>,
 	#[serde(default)]
@@ -1652,6 +1655,9 @@ fn normalize_publish_settings(
 	if let Some(registry) = raw.registry {
 		settings.registry = Some(registry);
 	}
+	if let Some(flow) = raw.flow {
+		settings.flow = flow;
+	}
 	settings.trusted_publishing = normalize_trusted_publishing_settings(
 		base.map(|settings| &settings.trusted_publishing),
 		raw.trusted_publishing,
@@ -1712,6 +1718,24 @@ fn normalize_publish_settings(
 			)],
 			Some(
 				"remove the registry override to use the default public registry for that ecosystem, or set `mode = \"external\"` for custom/private registries".to_string(),
+			),
+		));
+	}
+
+	if settings.flow != PublishFlow::Direct && inferred_ecosystem_type != EcosystemType::Npm {
+		return Err(config_diagnostic(
+			contents,
+			format!(
+				"{owner_kind} `{owner_id}` uses staged publishing for an ecosystem without staged publish support"
+			),
+			vec![config_section_label(
+				contents,
+				owner_kind,
+				owner_id,
+				"unsupported staged publish flow",
+			)],
+			Some(
+				"remove `flow = \"staged\"`; only `[ecosystems.npm.publish]` and npm packages support staged publishing".to_string(),
 			),
 		));
 	}

@@ -1543,6 +1543,25 @@ fn package_publish_headlines_distinguish_every_outcome() {
 		)),
 		"Published 1 package"
 	);
+	assert_eq!(
+		headline(&report(
+			package_publish::PackagePublishRunMode::Release,
+			false,
+			&[package_publish::PackagePublishStatus::Staged],
+		)),
+		"Staged 1 package awaiting approval"
+	);
+	assert_eq!(
+		headline(&report(
+			package_publish::PackagePublishRunMode::Release,
+			false,
+			&[
+				package_publish::PackagePublishStatus::Published,
+				package_publish::PackagePublishStatus::Staged,
+			],
+		)),
+		"Published 1 package; staged 1 package awaiting approval"
+	);
 }
 
 #[test]
@@ -1590,6 +1609,13 @@ fn package_publish_counts_explain_existing_and_failed_packages() {
 			],
 		)),
 		"Checked 3 packages. 2 package versions already exist. 1 failed."
+	);
+	assert_eq!(
+		counts(&report(
+			package_publish::PackagePublishRunMode::Release,
+			&[package_publish::PackagePublishStatus::Staged],
+		)),
+		"Checked 1 package. 1 staged awaiting approval (`npm stage list`, then `npm stage approve <stage-id>`). 0 failed."
 	);
 }
 
@@ -1849,6 +1875,7 @@ fn resolve_command_output_supports_package_publish_json_without_release_state() 
 		serde_json::json!({
 			"planned": 1,
 			"published": 0,
+			"staged": 0,
 			"already_exists": 0,
 			"blocked": 0,
 			"failed": 0,

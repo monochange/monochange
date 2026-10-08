@@ -23,6 +23,7 @@ use monochange_core::MonochangeResult;
 use monochange_core::PackagePublicationTarget;
 use monochange_core::PackageRecord;
 use monochange_core::PublishAttestationSettings;
+use monochange_core::PublishFlow;
 use monochange_core::PublishMode;
 use monochange_core::PublishRegistry;
 use monochange_core::PublishState;
@@ -127,6 +128,7 @@ pub enum PublishProgressEvent {
 	},
 	PackagePlanned(PublishProgressPackage),
 	PackagePublished(PublishProgressPackage),
+	PackageStaged(PublishProgressPackage),
 	PackageFailed {
 		package: PublishProgressPackage,
 		message: String,
@@ -135,6 +137,7 @@ pub enum PublishProgressEvent {
 		mode: PackagePublishRunMode,
 		total: usize,
 		published: usize,
+		staged: usize,
 		skipped: usize,
 		failed: usize,
 	},
@@ -198,6 +201,9 @@ pub enum PackagePublishRunMode {
 pub enum PackagePublishStatus {
 	Planned,
 	Published,
+	/// The version was uploaded to the registry's staging queue and is not
+	/// installable until a maintainer approves it (npm staged publishing).
+	Staged,
 	SkippedExisting,
 	SkippedExternal,
 	Blocked,
@@ -309,6 +315,8 @@ pub type PackagePublishExecutionResult = Result<PackagePublishReport, PackagePub
 pub struct PackagePublishSummary {
 	pub planned: usize,
 	pub published: usize,
+	#[serde(default)]
+	pub staged: usize,
 	pub already_exists: usize,
 	pub blocked: usize,
 	pub failed: usize,
@@ -320,6 +328,7 @@ impl PackagePublishSummary {
 	pub const fn total(self) -> usize {
 		self.planned
 			+ self.published
+			+ self.staged
 			+ self.already_exists
 			+ self.blocked
 			+ self.failed
@@ -333,6 +342,7 @@ impl PackagePublishReport {
 		let mut summary = PackagePublishSummary {
 			planned: 0,
 			published: 0,
+			staged: 0,
 			already_exists: 0,
 			blocked: 0,
 			failed: 0,
@@ -343,6 +353,7 @@ impl PackagePublishReport {
 			match outcome.status {
 				PackagePublishStatus::Planned => summary.planned += 1,
 				PackagePublishStatus::Published => summary.published += 1,
+				PackagePublishStatus::Staged => summary.staged += 1,
 				PackagePublishStatus::SkippedExisting => summary.already_exists += 1,
 				PackagePublishStatus::SkippedExternal => summary.not_attempted += 1,
 				PackagePublishStatus::Blocked => summary.blocked += 1,
@@ -481,10 +492,17 @@ pub fn planned_publish_message(mode: PackagePublishRunMode, request: &PublishReq
 			)
 		}
 		PackagePublishRunMode::Release => {
-			format!(
-				"would publish {} {} to {}",
-				request.package_name, request.version, request.registry
-			)
+			if request.flow == PublishFlow::Staged {
+				format!(
+					"would stage {} {} on {}; the version stays non-installable until a maintainer approves it with 2FA",
+					request.package_name, request.version, request.registry
+				)
+			} else {
+				format!(
+					"would publish {} {} to {}",
+					request.package_name, request.version, request.registry
+				)
+			}
 		}
 	}
 }
@@ -612,6 +630,7 @@ pub struct PublishRequest {
 	pub package_manager: Option<String>,
 	pub package_metadata: BTreeMap<String, String>,
 	pub mode: PublishMode,
+	pub flow: PublishFlow,
 	pub version: String,
 	pub placeholder: bool,
 	pub trusted_publishing: TrustedPublishingSettings,
@@ -1545,6 +1564,14 @@ pub async fn try_execute_publish_requests_with_progress(
 				PackagePublishStatus::Planned,
 				planned_publish_message(mode, request),
 			)
+		} else if request.flow == PublishFlow::Staged {
+			progress.report(PublishProgressEvent::PackageStaged(
+				publish_progress_package(request),
+			));
+			(
+				PackagePublishStatus::Staged,
+				staged_publish_message(request),
+			)
 		} else {
 			progress.report(PublishProgressEvent::PackagePublished(
 				publish_progress_package(request),
@@ -1589,6 +1616,7 @@ pub async fn try_execute_publish_requests_with_progress(
 		mode,
 		total: summary.total(),
 		published: summary.published,
+		staged: summary.staged,
 		skipped: summary.planned + summary.already_exists + summary.blocked + summary.not_attempted,
 		failed: summary.failed,
 	});
@@ -1635,6 +1663,9 @@ pub fn build_placeholder_requests(
 				package_manager: package.metadata.get("manager").cloned(),
 				package_metadata: package.metadata.clone(),
 				mode: package_definition.publish.mode,
+				// Placeholders register the package immediately; staged
+				// publishing would leave the name unclaimed until approval.
+				flow: PublishFlow::Direct,
 				version: PLACEHOLDER_VERSION.to_string(),
 				placeholder: true,
 				trusted_publishing: package_definition.publish.trusted_publishing.clone(),
@@ -1678,6 +1709,7 @@ pub fn configured_package_publication_targets(
 				registry: package_definition.publish.registry.clone(),
 				version,
 				mode: package_definition.publish.mode,
+				flow: package_definition.publish.flow,
 				trusted_publishing: package_definition.publish.trusted_publishing.clone(),
 				attestations: package_definition.publish.attestations.clone(),
 				timeout: package_definition.publish.timeout.clone(),
@@ -1748,6 +1780,7 @@ pub fn build_release_requests(
 			package_manager: package.metadata.get("manager").cloned(),
 			package_metadata: package.metadata.clone(),
 			mode: publication.mode,
+			flow: publication.flow,
 			version: publication.version.clone(),
 			placeholder: false,
 			trusted_publishing: publication.trusted_publishing.clone(),
@@ -2356,6 +2389,13 @@ fn npm_otp_recovery_message(mode: PackagePublishRunMode) -> &'static str {
 	}
 }
 
+fn staged_publish_message(request: &PublishRequest) -> String {
+	format!(
+		"staged {} {} on {}; it stays non-installable until a maintainer approves it with 2FA. Run `npm stage list` then `npm stage approve <stage-id>`, or use the Staged Packages tab on npmjs.com",
+		request.package_name, request.version, request.registry
+	)
+}
+
 fn is_pub_dev_auth_error(output: &CommandOutput, request: &PublishRequest) -> bool {
 	if request.registry != RegistryKind::PubDev {
 		return false;
@@ -2680,11 +2720,15 @@ pub fn build_npm_placeholder_publish_command(
 }
 
 pub fn build_npm_release_publish_command(request: &PublishRequest) -> CommandSpec {
-	let mut args = vec![
-		"publish".to_string(),
-		"--access".to_string(),
-		"public".to_string(),
-	];
+	let mut args = Vec::new();
+	if request.flow == PublishFlow::Staged {
+		// `npm stage publish` and `pnpm stage publish` share the same
+		// subcommand shape and accept the same publish arguments.
+		args.push("stage".to_string());
+	}
+	args.push("publish".to_string());
+	args.push("--access".to_string());
+	args.push("public".to_string());
 	if request.attestations.require_registry_provenance {
 		args.push("--provenance".to_string());
 	}
@@ -3481,6 +3525,7 @@ pub fn package_publish_status_is_resumable_complete(status: PackagePublishStatus
 	matches!(
 		status,
 		PackagePublishStatus::Published
+			| PackagePublishStatus::Staged
 			| PackagePublishStatus::SkippedExisting
 			| PackagePublishStatus::SkippedExternal
 	)

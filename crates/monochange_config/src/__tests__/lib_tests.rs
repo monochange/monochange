@@ -4761,6 +4761,47 @@ fn load_workspace_configuration_merges_publish_fail_on_duplicate() {
 }
 
 #[test]
+fn load_workspace_configuration_merges_publish_flow() {
+	let root = fixture_path("config/publish-flow");
+	let configuration = load_workspace_configuration(&root)
+		.unwrap_or_else(|error| panic!("configuration: {error}"));
+
+	let web = configuration
+		.package_by_id("web")
+		.unwrap_or_else(|| panic!("expected web package"));
+	assert_eq!(web.publish.flow, monochange_core::PublishFlow::Staged);
+
+	let legacy = configuration
+		.package_by_id("legacy")
+		.unwrap_or_else(|| panic!("expected legacy package"));
+	assert_eq!(legacy.publish.flow, monochange_core::PublishFlow::Direct);
+}
+
+#[test]
+fn load_workspace_configuration_defaults_publish_flow_to_direct_for_other_ecosystems() {
+	let root = fixture_path("config/publish-fail-on-duplicate");
+	let configuration = load_workspace_configuration(&root)
+		.unwrap_or_else(|error| panic!("configuration: {error}"));
+
+	let web = configuration
+		.package_by_id("web")
+		.unwrap_or_else(|| panic!("expected web package"));
+	assert_eq!(web.publish.flow, monochange_core::PublishFlow::Direct);
+}
+
+#[test]
+fn load_workspace_configuration_rejects_staged_publish_flow_for_non_npm_ecosystem() {
+	let root = fixture_path("config/rejects-publish-flow-non-npm");
+	let error = load_workspace_configuration(&root)
+		.err()
+		.unwrap_or_else(|| panic!("expected staged publish flow error"));
+	assert!(error.to_string().contains(
+		"ecosystems `python` uses staged publishing for an ecosystem without staged publish support"
+	));
+	assert!(error.to_string().contains("flow = \"staged\""));
+}
+
+#[test]
 fn load_workspace_configuration_rejects_builtin_publish_registry_override() {
 	let root = fixture_path("config/rejects-publish-builtin-registry-override");
 	let error = load_workspace_configuration(&root)

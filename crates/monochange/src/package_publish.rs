@@ -503,6 +503,7 @@ fn offset_publish_progress_event(
 			mode,
 			total,
 			published,
+			staged,
 			skipped,
 			failed,
 		} => {
@@ -510,6 +511,7 @@ fn offset_publish_progress_event(
 				mode,
 				total: total + resumed.total(),
 				published: published + resumed.published,
+				staged: staged + resumed.staged,
 				skipped: skipped
 					+ resumed.planned
 					+ resumed.already_exists

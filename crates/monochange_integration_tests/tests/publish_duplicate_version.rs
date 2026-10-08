@@ -245,3 +245,51 @@ fn dry_run_publish_packages_with_fail_on_duplicate_input_plans_new_versions() {
 		".stderr" => "[npm dry-run stderr]"
 	});
 }
+
+#[test]
+fn dry_run_publish_packages_plans_stage_command_for_staged_flow() {
+	let mock = mock_npm_registry_without_version(2);
+	let workspace = workspace_root();
+
+	let output = publish_packages_command(workspace.path(), mock.port, "staged")
+		.output()
+		.unwrap_or_else(|error| panic!("run publish-packages: {error}"));
+
+	assert!(
+		output.status.success(),
+		"publish-packages should succeed for a staged dry run\nstdout:\n{}\nstderr:\n{}",
+		String::from_utf8_lossy(&output.stdout),
+		String::from_utf8_lossy(&output.stderr)
+	);
+	let value: Value = serde_json::from_slice(&output.stdout)
+		.unwrap_or_else(|error| panic!("parse publish report json: {error}"));
+	let outcomes = value["package_publish"]["packages"]
+		.as_array()
+		.unwrap_or_else(|| panic!("expected package_publish.packages array"));
+	let outcome = &outcomes[0];
+	assert_eq!(
+		outcome["status"].as_str(),
+		Some("planned"),
+		"expected planned outcome, got: {outcome}"
+	);
+	assert_eq!(
+		outcome["command"].as_str(),
+		Some("npm stage publish --access public --dry-run"),
+		"expected the staged publish command, got: {outcome}"
+	);
+	assert_eq!(
+		value["package_publish"]["summary"]["staged"],
+		Value::Number(0.into()),
+		"a dry run must not count staged packages, got: {}",
+		value["package_publish"]["summary"]
+	);
+	// The plan message must tell the maintainer how the release finalizes.
+	let message = outcome["message"]
+		.as_str()
+		.unwrap_or_else(|| panic!("expected a planned message, got: {outcome}"));
+	assert!(
+		message.starts_with("would stage staged 1.0.0 on npm"),
+		"expected staged flow guidance in the planned message, got: {message}"
+	);
+	assert!(message.contains("approves it with 2FA"));
+}

@@ -25,6 +25,7 @@ fn sample_request(registry: RegistryKind, root: &TempDir) -> PublishRequest {
 		package_manager: None,
 		package_metadata: BTreeMap::new(),
 		mode: PublishMode::Builtin,
+		flow: monochange_core::PublishFlow::Direct,
 		version: "1.0.0".to_string(),
 		placeholder: false,
 		trusted_publishing: TrustedPublishingSettings::default(),
