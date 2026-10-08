@@ -983,7 +983,7 @@
 			"type": "array"
 		},
 		"schema_version": {
-			"default": "0.9",
+			"default": "0.10",
 			"type": "string"
 		},
 		"updated_changelogs": {

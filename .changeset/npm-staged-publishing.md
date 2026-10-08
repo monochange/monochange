@@ -1,7 +1,7 @@
 ---
 "monochange": minor
 "monochange_config": minor
-"monochange_schema": patch
+monochange_schema: major
 "@monochange/skill": patch
 ---
 
@@ -31,4 +31,4 @@ Details:
 - Successful staged publishes report a `staged` status (not `published`) with a `staged` summary count, and publish resume treats them as complete. Staged versions are invisible to the registry version probe, so re-running before approval stages again instead of skipping.
 - Placeholder publishing always stays direct, matching the existing rule that placeholder publishing ignores publish modes; a placeholder must register the package immediately.
 - Requires npm CLI 11.15+ and Node 22.14+; pnpm workspaces stage through `pnpm stage publish` (pnpm 11.3+).
-- Release records now carry `flow` on each package publication target, so the release decision stays auditable. Older release records without the field parse as `direct`.
+- Release records now carry `flow` on each package publication target, so the release decision stays auditable. Older release records without the field parse as `direct`. The release-record and config schema contracts advance to schema version `0.10` with a no-op migration edge from `0.9` (the optional field defaults to `direct`); the published `v0.9` schema assets stay frozen.

@@ -4,10 +4,10 @@ expression: output
 ---
 • Would update 2 dependency constraints · in 2 files · strategy default · no files were modified
 
-packages/version_mismatch/pubspec.yaml
+[workspace]/packages/version_mismatch/pubspec.yaml
   core  ^1.1.0 → ^1.2.3
 
-packages/workspace_path_fail/pubspec.yaml
+[workspace]/packages/workspace_path_fail/pubspec.yaml
   core  path: ../core → ^1.2.3
 
 Run `monochange versions sync` to write these changes.

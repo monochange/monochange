@@ -62,7 +62,8 @@ Command surface: `npm stage publish`, `npm stage list [<spec>]`, `npm stage view
 - [x] CLI rendering.
 - [x] Integration test: dry-run staged publish command snapshot.
 - [x] Template, root config annotations, guide docs, skill docs, schema regeneration.
-- [x] Changeset (default stream, minor).
+- [x] Changesets (feature, breaking API, website docs; `monochange_schema: major` drives the schema bump).
+- [x] Schema contract advance to `0.10` with a no-op `0.9 → 0.10` migration edge and frozen `v0.10` assets.
 - [ ] `fix:all`, focused tests, `monochange step validate`, `monochange step affected-packages --from origin/main --verify`, docs/schema checks.
 
 ## Validation commands
@@ -80,3 +81,12 @@ devenv shell monochange step affected-packages --from origin/main --verify
 - npm's `stage publish` flag surface (`--provenance`) is not fully documented; if the registry rejects provenance on staged uploads we may need to warn when both are configured.
 - Stage-id capture: npm and pnpm print stage ids in different formats; monochange does not parse them, so approval guidance stays generic.
 - Re-running a staged publish before approval stages again (staged versions are invisible to the registry version probe); document this in the guide.
+
+## Schema version advance
+
+`PackagePublicationTarget` gained `flow`, so both the config and release-record schema contracts changed. The published `v0.9` assets are frozen (they ship on the website and in releases since v0.16), so the schema version advances to `0.10`:
+
+- `crates/monochange_schema/SCHEMA_VERSION` → `0.10`. The value is generated: the pipeline derives it from the crate version plus the pending changeset bump, so the changeset carries `monochange_schema: major` (on 0.x, `major` shifts to a minor-component bump: 0.9.2 → 0.10.0).
+- New no-op migration edge `release_record_0_9_to_0_10` (the field is optional and defaults to `direct`), registered in the edges list and pinned by the migration tests.
+- `docs/src/schemas/monochange.v0.10.schema.json` and `release-record.v0.10.schema.json` cut; `artifacts/0.10/` fixtures generated; the mdt `projectSchemaAssetIndex` block refreshed.
+- The committed current+schema assets carried pre-existing generator drift (tab-indented output plus staleness); regenerating them also normalizes that drift, which is why the schema diff is large. `cargo xtask schema check` passes with the regenerated files and fails on `main` without them.
