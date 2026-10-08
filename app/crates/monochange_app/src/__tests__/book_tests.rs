@@ -38,12 +38,23 @@ fn compiled_book_renders_safe_chapters_with_working_navigation() {
 }
 
 #[test]
-fn real_book_has_all_listed_chapters_and_no_markdown_links() {
+fn real_book_has_all_listed_chapters_and_working_internal_links() {
 	let book = Book::read(&BOOK_FILES).unwrap();
 	assert!(book.chapters.len() > 40);
 	for chapter in &book.chapters {
 		assert!(!chapter.html.contains("href=\"../"));
 		assert!(!chapter.html.contains("href=\"./"));
+		for link in chapter.html.split("href=\"").skip(1) {
+			let destination = link.split('"').next().unwrap();
+			let path = destination.split(['?', '#']).next().unwrap();
+			if path == "/book" || path.starts_with("/book/") {
+				assert!(
+					book.chapters.iter().any(|target| target.href == path),
+					"{} links to missing chapter {destination}",
+					chapter.source
+				);
+			}
+		}
 	}
 	assert!(
 		book.chapter("")
