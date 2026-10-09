@@ -50,7 +50,7 @@ devenv shell doctl version
 ```
 
 - `monochange.dev`, `app.monochange.dev`, and `www.monochange.dev` pointed at the Droplet IPv4 address; Caddy serves `monochange.dev` and redirects the aliases to it so host-only sign-in cookies use the same host as the OAuth callback;
-- a GitHub OAuth app with callback URL:
+- the monochange GitHub App configured for user authorization with callback URL:
 
 ```text
 https://monochange.dev/auth/callback
@@ -67,9 +67,9 @@ https://monochange.dev/auth/callback
 
 Create a dedicated `monochange` vault and give the production service account read access to that vault only. Do not grant write access or reuse the shared development service account. The SecretSpec 1Password provider reads items titled `secretspec/monochange_app/production/<KEY>` with a concealed field named `value`. Store each production value in that layout. Keep the service account token separately as a password item for recovery; it is the only credential copied to the server.
 
-For repository connection, follow the [GitHub App registration checklist](deploy/github-app-registration.md). Use homepage `https://monochange.dev`, setup URL `https://monochange.dev/dashboard`, and an active webhook at `https://monochange.dev/api/github/webhooks` with SSL verification enabled. Metadata read access is sufficient for connection and listing. Contents and Pull requests write access belong to a separate hosted release rollout. Keep the webhook secret in the production vault and the complete PEM private key out of source control.
+For repository connection and hosted release work, follow the [GitHub App registration checklist](deploy/github-app-registration.md). Use homepage `https://monochange.dev`, user authorization callback `https://monochange.dev/auth/callback`, and an active webhook at `https://monochange.dev/api/github/webhooks` with SSL verification enabled. Enable user authorization during installation and keep expiring user tokens enabled. Grant repository Metadata read access and Contents, Issues, and Pull requests read/write access, plus Organization Members read access. Subscribe to issue, issue-comment, pull-request, review, review-comment, review-thread, push, and repository events; GitHub delivers installation lifecycle events automatically. Keep account, enterprise, Actions, Administration, and Workflows access disabled. Keep the client secret and webhook secret in the production vault and the complete PEM private key out of source control.
 
-The existing website OAuth registration still uses `https://monochange.dev/auth/callback`. It is separate from the GitHub App installation setup URL. Do not register a second OAuth app, rotate working login credentials, or change DNS to enable repository connection.
+The same GitHub App client ID and client secret authorize website users and installation onboarding. Do not register a second OAuth app or change DNS to enable repository connection.
 
 ## 1. create the Droplet
 
