@@ -398,3 +398,71 @@ async fn repository_lifecycle_is_scoped_to_its_installation() {
 		1
 	);
 }
+
+#[tokio::test]
+async fn installations_record_their_organisation_for_projects() {
+	let state = configured_state().await;
+	let status = deliver(
+		&state,
+		serde_json::json!({
+			"action": "created",
+			"installation": {"id": 2001, "account": {"id": 5001, "login": "acme", "type": "Organization", "avatar_url": "https://avatars/acme.png"}},
+			"sender": {"id": 101, "login": "alice"},
+			"repositories": [{"id": 31, "full_name": "acme/api", "private": false}]
+		}),
+	)
+	.await;
+	assert_eq!(status, StatusCode::OK);
+	let (organization_id, login, account_type): (i32, String, String) = sqlx::query_as(
+		"SELECT o.id, o.github_login, o.account_type FROM organizations o JOIN installations i ON i.organization_id = o.id WHERE i.github_installation_id = 2001",
+	)
+	.fetch_one(&state.db)
+	.await
+	.unwrap();
+	assert_eq!(login, "acme");
+	assert_eq!(account_type, "Organization");
+
+	// A later event for the renamed account updates the same organisation.
+	let status = deliver_event(
+		&state,
+		"installation_repositories",
+		serde_json::json!({
+			"action": "added",
+			"installation": {"id": 2001, "account": {"id": 5001, "login": "acme-co", "type": "Organization"}},
+			"repositories_added": [{"id": 32, "full_name": "acme-co/web", "private": true}]
+		}),
+	)
+	.await;
+	assert_eq!(status, StatusCode::OK);
+	let renamed: (i32, String, Option<String>) =
+		sqlx::query_as("SELECT id, github_login, github_avatar_url FROM organizations")
+			.fetch_one(&state.db)
+			.await
+			.unwrap();
+	assert_eq!(renamed.0, organization_id);
+	assert_eq!(renamed.1, "acme-co");
+	assert_eq!(renamed.2.as_deref(), Some("https://avatars/acme.png"));
+}
+
+#[tokio::test]
+async fn installations_without_an_account_id_are_not_linked() {
+	let state = configured_state().await;
+	let status = deliver(
+		&state,
+		serde_json::json!({
+			"action": "created",
+			"installation": {"id": 2002, "account": {"login": "solo-org", "type": "Organization"}},
+			"sender": {"id": 102, "login": "solo"},
+			"repositories": []
+		}),
+	)
+	.await;
+	assert_eq!(status, StatusCode::OK);
+	let linked: Option<i32> = sqlx::query_scalar(
+		"SELECT organization_id FROM installations WHERE github_installation_id = 2002",
+	)
+	.fetch_one(&state.db)
+	.await
+	.unwrap();
+	assert_eq!(linked, None);
+}

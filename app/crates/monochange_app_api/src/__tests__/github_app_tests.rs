@@ -136,3 +136,47 @@ async fn invalid_signing_key_fails_before_requesting_github() {
 	));
 	metadata.assert_calls(0);
 }
+
+#[tokio::test]
+async fn installation_account_recovers_the_stable_account_identity() {
+	let server = MockServer::start();
+	let lookup = server.mock(|when, then| {
+		when.method(Method::GET)
+			.path("/app/installations/1001")
+			.header_exists("authorization");
+		then.status(200).json_body(serde_json::json!({
+			"id": 1001,
+			"account": {"id": 5001, "login": "acme", "type": "Organization", "avatar_url": "https://avatars/acme.png"}
+		}));
+	});
+	let account = auth(&server)
+		.installation_account(&reqwest::Client::new(), 1001)
+		.await
+		.unwrap();
+	lookup.assert();
+	assert_eq!(account.external_id, 5001);
+	assert_eq!(account.login, "acme");
+	assert_eq!(account.account_type, "Organization");
+	assert_eq!(
+		account.avatar_url.as_deref(),
+		Some("https://avatars/acme.png")
+	);
+	assert_eq!(account.provider, "github");
+}
+
+#[tokio::test]
+async fn installation_account_failures_keep_github_status() {
+	let server = MockServer::start();
+	server.mock(|when, then| {
+		when.method(Method::GET).path("/app/installations/404");
+		then.status(404).body("Not Found");
+	});
+	let error = auth(&server)
+		.installation_account(&reqwest::Client::new(), 404)
+		.await
+		.unwrap_err();
+	assert!(matches!(
+		error,
+		GitHubAppError::Status("read installation", status, _) if status == reqwest::StatusCode::NOT_FOUND
+	));
+}
