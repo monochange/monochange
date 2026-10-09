@@ -1,5 +1,6 @@
-//! Vote tallying for the discussion stage. Votes signal demand; they never
-//! accept work on their own — acceptance stays with maintainers.
+//! Vote tallying. Votes signal demand ("I want this" for features, "this
+//! affects me too" for bugs); they never accept work on their own —
+//! acceptance stays with maintainers.
 
 use std::collections::BTreeSet;
 
@@ -8,6 +9,8 @@ use serde::Serialize;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct VotingRules {
+	/// Votes needed before a maintainer can accept without recording an
+	/// override rationale.
 	pub acceptance_threshold: u32,
 }
 
@@ -19,14 +22,15 @@ impl Default for VotingRules {
 	}
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "outcome", rename_all = "snake_case")]
 pub enum VotingOutcome {
 	BelowThreshold { votes: u32 },
 	ThresholdReached { votes: u32 },
 }
 
-/// One vote per anonymous submitter id, deduplicated.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+/// One vote per anonymous submitter id.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct VoteTally {
 	recorded: BTreeSet<String>,
 }
@@ -37,8 +41,17 @@ impl VoteTally {
 		self.recorded.insert(submitter_id.to_owned())
 	}
 
+	/// Removes a vote, returning `false` when the submitter had not voted.
+	pub fn retract(&mut self, submitter_id: &str) -> bool {
+		self.recorded.remove(submitter_id)
+	}
+
 	pub fn has_voted(&self, submitter_id: &str) -> bool {
 		self.recorded.contains(submitter_id)
+	}
+
+	pub fn voters(&self) -> impl Iterator<Item = &str> {
+		self.recorded.iter().map(String::as_str)
 	}
 
 	pub fn total(&self) -> u32 {

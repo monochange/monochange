@@ -1,6 +1,6 @@
-//! User-facing roadmap and status rendering. Every entry passes through the
-//! disclosure gate, so the answer to "what changed, what is being built, and
-//! when will it ship" never leaks private-repo internals.
+//! User-facing roadmap and status rendering — the answer to "what changed,
+//! what is being built, and when will it ship". Every entry passes through
+//! the [`DisclosureGate`], so it never leaks private-repository internals.
 
 use serde::Deserialize;
 use serde::Serialize;
@@ -14,34 +14,53 @@ use crate::disclosure::PublicLink;
 use crate::pipeline::FeedbackItem;
 use crate::pipeline::IssueRef;
 use crate::pipeline::Stage;
+use crate::submission::FeedbackKind;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+/// Longest public title, in characters.
+pub const TITLE_LIMIT: usize = 96;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum PublicStatus {
-	UnderReview,
-	Planned,
 	InProgress,
+	Planned,
+	UnderReview,
 	Shipped,
 	Declined,
 }
 
+/// The honest answer to "when will it ship". Dates are only promised once
+/// the code has merged; before that an accepted item is planned, not
+/// scheduled.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "window", rename_all = "snake_case")]
 pub enum ShipWindow {
-	Scheduled { label: String },
+	Released {
+		version: String,
+	},
+	/// Merged and waiting for the next release, labelled from the release
+	/// cadence when one is known.
+	NextRelease {
+		label: Option<String>,
+	},
+	Planned,
 	Unscheduled,
 }
 
-/// Snapshot of the repository's release cadence as known by the release
-/// automation. `next_window_label` might be "next scheduled release" or a
-/// version hint like "v2.4 — end of October".
+/// The repository's release cadence as known by the release automation,
+/// such as `"v2.4 · around 21 October"`.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CadenceSnapshot {
-	pub next_window_label: Option<String>,
+	pub next_release_label: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RoadmapEntry {
+	pub id: String,
+	pub kind: FeedbackKind,
 	pub title: String,
 	pub status: PublicStatus,
+	pub status_line: String,
 	pub votes: u32,
 	pub ship_window: ShipWindow,
 	pub links: Vec<PublicLink>,
@@ -49,6 +68,7 @@ pub struct RoadmapEntry {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ShippedEntry {
+	pub id: String,
 	pub title: String,
 	pub version: String,
 	pub notes_url: String,
@@ -60,7 +80,21 @@ pub struct StatusFeed {
 	pub shipped: Vec<ShippedEntry>,
 }
 
-pub fn public_status(stage: &Stage) -> PublicStatus {
+/// An item the gate refused to publish. Maintainer-facing only.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Withheld {
+	pub id: String,
+	pub reason: String,
+}
+
+/// The public feed plus the maintainer-side record of what was left out.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FeedRender {
+	pub feed: StatusFeed,
+	pub withheld: Vec<Withheld>,
+}
+
+pub fn public_status(stage: Stage) -> PublicStatus {
 	match stage {
 		Stage::Received
 		| Stage::Quarantined
@@ -68,67 +102,75 @@ pub fn public_status(stage: &Stage) -> PublicStatus {
 		| Stage::Discussing
 		| Stage::Voting => PublicStatus::UnderReview,
 		Stage::Accepted => PublicStatus::Planned,
-		Stage::Building | Stage::InReview => PublicStatus::InProgress,
+		Stage::Building | Stage::InReview | Stage::Merged => PublicStatus::InProgress,
 		Stage::Shipped => PublicStatus::Shipped,
 		Stage::Declined | Stage::Closed => PublicStatus::Declined,
 	}
 }
 
-pub fn public_status_line(stage: &Stage) -> &'static str {
+pub fn public_status_line(stage: Stage) -> &'static str {
 	match stage {
-		// Quarantine is a moderation state, not user-visible; publicly the
-		// item is simply still waiting for review.
+		// Quarantine is a moderation state; publicly the item is simply
+		// still waiting for review.
 		Stage::Received | Stage::Quarantined => "Received and waiting for review",
 		Stage::Triaging => "Being investigated",
-		Stage::Discussing => "We have follow-up questions",
+		Stage::Discussing => "We have a follow-up question",
 		Stage::Voting => "Open for votes",
-		Stage::Accepted => "Accepted and scheduled",
+		Stage::Accepted => "Accepted and planned",
 		Stage::Declined => "Declined",
 		Stage::Building => "In development",
 		Stage::InReview => "In review",
+		Stage::Merged => "Done, shipping in the next release",
 		Stage::Shipped => "Shipped",
 		Stage::Closed => "Closed",
 	}
 }
 
-pub fn public_title(item: &FeedbackItem) -> String {
-	let summary = item.triage.as_ref().map_or_else(
-		|| first_line(&item.submission.description),
-		|report| report.product_summary.clone(),
-	);
-	truncate_title(&summary)
+/// The public title, or `None` while the item has no reviewed summary.
+pub fn public_title(item: &FeedbackItem) -> Option<String> {
+	let summary = item.summary_override.as_deref().or_else(|| {
+		item.triage
+			.as_ref()
+			.map(|report| report.product_summary.as_str())
+	})?;
+	Some(truncate_title(summary))
 }
 
-/// Titles cap at word boundaries so the disclosure gate always sees whole
-/// tokens — a char-boundary cut could split an internal path in half after
-/// redaction ran. A single oversized word falls back to character truncation.
+/// Whether the item belongs on the public roadmap: it has been triaged (so
+/// its title is a reviewed summary rather than raw user text) and it was not
+/// folded into another item.
+pub fn is_listed(item: &FeedbackItem) -> bool {
+	!matches!(
+		item.stage,
+		Stage::Received | Stage::Quarantined | Stage::Triaging
+	) && item.duplicate_of.is_none()
+		&& public_title(item).is_some()
+}
+
+/// Titles cap at word boundaries so redaction always sees whole tokens — a
+/// character cut could split an internal path in half and hide it from the
+/// classifier. A single oversized word falls back to a character cut.
 fn truncate_title(summary: &str) -> String {
-	const TITLE_LIMIT: usize = 96;
 	if summary.chars().count() <= TITLE_LIMIT {
 		return summary.to_owned();
 	}
+	let budget = TITLE_LIMIT - 1;
 	let mut result = String::new();
-	let mut length = 0usize;
 	for word in summary.split(' ') {
-		let word_length = word.chars().count();
 		let separator = usize::from(!result.is_empty());
-		if length + separator + word_length > TITLE_LIMIT {
+		if result.chars().count() + separator + word.chars().count() > budget {
 			break;
 		}
 		if separator == 1 {
 			result.push(' ');
 		}
 		result.push_str(word);
-		length += separator + word_length;
 	}
 	if result.is_empty() {
-		return summary.chars().take(TITLE_LIMIT).collect();
+		result = summary.chars().take(budget).collect();
 	}
+	result.push('…');
 	result
-}
-
-fn first_line(text: &str) -> String {
-	text.lines().next().unwrap_or_default().to_owned()
 }
 
 fn links_for(item: &FeedbackItem) -> Vec<PublicLink> {
@@ -146,28 +188,44 @@ fn links_for(item: &FeedbackItem) -> Vec<PublicLink> {
 }
 
 pub fn ship_window(item: &FeedbackItem, cadence: &CadenceSnapshot) -> ShipWindow {
-	match item.stage {
-		Stage::Shipped => {
-			match &item.release {
-				Some(release) => {
-					ShipWindow::Scheduled {
-						label: release.version.clone(),
-					}
-				}
-				None => ShipWindow::Unscheduled,
+	match (item.stage, &item.release) {
+		(Stage::Shipped, Some(release)) => {
+			ShipWindow::Released {
+				version: release.version.clone(),
 			}
 		}
-		Stage::Accepted | Stage::Building | Stage::InReview => {
-			match &cadence.next_window_label {
-				Some(label) => {
-					ShipWindow::Scheduled {
-						label: label.clone(),
-					}
-				}
-				None => ShipWindow::Unscheduled,
+		(Stage::Merged, _) => {
+			ShipWindow::NextRelease {
+				label: cadence.next_release_label.clone(),
 			}
 		}
+		(Stage::Accepted | Stage::Building | Stage::InReview, _) => ShipWindow::Planned,
 		_ => ShipWindow::Unscheduled,
+	}
+}
+
+fn neutral_title(item: &FeedbackItem) -> &'static str {
+	match item.submission.kind {
+		FeedbackKind::BugReport => "Your problem report",
+		FeedbackKind::FeatureRequest => "Your feature request",
+	}
+}
+
+fn outbound_draft(item: &FeedbackItem, title: String) -> OutboundDraft {
+	let status = public_status_line(item.stage);
+	let body = match (&item.duplicate_of, item.stage, &item.decision) {
+		(Some(_), ..) => {
+			"Merged into a matching request. Your vote moved with it, so you will hear about it there."
+				.to_owned()
+		}
+		(None, Stage::Declined, Some(decision)) => format!("{status}: {}", decision.rationale),
+		_ => status.to_owned(),
+	};
+	OutboundDraft {
+		title,
+		body,
+		links: links_for(item),
+		technical_detail: None,
 	}
 }
 
@@ -176,54 +234,72 @@ pub fn roadmap_entry(
 	policy: DisclosurePolicy,
 	cadence: &CadenceSnapshot,
 ) -> Result<RoadmapEntry, DisclosureError> {
-	let update = DisclosureGate::publish(outbound_draft(item), policy)?;
+	let title = public_title(item).unwrap_or_else(|| neutral_title(item).to_owned());
+	let update = DisclosureGate::publish(outbound_draft(item, title), policy)?;
 	Ok(RoadmapEntry {
+		id: item.id.clone(),
+		kind: item
+			.triage
+			.as_ref()
+			.map_or(item.submission.kind, |report| report.classification),
 		title: update.title,
-		status: public_status(&item.stage),
+		status: public_status(item.stage),
+		status_line: update.body,
 		votes: item.votes.total(),
 		ship_window: ship_window(item, cadence),
 		links: update.links,
 	})
 }
 
-/// The "what happened to my feedback" view rendered inside the widget.
+/// The "what happened to my feedback" view shown to the submitter and
+/// subscribers. Items without a reviewed summary get a neutral title, so a
+/// quarantined description is never echoed back through the portal.
 pub fn public_item_update(
 	item: &FeedbackItem,
 	policy: DisclosurePolicy,
 ) -> Result<OutboundUpdate, DisclosureError> {
-	DisclosureGate::publish(outbound_draft(item), policy)
+	let title = public_title(item).unwrap_or_else(|| neutral_title(item).to_owned());
+	DisclosureGate::publish(outbound_draft(item, title), policy)
 }
 
-fn outbound_draft(item: &FeedbackItem) -> OutboundDraft {
-	OutboundDraft {
-		title: public_title(item),
-		body: public_status_line(&item.stage).to_owned(),
-		links: links_for(item),
-		technical_detail: None,
-	}
-}
-
+/// Builds the public feed. One item that fails the gate is withheld and
+/// reported to maintainers rather than taking the whole feed down.
 pub fn status_feed<'a>(
-	items: impl Iterator<Item = &'a FeedbackItem>,
+	items: impl IntoIterator<Item = &'a FeedbackItem>,
 	policy: DisclosurePolicy,
 	cadence: &CadenceSnapshot,
-) -> Result<StatusFeed, DisclosureError> {
-	let mut feed = StatusFeed::default();
-	for item in items {
-		if item.stage == Stage::Shipped {
-			let update = DisclosureGate::publish(outbound_draft(item), policy)?;
-			let release = item.release.as_ref();
-			feed.shipped.push(ShippedEntry {
-				title: update.title,
-				version: release
-					.map_or_else(|| "unreleased".to_owned(), |link| link.version.clone()),
-				notes_url: release.map_or_else(String::new, |link| link.notes_url.clone()),
-			});
-		} else {
-			feed.roadmap.push(roadmap_entry(item, policy, cadence)?);
+) -> FeedRender {
+	let mut render = FeedRender::default();
+	for item in items.into_iter().filter(|item| is_listed(item)) {
+		let entry = match roadmap_entry(item, policy, cadence) {
+			Ok(entry) => entry,
+			Err(error) => {
+				render.withheld.push(Withheld {
+					id: item.id.clone(),
+					reason: error.to_string(),
+				});
+				continue;
+			}
+		};
+		match (&item.release, item.stage) {
+			(Some(release), Stage::Shipped) => {
+				render.feed.shipped.push(ShippedEntry {
+					id: entry.id,
+					title: entry.title,
+					version: release.version.clone(),
+					notes_url: release.notes_url.clone(),
+				});
+			}
+			_ => render.feed.roadmap.push(entry),
 		}
 	}
-	Ok(feed)
+	render.feed.roadmap.sort_by(|left, right| {
+		left.status
+			.cmp(&right.status)
+			.then(right.votes.cmp(&left.votes))
+	});
+	render.feed.shipped.reverse();
+	render
 }
 
 #[cfg(test)]

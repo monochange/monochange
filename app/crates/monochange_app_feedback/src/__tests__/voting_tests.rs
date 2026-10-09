@@ -13,43 +13,54 @@ fn records_one_vote_per_submitter() {
 	let mut tally = VoteTally::default();
 	assert!(tally.record("u1"));
 	assert!(!tally.record("u1"));
+	assert!(tally.record("u2"));
 	assert!(tally.has_voted("u1"));
-	assert!(!tally.has_voted("u2"));
-	assert_eq!(tally.total(), 1);
+	assert!(!tally.has_voted("u3"));
+	assert_eq!(tally.total(), 2);
+	assert_eq!(tally.voters().collect::<Vec<_>>(), ["u1", "u2"]);
 }
 
 #[test]
-fn total_counts_unique_submitters() {
-	let mut tally = VoteTally::default();
-	for submitter in ["u1", "u2", "u3"] {
-		tally.record(submitter);
-		tally.record(submitter);
-	}
-	assert_eq!(tally.total(), 3);
-}
-
-#[test]
-fn evaluate_reports_threshold() {
-	let rules = VotingRules::default();
+fn retracting_removes_only_existing_votes() {
 	let mut tally = VoteTally::default();
 	tally.record("u1");
+	assert!(tally.retract("u1"));
+	assert!(!tally.retract("u1"));
+	assert_eq!(tally.total(), 0);
+}
+
+#[test]
+fn evaluation_compares_against_the_threshold() {
+	let rules = VotingRules {
+		acceptance_threshold: 2,
+	};
+	let mut tally = VoteTally::default();
+	tally.record("u1");
+	assert_eq!(
+		evaluate(&tally, &rules),
+		VotingOutcome::BelowThreshold { votes: 1 }
+	);
 	tally.record("u2");
 	assert_eq!(
 		evaluate(&tally, &rules),
-		VotingOutcome::BelowThreshold { votes: 2 }
+		VotingOutcome::ThresholdReached { votes: 2 }
 	);
-	tally.record("u3");
+}
+
+#[test]
+fn voting_types_round_trip_through_json() {
+	let mut tally = VoteTally::default();
+	tally.record("u1");
+	let decoded: VoteTally = serde_json::from_value(serde_json::to_value(&tally).unwrap()).unwrap();
+	assert_eq!(decoded, tally);
+	let rules: VotingRules =
+		serde_json::from_value(serde_json::to_value(VotingRules::default()).unwrap()).unwrap();
+	assert_eq!(rules, VotingRules::default());
+	let outcome = VotingOutcome::ThresholdReached { votes: 3 };
+	let json = serde_json::to_value(outcome).unwrap();
+	assert_eq!(json["outcome"], "threshold_reached");
 	assert_eq!(
-		evaluate(&tally, &rules),
-		VotingOutcome::ThresholdReached { votes: 3 }
-	);
-	let single_vote_rules = VotingRules {
-		acceptance_threshold: 1,
-	};
-	let mut single = VoteTally::default();
-	single.record("u1");
-	assert_eq!(
-		evaluate(&single, &single_vote_rules),
-		VotingOutcome::ThresholdReached { votes: 1 }
+		serde_json::from_value::<VotingOutcome>(json).unwrap(),
+		outcome
 	);
 }
