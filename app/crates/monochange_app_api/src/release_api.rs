@@ -5,6 +5,10 @@
 //! GitHub Actions OIDC token (preferred) or a `MONOCHANGE_TOKEN` API token;
 //! the caller's repository must have the monochange GitHub App installed.
 
+#[cfg(test)]
+#[path = "__tests__/release_api_tests.rs"]
+mod tests;
+
 use axum::Json;
 use axum::extract::State;
 use axum::extract::rejection::JsonRejection;
@@ -184,12 +188,27 @@ fn validate_commit_paths(request: &HostedCommitRequest) -> Result<(), String> {
 	Ok(())
 }
 
+/// Map a release commit failure to its HTTP status.
+///
+/// A moved release or base branch is a conflict the caller resolves by
+/// rerunning from the current base; everything else is a GitHub failure.
+fn release_commit_error_status(error: &github_app::GitHubAppError) -> StatusCode {
+	match error {
+		github_app::GitHubAppError::BranchMoved(..) | github_app::GitHubAppError::BaseMoved(..) => {
+			StatusCode::CONFLICT
+		}
+		github_app::GitHubAppError::NotConfigured => StatusCode::SERVICE_UNAVAILABLE,
+		_ => StatusCode::BAD_GATEWAY,
+	}
+}
+
 /// `POST /api/release-commits` — create a release commit through the bot.
 ///
 /// The caller proves the run belongs to the repository (OIDC) or presents an
-/// API token; the server verifies the branch still points at the prepared
-/// base commit, then creates blobs, tree, and commit through the Git Database
-/// API with an installation token so GitHub signs the result.
+/// API token; the server checks that the release branch may move (see
+/// [`github_app::create_release_commit`]), then creates blobs, tree, and
+/// commit through the Git Database API with an installation token so GitHub
+/// signs the result.
 pub async fn create_release_commit(
 	State(state): State<AppState>,
 	headers: axum::http::HeaderMap,
@@ -263,31 +282,44 @@ pub async fn create_release_commit(
 		}));
 	}
 
-	let (sha, _verified, reason) =
-		github_app::create_release_commit(&state.http, &app.api_url, &token, &request)
+	let response = commit_release_files(&state.http, &app.api_url, &token, &request).await?;
+	Ok(Json(response))
+}
+
+/// Create the release commit through the GitHub App and shape the response.
+///
+/// Reports GitHub's verification result and maps a moved release or base
+/// branch to `409 Conflict`.
+async fn commit_release_files(
+	http: &reqwest::Client,
+	api_url: &str,
+	installation_token: &str,
+	request: &HostedCommitRequest,
+) -> Result<HostedCommitResponse, (StatusCode, Json<ApiError>)> {
+	let (sha, verified, reason) =
+		github_app::create_release_commit(http, api_url, installation_token, request)
 			.await
 			.map_err(|error| {
-				let status = match error {
-					github_app::GitHubAppError::BranchMoved(..) => StatusCode::CONFLICT,
-					github_app::GitHubAppError::NotConfigured => StatusCode::SERVICE_UNAVAILABLE,
-					_ => StatusCode::BAD_GATEWAY,
-				};
-				(status, Json(ApiError::new(error.to_string())))
+				(
+					release_commit_error_status(&error),
+					Json(ApiError::new(error.to_string())),
+				)
 			})?;
 
 	tracing::info!(
-		repository = %full_name,
+		repository = %format!("{}/{}", request.owner, request.repository),
 		branch = %request.branch,
 		commit = %sha,
+		verified,
 		"hosted release commit created"
 	);
 
-	Ok(Json(HostedCommitResponse {
+	Ok(HostedCommitResponse {
 		commit: Some(sha),
-		verified: true,
+		verified,
 		status: Some("completed".to_string()),
 		message: reason,
-	}))
+	})
 }
 
 /// `POST /api/release-requests` — open or update the release pull request.
