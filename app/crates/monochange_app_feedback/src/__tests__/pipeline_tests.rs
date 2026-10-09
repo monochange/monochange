@@ -515,7 +515,11 @@ fn closing_is_maintainer_only_and_final() {
 #[test]
 fn the_timeline_records_every_step() {
 	let item = bug_at(Stage::Shipped);
-	let commands: Vec<_> = item.events.iter().map(|event| event.command).collect();
+	let commands: Vec<_> = item
+		.events
+		.iter()
+		.map(|event| event.command.as_str())
+		.collect();
 	assert_eq!(
 		commands,
 		[

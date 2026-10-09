@@ -173,11 +173,11 @@ pub enum TransitionError {
 }
 
 /// Audit entry shown to maintainers as a timeline.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FeedbackEvent {
 	pub stage: Stage,
 	pub actor: Actor,
-	pub command: &'static str,
+	pub command: String,
 }
 
 const ANY_OPEN: [Stage; 9] = [
@@ -213,7 +213,7 @@ const VOTABLE: [Stage; 5] = [
 	Stage::InReview,
 ];
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct FeedbackItem {
 	pub id: String,
 	pub submission: FeedbackSubmission,
@@ -472,7 +472,7 @@ impl FeedbackItem {
 		self.events.push(FeedbackEvent {
 			stage: self.stage,
 			actor: actor.clone(),
-			command,
+			command: command.to_owned(),
 		});
 	}
 }
