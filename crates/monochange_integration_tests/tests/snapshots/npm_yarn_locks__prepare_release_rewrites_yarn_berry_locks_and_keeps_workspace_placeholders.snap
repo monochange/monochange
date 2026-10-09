@@ -1,0 +1,21 @@
+---
+source: crates/monochange_integration_tests/tests/npm_yarn_locks.rs
+expression: prepare_summary(root)
+---
+{
+  "changed_files": [
+    "packages/api/package.json",
+    "packages/consumer/package.json",
+    "yarn.lock"
+  ],
+  "targets": [
+    {
+      "id": "@acme/api",
+      "version": "2.4.0"
+    },
+    {
+      "id": "@acme/consumer",
+      "version": "1.0.1"
+    }
+  ]
+}

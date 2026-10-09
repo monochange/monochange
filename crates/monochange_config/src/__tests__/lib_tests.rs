@@ -7285,6 +7285,18 @@ fn validate_versioned_files_and_release_notes_cover_remaining_validation_paths()
 	);
 
 	assert!(crate::path_is_supported_for_ecosystem(
+		Path::new("pnpm-lock.yaml"),
+		EcosystemType::Npm
+	));
+	assert!(crate::path_is_supported_for_ecosystem(
+		Path::new("yarn.lock"),
+		EcosystemType::Npm
+	));
+	assert!(crate::path_is_supported_for_ecosystem(
+		Path::new("bun.lock"),
+		EcosystemType::Npm
+	));
+	assert!(crate::path_is_supported_for_ecosystem(
 		Path::new("pubspec.yaml"),
 		EcosystemType::Dart
 	));

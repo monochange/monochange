@@ -56,6 +56,7 @@ pub enum NpmVersionedFileKind {
 	Manifest,
 	PackageLock,
 	PnpmLock,
+	YarnLock,
 	BunLock,
 	BunLockBinary,
 }
@@ -69,6 +70,7 @@ pub fn supported_versioned_file_kind(path: &Path) -> Option<NpmVersionedFileKind
 	match file_name {
 		"package-lock.json" => Some(NpmVersionedFileKind::PackageLock),
 		"pnpm-lock.yaml" => Some(NpmVersionedFileKind::PnpmLock),
+		"yarn.lock" => Some(NpmVersionedFileKind::YarnLock),
 		"bun.lock" => Some(NpmVersionedFileKind::BunLock),
 		"bun.lockb" => Some(NpmVersionedFileKind::BunLockBinary),
 		_ if path.extension().and_then(|ext| ext.to_str()) == Some("json") => {
@@ -93,6 +95,7 @@ pub fn discover_lockfiles(package: &PackageRecord) -> Vec<PathBuf> {
 	let candidate_names = [
 		"pnpm-lock.yaml",
 		"package-lock.json",
+		"yarn.lock",
 		"bun.lock",
 		"bun.lockb",
 	];
@@ -128,6 +131,8 @@ pub fn default_lockfile_commands(package: &PackageRecord) -> Vec<LockfileCommand
 				"npm install --package-lock-only"
 			} else if file_name == "pnpm-lock.yaml" {
 				"pnpm install --lockfile-only"
+			} else if file_name == "yarn.lock" {
+				"yarn install --mode=update-lockfile"
 			} else {
 				"bun install --lockfile-only"
 			};
@@ -265,28 +270,35 @@ pub fn update_pnpm_lock(
 }
 
 /// Update `pnpm-lock.yaml` text in place using direct YAML-aware replacements.
+///
+/// # Why multi-document handling exists
+///
+/// pnpm 12 may write the lockfile as two YAML documents: an env document with
+/// `configDependencies` and `packageManagerDependencies` first, followed by the
+/// main project lockfile. Both documents declare the same `lockfileVersion` and
+/// separate at a `---` marker. Single-document YAML parsers reject that layout,
+/// which forced every pnpm 12 release to regenerate the lockfile with
+/// `pnpm install --lockfile-only` instead of rewriting it directly. Every
+/// top-level section occurrence is scanned so pinned versions update in all
+/// documents while formatting, ordering, and the separator stay untouched.
 #[must_use = "the lockfile update result must be checked"]
 pub fn update_pnpm_lock_text(
 	contents: &str,
 	raw_versions: &BTreeMap<String, String>,
 ) -> MonochangeResult<String> {
-	serde_yaml_ng::from_str::<serde_yaml_ng::Value>(contents).map_err(|error| {
-		MonochangeError::Config(format!("failed to parse pnpm lock yaml: {error}"))
-	})?;
+	validate_pnpm_lock_documents(contents)?;
 	let line_ranges = yaml_line_ranges(contents);
 	let mut replacements = Vec::<((usize, usize), String)>::new();
 	for section_name in ["importers", "packages", "snapshots"] {
-		let Some(section_index) = find_yaml_key_line(contents, &line_ranges, 0, section_name)
-		else {
-			continue;
-		};
-		collect_pnpm_section_replacements(
-			contents,
-			&line_ranges,
-			section_index,
-			raw_versions,
-			&mut replacements,
-		);
+		for section_index in find_yaml_key_lines(contents, &line_ranges, 0, section_name) {
+			collect_pnpm_section_replacements(
+				contents,
+				&line_ranges,
+				section_index,
+				raw_versions,
+				&mut replacements,
+			);
+		}
 	}
 	replacements.sort_by_key(|right| std::cmp::Reverse(right.0.0));
 	let mut updated = contents.to_string();
@@ -294,6 +306,21 @@ pub fn update_pnpm_lock_text(
 		updated.replace_range(start..end, &replacement);
 	}
 	Ok(updated)
+}
+
+/// Validate that a pnpm lockfile parses as one or more YAML documents.
+///
+/// pnpm 12 lockfiles are multi-document YAML, so the whole stream is checked
+/// instead of only the first document.
+fn validate_pnpm_lock_documents(contents: &str) -> MonochangeResult<()> {
+	use serde::Deserialize;
+
+	for document in serde_yaml_ng::Deserializer::from_str(contents) {
+		serde_yaml_ng::Value::deserialize(document).map_err(|error| {
+			MonochangeError::Config(format!("failed to parse pnpm lock yaml: {error}"))
+		})?;
+	}
+	Ok(())
 }
 
 fn collect_pnpm_section_replacements(
@@ -419,6 +446,170 @@ fn yaml_scalar_is_updatable(existing: &str) -> bool {
 		.is_some_and(|text| !text.starts_with("link:") && !text.starts_with("workspace:"))
 }
 
+/// Update `yarn.lock` text in place for Yarn Classic (v1) and Berry lockfiles.
+///
+/// # Why the entry scan is format-aware
+///
+/// Classic lockfiles pin each entry with `version "1.2.3"` while Berry writes
+/// `version: 1.2.3` under a quoted descriptor key such as
+/// `"@acme/api@npm:^1.0.0"`. Both layouts are line oriented, so the updater
+/// walks top-level entry headers, resolves the package name from the first
+/// `name@range` descriptor, and rewrites only that entry's `version` value.
+/// Workspace-resolved entries keep their `0.0.0-use.local` placeholder, and
+/// comments, key ordering, checksums, and quoting stay untouched because the
+/// replacement span targets the value alone.
+pub fn update_yarn_lock(contents: &str, raw_versions: &BTreeMap<String, String>) -> String {
+	let line_ranges = yaml_line_ranges(contents);
+	let mut replacements = Vec::<((usize, usize), String)>::new();
+	let mut index = 0usize;
+	while let Some(range) = line_ranges.get(index) {
+		let Some(header) = parse_yarn_entry_header(contents, *range) else {
+			index += 1;
+			continue;
+		};
+		index += 1;
+		if header.workspace_resolved {
+			continue;
+		}
+		let Some(version) = raw_versions.get(header.package_name) else {
+			continue;
+		};
+		collect_yarn_entry_version_replacement(
+			contents,
+			&line_ranges,
+			index,
+			version,
+			&mut replacements,
+		);
+	}
+	replacements.sort_by_key(|right| std::cmp::Reverse(right.0.0));
+	let mut updated = contents.to_string();
+	for ((start, end), replacement) in replacements {
+		updated.replace_range(start..end, &replacement);
+	}
+	updated
+}
+
+struct YarnEntryHeader<'a> {
+	package_name: &'a str,
+	workspace_resolved: bool,
+}
+
+/// Parse an indent-0 lockfile entry header such as `"lodash@^4.0.0":`.
+fn parse_yarn_entry_header(contents: &str, range: (usize, usize)) -> Option<YarnEntryHeader<'_>> {
+	let line = contents.get(range.0..range.1)?;
+	let trimmed = line.trim_start_matches([' ', '\t']);
+	if trimmed.is_empty() || trimmed.starts_with('#') {
+		return None;
+	}
+	let indent = line.len() - trimmed.len();
+	if indent != 0 || !trimmed.ends_with(':') {
+		return None;
+	}
+	let specifiers = trimmed.strip_suffix(':')?;
+	let first_specifier = specifiers.split(',').next()?.trim();
+	let package_name = yarn_specifier_package_name(first_specifier)?;
+	Some(YarnEntryHeader {
+		package_name,
+		workspace_resolved: specifiers.contains("workspace:"),
+	})
+}
+
+/// Extract the package name from a `name@range` specifier.
+///
+/// The first `@` after position 0 separates name and range, so scoped names
+/// (`@acme/api@^1.0.0`) and protocol descriptors (`name@npm:1.2.3`,
+/// `name@workspace:packages/name`) resolve alike.
+fn yarn_specifier_package_name(specifier: &str) -> Option<&str> {
+	let specifier = specifier.strip_prefix('"').unwrap_or(specifier);
+	let specifier = specifier.strip_suffix('"').unwrap_or(specifier);
+	if specifier.is_empty() {
+		return None;
+	}
+	match specifier
+		.char_indices()
+		.find(|(index, character)| *index > 0 && *character == '@')
+	{
+		Some((index, _)) => specifier.get(..index),
+		None => Some(specifier),
+	}
+}
+
+/// Rewrite the first `version` line that belongs to the entry starting at
+/// `entry_start` and stop at the next top-level entry header.
+fn collect_yarn_entry_version_replacement(
+	contents: &str,
+	line_ranges: &[(usize, usize)],
+	entry_start: usize,
+	version: &str,
+	replacements: &mut Vec<((usize, usize), String)>,
+) {
+	let mut index = entry_start;
+	while let Some(range) = line_ranges.get(index) {
+		index += 1;
+		// Line spans come from `yaml_line_ranges`, so slicing them back out of
+		// the same text always succeeds; an empty slice simply reads as a
+		// blank line.
+		let line = contents.get(range.0..range.1).unwrap_or_default();
+		let trimmed = line.trim_start_matches([' ', '\t']);
+		if trimmed.is_empty() || trimmed.starts_with('#') {
+			continue;
+		}
+		let indent = line.len() - trimmed.len();
+		if indent == 0 {
+			return;
+		}
+		let Some(value_offset) = yarn_version_value_offset(trimmed) else {
+			continue;
+		};
+		let value = trimmed.get(value_offset..).unwrap_or_default();
+		if value.is_empty() {
+			continue;
+		}
+		let span = (
+			range.0 + indent + value_offset,
+			range.0 + indent + value_offset + yarn_version_value_end(value),
+		);
+		let existing = contents.get(span.0..span.1).unwrap_or_default();
+		let replacement = render_yaml_scalar(existing, version);
+		if replacement != existing {
+			replacements.push((span, replacement));
+		}
+		return;
+	}
+}
+
+/// Offset of the version value inside a Classic `version "1.2.3"` or Berry
+/// `version: 1.2.3` line, relative to the trimmed line.
+fn yarn_version_value_offset(trimmed: &str) -> Option<usize> {
+	let (key_length, after_key) = if let Some(rest) = trimmed.strip_prefix("version:") {
+		("version:".len(), rest)
+	} else {
+		let rest = trimmed.strip_prefix("version")?;
+		if !rest.starts_with([' ', '\t']) {
+			return None;
+		}
+		("version".len(), rest)
+	};
+	let whitespace = after_key.len() - after_key.trim_start_matches([' ', '\t']).len();
+	Some(key_length + whitespace)
+}
+
+/// Length of the version value at the start of `value`, quotes included.
+fn yarn_version_value_end(value: &str) -> usize {
+	if let Some(quote) = value
+		.chars()
+		.next()
+		.filter(|quote| *quote == '"' || *quote == '\'')
+	{
+		return value
+			.get(1..)
+			.and_then(|rest| rest.find(quote))
+			.map_or(value.len(), |end| end + 2);
+	}
+	value.trim_end_matches([' ', '\t']).len()
+}
+
 fn is_pnpm_dependency_field(key: &str) -> bool {
 	matches!(
 		key,
@@ -441,16 +632,21 @@ fn yaml_line_ranges(contents: &str) -> Vec<(usize, usize)> {
 	ranges
 }
 
-fn find_yaml_key_line(
+fn find_yaml_key_lines(
 	contents: &str,
 	line_ranges: &[(usize, usize)],
 	indent: usize,
 	key: &str,
-) -> Option<usize> {
-	line_ranges.iter().position(|range| {
-		parse_yaml_line(contents, *range)
-			.is_some_and(|line| line.indent == indent && line.key == key)
-	})
+) -> Vec<usize> {
+	line_ranges
+		.iter()
+		.enumerate()
+		.filter_map(|(index, range)| {
+			parse_yaml_line(contents, *range)
+				.is_some_and(|line| line.indent == indent && line.key == key)
+				.then_some(index)
+		})
+		.collect()
 }
 
 struct ParsedYamlLine<'a> {
@@ -556,18 +752,102 @@ fn render_yaml_scalar(existing: &str, value: &str) -> String {
 }
 
 /// Update text-based Bun lockfiles by replacing package version literals.
+///
+/// # Why replacements are restricted to exact versions
+///
+/// `bun.lock` is JSONC: dependency values carry resolved pins
+/// (`"left-pad": "1.3.0"`), protocol references (`"ui": "workspace:packages/ui"`),
+/// ranges, and registry descriptors (`"ui": ["ui@1.3.0", ...]`). Only exact
+/// semver pins and `name@version` package-map descriptors of released packages
+/// are rewritten, so workspace links, ranges, aliases, and git or URL
+/// references survive untouched along with the JSONC formatting (trailing
+/// commas and comments).
 pub fn update_bun_lock(contents: &str, raw_versions: &BTreeMap<String, String>) -> String {
-	let mut updated = contents.to_string();
+	let mut replacements = Vec::<((usize, usize), String)>::new();
 	for (name, version) in raw_versions {
-		let pattern = format!("\"{name}\": \"");
-		if let Some(start) = updated.find(&pattern) {
-			let value_start = start + pattern.len();
-			if let Some(end_offset) = updated[value_start..].find('"') {
-				updated.replace_range(value_start..value_start + end_offset, version);
-			}
-		}
+		collect_bun_pin_replacements(contents, name, version, &mut replacements);
+		collect_bun_descriptor_replacements(contents, name, version, &mut replacements);
+	}
+	replacements.sort_by_key(|right| std::cmp::Reverse(right.0.0));
+	let mut updated = contents.to_string();
+	for ((start, end), replacement) in replacements {
+		updated.replace_range(start..end, &replacement);
 	}
 	updated
+}
+
+/// Replace `"name": "1.3.0"` pins whose current value is an exact version.
+fn collect_bun_pin_replacements(
+	contents: &str,
+	name: &str,
+	version: &str,
+	replacements: &mut Vec<((usize, usize), String)>,
+) {
+	let key = format!("\"{name}\":");
+	let mut cursor = 0usize;
+	while let Some(remainder) = contents.get(cursor..) {
+		let Some(key_offset) = remainder.find(&key) else {
+			break;
+		};
+		let key_start = cursor + key_offset;
+		cursor = key_start + key.len();
+		let Some(value_span) = bun_string_value_span(contents, cursor) else {
+			continue;
+		};
+		if let Some(existing) = contents.get(value_span.0..value_span.1)
+			&& Version::parse(existing).is_ok()
+		{
+			replacements.push((value_span, version.to_string()));
+		}
+	}
+}
+
+/// Replace the `name@version` descriptor that opens a `"name": [...]` entry.
+///
+/// Workspace (`name@workspace:path`), alias, and protocol descriptors are left
+/// alone because their suffix is not an exact version.
+fn collect_bun_descriptor_replacements(
+	contents: &str,
+	name: &str,
+	version: &str,
+	replacements: &mut Vec<((usize, usize), String)>,
+) {
+	let entry = format!("\"{name}\": [\"");
+	let descriptor_prefix = format!("{name}@");
+	let mut cursor = 0usize;
+	while let Some(remainder) = contents.get(cursor..) {
+		let Some(entry_offset) = remainder.find(&entry) else {
+			break;
+		};
+		let entry_start = cursor + entry_offset;
+		let descriptor_start = entry_start + entry.len();
+		cursor = descriptor_start;
+		// The pattern was found inside `contents`, so slicing from its end
+		// stays in bounds; a truncated tail simply has no closing quote.
+		let descriptor_remainder = contents.get(descriptor_start..).unwrap_or_default();
+		let Some(descriptor_end) = descriptor_remainder.find('"') else {
+			continue;
+		};
+		let descriptor_span = (descriptor_start, descriptor_start + descriptor_end);
+		let descriptor = contents
+			.get(descriptor_span.0..descriptor_span.1)
+			.unwrap_or_default();
+		let Some(current_version) = descriptor.strip_prefix(&descriptor_prefix) else {
+			continue;
+		};
+		if Version::parse(current_version).is_ok() {
+			let version_start = descriptor_start + descriptor_prefix.len();
+			replacements.push(((version_start, descriptor_span.1), version.to_string()));
+		}
+	}
+}
+
+/// Return the inner span of the quoted string that starts at or after `offset`.
+fn bun_string_value_span(contents: &str, offset: usize) -> Option<(usize, usize)> {
+	let quote_offset = contents.get(offset..)?.find('"')?;
+	let value_start = offset + quote_offset + 1;
+	let value_end = contents.get(value_start..)?.find('"')?;
+	Some((value_start, value_start + value_end))
 }
 
 /// Update a binary `bun.lockb` file in place.
@@ -713,6 +993,16 @@ pub fn discover_npm_packages(root: &Path) -> MonochangeResult<AdapterDiscovery> 
 /// release planning only needs the configured package manifests. Walking the
 /// entire repository is wasted work in workspaces that contain fixture package
 /// trees, so higher-level code uses this helper to parse only the known package.
+///
+/// # Why the workspace root is resolved by walking up
+///
+/// Configured packages live below their workspace manifest, and lockfile
+/// discovery plus manager detection read `pnpm-lock.yaml`, `yarn.lock`, and the
+/// other npm-family lockfiles from the workspace root. Anchoring the record to
+/// the manifest's own directory would hide those root lockfiles, so the nearest
+/// ancestor declaring the workspace (`pnpm-workspace.yaml` or a `package.json`
+/// with `workspaces`) becomes the root, mirroring how the cargo adapter
+/// resolves its workspace manifest.
 #[must_use = "the package result must be checked"]
 pub fn load_configured_npm_package(
 	root: &Path,
@@ -724,16 +1014,37 @@ pub fn load_configured_npm_package(
 		} else {
 			package_path.join(PACKAGE_JSON_FILE)
 		};
-	let workspace_root = manifest_path.parent().unwrap_or(root);
+	let manifest_directory = manifest_path.parent().unwrap_or(root);
+	let workspace_root = find_nearest_npm_workspace_root(root, &manifest_path)
+		.unwrap_or_else(|| manifest_directory.to_path_buf());
 	let mut package = parse_package_json(
 		&manifest_path,
-		workspace_root,
-		detect_npm_manager(workspace_root),
+		&workspace_root,
+		detect_npm_manager(&workspace_root),
 	)?;
 	if let Some(package) = package.as_mut() {
 		normalize_package_id(root, package);
 	}
 	Ok(package)
+}
+
+/// Find the closest ancestor directory of `manifest_path` that declares an
+/// npm-family workspace, stopping the walk at `root`.
+fn find_nearest_npm_workspace_root(root: &Path, manifest_path: &Path) -> Option<PathBuf> {
+	let mut current = manifest_path.parent();
+	while let Some(directory) = current {
+		if directory.join(PNPM_WORKSPACE_FILE).exists() {
+			return Some(directory.to_path_buf());
+		}
+		if package_json_declares_workspaces(&directory.join(PACKAGE_JSON_FILE)).unwrap_or(false) {
+			return Some(directory.to_path_buf());
+		}
+		if directory == root {
+			break;
+		}
+		current = directory.parent();
+	}
+	None
 }
 
 fn normalize_package_ids(root: &Path, packages: &mut [PackageRecord]) {
@@ -939,8 +1250,10 @@ fn parse_dependency_map(
 }
 
 fn detect_npm_manager(workspace_root: &Path) -> &'static str {
-	if workspace_root.join("bun.lockb").exists() {
+	if workspace_root.join("bun.lockb").exists() || workspace_root.join("bun.lock").exists() {
 		"bun"
+	} else if workspace_root.join("yarn.lock").exists() {
+		"yarn"
 	} else if workspace_root.join(PNPM_WORKSPACE_FILE).exists() {
 		"pnpm"
 	} else {
@@ -1122,6 +1435,47 @@ fn uses_pnpm_publish_manager(request: &PublishRequest) -> bool {
 /// Custom fields may address a nested scalar (`metadata.bin.version`) or a
 /// section, so each dotted path only has to resolve.
 pub fn validate_versioned_file(
+	full_path: &Path,
+	display_path: &str,
+	custom_fields: Option<&[String]>,
+) -> MonochangeResult<()> {
+	match supported_versioned_file_kind(full_path) {
+		// JSON documents keep the manifest-style field validation.
+		Some(NpmVersionedFileKind::Manifest | NpmVersionedFileKind::PackageLock) => {
+			validate_json_versioned_file(full_path, display_path, custom_fields)
+		}
+		// pnpm lockfiles are validated by parsing every YAML document; their
+		// updater rewrites pinned versions across sections instead of writing
+		// one addressable field, so declared fields do not apply.
+		Some(NpmVersionedFileKind::PnpmLock) => {
+			let contents = fs::read_to_string(full_path).map_err(|error| {
+				MonochangeError::Config(format!(
+					"versioned file `{display_path}` is not readable: {error}"
+				))
+			})?;
+			validate_pnpm_lock_documents(&contents).map_err(|error| {
+				MonochangeError::Config(format!(
+					"versioned file `{display_path}` is not valid pnpm lock yaml: {error}"
+				))
+			})
+		}
+		// Yarn text, Bun text, and Bun binary lockfiles are rewritten with
+		// span-preserving updaters that have no addressable field to check.
+		Some(
+			NpmVersionedFileKind::YarnLock
+			| NpmVersionedFileKind::BunLock
+			| NpmVersionedFileKind::BunLockBinary,
+		) => Ok(()),
+		None => {
+			Err(MonochangeError::Config(format!(
+				"versioned file `{display_path}` is not supported for the npm ecosystem"
+			)))
+		}
+	}
+}
+
+/// Validate a JSON manifest or package lock and its writable fields.
+fn validate_json_versioned_file(
 	full_path: &Path,
 	display_path: &str,
 	custom_fields: Option<&[String]>,

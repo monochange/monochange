@@ -1,0 +1,19 @@
+# Fixture for Yarn Berry (v2+) yarn.lock releases.
+#
+# Berry lockfiles key entries by descriptor (`"@acme/api@npm:2.3.1"`) and pin
+# workspace-resolved entries to the `0.0.0-use.local` placeholder. A release
+# must rewrite the registry entry's version and leave workspace placeholders,
+# checksums, and ordering untouched.
+[defaults]
+parent_bump = "patch"
+
+[package."@acme/api"]
+path = "packages/api"
+type = "npm"
+
+[package."@acme/consumer"]
+path = "packages/consumer"
+type = "npm"
+
+[ecosystems.npm]
+enabled = true

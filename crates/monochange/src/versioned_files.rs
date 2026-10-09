@@ -716,6 +716,16 @@ pub(crate) fn read_cached_document(
 			Ok(CachedDocument::Yaml(mapping))
 		}
 		#[cfg(feature = "npm")]
+		VersionedFileKind::Npm(monochange_npm::NpmVersionedFileKind::YarnLock) => {
+			let Some(contents) = text_contents else {
+				return Err(MonochangeError::Config(format!(
+					"failed to parse {} as text",
+					path.display()
+				)));
+			};
+			Ok(CachedDocument::Text(contents))
+		}
+		#[cfg(feature = "npm")]
 		VersionedFileKind::Npm(monochange_npm::NpmVersionedFileKind::BunLock) => {
 			let Some(contents) = text_contents else {
 				return Err(MonochangeError::Config(format!(
@@ -1719,6 +1729,8 @@ pub(crate) fn apply_versioned_file_definition_to_paths<N: AsRef<str>>(
 					})?;
 				} else if kind == monochange_npm::NpmVersionedFileKind::BunLock {
 					*contents = monochange_npm::update_bun_lock(contents, &raw_versions);
+				} else if kind == monochange_npm::NpmVersionedFileKind::YarnLock {
+					*contents = monochange_npm::update_yarn_lock(contents, &raw_versions);
 				} else if kind == monochange_npm::NpmVersionedFileKind::PnpmLock {
 					*contents = monochange_npm::update_pnpm_lock_text(contents, &raw_versions)
 						.map_err(|error| {

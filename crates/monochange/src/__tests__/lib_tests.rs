@@ -10789,6 +10789,13 @@ fn versioned_file_kind_detects_supported_paths_across_ecosystems() {
 	assert!(matches!(
 		crate::versioned_file_kind(
 			monochange_core::EcosystemType::Npm,
+			&fixture_path("npm/yarn-lockfile-workspace/yarn.lock"),
+		),
+		Some(crate::VersionedFileKind::Npm(_))
+	));
+	assert!(matches!(
+		crate::versioned_file_kind(
+			monochange_core::EcosystemType::Npm,
 			&fixture_path("npm/bun-text-lock/packages/app/bun.lock"),
 		),
 		Some(crate::VersionedFileKind::Npm(_))
@@ -11960,6 +11967,11 @@ fn read_cached_document_rejects_invalid_utf8_in_text_formats() {
 			"bun.lock",
 			monochange_core::EcosystemType::Npm,
 		),
+		(
+			"versioned-file-invalid-utf8/invalid-yarn.lock",
+			"yarn.lock",
+			monochange_core::EcosystemType::Npm,
+		),
 	];
 
 	for (fixture, file_name, ecosystem) in cases {
@@ -12530,6 +12542,46 @@ fn apply_versioned_file_definition_updates_npm_manifest_and_lock_variants() {
 		crate::CachedDocument::Text(contents)
 			if contents.contains("core: 2.0.0")
 				&& contents.contains("lockfileVersion: '9.0'")
+	));
+
+	let yarn_tempdir = setup_fixture("versioned-file-updates/yarn-lock");
+	let yarn_context = versioned_test_context(
+		&configuration,
+		BTreeMap::from([("core".to_string(), "2.0.0".to_string())]),
+		&[],
+	);
+	let yarn_definition = monochange_core::VersionedFileDefinition {
+		path: "yarn.lock".to_string(),
+		ecosystem_type: Some(monochange_core::EcosystemType::Npm),
+		format: None,
+		prefix: None,
+		fields: None,
+		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
+		regex: None,
+		value_template: None,
+	};
+	let yarn_dep_names = vec!["core".to_string()];
+	let mut yarn_updates = BTreeMap::new();
+	apply_versioned_file_definition(
+		yarn_tempdir.path(),
+		&mut yarn_updates,
+		&yarn_definition,
+		"2.0.0",
+		None,
+		&yarn_dep_names,
+		&yarn_context,
+	)
+	.unwrap_or_else(|error| panic!("yarn lock update: {error}"));
+	let yarn_path = yarn_tempdir.path().join("yarn.lock");
+	let yarn_document = yarn_updates
+		.remove(&yarn_path)
+		.unwrap_or_else(|| panic!("expected yarn lock update"));
+	assert!(matches!(
+		yarn_document,
+		crate::CachedDocument::Text(contents)
+			if contents.contains("version \"2.0.0\"")
+				&& contents.contains("# yarn lockfile v1")
 	));
 
 	let bun_tempdir = setup_fixture("npm/bun-text-lock");

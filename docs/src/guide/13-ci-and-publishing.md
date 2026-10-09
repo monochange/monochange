@@ -84,7 +84,7 @@ Keep a dry-run publish check in the release workflow as the final gate before re
 
 | Capability                                                                     | Current status                                                                                                                        |
 | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
-| Multi-ecosystem discovery                                                      | Cargo, npm/pnpm/Bun, Deno, Dart, Flutter, Python, Go                                                                                  |
+| Multi-ecosystem discovery                                                      | Cargo, npm/pnpm/Yarn/Bun, Deno, Dart, Flutter, Python, Go                                                                             |
 | Package release planning                                                       | Built in                                                                                                                              |
 | Grouped/shared versioning                                                      | Built in                                                                                                                              |
 | Internal dependency version synchronization                                    | All supported ecosystems via `monochange versions`; release planning also updates supported ecosystems during releases                |

@@ -161,7 +161,7 @@ These are common commands for repositories using monochange. Optional `[cli.*]` 
 
 <!-- {=projectMilestoneCapabilities} -->
 
-- discover Cargo, npm/pnpm/Bun, Deno, Dart, Flutter, Python, and Go packages
+- discover Cargo, npm/pnpm/Yarn/Bun, Deno, Dart, Flutter, Python, and Go packages
 - normalize dependency edges across ecosystems
 - coordinate shared package groups from `monochange.toml`
 - compute release plans from explicit change input
