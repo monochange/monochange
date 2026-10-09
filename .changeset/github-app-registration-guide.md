@@ -1,5 +1,5 @@
 ---
-monochange_app: docs
+monochange_app: fix
 ---
 
 # Document the production GitHub App configuration
