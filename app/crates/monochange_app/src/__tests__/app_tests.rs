@@ -141,7 +141,7 @@ async fn repository_lifecycle_updates_the_dashboard_and_keeps_connection_availab
 	let empty = dashboard_html(&app, &alice_cookie).await;
 	assert!(empty.contains("No repositories connected yet"));
 	assert!(empty.contains("Connect repositories on GitHub"));
-	assert!(empty.contains("href=\"https://github.com/apps/test-app/installations/new\""));
+	assert!(empty.contains("href=\"https://github.com/apps/test-app/installations/new?state="));
 
 	deliver_repository_event(&app, "installation", serde_json::json!({
 		"action":"created", "installation":owner,
@@ -401,11 +401,17 @@ async fn login_delivers_browser_state_before_github_authorization_link() {
 		.1
 		.into_owned();
 	let jar = axum_extra::extract::cookie::CookieJar::new().add(cookie.into_owned());
-	oauth::verify_login_state(&state.jwt_secret, &jar, &nonce).unwrap();
-	assert_eq!(
-		url.query_pairs().find(|(key, _)| key == "scope").unwrap().1,
-		"user:email,read:org"
+	let verified = oauth::verify_login_state(&state.jwt_secret, &jar, &nonce).unwrap();
+	assert_eq!(verified.intent, oauth::OAuthIntent::Login);
+	assert!(verified.code_verifier.is_some());
+	assert!(
+		url.query_pairs()
+			.any(|(key, value)| key == "code_challenge_method" && value == "S256")
 	);
+	assert!(url.query_pairs().any(|(key, value)| {
+		key == "redirect_uri" && value == "https://monochange.dev/auth/callback"
+	}));
+	assert!(!url.query_pairs().any(|(key, _)| key == "scope"));
 }
 
 #[tokio::test]
@@ -456,7 +462,7 @@ async fn configured_dashboard_connects_to_verified_app_and_shows_suspended_repos
 		.await
 		.unwrap();
 	let body = html(response).await;
-	assert!(body.contains("href=\"https://github.com/apps/test-app/installations/new\""));
+	assert!(body.contains("href=\"https://github.com/apps/test-app/installations/new?state="));
 	assert!(body.contains("Connect repositories on GitHub"));
 	assert!(body.contains("alice/private"));
 	assert!(body.contains("Installation suspended"));
@@ -499,9 +505,17 @@ async fn callback_delivers_session_cookie_before_showing_success_and_dashboard_u
 	let server = MockServer::start_async().await;
 	let token = server
 		.mock_async(|when, then| {
-			when.method(POST).path("/login/oauth/access_token");
+			when.method(POST)
+				.path("/login/oauth/access_token")
+				.body_includes("code_verifier=")
+				.body_includes("redirect_uri=");
 			then.delay(Duration::from_millis(50))
-				.json_body(serde_json::json!({"access_token":"test-only-access-token"}));
+				.json_body(serde_json::json!({
+					"access_token":"test-only-access-token",
+					"expires_in":28800,
+					"refresh_token":"test-only-refresh-token",
+					"refresh_token_expires_in":15_897_600
+				}));
 		})
 		.await;
 	let user = server
@@ -513,15 +527,18 @@ async fn callback_delivers_session_cookie_before_showing_success_and_dashboard_u
 		})
 		.await;
 	let state = state(&server).await;
-	let (nonce, cookie) = oauth::login_state(&state.jwt_secret).unwrap();
-	let app = router(state);
+	let pending = oauth::login_state(&state.jwt_secret).unwrap();
+	let app = router(state.clone());
 	let response = app
 		.clone()
 		.oneshot(
 			Request::builder()
-				.uri(format!("/auth/callback?code=test-only-code&state={nonce}"))
+				.uri(format!(
+					"/auth/callback?code=test-only-code&state={}",
+					pending.state
+				))
 				.header(ACCEPT, "text/html")
-				.header(COOKIE, cookie.to_string())
+				.header(COOKIE, pending.cookie.to_string())
 				.body(Body::empty())
 				.unwrap(),
 		)
@@ -543,6 +560,18 @@ async fn callback_delivers_session_cookie_before_showing_success_and_dashboard_u
 	assert!(body.contains("Signed in!"), "callback did not succeed");
 	token.assert_async().await;
 	user.assert_async().await;
+	let stored: (String, String, i64, i64) = sqlx::query_as(
+		"SELECT github_access_token, github_refresh_token,
+		        github_access_token_expires_at, github_refresh_token_expires_at
+		 FROM users WHERE github_id = 101",
+	)
+	.fetch_one(&state.db)
+	.await
+	.unwrap();
+	assert_eq!(stored.0, "test-only-access-token");
+	assert_eq!(stored.1, "test-only-refresh-token");
+	assert!(stored.2 > chrono::Utc::now().timestamp());
+	assert!(stored.3 > stored.2);
 	let session = cookies
 		.iter()
 		.find(|cookie| cookie.name() == oauth::SESSION_COOKIE_NAME)
@@ -616,11 +645,14 @@ async fn simultaneous_callbacks_share_one_identity_and_preserve_an_existing_work
 	sqlx::query("INSERT INTO users (id, github_id, github_login, github_access_token, plan_tier) VALUES (7, 101, 'old-alice', '', 'team')").execute(&state.db).await.unwrap();
 	sqlx::query("INSERT INTO installations (user_id, github_installation_id, github_account_login, github_account_type) VALUES (7, 1001, 'alice', 'User')").execute(&state.db).await.unwrap();
 	let request = || {
-		let (nonce, cookie) = oauth::login_state(&state.jwt_secret).unwrap();
+		let pending = oauth::login_state(&state.jwt_secret).unwrap();
 		Request::builder()
-			.uri(format!("/auth/callback?code=test-only-code&state={nonce}"))
+			.uri(format!(
+				"/auth/callback?code=test-only-code&state={}",
+				pending.state
+			))
 			.header(ACCEPT, "text/html")
-			.header(COOKIE, cookie.to_string())
+			.header(COOKIE, pending.cookie.to_string())
 			.body(Body::empty())
 			.unwrap()
 	};
@@ -660,14 +692,15 @@ async fn callback_failure_does_not_create_a_session_and_consumes_the_pending_log
 		})
 		.await;
 	let state = state(&server).await;
-	let (nonce, cookie) = oauth::login_state(&state.jwt_secret).unwrap();
+	let pending = oauth::login_state(&state.jwt_secret).unwrap();
 	let response = router(state.clone())
 		.oneshot(
 			Request::builder()
 				.uri(format!(
-					"/auth/callback?code=expired-test-code&state={nonce}"
+					"/auth/callback?code=expired-test-code&state={}",
+					pending.state
 				))
-				.header(COOKIE, cookie.to_string())
+				.header(COOKIE, pending.cookie.to_string())
 				.body(Body::empty())
 				.unwrap(),
 		)

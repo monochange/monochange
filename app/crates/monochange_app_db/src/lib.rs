@@ -4,7 +4,7 @@
 //! production use the same database engine.
 
 #[cfg(test)]
-#[path = "__tests.rs"]
+#[path = "__tests__/lib_tests.rs"]
 mod tests;
 
 use sqlx::sqlite::SqliteConnectOptions;
@@ -52,8 +52,11 @@ pub fn get_client(pool: &DbPool) -> Result<DbClient, DbError> {
 pub async fn run_migrations(pool: &DbPool) -> Result<(), DbError> {
 	let client = get_client(pool)?;
 
-	let migrations: &[welds::migrations::MigrationFn] =
-		&[create_users_tables, create_release_automation_tables];
+	let migrations: &[welds::migrations::MigrationFn] = &[
+		create_users_tables,
+		create_release_automation_tables,
+		add_github_user_token_refresh,
+	];
 
 	welds::migrations::up(&client, migrations)
 		.await
@@ -86,8 +89,20 @@ fn create_release_automation_tables(
 	))
 }
 
+// The welds `MigrationFn` type alias requires the `Result` return type.
+#[allow(clippy::unnecessary_wraps)]
+fn add_github_user_token_refresh(
+	_state: &welds::migrations::TableState,
+) -> Result<welds::migrations::MigrationStep, welds::WeldsError> {
+	Ok(welds::migrations::MigrationStep::new(
+		"003_add_github_user_token_refresh",
+		AddGitHubUserTokenRefresh,
+	))
+}
+
 pub(crate) struct CreateUsersTable;
 pub(crate) struct CreateReleaseAutomationTables;
+pub(crate) struct AddGitHubUserTokenRefresh;
 
 fn sql_statements(sql: &str) -> Vec<String> {
 	sql.split(';')
@@ -227,6 +242,28 @@ impl welds::migrations::MigrationWriter for CreateReleaseAutomationTables {
 			r"
             DROP TABLE IF EXISTS release_jobs;
             DROP TABLE IF EXISTS release_schedules;
+        ",
+		)
+	}
+}
+
+impl welds::migrations::MigrationWriter for AddGitHubUserTokenRefresh {
+	fn up_sql(&self, _syntax: welds::Syntax) -> Vec<String> {
+		sql_statements(
+			r"
+            ALTER TABLE users ADD COLUMN github_refresh_token TEXT;
+            ALTER TABLE users ADD COLUMN github_access_token_expires_at INTEGER;
+            ALTER TABLE users ADD COLUMN github_refresh_token_expires_at INTEGER;
+        ",
+		)
+	}
+
+	fn down_sql(&self, _syntax: welds::Syntax) -> Vec<String> {
+		sql_statements(
+			r"
+            ALTER TABLE users DROP COLUMN github_refresh_token_expires_at;
+            ALTER TABLE users DROP COLUMN github_access_token_expires_at;
+            ALTER TABLE users DROP COLUMN github_refresh_token;
         ",
 		)
 	}

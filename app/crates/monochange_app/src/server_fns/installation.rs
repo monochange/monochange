@@ -32,6 +32,7 @@ pub async fn repository_connection() -> Result<RepositoryConnectionStatus, serve
 	use std::sync::Arc;
 
 	use leptos::prelude::expect_context;
+	use leptos_axum::ResponseOptions;
 
 	if super::auth::get_session().await?.is_none() {
 		return Ok(RepositoryConnectionStatus::SignedOut);
@@ -51,6 +52,21 @@ pub async fn repository_connection() -> Result<RepositoryConnectionStatus, serve
 		};
 		server_fn::ServerFnError::new(message)
 	})?;
+	let pending = monochange_app_api::oauth::installation_state(&state.jwt_secret)
+		.map_err(|error| server_fn::ServerFnError::new(format!("OAuth state: {error}")))?;
+	let response = expect_context::<ResponseOptions>();
+	response.append_header(
+		axum::http::header::SET_COOKIE,
+		axum::http::HeaderValue::from_str(&pending.cookie.encoded().to_string())
+			.map_err(|error| server_fn::ServerFnError::new(format!("Cookie: {error}")))?,
+	);
+	let mut installation_url = url::Url::parse(&installation_url)
+		.map_err(|error| server_fn::ServerFnError::new(format!("Installation URL: {error}")))?;
+	installation_url
+		.query_pairs_mut()
+		.append_pair("state", &pending.state);
 
-	Ok(RepositoryConnectionStatus::Available { installation_url })
+	Ok(RepositoryConnectionStatus::Available {
+		installation_url: installation_url.into(),
+	})
 }

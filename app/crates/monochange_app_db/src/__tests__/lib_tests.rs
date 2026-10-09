@@ -97,6 +97,18 @@ fn test_release_automation_migration_writer_down_sql() {
 }
 
 #[rstest]
+fn test_github_user_token_refresh_migration_writer() {
+	use welds::migrations::MigrationWriter;
+	let writer = crate::AddGitHubUserTokenRefresh;
+	let up = writer.up_sql(welds::Syntax::Sqlite).join("\n");
+	assert!(up.contains("github_refresh_token TEXT"));
+	assert!(up.contains("github_access_token_expires_at INTEGER"));
+	assert!(up.contains("github_refresh_token_expires_at INTEGER"));
+	let down = writer.down_sql(welds::Syntax::Sqlite).join("\n");
+	assert!(down.contains("DROP COLUMN github_refresh_token"));
+}
+
+#[rstest]
 fn test_migration_writers_emit_one_statement_per_entry() {
 	use welds::migrations::MigrationWriter;
 
@@ -105,6 +117,8 @@ fn test_migration_writers_emit_one_statement_per_entry() {
 		crate::CreateUsersTable.down_sql(welds::Syntax::Sqlite),
 		crate::CreateReleaseAutomationTables.up_sql(welds::Syntax::Sqlite),
 		crate::CreateReleaseAutomationTables.down_sql(welds::Syntax::Sqlite),
+		crate::AddGitHubUserTokenRefresh.up_sql(welds::Syntax::Sqlite),
+		crate::AddGitHubUserTokenRefresh.down_sql(welds::Syntax::Sqlite),
 	]
 	.concat();
 
@@ -119,6 +133,27 @@ fn test_migration_writers_emit_one_statement_per_entry() {
 			1,
 			"statement should be safe for prepared execution: {statement}",
 		);
+	}
+}
+
+#[tokio::test]
+async fn sqlite_migrations_add_expiring_github_user_token_columns() {
+	let pool = crate::create_pool("sqlite::memory:")
+		.await
+		.unwrap_or_else(|error| panic!("create sqlite pool: {error}"));
+	crate::run_migrations(&pool)
+		.await
+		.unwrap_or_else(|error| panic!("run sqlite migrations: {error}"));
+	let columns: Vec<String> = sqlx::query_scalar("SELECT name FROM pragma_table_info('users')")
+		.fetch_all(&pool)
+		.await
+		.unwrap_or_else(|error| panic!("load users columns: {error}"));
+	for column in [
+		"github_refresh_token",
+		"github_access_token_expires_at",
+		"github_refresh_token_expires_at",
+	] {
+		assert!(columns.contains(&column.to_string()), "missing {column}");
 	}
 }
 
