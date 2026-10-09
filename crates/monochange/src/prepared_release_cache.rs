@@ -434,10 +434,19 @@ fn validate_prepared_release_input_fingerprint(
 ///
 /// The plan reads the pending changeset bytes, the changeset set, package
 /// manifests (including workspace-level manifests that supply inherited
-/// versions), the workspace configuration, prerelease state, and release
-/// records. Git status is not a substitute: an untracked or already-dirty file
-/// keeps the same status line when its bytes change, so a severity or body edit
-/// would otherwise be served from a stale plan.
+/// versions), the workspace configuration, prerelease state, release records,
+/// and the detected change frame. Git status is not a substitute: an untracked
+/// or already-dirty file keeps the same status line when its bytes change, so a
+/// severity or body edit would otherwise be served from a stale plan.
+///
+/// # Why the change frame is part of the fingerprint
+///
+/// Semantic `SemVer` evidence is computed from the change frame, which differs by
+/// branch: a feature branch compares against the default branch while the
+/// default branch itself analyzes the working directory. After a fast-forward
+/// merge the commits, changesets, and HEAD are identical on both branches, so
+/// without the frame in the fingerprint the default branch would silently reuse
+/// the feature branch's evidence-raised plan.
 ///
 /// Paths are workspace-relative so the fingerprint does not depend on where the
 /// checkout lives, and each record is length-delimited so adjacent files cannot
@@ -456,8 +465,14 @@ fn prepared_release_input_fingerprint(
 	}
 	insert_release_record_inputs(&mut inputs, root);
 
+	let frame = monochange_analysis::ChangeFrame::detect(root)
+		.map_or_else(|_| "unknown".to_string(), |frame| frame.revision_range());
 	let mut hash = FNV_OFFSET_BASIS;
 	hash = update_input_fingerprint_hash(hash, INPUT_FINGERPRINT_DOMAIN);
+	hash = update_input_fingerprint_hash(hash, b"\0");
+	hash = update_input_fingerprint_hash(hash, b"change-frame");
+	hash = update_input_fingerprint_hash(hash, b"\0");
+	hash = update_input_fingerprint_hash(hash, frame.as_bytes());
 	hash = update_input_fingerprint_hash(hash, b"\0");
 
 	for path in &inputs {

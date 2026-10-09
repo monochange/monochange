@@ -605,6 +605,8 @@ pub(crate) fn build_release_plan_from_signals(
 	let mut compatibility_evidence = compatibility_evidence;
 	compatibility_evidence.extend(semantic_evidence);
 
+	let (compatibility_evidence, advisory_warnings) =
+		enforce_classification_policy(configuration, change_signals, compatibility_evidence);
 	let bump_propagations =
 		monochange_config::package_bump_propagations(configuration, &discovery.packages);
 	let mut plan = build_release_plan(
@@ -619,8 +621,68 @@ pub(crate) fn build_release_plan_from_signals(
 		configuration.defaults.strict_version_conflicts,
 	)?;
 	plan.warnings.extend(semantic_warnings);
+	plan.warnings.extend(advisory_warnings);
 
 	Ok(plan)
+}
+
+/// Keep compatibility evidence out of release planning for packages whose
+/// classification is advisory, and warn when that evidence would have raised
+/// the changeset bump.
+///
+/// # Why this exists
+///
+/// `classification_enforced = false` promises that classified `SemVer` evidence
+/// cannot decide a release on its own, yet the planner escalates every
+/// assessment it receives, so a patch changeset released as breaking whenever
+/// the branch diff carried an export rename. Withholding the evidence keeps
+/// the changeset in charge for advisory packages, while the warning records
+/// what the evidence suggested so the bump can still be raised by hand.
+fn enforce_classification_policy(
+	configuration: &monochange_core::WorkspaceConfiguration,
+	change_signals: &[ChangeSignal],
+	evidence: Vec<CompatibilityAssessment>,
+) -> (Vec<CompatibilityAssessment>, Vec<String>) {
+	let requested_by_package = change_signals
+		.iter()
+		.filter_map(|signal| {
+			signal
+				.requested_bump
+				.map(|bump| (signal.package_id.as_str(), bump))
+		})
+		.collect::<BTreeMap<_, _>>();
+	let mut kept = Vec::new();
+	let mut advisory_severity_by_package = BTreeMap::<String, BumpSeverity>::new();
+	for assessment in evidence {
+		// Packages without a configured identity keep the default enforced
+		// policy, matching `unwrap_or(true)` in the identity resolver.
+		let enforced = configuration
+			.effective_release_identity(&assessment.package_id)
+			.is_none_or(|identity| identity.classification_enforced);
+		if enforced {
+			kept.push(assessment);
+			continue;
+		}
+		let severity = advisory_severity_by_package
+			.entry(assessment.package_id.clone())
+			.or_insert(BumpSeverity::None);
+		if assessment.severity > *severity {
+			*severity = assessment.severity;
+		}
+	}
+	let mut warnings = Vec::new();
+	for (package_id, severity) in advisory_severity_by_package {
+		let requested = requested_by_package
+			.get(package_id.as_str())
+			.copied()
+			.unwrap_or(BumpSeverity::Patch);
+		if severity > requested {
+			warnings.push(format!(
+				"compatibility evidence suggests a {severity} release for `{package_id}` but classification is advisory (`classification_enforced = false`); the changeset bump was kept",
+			));
+		}
+	}
+	(kept, warnings)
 }
 
 fn semantic_compatibility_evidence(

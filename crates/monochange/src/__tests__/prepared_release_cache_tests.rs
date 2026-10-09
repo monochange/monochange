@@ -1157,6 +1157,48 @@ async fn explicit_artifact_with_a_drifted_fingerprint_still_loads() {
 	);
 }
 
+#[tokio::test(flavor = "multi_thread")]
+async fn input_fingerprint_tracks_the_change_frame() {
+	let tempdir = setup_cache_invalidation_repo();
+	let root = tempdir.path();
+	let configuration = load_workspace_configuration(root)
+		.unwrap_or_else(|error| panic!("load workspace configuration: {error}"));
+	install_changeset_payload(root, "alpha-minor.md", "feature.md");
+
+	let on_default = prepared_release_input_fingerprint(root, &configuration)
+		.unwrap_or_else(|error| panic!("fingerprint on default branch: {error}"));
+
+	// An empty commit keeps every tracked input byte-identical while moving to
+	// a feature branch, so only the change frame (working directory vs branch
+	// range) can distinguish the two plans.
+	git(root, &["checkout", "-b", "feature"]);
+	git(
+		root,
+		&[
+			"-c",
+			"commit.gpgsign=false",
+			"commit",
+			"--allow-empty",
+			"-m",
+			"frame",
+		],
+	);
+	let on_feature = prepared_release_input_fingerprint(root, &configuration)
+		.unwrap_or_else(|error| panic!("fingerprint on feature branch: {error}"));
+	assert_ne!(
+		on_default, on_feature,
+		"the change frame must feed the fingerprint so a branch plan is never reused on the default branch"
+	);
+
+	git(root, &["checkout", "main"]);
+	let back_on_default = prepared_release_input_fingerprint(root, &configuration)
+		.unwrap_or_else(|error| panic!("fingerprint back on default branch: {error}"));
+	assert_eq!(
+		on_default, back_on_default,
+		"returning to the default branch restores the original frame fingerprint"
+	);
+}
+
 #[test]
 fn package_manifest_names_cover_every_package_type() {
 	for (package_type, expected) in [
