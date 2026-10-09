@@ -1887,8 +1887,16 @@ fn prepare_release_commit(
 ) -> MonochangeResult<PreparedReleaseCommit> {
 	let tracked_paths = tracked_release_pull_request_paths(context, manifest);
 	let message = build_release_commit_message(source, manifest);
-	let release_record_path =
-		validate_release_record_file(root, source, manifest, update_release_json)?;
+	// Dry-run previews report the commit they would make. `PrepareRelease`
+	// skips writing the release record in dry-run mode, so requiring it here
+	// failed every `run <workflow> --dry-run` that chains the two steps.
+	// Report the expected record path instead; the real run still validates
+	// (or writes) the record.
+	let release_record_path = if context.dry_run {
+		release_record_paths(root, &manifest.release_targets).absolute
+	} else {
+		validate_release_record_file(root, source, manifest, update_release_json)?
+	};
 	let mut tracked_paths = tracked_paths;
 	tracked_paths.push(release_record_path);
 	Ok(PreparedReleaseCommit {

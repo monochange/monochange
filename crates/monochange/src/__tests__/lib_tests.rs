@@ -6244,6 +6244,38 @@ fn commit_release_command_creates_local_commit_with_release_record() {
 }
 
 #[test]
+fn commit_release_command_dry_run_previews_without_release_record() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	copy_fixture("prepared-release/source-github-follow-up/workspace", root);
+	init_git_repo(root);
+	git_in_temp_repo(root, &["add", "."]);
+	git_in_temp_repo(root, &["commit", "-m", "initial"]);
+	let commits_before = git_output_in_temp_repo(root, &["rev-list", "--count", "HEAD"]);
+
+	// PrepareRelease skips the release record during dry-run, so CommitRelease
+	// must preview the commit without requiring the record on disk.
+	let output = run_cli(
+		root,
+		[
+			OsString::from("monochange"),
+			OsString::from("commit-release"),
+			OsString::from("--dry-run"),
+		],
+	)
+	.unwrap_or_else(|error| panic!("commit-release dry-run output: {error}"));
+
+	assert!(output.contains("dry-run"), "{output}");
+	assert!(!output.contains("no release record found"), "{output}");
+	let commits_after = git_output_in_temp_repo(root, &["rev-list", "--count", "HEAD"]);
+	assert_eq!(commits_before, commits_after, "dry-run must not commit");
+	assert!(
+		!root.join(".monochange/releases").exists(),
+		"dry-run must not write release records"
+	);
+}
+
+#[test]
 fn commit_release_command_reports_markdown_output_when_requested() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
