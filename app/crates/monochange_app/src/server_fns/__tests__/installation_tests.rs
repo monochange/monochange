@@ -13,6 +13,7 @@ use httpmock::Method;
 use httpmock::MockServer;
 use leptos::prelude::*;
 use leptos::reactive::computed::ScopedFuture;
+use leptos_axum::ResponseOptions;
 use monochange_app_api::AppSecrets;
 use monochange_app_api::AppState;
 use monochange_app_api::create_token;
@@ -60,8 +61,9 @@ async fn state(server: Option<&MockServer>) -> Arc<AppState> {
 	Arc::new(state)
 }
 
-fn context(state: Arc<AppState>, cookie: Option<String>) -> Owner {
+fn context(state: Arc<AppState>, cookie: Option<String>) -> (Owner, ResponseOptions) {
 	let owner = Owner::new();
+	let response = ResponseOptions::default();
 	let mut request = Request::new(());
 
 	if let Some(cookie) = cookie {
@@ -74,8 +76,9 @@ fn context(state: Arc<AppState>, cookie: Option<String>) -> Owner {
 	owner.with(|| {
 		provide_context(state);
 		provide_context(parts);
+		provide_context(response.clone());
 	});
-	owner
+	(owner, response)
 }
 
 fn session(state: &AppState, user_id: i32) -> String {
@@ -91,7 +94,7 @@ async fn signed_out_visitor_does_not_lookup_or_receive_an_installation_link() {
 		then.status(200)
 			.json_body(serde_json::json!({"slug": "test-app"}));
 	});
-	let owner = context(state(Some(&server)).await, None);
+	let (owner, _) = context(state(Some(&server)).await, None);
 
 	assert_eq!(
 		owner
@@ -115,17 +118,41 @@ async fn signed_in_visitor_can_open_the_configured_app_installation_page() {
 	});
 	let state = state(Some(&server)).await;
 	let cookie = session(&state, 1);
-	let owner = context(state, Some(cookie));
+	let (owner, response) = context(state, Some(cookie));
 
+	let RepositoryConnectionStatus::Available { installation_url } = owner
+		.with(|| ScopedFuture::new(repository_connection()))
+		.await
+		.unwrap()
+	else {
+		panic!("configured app should be available");
+	};
+	let installation_url = url::Url::parse(&installation_url).unwrap();
 	assert_eq!(
-		owner
-			.with(|| ScopedFuture::new(repository_connection()))
-			.await
-			.unwrap(),
-		RepositoryConnectionStatus::Available {
-			installation_url: "https://github.com/apps/test-app/installations/new".to_string()
-		},
+		&installation_url[..url::Position::AfterPath],
+		"https://github.com/apps/test-app/installations/new"
 	);
+	let nonce = installation_url
+		.query_pairs()
+		.find(|(name, _)| name == "state")
+		.unwrap()
+		.1
+		.into_owned();
+	let set_cookie = response.0.read().unwrap().headers[axum::http::header::SET_COOKIE]
+		.to_str()
+		.unwrap()
+		.to_string();
+	let oauth_cookie = axum_extra::extract::cookie::Cookie::parse_encoded(set_cookie)
+		.unwrap()
+		.into_owned();
+	let verified = oauth::verify_login_state(
+		"connection-test-signing-key",
+		&axum_extra::extract::cookie::CookieJar::new().add(oauth_cookie),
+		&nonce,
+	)
+	.unwrap();
+	assert_eq!(verified.intent, oauth::OAuthIntent::Install);
+	assert!(verified.code_verifier.is_none());
 	metadata.assert();
 }
 
@@ -133,7 +160,7 @@ async fn signed_in_visitor_can_open_the_configured_app_installation_page() {
 async fn unconfigured_app_is_explicitly_unavailable_to_a_signed_in_visitor() {
 	let state = state(None).await;
 	let cookie = session(&state, 1);
-	let owner = context(state, Some(cookie));
+	let (owner, _) = context(state, Some(cookie));
 
 	assert_eq!(
 		owner
@@ -154,7 +181,7 @@ async fn configured_app_request_failure_is_an_error_and_does_not_leak_response_b
 	});
 	let state = state(Some(&server)).await;
 	let cookie = session(&state, 1);
-	let owner = context(state, Some(cookie));
+	let (owner, _) = context(state, Some(cookie));
 	let error = owner
 		.with(|| ScopedFuture::new(repository_connection()))
 		.await
@@ -175,7 +202,7 @@ async fn invalid_session_cannot_request_app_metadata() {
 			.json_body(serde_json::json!({"slug": "test-app"}));
 	});
 	let state = state(Some(&server)).await;
-	let owner = context(
+	let (owner, _) = context(
 		state,
 		Some(format!("{}=invalid-token", oauth::SESSION_COOKIE_NAME)),
 	);
@@ -199,7 +226,7 @@ async fn session_for_deleted_user_cannot_receive_an_installation_link() {
 	});
 	let state = state(Some(&server)).await;
 	let cookie = session(&state, 999);
-	let owner = context(state, Some(cookie));
+	let (owner, _) = context(state, Some(cookie));
 
 	assert_eq!(
 		owner
@@ -221,7 +248,7 @@ async fn invalid_app_metadata_is_an_error_for_the_dashboard() {
 	});
 	let state = state(Some(&server)).await;
 	let cookie = session(&state, 1);
-	let owner = context(state, Some(cookie));
+	let (owner, _) = context(state, Some(cookie));
 	let error = owner
 		.with(|| ScopedFuture::new(repository_connection()))
 		.await

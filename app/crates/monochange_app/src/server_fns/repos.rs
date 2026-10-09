@@ -41,13 +41,12 @@ pub async fn list_repos() -> Result<Vec<RepoInfo>, server_fn::ServerFnError> {
 
 	let claims = monochange_app_api::verify_token(&state.jwt_secret, &token)
 		.map_err(|_| server_fn::ServerFnError::new("Invalid session"))?;
-	let user: Option<(i64, String)> =
-		sqlx::query_as("SELECT github_id, github_access_token FROM users WHERE id = $1")
-			.bind(claims.sub)
-			.fetch_optional(&state.db)
-			.await
-			.map_err(|error| server_fn::ServerFnError::new(format!("DB: {error}")))?;
-	let Some((github_id, access_token)) = user else {
+	let user: Option<i64> = sqlx::query_scalar("SELECT github_id FROM users WHERE id = $1")
+		.bind(claims.sub)
+		.fetch_optional(&state.db)
+		.await
+		.map_err(|error| server_fn::ServerFnError::new(format!("DB: {error}")))?;
+	let Some(github_id) = user else {
 		return Err(server_fn::ServerFnError::new("Invalid session"));
 	};
 
@@ -69,6 +68,7 @@ pub async fn list_repos() -> Result<Vec<RepoInfo>, server_fn::ServerFnError> {
 
 	let mut repos = Vec::with_capacity(rows.len());
 	let mut organizations = HashMap::new();
+	let mut access_token = None;
 
 	for row in rows {
 		let installation_login: String = row.get("github_account_login");
@@ -78,8 +78,16 @@ pub async fn list_repos() -> Result<Vec<RepoInfo>, server_fn::ServerFnError> {
 			let allowed = if let Some(allowed) = organizations.get(&installation_login) {
 				*allowed
 			} else {
-				let allowed =
-					organization_owner(&state, &access_token, &installation_login).await?;
+				if access_token.is_none() {
+					access_token =
+						Some(super::auth::github_user_access_token(&state, claims.sub).await?);
+				}
+				let token = access_token.as_deref().ok_or_else(|| {
+					server_fn::ServerFnError::new(
+						"please sign in again to verify organization access",
+					)
+				})?;
+				let allowed = organization_owner(&state, token, &installation_login).await?;
 				organizations.insert(installation_login.clone(), allowed);
 				allowed
 			};

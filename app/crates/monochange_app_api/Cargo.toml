@@ -11,6 +11,7 @@ description = "Authentication and session API for the monochange web app"
 [dependencies]
 axum = { workspace = true }
 axum-extra = { workspace = true }
+base64 = "0.22"
 chrono = { workspace = true }
 hex = "0.4"
 hmac = "0.12"
@@ -35,7 +36,6 @@ tracing = { workspace = true }
 url = { workspace = true }
 uuid = { workspace = true }
 [dev-dependencies]
-base64 = "0.22"
 httpmock = { workspace = true }
 rsa = { version = "0.9", features = ["sha2"] }
 rstest = { workspace = true }

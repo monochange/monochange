@@ -127,6 +127,8 @@ pub struct AppState {
 	pub github_client_secret: String,
 	/// GitHub's OAuth web origin, separated from the API origin.
 	pub github_oauth_origin: String,
+	/// Exact callback registered for GitHub App user authorization.
+	pub github_callback_url: String,
 	/// GitHub API origin used for authenticated user requests.
 	pub github_api_origin: String,
 	/// GitHub App credentials for the monochange bot; `None` in development.
@@ -135,6 +137,8 @@ pub struct AppState {
 	pub oidc_audience: String,
 	/// Shared HTTP client for GitHub API calls.
 	pub http: reqwest::Client,
+	/// Serialize refresh-token rotation so one browser session cannot invalidate another request.
+	pub github_token_refresh_lock: Arc<tokio::sync::Mutex<()>>,
 }
 
 impl AppState {
@@ -146,6 +150,10 @@ impl AppState {
 		let jwt_secret = secrets.jwt_secret.clone().unwrap_or_default();
 		let github_client_id = secrets.github_client_id.clone().unwrap_or_default();
 		let github_client_secret = secrets.github_client_secret.clone().unwrap_or_default();
+		let github_callback_url = std::env::var("MONOCHANGE_GITHUB_CALLBACK_URL")
+			.ok()
+			.filter(|url| !url.is_empty())
+			.unwrap_or_else(|| "https://monochange.dev/auth/callback".to_string());
 		let github_app = config::github_app_credentials(&secrets)?;
 		let oidc_audience = std::env::var("MONOCHANGE_OIDC_AUDIENCE")
 			.ok()
@@ -169,10 +177,12 @@ impl AppState {
 			github_client_id,
 			github_client_secret,
 			github_oauth_origin: "https://github.com".to_string(),
+			github_callback_url,
 			github_api_origin: "https://api.github.com".to_string(),
 			github_app,
 			oidc_audience,
 			http,
+			github_token_refresh_lock: Arc::new(tokio::sync::Mutex::new(())),
 		})
 	}
 }
