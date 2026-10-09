@@ -15095,6 +15095,38 @@ fn discovery_report_helpers_include_version_groups_and_warnings() {
 }
 
 #[test]
+fn default_change_path_avoids_same_second_collisions() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	let directory = root.join(crate::CHANGESET_DIR);
+	fs::create_dir_all(&directory).unwrap_or_else(|error| panic!("mkdir: {error}"));
+	let first = crate::default_change_path(root, &["app".to_string()]);
+	fs::write(&first, "---\napp: patch\n---\n").unwrap_or_else(|error| panic!("write: {error}"));
+
+	let second = crate::default_change_path(root, &["app".to_string()]);
+
+	assert_ne!(first, second);
+	let second_name = second
+		.file_name()
+		.and_then(|name| name.to_str())
+		.unwrap_or_default();
+	let first_name = first
+		.file_name()
+		.and_then(|name| name.to_str())
+		.unwrap_or_default();
+	let timestamp = first_name.trim_end_matches("-app.md");
+	assert_eq!(second_name, format!("{timestamp}-app-2.md"));
+
+	fs::write(&second, "---\napp: minor\n---\n").unwrap_or_else(|error| panic!("write: {error}"));
+	let third = crate::default_change_path(root, &["app".to_string()]);
+	let third_name = third
+		.file_name()
+		.and_then(|name| name.to_str())
+		.unwrap_or_default();
+	assert_eq!(third_name, format!("{timestamp}-app-3.md"));
+}
+
+#[test]
 fn default_change_path_falls_back_to_change_when_slug_is_empty() {
 	let path = crate::default_change_path(Path::new("/workspace"), &["!!!".to_string()]);
 	assert!(path.starts_with("/workspace/.changeset"));
