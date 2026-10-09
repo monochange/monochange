@@ -1003,6 +1003,27 @@ fn discovery_path_filter_handles_paths_prefixed_by_relative_input_root() {
 }
 
 #[test]
+fn discovery_path_filter_ignores_only_components_below_the_workspace_root() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path().join(".claude/worktrees/app");
+	fs::create_dir_all(root.join("packages/web"))
+		.unwrap_or_else(|error| panic!("create worktree packages: {error}"));
+	fs::write(root.join("packages/web/package.json"), "{}\n")
+		.unwrap_or_else(|error| panic!("write manifest: {error}"));
+
+	let filter = crate::DiscoveryPathFilter::new(&root);
+
+	// The workspace root itself and its manifests stay discoverable even
+	// though ancestor directories outside the workspace are ignored names.
+	assert!(filter.should_descend(&root));
+	assert!(filter.should_descend(&root.join("packages")));
+	assert!(filter.allows(&root.join("packages/web/package.json")));
+	// Ignored directory names below the workspace root still filter paths.
+	assert!(!filter.should_descend(&root.join("node_modules")));
+	assert!(!filter.allows(&root.join("node_modules/pkg/package.json")));
+}
+
+#[test]
 fn discovery_path_filter_skips_nested_git_worktrees() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();

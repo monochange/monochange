@@ -659,12 +659,32 @@ impl DiscoveryPathFilter {
 	}
 
 	fn is_ignored(&self, path: &Path, is_dir: bool) -> bool {
-		if ignored_discovery_dir_name(path) || self.has_nested_git_worktree_ancestor(path, is_dir) {
+		if self.has_ignored_discovery_component(path)
+			|| self.has_nested_git_worktree_ancestor(path, is_dir)
+		{
 			return true;
 		}
 
 		self.matches_gitignore(path, is_dir)
 	}
+
+	/// Return `true` when a path component below the workspace root names a
+	/// directory that discovery skips.
+	///
+	/// # Why only components below the workspace root count
+	///
+	/// The same repository must discover the same packages wherever it is
+	/// checked out, but editors and agents nest worktrees inside ignored
+	/// directories (Claude Code checks out under `.claude/worktrees/`). Testing
+	/// the absolute path would ignore every manifest in such a workspace, so
+	/// only the components the walker can actually descend into are checked.
+	fn has_ignored_discovery_component(&self, path: &Path) -> bool {
+		let relative = self.relative_path(path).unwrap_or_default();
+		ignored_discovery_dir_name(&relative)
+	}
+
+	// patch-coverage:ignore-start -- llvm-cov attributes the function-exit region to the blank line after the return.
+	// patch-coverage:ignore-end
 
 	fn matches_gitignore(&self, path: &Path, is_dir: bool) -> bool {
 		self.relative_path(path).is_some_and(|relative| {
