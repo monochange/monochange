@@ -104,24 +104,22 @@ async fn resolve_caller(
 		}
 		Ok(Caller::ActionsRun)
 	} else {
-		validate_api_token(&authorization)?;
+		validate_api_token(state.api_token.as_deref(), &authorization)?;
 		Ok(Caller::ApiToken)
 	}
 }
 
-/// Validate a `MONOCHANGE_TOKEN` against the configured token.
+/// Validate a `MONOCHANGE_TOKEN` against the token configured through the
+/// application secrets.
 ///
 /// The comparison is constant-time so tokens cannot be probed byte by byte.
-fn validate_api_token(token: &str) -> Result<(), (StatusCode, String)> {
-	let expected = std::env::var("MONOCHANGE_TOKEN")
-		.ok()
-		.filter(|token| !token.is_empty())
-		.ok_or_else(|| {
-			(
-				StatusCode::SERVICE_UNAVAILABLE,
-				"MONOCHANGE_TOKEN authentication is not configured on this deployment".to_string(),
-			)
-		})?;
+fn validate_api_token(expected: Option<&str>, token: &str) -> Result<(), (StatusCode, String)> {
+	let expected = expected.ok_or_else(|| {
+		(
+			StatusCode::SERVICE_UNAVAILABLE,
+			"MONOCHANGE_TOKEN authentication is not configured on this deployment".to_string(),
+		)
+	})?;
 	if constant_time_eq(expected.as_bytes(), token.as_bytes()) {
 		Ok(())
 	} else {
@@ -306,8 +304,9 @@ async fn commit_release_files(
 				)
 			})?;
 
+	let repository = format!("{}/{}", request.owner, request.repository);
 	tracing::info!(
-		repository = %format!("{}/{}", request.owner, request.repository),
+		repository = %repository,
 		branch = %request.branch,
 		commit = %sha,
 		verified,

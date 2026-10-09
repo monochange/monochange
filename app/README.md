@@ -96,7 +96,7 @@ Required runtime secrets (beyond the website's OAuth secrets):
 - `GITHUB_APP_PRIVATE_KEY` — the app private key (PEM).
 - `GITHUB_APP_WEBHOOK_SECRET` — the app webhook secret.
 - `MONOCHANGE_OIDC_AUDIENCE` — the audience required in OIDC tokens (defaults to `monochange.dev`).
-- `MONOCHANGE_TOKEN` — the API token offered to repositories as the non-OIDC fallback secret (optional; omit to require OIDC only).
+- `MONOCHANGE_TOKEN` — the API token offered to repositories as the non-OIDC fallback secret, resolved through SecretSpec like the other secrets (optional; omit or leave empty to require OIDC only).
 
 When the app credentials are absent the website still runs; the hosted endpoints respond with `503` until the deployment configures them.
 

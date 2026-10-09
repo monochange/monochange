@@ -63,7 +63,8 @@ https://monochange.dev/auth/callback
   - `GITHUB_CLIENT_ID`
   - `GITHUB_CLIENT_SECRET`
   - `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` (the complete PEM text), and `GITHUB_APP_WEBHOOK_SECRET` to enable repository connection; all three must be configured together;
-  - optional `MONOCHANGE_OIDC_AUDIENCE` (defaults to `monochange.dev`) and `OPENROUTER_API_KEY`.
+  - optional `MONOCHANGE_OIDC_AUDIENCE` (defaults to `monochange.dev`) and `OPENROUTER_API_KEY`;
+  - optional `MONOCHANGE_TOKEN`, the API token the hosted release endpoints accept from CI systems without GitHub Actions OIDC. Leave it unset to require OIDC.
 
 Create a dedicated `monochange` vault and give the production service account read access to that vault only. Do not grant write access or reuse the shared development service account. The SecretSpec 1Password provider reads items titled `secretspec/monochange_app/production/<KEY>` with a concealed field named `value`. Store each production value in that layout. Keep the service account token separately as a password item for recovery; it is the only credential copied to the server.
 
