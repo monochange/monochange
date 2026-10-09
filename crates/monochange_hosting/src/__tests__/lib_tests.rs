@@ -256,6 +256,19 @@ fn release_pull_request_branch_falls_back_for_empty_command() {
 }
 
 #[test]
+fn release_pull_request_branch_uses_default_name_for_builtin_step_commands() {
+	// Built-in step commands are not release workflows; every step invocation
+	// must land on the same release branch instead of one per step name.
+	for command in ["step open-release-request", "step commit-release"] {
+		assert_eq!(
+			release_pull_request_branch("monochange/release", command),
+			"monochange/release/release",
+			"{command}"
+		);
+	}
+}
+
+#[test]
 fn release_pull_request_branch_preserves_alphanumeric() {
 	assert_eq!(
 		release_pull_request_branch("release/", "v2-Feature"),
