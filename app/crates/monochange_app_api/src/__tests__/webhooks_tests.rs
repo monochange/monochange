@@ -466,3 +466,212 @@ async fn installations_without_an_account_id_are_not_linked() {
 	.unwrap();
 	assert_eq!(linked, None);
 }
+
+/// Acme's `invoices` project spans `acme/web` (31) and `acme/api` (32), and
+/// has one accepted bug whose issue is `acme/web#12`. Returns the scope.
+async fn accepted_feedback(state: &AppState) -> crate::feedback::ProjectScope {
+	use monochange_app_feedback::FeedbackKind;
+	use monochange_app_feedback::FeedbackSubmission;
+	use monochange_app_feedback::IssueRef;
+	use monochange_app_feedback::MaintainerDecision;
+	use monochange_app_feedback::SubmitterIdentity;
+
+	let status = deliver(
+		state,
+		serde_json::json!({
+			"action": "created",
+			"installation": {"id": 2001, "account": {"id": 5001, "login": "acme", "type": "Organization"}},
+			"sender": {"id": 101, "login": "alice"},
+			"repositories": [{"id": 31, "full_name": "acme/web", "private": false}, {"id": 32, "full_name": "acme/api", "private": false}]
+		}),
+	)
+	.await;
+	assert_eq!(status, StatusCode::OK);
+	sqlx::query("INSERT INTO projects (id, organization_id, slug, name) SELECT 1, id, 'invoices', 'Invoices' FROM organizations")
+		.execute(&state.db)
+		.await
+		.unwrap();
+	sqlx::query("INSERT INTO project_repositories (project_id, repository_external_id, full_name) VALUES (1, 31, 'acme/web'), (1, 32, 'acme/api')")
+		.execute(&state.db)
+		.await
+		.unwrap();
+	let scope = crate::feedback::public_project(state, "acme", "invoices")
+		.await
+		.unwrap()
+		.unwrap()
+		.scope;
+	crate::feedback::update(state, &scope, |service| {
+		let id = service
+			.receive(FeedbackSubmission {
+				kind: FeedbackKind::BugReport,
+				description: "Totals are off on the quarterly report".to_owned(),
+				page: None,
+				attachments: Vec::new(),
+				submitter: SubmitterIdentity {
+					anonymous_id: "anon-1".to_owned(),
+					email: None,
+				},
+				app_slug: crate::feedback::PORTAL_APP.to_owned(),
+			})?
+			.id;
+		service.accept(
+			&id,
+			MaintainerDecision {
+				maintainer: "alice".to_owned(),
+				rationale: "Confirmed".to_owned(),
+				override_vote_threshold: Some("Support saw it too".to_owned()),
+			},
+		)?;
+		service.link_issue(
+			&id,
+			IssueRef {
+				repository: Some("acme/web".to_owned()),
+				number: 12,
+				url: None,
+			},
+		)
+	})
+	.await
+	.unwrap();
+	scope
+}
+
+async fn feedback_stage(state: &AppState, scope: &crate::feedback::ProjectScope) -> String {
+	let feedback = crate::feedback::load(state, scope).await.unwrap();
+	let item = feedback.service.item("fb-1").unwrap();
+	format!("{:?}", item.stage)
+}
+
+async fn feedback_version(state: &AppState) -> i64 {
+	sqlx::query_scalar("SELECT version FROM project_feedback WHERE project_id = 1")
+		.fetch_one(&state.db)
+		.await
+		.unwrap()
+}
+
+fn pull_request_event(
+	action: &str,
+	repository: (i64, &str),
+	body: &str,
+	merged: bool,
+) -> serde_json::Value {
+	serde_json::json!({
+		"action": action,
+		"repository": {"id": repository.0, "full_name": repository.1},
+		"pull_request": {"number": 40, "html_url": format!("https://github.com/{}/pull/40", repository.1), "body": body, "merged": merged}
+	})
+}
+
+fn release_event(tag: &str, prerelease: bool) -> serde_json::Value {
+	serde_json::json!({
+		"action": "published",
+		"repository": {"id": 31, "full_name": "acme/web"},
+		"release": {"tag_name": tag, "html_url": format!("https://github.com/acme/web/releases/tag/{tag}"), "prerelease": prerelease}
+	})
+}
+
+#[tokio::test]
+async fn pull_requests_and_releases_carry_accepted_feedback_to_users() {
+	let state = configured_state().await;
+	let scope = accepted_feedback(&state).await;
+	let web = (31, "acme/web");
+
+	// Unrelated activity is acknowledged without touching the feedback.
+	let version = feedback_version(&state).await;
+	for (event, payload) in [
+		(
+			"pull_request",
+			pull_request_event("opened", web, "Refactor", false),
+		),
+		(
+			"pull_request",
+			pull_request_event("opened", (32, "acme/api"), "Fixes #12", false),
+		),
+		(
+			"pull_request",
+			pull_request_event("closed", web, "Fixes #12", false),
+		),
+		(
+			"pull_request",
+			pull_request_event("labeled", web, "Fixes #12", false),
+		),
+		(
+			"pull_request",
+			pull_request_event("opened", (99, "acme/other"), "Fixes #12", false),
+		),
+		("release", release_event("v1.0.0-rc.1", true)),
+	] {
+		assert_eq!(deliver_event(&state, event, payload).await, StatusCode::OK);
+	}
+	assert_eq!(feedback_version(&state).await, version);
+	assert_eq!(feedback_stage(&state, &scope).await, "Accepted");
+
+	assert_eq!(
+		deliver_event(
+			&state,
+			"pull_request",
+			pull_request_event("opened", web, "Fixes #12", false)
+		)
+		.await,
+		StatusCode::OK
+	);
+	assert_eq!(feedback_stage(&state, &scope).await, "InReview");
+	assert_eq!(
+		deliver_event(
+			&state,
+			"pull_request",
+			pull_request_event("closed", web, "Fixes #12", true)
+		)
+		.await,
+		StatusCode::OK
+	);
+	assert_eq!(feedback_stage(&state, &scope).await, "Merged");
+	assert_eq!(
+		deliver_event(&state, "release", release_event("web/v1.2.0", false)).await,
+		StatusCode::OK
+	);
+	let feedback = crate::feedback::load(&state, &scope).await.unwrap();
+	let item = feedback.service.item("fb-1").unwrap();
+	assert_eq!(format!("{:?}", item.stage), "Shipped");
+	let release = item.release.as_ref().unwrap();
+	assert_eq!(release.version, "1.2.0");
+	assert_eq!(
+		release.notes_url,
+		"https://github.com/acme/web/releases/tag/web/v1.2.0"
+	);
+	let updates = crate::feedback::notifications_for(&state, &scope, "anon-1", 10)
+		.await
+		.unwrap();
+	assert_eq!(updates[0].update.body, "Shipped");
+}
+
+#[tokio::test]
+async fn delivery_payloads_must_be_well_formed_and_storage_failures_are_reported() {
+	let state = configured_state().await;
+	accepted_feedback(&state).await;
+	assert_eq!(
+		deliver_event(
+			&state,
+			"release",
+			serde_json::json!({"action": "published"})
+		)
+		.await,
+		StatusCode::BAD_REQUEST
+	);
+	sqlx::query("DROP TABLE project_feedback")
+		.execute(&state.db)
+		.await
+		.unwrap();
+	assert_eq!(
+		deliver_event(&state, "release", release_event("v1.2.0", false)).await,
+		StatusCode::INTERNAL_SERVER_ERROR
+	);
+}
+
+#[test]
+fn release_tags_name_their_version() {
+	assert_eq!(super::release_version("v1.2.0"), "1.2.0");
+	assert_eq!(super::release_version("web/v1.2.0"), "1.2.0");
+	assert_eq!(super::release_version("1.2.0"), "1.2.0");
+	assert_eq!(super::release_version("version-2"), "version-2");
+}
