@@ -184,6 +184,55 @@ async fn organization_repositories_require_current_active_owner_membership() {
 }
 
 #[tokio::test]
+async fn one_user_token_checks_repositories_from_multiple_organizations() {
+	let server = MockServer::start_async().await;
+	let team_membership = server
+		.mock_async(|when, then| {
+			when.method(GET).path("/user/memberships/orgs/team");
+			then.json_body(serde_json::json!({"state":"active","role":"admin"}));
+		})
+		.await;
+	let second_membership = server
+		.mock_async(|when, then| {
+			when.method(GET).path("/user/memberships/orgs/second-team");
+			then.json_body(serde_json::json!({"state":"active","role":"admin"}));
+		})
+		.await;
+	let state = organization_state(&server).await;
+	sqlx::query(
+		"INSERT INTO installations (
+			id, user_id, github_installation_id, github_account_login, github_account_type
+		 ) VALUES (4, 1, 1004, 'second-team', 'Organization')",
+	)
+	.execute(&state.db)
+	.await
+	.unwrap();
+	sqlx::query(
+		"INSERT INTO repositories (
+			installation_id, github_repo_id, github_full_name, github_private
+		 ) VALUES (4, 41, 'second-team/private', 1)",
+	)
+	.execute(&state.db)
+	.await
+	.unwrap();
+	let cookie = session(&state, 1);
+	let owner = context(state, Some(cookie));
+	let repositories = owner
+		.with(|| ScopedFuture::new(list_repos()))
+		.await
+		.unwrap();
+
+	assert_eq!(repositories.len(), 5);
+	assert!(
+		repositories
+			.iter()
+			.any(|repository| repository.github_full_name == "second-team/private")
+	);
+	team_membership.assert_calls_async(1).await;
+	second_membership.assert_calls_async(1).await;
+}
+
+#[tokio::test]
 async fn ordinary_or_pending_members_cannot_read_organization_repositories() {
 	for (state_value, role) in [
 		("active", "member"),

@@ -78,16 +78,14 @@ pub async fn list_repos() -> Result<Vec<RepoInfo>, server_fn::ServerFnError> {
 			let allowed = if let Some(allowed) = organizations.get(&installation_login) {
 				*allowed
 			} else {
-				if access_token.is_none() {
-					access_token =
-						Some(super::auth::github_user_access_token(&state, claims.sub).await?);
-				}
-				let token = access_token.as_deref().ok_or_else(|| {
-					server_fn::ServerFnError::new(
-						"please sign in again to verify organization access",
-					)
-				})?;
-				let allowed = organization_owner(&state, token, &installation_login).await?;
+				let allowed = if let Some(token) = access_token.as_deref() {
+					organization_owner(&state, token, &installation_login).await?
+				} else {
+					let token = super::auth::github_user_access_token(&state, claims.sub).await?;
+					let allowed = organization_owner(&state, &token, &installation_login).await?;
+					access_token = Some(token);
+					allowed
+				};
 				organizations.insert(installation_login.clone(), allowed);
 				allowed
 			};

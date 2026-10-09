@@ -4,7 +4,7 @@
 //! production use the same database engine.
 
 #[cfg(test)]
-#[path = "__tests.rs"]
+#[path = "__tests__/lib_tests.rs"]
 mod tests;
 
 use sqlx::sqlite::SqliteConnectOptions;

@@ -64,6 +64,21 @@ async fn state_with_server(server: &MockServer) -> Arc<AppState> {
 	Arc::new(state)
 }
 
+async fn insert_expired_refreshable_user(state: &AppState) {
+	let now = chrono::Utc::now().timestamp();
+	sqlx::query(
+		"INSERT INTO users (
+			id, github_id, github_login, github_access_token, github_refresh_token,
+			github_access_token_expires_at, github_refresh_token_expires_at
+		 ) VALUES (1, 101, 'alice', 'old-access', 'old-refresh', $1, $2)",
+	)
+	.bind(now - 1)
+	.bind(now + 3600)
+	.execute(&state.db)
+	.await
+	.unwrap();
+}
+
 fn context(state: Arc<AppState>, cookie_header: Option<String>) -> (Owner, ResponseOptions) {
 	let owner = Owner::new();
 	let response = ResponseOptions::default();
@@ -368,6 +383,72 @@ async fn expired_github_app_token_is_refreshed_once_for_concurrent_requests() {
 	assert_eq!(stored.1, "new-refresh");
 	assert!(stored.2 > now);
 	assert!(stored.3 > stored.2);
+}
+
+#[tokio::test]
+async fn missing_user_cannot_receive_a_github_access_token() {
+	let server = MockServer::start();
+	let state = state_with_server(&server).await;
+	let error = github_user_access_token(&state, 404)
+		.await
+		.unwrap_err()
+		.to_string();
+	assert!(error.contains("Invalid session"));
+}
+
+#[tokio::test]
+async fn failed_token_refresh_requires_a_new_sign_in() {
+	let server = MockServer::start();
+	let state = state_with_server(&server).await;
+	insert_expired_refreshable_user(&state).await;
+	let mut state = (*state).clone();
+	state.github_oauth_origin = "http://127.0.0.1:9".to_string();
+
+	let error = github_user_access_token(&state, 1)
+		.await
+		.unwrap_err()
+		.to_string();
+	assert!(error.contains("please sign in again"));
+}
+
+#[tokio::test]
+async fn malformed_token_refresh_response_requires_a_new_sign_in() {
+	let server = MockServer::start();
+	let refresh = server.mock(|when, then| {
+		when.method(POST).path("/login/oauth/access_token");
+		then.header("content-type", "application/json")
+			.body("not-json");
+	});
+	let state = state_with_server(&server).await;
+	insert_expired_refreshable_user(&state).await;
+
+	let error = github_user_access_token(&state, 1)
+		.await
+		.unwrap_err()
+		.to_string();
+	assert!(error.contains("please sign in again"));
+	refresh.assert_calls(1);
+}
+
+#[tokio::test]
+async fn incomplete_token_refresh_response_requires_a_new_sign_in() {
+	let server = MockServer::start();
+	let refresh = server.mock(|when, then| {
+		when.method(POST).path("/login/oauth/access_token");
+		then.json_body(serde_json::json!({
+			"access_token": "new-access",
+			"expires_in": 28_800,
+		}));
+	});
+	let state = state_with_server(&server).await;
+	insert_expired_refreshable_user(&state).await;
+
+	let error = github_user_access_token(&state, 1)
+		.await
+		.unwrap_err()
+		.to_string();
+	assert!(error.contains("please sign in again"));
+	refresh.assert_calls(1);
 }
 
 #[tokio::test]
