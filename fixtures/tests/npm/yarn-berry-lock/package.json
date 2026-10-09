@@ -1,0 +1,7 @@
+{
+  "name": "yarn-berry-lock-fixture",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ]
+}

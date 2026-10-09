@@ -4516,7 +4516,10 @@ fn path_is_supported_for_ecosystem(path: &Path, ecosystem_type: EcosystemType) -
 		}
 		EcosystemType::Npm => {
 			path.extension().and_then(|extension| extension.to_str()) == Some("json")
-				|| matches!(file_name, "pnpm-lock.yaml" | "bun.lock" | "bun.lockb")
+				|| matches!(
+					file_name,
+					"pnpm-lock.yaml" | "yarn.lock" | "bun.lock" | "bun.lockb"
+				)
 		}
 		EcosystemType::Deno => matches!(file_name, "deno.json" | "deno.jsonc" | "deno.lock"),
 		EcosystemType::Dart => matches!(file_name, "pubspec.yaml" | "pubspec.yml" | "pubspec.lock"),

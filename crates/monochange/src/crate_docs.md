@@ -4,7 +4,7 @@
 
 `monochange` is the top-level entry point for the workspace.
 
-Reach for this crate when you want one API and CLI surface that discovers packages across Cargo, npm/pnpm/Bun, Deno, Dart/Flutter, Python, and Go workspaces, exposes top-level commands from `monochange.toml`, and runs configured CLI commands from those definitions.
+Reach for this crate when you want one API and CLI surface that discovers packages across Cargo, npm/pnpm/Yarn/Bun, Deno, Dart/Flutter, Python, and Go workspaces, exposes top-level commands from `monochange.toml`, and runs configured CLI commands from those definitions.
 
 ## Why use it?
 

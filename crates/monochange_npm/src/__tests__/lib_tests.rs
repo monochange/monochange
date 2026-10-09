@@ -39,6 +39,7 @@ use crate::update_json_dependency_fields;
 use crate::update_package_lock;
 use crate::update_pnpm_lock;
 use crate::update_pnpm_lock_text;
+use crate::update_yarn_lock;
 use crate::workspace_patterns_from_package_json;
 
 #[test]
@@ -119,6 +120,10 @@ fn supported_versioned_file_kind_recognizes_known_files() {
 		Some(NpmVersionedFileKind::PnpmLock)
 	);
 	assert_eq!(
+		supported_versioned_file_kind(Path::new("yarn.lock")),
+		Some(NpmVersionedFileKind::YarnLock)
+	);
+	assert_eq!(
 		supported_versioned_file_kind(Path::new("bun.lock")),
 		Some(NpmVersionedFileKind::BunLock)
 	);
@@ -147,6 +152,28 @@ fn discover_lockfiles_prefers_workspace_root_then_manifest_directory() {
 		lockfiles.first(),
 		Some(&monochange_core::normalize_path(
 			&fixture_root.join("pnpm-lock.yaml")
+		))
+	);
+}
+
+#[test]
+fn discover_lockfiles_discovers_yarn_lockfiles() {
+	let fixture_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+		.join("../../fixtures/tests/npm/yarn-lockfile-workspace");
+	let package = PackageRecord::new(
+		Ecosystem::Npm,
+		"yarn-web",
+		fixture_root.join("packages/web/package.json"),
+		fixture_root.clone(),
+		Some(Version::new(1, 0, 0)),
+		PublishState::Public,
+	);
+	let lockfiles = discover_lockfiles(&package);
+	assert_eq!(lockfiles.len(), 1);
+	assert_eq!(
+		lockfiles.first(),
+		Some(&monochange_core::normalize_path(
+			&fixture_root.join("yarn.lock")
 		))
 	);
 }
@@ -209,6 +236,25 @@ fn default_lockfile_commands_match_owned_npm_lockfile_kind() {
 		vec![monochange_core::LockfileCommandExecution {
 			command: "pnpm install --lockfile-only".to_string(),
 			cwd: monochange_core::normalize_path(&pnpm_root),
+			shell: monochange_core::ShellConfig::None,
+		}]
+	);
+
+	let yarn_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+		.join("../../fixtures/tests/npm/yarn-lockfile-workspace");
+	let yarn_package = PackageRecord::new(
+		Ecosystem::Npm,
+		"yarn-web",
+		yarn_root.join("packages/web/package.json"),
+		yarn_root.clone(),
+		Some(Version::new(1, 0, 0)),
+		PublishState::Public,
+	);
+	assert_eq!(
+		default_lockfile_commands(&yarn_package),
+		vec![monochange_core::LockfileCommandExecution {
+			command: "yarn install --mode=update-lockfile".to_string(),
+			cwd: monochange_core::normalize_path(&yarn_root),
 			shell: monochange_core::ShellConfig::None,
 		}]
 	);
@@ -409,8 +455,8 @@ fn pnpm_text_helper_functions_cover_edge_cases() {
 	let contents = "importers:\n\n  # comment\n";
 	let ranges = crate::yaml_line_ranges(contents);
 	assert_eq!(
-		crate::find_yaml_key_line(contents, &ranges, 0, "importers"),
-		Some(0)
+		crate::find_yaml_key_lines(contents, &ranges, 0, "importers"),
+		vec![0]
 	);
 	assert!(crate::parse_yaml_line(contents, *ranges.get(1).expect("blank line range")).is_none());
 	assert!(crate::parse_yaml_line(": nope", (0, 6)).is_none());
@@ -425,7 +471,8 @@ fn pnpm_text_helper_functions_cover_edge_cases() {
 	let outer_blank = "importers:\n\n  .:\n";
 	let outer_blank_ranges = crate::yaml_line_ranges(outer_blank);
 	let outer_blank_index =
-		crate::find_yaml_key_line(outer_blank, &outer_blank_ranges, 0, "importers")
+		*crate::find_yaml_key_lines(outer_blank, &outer_blank_ranges, 0, "importers")
+			.first()
 			.unwrap_or_else(|| panic!("expected importers section"));
 	crate::collect_pnpm_section_replacements(
 		outer_blank,
@@ -659,7 +706,8 @@ fn pnpm_replacement_helpers_skip_invalid_spans_and_blank_lines() {
       next: 1.0.0
 ";
 	let ranges = crate::yaml_line_ranges(contents);
-	let section_index = crate::find_yaml_key_line(contents, &ranges, 0, "importers")
+	let section_index = *crate::find_yaml_key_lines(contents, &ranges, 0, "importers")
+		.first()
 		.unwrap_or_else(|| panic!("expected importers section"));
 	crate::collect_pnpm_section_replacements(
 		contents,
@@ -672,6 +720,216 @@ fn pnpm_replacement_helpers_skip_invalid_spans_and_blank_lines() {
 }
 
 #[test]
+fn update_pnpm_lock_text_rewrites_pnpm12_two_document_lockfiles() {
+	let lock = "---\nlockfileVersion: '9.0'\n\nimporters:\n  .:\n    configDependencies: {}\n    packageManagerDependencies:\n      pnpm:\n        specifier: 12.3.4\n        version: 12.3.4\n\npackages:\n  '@pnpm/logger@5.2.0':\n    resolution: {integrity: sha512-abcdef}\n\nsnapshots:\n  '@pnpm/logger@5.2.0':\n    dependencies:\n      bole: 5.0.20\n\n---\nlockfileVersion: '9.0'\n\nimporters:\n  .:\n    dependencies:\n      '@acme/api': 2.3.1\n\n  packages/consumer:\n    dependencies:\n      '@acme/api':\n        specifier: ^2.3.1\n        version: 2.3.1\n";
+	let updated = update_pnpm_lock_text(
+		lock,
+		&BTreeMap::from([("@acme/api".to_string(), "2.4.0".to_string())]),
+	)
+	.unwrap_or_else(|error| panic!("update pnpm lock text: {error}"));
+	assert!(updated.contains("'@acme/api': 2.4.0\n"));
+	assert!(updated.contains("specifier: ^2.3.1\n        version: 2.4.0\n"));
+	// The env document keeps its own package-manager pin and dependencies.
+	assert!(updated.contains("specifier: 12.3.4\n        version: 12.3.4\n"));
+	assert!(updated.contains("bole: 5.0.20"));
+	assert!(updated.contains(
+		"\n---\nlockfileVersion: '9.0'\n\nimporters:\n  .:\n    dependencies:\n      '@acme/api': 2.4.0"
+	));
+	assert_eq!(updated.matches("---").count(), 2);
+}
+
+#[test]
+fn update_pnpm_lock_text_rejects_invalid_and_empty_documents() {
+	let broken_second_document = "lockfileVersion: '9.0'\n\nimporters:\n  .:\n    dependencies:\n      core: 1.0.0\n\n---\nlockfileVersion: '9.0'\nimporters: [broken\n";
+	let error = update_pnpm_lock_text(
+		broken_second_document,
+		&BTreeMap::from([("core".to_string(), "2.0.0".to_string())]),
+	)
+	.expect_err("broken second document should fail validation");
+	let message = error.to_string();
+	assert!(
+		message.contains("failed to parse pnpm lock yaml"),
+		"{message}"
+	);
+
+	// Empty lockfiles keep parsing as a null document and pass through, which
+	// matches the previous single-document parser behavior.
+	let updated = update_pnpm_lock_text("", &BTreeMap::new())
+		.unwrap_or_else(|error| panic!("empty lockfile should parse: {error}"));
+	assert_eq!(updated, "");
+}
+
+#[test]
+fn validate_versioned_file_accepts_multi_document_pnpm_locks() {
+	let directory = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let pnpm_lock = directory.path().join("pnpm-lock.yaml");
+	fs::write(
+		&pnpm_lock,
+		"---\nlockfileVersion: '9.0'\npackages: {}\n\n---\nlockfileVersion: '9.0'\nimporters:\n  .: {}\n",
+	)
+	.unwrap_or_else(|error| panic!("write pnpm lock: {error}"));
+	assert!(crate::validate_versioned_file(&pnpm_lock, "pnpm-lock.yaml", None).is_ok());
+
+	fs::write(&pnpm_lock, "importers: [broken\n")
+		.unwrap_or_else(|error| panic!("write pnpm lock: {error}"));
+	let result = crate::validate_versioned_file(&pnpm_lock, "pnpm-lock.yaml", None);
+	let message = result
+		.expect_err("invalid pnpm lock should fail validation")
+		.to_string();
+	assert!(message.contains("is not valid pnpm lock yaml"), "{message}");
+
+	let yarn_lock = directory.path().join("yarn.lock");
+	fs::write(&yarn_lock, "# yarn lockfile v1\n")
+		.unwrap_or_else(|error| panic!("write yarn lock: {error}"));
+	assert!(crate::validate_versioned_file(&yarn_lock, "yarn.lock", None).is_ok());
+
+	let missing_lock = directory.path().join("missing/pnpm-lock.yaml");
+	let result = crate::validate_versioned_file(&missing_lock, "pnpm-lock.yaml", None);
+	let message = result
+		.expect_err("unreadable pnpm lock should fail validation")
+		.to_string();
+	assert!(message.contains("is not readable"), "{message}");
+
+	let unsupported = directory.path().join("requirements.txt");
+	let result = crate::validate_versioned_file(&unsupported, "requirements.txt", None);
+	let message = result
+		.expect_err("unsupported file should fail validation")
+		.to_string();
+	assert!(
+		message.contains("is not supported for the npm ecosystem"),
+		"{message}"
+	);
+}
+
+#[test]
+fn update_yarn_lock_rewrites_classic_entries() {
+	let lock = r#"# THIS IS AN AUTOGENERATED FILE. DO NOT EDIT THIS FILE DIRECTLY.
+# yarn lockfile v1
+
+
+"@acme/api@^2.3.1":
+  version "2.3.1"
+  resolved "https://registry.yarnpkg.com/@acme/api/-/api-2.3.1.tgz#8f14ac6d"
+  integrity sha512-b18f49e79f32b4a1c4a4068fd11d1a2d
+  dependencies:
+    left-pad "^1.3.0"
+
+left-pad@^1.3.0:
+  version "1.3.0"
+  resolved "https://registry.yarnpkg.com/left-pad/-/left-pad-1.3.0.tgz#1fba07a2"
+"#;
+	let updated = update_yarn_lock(
+		lock,
+		&BTreeMap::from([("@acme/api".to_string(), "2.4.0".to_string())]),
+	);
+	assert!(updated.contains("version \"2.4.0\""));
+	// Resolved URL, integrity, nested dependency ranges, and other entries stay.
+	assert!(updated.contains("api-2.3.1.tgz#8f14ac6d"));
+	assert!(updated.contains("left-pad \"^1.3.0\""));
+	assert!(updated.contains("version \"1.3.0\""));
+	assert!(updated.starts_with("# THIS IS AN AUTOGENERATED FILE"));
+}
+
+#[test]
+fn update_yarn_lock_rewrites_berry_entries_and_preserves_workspace_placeholders() {
+	let lock = r#"# This file is automatically generated by @yarnpkg/repo. Do not edit it manually.
+
+__metadata:
+  version: 8
+  cacheKey: 10c0
+
+"@acme/api@npm:2.3.1":
+  version: 2.3.1
+  resolution: "@acme/api@npm:2.3.1"
+  checksum: 10c0/b18f49e79f32b4a1c4a4068fd11d1a2d
+  languageName: node
+  linkType: hard
+
+"@acme/api@workspace:packages/api, @acme/api@^2.3.1":
+  version: 0.0.0-use.local
+  resolution: "@acme/api@workspace:packages/api"
+  languageName: unknown
+  linkType: soft
+"#;
+	let updated = update_yarn_lock(
+		lock,
+		&BTreeMap::from([("@acme/api".to_string(), "2.4.0".to_string())]),
+	);
+	assert!(updated.contains("version: 2.4.0\n"));
+	assert!(updated.contains("resolution: \"@acme/api@npm:2.3.1\""));
+	assert!(updated.contains("version: 0.0.0-use.local"));
+	assert!(updated.contains("version: 8"));
+}
+
+#[test]
+fn update_yarn_lock_returns_input_unchanged_without_matching_entries() {
+	let lock = "\"lodash@^4.0.0\":\n  version \"4.17.21\"\n";
+	let updated = update_yarn_lock(
+		lock,
+		&BTreeMap::from([("@acme/api".to_string(), "2.4.0".to_string())]),
+	);
+	assert_eq!(updated, lock);
+}
+
+#[test]
+fn yarn_helpers_cover_edge_cases() {
+	assert_eq!(
+		crate::yarn_specifier_package_name("\"@acme/api@^1.0.0\""),
+		Some("@acme/api")
+	);
+	assert_eq!(
+		crate::yarn_specifier_package_name("left-pad@^1.3.0"),
+		Some("left-pad")
+	);
+	assert_eq!(
+		crate::yarn_specifier_package_name("abbrev@1"),
+		Some("abbrev")
+	);
+	assert_eq!(
+		crate::yarn_specifier_package_name("@acme/api"),
+		Some("@acme/api")
+	);
+	assert_eq!(crate::yarn_specifier_package_name("\"\""), None);
+	assert_eq!(crate::yarn_version_value_offset("version: 1.2.3"), Some(9));
+	assert_eq!(
+		crate::yarn_version_value_offset("version \"1.2.3\""),
+		Some(8)
+	);
+	assert_eq!(crate::yarn_version_value_offset("versioned: nope"), None);
+	assert_eq!(crate::yarn_version_value_offset("resolved \"...\""), None);
+	assert_eq!(crate::yarn_version_value_end("\"1.2.3\""), 7);
+	assert_eq!(crate::yarn_version_value_end("1.2.3  "), 5);
+	assert_eq!(crate::yarn_version_value_end("\"unterminated"), 13);
+	assert!(crate::parse_yarn_entry_header("# comment only", (0, 14)).is_none());
+	assert!(crate::parse_yarn_entry_header("  nested: value", (0, 15)).is_none());
+	assert!(crate::parse_yarn_entry_header("not-a-key", (0, 9)).is_none());
+	assert_eq!(
+		crate::parse_yarn_entry_header("\"@acme/api@npm:2.3.1\":", (0, 22))
+			.map(|header| (header.package_name, header.workspace_resolved)),
+		Some(("@acme/api", false))
+	);
+	assert_eq!(
+		crate::parse_yarn_entry_header("\"@acme/api@workspace:packages/api\":", (0, 35))
+			.map(|header| (header.package_name, header.workspace_resolved)),
+		Some(("@acme/api", true))
+	);
+	// The raw collector rewrites any version line; the workspace skip happens
+	// in `update_yarn_lock` before the collector runs.
+	let workspace_entry = "\"@acme/api@workspace:packages/api\":\n  version: 0.0.0-use.local\n";
+	let ranges = crate::yaml_line_ranges(workspace_entry);
+	let mut replacements = Vec::new();
+	crate::collect_yarn_entry_version_replacement(
+		workspace_entry,
+		&ranges,
+		1,
+		"9.9.9",
+		&mut replacements,
+	);
+	assert_eq!(replacements.len(), 1);
+	assert_eq!(replacements[0].1, "9.9.9");
+}
+
+#[test]
 fn update_bun_lock_rewrites_matching_versions() {
 	let updated = update_bun_lock(
 		"{\n  \"core\": \"1.0.0\",\n  \"other\": \"0.1.0\"\n}",
@@ -679,6 +937,68 @@ fn update_bun_lock_rewrites_matching_versions() {
 	);
 	assert!(updated.contains("\"core\": \"2.0.0\""));
 	assert!(updated.contains("\"other\": \"0.1.0\""));
+}
+
+#[test]
+fn update_bun_lock_rewrites_jsonc_pins_and_descriptors() {
+	let lock = "{\n  \"lockfileVersion\": 1,\n  \"workspaces\": {\n    \"\": {\n      \"name\": \"fixture\",\n      \"dependencies\": {\n        \"@acme/api\": \"workspace:packages/api\",\n      },\n    },\n    \"packages/consumer\": {\n      \"name\": \"@acme/consumer\",\n      \"dependencies\": {\n        \"@acme/api\": \"2.3.1\",\n      },\n    },\n  },\n  \"packages\": {\n    \"@acme/api\": [\"@acme/api@2.3.1\", \"\", {\n      \"os\": [\"darwin\"],\n    }, \"sha512-abcdef\"],\n    \"@acme/consumer\": [\"@acme/consumer@workspace:packages/consumer\"],\n    \"left-pad\": [\"left-pad@1.3.0\", \"\", \"sha512-1fba07a2\"],\n  },\n  \"overrides\": {},\n}\n";
+	let updated = update_bun_lock(
+		lock,
+		&BTreeMap::from([("@acme/api".to_string(), "2.4.0".to_string())]),
+	);
+	assert!(updated.contains("\"@acme/api\": \"2.4.0\""));
+	assert!(updated.contains("[\"@acme/api@2.4.0\", \"\""));
+	// Workspace links, external pins, and JSONC trailing commas survive.
+	assert!(updated.contains("\"@acme/api\": \"workspace:packages/api\""));
+	assert!(updated.contains("\"left-pad\": [\"left-pad@1.3.0\""));
+	assert!(updated.contains("\"overrides\": {},"));
+	assert_eq!(updated.matches("2.3.1").count(), 0);
+}
+
+#[test]
+fn update_bun_lock_leaves_ranges_protocols_and_aliases_alone() {
+	let lock = "{\n  \"workspaces\": {\n    \"\": {\n      \"dependencies\": {\n        \"@acme/api\": \"^2.3.1\",\n        \"aliased\": \"npm:@acme/api@2.3.1\",\n        \"vendored\": \"@acme/api@github:acme/api#deadbeef\",\n      },\n    },\n  },\n  \"packages\": {\n    \"@acme/api\": [\"@acme/api@workspace:packages/api\"],\n  },\n}\n";
+	let updated = update_bun_lock(
+		lock,
+		&BTreeMap::from([("@acme/api".to_string(), "2.4.0".to_string())]),
+	);
+	assert_eq!(updated, lock);
+}
+
+#[test]
+fn update_yarn_lock_skips_malformed_and_unchanged_version_lines() {
+	// Comments, non-version properties, and empty version values inside an
+	// entry are skipped, and an already-matching version stays untouched.
+	let lock = "\"@acme/api@^1.0.0\":\n  # regenerated by hand\n  resolution: \"@acme/api@npm:1.0.0\"\n\"@acme/api@^2.3.1\":\n  version:\n  version: 2.4.0\n";
+	let updated = update_yarn_lock(
+		lock,
+		&BTreeMap::from([("@acme/api".to_string(), "2.4.0".to_string())]),
+	);
+	assert_eq!(updated, lock);
+	assert!(updated.contains("version: 2.4.0"));
+}
+
+#[test]
+fn update_bun_lock_skips_truncated_and_mismatched_descriptors() {
+	// Truncated entries, unterminated descriptors, and descriptors that
+	// belong to a different package leave the input untouched.
+	let truncated = update_bun_lock(
+		"{\"core\": [\"",
+		&BTreeMap::from([("core".to_string(), "2.0.0".to_string())]),
+	);
+	assert_eq!(truncated, "{\"core\": [\"");
+
+	let unterminated = update_bun_lock(
+		"{\"core\": [\"core@1",
+		&BTreeMap::from([("core".to_string(), "2.0.0".to_string())]),
+	);
+	assert_eq!(unterminated, "{\"core\": [\"core@1");
+
+	let mismatched = update_bun_lock(
+		"{\"core\": [\"left-pad@1.3.0\"]}",
+		&BTreeMap::from([("core".to_string(), "2.0.0".to_string())]),
+	);
+	assert_eq!(mismatched, "{\"core\": [\"left-pad@1.3.0\"]}");
 }
 
 #[test]
@@ -859,6 +1179,8 @@ fn workspace_pattern_helpers_cover_array_object_and_missing_cases() {
 fn detect_npm_manager_prefers_bun_then_pnpm_then_npm() {
 	let bun_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/npm/workspace-bun");
 	assert_eq!(detect_npm_manager(&bun_root), "bun");
+	let yarn_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/npm/workspace-yarn");
+	assert_eq!(detect_npm_manager(&yarn_root), "yarn");
 	let pnpm_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/npm/workspace-pnpm");
 	assert_eq!(detect_npm_manager(&pnpm_root), "pnpm");
 	let npm_root =
