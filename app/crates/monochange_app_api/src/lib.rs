@@ -7,7 +7,7 @@
 //! - Hosted release commit and release request endpoints
 
 #[cfg(test)]
-#[path = "__tests__.rs"]
+#[path = "__tests__/lib_tests.rs"]
 mod tests;
 
 mod config;
