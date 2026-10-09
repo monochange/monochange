@@ -861,8 +861,17 @@ pub(crate) fn default_change_path_for_ref(root: &Path, package_ref: Option<&str>
 	}
 	let slug = slug.trim_matches('-');
 	let slug = if slug.is_empty() { "change" } else { slug };
-	root.join(CHANGESET_DIR)
-		.join(format!("{timestamp}-{slug}.md"))
+	let directory = root.join(CHANGESET_DIR);
+	let mut path = directory.join(format!("{timestamp}-{slug}.md"));
+	// Two creations inside the same second produce the same timestamp name,
+	// and the second write would silently replace the first changeset.
+	// Disambiguate with a counter until an unused name is found.
+	let mut counter = 1;
+	while path.exists() && counter < 100 {
+		counter += 1;
+		path = directory.join(format!("{timestamp}-{slug}-{counter}.md"));
+	}
+	path
 }
 
 #[allow(clippy::too_many_arguments)]
