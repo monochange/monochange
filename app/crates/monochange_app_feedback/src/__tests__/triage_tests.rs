@@ -118,10 +118,7 @@ fn bugs_without_context_ask_for_it() {
 			"Which app version are you running?",
 		]
 	);
-	assert_eq!(
-		report.product_summary,
-		"Problem on an unspecified screen: It crashed"
-	);
+	assert_eq!(report.product_summary, "Problem: It crashed");
 
 	let mut versionless = submission(FeedbackKind::BugReport, "It crashed");
 	versionless.page = Some(page("/reports", None));
@@ -272,4 +269,26 @@ fn triage_types_round_trip_through_json() {
 		serde_json::from_value::<ScreeningVerdict>(json).unwrap(),
 		verdict
 	);
+}
+
+#[test]
+fn summaries_drop_markdown_noise_but_keep_identifiers() {
+	let cases = [
+		(
+			"**Totals** are `wrong` in ~~old~~ invoices",
+			"Totals are wrong in old invoices",
+		),
+		("## Dark mode please", "Dark mode please"),
+		("> - Export to CSV", "Export to CSV"),
+		("12. Numbered request", "Numbered request"),
+		("1.5 seconds is too slow", "1.5 seconds is too slow"),
+		(
+			"Support my_module/src/tax_rates.rs layouts",
+			"Support my_module/src/tax_rates.rs layouts",
+		),
+	];
+	for (description, expected) in cases {
+		let report = triage(&submission(FeedbackKind::FeatureRequest, description));
+		assert_eq!(report.product_summary, expected, "{description}");
+	}
 }

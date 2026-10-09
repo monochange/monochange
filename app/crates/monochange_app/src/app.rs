@@ -18,9 +18,11 @@ use crate::links::SOURCE_URL;
 use crate::pages::book::BookPageView;
 use crate::pages::changelog::ChangelogPage;
 use crate::pages::dashboard::DashboardPage;
+use crate::pages::feedback_console::FeedbackConsolePage;
 use crate::pages::home::HomePage;
 use crate::pages::install::InstallPage;
 use crate::pages::organization::OrganizationPage;
+use crate::pages::portal::PortalPage;
 use crate::pages::pricing::PricingPage;
 use crate::pages::project::ProjectPage;
 
@@ -85,6 +87,7 @@ pub fn App() -> impl IntoView {
 					<Route path=path!("/dashboard") view=DashboardPage />
 					<Route path=path!("/dashboard/:organization") view=OrganizationPage />
 					<Route path=path!("/dashboard/:organization/projects/:project") view=ProjectPage />
+					<Route path=path!("/dashboard/:organization/projects/:project/feedback") view=FeedbackConsolePage />
 					<Route path=path!("/install") view=InstallPage />
 					<Route path=path!("/login") view=LoginPage />
 					<Route path=path!("/pricing") view=PricingPage />
@@ -92,6 +95,7 @@ pub fn App() -> impl IntoView {
 					<Route path=path!("/book") view=BookPageView />
 					<Route path=path!("/book/*chapter") view=BookPageView />
 					<Route path=path!("/auth/callback") view=AuthCallbackPage />
+					<Route path=path!("/p/:organization/:project") view=PortalPage />
 				</Routes>
 			</main>
 			<Footer />

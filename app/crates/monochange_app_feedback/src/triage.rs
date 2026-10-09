@@ -254,17 +254,41 @@ fn product_summary(submission: &FeedbackSubmission, classification: FeedbackKind
 			FeedbackKind::FeatureRequest => "Feature request pending maintainer review".to_owned(),
 		};
 	}
-	let sentence = first_sentence(&submission.description);
-	match classification {
-		FeedbackKind::BugReport => {
-			let route = submission
-				.page
-				.as_ref()
-				.map_or("an unspecified screen", |page| page.route.as_str());
-			format!("Problem on {route}: {sentence}")
-		}
-		FeedbackKind::FeatureRequest => sentence.to_owned(),
+	let plain = plain_text(&submission.description);
+	let sentence = first_sentence(&plain).to_owned();
+	match (classification, &submission.page) {
+		(FeedbackKind::BugReport, Some(page)) => format!("Problem on {}: {sentence}", page.route),
+		(FeedbackKind::BugReport, None) => format!("Problem: {sentence}"),
+		(FeedbackKind::FeatureRequest, _) => sentence,
 	}
+}
+
+/// Strips Markdown markers that would read as noise in a one-line title:
+/// a leading heading, quote, or list marker, and emphasis, strikethrough,
+/// and code markers. Single `_` and `*` stay, because they appear in paths
+/// and identifiers the disclosure rules must still see.
+fn plain_text(markdown: &str) -> String {
+	let mut line = markdown.trim_start();
+	for marker in ["#", ">"] {
+		line = line.trim_start_matches(marker).trim_start();
+	}
+	for marker in ["- ", "* ", "+ "] {
+		if let Some(rest) = line.strip_prefix(marker) {
+			line = rest;
+		}
+	}
+	if let Some((number, rest)) = line.split_once(". ")
+		&& !number.is_empty()
+		&& number.bytes().all(|byte| byte.is_ascii_digit())
+	{
+		line = rest;
+	}
+	line.replace("**", "")
+		.replace("__", "")
+		.replace("~~", "")
+		.replace('`', "")
+		.trim()
+		.to_owned()
 }
 
 /// The text before the first sentence end. A full stop only ends a sentence

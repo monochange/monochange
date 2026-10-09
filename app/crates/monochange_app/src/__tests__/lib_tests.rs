@@ -16,6 +16,156 @@ pub(crate) fn routes() -> Vec<leptos_axum::AxumRouteListing> {
 		.clone()
 }
 
+/// Server-renders `app` inside a minimal document, as a page would be.
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) async fn render<V: leptos::prelude::IntoView + 'static>(
+	app: impl Fn() -> V + Clone + Send + Sync + 'static,
+) -> String {
+	use leptos::prelude::*;
+
+	routes();
+	let render = leptos_axum::render_app_to_stream_in_order(move || {
+		leptos_meta::provide_meta_context();
+		view! {
+			<!DOCTYPE html>
+			<html>
+				<head><leptos_meta::MetaTags /></head>
+				<body>{app()}</body>
+			</html>
+		}
+	});
+	let response = render(axum::http::Request::new(axum::body::Body::empty())).await;
+	let body = tokio::time::timeout(
+		std::time::Duration::from_secs(10),
+		axum::body::to_bytes(response.into_body(), 262_144),
+	)
+	.await
+	.unwrap()
+	.unwrap();
+	String::from_utf8(body.to_vec()).unwrap()
+}
+
+/// Fixtures shared by the feedback console, portal, and page tests.
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) mod feedback {
+	use std::sync::Arc;
+
+	use axum::http::Request;
+	use axum::http::header::COOKIE;
+	use leptos::prelude::*;
+	use leptos_axum::ResponseOptions;
+	use monochange_app_api::AppSecrets;
+	use monochange_app_api::AppState;
+	use monochange_app_api::create_token;
+	use monochange_app_api::oauth;
+	use monochange_app_db::projects::AccountIdentity;
+	use monochange_app_db::projects::GITHUB;
+	use monochange_app_feedback::FeedbackKind;
+	use monochange_app_feedback::FeedbackSubmission;
+	use monochange_app_feedback::SubmitterIdentity;
+
+	/// Alice maintains `alice/pocketbook` with a public and a private repository.
+	pub(crate) async fn state() -> Arc<AppState> {
+		let db = monochange_app_db::create_pool("sqlite::memory:")
+			.await
+			.unwrap();
+		monochange_app_db::run_migrations(&db).await.unwrap();
+		sqlx::query("INSERT INTO users (id, github_id, github_login, github_access_token) VALUES (1, 101, 'alice', 'unused'), (2, 202, 'bob', 'unused')").execute(&db).await.unwrap();
+		sqlx::query("INSERT INTO installations (id, user_id, github_installation_id, github_account_login, github_account_type) VALUES (1, 1, 1001, 'alice', 'User'), (2, 2, 1002, 'bob', 'User')").execute(&db).await.unwrap();
+		sqlx::query("INSERT INTO repositories (installation_id, github_repo_id, github_full_name, github_private) VALUES (1, 11, 'alice/web', 0), (1, 12, 'alice/api', 1), (2, 21, 'bob/app', 0)").execute(&db).await.unwrap();
+		let mut connection = db.acquire().await.unwrap();
+		let organization = monochange_app_db::projects::link_installation_organization(
+			&mut connection,
+			1,
+			&AccountIdentity {
+				provider: GITHUB.to_owned(),
+				external_id: 101,
+				login: "alice".to_owned(),
+				account_type: "User".to_owned(),
+				avatar_url: None,
+			},
+		)
+		.await
+		.unwrap();
+		drop(connection);
+		sqlx::query("INSERT INTO projects (id, organization_id, slug, name, description) VALUES (1, $1, 'pocketbook', 'Pocketbook', 'Invoicing')").bind(organization).execute(&db).await.unwrap();
+		sqlx::query("INSERT INTO project_repositories (project_id, repository_external_id, full_name) VALUES (1, 11, 'alice/web'), (1, 12, 'alice/api')").execute(&db).await.unwrap();
+		let secrets: AppSecrets =
+			serde_json::from_value(serde_json::json!({"jwt_secret":"feedback-test-signing-key"}))
+				.unwrap();
+		Arc::new(AppState::new(db, secrets).unwrap())
+	}
+
+	/// A request context signed in as `user` (1 is Alice, 2 is Bob) with an
+	/// optional viewer cookie.
+	pub(crate) fn context(
+		state: &Arc<AppState>,
+		user: Option<i32>,
+		viewer: Option<&str>,
+	) -> (Owner, ResponseOptions) {
+		let owner = Owner::new();
+		let response = ResponseOptions::default();
+		let mut request = Request::new(());
+		let mut cookies = Vec::new();
+		if let Some(user) = user {
+			let (github_id, login) = if user == 1 {
+				(101, "alice")
+			} else {
+				(202, "bob")
+			};
+			let token = create_token(&state.jwt_secret, user, github_id, login).unwrap();
+			cookies.push(format!("{}={token}", oauth::SESSION_COOKIE_NAME));
+		}
+		if let Some(viewer) = viewer {
+			cookies.push(format!(
+				"{}={viewer}",
+				crate::server_fns::portal::VIEWER_COOKIE
+			));
+		}
+		if !cookies.is_empty() {
+			request
+				.headers_mut()
+				.insert(COOKIE, cookies.join("; ").parse().unwrap());
+		}
+		let (parts, ()) = request.into_parts();
+		owner.with(|| {
+			provide_context(state.clone());
+			provide_context(parts);
+			provide_context(response.clone());
+		});
+		(owner, response)
+	}
+
+	pub(crate) async fn submit(
+		state: &Arc<AppState>,
+		submitter: &str,
+		kind: FeedbackKind,
+		description: &str,
+	) -> String {
+		let public = monochange_app_api::feedback::public_project(state, "alice", "pocketbook")
+			.await
+			.unwrap()
+			.unwrap();
+		let submission = FeedbackSubmission {
+			kind,
+			description: description.to_owned(),
+			page: None,
+			attachments: Vec::new(),
+			submitter: SubmitterIdentity {
+				anonymous_id: submitter.to_owned(),
+				email: None,
+			},
+			app_slug: monochange_app_api::feedback::PORTAL_APP.to_owned(),
+		};
+		monochange_app_api::feedback::update(state, &public.scope, |service| {
+			service.receive(submission.clone())
+		})
+		.await
+		.unwrap()
+		.id
+	}
+}
+
 // ── AppError tests ──
 
 #[rstest]

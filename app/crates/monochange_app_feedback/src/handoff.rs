@@ -41,13 +41,15 @@ pub struct IssueDraft {
 	pub labels: Vec<String>,
 }
 
-/// The release-managed package and changeset type the agent should use, read
-/// from the repository's `monochange.toml` (for example a user-stream type
-/// such as `website_feature`).
+/// The release-managed package and changeset types the agent should use,
+/// read from the repository's `monochange.toml`. Feedback announces visible
+/// outcomes, so these are normally user-stream types such as
+/// `website_feature` and `website_fix`; triage's classification picks one.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ChangesetTarget {
 	pub package: String,
-	pub change_type: String,
+	pub feature_type: String,
+	pub fix_type: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -330,9 +332,19 @@ pub fn changeset_draft(
 		.summary_override
 		.clone()
 		.unwrap_or_else(|| report.product_summary.clone());
-	let lead = match report.classification {
-		FeedbackKind::BugReport => "Fixed after people reported it through in-app feedback.",
-		FeedbackKind::FeatureRequest => "Added after people asked for it through in-app feedback.",
+	let (change_type, lead) = match report.classification {
+		FeedbackKind::BugReport => {
+			(
+				&target.fix_type,
+				"Fixed after people reported it through in-app feedback.",
+			)
+		}
+		FeedbackKind::FeatureRequest => {
+			(
+				&target.feature_type,
+				"Added after people asked for it through in-app feedback.",
+			)
+		}
 	};
 	let published = DisclosureGate::publish(
 		OutboundDraft {
@@ -347,7 +359,7 @@ pub fn changeset_draft(
 		path: format!(".changeset/feedback-{}.md", item.id),
 		contents: format!(
 			"---\n\"{}\": {}\n---\n\n# {}\n\n{}\n",
-			target.package, target.change_type, published.title, published.body
+			target.package, change_type, published.title, published.body
 		),
 	})
 }

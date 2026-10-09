@@ -350,6 +350,7 @@ fn release_notes_links_survive_private_feeds() {
 fn issue_links_without_urls_are_skipped() {
 	let mut item = bug_at(Stage::Building);
 	item.issue = Some(crate::pipeline::IssueRef {
+		repository: None,
 		number: 42,
 		url: None,
 	});

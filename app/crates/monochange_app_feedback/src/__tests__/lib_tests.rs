@@ -21,10 +21,12 @@ use crate::FeedbackService;
 use crate::FeedbackSubmission;
 use crate::HandoffError;
 use crate::IntakeError;
+use crate::IssueRef;
 use crate::Notification;
 use crate::PublicAuthor;
 use crate::PublicMessage;
 use crate::PublicStatus;
+use crate::PullRequestRef;
 use crate::Receipt;
 use crate::ReleaseObservation;
 use crate::RepositoryVisibility;
@@ -40,12 +42,14 @@ use crate::VotingRules;
 fn target() -> ChangesetTarget {
 	ChangesetTarget {
 		package: "invoices_web".to_owned(),
-		change_type: "website_fix".to_owned(),
+		feature_type: "website_feature".to_owned(),
+		fix_type: "website_fix".to_owned(),
 	}
 }
 
 fn release(pull_requests: Vec<u64>) -> ReleaseObservation {
 	ReleaseObservation {
+		repository: None,
 		version: "2.4.0".to_owned(),
 		notes_url: "https://invoices.example/releases/2.4.0".to_owned(),
 		pull_requests,
@@ -77,19 +81,25 @@ fn into_review(service: &mut FeedbackService<RuleBasedTriage>, id: &str, number:
 	service
 		.link_issue(
 			id,
-			number - 1,
-			Some(format!(
-				"https://github.com/acme/invoices/issues/{}",
-				number - 1
-			)),
+			IssueRef {
+				repository: Some("acme/invoices".to_owned()),
+				number: number - 1,
+				url: Some(format!(
+					"https://github.com/acme/invoices/issues/{}",
+					number - 1
+				)),
+			},
 		)
 		.unwrap();
 	service.start_build(id).unwrap();
 	service
 		.open_pull_request(
 			id,
-			number,
-			format!("https://github.com/acme/invoices/pull/{number}"),
+			PullRequestRef {
+				repository: Some("acme/invoices".to_owned()),
+				number,
+				url: format!("https://github.com/acme/invoices/pull/{number}"),
+			},
 		)
 		.unwrap();
 }
@@ -118,8 +128,8 @@ fn a_public_bug_travels_from_report_to_release() {
 	let brief = service.agent_brief(&id, &target()).unwrap();
 	assert_eq!(brief.issue_number, 42);
 
-	assert_eq!(service.observe_merge(999), Ok(None));
-	assert_eq!(service.observe_merge(43), Ok(Some(id.clone())));
+	assert_eq!(service.observe_merge(None, 999), Ok(None));
+	assert_eq!(service.observe_merge(None, 43), Ok(Some(id.clone())));
 	assert_eq!(service.item(&id).unwrap().stage, Stage::Merged);
 	assert_eq!(
 		service.observe_release(&release(vec![7, 43])),
@@ -526,7 +536,7 @@ fn visibility_and_cadence_changes_apply_to_the_next_render() {
 	);
 
 	into_review(&mut service, &id, 43);
-	service.observe_merge(43).unwrap();
+	service.observe_merge(None, 43).unwrap();
 	service.set_cadence(CadenceSnapshot {
 		next_release_label: Some("Friday".to_owned()),
 	});
@@ -679,4 +689,66 @@ fn service_steps_report_illegal_transitions() {
 			Stage::Voting
 		)))
 	);
+}
+
+#[test]
+fn state_round_trips_and_numbering_continues() {
+	let mut original = service(RepositoryVisibility::Public);
+	voting_bug(&mut original, "Totals are off", SUBMITTER);
+	let json = serde_json::to_string(&original.state()).unwrap();
+	let state: crate::FeedbackState = serde_json::from_str(&json).unwrap();
+	assert_eq!(state, original.state());
+
+	let mut restored = FeedbackService::from_state(
+		RuleBasedTriage,
+		DisclosurePolicy::for_visibility(RepositoryVisibility::Private),
+		CadenceSnapshot::default(),
+		state,
+	);
+	assert_eq!(restored.items().len(), 1);
+	assert_eq!(restored.policy().visibility, RepositoryVisibility::Private);
+	assert_eq!(restored.apps().count(), 1);
+	assert_eq!(
+		voting_bug(&mut restored, "Exports are slow", "anon-2"),
+		"fb-2"
+	);
+	assert!(restored.drain_notifications().is_empty());
+}
+
+#[test]
+fn apps_can_be_removed_without_losing_their_feedback() {
+	let mut service = service(RepositoryVisibility::Public);
+	let id = voting_bug(&mut service, "Totals are off", SUBMITTER);
+	assert!(service.remove_app(fixtures::APP));
+	assert!(!service.remove_app(fixtures::APP));
+	assert_eq!(service.apps().count(), 0);
+	assert!(service.item(&id).is_some());
+	assert_eq!(
+		service.receive(submission(FeedbackKind::BugReport, "Again")),
+		Err(ServiceError::UnknownApp(fixtures::APP.to_owned()))
+	);
+}
+
+#[test]
+fn merges_and_releases_match_the_pull_requests_repository() {
+	let mut service = service(RepositoryVisibility::Public);
+	let id = voting_bug(&mut service, "Totals are off", SUBMITTER);
+	into_review(&mut service, &id, 43);
+	// Pull request 43 in another repository is a different pull request.
+	assert_eq!(service.observe_merge(Some("acme/other"), 43), Ok(None));
+	assert_eq!(
+		service.observe_merge(Some("ACME/invoices"), 43),
+		Ok(Some(id.clone()))
+	);
+	let link = crate::ReleaseLink {
+		version: "2.5.0".to_owned(),
+		notes_url: "https://invoices.example/releases/2.5.0".to_owned(),
+	};
+	assert_eq!(service.ship_merged(Some("acme/other"), &link), Ok(vec![]));
+	assert_eq!(
+		service.ship_merged(Some("acme/invoices"), &link),
+		Ok(vec![id.clone()])
+	);
+	assert_eq!(service.item(&id).unwrap().stage, Stage::Shipped);
+	assert_eq!(service.ship_merged(None, &link), Ok(vec![]));
 }

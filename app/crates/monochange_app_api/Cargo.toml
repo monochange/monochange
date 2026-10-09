@@ -17,6 +17,7 @@ hex = "0.4"
 hmac = "0.12"
 jsonwebtoken = { workspace = true }
 monochange_app_db = { workspace = true }
+monochange_app_feedback = { workspace = true }
 monochange_core = { workspace = true }
 monochange_github = { workspace = true }
 reqwest = { workspace = true }

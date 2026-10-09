@@ -169,9 +169,23 @@ pub struct PublicMessage {
 /// contains. monochange release records carry exactly this.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ReleaseObservation {
+	/// The repository that released, when known.
+	#[serde(default)]
+	pub repository: Option<String>,
 	pub version: String,
 	pub notes_url: String,
 	pub pull_requests: Vec<u64>,
+}
+
+/// Everything about a project's feedback that must outlive a request: the
+/// voting rules, registered apps, and items. The triage engine, disclosure
+/// policy, and release cadence come from the deployment and the current state
+/// of the project's repositories, so they are supplied when restoring.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct FeedbackState {
+	pub rules: VotingRules,
+	pub apps: Vec<RegisteredApp>,
+	pub items: Vec<FeedbackItem>,
 }
 
 /// In-process orchestrator for one repository's feedback loop. The hosted
@@ -185,7 +199,6 @@ pub struct FeedbackService<T: TriageEngine> {
 	cadence: CadenceSnapshot,
 	apps: BTreeMap<String, RegisteredApp>,
 	items: Vec<FeedbackItem>,
-	next_number: u64,
 	notifications: Vec<Notification>,
 }
 
@@ -203,8 +216,39 @@ impl<T: TriageEngine> FeedbackService<T> {
 			cadence,
 			apps: BTreeMap::new(),
 			items: Vec::new(),
-			next_number: 1,
 			notifications: Vec::new(),
+		}
+	}
+
+	/// Restores a service from stored state.
+	pub fn from_state(
+		triage: T,
+		policy: DisclosurePolicy,
+		cadence: CadenceSnapshot,
+		state: FeedbackState,
+	) -> Self {
+		Self {
+			triage,
+			policy,
+			rules: state.rules,
+			cadence,
+			apps: state
+				.apps
+				.into_iter()
+				.map(|app| (app.slug.clone(), app))
+				.collect(),
+			items: state.items,
+			notifications: Vec::new(),
+		}
+	}
+
+	/// The state to store. Pending notifications are not part of it; drain
+	/// and deliver them separately.
+	pub fn state(&self) -> FeedbackState {
+		FeedbackState {
+			rules: self.rules,
+			apps: self.apps.values().cloned().collect(),
+			items: self.items.clone(),
 		}
 	}
 
@@ -233,6 +277,15 @@ impl<T: TriageEngine> FeedbackService<T> {
 
 	pub fn app(&self, slug: &str) -> Option<&RegisteredApp> {
 		self.apps.get(slug)
+	}
+
+	pub fn apps(&self) -> impl Iterator<Item = &RegisteredApp> {
+		self.apps.values()
+	}
+
+	/// Stops an app from submitting. Its earlier feedback stays.
+	pub fn remove_app(&mut self, slug: &str) -> bool {
+		self.apps.remove(slug).is_some()
 	}
 
 	pub fn items(&self) -> &[FeedbackItem] {
@@ -290,7 +343,8 @@ impl<T: TriageEngine> FeedbackService<T> {
 			return Err(ServiceError::UnknownApp(submission.app_slug));
 		}
 		let similar = self.similar(&submission.description, 3);
-		let id = format!("fb-{}", self.next_number);
+		// Items are never deleted, so the count names the next one.
+		let id = format!("fb-{}", self.items.len() + 1);
 		let mut item = FeedbackItem::new(id.clone(), submission, self.rules);
 		if let ScreeningVerdict::InjectionSuspected { .. } =
 			screen_untrusted(&item.submission.description)
@@ -300,7 +354,6 @@ impl<T: TriageEngine> FeedbackService<T> {
 			item.apply(Command::StartTriage, &Actor::System)?;
 			run_triage(&self.triage, &mut item)?;
 		}
-		self.next_number += 1;
 		let stage = item.stage;
 		self.items.push(item);
 		Ok(Receipt { id, stage, similar })
@@ -443,13 +496,8 @@ impl<T: TriageEngine> FeedbackService<T> {
 		Ok(duplicate.stage)
 	}
 
-	pub fn link_issue(
-		&mut self,
-		id: &str,
-		number: u64,
-		url: Option<String>,
-	) -> Result<Stage, ServiceError> {
-		self.apply(id, Command::LinkIssue { number, url }, &Actor::System)
+	pub fn link_issue(&mut self, id: &str, issue: IssueRef) -> Result<Stage, ServiceError> {
+		self.apply(id, Command::LinkIssue(issue), &Actor::System)
 	}
 
 	pub fn start_build(&mut self, id: &str) -> Result<Stage, ServiceError> {
@@ -459,16 +507,19 @@ impl<T: TriageEngine> FeedbackService<T> {
 	pub fn open_pull_request(
 		&mut self,
 		id: &str,
-		number: u64,
-		url: String,
+		pull_request: PullRequestRef,
 	) -> Result<Stage, ServiceError> {
-		self.apply(id, Command::OpenPullRequest { number, url }, &Actor::System)
+		self.apply(id, Command::OpenPullRequest(pull_request), &Actor::System)
 	}
 
 	/// Handles a merged pull request (the `pull_request.closed` webhook with
 	/// `merged = true`). Returns the item it belonged to, if any.
-	pub fn observe_merge(&mut self, pull_request: u64) -> Result<Option<String>, ServiceError> {
-		let Some(id) = self.item_in_review(pull_request, &[Stage::InReview]) else {
+	pub fn observe_merge(
+		&mut self,
+		repository: Option<&str>,
+		pull_request: u64,
+	) -> Result<Option<String>, ServiceError> {
+		let Some(id) = self.item_in_review(repository, pull_request, &[Stage::InReview]) else {
 			return Ok(None);
 		};
 		self.apply(&id, Command::MarkMerged, &Actor::System)?;
@@ -483,7 +534,11 @@ impl<T: TriageEngine> FeedbackService<T> {
 	) -> Result<Vec<String>, ServiceError> {
 		let mut shipped = Vec::new();
 		for &number in &release.pull_requests {
-			let Some(id) = self.item_in_review(number, &[Stage::InReview, Stage::Merged]) else {
+			let Some(id) = self.item_in_review(
+				release.repository.as_deref(),
+				number,
+				&[Stage::InReview, Stage::Merged],
+			) else {
 				continue;
 			};
 			let link = ReleaseLink {
@@ -494,6 +549,31 @@ impl<T: TriageEngine> FeedbackService<T> {
 			shipped.push(id);
 		}
 		Ok(shipped)
+	}
+
+	/// Handles a release published without a list of pull requests (the
+	/// `release.published` webhook): every merged item whose pull request
+	/// belongs to `repository` shipped in it. Returns the shipped item ids.
+	pub fn ship_merged(
+		&mut self,
+		repository: Option<&str>,
+		release: &ReleaseLink,
+	) -> Result<Vec<String>, ServiceError> {
+		let merged: Vec<String> = self
+			.items
+			.iter()
+			.filter(|item| {
+				item.stage == Stage::Merged
+					&& item.pull_request.as_ref().is_some_and(|pull_request| {
+						pull_request.matches(repository, pull_request.number)
+					})
+			})
+			.map(|item| item.id.clone())
+			.collect();
+		for id in &merged {
+			self.apply(id, Command::MarkShipped(release.clone()), &Actor::System)?;
+		}
+		Ok(merged)
 	}
 
 	pub fn issue_draft(&self, id: &str) -> Result<IssueDraft, ServiceError> {
@@ -564,7 +644,12 @@ impl<T: TriageEngine> FeedbackService<T> {
 			.ok_or_else(|| ServiceError::NotFound(id.to_owned()))
 	}
 
-	fn item_in_review(&self, pull_request: u64, stages: &[Stage]) -> Option<String> {
+	fn item_in_review(
+		&self,
+		repository: Option<&str>,
+		pull_request: u64,
+		stages: &[Stage],
+	) -> Option<String> {
 		self.items
 			.iter()
 			.find(|item| {
@@ -572,7 +657,7 @@ impl<T: TriageEngine> FeedbackService<T> {
 					&& item
 						.pull_request
 						.as_ref()
-						.is_some_and(|reference| reference.number == pull_request)
+						.is_some_and(|reference| reference.matches(repository, pull_request))
 			})
 			.map(|item| item.id.clone())
 	}

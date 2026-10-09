@@ -72,14 +72,33 @@ pub struct MaintainerDecision {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct IssueRef {
+	/// `owner/name` of the repository the issue lives in. A project spans
+	/// several repositories, so a number alone is ambiguous.
+	#[serde(default)]
+	pub repository: Option<String>,
 	pub number: u64,
 	pub url: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PullRequestRef {
+	#[serde(default)]
+	pub repository: Option<String>,
 	pub number: u64,
 	pub url: String,
+}
+
+impl PullRequestRef {
+	/// Whether this is pull request `number` in `repository`. References or
+	/// observations without a repository match on the number alone, which is
+	/// only unambiguous for single-repository feedback.
+	pub fn matches(&self, repository: Option<&str>, number: u64) -> bool {
+		self.number == number
+			&& match (self.repository.as_deref(), repository) {
+				(Some(own), Some(other)) => own.eq_ignore_ascii_case(other),
+				_ => true,
+			}
+	}
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -111,15 +130,9 @@ pub enum Command {
 	MarkDuplicate {
 		of: String,
 	},
-	LinkIssue {
-		number: u64,
-		url: Option<String>,
-	},
+	LinkIssue(IssueRef),
 	StartBuild,
-	OpenPullRequest {
-		number: u64,
-		url: String,
-	},
+	OpenPullRequest(PullRequestRef),
 	MarkMerged,
 	MarkShipped(ReleaseLink),
 	Close,
@@ -140,9 +153,9 @@ impl Command {
 			Command::Accept(_) => "accept",
 			Command::Decline(_) => "decline",
 			Command::MarkDuplicate { .. } => "mark-duplicate",
-			Command::LinkIssue { .. } => "link-issue",
+			Command::LinkIssue(_) => "link-issue",
 			Command::StartBuild => "start-build",
-			Command::OpenPullRequest { .. } => "open-pull-request",
+			Command::OpenPullRequest(_) => "open-pull-request",
 			Command::MarkMerged => "mark-merged",
 			Command::MarkShipped(_) => "mark-shipped",
 			Command::Close => "close",
@@ -391,10 +404,10 @@ impl FeedbackItem {
 				self.duplicate_of = Some(of);
 				self.enter(Stage::Closed, actor, name);
 			}
-			Command::LinkIssue { number, url } => {
+			Command::LinkIssue(issue) => {
 				self.ensure(&[Stage::Accepted, Stage::Building], name)?;
 				authorize(name, actor, automation_or_maintainer)?;
-				self.issue = Some(IssueRef { number, url });
+				self.issue = Some(issue);
 				self.record_event(actor, name);
 			}
 			Command::StartBuild => {
@@ -405,10 +418,10 @@ impl FeedbackItem {
 				}
 				self.enter(Stage::Building, actor, name);
 			}
-			Command::OpenPullRequest { number, url } => {
+			Command::OpenPullRequest(pull_request) => {
 				self.ensure(&[Stage::Building], name)?;
 				authorize(name, actor, automation_or_maintainer)?;
-				self.pull_request = Some(PullRequestRef { number, url });
+				self.pull_request = Some(pull_request);
 				self.enter(Stage::InReview, actor, name);
 			}
 			Command::MarkMerged => {

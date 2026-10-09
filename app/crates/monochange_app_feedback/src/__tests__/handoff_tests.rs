@@ -16,6 +16,7 @@ use crate::handoff::issue_draft;
 use crate::handoff::lowercase_first;
 use crate::pipeline::Command;
 use crate::pipeline::FeedbackItem;
+use crate::pipeline::IssueRef;
 use crate::pipeline::Stage;
 use crate::submission::FeedbackKind;
 use crate::tests::fixtures::SUBMITTER;
@@ -35,7 +36,8 @@ const DESCRIPTION: &str =
 fn target() -> ChangesetTarget {
 	ChangesetTarget {
 		package: "invoices_web".to_owned(),
-		change_type: "website_fix".to_owned(),
+		feature_type: "website_feature".to_owned(),
+		fix_type: "website_fix".to_owned(),
 	}
 }
 
@@ -87,10 +89,11 @@ fn accepted_bug() -> FeedbackItem {
 
 fn with_issue(mut item: FeedbackItem) -> FeedbackItem {
 	item.apply(
-		Command::LinkIssue {
+		Command::LinkIssue(IssueRef {
+			repository: None,
 			number: 42,
 			url: None,
-		},
+		}),
 		&Actor::System,
 	)
 	.unwrap();
@@ -290,10 +293,9 @@ fn changesets_announce_the_fix_in_portal_safe_words() {
 		.apply(Command::Accept(decision(Some("x"))), &maintainer())
 		.unwrap();
 	let draft = changeset_draft(&feature, Public, &target()).unwrap();
-	assert!(
-		draft
-			.contents
-			.ends_with("# Dark mode\n\nAdded after people asked for it through in-app feedback.\n")
+	assert_eq!(
+		draft.contents,
+		"---\n\"invoices_web\": website_feature\n---\n\n# Dark mode\n\nAdded after people asked for it through in-app feedback.\n"
 	);
 }
 

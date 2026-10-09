@@ -95,18 +95,20 @@ fn every_command_has_a_stable_name() {
 			"mark-duplicate",
 		),
 		(
-			Command::LinkIssue {
+			Command::LinkIssue(IssueRef {
+				repository: None,
 				number: 1,
 				url: None,
-			},
+			}),
 			"link-issue",
 		),
 		(Command::StartBuild, "start-build"),
 		(
-			Command::OpenPullRequest {
+			Command::OpenPullRequest(PullRequestRef {
+				repository: None,
 				number: 1,
 				url: String::new(),
-			},
+			}),
 			"open-pull-request",
 		),
 		(Command::MarkMerged, "mark-merged"),
@@ -434,10 +436,11 @@ fn canonical_items_absorb_duplicate_demand() {
 #[test]
 fn build_steps_belong_to_automation_and_maintainers() {
 	let mut item = bug_at(Stage::Accepted);
-	let link = Command::LinkIssue {
+	let link = Command::LinkIssue(IssueRef {
+		repository: None,
 		number: 7,
 		url: None,
-	};
+	});
 	assert_eq!(
 		item.apply(link.clone(), &user("u1")),
 		Err(not_allowed("link-issue", user("u1")))
@@ -454,16 +457,18 @@ fn build_steps_belong_to_automation_and_maintainers() {
 	assert_eq!(
 		item.issue,
 		Some(IssueRef {
+			repository: None,
 			number: 7,
 			url: None
 		})
 	);
 	item.apply(Command::StartBuild, &Actor::System).unwrap();
 
-	let pull_request = Command::OpenPullRequest {
+	let pull_request = Command::OpenPullRequest(PullRequestRef {
+		repository: None,
 		number: 8,
 		url: "https://github.com/acme/invoices/pull/8".to_owned(),
-	};
+	});
 	assert_eq!(
 		item.apply(pull_request.clone(), &user("u1")),
 		Err(not_allowed("open-pull-request", user("u1")))
@@ -602,6 +607,7 @@ fn pipeline_types_serialize_for_dashboards() {
 		serde_json::from_value(serde_json::to_value(decision(Some("x"))).unwrap()).unwrap();
 	assert_eq!(decision, crate::tests::fixtures::decision(Some("x")));
 	let issue = IssueRef {
+		repository: None,
 		number: 1,
 		url: None,
 	};
@@ -610,6 +616,7 @@ fn pipeline_types_serialize_for_dashboards() {
 		issue
 	);
 	let pull_request = PullRequestRef {
+		repository: None,
 		number: 2,
 		url: "u".to_owned(),
 	};
@@ -645,4 +652,23 @@ fn rules_travel_with_the_item() {
 	item.apply(Command::Accept(decision(None)), &maintainer())
 		.unwrap();
 	assert_eq!(item.stage, Stage::Accepted);
+}
+
+#[test]
+fn pull_requests_match_by_repository_when_both_sides_know_it() {
+	let known = PullRequestRef {
+		repository: Some("acme/api".to_owned()),
+		number: 7,
+		url: "u".to_owned(),
+	};
+	assert!(known.matches(Some("ACME/api"), 7));
+	assert!(!known.matches(Some("acme/web"), 7));
+	assert!(!known.matches(Some("acme/api"), 8));
+	assert!(known.matches(None, 7));
+	let unknown = PullRequestRef {
+		repository: None,
+		number: 7,
+		url: "u".to_owned(),
+	};
+	assert!(unknown.matches(Some("acme/web"), 7));
 }

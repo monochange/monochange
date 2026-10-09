@@ -7,7 +7,9 @@ use crate::disclosure::RepositoryVisibility;
 use crate::discussion::Actor;
 use crate::pipeline::Command;
 use crate::pipeline::FeedbackItem;
+use crate::pipeline::IssueRef;
 use crate::pipeline::MaintainerDecision;
+use crate::pipeline::PullRequestRef;
 use crate::pipeline::ReleaseLink;
 use crate::pipeline::Stage;
 use crate::submission::Attachment;
@@ -168,10 +170,11 @@ pub fn item_at(stage: Stage, submission: FeedbackSubmission) -> FeedbackItem {
 		},
 		|item| {
 			item.apply(
-				Command::LinkIssue {
+				Command::LinkIssue(IssueRef {
+					repository: None,
 					number: 42,
 					url: Some("https://github.com/acme/invoices/issues/42".to_owned()),
-				},
+				}),
 				&Actor::System,
 			)
 			.unwrap();
@@ -179,10 +182,11 @@ pub fn item_at(stage: Stage, submission: FeedbackSubmission) -> FeedbackItem {
 		},
 		|item| {
 			item.apply(
-				Command::OpenPullRequest {
+				Command::OpenPullRequest(PullRequestRef {
+					repository: None,
 					number: 43,
 					url: "https://github.com/acme/invoices/pull/43".to_owned(),
-				},
+				}),
 				&Actor::Ai,
 			)
 			.unwrap();
