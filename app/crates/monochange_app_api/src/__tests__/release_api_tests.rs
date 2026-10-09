@@ -22,6 +22,7 @@ use tower::ServiceExt;
 
 use super::commit_release_files;
 use super::release_commit_error_status;
+use super::validate_branch_names;
 use super::validate_commit_paths;
 use crate::AppSecrets;
 use crate::AppState;
@@ -285,6 +286,11 @@ async fn release_commit_endpoint_refreshes_an_existing_release_branch() {
 	);
 	mock_branch(&github, "main", "base-sha");
 	github.mock(|when, then| {
+		when.method(Method::GET).path("/repos/acme/actions");
+		then.status(200)
+			.json_body(serde_json::json!({ "default_branch": "main" }));
+	});
+	github.mock(|when, then| {
 		when.method(Method::POST)
 			.path("/repos/acme/actions/git/blobs");
 		then.status(201)
@@ -386,4 +392,92 @@ async fn release_commit_endpoint_requires_the_configured_api_token(
 
 	assert_eq!(status, expected_status, "{body}");
 	assert_eq!(body["message"], message);
+}
+
+#[rstest]
+#[case::nested_release_branch("monochange/release/release", Some("main"))]
+#[case::slashed_base("monochange/release/release", Some("release/1.x"))]
+#[case::no_base_branch("monochange/release/release", None)]
+fn plausible_branch_names_are_accepted(#[case] branch: &str, #[case] base_branch: Option<&str>) {
+	assert_eq!(validate_branch_names(branch, base_branch), Ok(()));
+}
+
+#[rstest]
+#[case::empty("", None)]
+#[case::parent_traversal("monochange/../main", None)]
+#[case::leading_slash("/main", None)]
+#[case::leading_dash("-main", None)]
+#[case::control_character("main\n", None)]
+#[case::url_fragment("main#x", None)]
+#[case::url_query("main?ref=x", None)]
+#[case::percent_encoding("monochange%2Frelease", None)]
+#[case::trailing_slash("monochange/release/", None)]
+#[case::lock_suffix("main.lock", None)]
+#[case::double_slash("monochange//release", None)]
+#[case::reflog_syntax("main@{1}", None)]
+#[case::invalid_base_branch("monochange/release/release", Some("-main"))]
+fn implausible_branch_names_are_rejected(#[case] branch: &str, #[case] base_branch: Option<&str>) {
+	assert!(validate_branch_names(branch, base_branch).is_err());
+}
+
+#[tokio::test]
+async fn release_commit_endpoint_rejects_invalid_branch_names() {
+	let github = MockServer::start();
+	let state = release_api_state(&github, API_TOKEN).await;
+	let mut request = request_with_path("crates/core/Cargo.toml");
+	request.branch = "main#refs/heads/main".to_string();
+
+	let (status, body) = post_release_commit(&state, API_TOKEN, &request).await;
+
+	assert_eq!(status, StatusCode::BAD_REQUEST, "{body}");
+	assert_eq!(
+		body["message"],
+		"branch `main#refs/heads/main` is not a valid branch name"
+	);
+}
+
+#[tokio::test]
+async fn release_request_endpoint_rejects_invalid_branch_names() {
+	let github = MockServer::start();
+	let state = release_api_state(&github, API_TOKEN).await;
+	let payload = serde_json::json!({
+		"request": {
+			"provider": "github",
+			"repository": "acme/actions",
+			"owner": "acme",
+			"repo": "actions",
+			"base_branch": "main",
+			"head_branch": "-release",
+			"title": "chore(release): prepare release",
+			"body": "",
+			"labels": [],
+			"auto_merge": false,
+			"commit_message": { "subject": "chore(release): prepare release" },
+		},
+		"tracked_paths": [],
+		"dry_run": false,
+	});
+
+	let response = api_router(state)
+		.oneshot(
+			Request::builder()
+				.method("POST")
+				.uri("/api/release-requests")
+				.header("authorization", format!("Bearer {API_TOKEN}"))
+				.header("content-type", "application/json")
+				.body(Body::from(payload.to_string()))
+				.unwrap(),
+		)
+		.await
+		.unwrap();
+
+	assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+	let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+		.await
+		.unwrap();
+	let body: serde_json::Value = serde_json::from_slice(&body).unwrap();
+	assert_eq!(
+		body["message"],
+		"branch `-release` is not a valid branch name"
+	);
 }

@@ -186,6 +186,41 @@ fn validate_commit_paths(request: &HostedCommitRequest) -> Result<(), String> {
 	Ok(())
 }
 
+/// Reject branch names that are not plausible Git refs.
+///
+/// Branch names are interpolated into GitHub API paths and queries, so
+/// anything that could change the URL (`?`, `#`, `%`, `..`) or that Git
+/// itself forbids is refused before any request is made.
+fn validate_branch_name(field: &str, branch: &str) -> Result<(), String> {
+	let forbidden = |character: char| {
+		character.is_control()
+			|| matches!(
+				character,
+				' ' | '~' | '^' | ':' | '?' | '*' | '[' | '\\' | '#' | '%'
+			)
+	};
+	if branch.is_empty()
+		|| branch.starts_with(['/', '-'])
+		|| branch.ends_with(['/', '.'])
+		|| branch.strip_suffix(".lock").is_some()
+		|| branch.contains("..")
+		|| branch.contains("//")
+		|| branch.contains("@{")
+		|| branch.contains(forbidden)
+	{
+		return Err(format!("{field} `{branch}` is not a valid branch name"));
+	}
+	Ok(())
+}
+
+/// Validate the release and base branch names of a release request.
+fn validate_branch_names(branch: &str, base_branch: Option<&str>) -> Result<(), String> {
+	validate_branch_name("branch", branch)?;
+	base_branch.map_or(Ok(()), |base_branch| {
+		validate_branch_name("base branch", base_branch)
+	})
+}
+
 /// Map a release commit failure to its HTTP status.
 ///
 /// A moved release or base branch is a conflict the caller resolves by
@@ -227,7 +262,8 @@ pub async fn create_release_commit(
 			))),
 		));
 	}
-	validate_commit_paths(&request)
+	validate_branch_names(&request.branch, request.base_branch.as_deref())
+		.and_then(|()| validate_commit_paths(&request))
 		.map_err(|message| (StatusCode::BAD_REQUEST, Json(ApiError::new(message))))?;
 
 	let full_name = format!("{}/{}", request.owner, request.repository);
@@ -334,6 +370,8 @@ pub async fn publish_release_request(
 		)
 	})?;
 	let request = &payload.request;
+	validate_branch_names(&request.head_branch, Some(&request.base_branch))
+		.map_err(|message| (StatusCode::BAD_REQUEST, Json(ApiError::new(message))))?;
 	let full_name = format!("{}/{}", request.owner, request.repo);
 
 	let repository = find_connected_repository(&state, &full_name)

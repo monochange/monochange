@@ -291,6 +291,11 @@ struct RefObject {
 	sha: String,
 }
 
+#[derive(Debug, Deserialize)]
+struct RepositoryResponse {
+	default_branch: String,
+}
+
 #[derive(Debug, Serialize)]
 struct UpdateRefRequest<'a> {
 	sha: &'a str,
@@ -406,6 +411,40 @@ async fn read_branch_head(
 	Ok(Some(reference.object.sha))
 }
 
+/// Read the repository's default branch.
+async fn read_default_branch(
+	http: &reqwest::Client,
+	api_url: &str,
+	token: &str,
+	request: &HostedCommitRequest,
+) -> Result<String, GitHubAppError> {
+	let response = http
+		.get(format!(
+			"{api_url}/repos/{}/{}",
+			request.owner, request.repository
+		))
+		.bearer_auth(token)
+		.header("Accept", "application/vnd.github+json")
+		.send()
+		.await?;
+	if !response.status().is_success() {
+		let status = response.status();
+		let body = response.text().await.unwrap_or_default();
+		return Err(api_error("read repository", status, body));
+	}
+	let repository: RepositoryResponse = response.json().await?;
+	Ok(repository.default_branch)
+}
+
+/// Whether `branch` has the shape of a monochange release branch,
+/// `<branch_prefix>/release`, as `release_pull_request_branch` builds it for
+/// the default release command and every built-in step command.
+fn is_release_branch_name(branch: &str) -> bool {
+	branch
+		.rsplit_once('/')
+		.is_some_and(|(prefix, name)| !prefix.is_empty() && name == "release")
+}
+
 /// How the release commit moves the release branch.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 enum ReleaseBranchUpdate {
@@ -422,13 +461,22 @@ enum ReleaseBranchUpdate {
 ///
 /// The release branch belongs to monochange and is rebuilt from the base
 /// branch on every run, so an existing release branch is replaced rather than
-/// built upon. What must never happen is a stale run replacing the release a
-/// newer run prepared, so the branch is only replaced while `base_commit` is
-/// still the head of the base branch; an older run gets
-/// [`GitHubAppError::BaseMoved`] and the run for the newer commit refreshes
-/// the branch. Requests without a base branch (older CLIs) and requests that
-/// target the base branch itself may only create or fast-forward the branch,
-/// so they never discard commits.
+/// built upon. Creating a branch or fast-forwarding it from `base_commit`
+/// never discards commits and is always allowed. A forced replacement is
+/// allowed only when every condition holds:
+///
+/// - the request names a base branch (older CLIs do not);
+/// - the branch is shaped like a monochange release branch,
+///   `<branch_prefix>/release`;
+/// - the branch is neither the base branch nor the repository's default
+///   branch, which is read only on this path;
+/// - `base_commit` is still the head of the base branch.
+///
+/// A stale run whose base branch moved gets [`GitHubAppError::BaseMoved`] so
+/// the run for the newer commit refreshes the branch; every other refused
+/// replacement gets [`GitHubAppError::BranchMoved`]. Without these checks a
+/// caller could name `main` as the branch and force it onto another branch's
+/// commit.
 ///
 /// GitHub's ref update has no compare-and-swap, so a newer run that completes
 /// entirely between the base check and the update could still be replaced.
@@ -455,16 +503,17 @@ async fn plan_release_branch_update(
 	if release_head == request.base_commit {
 		return Ok(ReleaseBranchUpdate::FastForward);
 	}
-	let Some(base_branch) = request
-		.base_branch
-		.as_deref()
-		.filter(|base_branch| *base_branch != request.branch)
-	else {
-		return Err(GitHubAppError::BranchMoved(
+	let branch_moved = |release_head: String| {
+		GitHubAppError::BranchMoved(
 			request.branch.clone(),
 			release_head,
 			request.base_commit.clone(),
-		));
+		)
+	};
+	let Some(base_branch) = request.base_branch.as_deref().filter(|base_branch| {
+		*base_branch != request.branch && is_release_branch_name(&request.branch)
+	}) else {
+		return Err(branch_moved(release_head));
 	};
 	let base_head = read_branch_head(
 		http,
@@ -488,6 +537,9 @@ async fn plan_release_branch_update(
 			base_head,
 			request.base_commit.clone(),
 		));
+	}
+	if read_default_branch(http, api_url, token, request).await? == request.branch {
+		return Err(branch_moved(release_head));
 	}
 	Ok(ReleaseBranchUpdate::Regenerate)
 }

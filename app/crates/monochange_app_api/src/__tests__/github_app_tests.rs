@@ -189,6 +189,15 @@ fn mock_branch<'a>(server: &'a MockServer, branch: &str, sha: Option<&str>) -> M
 	})
 }
 
+/// Serve the repository metadata with `default_branch`.
+fn mock_repository<'a>(server: &'a MockServer, default_branch: &str) -> Mock<'a> {
+	server.mock(|when, then| {
+		when.method(Method::GET).path("/repos/acme/actions");
+		then.status(200)
+			.json_body(serde_json::json!({ "default_branch": default_branch }));
+	})
+}
+
 /// The Git Database writes that create the release commit.
 struct CommitWrites<'a> {
 	blob: Mock<'a>,
@@ -304,6 +313,7 @@ async fn existing_release_branch_is_regenerated_from_the_current_base() {
 	let server = MockServer::start();
 	mock_branch(&server, RELEASE_BRANCH, Some("previous-release-sha"));
 	let base = mock_branch(&server, "main", Some(BASE_COMMIT));
+	let repository = mock_repository(&server, "main");
 	mock_commit_writes(&server);
 	let update = mock_branch_update(&server, RELEASE_BRANCH, true);
 
@@ -317,6 +327,7 @@ async fn existing_release_branch_is_regenerated_from_the_current_base() {
 	assert_eq!(commit, RELEASE_COMMIT);
 	assert!(verified);
 	base.assert();
+	repository.assert();
 	update.assert();
 }
 
@@ -457,4 +468,67 @@ async fn rejected_fast_forward_reports_the_ref_update() {
 		),
 		"{error}"
 	);
+}
+
+#[rstest]
+#[case::not_a_release_branch("feature/work", "main")]
+#[case::bare_release_name("release", "main")]
+#[case::release_branch_is_the_default_branch(RELEASE_BRANCH, RELEASE_BRANCH)]
+#[tokio::test]
+async fn only_release_branches_that_are_not_the_default_branch_are_forced(
+	#[case] branch: &str,
+	#[case] default_branch: &str,
+) {
+	// A caller must not be able to name `main` (or any non-release branch)
+	// and have it forced onto another branch's commit.
+	let server = MockServer::start();
+	mock_branch(&server, branch, Some("other-sha"));
+	mock_branch(&server, "main", Some(BASE_COMMIT));
+	mock_repository(&server, default_branch);
+	let writes = mock_commit_writes(&server);
+	let update = mock_branch_update(&server, branch, true);
+
+	let error = create_commit(&server, &release_commit_request(branch, Some("main")))
+		.await
+		.unwrap_err();
+
+	assert!(
+		matches!(
+			&error,
+			GitHubAppError::BranchMoved(moved, actual, expected)
+				if moved == branch && actual == "other-sha" && expected == BASE_COMMIT
+		),
+		"{error}"
+	);
+	writes.blob.assert_calls(0);
+	update.assert_calls(0);
+}
+
+#[tokio::test]
+async fn unreadable_repository_metadata_refuses_to_force() {
+	let server = MockServer::start();
+	mock_branch(&server, RELEASE_BRANCH, Some("previous-release-sha"));
+	mock_branch(&server, "main", Some(BASE_COMMIT));
+	server.mock(|when, then| {
+		when.method(Method::GET).path("/repos/acme/actions");
+		then.status(403).body("forbidden");
+	});
+	let update = mock_branch_update(&server, RELEASE_BRANCH, true);
+
+	let error = create_commit(
+		&server,
+		&release_commit_request(RELEASE_BRANCH, Some("main")),
+	)
+	.await
+	.unwrap_err();
+
+	assert!(
+		matches!(
+			&error,
+			GitHubAppError::Status("read repository", status, _)
+				if *status == reqwest::StatusCode::FORBIDDEN
+		),
+		"{error}"
+	);
+	update.assert_calls(0);
 }
