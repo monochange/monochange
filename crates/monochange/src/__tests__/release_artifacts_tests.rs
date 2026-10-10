@@ -1863,6 +1863,120 @@ fn resolve_hosted_commit_options_honors_explicit_audience() {
 	assert_eq!(options.oidc_audience, "custom-audience");
 }
 
+fn hosted_step_inputs(pairs: &[(&str, &str)]) -> BTreeMap<String, Vec<String>> {
+	pairs
+		.iter()
+		.map(|(name, value)| ((*name).to_string(), vec![(*value).to_string()]))
+		.collect()
+}
+
+const CONFIGURED_HOSTED_SETTINGS: ConfiguredHostedSettings<'static> = ConfiguredHostedSettings {
+	auth: monochange_core::HostedCommitAuth::Token,
+	url: Some("https://config.example.com"),
+	oidc_audience: Some("config-audience"),
+};
+
+/// Resolve hosted options with `MONOCHANGE_HOSTED_URL` pinned to `env_url`.
+fn hosted_options_with_env(
+	step_inputs: &BTreeMap<String, Vec<String>>,
+	configured: ConfiguredHostedSettings<'_>,
+	env_url: Option<&str>,
+) -> MonochangeResult<HostedCommitOptions> {
+	with_test_env_lock(|| {
+		temp_env::with_var("MONOCHANGE_HOSTED_URL", env_url, || {
+			hosted_commit_options_from_step(step_inputs, configured)
+		})
+	})
+}
+
+#[test]
+fn hosted_step_flags_override_environment_and_configuration() {
+	let inputs = hosted_step_inputs(&[
+		("hosted_auth", "oidc"),
+		("hosted_url", "https://flag.example.com/"),
+		("oidc_audience", "flag-audience"),
+	]);
+	let options = hosted_options_with_env(
+		&inputs,
+		CONFIGURED_HOSTED_SETTINGS,
+		Some("https://env.example.com"),
+	)
+	.unwrap_or_else(|error| panic!("resolve hosted options: {error}"));
+	assert_eq!(
+		options,
+		HostedCommitOptions {
+			auth: monochange_core::HostedCommitAuth::Oidc,
+			url: "https://flag.example.com".to_string(),
+			oidc_audience: "flag-audience".to_string(),
+		}
+	);
+}
+
+#[test]
+fn hosted_step_environment_url_overrides_configuration() {
+	let options = hosted_options_with_env(
+		&BTreeMap::new(),
+		CONFIGURED_HOSTED_SETTINGS,
+		Some("https://env.example.com"),
+	)
+	.unwrap_or_else(|error| panic!("resolve hosted options: {error}"));
+	assert_eq!(
+		options,
+		HostedCommitOptions {
+			auth: monochange_core::HostedCommitAuth::Token,
+			url: "https://env.example.com".to_string(),
+			oidc_audience: "config-audience".to_string(),
+		}
+	);
+}
+
+#[test]
+fn hosted_step_configuration_applies_without_flags_or_environment() {
+	// Empty values come from unset workflow inputs and must not shadow the
+	// configured settings.
+	let inputs = hosted_step_inputs(&[
+		("hosted_auth", ""),
+		("hosted_url", ""),
+		("oidc_audience", ""),
+	]);
+	let options = hosted_options_with_env(&inputs, CONFIGURED_HOSTED_SETTINGS, Some(""))
+		.unwrap_or_else(|error| panic!("resolve hosted options: {error}"));
+	assert_eq!(
+		options,
+		HostedCommitOptions {
+			auth: monochange_core::HostedCommitAuth::Token,
+			url: "https://config.example.com".to_string(),
+			oidc_audience: "config-audience".to_string(),
+		}
+	);
+}
+
+#[test]
+fn hosted_step_defaults_to_the_public_app() {
+	let configured = ConfiguredHostedSettings {
+		auth: monochange_core::HostedCommitAuth::Auto,
+		url: None,
+		oidc_audience: None,
+	};
+	let options = hosted_options_with_env(&BTreeMap::new(), configured, None)
+		.unwrap_or_else(|error| panic!("resolve hosted options: {error}"));
+	assert_eq!(
+		options,
+		resolve_hosted_commit_options(monochange_core::HostedCommitAuth::Auto, None, None)
+	);
+}
+
+#[test]
+fn hosted_step_rejects_unknown_auth_values() {
+	let inputs = hosted_step_inputs(&[("hosted_auth", "password")]);
+	let error = hosted_options_with_env(&inputs, CONFIGURED_HOSTED_SETTINGS, None)
+		.expect_err("unknown hosted auth must fail");
+	assert!(
+		error.to_string().contains("invalid hosted auth `password`"),
+		"error should name the rejected value: {error}"
+	);
+}
+
 #[test]
 fn hosted_oidc_audience_ignores_scheme_and_trailing_slash() {
 	assert_eq!(
@@ -1892,7 +2006,7 @@ fn hosted_commit_file_reads_content_and_marks_deletions() {
 }
 
 #[test]
-fn build_hosted_commit_request_for_github_reads_environment_and_head() {
+fn build_hosted_commit_request_for_github_targets_the_release_branch() {
 	let root = git_repo_with_commit();
 
 	let prepared = PreparedReleaseCommit {
@@ -1909,8 +2023,10 @@ fn build_hosted_commit_request_for_github_reads_environment_and_head() {
 		&prepared,
 		false,
 		"monochange/monochange",
-		Some("monochange/release/release"),
-		None,
+		&HostedCommitBranches {
+			release: "monochange/release/release".to_string(),
+			base: "main".to_string(),
+		},
 	))
 	.unwrap_or_else(|error| panic!("build hosted commit request: {error}"));
 
@@ -1918,12 +2034,16 @@ fn build_hosted_commit_request_for_github_reads_environment_and_head() {
 	assert_eq!(request.owner, "monochange");
 	assert_eq!(request.repository, "monochange");
 	assert_eq!(request.branch, "monochange/release/release");
+	assert_eq!(request.base_branch.as_deref(), Some("main"));
 	assert_eq!(request.subject, "chore(release): prepare release");
 	assert_eq!(request.body, "release body");
 	assert_eq!(request.files.len(), 1);
 	assert_eq!(request.files[0].path, "changelog.md");
 	assert_eq!(request.files[0].content.as_deref(), Some("notes"));
-	assert!(!request.base_commit.is_empty());
+	assert_eq!(
+		request.base_commit,
+		hosted_test_git(root.path(), &["rev-parse", "HEAD"])
+	);
 }
 
 #[test]
@@ -1941,8 +2061,10 @@ fn build_hosted_commit_request_for_github_rejects_malformed_repository() {
 		&prepared,
 		true,
 		"monochange-only",
-		None,
-		None,
+		&HostedCommitBranches {
+			release: "monochange/release/release".to_string(),
+			base: "main".to_string(),
+		},
 	))
 	.expect_err("repository without slash must fail");
 	assert!(
@@ -1952,30 +2074,52 @@ fn build_hosted_commit_request_for_github_rejects_malformed_repository() {
 }
 
 #[test]
-fn build_hosted_commit_request_for_github_falls_back_to_current_branch() {
-	let root = git_repo_with_commit();
-	fs::write(root.path().join("changelog.md"), "notes").expect("write changelog");
-	let prepared = PreparedReleaseCommit {
-		message: CommitMessage {
-			subject: "subject".to_string(),
-			body: None,
-		},
-		tracked_paths: vec![std::path::PathBuf::from("changelog.md")],
-	};
-	let request = crate::tests::block_on_in_context(build_hosted_commit_request_for_github(
-		root.path(),
-		&prepared,
-		true,
-		"monochange/monochange",
-		None,
-		None,
-	))
-	.unwrap_or_else(|error| panic!("build hosted commit request: {error}"));
-	assert!(
-		!request.branch.is_empty() && request.branch != "HEAD",
-		"branch should fall back to the current git branch: {}",
-		request.branch
-	);
+fn hosted_commit_file_sends_absolute_release_records_as_repository_relative_paths() {
+	// `CommitRelease` tracks the release record by its absolute path; the
+	// monochange app rejects anything that is not repository-relative.
+	let root = tempfile::tempdir().expect("tempdir");
+	let record = root.path().join(".monochange/releases/abc123/release.json");
+	fs::create_dir_all(record.parent().expect("record parent")).expect("create record dir");
+	fs::write(&record, "{}").expect("write record");
+
+	let file = hosted_commit_file(root.path(), &record)
+		.unwrap_or_else(|error| panic!("read release record: {error}"));
+	assert_eq!(file.path, ".monochange/releases/abc123/release.json");
+	assert_eq!(file.content.as_deref(), Some("{}"));
+}
+
+#[rstest::rstest]
+#[case::default_source(None, "step commit-release", "monochange/release/release", "main")]
+#[case::configured_source(
+	Some(("releases/", "trunk")),
+	"release",
+	"releases/release",
+	"trunk"
+)]
+fn hosted_commit_branches_follow_the_release_request_branch(
+	#[case] pull_requests: Option<(&str, &str)>,
+	#[case] command: &str,
+	#[case] release: &str,
+	#[case] base: &str,
+) {
+	let source = pull_requests.map(|(branch_prefix, base)| {
+		let mut source = source_configuration(SourceProvider::GitHub);
+		source.pull_requests.branch_prefix = branch_prefix.to_string();
+		source.pull_requests.base = base.to_string();
+		source
+	});
+	let branches = hosted_commit_branches(source.as_ref(), command);
+	assert_eq!(branches.release, release);
+	assert_eq!(branches.base, base);
+	// The hosted commit must land on the branch the release request opens.
+	if let Some(source) = &source {
+		let mut manifest = sample_manifest();
+		manifest.command = command.to_string();
+		assert_eq!(
+			build_source_change_request(source, &manifest).head_branch,
+			branches.release
+		);
+	}
 }
 
 #[test]
@@ -2030,6 +2174,7 @@ fn hosted_request_fixture() -> HostedCommitRequest {
 		owner: "monochange".to_string(),
 		repository: "monochange".to_string(),
 		branch: "monochange/release/release".to_string(),
+		base_branch: Some("main".to_string()),
 		base_commit: "abc123".to_string(),
 		subject: "chore(release): prepare release".to_string(),
 		body: String::new(),
@@ -2130,9 +2275,14 @@ fn build_hosted_commit_request_requires_github_repository_environment() {
 	crate::tests::block_on_in_context(temp_env::async_with_vars(
 		[("GITHUB_REPOSITORY", None::<&str>)],
 		async {
-			let error = build_hosted_commit_request(root.path(), &prepared, true)
-				.await
-				.expect_err("missing GITHUB_REPOSITORY must fail");
+			let error = build_hosted_commit_request(
+				root.path(),
+				&prepared,
+				true,
+				&hosted_commit_branches(None, "release"),
+			)
+			.await
+			.expect_err("missing GITHUB_REPOSITORY must fail");
 			assert!(
 				error.to_string().contains("GITHUB_REPOSITORY"),
 				"error should name the missing env: {error}"

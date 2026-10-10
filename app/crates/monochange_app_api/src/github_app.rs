@@ -43,6 +43,10 @@ pub enum GitHubAppError {
 		"release branch `{0}` moved to `{1}` while the release was being prepared; expected `{2}`. Re-run the release command."
 	)]
 	BranchMoved(String, String, String),
+	#[error(
+		"base branch `{0}` moved to `{1}` while the release was being prepared from `{2}`; the run for the newer commit refreshes the release branch"
+	)]
+	BaseMoved(String, String, String),
 	#[error("GitHub reported the commit as unverified")]
 	UnverifiedCommit,
 	#[error("invalid webhook signature")]
@@ -287,6 +291,11 @@ struct RefObject {
 	sha: String,
 }
 
+#[derive(Debug, Deserialize)]
+struct RepositoryResponse {
+	default_branch: String,
+}
+
 #[derive(Debug, Serialize)]
 struct UpdateRefRequest<'a> {
 	sha: &'a str,
@@ -372,50 +381,167 @@ fn api_error(operation: &'static str, status: reqwest::StatusCode, body: String)
 	GitHubAppError::Status(operation, status, body)
 }
 
-/// Resolve the commit parent for the release branch.
-///
-/// When the branch exists, its head must equal the prepared base commit so a
-/// rerun never overwrites newer work. When the branch is missing (first run),
-/// the prepared base commit becomes both the parent and the new ref.
-async fn resolve_release_branch_head(
+/// Read the head commit of a branch, or `None` when the branch does not exist.
+async fn read_branch_head(
 	http: &reqwest::Client,
 	api_url: &str,
 	token: &str,
-	owner: &str,
-	repo: &str,
+	request: &HostedCommitRequest,
 	branch: &str,
-	base_commit: &str,
-) -> Result<BranchHead, GitHubAppError> {
+	operation: &'static str,
+) -> Result<Option<String>, GitHubAppError> {
 	let response = http
 		.get(format!(
-			"{api_url}/repos/{owner}/{repo}/git/ref/heads/{branch}"
+			"{api_url}/repos/{}/{}/git/ref/heads/{branch}",
+			request.owner, request.repository
 		))
 		.bearer_auth(token)
 		.header("Accept", "application/vnd.github+json")
 		.send()
 		.await?;
-	if response.status().as_u16() == 404 {
-		return Ok(BranchHead::Missing);
+	if response.status() == reqwest::StatusCode::NOT_FOUND {
+		return Ok(None);
 	}
 	if !response.status().is_success() {
 		let status = response.status();
 		let body = response.text().await.unwrap_or_default();
-		return Err(api_error("read release branch ref", status, body));
+		return Err(api_error(operation, status, body));
 	}
 	let reference: RefResponse = response.json().await?;
-	if reference.object.sha != base_commit {
-		return Err(GitHubAppError::BranchMoved(
-			branch.to_string(),
-			reference.object.sha,
-			base_commit.to_string(),
-		));
-	}
-	Ok(BranchHead::AtBase)
+	Ok(Some(reference.object.sha))
 }
 
-enum BranchHead {
-	AtBase,
-	Missing,
+/// Read the repository's default branch.
+async fn read_default_branch(
+	http: &reqwest::Client,
+	api_url: &str,
+	token: &str,
+	request: &HostedCommitRequest,
+) -> Result<String, GitHubAppError> {
+	let response = http
+		.get(format!(
+			"{api_url}/repos/{}/{}",
+			request.owner, request.repository
+		))
+		.bearer_auth(token)
+		.header("Accept", "application/vnd.github+json")
+		.send()
+		.await?;
+	if !response.status().is_success() {
+		let status = response.status();
+		let body = response.text().await.unwrap_or_default();
+		return Err(api_error("read repository", status, body));
+	}
+	let repository: RepositoryResponse = response.json().await?;
+	Ok(repository.default_branch)
+}
+
+/// Whether `branch` has the shape of a monochange release branch,
+/// `<branch_prefix>/release`, as `release_pull_request_branch` builds it for
+/// the default release command and every built-in step command.
+fn is_release_branch_name(branch: &str) -> bool {
+	branch
+		.rsplit_once('/')
+		.is_some_and(|(prefix, name)| !prefix.is_empty() && name == "release")
+}
+
+/// How the release commit moves the release branch.
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+enum ReleaseBranchUpdate {
+	/// The release branch does not exist yet.
+	Create,
+	/// The release branch points at the base commit, so the release commit
+	/// fast-forwards it.
+	FastForward,
+	/// The release branch holds an earlier release commit and is replaced.
+	Regenerate,
+}
+
+/// Decide how the release commit may move the release branch.
+///
+/// The release branch belongs to monochange and is rebuilt from the base
+/// branch on every run, so an existing release branch is replaced rather than
+/// built upon. Creating a branch or fast-forwarding it from `base_commit`
+/// never discards commits and is always allowed. A forced replacement is
+/// allowed only when every condition holds:
+///
+/// - the request names a base branch (older CLIs do not);
+/// - the branch is shaped like a monochange release branch,
+///   `<branch_prefix>/release`;
+/// - the branch is neither the base branch nor the repository's default
+///   branch, which is read only on this path;
+/// - `base_commit` is still the head of the base branch.
+///
+/// A stale run whose base branch moved gets [`GitHubAppError::BaseMoved`] so
+/// the run for the newer commit refreshes the branch; every other refused
+/// replacement gets [`GitHubAppError::BranchMoved`]. Without these checks a
+/// caller could name `main` as the branch and force it onto another branch's
+/// commit.
+///
+/// GitHub's ref update has no compare-and-swap, so a newer run that completes
+/// entirely between the base check and the update could still be replaced.
+/// That window is one API round trip, while a newer run needs a whole
+/// workflow run to get here.
+async fn plan_release_branch_update(
+	http: &reqwest::Client,
+	api_url: &str,
+	token: &str,
+	request: &HostedCommitRequest,
+) -> Result<ReleaseBranchUpdate, GitHubAppError> {
+	let release_head = read_branch_head(
+		http,
+		api_url,
+		token,
+		request,
+		&request.branch,
+		"read release branch ref",
+	)
+	.await?;
+	let Some(release_head) = release_head else {
+		return Ok(ReleaseBranchUpdate::Create);
+	};
+	if release_head == request.base_commit {
+		return Ok(ReleaseBranchUpdate::FastForward);
+	}
+	let branch_moved = |release_head: String| {
+		GitHubAppError::BranchMoved(
+			request.branch.clone(),
+			release_head,
+			request.base_commit.clone(),
+		)
+	};
+	let Some(base_branch) = request.base_branch.as_deref().filter(|base_branch| {
+		*base_branch != request.branch && is_release_branch_name(&request.branch)
+	}) else {
+		return Err(branch_moved(release_head));
+	};
+	let base_head = read_branch_head(
+		http,
+		api_url,
+		token,
+		request,
+		base_branch,
+		"read base branch ref",
+	)
+	.await?
+	.ok_or_else(|| {
+		api_error(
+			"read base branch ref",
+			reqwest::StatusCode::NOT_FOUND,
+			format!("base branch `{base_branch}` does not exist"),
+		)
+	})?;
+	if base_head != request.base_commit {
+		return Err(GitHubAppError::BaseMoved(
+			base_branch.to_string(),
+			base_head,
+			request.base_commit.clone(),
+		));
+	}
+	if read_default_branch(http, api_url, token, request).await? == request.branch {
+		return Err(branch_moved(release_head));
+	}
+	Ok(ReleaseBranchUpdate::Regenerate)
 }
 
 /// Create the release commit through the GitHub Git Database API.
@@ -433,7 +559,10 @@ pub async fn create_release_commit(
 	let repo = &request.repository;
 	let base_commit = &request.base_commit;
 
-	// 1. Blobs for every file with content.
+	// 1. Decide how the release branch moves before writing anything.
+	let update = plan_release_branch_update(http, api_url, installation_token, request).await?;
+
+	// 2. Blobs for every file with content.
 	let mut tree = Vec::new();
 	for file in &request.files {
 		match &file.content {
@@ -473,18 +602,6 @@ pub async fn create_release_commit(
 			}
 		}
 	}
-
-	// 2. Guard against a moved branch before writing anything.
-	let head = resolve_release_branch_head(
-		http,
-		api_url,
-		installation_token,
-		owner,
-		repo,
-		&request.branch,
-		base_commit,
-	)
-	.await?;
 
 	// 3. Tree on top of the prepared base commit.
 	let response = http
@@ -543,46 +660,40 @@ pub async fn create_release_commit(
 		);
 	}
 
-	// 5. Point the release branch at the new commit. The first run creates
-	// the branch; later runs move it forward from the verified base.
-	match head {
-		BranchHead::Missing => {
-			let response = http
-				.post(format!("{api_url}/repos/{owner}/{repo}/git/refs"))
-				.bearer_auth(installation_token)
-				.header("Accept", "application/vnd.github+json")
+	// 5. Point the release branch at the new commit.
+	let operation = match update {
+		ReleaseBranchUpdate::Create => "create release branch ref",
+		ReleaseBranchUpdate::FastForward | ReleaseBranchUpdate::Regenerate => {
+			"update release branch ref"
+		}
+	};
+	let response = match update {
+		ReleaseBranchUpdate::Create => {
+			http.post(format!("{api_url}/repos/{owner}/{repo}/git/refs"))
 				.json(&CreateRefRequest {
 					reference: format!("refs/heads/{}", request.branch),
 					sha: &commit.sha,
 				})
-				.send()
-				.await?;
-			if !response.status().is_success() {
-				let status = response.status();
-				let body = response.text().await.unwrap_or_default();
-				return Err(api_error("create release branch ref", status, body));
-			}
 		}
-		BranchHead::AtBase => {
-			let response = http
-				.patch(format!(
-					"{api_url}/repos/{owner}/{repo}/git/refs/heads/{}",
-					request.branch
-				))
-				.bearer_auth(installation_token)
-				.header("Accept", "application/vnd.github+json")
-				.json(&UpdateRefRequest {
-					sha: &commit.sha,
-					force: false,
-				})
-				.send()
-				.await?;
-			if !response.status().is_success() {
-				let status = response.status();
-				let body = response.text().await.unwrap_or_default();
-				return Err(api_error("update release branch ref", status, body));
-			}
+		ReleaseBranchUpdate::FastForward | ReleaseBranchUpdate::Regenerate => {
+			http.patch(format!(
+				"{api_url}/repos/{owner}/{repo}/git/refs/heads/{}",
+				request.branch
+			))
+			.json(&UpdateRefRequest {
+				sha: &commit.sha,
+				force: update == ReleaseBranchUpdate::Regenerate,
+			})
 		}
+	}
+	.bearer_auth(installation_token)
+	.header("Accept", "application/vnd.github+json")
+	.send()
+	.await?;
+	if !response.status().is_success() {
+		let status = response.status();
+		let body = response.text().await.unwrap_or_default();
+		return Err(api_error(operation, status, body));
 	}
 
 	Ok((commit.sha, verified, verification_reason))

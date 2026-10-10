@@ -1229,16 +1229,14 @@ pub(crate) async fn execute_cli_command_with_options(
 							.await?
 						}
 						ReleaseBackend::Hosted => {
-							let hosted_auth = string_step_input(&step_inputs, "hosted_auth")
-								.and_then(|value| {
-									value.parse::<monochange_core::HostedCommitAuth>().ok()
-								})
-								.unwrap_or(*hosted_auth);
-							let options = resolve_hosted_commit_options(
-								hosted_auth,
-								hosted_url.as_deref(),
-								oidc_audience.as_deref(),
-							);
+							let options = hosted_commit_options_from_step(
+								&step_inputs,
+								ConfiguredHostedSettings {
+									auth: *hosted_auth,
+									url: hosted_url.as_deref(),
+									oidc_audience: oidc_audience.as_deref(),
+								},
+							)?;
 							Box::pin(hosted_commit_release(
 								root,
 								&context,
@@ -1310,16 +1308,16 @@ pub(crate) async fn execute_cli_command_with_options(
 							.await?
 						}
 						ReleaseBackend::Hosted => {
-							let hosted_auth = string_step_input(&step_inputs, "hosted_auth")
-								.and_then(|value| {
-									value.parse::<monochange_core::HostedCommitAuth>().ok()
-								})
-								.unwrap_or(*hosted_auth);
-							let options = resolve_hosted_commit_options(
-								hosted_auth,
-								hosted_url.as_deref(),
-								None,
-							);
+							// The audience is an input only: a configured field would
+							// change the versioned configuration schema.
+							let options = hosted_commit_options_from_step(
+								&step_inputs,
+								ConfiguredHostedSettings {
+									auth: *hosted_auth,
+									url: hosted_url.as_deref(),
+									oidc_audience: None,
+								},
+							)?;
 							Box::pin(hosted_release_request_result(
 								dry_run,
 								&options,

@@ -1,0 +1,29 @@
+---
+source: crates/monochange_integration_tests/tests/hosted_release_commit.rs
+expression: hosted_requests
+---
+{
+  "commit": {
+    "base_branch": "main",
+    "base_commit_is_head": true,
+    "branch": "monochange/release/release",
+    "files": [
+      ".changeset/feature.md",
+      "Cargo.toml",
+      "crates/core/CHANGELOG.md",
+      "crates/core/Cargo.toml",
+      ".monochange/releases/829c44b7a1ee8674/release.json"
+    ],
+    "owner": "acme",
+    "repository": "actions"
+  },
+  "release_commit": {
+    "commit": "hosted-commit-sha",
+    "status": "completed",
+    "verified": true
+  },
+  "release_request": {
+    "base_branch": "main",
+    "head_branch": "monochange/release/release"
+  }
+}

@@ -65,16 +65,17 @@ Create a dedicated `monochange` vault and give the production service account re
 
 The `production` profile in `app/monosecret.toml` reads every credential from the item titled `monochange.dev` in the `monochange` vault. Each value is a field whose label is the secret name, inside a section named after its group. Monosecret matches section and field labels case-insensitively. A startup costs one 1Password auth probe and one batched item read, however many fields the item carries.
 
-| Section   | Field                       | Field type | Required | Value                                                                                           |
-| --------- | --------------------------- | ---------- | -------- | ----------------------------------------------------------------------------------------------- |
-| `auth`    | `JWT_SECRET`                | password   | yes      | Session JWT signing secret                                                                      |
-| `github`  | `GITHUB_CLIENT_ID`          | text       | yes      | GitHub App client ID                                                                            |
-| `github`  | `GITHUB_CLIENT_SECRET`      | password   | yes      | GitHub App client secret                                                                        |
-| `github`  | `GITHUB_APP_ID`             | text       | no       | GitHub App ID                                                                                   |
-| `github`  | `GITHUB_APP_PRIVATE_KEY`    | password   | no       | The complete PEM private key, including the `BEGIN` and `END` lines                             |
-| `github`  | `GITHUB_APP_WEBHOOK_SECRET` | password   | no       | GitHub App webhook secret                                                                       |
-| `release` | `MONOCHANGE_OIDC_AUDIENCE`  | text       | no       | Audience required in GitHub Actions OIDC tokens; the app uses `monochange.dev` when it is empty |
-| `ai`      | `OPENROUTER_API_KEY`        | password   | no       | OpenRouter API key                                                                              |
+| Section   | Field                       | Field type | Required | Value                                                                                                                     |
+| --------- | --------------------------- | ---------- | -------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `auth`    | `JWT_SECRET`                | password   | yes      | Session JWT signing secret                                                                                                |
+| `github`  | `GITHUB_CLIENT_ID`          | text       | yes      | GitHub App client ID                                                                                                      |
+| `github`  | `GITHUB_CLIENT_SECRET`      | password   | yes      | GitHub App client secret                                                                                                  |
+| `github`  | `GITHUB_APP_ID`             | text       | no       | GitHub App ID                                                                                                             |
+| `github`  | `GITHUB_APP_PRIVATE_KEY`    | password   | no       | The complete PEM private key, including the `BEGIN` and `END` lines                                                       |
+| `github`  | `GITHUB_APP_WEBHOOK_SECRET` | password   | no       | GitHub App webhook secret                                                                                                 |
+| `release` | `MONOCHANGE_OIDC_AUDIENCE`  | text       | no       | Audience required in GitHub Actions OIDC tokens; the app uses `monochange.dev` when it is empty                           |
+| `release` | `MONOCHANGE_TOKEN`          | password   | no       | API token the hosted release endpoints accept from CI systems without GitHub Actions OIDC; leave it empty to require OIDC |
+| `ai`      | `OPENROUTER_API_KEY`        | password   | no       | OpenRouter API key                                                                                                        |
 
 `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, and `GITHUB_APP_WEBHOOK_SECRET` enable repository connection and must be configured together. The app validates the PEM at startup and refuses to start with a partial set or a malformed key.
 
@@ -275,7 +276,7 @@ Releases before the Monosecret migration read one 1Password item per secret, tit
 
 1. **Create the item.** In the `monochange` vault, create a Secure Note titled exactly `monochange.dev`. Add the sections `auth`, `github`, `release`, and `ai`.
 2. **Add the fields.** For each row in the [production secret layout](#production-secret-layout), add a field labelled with the secret name to its section, with the listed field type. Copy the value from the `value` field of the matching `secretspec/monochange_app/production/<KEY>` item. Skip optional fields that have no old item. Do not copy `secretspec/monochange_app/production/DATABASE_URL`; Compose now supplies it. Paste `GITHUB_APP_PRIVATE_KEY` as the complete PEM, including the `BEGIN` and `END` lines.
-3. **Check the item.** The item must hold exactly these fields: `JWT_SECRET` in `auth`; `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, and `GITHUB_APP_WEBHOOK_SECRET` in `github`; optional `MONOCHANGE_OIDC_AUDIENCE` in `release`; and optional `OPENROUTER_API_KEY` in `ai`. The production service account keeps read access to the `monochange` vault, and the token file on the server does not change.
+3. **Check the item.** The item must hold exactly these fields: `JWT_SECRET` in `auth`; `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, and `GITHUB_APP_WEBHOOK_SECRET` in `github`; optional `MONOCHANGE_OIDC_AUDIENCE` and `MONOCHANGE_TOKEN` in `release`; and optional `OPENROUTER_API_KEY` in `ai`. The production service account keeps read access to the `monochange` vault, and the token file on the server does not change.
 4. **Install the new Compose file before the image changes.** Monosecret still honours the old `SECRETSPEC_PROVIDER` variable as a provider override, so the new image started with the old Compose file would bypass the item and fail to start. Copy `app/deploy/digitalocean/docker-compose.yml` from the release revision to `/opt/monochange/` as described in [CLI operations](deploy/digitalocean/OPERATIONS.md). Replacing the file does not restart the running container.
 5. **Deploy.** Let the automated website deployment ship the release, or run the manual update from [CLI operations](deploy/digitalocean/OPERATIONS.md). The deploy helper waits for `/health`.
 6. **Verify.** Confirm `curl -fsS https://monochange.dev/health | jq` reports `"status": "ok"`. Check `docker compose logs --tail=100 app` for a clean start with no secret or GitHub App errors. Sign in on `https://monochange.dev`, open the dashboard, and confirm the repository connection link is offered. A missing required field stops the app at startup with an error naming the secret.

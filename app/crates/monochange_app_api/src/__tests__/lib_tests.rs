@@ -443,6 +443,7 @@ mod secret_loading_tests {
 				("GITHUB_APP_PRIVATE_KEY", section("github")),
 				("GITHUB_APP_WEBHOOK_SECRET", section("github")),
 				("MONOCHANGE_OIDC_AUDIENCE", section("release")),
+				("MONOCHANGE_TOKEN", section("release")),
 				("OPENROUTER_API_KEY", section("ai")),
 			])
 		);

@@ -112,7 +112,17 @@ pub fn minimal_release_body(manifest: &ReleaseManifest, target: &ReleaseManifest
 }
 
 /// Build the provider change-request branch for a release command.
+///
+/// Built-in `step <name>` commands run one step outside any configured
+/// workflow, so they share the default `release` branch. Deriving the branch
+/// from the step name would put each step on its own branch, e.g.
+/// `monochange/release/step-open-release-request`.
 pub fn release_pull_request_branch(branch_prefix: &str, command: &str) -> String {
+	let command = if command.starts_with("step ") {
+		"release"
+	} else {
+		command
+	};
 	let command = command
 		.chars()
 		.map(|character| {
