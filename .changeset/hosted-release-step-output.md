@@ -1,6 +1,5 @@
 ---
 monochange: feat
-monochange_core: feat
 ---
 
 # Add machine-readable output and OIDC audience to hosted release steps
@@ -30,5 +29,3 @@ monochange step open-release-request --backend hosted --oidc-audience release.ex
 ```
 
 In a workflow, pass it through the step inputs: `{ type = "OpenReleaseRequest", backend = "hosted", inputs = { oidc_audience = "release.example.com" } }`.
-
-For library users, `HostedCommitRequest` in `monochange_core` gains `base_branch: Option<String>`, the branch the release was prepared from. Struct literals must add the field; serialized requests omit it when it is `None`.

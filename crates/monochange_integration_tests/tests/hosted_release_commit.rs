@@ -16,10 +16,12 @@ use httpmock::HttpMockRequest;
 use httpmock::Method;
 use httpmock::MockServer;
 use insta::assert_json_snapshot;
+use insta::assert_snapshot;
 use monochange_test_helpers::copy_directory;
 use monochange_test_helpers::get_cargo_bin;
 use monochange_test_helpers::git::git;
 use monochange_test_helpers::git::git_output;
+use rstest::rstest;
 use tempfile::TempDir;
 
 fn fixture_path(relative: &str) -> PathBuf {
@@ -456,4 +458,35 @@ fn hosted_step_commands_target_the_release_branch_with_command_line_settings() {
 		},
 	});
 	assert_json_snapshot!(hosted_requests);
+}
+
+#[rstest]
+#[case::commit_release("commit-invalid-auth")]
+#[case::open_release_request("request-invalid-auth")]
+fn hosted_steps_reject_unsupported_hosted_auth_inputs(#[case] command: &str) {
+	let tempdir = setup_hosted_fixture();
+	let server = MockServer::start();
+	let commit_mock = mock_release_commit(&server);
+	let request_mock = mock_release_request(&server);
+
+	let output = Command::new(get_cargo_bin("monochange"))
+		.current_dir(tempdir.path())
+		.env("NO_COLOR", "1")
+		.env_remove("RUST_LOG")
+		.env("MONOCHANGE_NO_PROGRESS", "1")
+		.env("MONOCHANGE_HOSTED_URL", server.base_url())
+		.env("GITHUB_REPOSITORY", "acme/actions")
+		.env("MONOCHANGE_TOKEN", "monochange-token")
+		.arg("run")
+		.arg(command)
+		.output()
+		.unwrap_or_else(|error| panic!("run {command}: {error}"));
+
+	assert!(!output.status.success(), "{command} must reject the input");
+	assert_eq!(commit_mock.calls(), 0);
+	assert_eq!(request_mock.calls(), 0);
+	assert_snapshot!(
+		format!("{command}_stderr"),
+		String::from_utf8_lossy(&output.stderr)
+	);
 }

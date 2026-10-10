@@ -52,3 +52,26 @@ commit_backend = "hosted"
 type = "OpenReleaseRequest"
 inputs = ["no_verify"]
 backend = "hosted"
+
+# Workflows whose hosted steps receive an unsupported `hosted_auth` input.
+[cli.commit-invalid-auth]
+help_text = "Commit through the hosted app with an unsupported authentication mode."
+
+[[cli.commit-invalid-auth.steps]]
+type = "PrepareRelease"
+
+[[cli.commit-invalid-auth.steps]]
+type = "CommitRelease"
+commit_backend = "hosted"
+inputs = { hosted_auth = "password" }
+
+[cli.request-invalid-auth]
+help_text = "Open the release request through the hosted app with an unsupported authentication mode."
+
+[[cli.request-invalid-auth.steps]]
+type = "PrepareRelease"
+
+[[cli.request-invalid-auth.steps]]
+type = "OpenReleaseRequest"
+backend = "hosted"
+inputs = { hosted_auth = "password" }
