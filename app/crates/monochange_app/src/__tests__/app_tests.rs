@@ -854,3 +854,159 @@ async fn browser_flow_fixture_server() {
 	);
 	axum::serve(listener, app).await.unwrap();
 }
+
+async fn page_html(app: &Router, uri: &str, cookie: &str) -> String {
+	let response = app
+		.clone()
+		.oneshot(
+			Request::builder()
+				.uri(uri)
+				.header(COOKIE, cookie)
+				.body(Body::empty())
+				.unwrap(),
+		)
+		.await
+		.unwrap();
+	assert_eq!(response.status(), StatusCode::OK, "{uri}");
+	html(response).await
+}
+
+#[tokio::test]
+async fn organisations_lead_to_projects_that_work_without_javascript() {
+	use server_fn::ServerFn;
+
+	let server = MockServer::start_async().await;
+	server
+		.mock_async(|when, then| {
+			when.method(GET).path("/app").header_exists("authorization");
+			then.json_body(serde_json::json!({"slug":"test-app"}));
+		})
+		.await;
+	server
+		.mock_async(|when, then| {
+			when.method(GET).path("/user/memberships/orgs/team");
+			then.json_body(serde_json::json!({"state":"active","role":"admin"}));
+		})
+		.await;
+	let state = configured_state(&server).await;
+	sqlx::query("INSERT INTO users (id, github_id, github_login, github_access_token) VALUES (1, 101, 'alice', 'test-only-alice-token')").execute(&state.db).await.unwrap();
+	let token = monochange_app_api::create_token(&state.jwt_secret, 1, 101, "alice").unwrap();
+	let cookie = format!("{}={token}", oauth::SESSION_COOKIE_NAME);
+	let app = router(state.clone()).merge(monochange_app_api::api_router((*state).clone()));
+	deliver_repository_event(
+		&app,
+		"installation",
+		serde_json::json!({
+			"action": "created",
+			"installation": {"id": 1001, "account": {"id": 101, "login": "alice", "type": "User", "avatar_url": "https://avatars.example/alice.png"}},
+			"sender": {"id": 101, "login": "alice"},
+			"repositories": [
+				{"id": 11, "full_name": "alice/api", "private": false},
+				{"id": 12, "full_name": "alice/web", "private": true}
+			]
+		}),
+	)
+	.await;
+	deliver_repository_event(
+		&app,
+		"installation",
+		serde_json::json!({
+			"action": "created",
+			"installation": {"id": 1003, "account": {"id": 5001, "login": "team", "type": "Organization"}},
+			"sender": {"id": 101, "login": "alice"},
+			"repositories": [{"id": 31, "full_name": "team/app", "private": true}]
+		}),
+	)
+	.await;
+	// An installation recorded before organisations existed, which GitHub
+	// cannot resolve right now.
+	sqlx::query("INSERT INTO installations (id, user_id, github_installation_id, github_account_login, github_account_type) VALUES (9, 1, 1009, 'legacy', 'User')").execute(&state.db).await.unwrap();
+	sqlx::query("INSERT INTO repositories (installation_id, github_repo_id, github_full_name) VALUES (9, 91, 'legacy/app')").execute(&state.db).await.unwrap();
+
+	let dashboard = dashboard_html(&app, &cookie).await;
+	assert!(
+		dashboard.contains("href=\"/dashboard/alice\""),
+		"{dashboard}"
+	);
+	assert!(dashboard.contains("src=\"https://avatars.example/alice.png\""));
+	assert!(dashboard.contains("Personal account"));
+	assert!(dashboard.contains("0 projects"));
+	assert!(dashboard.contains("alice/api"));
+
+	let organization = page_html(&app, "/dashboard/alice", &cookie).await;
+	assert!(organization.contains("New project"));
+	assert!(organization.contains("name=\"repositories[]\""));
+	assert!(organization.contains("No projects yet"));
+	assert!(organization.contains("/dashboard/alice/projects/invoices"));
+	let team = page_html(&app, "/dashboard/team", &cookie).await;
+	assert!(team.contains("GitHub organisation"));
+	let legacy = page_html(&app, "/dashboard/legacy", &cookie).await;
+	assert!(legacy.contains("still confirming this account with GitHub"));
+	assert!(!legacy.contains("Create project"));
+
+	// A plain form post, as a browser sends it before the page hydrates.
+	let response = app
+		.clone()
+		.oneshot(
+			Request::builder()
+				.method("POST")
+				.uri(crate::server_fns::organizations::CreateProject::PATH)
+				.header(COOKIE, &cookie)
+				.header(ACCEPT, "text/html")
+				.header("content-type", "application/x-www-form-urlencoded")
+				.body(Body::from(
+					"organization=alice&name=Invoices&description=Billing+apps&repositories%5B%5D=alice%2Fapi&repositories%5B%5D=alice%2Fweb",
+				))
+				.unwrap(),
+		)
+		.await
+		.unwrap();
+	assert_eq!(response.status(), StatusCode::FOUND);
+	assert_eq!(
+		response.headers()[LOCATION],
+		"/dashboard/alice/projects/invoices"
+	);
+
+	let project = page_html(&app, "/dashboard/alice/projects/invoices", &cookie).await;
+	assert!(project.contains("Billing apps"));
+	assert!(project.contains("alice/web"));
+	assert!(project.contains("Edit project"));
+	assert!(project.contains("Delete this project"));
+	assert!(!project.contains("Disconnected"));
+
+	let listed = page_html(&app, "/dashboard/alice", &cookie).await;
+	assert!(listed.contains("href=\"/dashboard/alice/projects/invoices\""));
+	assert!(dashboard_html(&app, &cookie).await.contains("1 project<"));
+
+	// Removing a repository from the installation keeps it in the project.
+	deliver_repository_event(
+		&app,
+		"installation_repositories",
+		serde_json::json!({
+			"action": "removed",
+			"installation": {"id": 1001, "account": {"id": 101, "login": "alice", "type": "User"}},
+			"repositories_removed": [{"id": 12, "full_name": "alice/web", "private": true}]
+		}),
+	)
+	.await;
+	let disconnected = page_html(&app, "/dashboard/alice/projects/invoices", &cookie).await;
+	assert!(disconnected.contains("Disconnected"));
+	assert!(disconnected.contains("come back when the GitHub App is installed on them again"));
+
+	let missing = page_html(&app, "/dashboard/alice/projects/missing", &cookie).await;
+	assert!(missing.contains("Project not found"));
+	let stranger = page_html(&app, "/dashboard/someone-else", &cookie).await;
+	assert!(stranger.contains("Organisation not found"));
+
+	let forged = format!("{}=forged", oauth::SESSION_COOKIE_NAME);
+	assert!(
+		page_html(&app, "/dashboard/alice", &forged)
+			.await
+			.contains("This organisation couldn't be loaded")
+	);
+	assert!(
+		page_html(&app, "/dashboard/alice/projects/invoices", &forged)
+			.await
+			.contains("This project couldn't be loaded")
+	);
+}

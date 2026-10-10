@@ -198,6 +198,43 @@ impl GitHubAppAuth {
 		let token: InstallationTokenResponse = response.json().await?;
 		Ok(token.token)
 	}
+
+	/// Look up the account an installation belongs to.
+	///
+	/// Installations recorded before organisations existed only stored the
+	/// account login; this recovers the stable account id once.
+	///
+	/// # Errors
+	/// Returns an error if app signing or the GitHub request fails.
+	pub async fn installation_account(
+		&self,
+		http: &reqwest::Client,
+		installation_id: i64,
+	) -> Result<monochange_app_db::projects::AccountIdentity, GitHubAppError> {
+		let response = http
+			.get(format!(
+				"{}/app/installations/{installation_id}",
+				self.api_url
+			))
+			.bearer_auth(self.app_jwt()?)
+			.header("Accept", "application/vnd.github+json")
+			.header("User-Agent", "monochange")
+			.send()
+			.await?;
+		if !response.status().is_success() {
+			let status = response.status();
+			let body = response.text().await.unwrap_or_default();
+			return Err(GitHubAppError::Status("read installation", status, body));
+		}
+		let installation: InstallationResponse = response.json().await?;
+		Ok(monochange_app_db::projects::AccountIdentity {
+			provider: monochange_app_db::projects::GITHUB.to_owned(),
+			external_id: installation.account.id,
+			login: installation.account.login,
+			account_type: installation.account.account_type,
+			avatar_url: installation.account.avatar_url,
+		})
+	}
 }
 
 /// Compare two byte strings without early exit.
@@ -222,6 +259,21 @@ fn webhook_signature(secret: &str, payload: &[u8]) -> String {
 #[derive(Debug, Deserialize)]
 struct AppMetadata {
 	slug: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct InstallationResponse {
+	account: InstallationAccountResponse,
+}
+
+#[derive(Debug, Deserialize)]
+struct InstallationAccountResponse {
+	id: i64,
+	login: String,
+	#[serde(rename = "type")]
+	account_type: String,
+	#[serde(default)]
+	avatar_url: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

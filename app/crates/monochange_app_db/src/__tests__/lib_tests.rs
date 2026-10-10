@@ -264,3 +264,18 @@ fn test_db_error_debug() {
 	let debug = format!("{err:?}");
 	assert!(debug.contains("Connection"));
 }
+
+#[rstest]
+fn organizations_and_projects_migration_is_reversible_where_sqlite_allows() {
+	use welds::migrations::MigrationWriter;
+	let writer = crate::AddOrganizationsAndProjects;
+	let up = writer.up_sql(welds::Syntax::Sqlite).join("\n");
+	assert!(up.contains("CREATE TABLE IF NOT EXISTS projects"));
+	assert!(up.contains("CREATE TABLE IF NOT EXISTS project_repositories"));
+	assert!(up.contains("ALTER TABLE installations ADD COLUMN organization_id"));
+	let down = writer.down_sql(welds::Syntax::Sqlite).join("\n");
+	assert!(down.contains("DROP TABLE IF EXISTS projects;"));
+	assert!(down.contains("ALTER TABLE users DROP COLUMN provider;"));
+	// SQLite cannot drop a foreign-key column, so rollback leaves it inert.
+	assert!(!down.contains("DROP COLUMN organization_id"));
+}

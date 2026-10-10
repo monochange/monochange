@@ -14,6 +14,7 @@ pub mod components;
 pub mod error;
 pub mod links;
 pub mod pages;
+pub mod projects;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod public_routes;
 pub mod server_fns;

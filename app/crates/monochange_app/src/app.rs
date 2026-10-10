@@ -20,7 +20,9 @@ use crate::pages::changelog::ChangelogPage;
 use crate::pages::dashboard::DashboardPage;
 use crate::pages::home::HomePage;
 use crate::pages::install::InstallPage;
+use crate::pages::organization::OrganizationPage;
 use crate::pages::pricing::PricingPage;
+use crate::pages::project::ProjectPage;
 
 // Leptos strips literal comments. The inert template below preserves this
 // contract in server output and occupies the same node during hydration.
@@ -81,6 +83,8 @@ pub fn App() -> impl IntoView {
 				}>
 					<Route path=path!("/") view=HomePage />
 					<Route path=path!("/dashboard") view=DashboardPage />
+					<Route path=path!("/dashboard/:organization") view=OrganizationPage />
+					<Route path=path!("/dashboard/:organization/projects/:project") view=ProjectPage />
 					<Route path=path!("/install") view=InstallPage />
 					<Route path=path!("/login") view=LoginPage />
 					<Route path=path!("/pricing") view=PricingPage />
