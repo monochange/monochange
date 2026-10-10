@@ -4,6 +4,37 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)
+
+### 🐛 Fixed
+
+#### Keep advisory classification evidence out of release planning
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #783](https://github.com/monochange/monochange/pull/783) · _Closed issues:_ [#776](https://github.com/monochange/monochange/issues/776)
+
+Release planning escalated planned bumps from compatibility evidence even when `classification_enforced = false`, so a patch changeset released as `2.0.0` whenever the branch diff carried a rename the analyzer read as breaking, and the outcome differed by branch because the feature branch analyzed the branch range while the default branch analyzed the working directory.
+
+Evidence for packages with `classification_enforced = false` now stays advisory in `preview`, `prepare`, and `run release` the way it already was in `change classify`: the changeset decides the bump and a plan warning records what the evidence suggested. The prepared-release cache fingerprint also includes the detected change frame, so a feature branch's plan is never reused on the default branch after a fast-forward merge leaves identical commits, changesets, and HEAD.
+
+#### Keep same-second changeset creations from overwriting each other
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #780](https://github.com/monochange/monochange/pull/780) · _Closed issues:_ [#774](https://github.com/monochange/monochange/issues/774)
+
+`monochange create` named changesets `<unix seconds>-<package>.md`, so two creations inside the same second (scripts, agents, or a quick second command) produced the same file and the second silently replaced the first. Both calls reported success while the first changeset was lost.
+
+Default changeset names now append a counter when the timestamped name is already taken, so every creation gets its own file without passing `--output`.
+
+#### Preview prepare-and-commit release workflows with --dry-run
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #781](https://github.com/monochange/monochange/pull/781) · _Closed issues:_ [#773](https://github.com/monochange/monochange/issues/773)
+
+`PrepareRelease` skips writing the release record during dry-run previews, but `CommitRelease` still required that record on disk, so `monochange run release
+--dry-run` — the natural way to preview a prepare-and-commit pipeline — failed with `no release record found`.
+
+CommitRelease now reports the commit it would make (subject, tracked paths, and the expected `.monochange/releases/<hash>/release.json` path) without requiring or writing the record. The real run still validates and stages the record as before.
+
+- **Wire yarn.lock through release preparation.** The `monochange` crate reads and rewrites `yarn.lock` versioned files during release preparation, and `monochange_config` accepts `yarn.lock` as a typed npm-family versioned-file path so `monochange check` validates entries that target it. The npm CLI wrapper readme lists Yarn alongside npm, pnpm, and Bun. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)
+
 ## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)
 
 ### 🚀 Feature

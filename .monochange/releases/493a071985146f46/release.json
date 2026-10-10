@@ -1,0 +1,3245 @@
+{
+	"schema_version": "0.10",
+	"kind": "monochange.releaseRecord",
+	"created_at": "2026-10-10T08:24:14Z",
+	"command": "release",
+	"version": null,
+	"versions": {
+		"main": "0.19.0",
+		"monochange_app": "0.2.4",
+		"monochange_classification": "0.4.4"
+	},
+	"release_targets": [
+		{
+			"id": "main",
+			"kind": "group",
+			"version": "0.19.0",
+			"version_format": "primary",
+			"tag": true,
+			"release": true,
+			"tag_name": "v0.19.0",
+			"rendered_title": "v0.19.0 (2026-10-10)",
+			"rendered_changelog_title": "[0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)",
+			"members": [
+				"@monochange/cli",
+				"@monochange/cli-darwin-arm64",
+				"@monochange/cli-darwin-x64",
+				"@monochange/cli-linux-arm64-gnu",
+				"@monochange/cli-linux-arm64-musl",
+				"@monochange/cli-linux-x64-gnu",
+				"@monochange/cli-linux-x64-musl",
+				"@monochange/cli-win32-arm64-msvc",
+				"@monochange/cli-win32-x64-msvc",
+				"@monochange/skill",
+				"monochange",
+				"monochange_analysis",
+				"monochange_cargo",
+				"monochange_changelog",
+				"monochange_config",
+				"monochange_core",
+				"monochange_dart",
+				"monochange_deno",
+				"monochange_ecmascript",
+				"monochange_forgejo",
+				"monochange_gitea",
+				"monochange_github",
+				"monochange_gitlab",
+				"monochange_go",
+				"monochange_graph",
+				"monochange_hosting",
+				"monochange_lint",
+				"monochange_linting",
+				"monochange_npm",
+				"monochange_publish",
+				"monochange_python",
+				"monochange_semver",
+				"monochange_telemetry",
+				"monochange_test_helpers"
+			]
+		},
+		{
+			"id": "monochange_app",
+			"kind": "package",
+			"version": "0.2.4",
+			"version_format": "namespaced",
+			"tag": true,
+			"release": true,
+			"tag_name": "monochange_app/v0.2.4",
+			"rendered_title": "monochange.dev 0.2.4",
+			"rendered_changelog_title": "0.2.4",
+			"members": [
+				"monochange_app"
+			]
+		},
+		{
+			"id": "monochange_classification",
+			"kind": "package",
+			"version": "0.4.4",
+			"version_format": "namespaced",
+			"tag": true,
+			"release": true,
+			"tag_name": "monochange_classification/v0.4.4",
+			"rendered_title": "monochange_classification v0.4.4 (2026-10-10)",
+			"rendered_changelog_title": "monochange_classification [0.4.4](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.4.4) (2026-10-10)",
+			"members": [
+				"monochange_classification"
+			]
+		}
+	],
+	"released_packages": [
+		"@monochange/cli",
+		"@monochange/cli-darwin-arm64",
+		"@monochange/cli-darwin-x64",
+		"@monochange/cli-linux-arm64-gnu",
+		"@monochange/cli-linux-arm64-musl",
+		"@monochange/cli-linux-x64-gnu",
+		"@monochange/cli-linux-x64-musl",
+		"@monochange/cli-win32-arm64-msvc",
+		"@monochange/cli-win32-x64-msvc",
+		"@monochange/skill",
+		"monochange",
+		"monochange_analysis",
+		"monochange_app",
+		"monochange_cargo",
+		"monochange_changelog",
+		"monochange_classification",
+		"monochange_config",
+		"monochange_core",
+		"monochange_dart",
+		"monochange_deno",
+		"monochange_ecmascript",
+		"monochange_forgejo",
+		"monochange_gitea",
+		"monochange_github",
+		"monochange_gitlab",
+		"monochange_go",
+		"monochange_graph",
+		"monochange_hosting",
+		"monochange_lint",
+		"monochange_linting",
+		"monochange_npm",
+		"monochange_publish",
+		"monochange_python",
+		"monochange_semver",
+		"monochange_telemetry",
+		"monochange_test_helpers"
+	],
+	"changed_files": [
+		"Cargo.lock",
+		"Cargo.toml",
+		"app/Cargo.lock",
+		"app/Cargo.toml",
+		"app/changelog.md",
+		"app/crates/monochange_app/Cargo.toml",
+		"app/developer-changelog.md",
+		"app/public/releases/0.2.4.json",
+		"changelog.md",
+		"crates/monochange/Cargo.toml",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/Cargo.toml",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/Cargo.toml",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/Cargo.toml",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_classification/Cargo.toml",
+		"crates/monochange_classification/changelog.md",
+		"crates/monochange_config/Cargo.toml",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/Cargo.toml",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/Cargo.toml",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/Cargo.toml",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/Cargo.toml",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/Cargo.toml",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/Cargo.toml",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/Cargo.toml",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/Cargo.toml",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/Cargo.toml",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_graph/Cargo.toml",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/Cargo.toml",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/Cargo.toml",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/Cargo.toml",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/Cargo.toml",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/Cargo.toml",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/Cargo.toml",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_semver/Cargo.toml",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_telemetry/Cargo.toml",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/Cargo.toml",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli/package.json",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-arm64/package.json",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-darwin-x64/package.json",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/package.json",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/package.json",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/package.json",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/package.json",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/package.json",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/package.json",
+		"packages/monochange__skill/changelog.md",
+		"packages/monochange__skill/package.json",
+		"pnpm-lock.yaml"
+	],
+	"package_publications": [
+		{
+			"package": "@monochange/cli",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.19.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-arm64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.19.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-x64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.19.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.19.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.19.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.19.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.19.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-arm64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.19.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-x64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.19.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/skill",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.19.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_analysis",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_cargo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_changelog",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_classification",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.4.4",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_config",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_core",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_dart",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_deno",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_ecmascript",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_forgejo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitea",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_github",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitlab",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_go",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_graph",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_hosting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_lint",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_linting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_npm",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_publish",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_python",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_semver",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_telemetry",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_test_helpers",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		}
+	],
+	"updated_changelogs": [
+		"app/changelog.md",
+		"app/developer-changelog.md",
+		"app/public/releases/0.2.4.json",
+		"changelog.md",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_classification/changelog.md",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__skill/changelog.md"
+	],
+	"deleted_changesets": [
+		".changeset/advisory-semantic-evidence.md",
+		".changeset/app-monosecret-secrets.md",
+		".changeset/bun-text-lockfile-jsonc.md",
+		".changeset/changeset-name-collisions.md",
+		".changeset/commit-release-dry-run.md",
+		".changeset/discovery-worktree-roots.md",
+		".changeset/github-app-registration-guide.md",
+		".changeset/github-app-repository-onboarding.md",
+		".changeset/github-app-user-authorization.md",
+		".changeset/npm-configured-workspace-lockfiles.md",
+		".changeset/pnpm-12-two-document-lockfiles.md",
+		".changeset/yarn-docs-sync.md",
+		".changeset/yarn-lock-support.md",
+		".changeset/yarn-lockfile-plumbing.md"
+	],
+	"changesets": [
+		{
+			"path": ".changeset/advisory-semantic-evidence.md",
+			"summary": "Keep advisory classification evidence out of release planning",
+			"details": "Release planning escalated planned bumps from compatibility evidence even when `classification_enforced = false`, so a patch changeset released as `2.0.0` whenever the branch diff carried a rename the analyzer read as breaking, and the outcome differed by branch because the feature branch analyzed the branch range while the default branch analyzed the working directory.\n\nEvidence for packages with `classification_enforced = false` now stays advisory in `preview`, `prepare`, and `run release` the way it already was in `change classify`: the changeset decides the bump and a plan warning records what the evidence suggested. The prepared-release cache fingerprint also includes the detected change frame, so a feature branch's plan is never reused on the default branch after a fast-forward merge leaves identical commits, changesets, and HEAD.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "4822588b8e8b44c9017c0e8ffc403e79ae603348",
+						"short_sha": "4822588",
+						"url": "https://github.com/monochange/monochange/commit/4822588b8e8b44c9017c0e8ffc403e79ae603348",
+						"authored_at": "2026-10-09T13:53:18Z",
+						"committed_at": "2026-10-09T13:53:18Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#783",
+						"title": "fix(release): keep advisory classification evidence out of release planning",
+						"url": "https://github.com/monochange/monochange/pull/783",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "4822588b8e8b44c9017c0e8ffc403e79ae603348",
+						"short_sha": "4822588",
+						"url": "https://github.com/monochange/monochange/commit/4822588b8e8b44c9017c0e8ffc403e79ae603348",
+						"authored_at": "2026-10-09T13:53:18Z",
+						"committed_at": "2026-10-09T13:53:18Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#783",
+						"title": "fix(release): keep advisory classification evidence out of release planning",
+						"url": "https://github.com/monochange/monochange/pull/783",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": [
+					{
+						"provider": "github",
+						"host": "github.com",
+						"id": "#776",
+						"title": null,
+						"url": "https://github.com/monochange/monochange/issues/776",
+						"relationship": "closed_by_review_request"
+					}
+				]
+			}
+		},
+		{
+			"path": ".changeset/app-monosecret-secrets.md",
+			"summary": "Load monochange.dev secrets through Monosecret from one 1Password item",
+			"details": "Production startup now reads every credential from a single 1Password item with one batched read, instead of one SecretSpec item per secret. This keeps the app well under the 1Password service-account request quota. Before deploying this release, operators must copy the production values into the new item and install the new Compose file.\n\n`app/secretspec.toml` is replaced by `app/monosecret.toml`. The container selects its profile with `MONOSECRET_PROFILE` and no longer sets a provider:\n\n```yaml\n# before\nenvironment:\n  SECRETSPEC_PROFILE: production\n  SECRETSPEC_PROVIDER: onepassword://monochange\n\n# after\nenvironment:\n  MONOSECRET_PROFILE: production\n```\n\nThe production profile reads the `monochange.dev` item in the `monochange` vault. Each secret is a field labelled with its name, in a section named after its group:\n\n| Section   | Fields                                                                                                             |\n| --------- | ------------------------------------------------------------------------------------------------------------------ |\n| `auth`    | `JWT_SECRET`                                                                                                       |\n| `github`  | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_WEBHOOK_SECRET` |\n| `release` | `MONOCHANGE_OIDC_AUDIENCE` (optional)                                                                              |\n| `ai`      | `OPENROUTER_API_KEY` (optional)                                                                                    |\n\n`DATABASE_URL` now comes from the Compose environment, and the bootstrap `OP_SERVICE_ACCOUNT_TOKEN` still comes from the Docker secret. The image keeps the bundled `op` CLI because Monosecret's 1Password provider shells out to it.\n\nTo migrate production:\n\n1. Create the `monochange.dev` item with the sections and fields above, copying each value from its `secretspec/monochange_app/production/<KEY>` item.\n2. Install `app/deploy/digitalocean/docker-compose.yml` from this release on the server before the image changes. The new image would treat a leftover `SECRETSPEC_PROVIDER` as an override and fail to start.\n3. Deploy, then check `/health`, the app logs, sign-in, and the repository connection link.\n4. Delete the old `secretspec/monochange_app/production/<KEY>` items.\n\nLocal development uses the `development` profile, which reads the ignored `app/.env`, then the environment, then local defaults, and never contacts 1Password. See \"production cutover from SecretSpec to Monosecret\" in `app/DEPLOY.md` for the full procedure and rollback.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "refactor"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "5505294eac503292517939d09c51738ced01cd59",
+						"short_sha": "5505294",
+						"url": "https://github.com/monochange/monochange/commit/5505294eac503292517939d09c51738ced01cd59",
+						"authored_at": "2026-10-10T07:52:56Z",
+						"committed_at": "2026-10-10T07:52:56Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#791",
+						"title": "refactor(app): load secrets through monosecret from one 1Password item",
+						"url": "https://github.com/monochange/monochange/pull/791",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "5505294eac503292517939d09c51738ced01cd59",
+						"short_sha": "5505294",
+						"url": "https://github.com/monochange/monochange/commit/5505294eac503292517939d09c51738ced01cd59",
+						"authored_at": "2026-10-10T07:52:56Z",
+						"committed_at": "2026-10-10T07:52:56Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#791",
+						"title": "refactor(app): load secrets through monosecret from one 1Password item",
+						"url": "https://github.com/monochange/monochange/pull/791",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/bun-text-lockfile-jsonc.md",
+			"summary": "Rewrite real Bun JSONC lockfiles without corrupting workspace references",
+			"details": "`update_bun_lock` replaced the first `\"name\": \"...\"` string it found, which corrupted real `bun.lock` files: inter-workspace references such as `\"ui\": \"workspace:packages/ui\"` were overwritten with the released version. Bun writes `bun.lock` as JSONC with trailing commas and pins registry dependencies as exact versions.\n\nThe updater now rewrites only exact semver pins (`\"ui\": \"1.3.0\"`) and the `name@version` descriptors that open `\"name\": [...]` package-map entries of released packages. Workspace, alias, `npm:` protocol, range, and git or URL references are left untouched, as is the JSONC formatting.",
+			"targets": [
+				{
+					"id": "monochange_npm",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "31af819318bc3e1083907f8f3d9d409eef7cc582",
+						"short_sha": "31af819",
+						"url": "https://github.com/monochange/monochange/commit/31af819318bc3e1083907f8f3d9d409eef7cc582",
+						"authored_at": "2026-10-09T13:52:09Z",
+						"committed_at": "2026-10-09T13:52:09Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#778",
+						"title": "feat(npm): support pnpm 12, Yarn, and Bun text lockfiles",
+						"url": "https://github.com/monochange/monochange/pull/778",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "31af819318bc3e1083907f8f3d9d409eef7cc582",
+						"short_sha": "31af819",
+						"url": "https://github.com/monochange/monochange/commit/31af819318bc3e1083907f8f3d9d409eef7cc582",
+						"authored_at": "2026-10-09T13:52:09Z",
+						"committed_at": "2026-10-09T13:52:09Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#778",
+						"title": "feat(npm): support pnpm 12, Yarn, and Bun text lockfiles",
+						"url": "https://github.com/monochange/monochange/pull/778",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": [
+					{
+						"provider": "github",
+						"host": "github.com",
+						"id": "#772",
+						"title": null,
+						"url": "https://github.com/monochange/monochange/issues/772",
+						"relationship": "closed_by_review_request"
+					}
+				]
+			}
+		},
+		{
+			"path": ".changeset/changeset-name-collisions.md",
+			"summary": "Keep same-second changeset creations from overwriting each other",
+			"details": "`monochange create` named changesets `<unix seconds>-<package>.md`, so two creations inside the same second (scripts, agents, or a quick second command) produced the same file and the second silently replaced the first. Both calls reported success while the first changeset was lost.\n\nDefault changeset names now append a counter when the timestamped name is already taken, so every creation gets its own file without passing `--output`.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "692e16c43f809b30de901ad2afe316805e3aa373",
+						"short_sha": "692e16c",
+						"url": "https://github.com/monochange/monochange/commit/692e16c43f809b30de901ad2afe316805e3aa373",
+						"authored_at": "2026-10-09T13:53:13Z",
+						"committed_at": "2026-10-09T13:53:13Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#780",
+						"title": "fix(changesets): disambiguate same-second default changeset names",
+						"url": "https://github.com/monochange/monochange/pull/780",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "692e16c43f809b30de901ad2afe316805e3aa373",
+						"short_sha": "692e16c",
+						"url": "https://github.com/monochange/monochange/commit/692e16c43f809b30de901ad2afe316805e3aa373",
+						"authored_at": "2026-10-09T13:53:13Z",
+						"committed_at": "2026-10-09T13:53:13Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#780",
+						"title": "fix(changesets): disambiguate same-second default changeset names",
+						"url": "https://github.com/monochange/monochange/pull/780",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": [
+					{
+						"provider": "github",
+						"host": "github.com",
+						"id": "#774",
+						"title": null,
+						"url": "https://github.com/monochange/monochange/issues/774",
+						"relationship": "closed_by_review_request"
+					}
+				]
+			}
+		},
+		{
+			"path": ".changeset/commit-release-dry-run.md",
+			"summary": "Preview prepare-and-commit release workflows with --dry-run",
+			"details": "`PrepareRelease` skips writing the release record during dry-run previews, but `CommitRelease` still required that record on disk, so `monochange run release\n--dry-run` — the natural way to preview a prepare-and-commit pipeline — failed with `no release record found`.\n\nCommitRelease now reports the commit it would make (subject, tracked paths, and the expected `.monochange/releases/<hash>/release.json` path) without requiring or writing the record. The real run still validates and stages the record as before.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "298c6ce52aca91df4d1d5a48c07abed17e1afe12",
+						"short_sha": "298c6ce",
+						"url": "https://github.com/monochange/monochange/commit/298c6ce52aca91df4d1d5a48c07abed17e1afe12",
+						"authored_at": "2026-10-09T13:53:16Z",
+						"committed_at": "2026-10-09T13:53:16Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#781",
+						"title": "fix(release): preview CommitRelease in dry-run workflows",
+						"url": "https://github.com/monochange/monochange/pull/781",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "298c6ce52aca91df4d1d5a48c07abed17e1afe12",
+						"short_sha": "298c6ce",
+						"url": "https://github.com/monochange/monochange/commit/298c6ce52aca91df4d1d5a48c07abed17e1afe12",
+						"authored_at": "2026-10-09T13:53:16Z",
+						"committed_at": "2026-10-09T13:53:16Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#781",
+						"title": "fix(release): preview CommitRelease in dry-run workflows",
+						"url": "https://github.com/monochange/monochange/pull/781",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": [
+					{
+						"provider": "github",
+						"host": "github.com",
+						"id": "#773",
+						"title": null,
+						"url": "https://github.com/monochange/monochange/issues/773",
+						"relationship": "closed_by_review_request"
+					}
+				]
+			}
+		},
+		{
+			"path": ".changeset/discovery-worktree-roots.md",
+			"summary": "Discover packages in workspaces nested under ignored directory names",
+			"details": "`DiscoveryPathFilter` checked every component of the absolute manifest path against the skipped-directory list, so a workspace checked out below a directory named `.claude`, `node_modules`, `target`, `.git`, `.devenv`, `.fvm`, `.repos`, or `book` discovered zero packages. Claude Code worktrees (`.claude/worktrees/<name>`) were the common case: `monochange discover` reported an empty workspace and `monochange check` linted nothing.\n\nOnly components below the workspace root are checked now, matching how gitignore matching already worked, so the same repository discovers the same packages wherever it is checked out. Ignored directory names inside the workspace still filter discovery.",
+			"targets": [
+				{
+					"id": "monochange_core",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "32db166242e720a0824b78080ded681287e06c3a",
+						"short_sha": "32db166",
+						"url": "https://github.com/monochange/monochange/commit/32db166242e720a0824b78080ded681287e06c3a",
+						"authored_at": "2026-10-09T13:53:11Z",
+						"committed_at": "2026-10-09T13:53:11Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#779",
+						"title": "fix(core): limit discovery ignore checks to workspace-relative components",
+						"url": "https://github.com/monochange/monochange/pull/779",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "32db166242e720a0824b78080ded681287e06c3a",
+						"short_sha": "32db166",
+						"url": "https://github.com/monochange/monochange/commit/32db166242e720a0824b78080ded681287e06c3a",
+						"authored_at": "2026-10-09T13:53:11Z",
+						"committed_at": "2026-10-09T13:53:11Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#779",
+						"title": "fix(core): limit discovery ignore checks to workspace-relative components",
+						"url": "https://github.com/monochange/monochange/pull/779",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": [
+					{
+						"provider": "github",
+						"host": "github.com",
+						"id": "#775",
+						"title": null,
+						"url": "https://github.com/monochange/monochange/issues/775",
+						"relationship": "closed_by_review_request"
+					}
+				]
+			}
+		},
+		{
+			"path": ".changeset/github-app-registration-guide.md",
+			"summary": "Document the production GitHub App configuration",
+			"details": "The deployment guide now records the GitHub App permissions, webhook events, OAuth boundary, installation flow and production secret locations required to connect repositories and create commits safely.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "b1c5119ee97333b2e84460bbc29147a3c50734d2",
+						"short_sha": "b1c5119",
+						"url": "https://github.com/monochange/monochange/commit/b1c5119ee97333b2e84460bbc29147a3c50734d2",
+						"authored_at": "2026-10-09T08:38:41Z",
+						"committed_at": "2026-10-09T08:38:41Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#777",
+						"title": "docs(app): document GitHub App authorization and capabilities",
+						"url": "https://github.com/monochange/monochange/pull/777",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "b1c5119ee97333b2e84460bbc29147a3c50734d2",
+						"short_sha": "b1c5119",
+						"url": "https://github.com/monochange/monochange/commit/b1c5119ee97333b2e84460bbc29147a3c50734d2",
+						"authored_at": "2026-10-09T08:38:41Z",
+						"committed_at": "2026-10-09T08:38:41Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#777",
+						"title": "docs(app): document GitHub App authorization and capabilities",
+						"url": "https://github.com/monochange/monochange/pull/777",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/github-app-repository-onboarding.md",
+			"summary": "Connect repositories from your monochange dashboard",
+			"details": "Sign in and install the monochange GitHub App from the dashboard to choose the personal or organization repositories you want to connect. monochange keeps the connection available when you return to add or change repositories later.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "website_feature"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "c1614f5df8b124141d80600efe5c7348e491a01e",
+						"short_sha": "c1614f5",
+						"url": "https://github.com/monochange/monochange/commit/c1614f5df8b124141d80600efe5c7348e491a01e",
+						"authored_at": "2026-10-09T08:45:09Z",
+						"committed_at": "2026-10-09T08:45:09Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#782",
+						"title": "feat(app): authorize repository onboarding through GitHub App",
+						"url": "https://github.com/monochange/monochange/pull/782",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "c1614f5df8b124141d80600efe5c7348e491a01e",
+						"short_sha": "c1614f5",
+						"url": "https://github.com/monochange/monochange/commit/c1614f5df8b124141d80600efe5c7348e491a01e",
+						"authored_at": "2026-10-09T08:45:09Z",
+						"committed_at": "2026-10-09T08:45:09Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#782",
+						"title": "feat(app): authorize repository onboarding through GitHub App",
+						"url": "https://github.com/monochange/monochange/pull/782",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/github-app-user-authorization.md",
+			"summary": "Use GitHub App user authorization for repository onboarding",
+			"details": "Configure the GitHub App callback as `https://monochange.dev/auth/callback` and store its client ID and client secret in the `monochange_app` production profile. Login now uses PKCE and an exact callback URI, installation state is bound to the initiating browser, and expiring GitHub user tokens are refreshed from credentials stored by the new database migration.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "feat"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "c1614f5df8b124141d80600efe5c7348e491a01e",
+						"short_sha": "c1614f5",
+						"url": "https://github.com/monochange/monochange/commit/c1614f5df8b124141d80600efe5c7348e491a01e",
+						"authored_at": "2026-10-09T08:45:09Z",
+						"committed_at": "2026-10-09T08:45:09Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#782",
+						"title": "feat(app): authorize repository onboarding through GitHub App",
+						"url": "https://github.com/monochange/monochange/pull/782",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "c1614f5df8b124141d80600efe5c7348e491a01e",
+						"short_sha": "c1614f5",
+						"url": "https://github.com/monochange/monochange/commit/c1614f5df8b124141d80600efe5c7348e491a01e",
+						"authored_at": "2026-10-09T08:45:09Z",
+						"committed_at": "2026-10-09T08:45:09Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#782",
+						"title": "feat(app): authorize repository onboarding through GitHub App",
+						"url": "https://github.com/monochange/monochange/pull/782",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/npm-configured-workspace-lockfiles.md",
+			"summary": "Infer root lockfiles for configured npm-family packages",
+			"details": "`load_configured_npm_package` anchored configured packages to their manifest directory, so release preparation never inferred the workspace-level `pnpm-lock.yaml`, `package-lock.json`, or `yarn.lock`; those lockfiles only updated through explicit `versioned_files` entries or configured `lockfile_commands`. Package-manager detection had the same blind spot for `bun.lock` and `yarn.lock`.\n\nThe loader now resolves the workspace root by walking up to the nearest ancestor declaring `pnpm-workspace.yaml` or a `package.json` with `workspaces`, mirroring the cargo adapter, and recognizes `bun.lock` and `yarn.lock` when detecting the manager. Root lockfiles are rewritten directly during releases, and default lockfile commands run from the workspace root.",
+			"targets": [
+				{
+					"id": "monochange_npm",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "31af819318bc3e1083907f8f3d9d409eef7cc582",
+						"short_sha": "31af819",
+						"url": "https://github.com/monochange/monochange/commit/31af819318bc3e1083907f8f3d9d409eef7cc582",
+						"authored_at": "2026-10-09T13:52:09Z",
+						"committed_at": "2026-10-09T13:52:09Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#778",
+						"title": "feat(npm): support pnpm 12, Yarn, and Bun text lockfiles",
+						"url": "https://github.com/monochange/monochange/pull/778",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "31af819318bc3e1083907f8f3d9d409eef7cc582",
+						"short_sha": "31af819",
+						"url": "https://github.com/monochange/monochange/commit/31af819318bc3e1083907f8f3d9d409eef7cc582",
+						"authored_at": "2026-10-09T13:52:09Z",
+						"committed_at": "2026-10-09T13:52:09Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#778",
+						"title": "feat(npm): support pnpm 12, Yarn, and Bun text lockfiles",
+						"url": "https://github.com/monochange/monochange/pull/778",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": [
+					{
+						"provider": "github",
+						"host": "github.com",
+						"id": "#772",
+						"title": null,
+						"url": "https://github.com/monochange/monochange/issues/772",
+						"relationship": "closed_by_review_request"
+					}
+				]
+			}
+		},
+		{
+			"path": ".changeset/pnpm-12-two-document-lockfiles.md",
+			"summary": "Parse pnpm 12 lockfiles written as two YAML documents",
+			"details": "pnpm 12 emits `pnpm-lock.yaml` as two YAML documents separated by `---`: an env document holding `configDependencies` and `packageManagerDependencies`, followed by the main project lockfile. `update_pnpm_lock_text` validated the file with a single-document YAML parser, so preparing a release in a pnpm 12 workspace failed with `failed to parse pnpm lock yaml` and the lockfile had to be refreshed manually with `pnpm install --lockfile-only`.\n\nThe updater now validates every document in the stream and scans each top-level `importers`, `packages`, and `snapshots` section, so pinned versions rewrite in the project document while the env document, separators, quoting, and formatting stay byte-for-byte identical. `monochange_npm::validate_versioned_file` also accepts multi-document pnpm lockfiles for typed `versioned_files` entries.",
+			"targets": [
+				{
+					"id": "monochange_npm",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "31af819318bc3e1083907f8f3d9d409eef7cc582",
+						"short_sha": "31af819",
+						"url": "https://github.com/monochange/monochange/commit/31af819318bc3e1083907f8f3d9d409eef7cc582",
+						"authored_at": "2026-10-09T13:52:09Z",
+						"committed_at": "2026-10-09T13:52:09Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#778",
+						"title": "feat(npm): support pnpm 12, Yarn, and Bun text lockfiles",
+						"url": "https://github.com/monochange/monochange/pull/778",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "31af819318bc3e1083907f8f3d9d409eef7cc582",
+						"short_sha": "31af819",
+						"url": "https://github.com/monochange/monochange/commit/31af819318bc3e1083907f8f3d9d409eef7cc582",
+						"authored_at": "2026-10-09T13:52:09Z",
+						"committed_at": "2026-10-09T13:52:09Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#778",
+						"title": "feat(npm): support pnpm 12, Yarn, and Bun text lockfiles",
+						"url": "https://github.com/monochange/monochange/pull/778",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": [
+					{
+						"provider": "github",
+						"host": "github.com",
+						"id": "#772",
+						"title": null,
+						"url": "https://github.com/monochange/monochange/issues/772",
+						"relationship": "closed_by_review_request"
+					}
+				]
+			}
+		},
+		{
+			"path": ".changeset/yarn-docs-sync.md",
+			"summary": "Refresh shared ecosystem docs for Yarn lockfile support",
+			"details": "The shared documentation blocks on the website's guide pages and readme consumers now list Yarn workspaces and lockfiles alongside npm, pnpm, and Bun.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "31af819318bc3e1083907f8f3d9d409eef7cc582",
+						"short_sha": "31af819",
+						"url": "https://github.com/monochange/monochange/commit/31af819318bc3e1083907f8f3d9d409eef7cc582",
+						"authored_at": "2026-10-09T13:52:09Z",
+						"committed_at": "2026-10-09T13:52:09Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#778",
+						"title": "feat(npm): support pnpm 12, Yarn, and Bun text lockfiles",
+						"url": "https://github.com/monochange/monochange/pull/778",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "31af819318bc3e1083907f8f3d9d409eef7cc582",
+						"short_sha": "31af819",
+						"url": "https://github.com/monochange/monochange/commit/31af819318bc3e1083907f8f3d9d409eef7cc582",
+						"authored_at": "2026-10-09T13:52:09Z",
+						"committed_at": "2026-10-09T13:52:09Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#778",
+						"title": "feat(npm): support pnpm 12, Yarn, and Bun text lockfiles",
+						"url": "https://github.com/monochange/monochange/pull/778",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": [
+					{
+						"provider": "github",
+						"host": "github.com",
+						"id": "#772",
+						"title": null,
+						"url": "https://github.com/monochange/monochange/issues/772",
+						"relationship": "closed_by_review_request"
+					}
+				]
+			}
+		},
+		{
+			"path": ".changeset/yarn-lock-support.md",
+			"summary": "Add yarn.lock support for Yarn Classic and Berry workspaces",
+			"details": "The npm-family adapter now recognizes `yarn.lock` as a versioned lockfile: release preparation discovers it, rewrites resolved version pins directly, and `yarn install --mode=update-lockfile` is the default `lockfile_commands` override when you prefer package-manager resolution.\n\nAdding the `YarnLock` variant to the public `NpmVersionedFileKind` enum is the breaking surface: downstream exhaustive matches must gain the new arm (mark the enum `#[non_exhaustive]` in a follow-up if variant additions should stop requiring major releases).\n\n`monochange_npm::update_yarn_lock` walks entry headers in both layouts: Classic (`version \"1.2.3\"` under `\"name@range\":` keys) and Berry (`version: 1.2.3` under descriptor keys such as `\"name@npm:1.2.3\"`). Workspace-resolved entries keep their `0.0.0-use.local` placeholder, and comments, checksums, resolved URLs, key ordering, and quoting are preserved because only the version value span is rewritten. Configure typed entries as `{ path = \"yarn.lock\", type = \"npm\" }`.\n\n```rust\nmatch monochange_npm::supported_versioned_file_kind(path) {\n    Some(monochange_npm::NpmVersionedFileKind::YarnLock) => {\n        // new: yarn.lock is rewritten directly during releases\n    }\n    // every exhaustive match on NpmVersionedFileKind needs this arm now\n    _ => {}\n}\n```",
+			"targets": [
+				{
+					"id": "monochange_npm",
+					"kind": "package",
+					"bump": "major",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "breaking"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "31af819318bc3e1083907f8f3d9d409eef7cc582",
+						"short_sha": "31af819",
+						"url": "https://github.com/monochange/monochange/commit/31af819318bc3e1083907f8f3d9d409eef7cc582",
+						"authored_at": "2026-10-09T13:52:09Z",
+						"committed_at": "2026-10-09T13:52:09Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#778",
+						"title": "feat(npm): support pnpm 12, Yarn, and Bun text lockfiles",
+						"url": "https://github.com/monochange/monochange/pull/778",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "31af819318bc3e1083907f8f3d9d409eef7cc582",
+						"short_sha": "31af819",
+						"url": "https://github.com/monochange/monochange/commit/31af819318bc3e1083907f8f3d9d409eef7cc582",
+						"authored_at": "2026-10-09T13:52:09Z",
+						"committed_at": "2026-10-09T13:52:09Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#778",
+						"title": "feat(npm): support pnpm 12, Yarn, and Bun text lockfiles",
+						"url": "https://github.com/monochange/monochange/pull/778",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": [
+					{
+						"provider": "github",
+						"host": "github.com",
+						"id": "#772",
+						"title": null,
+						"url": "https://github.com/monochange/monochange/issues/772",
+						"relationship": "closed_by_review_request"
+					}
+				]
+			}
+		},
+		{
+			"path": ".changeset/yarn-lockfile-plumbing.md",
+			"summary": "Wire yarn.lock through release preparation",
+			"details": "The `monochange` crate reads and rewrites `yarn.lock` versioned files during release preparation, and `monochange_config` accepts `yarn.lock` as a typed npm-family versioned-file path so `monochange check` validates entries that target it. The npm CLI wrapper readme lists Yarn alongside npm, pnpm, and Bun.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				},
+				{
+					"id": "monochange_config",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				},
+				{
+					"id": "@monochange/cli",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "31af819318bc3e1083907f8f3d9d409eef7cc582",
+						"short_sha": "31af819",
+						"url": "https://github.com/monochange/monochange/commit/31af819318bc3e1083907f8f3d9d409eef7cc582",
+						"authored_at": "2026-10-09T13:52:09Z",
+						"committed_at": "2026-10-09T13:52:09Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#778",
+						"title": "feat(npm): support pnpm 12, Yarn, and Bun text lockfiles",
+						"url": "https://github.com/monochange/monochange/pull/778",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "31af819318bc3e1083907f8f3d9d409eef7cc582",
+						"short_sha": "31af819",
+						"url": "https://github.com/monochange/monochange/commit/31af819318bc3e1083907f8f3d9d409eef7cc582",
+						"authored_at": "2026-10-09T13:52:09Z",
+						"committed_at": "2026-10-09T13:52:09Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#778",
+						"title": "feat(npm): support pnpm 12, Yarn, and Bun text lockfiles",
+						"url": "https://github.com/monochange/monochange/pull/778",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": [
+					{
+						"provider": "github",
+						"host": "github.com",
+						"id": "#772",
+						"title": null,
+						"url": "https://github.com/monochange/monochange/issues/772",
+						"relationship": "closed_by_review_request"
+					}
+				]
+			}
+		}
+	],
+	"changelogs": [
+		{
+			"owner_id": "monochange_app",
+			"owner_kind": "package",
+			"output": "website",
+			"stream": "website",
+			"path": "app/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "0.2.4",
+				"summary": [],
+				"sections": [
+					{
+						"title": "New",
+						"collapsed": false,
+						"entries": [
+							"- **Connect repositories from your monochange dashboard.** Sign in and install the monochange GitHub App from the dashboard to choose the personal or organization repositories you want to connect. monochange keeps the connection available when you return to add or change repositories later.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #782](https://github.com/monochange/monochange/pull/782)"
+						]
+					}
+				]
+			},
+			"rendered": "## 0.2.4\n\n### New\n\n- **Connect repositories from your monochange dashboard.** Sign in and install the monochange GitHub App from the dashboard to choose the personal or organization repositories you want to connect. monochange keeps the connection available when you return to add or change repositories later.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #782](https://github.com/monochange/monochange/pull/782)"
+		},
+		{
+			"owner_id": "monochange_app",
+			"owner_kind": "package",
+			"output": "website_developer",
+			"stream": "default",
+			"path": "app/developer-changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "0.2.4",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Use GitHub App user authorization for repository onboarding\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #782](https://github.com/monochange/monochange/pull/782)\n\nConfigure the GitHub App callback as `https://monochange.dev/auth/callback` and store its client ID and client secret in the `monochange_app` production profile. Login now uses PKCE and an exact callback URI, installation state is bound to the initiating browser, and expiring GitHub user tokens are refreshed from credentials stored by the new database migration."
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"- **Document the production GitHub App configuration.** The deployment guide now records the GitHub App permissions, webhook events, OAuth boundary, installation flow and production secret locations required to connect repositories and create commits safely.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #777](https://github.com/monochange/monochange/pull/777)",
+							"- **Refresh shared ecosystem docs for Yarn lockfile support.** The shared documentation blocks on the website's guide pages and readme consumers now list Yarn workspaces and lockfiles alongside npm, pnpm, and Bun.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)"
+						]
+					},
+					{
+						"title": "🔨 Refactor",
+						"collapsed": true,
+						"entries": [
+							"#### Load monochange.dev secrets through Monosecret from one 1Password item\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #791](https://github.com/monochange/monochange/pull/791)\n\nProduction startup now reads every credential from a single 1Password item with one batched read, instead of one SecretSpec item per secret. This keeps the app well under the 1Password service-account request quota. Before deploying this release, operators must copy the production values into the new item and install the new Compose file.\n\n`app/secretspec.toml` is replaced by `app/monosecret.toml`. The container selects its profile with `MONOSECRET_PROFILE` and no longer sets a provider:\n\n```yaml\n# before\nenvironment:\n  SECRETSPEC_PROFILE: production\n  SECRETSPEC_PROVIDER: onepassword://monochange\n\n# after\nenvironment:\n  MONOSECRET_PROFILE: production\n```\n\nThe production profile reads the `monochange.dev` item in the `monochange` vault. Each secret is a field labelled with its name, in a section named after its group:\n\n| Section   | Fields                                                                                                             |\n| --------- | ------------------------------------------------------------------------------------------------------------------ |\n| `auth`    | `JWT_SECRET`                                                                                                       |\n| `github`  | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_WEBHOOK_SECRET` |\n| `release` | `MONOCHANGE_OIDC_AUDIENCE` (optional)                                                                              |\n| `ai`      | `OPENROUTER_API_KEY` (optional)                                                                                    |\n\n`DATABASE_URL` now comes from the Compose environment, and the bootstrap `OP_SERVICE_ACCOUNT_TOKEN` still comes from the Docker secret. The image keeps the bundled `op` CLI because Monosecret's 1Password provider shells out to it.\n\nTo migrate production:\n\n1. Create the `monochange.dev` item with the sections and fields above, copying each value from its `secretspec/monochange_app/production/<KEY>` item.\n2. Install `app/deploy/digitalocean/docker-compose.yml` from this release on the server before the image changes. The new image would treat a leftover `SECRETSPEC_PROVIDER` as an override and fail to start.\n3. Deploy, then check `/health`, the app logs, sign-in, and the repository connection link.\n4. Delete the old `secretspec/monochange_app/production/<KEY>` items.\n\nLocal development uses the `development` profile, which reads the ignored `app/.env`, then the environment, then local defaults, and never contacts 1Password. See \"production cutover from SecretSpec to Monosecret\" in `app/DEPLOY.md` for the full procedure and rollback."
+						]
+					}
+				]
+			},
+			"rendered": "## 0.2.4\n\n### 🚀 Feature\n\n#### Use GitHub App user authorization for repository onboarding\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #782](https://github.com/monochange/monochange/pull/782)\n\nConfigure the GitHub App callback as `https://monochange.dev/auth/callback` and store its client ID and client secret in the `monochange_app` production profile. Login now uses PKCE and an exact callback URI, installation state is bound to the initiating browser, and expiring GitHub user tokens are refreshed from credentials stored by the new database migration.\n\n### 🐛 Fixed\n\n- **Document the production GitHub App configuration.** The deployment guide now records the GitHub App permissions, webhook events, OAuth boundary, installation flow and production secret locations required to connect repositories and create commits safely.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #777](https://github.com/monochange/monochange/pull/777)\n- **Refresh shared ecosystem docs for Yarn lockfile support.** The shared documentation blocks on the website's guide pages and readme consumers now list Yarn workspaces and lockfiles alongside npm, pnpm, and Bun.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)\n\n<details>\n<summary><strong>🔨 Refactor</strong></summary>\n\n#### Load monochange.dev secrets through Monosecret from one 1Password item\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #791](https://github.com/monochange/monochange/pull/791)\n\nProduction startup now reads every credential from a single 1Password item with one batched read, instead of one SecretSpec item per secret. This keeps the app well under the 1Password service-account request quota. Before deploying this release, operators must copy the production values into the new item and install the new Compose file.\n\n`app/secretspec.toml` is replaced by `app/monosecret.toml`. The container selects its profile with `MONOSECRET_PROFILE` and no longer sets a provider:\n\n```yaml\n# before\nenvironment:\n  SECRETSPEC_PROFILE: production\n  SECRETSPEC_PROVIDER: onepassword://monochange\n\n# after\nenvironment:\n  MONOSECRET_PROFILE: production\n```\n\nThe production profile reads the `monochange.dev` item in the `monochange` vault. Each secret is a field labelled with its name, in a section named after its group:\n\n| Section   | Fields                                                                                                             |\n| --------- | ------------------------------------------------------------------------------------------------------------------ |\n| `auth`    | `JWT_SECRET`                                                                                                       |\n| `github`  | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_WEBHOOK_SECRET` |\n| `release` | `MONOCHANGE_OIDC_AUDIENCE` (optional)                                                                              |\n| `ai`      | `OPENROUTER_API_KEY` (optional)                                                                                    |\n\n`DATABASE_URL` now comes from the Compose environment, and the bootstrap `OP_SERVICE_ACCOUNT_TOKEN` still comes from the Docker secret. The image keeps the bundled `op` CLI because Monosecret's 1Password provider shells out to it.\n\nTo migrate production:\n\n1. Create the `monochange.dev` item with the sections and fields above, copying each value from its `secretspec/monochange_app/production/<KEY>` item.\n2. Install `app/deploy/digitalocean/docker-compose.yml` from this release on the server before the image changes. The new image would treat a leftover `SECRETSPEC_PROVIDER` as an override and fail to start.\n3. Deploy, then check `/health`, the app logs, sign-in, and the repository connection link.\n4. Delete the old `secretspec/monochange_app/production/<KEY>` items.\n\nLocal development uses the `development` profile, which reads the ignored `app/.env`, then the environment, then local defaults, and never contacts 1Password. See \"production cutover from SecretSpec to Monosecret\" in `app/DEPLOY.md` for the full procedure and rollback.\n</details>"
+		},
+		{
+			"owner_id": "monochange_app",
+			"owner_kind": "package",
+			"output": "website_json",
+			"stream": "website",
+			"path": "app/public/releases/0.2.4.json",
+			"format": "json",
+			"notes": {
+				"title": "0.2.4",
+				"summary": [],
+				"sections": [
+					{
+						"title": "New",
+						"collapsed": false,
+						"entries": [
+							"- **Connect repositories from your monochange dashboard.** Sign in and install the monochange GitHub App from the dashboard to choose the personal or organization repositories you want to connect. monochange keeps the connection available when you return to add or change repositories later.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #782](https://github.com/monochange/monochange/pull/782)"
+						]
+					}
+				]
+			},
+			"rendered": "{\n  \"title\": \"0.2.4\",\n  \"summary\": [],\n  \"sections\": [\n    {\n      \"title\": \"New\",\n      \"collapsed\": false,\n      \"entries\": [\n        {\n          \"summary\": \"Connect repositories from your monochange dashboard\",\n          \"details_markdown\": \"Sign in and install the monochange GitHub App from the dashboard to choose the personal or organization repositories you want to connect. monochange keeps the connection available when you return to add or change repositories later.\",\n          \"change_type\": \"website_feature\",\n          \"bump\": \"minor\",\n          \"stream\": \"website\",\n          \"style\": \"compact\",\n          \"provenance\": {\n            \"source_path\": \".changeset/github-app-repository-onboarding.md\",\n            \"changeset_path\": \".changeset/github-app-repository-onboarding.md\",\n            \"change_owner\": {\n              \"label\": \"@ifiokjr\",\n              \"url\": \"https://github.com/ifiokjr\"\n            },\n            \"review_request\": {\n              \"label\": \"PR #782\",\n              \"url\": \"https://github.com/monochange/monochange/pull/782\"\n            },\n            \"introduced_commit\": {\n              \"label\": \"c1614f5\",\n              \"url\": \"https://github.com/monochange/monochange/commit/c1614f5df8b124141d80600efe5c7348e491a01e\"\n            }\n          }\n        }\n      ]\n    }\n  ]\n}"
+		},
+		{
+			"owner_id": "main",
+			"owner_kind": "group",
+			"output": "default",
+			"stream": "default",
+			"path": "changelog.md",
+			"format": "monochange",
+			"notes": {
+				"title": "[0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)",
+				"summary": [
+					"Grouped release for `main`."
+				],
+				"sections": [
+					{
+						"title": "💥 Breaking Change",
+						"collapsed": false,
+						"entries": [
+							"#### Add yarn.lock support for Yarn Classic and Berry workspaces\n\n_Packages:_ 🔴 _monochange_npm_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)\n\nThe npm-family adapter now recognizes `yarn.lock` as a versioned lockfile: release preparation discovers it, rewrites resolved version pins directly, and `yarn install --mode=update-lockfile` is the default `lockfile_commands` override when you prefer package-manager resolution.\n\nAdding the `YarnLock` variant to the public `NpmVersionedFileKind` enum is the breaking surface: downstream exhaustive matches must gain the new arm (mark the enum `#[non_exhaustive]` in a follow-up if variant additions should stop requiring major releases).\n\n`monochange_npm::update_yarn_lock` walks entry headers in both layouts: Classic (`version \"1.2.3\"` under `\"name@range\":` keys) and Berry (`version: 1.2.3` under descriptor keys such as `\"name@npm:1.2.3\"`). Workspace-resolved entries keep their `0.0.0-use.local` placeholder, and comments, checksums, resolved URLs, key ordering, and quoting are preserved because only the version value span is rewritten. Configure typed entries as `{ path = \"yarn.lock\", type = \"npm\" }`.\n\n```rust\nmatch monochange_npm::supported_versioned_file_kind(path) {\n    Some(monochange_npm::NpmVersionedFileKind::YarnLock) => {\n        // new: yarn.lock is rewritten directly during releases\n    }\n    // every exhaustive match on NpmVersionedFileKind needs this arm now\n    _ => {}\n}\n```"
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"- **Wire yarn.lock through release preparation.** The `monochange` crate reads and rewrites `yarn.lock` versioned files during release preparation, and `monochange_config` accepts `yarn.lock` as a typed npm-family versioned-file path so `monochange check` validates entries that target it. The npm CLI wrapper readme lists Yarn alongside npm, pnpm, and Bun.\n  _Packages:_ 🟢 _@monochange/cli_, 🟢 _monochange_, 🟢 _monochange_config_\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)",
+							"#### Keep advisory classification evidence out of release planning\n\n_Packages:_ 🟢 _monochange_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #783](https://github.com/monochange/monochange/pull/783) · _Closed issues:_ [#776](https://github.com/monochange/monochange/issues/776)\n\nRelease planning escalated planned bumps from compatibility evidence even when `classification_enforced = false`, so a patch changeset released as `2.0.0` whenever the branch diff carried a rename the analyzer read as breaking, and the outcome differed by branch because the feature branch analyzed the branch range while the default branch analyzed the working directory.\n\nEvidence for packages with `classification_enforced = false` now stays advisory in `preview`, `prepare`, and `run release` the way it already was in `change classify`: the changeset decides the bump and a plan warning records what the evidence suggested. The prepared-release cache fingerprint also includes the detected change frame, so a feature branch's plan is never reused on the default branch after a fast-forward merge leaves identical commits, changesets, and HEAD.",
+							"#### Keep same-second changeset creations from overwriting each other\n\n_Packages:_ 🟢 _monochange_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #780](https://github.com/monochange/monochange/pull/780) · _Closed issues:_ [#774](https://github.com/monochange/monochange/issues/774)\n\n`monochange create` named changesets `<unix seconds>-<package>.md`, so two creations inside the same second (scripts, agents, or a quick second command) produced the same file and the second silently replaced the first. Both calls reported success while the first changeset was lost.\n\nDefault changeset names now append a counter when the timestamped name is already taken, so every creation gets its own file without passing `--output`.",
+							"#### Preview prepare-and-commit release workflows with --dry-run\n\n_Packages:_ 🟢 _monochange_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #781](https://github.com/monochange/monochange/pull/781) · _Closed issues:_ [#773](https://github.com/monochange/monochange/issues/773)\n\n`PrepareRelease` skips writing the release record during dry-run previews, but `CommitRelease` still required that record on disk, so `monochange run release\n--dry-run` — the natural way to preview a prepare-and-commit pipeline — failed with `no release record found`.\n\nCommitRelease now reports the commit it would make (subject, tracked paths, and the expected `.monochange/releases/<hash>/release.json` path) without requiring or writing the record. The real run still validates and stages the record as before.",
+							"#### Discover packages in workspaces nested under ignored directory names\n\n_Packages:_ 🟢 _monochange_core_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #779](https://github.com/monochange/monochange/pull/779) · _Closed issues:_ [#775](https://github.com/monochange/monochange/issues/775)\n\n`DiscoveryPathFilter` checked every component of the absolute manifest path against the skipped-directory list, so a workspace checked out below a directory named `.claude`, `node_modules`, `target`, `.git`, `.devenv`, `.fvm`, `.repos`, or `book` discovered zero packages. Claude Code worktrees (`.claude/worktrees/<name>`) were the common case: `monochange discover` reported an empty workspace and `monochange check` linted nothing.\n\nOnly components below the workspace root are checked now, matching how gitignore matching already worked, so the same repository discovers the same packages wherever it is checked out. Ignored directory names inside the workspace still filter discovery.",
+							"#### Rewrite real Bun JSONC lockfiles without corrupting workspace references\n\n_Packages:_ 🟢 _monochange_npm_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)\n\n`update_bun_lock` replaced the first `\"name\": \"...\"` string it found, which corrupted real `bun.lock` files: inter-workspace references such as `\"ui\": \"workspace:packages/ui\"` were overwritten with the released version. Bun writes `bun.lock` as JSONC with trailing commas and pins registry dependencies as exact versions.\n\nThe updater now rewrites only exact semver pins (`\"ui\": \"1.3.0\"`) and the `name@version` descriptors that open `\"name\": [...]` package-map entries of released packages. Workspace, alias, `npm:` protocol, range, and git or URL references are left untouched, as is the JSONC formatting.",
+							"#### Infer root lockfiles for configured npm-family packages\n\n_Packages:_ 🟢 _monochange_npm_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)\n\n`load_configured_npm_package` anchored configured packages to their manifest directory, so release preparation never inferred the workspace-level `pnpm-lock.yaml`, `package-lock.json`, or `yarn.lock`; those lockfiles only updated through explicit `versioned_files` entries or configured `lockfile_commands`. Package-manager detection had the same blind spot for `bun.lock` and `yarn.lock`.\n\nThe loader now resolves the workspace root by walking up to the nearest ancestor declaring `pnpm-workspace.yaml` or a `package.json` with `workspaces`, mirroring the cargo adapter, and recognizes `bun.lock` and `yarn.lock` when detecting the manager. Root lockfiles are rewritten directly during releases, and default lockfile commands run from the workspace root.",
+							"#### Parse pnpm 12 lockfiles written as two YAML documents\n\n_Packages:_ 🟢 _monochange_npm_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)\n\npnpm 12 emits `pnpm-lock.yaml` as two YAML documents separated by `---`: an env document holding `configDependencies` and `packageManagerDependencies`, followed by the main project lockfile. `update_pnpm_lock_text` validated the file with a single-document YAML parser, so preparing a release in a pnpm 12 workspace failed with `failed to parse pnpm lock yaml` and the lockfile had to be refreshed manually with `pnpm install --lockfile-only`.\n\nThe updater now validates every document in the stream and scans each top-level `importers`, `packages`, and `snapshots` section, so pinned versions rewrite in the project document while the env document, separators, quoting, and formatting stay byte-for-byte identical. `monochange_npm::validate_versioned_file` also accepts multi-document pnpm lockfiles for typed `versioned_files` entries."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)\n\nGrouped release for `main`.\n\n### 💥 Breaking Change\n\n#### Add yarn.lock support for Yarn Classic and Berry workspaces\n\n_Packages:_ 🔴 _monochange_npm_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)\n\nThe npm-family adapter now recognizes `yarn.lock` as a versioned lockfile: release preparation discovers it, rewrites resolved version pins directly, and `yarn install --mode=update-lockfile` is the default `lockfile_commands` override when you prefer package-manager resolution.\n\nAdding the `YarnLock` variant to the public `NpmVersionedFileKind` enum is the breaking surface: downstream exhaustive matches must gain the new arm (mark the enum `#[non_exhaustive]` in a follow-up if variant additions should stop requiring major releases).\n\n`monochange_npm::update_yarn_lock` walks entry headers in both layouts: Classic (`version \"1.2.3\"` under `\"name@range\":` keys) and Berry (`version: 1.2.3` under descriptor keys such as `\"name@npm:1.2.3\"`). Workspace-resolved entries keep their `0.0.0-use.local` placeholder, and comments, checksums, resolved URLs, key ordering, and quoting are preserved because only the version value span is rewritten. Configure typed entries as `{ path = \"yarn.lock\", type = \"npm\" }`.\n\n```rust\nmatch monochange_npm::supported_versioned_file_kind(path) {\n    Some(monochange_npm::NpmVersionedFileKind::YarnLock) => {\n        // new: yarn.lock is rewritten directly during releases\n    }\n    // every exhaustive match on NpmVersionedFileKind needs this arm now\n    _ => {}\n}\n```\n\n### 🐛 Fixed\n\n- **Wire yarn.lock through release preparation.** The `monochange` crate reads and rewrites `yarn.lock` versioned files during release preparation, and `monochange_config` accepts `yarn.lock` as a typed npm-family versioned-file path so `monochange check` validates entries that target it. The npm CLI wrapper readme lists Yarn alongside npm, pnpm, and Bun.\n  _Packages:_ 🟢 _@monochange/cli_, 🟢 _monochange_, 🟢 _monochange_config_\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)\n#### Keep advisory classification evidence out of release planning\n\n_Packages:_ 🟢 _monochange_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #783](https://github.com/monochange/monochange/pull/783) · _Closed issues:_ [#776](https://github.com/monochange/monochange/issues/776)\n\nRelease planning escalated planned bumps from compatibility evidence even when `classification_enforced = false`, so a patch changeset released as `2.0.0` whenever the branch diff carried a rename the analyzer read as breaking, and the outcome differed by branch because the feature branch analyzed the branch range while the default branch analyzed the working directory.\n\nEvidence for packages with `classification_enforced = false` now stays advisory in `preview`, `prepare`, and `run release` the way it already was in `change classify`: the changeset decides the bump and a plan warning records what the evidence suggested. The prepared-release cache fingerprint also includes the detected change frame, so a feature branch's plan is never reused on the default branch after a fast-forward merge leaves identical commits, changesets, and HEAD.\n\n#### Keep same-second changeset creations from overwriting each other\n\n_Packages:_ 🟢 _monochange_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #780](https://github.com/monochange/monochange/pull/780) · _Closed issues:_ [#774](https://github.com/monochange/monochange/issues/774)\n\n`monochange create` named changesets `<unix seconds>-<package>.md`, so two creations inside the same second (scripts, agents, or a quick second command) produced the same file and the second silently replaced the first. Both calls reported success while the first changeset was lost.\n\nDefault changeset names now append a counter when the timestamped name is already taken, so every creation gets its own file without passing `--output`.\n\n#### Preview prepare-and-commit release workflows with --dry-run\n\n_Packages:_ 🟢 _monochange_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #781](https://github.com/monochange/monochange/pull/781) · _Closed issues:_ [#773](https://github.com/monochange/monochange/issues/773)\n\n`PrepareRelease` skips writing the release record during dry-run previews, but `CommitRelease` still required that record on disk, so `monochange run release\n--dry-run` — the natural way to preview a prepare-and-commit pipeline — failed with `no release record found`.\n\nCommitRelease now reports the commit it would make (subject, tracked paths, and the expected `.monochange/releases/<hash>/release.json` path) without requiring or writing the record. The real run still validates and stages the record as before.\n\n#### Discover packages in workspaces nested under ignored directory names\n\n_Packages:_ 🟢 _monochange_core_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #779](https://github.com/monochange/monochange/pull/779) · _Closed issues:_ [#775](https://github.com/monochange/monochange/issues/775)\n\n`DiscoveryPathFilter` checked every component of the absolute manifest path against the skipped-directory list, so a workspace checked out below a directory named `.claude`, `node_modules`, `target`, `.git`, `.devenv`, `.fvm`, `.repos`, or `book` discovered zero packages. Claude Code worktrees (`.claude/worktrees/<name>`) were the common case: `monochange discover` reported an empty workspace and `monochange check` linted nothing.\n\nOnly components below the workspace root are checked now, matching how gitignore matching already worked, so the same repository discovers the same packages wherever it is checked out. Ignored directory names inside the workspace still filter discovery.\n\n#### Rewrite real Bun JSONC lockfiles without corrupting workspace references\n\n_Packages:_ 🟢 _monochange_npm_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)\n\n`update_bun_lock` replaced the first `\"name\": \"...\"` string it found, which corrupted real `bun.lock` files: inter-workspace references such as `\"ui\": \"workspace:packages/ui\"` were overwritten with the released version. Bun writes `bun.lock` as JSONC with trailing commas and pins registry dependencies as exact versions.\n\nThe updater now rewrites only exact semver pins (`\"ui\": \"1.3.0\"`) and the `name@version` descriptors that open `\"name\": [...]` package-map entries of released packages. Workspace, alias, `npm:` protocol, range, and git or URL references are left untouched, as is the JSONC formatting.\n\n#### Infer root lockfiles for configured npm-family packages\n\n_Packages:_ 🟢 _monochange_npm_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)\n\n`load_configured_npm_package` anchored configured packages to their manifest directory, so release preparation never inferred the workspace-level `pnpm-lock.yaml`, `package-lock.json`, or `yarn.lock`; those lockfiles only updated through explicit `versioned_files` entries or configured `lockfile_commands`. Package-manager detection had the same blind spot for `bun.lock` and `yarn.lock`.\n\nThe loader now resolves the workspace root by walking up to the nearest ancestor declaring `pnpm-workspace.yaml` or a `package.json` with `workspaces`, mirroring the cargo adapter, and recognizes `bun.lock` and `yarn.lock` when detecting the manager. Root lockfiles are rewritten directly during releases, and default lockfile commands run from the workspace root.\n\n#### Parse pnpm 12 lockfiles written as two YAML documents\n\n_Packages:_ 🟢 _monochange_npm_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)\n\npnpm 12 emits `pnpm-lock.yaml` as two YAML documents separated by `---`: an env document holding `configDependencies` and `packageManagerDependencies`, followed by the main project lockfile. `update_pnpm_lock_text` validated the file with a single-document YAML parser, so preparing a release in a pnpm 12 workspace failed with `failed to parse pnpm lock yaml` and the lockfile had to be refreshed manually with `pnpm install --lockfile-only`.\n\nThe updater now validates every document in the stream and scans each top-level `importers`, `packages`, and `snapshots` section, so pinned versions rewrite in the project document while the env document, separators, quoting, and formatting stay byte-for-byte identical. `monochange_npm::validate_versioned_file` also accepts multi-document pnpm lockfiles for typed `versioned_files` entries."
+		},
+		{
+			"owner_id": "monochange",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Keep advisory classification evidence out of release planning\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #783](https://github.com/monochange/monochange/pull/783) · _Closed issues:_ [#776](https://github.com/monochange/monochange/issues/776)\n\nRelease planning escalated planned bumps from compatibility evidence even when `classification_enforced = false`, so a patch changeset released as `2.0.0` whenever the branch diff carried a rename the analyzer read as breaking, and the outcome differed by branch because the feature branch analyzed the branch range while the default branch analyzed the working directory.\n\nEvidence for packages with `classification_enforced = false` now stays advisory in `preview`, `prepare`, and `run release` the way it already was in `change classify`: the changeset decides the bump and a plan warning records what the evidence suggested. The prepared-release cache fingerprint also includes the detected change frame, so a feature branch's plan is never reused on the default branch after a fast-forward merge leaves identical commits, changesets, and HEAD.",
+							"#### Keep same-second changeset creations from overwriting each other\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #780](https://github.com/monochange/monochange/pull/780) · _Closed issues:_ [#774](https://github.com/monochange/monochange/issues/774)\n\n`monochange create` named changesets `<unix seconds>-<package>.md`, so two creations inside the same second (scripts, agents, or a quick second command) produced the same file and the second silently replaced the first. Both calls reported success while the first changeset was lost.\n\nDefault changeset names now append a counter when the timestamped name is already taken, so every creation gets its own file without passing `--output`.",
+							"#### Preview prepare-and-commit release workflows with --dry-run\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #781](https://github.com/monochange/monochange/pull/781) · _Closed issues:_ [#773](https://github.com/monochange/monochange/issues/773)\n\n`PrepareRelease` skips writing the release record during dry-run previews, but `CommitRelease` still required that record on disk, so `monochange run release\n--dry-run` — the natural way to preview a prepare-and-commit pipeline — failed with `no release record found`.\n\nCommitRelease now reports the commit it would make (subject, tracked paths, and the expected `.monochange/releases/<hash>/release.json` path) without requiring or writing the record. The real run still validates and stages the record as before.",
+							"- **Wire yarn.lock through release preparation.** The `monochange` crate reads and rewrites `yarn.lock` versioned files during release preparation, and `monochange_config` accepts `yarn.lock` as a typed npm-family versioned-file path so `monochange check` validates entries that target it. The npm CLI wrapper readme lists Yarn alongside npm, pnpm, and Bun.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)\n\n### 🐛 Fixed\n\n#### Keep advisory classification evidence out of release planning\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #783](https://github.com/monochange/monochange/pull/783) · _Closed issues:_ [#776](https://github.com/monochange/monochange/issues/776)\n\nRelease planning escalated planned bumps from compatibility evidence even when `classification_enforced = false`, so a patch changeset released as `2.0.0` whenever the branch diff carried a rename the analyzer read as breaking, and the outcome differed by branch because the feature branch analyzed the branch range while the default branch analyzed the working directory.\n\nEvidence for packages with `classification_enforced = false` now stays advisory in `preview`, `prepare`, and `run release` the way it already was in `change classify`: the changeset decides the bump and a plan warning records what the evidence suggested. The prepared-release cache fingerprint also includes the detected change frame, so a feature branch's plan is never reused on the default branch after a fast-forward merge leaves identical commits, changesets, and HEAD.\n\n#### Keep same-second changeset creations from overwriting each other\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #780](https://github.com/monochange/monochange/pull/780) · _Closed issues:_ [#774](https://github.com/monochange/monochange/issues/774)\n\n`monochange create` named changesets `<unix seconds>-<package>.md`, so two creations inside the same second (scripts, agents, or a quick second command) produced the same file and the second silently replaced the first. Both calls reported success while the first changeset was lost.\n\nDefault changeset names now append a counter when the timestamped name is already taken, so every creation gets its own file without passing `--output`.\n\n#### Preview prepare-and-commit release workflows with --dry-run\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #781](https://github.com/monochange/monochange/pull/781) · _Closed issues:_ [#773](https://github.com/monochange/monochange/issues/773)\n\n`PrepareRelease` skips writing the release record during dry-run previews, but `CommitRelease` still required that record on disk, so `monochange run release\n--dry-run` — the natural way to preview a prepare-and-commit pipeline — failed with `no release record found`.\n\nCommitRelease now reports the commit it would make (subject, tracked paths, and the expected `.monochange/releases/<hash>/release.json` path) without requiring or writing the record. The real run still validates and stages the record as before.\n\n- **Wire yarn.lock through release preparation.** The `monochange` crate reads and rewrites `yarn.lock` versioned files during release preparation, and `monochange_config` accepts `yarn.lock` as a typed npm-family versioned-file path so `monochange check` validates entries that target it. The npm CLI wrapper readme lists Yarn alongside npm, pnpm, and Bun.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)"
+		},
+		{
+			"owner_id": "monochange_analysis",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_analysis/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_analysis` was updated to 0.19.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_analysis` was updated to 0.19.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_cargo",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_cargo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_cargo` was updated to 0.19.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_cargo` was updated to 0.19.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_changelog",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_changelog/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_changelog` was updated to 0.19.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_changelog` was updated to 0.19.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_classification",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_classification/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "monochange_classification [0.4.4](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.4.4) (2026-10-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_classification` was updated to 0.4.4.**"
+						]
+					}
+				]
+			},
+			"rendered": "## monochange_classification [0.4.4](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.4.4) (2026-10-10)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_classification` was updated to 0.4.4.**"
+		},
+		{
+			"owner_id": "monochange_config",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_config/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"- **Wire yarn.lock through release preparation.** The `monochange` crate reads and rewrites `yarn.lock` versioned files during release preparation, and `monochange_config` accepts `yarn.lock` as a typed npm-family versioned-file path so `monochange check` validates entries that target it. The npm CLI wrapper readme lists Yarn alongside npm, pnpm, and Bun.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)\n\n### 🐛 Fixed\n\n- **Wire yarn.lock through release preparation.** The `monochange` crate reads and rewrites `yarn.lock` versioned files during release preparation, and `monochange_config` accepts `yarn.lock` as a typed npm-family versioned-file path so `monochange check` validates entries that target it. The npm CLI wrapper readme lists Yarn alongside npm, pnpm, and Bun.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)"
+		},
+		{
+			"owner_id": "monochange_core",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_core/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Discover packages in workspaces nested under ignored directory names\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #779](https://github.com/monochange/monochange/pull/779) · _Closed issues:_ [#775](https://github.com/monochange/monochange/issues/775)\n\n`DiscoveryPathFilter` checked every component of the absolute manifest path against the skipped-directory list, so a workspace checked out below a directory named `.claude`, `node_modules`, `target`, `.git`, `.devenv`, `.fvm`, `.repos`, or `book` discovered zero packages. Claude Code worktrees (`.claude/worktrees/<name>`) were the common case: `monochange discover` reported an empty workspace and `monochange check` linted nothing.\n\nOnly components below the workspace root are checked now, matching how gitignore matching already worked, so the same repository discovers the same packages wherever it is checked out. Ignored directory names inside the workspace still filter discovery."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)\n\n### 🐛 Fixed\n\n#### Discover packages in workspaces nested under ignored directory names\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #779](https://github.com/monochange/monochange/pull/779) · _Closed issues:_ [#775](https://github.com/monochange/monochange/issues/775)\n\n`DiscoveryPathFilter` checked every component of the absolute manifest path against the skipped-directory list, so a workspace checked out below a directory named `.claude`, `node_modules`, `target`, `.git`, `.devenv`, `.fvm`, `.repos`, or `book` discovered zero packages. Claude Code worktrees (`.claude/worktrees/<name>`) were the common case: `monochange discover` reported an empty workspace and `monochange check` linted nothing.\n\nOnly components below the workspace root are checked now, matching how gitignore matching already worked, so the same repository discovers the same packages wherever it is checked out. Ignored directory names inside the workspace still filter discovery."
+		},
+		{
+			"owner_id": "monochange_dart",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_dart/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_dart` was updated to 0.19.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_dart` was updated to 0.19.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_deno",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_deno/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_deno` was updated to 0.19.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_deno` was updated to 0.19.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_ecmascript",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_ecmascript/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_ecmascript` was updated to 0.19.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_ecmascript` was updated to 0.19.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_forgejo",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_forgejo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_forgejo` was updated to 0.19.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_forgejo` was updated to 0.19.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_gitea",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_gitea/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_gitea` was updated to 0.19.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_gitea` was updated to 0.19.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_github",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_github/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_github` was updated to 0.19.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_github` was updated to 0.19.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_gitlab",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_gitlab/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_gitlab` was updated to 0.19.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_gitlab` was updated to 0.19.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_go",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_go/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_go` was updated to 0.19.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_go` was updated to 0.19.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_graph",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_graph/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_graph` was updated to 0.19.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_graph` was updated to 0.19.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_hosting",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_hosting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_hosting` was updated to 0.19.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_hosting` was updated to 0.19.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_lint",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_lint/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_lint` was updated to 0.19.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_lint` was updated to 0.19.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_linting",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_linting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_linting` was updated to 0.19.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_linting` was updated to 0.19.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_npm",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_npm/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "💥 Breaking Change",
+						"collapsed": false,
+						"entries": [
+							"#### Add yarn.lock support for Yarn Classic and Berry workspaces\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)\n\nThe npm-family adapter now recognizes `yarn.lock` as a versioned lockfile: release preparation discovers it, rewrites resolved version pins directly, and `yarn install --mode=update-lockfile` is the default `lockfile_commands` override when you prefer package-manager resolution.\n\nAdding the `YarnLock` variant to the public `NpmVersionedFileKind` enum is the breaking surface: downstream exhaustive matches must gain the new arm (mark the enum `#[non_exhaustive]` in a follow-up if variant additions should stop requiring major releases).\n\n`monochange_npm::update_yarn_lock` walks entry headers in both layouts: Classic (`version \"1.2.3\"` under `\"name@range\":` keys) and Berry (`version: 1.2.3` under descriptor keys such as `\"name@npm:1.2.3\"`). Workspace-resolved entries keep their `0.0.0-use.local` placeholder, and comments, checksums, resolved URLs, key ordering, and quoting are preserved because only the version value span is rewritten. Configure typed entries as `{ path = \"yarn.lock\", type = \"npm\" }`.\n\n```rust\nmatch monochange_npm::supported_versioned_file_kind(path) {\n    Some(monochange_npm::NpmVersionedFileKind::YarnLock) => {\n        // new: yarn.lock is rewritten directly during releases\n    }\n    // every exhaustive match on NpmVersionedFileKind needs this arm now\n    _ => {}\n}\n```"
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Rewrite real Bun JSONC lockfiles without corrupting workspace references\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)\n\n`update_bun_lock` replaced the first `\"name\": \"...\"` string it found, which corrupted real `bun.lock` files: inter-workspace references such as `\"ui\": \"workspace:packages/ui\"` were overwritten with the released version. Bun writes `bun.lock` as JSONC with trailing commas and pins registry dependencies as exact versions.\n\nThe updater now rewrites only exact semver pins (`\"ui\": \"1.3.0\"`) and the `name@version` descriptors that open `\"name\": [...]` package-map entries of released packages. Workspace, alias, `npm:` protocol, range, and git or URL references are left untouched, as is the JSONC formatting.",
+							"#### Infer root lockfiles for configured npm-family packages\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)\n\n`load_configured_npm_package` anchored configured packages to their manifest directory, so release preparation never inferred the workspace-level `pnpm-lock.yaml`, `package-lock.json`, or `yarn.lock`; those lockfiles only updated through explicit `versioned_files` entries or configured `lockfile_commands`. Package-manager detection had the same blind spot for `bun.lock` and `yarn.lock`.\n\nThe loader now resolves the workspace root by walking up to the nearest ancestor declaring `pnpm-workspace.yaml` or a `package.json` with `workspaces`, mirroring the cargo adapter, and recognizes `bun.lock` and `yarn.lock` when detecting the manager. Root lockfiles are rewritten directly during releases, and default lockfile commands run from the workspace root.",
+							"#### Parse pnpm 12 lockfiles written as two YAML documents\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)\n\npnpm 12 emits `pnpm-lock.yaml` as two YAML documents separated by `---`: an env document holding `configDependencies` and `packageManagerDependencies`, followed by the main project lockfile. `update_pnpm_lock_text` validated the file with a single-document YAML parser, so preparing a release in a pnpm 12 workspace failed with `failed to parse pnpm lock yaml` and the lockfile had to be refreshed manually with `pnpm install --lockfile-only`.\n\nThe updater now validates every document in the stream and scans each top-level `importers`, `packages`, and `snapshots` section, so pinned versions rewrite in the project document while the env document, separators, quoting, and formatting stay byte-for-byte identical. `monochange_npm::validate_versioned_file` also accepts multi-document pnpm lockfiles for typed `versioned_files` entries."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)\n\n### 💥 Breaking Change\n\n#### Add yarn.lock support for Yarn Classic and Berry workspaces\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)\n\nThe npm-family adapter now recognizes `yarn.lock` as a versioned lockfile: release preparation discovers it, rewrites resolved version pins directly, and `yarn install --mode=update-lockfile` is the default `lockfile_commands` override when you prefer package-manager resolution.\n\nAdding the `YarnLock` variant to the public `NpmVersionedFileKind` enum is the breaking surface: downstream exhaustive matches must gain the new arm (mark the enum `#[non_exhaustive]` in a follow-up if variant additions should stop requiring major releases).\n\n`monochange_npm::update_yarn_lock` walks entry headers in both layouts: Classic (`version \"1.2.3\"` under `\"name@range\":` keys) and Berry (`version: 1.2.3` under descriptor keys such as `\"name@npm:1.2.3\"`). Workspace-resolved entries keep their `0.0.0-use.local` placeholder, and comments, checksums, resolved URLs, key ordering, and quoting are preserved because only the version value span is rewritten. Configure typed entries as `{ path = \"yarn.lock\", type = \"npm\" }`.\n\n```rust\nmatch monochange_npm::supported_versioned_file_kind(path) {\n    Some(monochange_npm::NpmVersionedFileKind::YarnLock) => {\n        // new: yarn.lock is rewritten directly during releases\n    }\n    // every exhaustive match on NpmVersionedFileKind needs this arm now\n    _ => {}\n}\n```\n\n### 🐛 Fixed\n\n#### Rewrite real Bun JSONC lockfiles without corrupting workspace references\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)\n\n`update_bun_lock` replaced the first `\"name\": \"...\"` string it found, which corrupted real `bun.lock` files: inter-workspace references such as `\"ui\": \"workspace:packages/ui\"` were overwritten with the released version. Bun writes `bun.lock` as JSONC with trailing commas and pins registry dependencies as exact versions.\n\nThe updater now rewrites only exact semver pins (`\"ui\": \"1.3.0\"`) and the `name@version` descriptors that open `\"name\": [...]` package-map entries of released packages. Workspace, alias, `npm:` protocol, range, and git or URL references are left untouched, as is the JSONC formatting.\n\n#### Infer root lockfiles for configured npm-family packages\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)\n\n`load_configured_npm_package` anchored configured packages to their manifest directory, so release preparation never inferred the workspace-level `pnpm-lock.yaml`, `package-lock.json`, or `yarn.lock`; those lockfiles only updated through explicit `versioned_files` entries or configured `lockfile_commands`. Package-manager detection had the same blind spot for `bun.lock` and `yarn.lock`.\n\nThe loader now resolves the workspace root by walking up to the nearest ancestor declaring `pnpm-workspace.yaml` or a `package.json` with `workspaces`, mirroring the cargo adapter, and recognizes `bun.lock` and `yarn.lock` when detecting the manager. Root lockfiles are rewritten directly during releases, and default lockfile commands run from the workspace root.\n\n#### Parse pnpm 12 lockfiles written as two YAML documents\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)\n\npnpm 12 emits `pnpm-lock.yaml` as two YAML documents separated by `---`: an env document holding `configDependencies` and `packageManagerDependencies`, followed by the main project lockfile. `update_pnpm_lock_text` validated the file with a single-document YAML parser, so preparing a release in a pnpm 12 workspace failed with `failed to parse pnpm lock yaml` and the lockfile had to be refreshed manually with `pnpm install --lockfile-only`.\n\nThe updater now validates every document in the stream and scans each top-level `importers`, `packages`, and `snapshots` section, so pinned versions rewrite in the project document while the env document, separators, quoting, and formatting stay byte-for-byte identical. `monochange_npm::validate_versioned_file` also accepts multi-document pnpm lockfiles for typed `versioned_files` entries."
+		},
+		{
+			"owner_id": "monochange_publish",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_publish/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_publish` was updated to 0.19.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_publish` was updated to 0.19.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_python",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_python/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_python` was updated to 0.19.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_python` was updated to 0.19.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_semver",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_semver/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_semver` was updated to 0.19.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_semver` was updated to 0.19.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_telemetry",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_telemetry/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_telemetry` was updated to 0.19.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_telemetry` was updated to 0.19.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_test_helpers",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_test_helpers/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.19.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.19.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"- **Wire yarn.lock through release preparation.** The `monochange` crate reads and rewrites `yarn.lock` versioned files during release preparation, and `monochange_config` accepts `yarn.lock` as a typed npm-family versioned-file path so `monochange check` validates entries that target it. The npm CLI wrapper readme lists Yarn alongside npm, pnpm, and Bun.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)\n\n### 🐛 Fixed\n\n- **Wire yarn.lock through release preparation.** The `monochange` crate reads and rewrites `yarn.lock` versioned files during release preparation, and `monochange_config` accepts `yarn.lock` as a typed npm-family versioned-file path so `monochange check` validates entries that target it. The npm CLI wrapper readme lists Yarn alongside npm, pnpm, and Bun.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)"
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-arm64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-darwin-arm64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.19.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.19.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-x64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-darwin-x64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.19.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.19.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-arm64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.19.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.19.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-arm64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.19.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.19.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-x64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.19.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.19.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-x64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.19.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.19.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-win32-arm64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-win32-arm64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.19.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.19.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-win32-x64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-win32-x64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.19.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.19.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/skill",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__skill/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/skill` was updated to 0.19.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/skill` was updated to 0.19.0 as part of group `main`."
+		}
+	],
+	"provider": {
+		"kind": "github",
+		"owner": "monochange",
+		"repo": "monochange",
+		"host": null
+	}
+}

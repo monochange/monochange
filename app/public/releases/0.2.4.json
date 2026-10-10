@@ -1,0 +1,36 @@
+{
+	"title": "0.2.4",
+	"summary": [],
+	"sections": [
+		{
+			"title": "New",
+			"collapsed": false,
+			"entries": [
+				{
+					"summary": "Connect repositories from your monochange dashboard",
+					"details_markdown": "Sign in and install the monochange GitHub App from the dashboard to choose the personal or organization repositories you want to connect. monochange keeps the connection available when you return to add or change repositories later.",
+					"change_type": "website_feature",
+					"bump": "minor",
+					"stream": "website",
+					"style": "compact",
+					"provenance": {
+						"source_path": ".changeset/github-app-repository-onboarding.md",
+						"changeset_path": ".changeset/github-app-repository-onboarding.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #782",
+							"url": "https://github.com/monochange/monochange/pull/782"
+						},
+						"introduced_commit": {
+							"label": "c1614f5",
+							"url": "https://github.com/monochange/monochange/commit/c1614f5df8b124141d80600efe5c7348e491a01e"
+						}
+					}
+				}
+			]
+		}
+	]
+}

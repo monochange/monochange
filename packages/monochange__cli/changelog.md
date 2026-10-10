@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)
+
+### 🐛 Fixed
+
+- **Wire yarn.lock through release preparation.** The `monochange` crate reads and rewrites `yarn.lock` versioned files during release preparation, and `monochange_config` accepts `yarn.lock` as a typed npm-family versioned-file path so `monochange check` validates entries that target it. The npm CLI wrapper readme lists Yarn alongside npm, pnpm, and Bun. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)
+
 ## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)
 
 ### Changed

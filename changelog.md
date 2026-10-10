@@ -4,6 +4,109 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)
+
+Grouped release for `main`.
+
+### 💥 Breaking Change
+
+#### Add yarn.lock support for Yarn Classic and Berry workspaces
+
+_Packages:_ 🔴 _monochange_npm_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)
+
+The npm-family adapter now recognizes `yarn.lock` as a versioned lockfile: release preparation discovers it, rewrites resolved version pins directly, and `yarn install --mode=update-lockfile` is the default `lockfile_commands` override when you prefer package-manager resolution.
+
+Adding the `YarnLock` variant to the public `NpmVersionedFileKind` enum is the breaking surface: downstream exhaustive matches must gain the new arm (mark the enum `#[non_exhaustive]` in a follow-up if variant additions should stop requiring major releases).
+
+`monochange_npm::update_yarn_lock` walks entry headers in both layouts: Classic (`version "1.2.3"` under `"name@range":` keys) and Berry (`version: 1.2.3` under descriptor keys such as `"name@npm:1.2.3"`). Workspace-resolved entries keep their `0.0.0-use.local` placeholder, and comments, checksums, resolved URLs, key ordering, and quoting are preserved because only the version value span is rewritten. Configure typed entries as `{ path = "yarn.lock", type = "npm" }`.
+
+```rust
+match monochange_npm::supported_versioned_file_kind(path) {
+    Some(monochange_npm::NpmVersionedFileKind::YarnLock) => {
+        // new: yarn.lock is rewritten directly during releases
+    }
+    // every exhaustive match on NpmVersionedFileKind needs this arm now
+    _ => {}
+}
+```
+
+### 🐛 Fixed
+
+- **Wire yarn.lock through release preparation.** The `monochange` crate reads and rewrites `yarn.lock` versioned files during release preparation, and `monochange_config` accepts `yarn.lock` as a typed npm-family versioned-file path so `monochange check` validates entries that target it. The npm CLI wrapper readme lists Yarn alongside npm, pnpm, and Bun. _Packages:_ 🟢 _@monochange/cli_, 🟢 _monochange_, 🟢 _monochange_config_ _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)
+
+#### Keep advisory classification evidence out of release planning
+
+_Packages:_ 🟢 _monochange_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #783](https://github.com/monochange/monochange/pull/783) · _Closed issues:_ [#776](https://github.com/monochange/monochange/issues/776)
+
+Release planning escalated planned bumps from compatibility evidence even when `classification_enforced = false`, so a patch changeset released as `2.0.0` whenever the branch diff carried a rename the analyzer read as breaking, and the outcome differed by branch because the feature branch analyzed the branch range while the default branch analyzed the working directory.
+
+Evidence for packages with `classification_enforced = false` now stays advisory in `preview`, `prepare`, and `run release` the way it already was in `change classify`: the changeset decides the bump and a plan warning records what the evidence suggested. The prepared-release cache fingerprint also includes the detected change frame, so a feature branch's plan is never reused on the default branch after a fast-forward merge leaves identical commits, changesets, and HEAD.
+
+#### Keep same-second changeset creations from overwriting each other
+
+_Packages:_ 🟢 _monochange_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #780](https://github.com/monochange/monochange/pull/780) · _Closed issues:_ [#774](https://github.com/monochange/monochange/issues/774)
+
+`monochange create` named changesets `<unix seconds>-<package>.md`, so two creations inside the same second (scripts, agents, or a quick second command) produced the same file and the second silently replaced the first. Both calls reported success while the first changeset was lost.
+
+Default changeset names now append a counter when the timestamped name is already taken, so every creation gets its own file without passing `--output`.
+
+#### Preview prepare-and-commit release workflows with --dry-run
+
+_Packages:_ 🟢 _monochange_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #781](https://github.com/monochange/monochange/pull/781) · _Closed issues:_ [#773](https://github.com/monochange/monochange/issues/773)
+
+`PrepareRelease` skips writing the release record during dry-run previews, but `CommitRelease` still required that record on disk, so `monochange run release
+--dry-run` — the natural way to preview a prepare-and-commit pipeline — failed with `no release record found`.
+
+CommitRelease now reports the commit it would make (subject, tracked paths, and the expected `.monochange/releases/<hash>/release.json` path) without requiring or writing the record. The real run still validates and stages the record as before.
+
+#### Discover packages in workspaces nested under ignored directory names
+
+_Packages:_ 🟢 _monochange_core_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #779](https://github.com/monochange/monochange/pull/779) · _Closed issues:_ [#775](https://github.com/monochange/monochange/issues/775)
+
+`DiscoveryPathFilter` checked every component of the absolute manifest path against the skipped-directory list, so a workspace checked out below a directory named `.claude`, `node_modules`, `target`, `.git`, `.devenv`, `.fvm`, `.repos`, or `book` discovered zero packages. Claude Code worktrees (`.claude/worktrees/<name>`) were the common case: `monochange discover` reported an empty workspace and `monochange check` linted nothing.
+
+Only components below the workspace root are checked now, matching how gitignore matching already worked, so the same repository discovers the same packages wherever it is checked out. Ignored directory names inside the workspace still filter discovery.
+
+#### Rewrite real Bun JSONC lockfiles without corrupting workspace references
+
+_Packages:_ 🟢 _monochange_npm_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)
+
+`update_bun_lock` replaced the first `"name": "..."` string it found, which corrupted real `bun.lock` files: inter-workspace references such as `"ui": "workspace:packages/ui"` were overwritten with the released version. Bun writes `bun.lock` as JSONC with trailing commas and pins registry dependencies as exact versions.
+
+The updater now rewrites only exact semver pins (`"ui": "1.3.0"`) and the `name@version` descriptors that open `"name": [...]` package-map entries of released packages. Workspace, alias, `npm:` protocol, range, and git or URL references are left untouched, as is the JSONC formatting.
+
+#### Infer root lockfiles for configured npm-family packages
+
+_Packages:_ 🟢 _monochange_npm_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)
+
+`load_configured_npm_package` anchored configured packages to their manifest directory, so release preparation never inferred the workspace-level `pnpm-lock.yaml`, `package-lock.json`, or `yarn.lock`; those lockfiles only updated through explicit `versioned_files` entries or configured `lockfile_commands`. Package-manager detection had the same blind spot for `bun.lock` and `yarn.lock`.
+
+The loader now resolves the workspace root by walking up to the nearest ancestor declaring `pnpm-workspace.yaml` or a `package.json` with `workspaces`, mirroring the cargo adapter, and recognizes `bun.lock` and `yarn.lock` when detecting the manager. Root lockfiles are rewritten directly during releases, and default lockfile commands run from the workspace root.
+
+#### Parse pnpm 12 lockfiles written as two YAML documents
+
+_Packages:_ 🟢 _monochange_npm_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)
+
+pnpm 12 emits `pnpm-lock.yaml` as two YAML documents separated by `---`: an env document holding `configDependencies` and `packageManagerDependencies`, followed by the main project lockfile. `update_pnpm_lock_text` validated the file with a single-document YAML parser, so preparing a release in a pnpm 12 workspace failed with `failed to parse pnpm lock yaml` and the lockfile had to be refreshed manually with `pnpm install --lockfile-only`.
+
+The updater now validates every document in the stream and scans each top-level `importers`, `packages`, and `snapshots` section, so pinned versions rewrite in the project document while the env document, separators, quoting, and formatting stay byte-for-byte identical. `monochange_npm::validate_versioned_file` also accepts multi-document pnpm lockfiles for typed `versioned_files` entries.
+
 ## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)
 
 Grouped release for `main`.
