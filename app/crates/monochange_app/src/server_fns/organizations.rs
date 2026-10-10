@@ -51,6 +51,10 @@ pub fn project_path(organization: &str, project: &str) -> String {
 	format!("/dashboard/{organization}/projects/{project}")
 }
 
+pub fn feedback_console_path(organization: &str, project: &str) -> String {
+	format!("{}/feedback", project_path(organization, project))
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ProjectRepositoryView {
 	pub full_name: String,
@@ -301,6 +305,72 @@ fn require_projects(
 #[cfg(not(target_arch = "wasm32"))]
 fn not_found() -> server_fn::ServerFnError {
 	server_fn::ServerFnError::new("That organisation or project isn't available to you.")
+}
+
+/// A project the signed-in user maintains, resolved for feedback.
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) struct MaintainedProject {
+	pub organization: String,
+	pub project: ProjectSummary,
+	pub maintainer: String,
+	pub scope: monochange_app_api::feedback::ProjectScope,
+}
+
+/// Resolves `organization/project` for its maintainer, or `None` when it
+/// isn't theirs. Only connected repositories join the scope: feedback can't
+/// act on a repository monochange can no longer reach.
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) async fn maintained_project(
+	state: &monochange_app_api::AppState,
+	organization: &str,
+	project: &str,
+) -> ServerResult<Option<MaintainedProject>> {
+	let Some((user_id, access)) = organization_access(state, organization).await? else {
+		return Ok(None);
+	};
+	let Some(record) = access.record.as_ref() else {
+		return Ok(None);
+	};
+	let Some(found) = monochange_app_db::projects::find_project(&state.db, record.id, project)
+		.await
+		.map_err(database_error)?
+	else {
+		return Ok(None);
+	};
+	let linked = monochange_app_db::projects::project_repositories(&state.db, found.id)
+		.await
+		.map_err(database_error)?;
+	let repositories: Vec<_> = access
+		.repositories
+		.iter()
+		.filter(|repository| {
+			linked
+				.iter()
+				.any(|linked| linked.external_id == repository.github_repo_id)
+		})
+		.map(|repository| {
+			monochange_app_api::feedback::ProjectRepository {
+				full_name: repository.info.github_full_name.clone(),
+				private: repository.info.github_private,
+				github_installation_id: repository.github_installation_id,
+			}
+		})
+		.collect();
+	let maintainer: String = sqlx::query_scalar("SELECT github_login FROM users WHERE id = $1")
+		.bind(user_id)
+		.fetch_one(&state.db)
+		.await
+		.map_err(database_error)?;
+	Ok(Some(MaintainedProject {
+		organization: access.login.clone(),
+		scope: monochange_app_api::feedback::ProjectScope {
+			project_id: found.id,
+			disconnected: linked.len().saturating_sub(repositories.len()),
+			repositories,
+		},
+		project: project_summary(found),
+		maintainer,
+	}))
 }
 
 /// The signed-in user's organisations with their repositories and projects.

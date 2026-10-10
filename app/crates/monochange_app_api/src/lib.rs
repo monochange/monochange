@@ -11,6 +11,7 @@
 mod tests;
 
 mod config;
+pub mod feedback;
 pub mod github_app;
 pub mod oauth;
 pub mod oidc;

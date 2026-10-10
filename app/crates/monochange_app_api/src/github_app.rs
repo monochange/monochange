@@ -785,3 +785,54 @@ pub async fn enable_pull_request_auto_merge(
 		.await?;
 	Ok(response.status().is_success())
 }
+
+/// An issue the monochange GitHub App opened.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct CreatedIssue {
+	pub number: u64,
+	pub html_url: String,
+}
+
+#[derive(Debug, Serialize)]
+struct CreateIssueRequest<'a> {
+	title: &'a str,
+	body: &'a str,
+	labels: &'a [String],
+}
+
+/// Open an issue in `full_name` (`owner/name`) as the monochange bot.
+///
+/// # Errors
+/// Returns an error if the request fails or GitHub rejects it, for example
+/// when the app lacks Issues write access on the repository.
+pub async fn create_issue(
+	http: &reqwest::Client,
+	api_url: &str,
+	installation_token: &str,
+	full_name: &str,
+	title: &str,
+	body: &str,
+	labels: &[String],
+) -> Result<CreatedIssue, GitHubAppError> {
+	let response = http
+		.post(format!(
+			"{}/repos/{full_name}/issues",
+			api_url.trim_end_matches('/')
+		))
+		.bearer_auth(installation_token)
+		.header("Accept", "application/vnd.github+json")
+		.header("User-Agent", "monochange")
+		.json(&CreateIssueRequest {
+			title,
+			body,
+			labels,
+		})
+		.send()
+		.await?;
+	if !response.status().is_success() {
+		let status = response.status();
+		let body = response.text().await.unwrap_or_default();
+		return Err(api_error("create issue", status, body));
+	}
+	Ok(response.json().await?)
+}

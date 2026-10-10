@@ -11,6 +11,7 @@ use crate::projects::MAX_NAME_CHARS;
 use crate::server_fns::organizations::DeleteProject;
 use crate::server_fns::organizations::ProjectDetails;
 use crate::server_fns::organizations::UpdateProject;
+use crate::server_fns::organizations::feedback_console_path;
 use crate::server_fns::organizations::organization_path;
 use crate::server_fns::organizations::project_overview;
 
@@ -76,6 +77,14 @@ fn ProjectContent(details: ProjectDetails) -> impl IntoView {
 						view! { <li><div><h3>{repository.full_name.clone()}</h3><p>{state}</p></div></li> }
 					}).collect::<Vec<_>>()}
 				</ul>
+			</section>
+			<section class="repository-section" aria-labelledby="project-feedback-title">
+				<div class="repository-heading"><h2 id="project-feedback-title">"Feedback"</h2></div>
+				<p class="form-note">"Bugs and ideas from this project's users, with triage, votes, and the decisions that turn them into issues."</p>
+				<div class="actions">
+					<a class="button button-brand" href=feedback_console_path(&organization, &project.slug)>"Open the feedback console"</a>
+					<a class="text-link" href=crate::server_fns::portal::portal_path(&organization, &project.slug)>"View the public portal"</a>
+				</div>
 			</section>
 			<section class="repository-section" aria-labelledby="project-settings-title">
 				<div class="repository-heading"><h2 id="project-settings-title">"Settings"</h2></div>

@@ -3369,6 +3369,7 @@ dependencies = [
  "monochange_app_api",
  "monochange_app_automation",
  "monochange_app_db",
+ "monochange_app_feedback",
  "monochange_core",
  "monochange_github",
  "monochange_hosting",
@@ -3410,6 +3411,7 @@ dependencies = [
  "httpmock",
  "jsonwebtoken",
  "monochange_app_db",
+ "monochange_app_feedback",
  "monochange_core",
  "monochange_github",
  "monosecret",
@@ -3462,6 +3464,15 @@ dependencies = [
  "uuid",
  "welds",
  "welds-connections",
+]
+
+[[package]]
+name = "monochange_app_feedback"
+version = "0.2.3"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
