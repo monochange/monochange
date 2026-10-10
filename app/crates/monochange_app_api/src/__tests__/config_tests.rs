@@ -17,7 +17,18 @@ use crate::AppSecrets;
 use crate::config::github_app_credentials;
 use crate::github_app::GitHubAppError;
 
-fn secrets(values: serde_json::Value) -> AppSecrets {
+/// Resolved secrets with every required field set and the given optional
+/// GitHub App fields layered on top.
+fn secrets(optional: serde_json::Value) -> AppSecrets {
+	let mut values = serde_json::json!({
+		"database_url": "sqlite::memory:",
+		"jwt_secret": "config-test-signing-key",
+		"github_client_id": "",
+		"github_client_secret": "",
+	});
+	let optional: serde_json::Map<String, serde_json::Value> =
+		serde_json::from_value(optional).unwrap();
+	values.as_object_mut().unwrap().extend(optional);
 	serde_json::from_value(values).unwrap()
 }
 

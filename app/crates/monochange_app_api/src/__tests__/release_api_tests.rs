@@ -214,8 +214,14 @@ async fn release_api_state(github: &MockServer, api_token: &str) -> AppState {
 	] {
 		sqlx::query(statement).execute(&db).await.unwrap();
 	}
-	let secrets: AppSecrets =
-		serde_json::from_value(serde_json::json!({ "monochange_token": api_token })).unwrap();
+	let secrets: AppSecrets = serde_json::from_value(serde_json::json!({
+		"database_url": "sqlite::memory:",
+		"jwt_secret": "release-api-test-signing-key",
+		"github_client_id": "",
+		"github_client_secret": "",
+		"monochange_token": api_token,
+	}))
+	.unwrap();
 	let mut state = AppState::new(db, secrets).unwrap();
 	state.github_app = Some(GitHubAppAuth::new(
 		"123",
@@ -267,8 +273,14 @@ async fn post_release_commit(
 
 #[tokio::test]
 async fn empty_api_token_secret_requires_oidc() {
-	let secrets: AppSecrets =
-		serde_json::from_value(serde_json::json!({ "monochange_token": "" })).unwrap();
+	let secrets: AppSecrets = serde_json::from_value(serde_json::json!({
+		"database_url": "sqlite::memory:",
+		"jwt_secret": "release-api-test-signing-key",
+		"github_client_id": "",
+		"github_client_secret": "",
+		"monochange_token": "",
+	}))
+	.unwrap();
 	let db = monochange_app_db::create_pool("sqlite::memory:")
 		.await
 		.unwrap();

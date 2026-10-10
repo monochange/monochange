@@ -4,8 +4,7 @@ services:
     pull_policy: never
     restart: unless-stopped
     environment:
-      SECRETSPEC_PROFILE: production
-      SECRETSPEC_PROVIDER: onepassword://monochange
+      MONOSECRET_PROFILE: production
       OP_SERVICE_ACCOUNT_TOKEN_FILE: /run/secrets/onepassword_service_account_token
       DATABASE_URL: sqlite:///data/monochange_app.sqlite3
     secrets:
