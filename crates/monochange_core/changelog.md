@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)
+
+### 🐛 Fixed
+
+#### Discover packages in workspaces nested under ignored directory names
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #779](https://github.com/monochange/monochange/pull/779) · _Closed issues:_ [#775](https://github.com/monochange/monochange/issues/775)
+
+`DiscoveryPathFilter` checked every component of the absolute manifest path against the skipped-directory list, so a workspace checked out below a directory named `.claude`, `node_modules`, `target`, `.git`, `.devenv`, `.fvm`, `.repos`, or `book` discovered zero packages. Claude Code worktrees (`.claude/worktrees/<name>`) were the common case: `monochange discover` reported an empty workspace and `monochange check` linted nothing.
+
+Only components below the workspace root are checked now, matching how gitignore matching already worked, so the same repository discovers the same packages wherever it is checked out. Ignored directory names inside the workspace still filter discovery.
+
 ## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)
 
 ### 💥 Breaking Change

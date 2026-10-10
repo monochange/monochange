@@ -4,6 +4,56 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-10)
+
+### 💥 Breaking Change
+
+#### Add yarn.lock support for Yarn Classic and Berry workspaces
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)
+
+The npm-family adapter now recognizes `yarn.lock` as a versioned lockfile: release preparation discovers it, rewrites resolved version pins directly, and `yarn install --mode=update-lockfile` is the default `lockfile_commands` override when you prefer package-manager resolution.
+
+Adding the `YarnLock` variant to the public `NpmVersionedFileKind` enum is the breaking surface: downstream exhaustive matches must gain the new arm (mark the enum `#[non_exhaustive]` in a follow-up if variant additions should stop requiring major releases).
+
+`monochange_npm::update_yarn_lock` walks entry headers in both layouts: Classic (`version "1.2.3"` under `"name@range":` keys) and Berry (`version: 1.2.3` under descriptor keys such as `"name@npm:1.2.3"`). Workspace-resolved entries keep their `0.0.0-use.local` placeholder, and comments, checksums, resolved URLs, key ordering, and quoting are preserved because only the version value span is rewritten. Configure typed entries as `{ path = "yarn.lock", type = "npm" }`.
+
+```rust
+match monochange_npm::supported_versioned_file_kind(path) {
+    Some(monochange_npm::NpmVersionedFileKind::YarnLock) => {
+        // new: yarn.lock is rewritten directly during releases
+    }
+    // every exhaustive match on NpmVersionedFileKind needs this arm now
+    _ => {}
+}
+```
+
+### 🐛 Fixed
+
+#### Rewrite real Bun JSONC lockfiles without corrupting workspace references
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)
+
+`update_bun_lock` replaced the first `"name": "..."` string it found, which corrupted real `bun.lock` files: inter-workspace references such as `"ui": "workspace:packages/ui"` were overwritten with the released version. Bun writes `bun.lock` as JSONC with trailing commas and pins registry dependencies as exact versions.
+
+The updater now rewrites only exact semver pins (`"ui": "1.3.0"`) and the `name@version` descriptors that open `"name": [...]` package-map entries of released packages. Workspace, alias, `npm:` protocol, range, and git or URL references are left untouched, as is the JSONC formatting.
+
+#### Infer root lockfiles for configured npm-family packages
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)
+
+`load_configured_npm_package` anchored configured packages to their manifest directory, so release preparation never inferred the workspace-level `pnpm-lock.yaml`, `package-lock.json`, or `yarn.lock`; those lockfiles only updated through explicit `versioned_files` entries or configured `lockfile_commands`. Package-manager detection had the same blind spot for `bun.lock` and `yarn.lock`.
+
+The loader now resolves the workspace root by walking up to the nearest ancestor declaring `pnpm-workspace.yaml` or a `package.json` with `workspaces`, mirroring the cargo adapter, and recognizes `bun.lock` and `yarn.lock` when detecting the manager. Root lockfiles are rewritten directly during releases, and default lockfile commands run from the workspace root.
+
+#### Parse pnpm 12 lockfiles written as two YAML documents
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)
+
+pnpm 12 emits `pnpm-lock.yaml` as two YAML documents separated by `---`: an env document holding `configDependencies` and `packageManagerDependencies`, followed by the main project lockfile. `update_pnpm_lock_text` validated the file with a single-document YAML parser, so preparing a release in a pnpm 12 workspace failed with `failed to parse pnpm lock yaml` and the lockfile had to be refreshed manually with `pnpm install --lockfile-only`.
+
+The updater now validates every document in the stream and scans each top-level `importers`, `packages`, and `snapshots` section, so pinned versions rewrite in the project document while the env document, separators, quoting, and formatting stay byte-for-byte identical. `monochange_npm::validate_versioned_file` also accepts multi-document pnpm lockfiles for typed `versioned_files` entries.
+
 ## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)
 
 ### Changed

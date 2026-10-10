@@ -3,7 +3,7 @@
 	"kind": "cli-surface",
 	"tool": {
 		"name": "monochange",
-		"version": "0.18.0"
+		"version": "0.19.0"
 	},
 	"provenance": {
 		"extractor": "clap",
