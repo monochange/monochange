@@ -353,7 +353,9 @@ cli = { name = "monochange", snapshot = "monochange snapshot --view index" }
 
 [package.monochange_app]
 path = "app/crates/monochange_app"
-additional_paths = ["app/**", "docs/src/**", "Dockerfile", ".github/workflows/ci.yml"]
+# The app's workflow file joins the affected paths; ci.yml stays out so
+# general CI changes never require a monochange_app changeset.
+additional_paths = ["app/**", "docs/src/**", "Dockerfile", ".github/workflows/app.yml"]
 publish = { enabled = false }
 changelog = false
 tag = true
@@ -421,12 +423,18 @@ path = "crates/monochange_graph"
 
 [package.monochange_schema]
 path = "crates/monochange_schema"
+# The schema contract is standalone: its GitHub release carries the notes for
+# each schema version. publish.yml publishes this draft alongside the main
+# release once the registry publish succeeds.
 release = true
 tag = true
 
 [package.monochange_classification]
 path = "crates/monochange_classification"
-release = true
+# Keep the tag for history, but skip the provider release: this crate moves
+# alongside its consumers and its notes already live in its committed
+# changelog.
+release = false
 tag = true
 
 [package.monochange_semver]
@@ -637,11 +645,12 @@ enabled = true
 # Default: true
 required = true
 
-# Pull-request labels that skip verification entirely. Keep this limited to
-# automated release PRs so regular pull requests still prove package changes
-# are covered by attached changesets.
+# Pull-request labels that skip verification entirely. `release` covers
+# automated release PRs. `no-changeset-required` is a maintainer-only
+# decision for repository-plumbing pull requests whose changed paths would
+# otherwise demand a package changeset.
 # Default: []
-skip_labels = ["release"]
+skip_labels = ["release", "no-changeset-required"]
 
 # Whether to render a failure comment body in the evaluation output for
 # CI integrations to post back to the pull request.
