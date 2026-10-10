@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # Exercise the built image without accessing any production credentials.
+# MONOSECRET_PROVIDER=env routes every production secret, including the
+# bootstrap token the entrypoint exports, to test values in the environment.
 set -euo pipefail
 image="${1:?image required}"
 version="${2:-}"
@@ -15,7 +17,7 @@ printf '%s' ci-service-account-test-token >"$token"
 chmod 600 "$token"
 docker run -d --name "$name" -p 127.0.0.1:3000:3000 \
 	--mount "type=bind,source=$token,target=/run/secrets/onepassword_service_account_token,readonly" \
-	-e SECRETSPEC_PROFILE=production -e SECRETSPEC_PROVIDER=env \
+	-e MONOSECRET_PROFILE=production -e MONOSECRET_PROVIDER=env \
 	-e OP_SERVICE_ACCOUNT_TOKEN_FILE=/run/secrets/onepassword_service_account_token \
 	-e DATABASE_URL=sqlite:///data/monochange_app.sqlite3 \
 	-e JWT_SECRET=ci-docker-test-signing-key-not-a-secret \

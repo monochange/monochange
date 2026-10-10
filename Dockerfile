@@ -63,6 +63,8 @@ RUN cargo leptos build --release
 # ── Final stage ────────────────────────────────────────────────────────────
 FROM debian:bookworm-slim
 
+# Monosecret's 1Password provider reads items through the `op` CLI, so the
+# image bundles it for the production profile.
 ARG OP_VERSION=v2.30.3
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl unzip util-linux \
@@ -86,7 +88,7 @@ RUN useradd -m -u 1000 app
 # Copy static assets and binary from builder
 COPY --from=builder /app/app/target/site /app/site
 COPY --from=builder /app/app/target/release/monochange_app /app/monochange_app
-COPY app/secretspec.toml /app/secretspec.toml
+COPY app/monosecret.toml /app/monosecret.toml
 COPY app/deploy/docker-entrypoint.sh /usr/local/bin/monochange-app-entrypoint
 
 # Ensure correct permissions and create the SQLite data directory.
@@ -99,10 +101,11 @@ RUN mkdir -p /data \
 USER root
 WORKDIR /app
 
-# SecretSpec and the 1Password CLI must use the unprivileged user's home after
-# the entrypoint drops privileges, rather than probing root's private config.
+# Monosecret (its config and audit log) and the 1Password CLI must use the
+# unprivileged user's home after the entrypoint drops privileges, rather than
+# probing root's private config.
 ENV HOME=/home/app
-ENV SECRETSPEC_PROFILE=development
+ENV MONOSECRET_PROFILE=development
 ENV DATABASE_URL=sqlite:///data/monochange_app.sqlite3
 ENV LEPTOS_SITE_ROOT=/app/site
 ENV LEPTOS_SITE_PKG_DIR=pkg

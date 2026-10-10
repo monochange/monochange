@@ -37,7 +37,7 @@ The form cannot prefill the webhook secret. See [GitHub's registration parameter
 ## Configure the existing deployment
 
 1. Save the actual App ID and client ID, generate one client secret for user authorization, and generate a private key in the app's GitHub settings. The complete PEM file is required.
-2. Store `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, and `GITHUB_APP_WEBHOOK_SECRET` together in the existing `monochange_app` production secret profile through the approved Monosecret workflow. Keep production access read-only and scoped; do not replace the development service account.
+2. Store `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, and `GITHUB_APP_WEBHOOK_SECRET` together as fields of the `github` section in the `monochange.dev` item of the `monochange` vault; see the production secret layout in `app/DEPLOY.md`. Keep production access read-only and scoped; do not replace the development service account.
 3. Deploy the reviewed website release through the normal automated release path. Do not install repositories while the old deployment silently discards installation webhooks.
 4. Sign in with GitHub App user authorization. The dashboard must offer a connection link resolved from the configured app's authenticated `GET /app` response. An invalid configuration must show an error; an unconfigured deployment must say connection is unavailable.
 5. Install the app on a test account or organization. Choose all repositories or selected repositories on GitHub. GitHub user authorization returns through the callback to the dashboard; query parameters such as `installation_id` never authorize access.

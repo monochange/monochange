@@ -36,9 +36,13 @@ async fn state(server: Option<&MockServer>) -> Arc<AppState> {
 		.execute(&db)
 		.await
 		.unwrap();
-	let secrets: AppSecrets =
-		serde_json::from_value(serde_json::json!({"jwt_secret": "connection-test-signing-key"}))
-			.unwrap();
+	let secrets: AppSecrets = serde_json::from_value(serde_json::json!({
+		"database_url": "sqlite::memory:",
+		"jwt_secret": "connection-test-signing-key",
+		"github_client_id": "",
+		"github_client_secret": "",
+	}))
+	.unwrap();
 	let mut state = AppState::new(db, secrets).unwrap();
 
 	if let Some(server) = server {

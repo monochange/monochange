@@ -27,9 +27,13 @@ async fn state() -> Arc<AppState> {
 	sqlx::query("INSERT INTO users (id, github_id, github_login, github_access_token) VALUES (1, 101, 'alice', 'test-only-token'), (2, 202, 'bob', 'test-only-token')").execute(&db).await.unwrap();
 	sqlx::query("INSERT INTO installations (id, user_id, github_installation_id, github_account_login, github_account_type) VALUES (1, 1, 1001, 'alice', 'User'), (2, 2, 1002, 'bob', 'User')").execute(&db).await.unwrap();
 	sqlx::query("INSERT INTO repositories (installation_id, github_repo_id, github_full_name, github_private) VALUES (1, 11, 'alice/public', 0), (1, 12, 'alice/private', 1), (2, 21, 'bob/private', 1)").execute(&db).await.unwrap();
-	let secrets: AppSecrets =
-		serde_json::from_value(serde_json::json!({"jwt_secret":"repository-test-signing-key"}))
-			.unwrap();
+	let secrets: AppSecrets = serde_json::from_value(serde_json::json!({
+		"database_url": "sqlite::memory:",
+		"jwt_secret": "repository-test-signing-key",
+		"github_client_id": "",
+		"github_client_secret": "",
+	}))
+	.unwrap();
 	Arc::new(AppState::new(db, secrets).unwrap())
 }
 

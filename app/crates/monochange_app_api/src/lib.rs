@@ -33,19 +33,32 @@ use jsonwebtoken::encode;
 use serde::Deserialize;
 use serde::Serialize;
 
-// The `declare_secrets!` macro derives `serde::Deserialize` on generated types
-// whose accessors use unsafe; the lint must be allowed at module scope because
-// attributes on macro invocations are ignored.
-#[allow(clippy::unsafe_derive_deserialize)]
+/// Typed secrets generated from `app/monosecret.toml` at compile time.
 pub mod secrets {
-	secretspec_derive::declare_secrets!("../../secretspec.toml");
+	// patch-coverage:ignore-start -- macro-generated loaders and setters are attributed to this line; `load_app_secrets` tests exercise the typed `load()` path the app uses.
+	monosecret_derive::declare_secrets!("../../monosecret.toml");
+	// patch-coverage:ignore-end
 }
 
-pub use secrets::SecretSpec as AppSecrets;
+pub use secrets::Monosecret as AppSecrets;
 
-/// Load application secrets through the `SecretSpec` SDK.
-pub fn load_app_secrets() -> Result<secretspec::Resolved<AppSecrets>, secretspec::SecretSpecError> {
-	secrets::SecretSpec::builder().load()
+/// The access reason recorded in Monosecret's audit log, and the one that
+/// satisfies the manifest's `require_reason` policy.
+const APP_SECRETS_REASON: &str = "start the monochange.dev server";
+
+/// Load application secrets through the Monosecret SDK, recording the server
+/// start as the access reason.
+///
+/// Pass `AppSecrets::builder()` to resolve the profile the environment selects:
+/// Monosecret finds `monosecret.toml` by walking up from the working directory
+/// and reads the profile from `MONOSECRET_PROFILE`. Each profile routes its own
+/// secrets, so production reads the shared 1Password item while development
+/// and CI stay on local sources. Tests pin a profile and a local store on the
+/// builder instead.
+pub fn load_app_secrets(
+	builder: secrets::MonosecretBuilder,
+) -> Result<monosecret::Resolved<AppSecrets>, monosecret::MonosecretError> {
+	builder.with_reason(APP_SECRETS_REASON).load()
 }
 
 /// The machine-to-machine API routes served by the app.
@@ -147,9 +160,9 @@ impl AppState {
 		db: monochange_app_db::DbPool,
 		secrets: AppSecrets,
 	) -> Result<Self, github_app::GitHubAppError> {
-		let jwt_secret = secrets.jwt_secret.clone().unwrap_or_default();
-		let github_client_id = secrets.github_client_id.clone().unwrap_or_default();
-		let github_client_secret = secrets.github_client_secret.clone().unwrap_or_default();
+		let jwt_secret = secrets.jwt_secret.clone();
+		let github_client_id = secrets.github_client_id.clone();
+		let github_client_secret = secrets.github_client_secret.clone();
 		let github_callback_url = std::env::var("MONOCHANGE_GITHUB_CALLBACK_URL")
 			.ok()
 			.filter(|url| !url.is_empty())

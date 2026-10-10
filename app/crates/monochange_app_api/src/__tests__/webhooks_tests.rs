@@ -21,7 +21,13 @@ async fn first_installation_is_saved_before_the_installer_has_a_website_account(
 		.await
 		.unwrap();
 	monochange_app_db::run_migrations(&db).await.unwrap();
-	let secrets: AppSecrets = serde_json::from_value(serde_json::json!({})).unwrap();
+	let secrets: AppSecrets = serde_json::from_value(serde_json::json!({
+		"database_url": "sqlite::memory:",
+		"jwt_secret": "webhook-test-signing-key",
+		"github_client_id": "",
+		"github_client_secret": "",
+	}))
+	.unwrap();
 	let mut state = AppState::new(db.clone(), secrets).unwrap();
 	state.github_app = Some(GitHubAppAuth::new(
 		"123",
@@ -69,7 +75,13 @@ async fn configured_state() -> AppState {
 		.await
 		.unwrap();
 	monochange_app_db::run_migrations(&db).await.unwrap();
-	let secrets: AppSecrets = serde_json::from_value(serde_json::json!({})).unwrap();
+	let secrets: AppSecrets = serde_json::from_value(serde_json::json!({
+		"database_url": "sqlite::memory:",
+		"jwt_secret": "webhook-test-signing-key",
+		"github_client_id": "",
+		"github_client_secret": "",
+	}))
+	.unwrap();
 	let mut state = AppState::new(db, secrets).unwrap();
 	state.github_app = Some(GitHubAppAuth::new(
 		"123",
