@@ -4077,6 +4077,13 @@ fn render_release_commit_section(
 	if commit_report.status != "completed" {
 		details.push(commit_report.status.replace('_', "-"));
 	}
+	if let Some(verified) = commit_report.verified {
+		details.push(if verified {
+			"verified".to_string()
+		} else {
+			"not verified".to_string()
+		});
+	}
 	report.indented(&details.join(" · "), Tone::Muted);
 	let outside_changed_files = commit_report
 		.tracked_paths
@@ -4687,6 +4694,9 @@ fn render_release_commit_report_markdown(report: &CommitReleaseReport) -> Vec<St
 				.iter()
 				.map(|path| format!("  - `{}`", path.display())),
 		);
+	}
+	if let Some(verified) = report.verified {
+		lines.push(format!("- **Verified:** {}", yes_no(verified)));
 	}
 	lines.push(format!("- **Status:** {}", report.status.replace('_', "-")));
 	lines

@@ -263,7 +263,7 @@ pub async fn create_release_commit(
 		}));
 	}
 
-	let (sha, _verified, reason) =
+	let (sha, verified, reason) =
 		github_app::create_release_commit(&state.http, &app.api_url, &token, &request)
 			.await
 			.map_err(|error| {
@@ -279,12 +279,13 @@ pub async fn create_release_commit(
 		repository = %full_name,
 		branch = %request.branch,
 		commit = %sha,
+		verified,
 		"hosted release commit created"
 	);
 
 	Ok(Json(HostedCommitResponse {
 		commit: Some(sha),
-		verified: true,
+		verified,
 		status: Some("completed".to_string()),
 		message: reason,
 	}))

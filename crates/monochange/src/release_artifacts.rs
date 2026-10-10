@@ -1862,6 +1862,7 @@ pub(crate) async fn commit_release(
 		},
 		tracked_paths: prepared.tracked_paths,
 		dry_run: context.dry_run,
+		verified: None,
 		status: if context.dry_run {
 			"dry_run".to_string()
 		} else {
@@ -1985,6 +1986,11 @@ pub(crate) async fn hosted_commit_release(
 		commit: response.commit,
 		tracked_paths: prepared.tracked_paths,
 		dry_run: context.dry_run,
+		verified: if context.dry_run {
+			None
+		} else {
+			Some(response.verified)
+		},
 		status: response.status.unwrap_or_else(|| "completed".to_string()),
 	})
 }
