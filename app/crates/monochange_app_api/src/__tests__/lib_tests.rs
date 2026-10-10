@@ -343,3 +343,108 @@ mod oidc_tests {
 		assert!(verifier.verify("").await.is_err());
 	}
 }
+
+// ── Monosecret loading tests ──
+
+mod secret_loading_tests {
+	use std::collections::BTreeMap;
+	use std::path::Path;
+
+	use monosecret::ProviderRef;
+
+	use crate::AppSecrets;
+	use crate::load_app_secrets;
+	use crate::secrets::Profile;
+
+	/// A dotenv store of test-only values, used in place of every configured
+	/// route so the loader never reaches the environment or 1Password.
+	const TEST_STORE: &str = concat!(
+		"dotenv:",
+		env!("CARGO_MANIFEST_DIR"),
+		"/src/__tests__/fixtures/app_secrets.env"
+	);
+
+	#[test]
+	fn loader_maps_the_manifest_into_typed_secrets() {
+		let resolved = load_app_secrets(
+			AppSecrets::builder()
+				.with_profile(Profile::Ci)
+				.with_provider(TEST_STORE),
+		)
+		.unwrap();
+
+		assert_eq!(resolved.profile, "ci");
+		let secrets = resolved.secrets;
+		assert_eq!(secrets.database_url, "sqlite::memory:");
+		assert_eq!(secrets.jwt_secret, "loader-test-signing-key");
+		assert_eq!(secrets.github_client_id, "loader-test-client-id");
+		assert_eq!(secrets.github_client_secret, "loader-test-client-secret");
+		assert_eq!(
+			secrets.openrouter_api_key.as_deref(),
+			Some("loader-test-openrouter-key")
+		);
+		assert_eq!(secrets.github_app_id, None);
+		assert_eq!(secrets.op_service_account_token, None);
+	}
+
+	/// Render a provider chain as `provider/section` labels.
+	fn route(providers: &[ProviderRef]) -> Vec<String> {
+		providers
+			.iter()
+			.map(|provider| {
+				match provider {
+					ProviderRef::Alias(alias) => alias.clone(),
+					ProviderRef::Detail(detail) => {
+						format!(
+							"{}/{}",
+							detail.provider,
+							detail.path.as_deref().unwrap_or_default().join("/")
+						)
+					}
+				}
+			})
+			.collect()
+	}
+
+	/// Production reads every credential from a section of the single
+	/// `monochange.dev` item; `app/DEPLOY.md` documents the same layout.
+	#[test]
+	fn production_routes_credentials_to_sections_of_one_item() {
+		let manifest = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../monosecret.toml");
+		let config = monosecret::Config::try_from(manifest.as_path()).unwrap();
+
+		let providers = config.providers.as_ref().unwrap();
+		assert_eq!(
+			providers["op"].uri(),
+			"op+token://monochange/monochange.dev"
+		);
+		assert_eq!(route(&config.defaults.unwrap().providers), ["env"]);
+
+		let routes: BTreeMap<&str, Vec<String>> = config.profiles["production"]
+			.secrets
+			.iter()
+			.map(|(name, secret)| {
+				(
+					name.as_str(),
+					route(secret.providers.as_deref().unwrap_or_default()),
+				)
+			})
+			.collect();
+		let section = |path: &str| vec![format!("op/{path}")];
+		assert_eq!(
+			routes,
+			BTreeMap::from([
+				("DATABASE_URL", Vec::new()),
+				("OP_SERVICE_ACCOUNT_TOKEN", Vec::new()),
+				("JWT_SECRET", section("auth")),
+				("GITHUB_CLIENT_ID", section("github")),
+				("GITHUB_CLIENT_SECRET", section("github")),
+				("GITHUB_APP_ID", section("github")),
+				("GITHUB_APP_PRIVATE_KEY", section("github")),
+				("GITHUB_APP_WEBHOOK_SECRET", section("github")),
+				("MONOCHANGE_OIDC_AUDIENCE", section("release")),
+				("OPENROUTER_API_KEY", section("ai")),
+			])
+		);
+	}
+}

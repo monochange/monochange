@@ -5,20 +5,22 @@
 //!
 //! ## Secret management
 //!
-//! Secrets are declared in `secretspec.toml` and loaded in-process via
-//! the `SecretSpec` Rust SDK. Production uses the `OnePassword` provider;
-//! Docker injects only the 1Password service account token as a Docker
-//! secret.
+//! Secrets are declared in `monosecret.toml` and loaded in-process via the
+//! Monosecret Rust SDK. `MONOSECRET_PROFILE` selects the profile, and each
+//! profile routes its own secrets: production reads one 1Password item with
+//! the service account token that Docker injects as a Docker secret, while
+//! development and CI never contact 1Password.
 //!
 //! ```bash
-//! # Development (uses keyring provider with local defaults)
-//! secretspec run --profile development -- cargo leptos watch
+//! # Development (reads app/.env, then the environment, then local defaults)
+//! MONOSECRET_PROFILE=development cargo leptos watch
 //!
-//! # Production (uses the SecretSpec SDK and 1Password provider)
-//! SECRETSPEC_PROFILE=production SECRETSPEC_PROVIDER=onepassword://monochange ./monochange_app
+//! # Production (the container entrypoint exports OP_SERVICE_ACCOUNT_TOKEN and
+//! # the app reads the `monochange.dev` item in the `monochange` vault)
+//! MONOSECRET_PROFILE=production ./monochange_app
 //!
-//! # CI (uses environment variables)
-//! secretspec run --profile ci --provider env -- cargo leptos build
+//! # CI (reads environment variables only)
+//! MONOSECRET_PROFILE=ci ./monochange_app
 //! ```
 
 // The server also computes layouts for Leptos' generated view types.
@@ -81,16 +83,16 @@ async fn main() -> Result<(), MonochangeError> {
 	// Check the compiled book before accepting traffic or loading credentials.
 	monochange_app::book::compiled_book().map_err(MonochangeError::Server)?;
 
-	// Load typed application secrets through the SecretSpec SDK.
-	// In production, SECRETSPEC_PROVIDER points at OnePassword and the
-	// Docker entrypoint exposes OP_SERVICE_ACCOUNT_TOKEN from a Docker secret.
-	let resolved_secrets = monochange_app_api::load_app_secrets()
-		.map_err(|error| MonochangeError::Server(error.to_string()))?;
+	// Load typed application secrets through the Monosecret SDK. The
+	// production profile reads the shared 1Password item with the service
+	// account token the Docker entrypoint exports from a Docker secret.
+	// patch-coverage:ignore-start -- binary startup is exercised by app/deploy/verify-image.sh; loading is covered by monochange_app_api tests.
+	let resolved_secrets =
+		monochange_app_api::load_app_secrets(monochange_app_api::AppSecrets::builder())
+			.map_err(|error| MonochangeError::Server(error.to_string()))?;
 	let secrets = resolved_secrets.secrets;
-	let database_url = secrets.database_url.clone().unwrap_or_else(|| {
-		std::env::var("DATABASE_URL")
-			.unwrap_or_else(|_| "sqlite://./monochange_app.sqlite3".to_string())
-	});
+	let database_url = secrets.database_url.clone();
+	// patch-coverage:ignore-end
 
 	// Create database connection pool
 	info!("Connecting to database...");

@@ -4,23 +4,23 @@ Leptos SSR web app for monochange release planning.
 
 ## local development
 
-The app uses SQLite by default, so no database service is required.
+The app uses SQLite by default, so no database service is required. It loads its secrets through [Monosecret](https://monosecret.dev) from `app/monosecret.toml`. The `development` profile reads the ignored `app/.env` first, then the process environment, then local defaults. It never contacts 1Password.
 
 ```bash
 # From the repository root
-devenv shell cargo leptos --manifest-path app/crates/monochange_app/Cargo.toml serve
+MONOSECRET_PROFILE=development devenv shell cargo leptos --manifest-path app/crates/monochange_app/Cargo.toml serve
 ```
 
 Default database:
 
 ```text
-sqlite://.devenv/state/monochange_app.sqlite3
+sqlite://./monochange_app.sqlite3
 ```
 
-Override with `DATABASE_URL` when needed:
+Override any value, such as `DATABASE_URL` or the GitHub App client credentials, in `app/.env` or the environment:
 
 ```bash
-DATABASE_URL=sqlite://./monochange_app.sqlite3 devenv shell cargo leptos --manifest-path app/crates/monochange_app/Cargo.toml serve
+DATABASE_URL=sqlite://.devenv/state/monochange_app.sqlite3 MONOSECRET_PROFILE=development devenv shell cargo leptos --manifest-path app/crates/monochange_app/Cargo.toml serve
 ```
 
 ## tests
