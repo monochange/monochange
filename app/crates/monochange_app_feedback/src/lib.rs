@@ -60,6 +60,8 @@ pub use handoff::ChangesetDraft;
 pub use handoff::ChangesetTarget;
 pub use handoff::HandoffError;
 pub use handoff::IssueDraft;
+pub use handoff::closing_issue_numbers;
+pub use handoff::feedback_trailers;
 pub use pipeline::Command;
 pub use pipeline::FeedbackEvent;
 pub use pipeline::FeedbackItem;
@@ -510,6 +512,44 @@ impl<T: TriageEngine> FeedbackService<T> {
 		pull_request: PullRequestRef,
 	) -> Result<Stage, ServiceError> {
 		self.apply(id, Command::OpenPullRequest(pull_request), &Actor::System)
+	}
+
+	/// Handles an opened pull request (the `pull_request` webhook). Each
+	/// accepted item it delivers moves to review: items whose issue in the
+	/// same repository it closes (`Fixes #12`), and items it names with a
+	/// `Feedback-Item:` trailer whose issue lives in that repository. Item ids
+	/// are per project and a repository can belong to several projects, so
+	/// the issue's repository is what makes a trailer unambiguous. Returns the
+	/// advanced item ids.
+	pub fn observe_pull_request(
+		&mut self,
+		pull_request: &PullRequestRef,
+		body: &str,
+	) -> Result<Vec<String>, ServiceError> {
+		let repository = pull_request.repository.as_deref();
+		let closes = repository
+			.map(|repository| handoff::closing_issue_numbers(body, repository))
+			.unwrap_or_default();
+		let named = handoff::feedback_trailers(body);
+		let delivered: Vec<(String, Stage)> = self
+			.items
+			.iter()
+			.filter(|item| {
+				matches!(item.stage, Stage::Accepted | Stage::Building)
+					&& item.issue.as_ref().is_some_and(|issue| {
+						issue.is_in(repository)
+							&& (closes.contains(&issue.number) || named.contains(&item.id))
+					})
+			})
+			.map(|item| (item.id.clone(), item.stage))
+			.collect();
+		for (id, stage) in &delivered {
+			if *stage == Stage::Accepted {
+				self.start_build(id)?;
+			}
+			self.open_pull_request(id, pull_request.clone())?;
+		}
+		Ok(delivered.into_iter().map(|(id, _)| id).collect())
 	}
 
 	/// Handles a merged pull request (the `pull_request.closed` webhook with

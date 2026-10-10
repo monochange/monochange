@@ -83,9 +83,69 @@ pub enum HandoffError {
 	Disclosure(#[from] DisclosureError),
 }
 
+const TRAILER: &str = "Feedback-Item:";
+
 /// The trailer that ties a pull request back to its feedback item.
 pub fn feedback_trailer(item: &FeedbackItem) -> String {
-	format!("Feedback-Item: {}", item.id)
+	format!("{TRAILER} {}", item.id)
+}
+
+/// The item ids named by `Feedback-Item:` trailers in a pull request body.
+pub fn feedback_trailers(body: &str) -> Vec<String> {
+	body.lines()
+		.filter_map(|line| {
+			let line = line.trim();
+			let prefix = line.get(..TRAILER.len())?;
+			prefix
+				.eq_ignore_ascii_case(TRAILER)
+				.then(|| line[TRAILER.len()..].trim().to_owned())
+		})
+		.filter(|id| !id.is_empty())
+		.collect()
+}
+
+/// GitHub's closing keywords: a pull request body saying `Fixes #12`
+/// closes issue 12 when it merges.
+const CLOSING_KEYWORDS: [&str; 9] = [
+	"close", "closes", "closed", "fix", "fixes", "fixed", "resolve", "resolves", "resolved",
+];
+
+/// The issues in `repository` that a pull request body closes, written as
+/// `Fixes #12`, `Fixes owner/name#12`, or `Fixes https://github.com/owner/name/issues/12`.
+/// References to other repositories are ignored.
+pub fn closing_issue_numbers(body: &str, repository: &str) -> Vec<u64> {
+	let words: Vec<&str> = body.split_whitespace().collect();
+	let mut numbers = Vec::new();
+	for pair in words.windows(2) {
+		let keyword = pair[0]
+			.trim_start_matches(['(', '*', '_'])
+			.trim_end_matches([':', '*', '_'])
+			.to_ascii_lowercase();
+		if !CLOSING_KEYWORDS.contains(&keyword.as_str()) {
+			continue;
+		}
+		if let Some(number) = issue_reference(pair[1], repository)
+			&& !numbers.contains(&number)
+		{
+			numbers.push(number);
+		}
+	}
+	numbers
+}
+
+fn issue_reference(token: &str, repository: &str) -> Option<u64> {
+	let token = token.trim_end_matches(['.', ',', ';', ')']);
+	let (target, number) = match token.strip_prefix("https://github.com/") {
+		Some(rest) => {
+			let (target, number) = rest.split_once("/issues/")?;
+			(target, number)
+		}
+		None => token.split_once('#')?,
+	};
+	if !(target.is_empty() || target.eq_ignore_ascii_case(repository)) {
+		return None;
+	}
+	number.parse().ok().filter(|number| *number > 0)
 }
 
 fn accepted_report(item: &FeedbackItem) -> Result<&TriageReport, HandoffError> {

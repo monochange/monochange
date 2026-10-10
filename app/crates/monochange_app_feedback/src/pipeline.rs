@@ -88,16 +88,27 @@ pub struct PullRequestRef {
 	pub url: String,
 }
 
+/// Whether two repository names refer to the same repository. A missing
+/// name matches anything, which is only unambiguous for single-repository
+/// feedback.
+fn same_repository(own: Option<&str>, other: Option<&str>) -> bool {
+	match (own, other) {
+		(Some(own), Some(other)) => own.eq_ignore_ascii_case(other),
+		_ => true,
+	}
+}
+
+impl IssueRef {
+	/// Whether this issue lives in `repository`.
+	pub fn is_in(&self, repository: Option<&str>) -> bool {
+		same_repository(self.repository.as_deref(), repository)
+	}
+}
+
 impl PullRequestRef {
-	/// Whether this is pull request `number` in `repository`. References or
-	/// observations without a repository match on the number alone, which is
-	/// only unambiguous for single-repository feedback.
+	/// Whether this is pull request `number` in `repository`.
 	pub fn matches(&self, repository: Option<&str>, number: u64) -> bool {
-		self.number == number
-			&& match (self.repository.as_deref(), repository) {
-				(Some(own), Some(other)) => own.eq_ignore_ascii_case(other),
-				_ => true,
-			}
+		self.number == number && same_repository(self.repository.as_deref(), repository)
 	}
 }
 
