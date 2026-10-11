@@ -72,6 +72,23 @@ struct InstallationAccount {
 	login: Option<String>,
 	#[serde(default)]
 	r#type: Option<String>,
+	#[serde(default)]
+	avatar_url: Option<String>,
+}
+
+impl InstallationAccount {
+	/// The account as an organisation identity, when GitHub sent its id.
+	fn identity(&self) -> Option<monochange_app_db::projects::AccountIdentity> {
+		let external_id = self.id.filter(|id| *id > 0)?;
+		let login = self.login.clone().filter(|login| !login.is_empty())?;
+		Some(monochange_app_db::projects::AccountIdentity {
+			provider: monochange_app_db::projects::GITHUB.to_owned(),
+			external_id,
+			login,
+			account_type: self.r#type.clone().unwrap_or_else(|| "User".to_owned()),
+			avatar_url: self.avatar_url.clone(),
+		})
+	}
 }
 
 #[derive(Debug, Deserialize)]
@@ -305,6 +322,18 @@ async fn sync_installation(
 		.map_err(|error| db_error(&error))?;
 		installation_id
 	};
+
+	// Projects belong to the account, not the installation, so they survive
+	// an uninstall and reinstall.
+	if let Some(identity) = account.and_then(InstallationAccount::identity) {
+		monochange_app_db::projects::link_installation_organization(
+			&mut transaction,
+			installation_id,
+			&identity,
+		)
+		.await
+		.map_err(|error| db_error(&error))?;
+	}
 
 	for repository in repositories {
 		if add {
