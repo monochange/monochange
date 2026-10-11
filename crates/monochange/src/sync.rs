@@ -17,6 +17,7 @@ use monochange_core::Ecosystem;
 use monochange_core::MonochangeError;
 use monochange_core::MonochangeResult;
 use monochange_core::VersionStrategy;
+use monochange_core::root_relative;
 use semver::Version;
 use serde::Serialize;
 use serde_json::Value as JsonValue;
@@ -847,10 +848,9 @@ pub(crate) fn format_sync_result(
 		);
 	}
 
-	let root_prefix = format!("{}/", root.display());
 	for file_result in &result.changes {
 		text.paragraph(
-			file_result.path.trim_start_matches(&root_prefix),
+			&root_relative(root, Path::new(&file_result.path)).to_string_lossy(),
 			Tone::Heading,
 		);
 		let rows = file_result
@@ -875,7 +875,7 @@ pub(crate) fn format_sync_result(
 			result.skipped.iter().map(|skipped| {
 				format!(
 					"{} ({:?}): {}",
-					skipped.path.trim_start_matches(&root_prefix),
+					root_relative(root, Path::new(&skipped.path)).to_string_lossy(),
 					skipped.ecosystem,
 					skipped.reason
 				)
