@@ -84,6 +84,7 @@ web-sys = { version = "0.3", features = ["Window", "Document", "Element", "HtmlE
 monochange_app_api = { path = "crates/monochange_app_api" }
 monochange_app_automation = { path = "crates/monochange_app_automation" }
 monochange_app_db = { path = "crates/monochange_app_db" }
+monochange_app_feedback = { path = "crates/monochange_app_feedback" }
 
 # monochange crates (path deps from parent workspace)
 monochange_core = { path = "../crates/monochange_core", version = "0.18.0" }
