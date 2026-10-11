@@ -62,9 +62,13 @@ async fn state(server: &MockServer) -> Arc<AppState> {
 		.unwrap();
 	}
 	drop(connection);
-	let secrets: AppSecrets =
-		serde_json::from_value(serde_json::json!({"jwt_secret":"organization-test-signing-key"}))
-			.unwrap();
+	let secrets: AppSecrets = serde_json::from_value(serde_json::json!({
+		"database_url": "sqlite::memory:",
+		"jwt_secret": "organization-test-signing-key",
+		"github_client_id": "",
+		"github_client_secret": "",
+	}))
+	.unwrap();
 	let mut state = AppState::new(db, secrets).unwrap();
 	state.github_api_origin = server.base_url();
 	Arc::new(state)

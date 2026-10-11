@@ -1,0 +1,2 @@
+# Local Monosecret development values never enter the image build context.
+app/.env

@@ -5,6 +5,10 @@
 //! GitHub Actions OIDC token (preferred) or a `MONOCHANGE_TOKEN` API token;
 //! the caller's repository must have the monochange GitHub App installed.
 
+#[cfg(test)]
+#[path = "__tests__/release_api_tests.rs"]
+mod tests;
+
 use axum::Json;
 use axum::extract::State;
 use axum::extract::rejection::JsonRejection;
@@ -100,24 +104,22 @@ async fn resolve_caller(
 		}
 		Ok(Caller::ActionsRun)
 	} else {
-		validate_api_token(&authorization)?;
+		validate_api_token(state.api_token.as_deref(), &authorization)?;
 		Ok(Caller::ApiToken)
 	}
 }
 
-/// Validate a `MONOCHANGE_TOKEN` against the configured token.
+/// Validate a `MONOCHANGE_TOKEN` against the token configured through the
+/// application secrets.
 ///
 /// The comparison is constant-time so tokens cannot be probed byte by byte.
-fn validate_api_token(token: &str) -> Result<(), (StatusCode, String)> {
-	let expected = std::env::var("MONOCHANGE_TOKEN")
-		.ok()
-		.filter(|token| !token.is_empty())
-		.ok_or_else(|| {
-			(
-				StatusCode::SERVICE_UNAVAILABLE,
-				"MONOCHANGE_TOKEN authentication is not configured on this deployment".to_string(),
-			)
-		})?;
+fn validate_api_token(expected: Option<&str>, token: &str) -> Result<(), (StatusCode, String)> {
+	let expected = expected.ok_or_else(|| {
+		(
+			StatusCode::SERVICE_UNAVAILABLE,
+			"MONOCHANGE_TOKEN authentication is not configured on this deployment".to_string(),
+		)
+	})?;
 	if constant_time_eq(expected.as_bytes(), token.as_bytes()) {
 		Ok(())
 	} else {
@@ -184,12 +186,62 @@ fn validate_commit_paths(request: &HostedCommitRequest) -> Result<(), String> {
 	Ok(())
 }
 
+/// Reject branch names that are not plausible Git refs.
+///
+/// Branch names are interpolated into GitHub API paths and queries, so
+/// anything that could change the URL (`?`, `#`, `%`, `..`) or that Git
+/// itself forbids is refused before any request is made.
+fn validate_branch_name(field: &str, branch: &str) -> Result<(), String> {
+	let forbidden = |character: char| {
+		character.is_control()
+			|| matches!(
+				character,
+				' ' | '~' | '^' | ':' | '?' | '*' | '[' | '\\' | '#' | '%'
+			)
+	};
+	if branch.is_empty()
+		|| branch.starts_with(['/', '-'])
+		|| branch.ends_with(['/', '.'])
+		|| branch.strip_suffix(".lock").is_some()
+		|| branch.contains("..")
+		|| branch.contains("//")
+		|| branch.contains("@{")
+		|| branch.contains(forbidden)
+	{
+		return Err(format!("{field} `{branch}` is not a valid branch name"));
+	}
+	Ok(())
+}
+
+/// Validate the release and base branch names of a release request.
+fn validate_branch_names(branch: &str, base_branch: Option<&str>) -> Result<(), String> {
+	validate_branch_name("branch", branch)?;
+	base_branch.map_or(Ok(()), |base_branch| {
+		validate_branch_name("base branch", base_branch)
+	})
+}
+
+/// Map a release commit failure to its HTTP status.
+///
+/// A moved release or base branch is a conflict the caller resolves by
+/// rerunning from the current base; everything else is a GitHub failure.
+fn release_commit_error_status(error: &github_app::GitHubAppError) -> StatusCode {
+	match error {
+		github_app::GitHubAppError::BranchMoved(..) | github_app::GitHubAppError::BaseMoved(..) => {
+			StatusCode::CONFLICT
+		}
+		github_app::GitHubAppError::NotConfigured => StatusCode::SERVICE_UNAVAILABLE,
+		_ => StatusCode::BAD_GATEWAY,
+	}
+}
+
 /// `POST /api/release-commits` — create a release commit through the bot.
 ///
 /// The caller proves the run belongs to the repository (OIDC) or presents an
-/// API token; the server verifies the branch still points at the prepared
-/// base commit, then creates blobs, tree, and commit through the Git Database
-/// API with an installation token so GitHub signs the result.
+/// API token; the server checks that the release branch may move (see
+/// [`github_app::create_release_commit`]), then creates blobs, tree, and
+/// commit through the Git Database API with an installation token so GitHub
+/// signs the result.
 pub async fn create_release_commit(
 	State(state): State<AppState>,
 	headers: axum::http::HeaderMap,
@@ -210,7 +262,8 @@ pub async fn create_release_commit(
 			))),
 		));
 	}
-	validate_commit_paths(&request)
+	validate_branch_names(&request.branch, request.base_branch.as_deref())
+		.and_then(|()| validate_commit_paths(&request))
 		.map_err(|message| (StatusCode::BAD_REQUEST, Json(ApiError::new(message))))?;
 
 	let full_name = format!("{}/{}", request.owner, request.repository);
@@ -263,31 +316,45 @@ pub async fn create_release_commit(
 		}));
 	}
 
-	let (sha, _verified, reason) =
-		github_app::create_release_commit(&state.http, &app.api_url, &token, &request)
+	let response = commit_release_files(&state.http, &app.api_url, &token, &request).await?;
+	Ok(Json(response))
+}
+
+/// Create the release commit through the GitHub App and shape the response.
+///
+/// Reports GitHub's verification result and maps a moved release or base
+/// branch to `409 Conflict`.
+async fn commit_release_files(
+	http: &reqwest::Client,
+	api_url: &str,
+	installation_token: &str,
+	request: &HostedCommitRequest,
+) -> Result<HostedCommitResponse, (StatusCode, Json<ApiError>)> {
+	let (sha, verified, reason) =
+		github_app::create_release_commit(http, api_url, installation_token, request)
 			.await
 			.map_err(|error| {
-				let status = match error {
-					github_app::GitHubAppError::BranchMoved(..) => StatusCode::CONFLICT,
-					github_app::GitHubAppError::NotConfigured => StatusCode::SERVICE_UNAVAILABLE,
-					_ => StatusCode::BAD_GATEWAY,
-				};
-				(status, Json(ApiError::new(error.to_string())))
+				(
+					release_commit_error_status(&error),
+					Json(ApiError::new(error.to_string())),
+				)
 			})?;
 
+	let repository = format!("{}/{}", request.owner, request.repository);
 	tracing::info!(
-		repository = %full_name,
+		repository = %repository,
 		branch = %request.branch,
 		commit = %sha,
+		verified,
 		"hosted release commit created"
 	);
 
-	Ok(Json(HostedCommitResponse {
+	Ok(HostedCommitResponse {
 		commit: Some(sha),
-		verified: true,
+		verified,
 		status: Some("completed".to_string()),
 		message: reason,
-	}))
+	})
 }
 
 /// `POST /api/release-requests` — open or update the release pull request.
@@ -303,6 +370,8 @@ pub async fn publish_release_request(
 		)
 	})?;
 	let request = &payload.request;
+	validate_branch_names(&request.head_branch, Some(&request.base_branch))
+		.map_err(|message| (StatusCode::BAD_REQUEST, Json(ApiError::new(message))))?;
 	let full_name = format!("{}/{}", request.owner, request.repo);
 
 	let repository = find_connected_repository(&state, &full_name)

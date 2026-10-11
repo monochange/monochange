@@ -386,6 +386,33 @@ jobs:
           stream-output: true
           output: ${{ runner.temp }}/publish-result.json
 
+      # Sibling targets from the same release batch (monochange_schema,
+      # snapshot) ship no release assets, so their drafts are published here,
+      # after the registry publish above has succeeded: a failed publish
+      # never flips a release public for a version that is not installable.
+      # monochange_app is excluded because website-deployment publishes its
+      # release only after production deploys. A sibling that cannot be
+      # published only warns so it cannot block the main release; the
+      # release watchdog alerts on the stale draft.
+      - name: publish sibling release drafts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tags="$("${RUNNER_TEMP}/bin/monochange" step release-record --from HEAD --format json \
+            | jq -r '.record.release_targets[]
+              | select(.release == true and .tag == true and .id != "monochange_app")
+              | .tag_name')"
+          for tag in $tags; do
+            if [ "$tag" = "$RELEASE_TAG" ]; then
+              continue
+            fi
+            echo "Publishing sibling release draft $tag"
+            if ! gh release edit "$tag" --draft=false --latest=false --repo "${{ github.repository }}"; then
+              echo "::warning::Could not publish sibling release draft $tag"
+            fi
+          done
+
       # Runs after registry publication so a failed publish never flips the
       # release public with missing packages.
       - name: publish draft release

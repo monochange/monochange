@@ -400,6 +400,14 @@ in
       description = "Scan GitHub Actions workflows for security vulnerabilities with zizmor.";
       binary = "bash";
     };
+    "lint:devenv-env" = {
+      exec = ''
+        set -euo pipefail
+        pnpm node scripts/check-devenv-env-allowlist.ts
+      '';
+      description = "Check devenv shell workflow steps keep their env variables through devenv.yaml clean.keep.";
+      binary = "bash";
+    };
     "deny:check" = {
       exec = ''
         set -euo pipefail
@@ -429,6 +437,7 @@ in
         run_step "lint:js" ${currentDir}/.devenv/profile/bin/lint:js
         run_step "lint:js:types" ${currentDir}/.devenv/profile/bin/lint:js:types
         run_step "lint:workflows" ${currentDir}/.devenv/profile/bin/lint:workflows
+        run_step "lint:devenv-env" ${currentDir}/.devenv/profile/bin/lint:devenv-env
         run_step "deny:check" ${currentDir}/.devenv/profile/bin/deny:check
         run_step "docs:check" ${currentDir}/.devenv/profile/bin/docs:check
         run_step "lint:monochange" ${currentDir}/.devenv/profile/bin/lint:monochange
@@ -456,6 +465,7 @@ in
         run_step "lint:js" lint:js
         run_step "lint:js:types" lint:js:types
         run_step "lint:workflows" lint:workflows
+        run_step "lint:devenv-env" lint:devenv-env
         run_step "deny:check" deny:check
         run_step "docs:check" docs:check
         run_step "lint:monochange" lint:monochange
