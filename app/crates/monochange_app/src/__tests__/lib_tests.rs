@@ -90,9 +90,13 @@ pub(crate) mod feedback {
 		drop(connection);
 		sqlx::query("INSERT INTO projects (id, organization_id, slug, name, description) VALUES (1, $1, 'pocketbook', 'Pocketbook', 'Invoicing')").bind(organization).execute(&db).await.unwrap();
 		sqlx::query("INSERT INTO project_repositories (project_id, repository_external_id, full_name) VALUES (1, 11, 'alice/web'), (1, 12, 'alice/api')").execute(&db).await.unwrap();
-		let secrets: AppSecrets =
-			serde_json::from_value(serde_json::json!({"jwt_secret":"feedback-test-signing-key"}))
-				.unwrap();
+		let secrets: AppSecrets = serde_json::from_value(serde_json::json!({
+			"database_url": "sqlite::memory:",
+			"jwt_secret": "feedback-test-signing-key",
+			"github_client_id": "",
+			"github_client_secret": "",
+		}))
+		.unwrap();
 		Arc::new(AppState::new(db, secrets).unwrap())
 	}
 
