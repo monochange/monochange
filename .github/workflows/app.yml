@@ -1,0 +1,192 @@
+name: "app"
+
+# Deploys monochange.dev and publishes its release notes when a push to
+# main is a release commit carrying a monochange_app release. ci.yml's
+# release-post-merge creates the batch's tags and draft releases; the
+# deployment waits for this release's tag so it never races it. Keeping
+# the deployment out of ci.yml leaves general CI changes free of
+# monochange_app changeset requirements: only this workflow file is part
+# of the app's affected paths.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".monochange/releases/**"
+  workflow_dispatch: {}
+
+concurrency:
+  group: monochange-website-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  select-website-release:
+    if: github.repository_owner == 'monochange'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      tag: ${{ steps.website_release.outputs.tag }}
+    steps:
+      - name: checkout release commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: setup release tooling
+        uses: $/.github/actions/devenv
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: select the website release
+        id: website_release
+        shell: devenv shell -- bash -e {0}
+        env:
+          RELEASE_COMMIT: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          record="$(monochange step release-record --from "$RELEASE_COMMIT" --format json)"
+          if [ "$(jq -r '.resolved_commit == .record_commit' <<<"$record")" != "true" ]; then
+            echo "HEAD is not a release commit; nothing to deploy."
+            exit 0
+          fi
+          tag="$(jq -r '.record.release_targets[] | select(.id == "monochange_app" and .release == true and .tag == true) | .tag_name' <<<"$record")"
+          if [ -z "$tag" ] || [ "$tag" = "null" ]; then
+            echo "This release carries no monochange_app target; nothing to deploy."
+            exit 0
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "Selected website release $tag"
+
+  website-deployment:
+    needs: select-website-release
+    if: ${{ !cancelled() && github.repository == 'monochange/monochange' && github.ref == 'refs/heads/main' && needs.select-website-release.outputs.tag != '' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 70
+    environment:
+      name: website-production
+      url: https://monochange.dev
+    permissions:
+      contents: write
+    steps:
+      - name: checkout approved release commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: prepare and validate the deployment key
+        env:
+          DEPLOY_KEY: ${{ secrets.WEBSITE_DEPLOY_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DEPLOY_KEY:-}" ]; then
+            echo "::error::WEBSITE_DEPLOY_SSH_KEY is unavailable in website-production." >&2
+            exit 1
+          fi
+          key="$RUNNER_TEMP/website-deployment-key"
+          umask 077
+          printf '%s\n' "$DEPLOY_KEY" > "$key"
+          unset DEPLOY_KEY
+          ssh-keygen -y -P '' -f "$key" >/dev/null
+
+      - name: setup release tooling
+        uses: $/.github/actions/devenv
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # release-post-merge in ci.yml runs concurrently and pushes the
+      # batch's tags; the deployment only starts once this release's tag
+      # is visible, then fetches it for the identity checks below.
+      - name: wait for the release tag
+        env:
+          RELEASE_TAG: ${{ needs.select-website-release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          repo_url="https://github.com/${GITHUB_REPOSITORY}.git"
+          for attempt in $(seq 1 120); do
+            if git ls-remote --exit-code --tags "$repo_url" "refs/tags/${RELEASE_TAG}" >/dev/null 2>&1; then
+              echo "Release tag ${RELEASE_TAG} is visible on the remote."
+              git fetch --quiet --tags origin
+              exit 0
+            fi
+
+            if [ "$attempt" -eq 120 ]; then
+              echo "::error::Tag ${RELEASE_TAG} was not visible on the remote after waiting." >&2
+              exit 1
+            fi
+
+            echo "Tag ${RELEASE_TAG} is not visible on the remote yet; retrying in 15 seconds..."
+            sleep 15
+          done
+
+      - name: verify website release identity
+        env:
+          RELEASE_COMMIT: ${{ github.sha }}
+          RELEASE_TAG: ${{ needs.select-website-release.outputs.tag }}
+        shell: devenv shell -- bash -e {0}
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$RELEASE_TAG" =~ ^monochange_app/v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          test "$(git rev-parse HEAD)" = "$RELEASE_COMMIT"
+          test "$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")" = "$RELEASE_COMMIT"
+          git merge-base --is-ancestor "$RELEASE_COMMIT" origin/main
+          monochange step release-record --from HEAD --format json > "$RUNNER_TEMP/website-record.json"
+          jq -e --arg commit "$RELEASE_COMMIT" --arg tag "$RELEASE_TAG" '
+            .resolved_commit == $commit and .record_commit == $commit and
+            any(.record.release_targets[]; .id == "monochange_app" and .tag_name == $tag and .release == true) and
+            any(.record.changelogs[]; .owner_id == "monochange_app" and .output == "website_json" and .stream == "website")
+          ' "$RUNNER_TEMP/website-record.json"
+          jq -er '.record.changelogs[] | select(.owner_id == "monochange_app" and .output == "website" and .stream == "website") | .rendered' \
+            "$RUNNER_TEMP/website-record.json" > "$RUNNER_TEMP/website-release-notes.md"
+          version="${RELEASE_TAG#monochange_app/v}"
+          test -s "app/public/releases/$version.json"
+          jq -e --arg version "$version" '.title == $version and all(.sections[].entries[]; .stream == "website")' "app/public/releases/$version.json"
+
+      - name: build the release image
+        env:
+          RELEASE_COMMIT: ${{ github.sha }}
+        run: docker build --progress=plain -t "monochange-app:$RELEASE_COMMIT" .
+
+      - name: verify the release image
+        env:
+          RELEASE_COMMIT: ${{ github.sha }}
+          RELEASE_TAG: ${{ needs.select-website-release.outputs.tag }}
+        run: app/deploy/verify-image.sh "monochange-app:$RELEASE_COMMIT" "${RELEASE_TAG#monochange_app/v}"
+
+      - name: transfer and deploy through the restricted key
+        env:
+          RELEASE_COMMIT: ${{ github.sha }}
+          RELEASE_TAG: ${{ needs.select-website-release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          key="$RUNNER_TEMP/website-deployment-key"
+          docker save "monochange-app:$RELEASE_COMMIT" | gzip | \
+            ssh -F app/deploy/digitalocean/ssh_config -o IdentityFile=none -i "$key" \
+              monochange-production "deploy $RELEASE_COMMIT ${RELEASE_TAG#monochange_app/v}"
+
+      - name: verify public website and publish its release notes
+        env:
+          RELEASE_TAG: ${{ needs.select-website-release.outputs.tag }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          version="${RELEASE_TAG#monochange_app/v}"
+          curl --fail --silent --show-error --retry 10 --retry-all-errors --retry-max-time 60 \
+            https://monochange.dev/health | jq -e --arg version "$version" '.status == "ok" and .http == "up" and .version == $version'
+          curl --fail --silent --show-error https://monochange.dev/changelog -o "$RUNNER_TEMP/changelog.html"
+          grep -Fq "v$version" "$RUNNER_TEMP/changelog.html"
+          curl --fail --silent --show-error "https://monochange.dev/releases/$version.json" | \
+            jq -e --arg version "$version" '.title == $version'
+          gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+            --notes-file "$RUNNER_TEMP/website-release-notes.md" --draft=false --latest=false
+
+      - name: remove the deployment key
+        if: ${{ always() }}
+        run: rm -f "$RUNNER_TEMP/website-deployment-key"
