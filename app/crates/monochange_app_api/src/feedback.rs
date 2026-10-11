@@ -17,7 +17,9 @@ use monochange_app_feedback::DisclosurePolicy;
 use monochange_app_feedback::FeedbackService;
 use monochange_app_feedback::FeedbackState;
 use monochange_app_feedback::IssueRef;
+use monochange_app_feedback::PullRequestRef;
 use monochange_app_feedback::RegisteredApp;
+use monochange_app_feedback::ReleaseLink;
 use monochange_app_feedback::RepositoryVisibility;
 use monochange_app_feedback::RuleBasedTriage;
 use monochange_app_feedback::ServiceError;
@@ -137,7 +139,8 @@ pub async fn load(
 }
 
 /// Applies `operation` to the project's feedback and saves the result with
-/// its notifications, rerunning on a lost race.
+/// its notifications, rerunning on a lost race. An operation that changes
+/// nothing saves nothing.
 pub async fn update<R>(
 	state: &AppState,
 	scope: &ProjectScope,
@@ -145,6 +148,7 @@ pub async fn update<R>(
 ) -> Result<R, FeedbackError> {
 	for _ in 0..UPDATE_ATTEMPTS {
 		let mut feedback = load(state, scope).await?;
+		let before = serde_json::to_string(&feedback.service.state())?;
 		let result = operation(&mut feedback.service)?;
 		let notifications = feedback
 			.service
@@ -159,6 +163,9 @@ pub async fn update<R>(
 			})
 			.collect::<Result<Vec<_>, serde_json::Error>>()?;
 		let state_json = serde_json::to_string(&feedback.service.state())?;
+		if state_json == before && notifications.is_empty() {
+			return Ok(result);
+		}
 		match monochange_app_db::feedback::save_feedback(
 			&state.db,
 			scope.project_id,
@@ -240,8 +247,6 @@ pub async fn public_project(
 	organization: &str,
 	project: &str,
 ) -> Result<Option<PublicProject>, FeedbackError> {
-	use sqlx::Row;
-
 	let Some(record) = monochange_app_db::projects::find_organization(
 		&state.db,
 		monochange_app_db::projects::GITHUB,
@@ -256,6 +261,22 @@ pub async fn public_project(
 	else {
 		return Ok(None);
 	};
+	Ok(Some(PublicProject {
+		organization: record.login,
+		scope: project_scope(state, found.id, found.repository_count).await?,
+		project: found,
+	}))
+}
+
+/// The scope of project `project_id`, which links `linked` repositories.
+/// Only connected repositories join it; the rest count as disconnected.
+async fn project_scope(
+	state: &AppState,
+	project_id: i32,
+	linked: i64,
+) -> Result<ProjectScope, FeedbackError> {
+	use sqlx::Row;
+
 	let rows = sqlx::query(
 		"SELECT r.github_full_name, r.github_private, i.github_installation_id
 		 FROM project_repositories p
@@ -264,7 +285,7 @@ pub async fn public_project(
 		 WHERE p.project_id = $1
 		 ORDER BY r.github_full_name COLLATE NOCASE",
 	)
-	.bind(found.id)
+	.bind(project_id)
 	.fetch_all(&state.db)
 	.await?;
 	let repositories: Vec<ProjectRepository> = rows
@@ -277,18 +298,80 @@ pub async fn public_project(
 			}
 		})
 		.collect();
-	let disconnected = usize::try_from(found.repository_count)
+	let disconnected = usize::try_from(linked)
 		.unwrap_or(usize::MAX)
 		.saturating_sub(repositories.len());
-	Ok(Some(PublicProject {
-		organization: record.login,
-		scope: ProjectScope {
-			project_id: found.id,
-			repositories,
-			disconnected,
-		},
-		project: found,
-	}))
+	Ok(ProjectScope {
+		project_id,
+		repositories,
+		disconnected,
+	})
+}
+
+/// Something that happened in a repository on the way from an accepted item
+/// to a release.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Delivery {
+	/// A pull request was opened or its description changed.
+	PullRequestOpened {
+		pull_request: PullRequestRef,
+		body: String,
+	},
+	PullRequestMerged {
+		repository: String,
+		number: u64,
+	},
+	ReleasePublished {
+		repository: String,
+		release: ReleaseLink,
+	},
+}
+
+/// Applies `delivery` in GitHub repository `github_repo_id` to every project
+/// that includes it. Returns the ids of the items it advanced, per project.
+pub async fn observe_delivery(
+	state: &AppState,
+	github_repo_id: i64,
+	delivery: &Delivery,
+) -> Result<Vec<(i32, Vec<String>)>, FeedbackError> {
+	use sqlx::Row;
+
+	let projects = sqlx::query(
+		"SELECT p.project_id,
+		        (SELECT COUNT(*) FROM project_repositories c WHERE c.project_id = p.project_id) AS linked
+		 FROM project_repositories p
+		 WHERE p.provider = $1 AND p.repository_external_id = $2
+		 ORDER BY p.project_id",
+	)
+	.bind(monochange_app_db::projects::GITHUB)
+	.bind(github_repo_id)
+	.fetch_all(&state.db)
+	.await?;
+	let mut advanced = Vec::new();
+	for row in projects {
+		let scope = project_scope(state, row.get("project_id"), row.get("linked")).await?;
+		let ids = update(state, &scope, |service| {
+			match delivery {
+				Delivery::PullRequestOpened { pull_request, body } => {
+					service.observe_pull_request(pull_request, body)
+				}
+				Delivery::PullRequestMerged { repository, number } => {
+					service
+						.observe_merge(Some(repository), *number)
+						.map(|id| id.into_iter().collect())
+				}
+				Delivery::ReleasePublished {
+					repository,
+					release,
+				} => service.ship_merged(Some(repository), release),
+			}
+		})
+		.await?;
+		if !ids.is_empty() {
+			advanced.push((scope.project_id, ids));
+		}
+	}
+	Ok(advanced)
 }
 
 /// A visitor's pseudonymous id within one project, derived from their

@@ -178,6 +178,97 @@ fn releases_ship_straight_from_review_and_ignore_other_items() {
 	assert_eq!(service.item(&waiting).unwrap().stage, Stage::Voting);
 }
 
+/// Drives an item from voting to accepted with issue `number` in
+/// `acme/invoices`.
+fn accepted_with_issue(service: &mut FeedbackService<RuleBasedTriage>, id: &str, number: u64) {
+	for voter in ["v1", "v2", "v3"] {
+		service.vote(id, voter).unwrap();
+	}
+	service.accept(id, decision(None)).unwrap();
+	service
+		.link_issue(
+			id,
+			IssueRef {
+				repository: Some("acme/invoices".to_owned()),
+				number,
+				url: None,
+			},
+		)
+		.unwrap();
+}
+
+fn pull_request(repository: &str, number: u64) -> PullRequestRef {
+	PullRequestRef {
+		repository: Some(repository.to_owned()),
+		number,
+		url: format!("https://github.com/{repository}/pull/{number}"),
+	}
+}
+
+#[test]
+fn pull_requests_that_close_an_items_issue_move_it_to_review() {
+	let mut service = service(RepositoryVisibility::Public);
+	let closed = voting_bug(&mut service, "Totals are off", SUBMITTER);
+	accepted_with_issue(&mut service, &closed, 12);
+	let building = voting_bug(&mut service, "Exports are slow", "anon-2");
+	accepted_with_issue(&mut service, &building, 13);
+	service.start_build(&building).unwrap();
+	let untouched = voting_bug(&mut service, "Logo is blurry", "anon-3");
+	accepted_with_issue(&mut service, &untouched, 14);
+
+	// Another repository's pull request closing "#12" isn't about this issue.
+	assert_eq!(
+		service.observe_pull_request(&pull_request("acme/site", 5), "Fixes #12"),
+		Ok(Vec::new())
+	);
+	let advanced = service
+		.observe_pull_request(
+			&pull_request("acme/invoices", 50),
+			"Fixes #12\n\nFeedback-Item: fb-2",
+		)
+		.unwrap();
+	assert_eq!(advanced, [closed.clone(), building.clone()]);
+	for id in [&closed, &building] {
+		let item = service.item(id).unwrap();
+		assert_eq!(item.stage, Stage::InReview);
+		assert_eq!(item.pull_request.as_ref().unwrap().number, 50);
+	}
+	assert_eq!(service.item(&untouched).unwrap().stage, Stage::Accepted);
+
+	// Items already in review aren't moved again.
+	assert_eq!(
+		service.observe_pull_request(&pull_request("acme/invoices", 51), "Fixes #12"),
+		Ok(Vec::new())
+	);
+	// Without a repository, closing references can't be resolved.
+	let anonymous = PullRequestRef {
+		repository: None,
+		number: 52,
+		url: "https://github.com/acme/invoices/pull/52".to_owned(),
+	};
+	assert_eq!(
+		service.observe_pull_request(&anonymous, "Fixes #14"),
+		Ok(Vec::new())
+	);
+}
+
+#[test]
+fn closing_references_and_trailers_are_read_from_pull_request_bodies() {
+	let body = "Closes #3. Also (fixes acme/invoices#4), **Resolves:** #5\n\
+	            fixes other/repo#6 and fixes https://github.com/acme/invoices/issues/7;\n\
+	            fixed https://github.com/other/repo/issues/8 fixes #0 fixes #x mentions #9 fixes #3";
+	assert_eq!(
+		crate::closing_issue_numbers(body, "ACME/invoices"),
+		[3, 4, 5, 7]
+	);
+	assert_eq!(
+		crate::feedback_trailers(
+			"Body\nfeedback-item: fb-4\n  Feedback-Item: fb-9 \nFeedback-Item:\nFeedback"
+		),
+		["fb-4", "fb-9"]
+	);
+}
+
 #[test]
 fn intake_rejects_unknown_apps_and_invalid_submissions() {
 	let mut service = service(RepositoryVisibility::Public);

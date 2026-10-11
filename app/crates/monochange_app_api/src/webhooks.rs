@@ -4,15 +4,23 @@
 //! Installation events keep the app's repository list in sync: an install adds
 //! its repositories, a removal deletes them. Every payload is verified with
 //! the app webhook secret before it is trusted.
+//!
+//! Pull request and release events move accepted feedback along: a pull
+//! request that closes an item's issue puts it in review, merging it marks it
+//! merged, and publishing a release ships every merged item in that
+//! repository. Prereleases don't count as shipped.
 
 use axum::Json;
 use axum::extract::State;
 use axum::http::HeaderMap;
 use axum::http::StatusCode;
+use monochange_app_feedback::PullRequestRef;
+use monochange_app_feedback::ReleaseLink;
 use serde::Deserialize;
 use serde::Serialize;
 
 use crate::AppState;
+use crate::feedback::Delivery;
 use crate::github_app::InstallationRepository;
 
 /// Error response body for webhook failures.
@@ -58,6 +66,126 @@ enum WebhookEvent {
 	Ignored,
 }
 
+/// The parts of `pull_request` and `release` payloads feedback reads.
+#[derive(Debug, Deserialize)]
+struct DeliveryPayload {
+	action: String,
+	repository: DeliveryRepository,
+	#[serde(default)]
+	pull_request: Option<PullRequestPayload>,
+	#[serde(default)]
+	release: Option<ReleasePayload>,
+}
+
+#[derive(Debug, Deserialize)]
+struct DeliveryRepository {
+	id: i64,
+	full_name: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct PullRequestPayload {
+	number: u64,
+	html_url: String,
+	#[serde(default)]
+	body: Option<String>,
+	#[serde(default)]
+	merged: bool,
+}
+
+#[derive(Debug, Deserialize)]
+struct ReleasePayload {
+	tag_name: String,
+	html_url: String,
+	#[serde(default)]
+	prerelease: bool,
+}
+
+impl DeliveryPayload {
+	/// What the event means for feedback, if anything.
+	fn delivery(self, event_name: &str) -> Option<Delivery> {
+		let repository = self.repository.full_name;
+		match (
+			event_name,
+			self.action.as_str(),
+			self.pull_request,
+			self.release,
+		) {
+			("pull_request", "opened" | "reopened" | "edited", Some(pull_request), _) => {
+				Some(Delivery::PullRequestOpened {
+					pull_request: PullRequestRef {
+						repository: Some(repository),
+						number: pull_request.number,
+						url: pull_request.html_url,
+					},
+					body: pull_request.body.unwrap_or_default(),
+				})
+			}
+			("pull_request", "closed", Some(pull_request), _) if pull_request.merged => {
+				Some(Delivery::PullRequestMerged {
+					repository,
+					number: pull_request.number,
+				})
+			}
+			("release", "published", _, Some(release)) if !release.prerelease => {
+				Some(Delivery::ReleasePublished {
+					repository,
+					release: ReleaseLink {
+						version: release_version(&release.tag_name),
+						notes_url: release.html_url,
+					},
+				})
+			}
+			_ => None,
+		}
+	}
+}
+
+/// The version a release tag names: `v1.2.0` and `web/v1.2.0` are `1.2.0`.
+fn release_version(tag: &str) -> String {
+	let name = tag.rsplit('/').next().unwrap_or(tag);
+	name.strip_prefix('v')
+		.filter(|version| version.starts_with(|first: char| first.is_ascii_digit()))
+		.unwrap_or(name)
+		.to_owned()
+}
+
+/// Moves feedback along for a `pull_request` or `release` event.
+async fn delivery_event(
+	state: &AppState,
+	event_name: &str,
+	body: &[u8],
+) -> Result<StatusCode, (StatusCode, Json<WebhookError>)> {
+	let payload: DeliveryPayload =
+		serde_json::from_slice(body).map_err(|error| invalid_payload(&error))?;
+	let github_repo_id = payload.repository.id;
+	let Some(delivery) = payload.delivery(event_name) else {
+		return Ok(StatusCode::OK);
+	};
+	let advanced = crate::feedback::observe_delivery(state, github_repo_id, &delivery)
+		.await
+		.map_err(|error| {
+			tracing::error!(%error, "feedback delivery failed");
+			(
+				StatusCode::INTERNAL_SERVER_ERROR,
+				Json(WebhookError {
+					message: "feedback update failed".to_string(),
+				}),
+			)
+		})?;
+	tracing::info!(github_repo_id, ?advanced, "feedback delivery observed");
+	Ok(StatusCode::OK)
+}
+
+fn invalid_payload(error: &serde_json::Error) -> (StatusCode, Json<WebhookError>) {
+	(
+		StatusCode::BAD_REQUEST,
+		Json(WebhookError {
+			message: format!("invalid webhook payload: {error}"),
+		}),
+	)
+}
+
 #[derive(Debug, Deserialize)]
 struct InstallationPayload {
 	id: i64,
@@ -100,7 +228,8 @@ struct WebhookRepository {
 	private: bool,
 }
 
-/// `POST /api/github/webhooks` — installation lifecycle events.
+/// `POST /api/github/webhooks` — installation lifecycle, pull request, and
+/// release events.
 pub async fn github_webhook(
 	State(state): State<AppState>,
 	headers: HeaderMap,
@@ -139,18 +268,15 @@ pub async fn github_webhook(
 		.get("x-github-event")
 		.and_then(|value| value.to_str().ok())
 		.unwrap_or_default();
+	if matches!(event_name, "pull_request" | "release") {
+		return delivery_event(&state, event_name, &body).await;
+	}
 	if !matches!(event_name, "installation" | "installation_repositories") {
 		return Ok(StatusCode::OK);
 	}
 
-	let event: WebhookEvent = serde_json::from_slice(&body).map_err(|error| {
-		(
-			StatusCode::BAD_REQUEST,
-			Json(WebhookError {
-				message: format!("invalid webhook payload: {error}"),
-			}),
-		)
-	})?;
+	let event: WebhookEvent =
+		serde_json::from_slice(&body).map_err(|error| invalid_payload(&error))?;
 	if matches!(
 		(event_name, &event),
 		(
