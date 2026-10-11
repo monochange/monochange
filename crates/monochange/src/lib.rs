@@ -556,6 +556,10 @@ struct CommitReleaseReport {
 	subject: String,
 	body: String,
 	commit: Option<String>,
+	/// Whether GitHub verified the commit. Only the hosted backend knows, so
+	/// local commits and dry runs leave it unset.
+	#[serde(skip_serializing_if = "Option::is_none")]
+	verified: Option<bool>,
 	tracked_paths: Vec<PathBuf>,
 	dry_run: bool,
 	status: String,

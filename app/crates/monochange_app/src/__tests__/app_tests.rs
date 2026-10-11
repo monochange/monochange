@@ -44,6 +44,7 @@ async fn state(server: &MockServer) -> Arc<AppState> {
 		.unwrap();
 	monochange_app_db::run_migrations(&db).await.unwrap();
 	let secrets: AppSecrets = serde_json::from_value(serde_json::json!({
+		"database_url": "sqlite::memory:",
 		"jwt_secret": "callback-test-signing-key",
 		"github_client_id": "test-client",
 		"github_client_secret": "test-only-client-secret"

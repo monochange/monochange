@@ -4169,6 +4169,7 @@ impl CliStepDefinition {
 			Self::Validate { .. } => Some(&[]),
 			Self::CommitRelease { .. } => {
 				Some(&[
+					"format",
 					"no_verify",
 					"update_release_json",
 					"stage_all",
@@ -4197,6 +4198,7 @@ impl CliStepDefinition {
 					"backend",
 					"hosted_auth",
 					"hosted_url",
+					"oidc_audience",
 				])
 			}
 			Self::PlaceholderPublish { .. } => Some(&["format", "package", "show-all", "otp"]),
@@ -4279,6 +4281,7 @@ impl CliStepDefinition {
 			}
 			Self::CommitRelease { .. } => {
 				match name {
+					"format" => Some(&["text", "json", "json-min", "md"]),
 					"commit_backend" => Some(&["local", "hosted"]),
 					"hosted_auth" => Some(&["auto", "oidc", "token"]),
 					_ => None,
@@ -4288,6 +4291,7 @@ impl CliStepDefinition {
 				match name {
 					"format" => Some(&["text", "json", "json-min", "md"]),
 					"backend" => Some(&["local", "hosted"]),
+					"hosted_auth" => Some(&["auto", "oidc", "token"]),
 					_ => None,
 				}
 			}
@@ -4306,7 +4310,7 @@ impl CliStepDefinition {
 					"no_verify" | "update_release_json" | "stage_all" => {
 						Some(CliInputKind::Boolean)
 					}
-					"commit_backend" | "hosted_auth" => Some(CliInputKind::Choice),
+					"format" | "commit_backend" | "hosted_auth" => Some(CliInputKind::Choice),
 					"hosted_url" | "oidc_audience" => Some(CliInputKind::String),
 					_ => None,
 				}
@@ -4348,7 +4352,7 @@ impl CliStepDefinition {
 				match name {
 					"format" | "backend" | "hosted_auth" => Some(CliInputKind::Choice),
 					"no_verify" | "stage_all" => Some(CliInputKind::Boolean),
-					"hosted_url" => Some(CliInputKind::String),
+					"hosted_url" | "oidc_audience" => Some(CliInputKind::String),
 					_ => None,
 				}
 			}
@@ -4518,7 +4522,7 @@ fn step_input_help_text(name: &str) -> &'static str {
 			"Authentication the hosted backend uses: GitHub Actions OIDC or a monochange token"
 		}
 		"hosted_url" => "Base URL of the hosted monochange app",
-		"oidc_audience" => "Audience required in the GitHub Actions OIDC token for hosted commits",
+		"oidc_audience" => "Audience required in the GitHub Actions OIDC token for the hosted app",
 		"from" => "Git ref to use as the release, comparison, or verification source",
 		"write_empty_release_record" => "Write a release record even when no packages change",
 		"release_json" => "Write the prepared release record as JSON",
@@ -7038,10 +7042,17 @@ pub struct HostedCommitRequest {
 	pub owner: String,
 	/// Repository name, e.g. `monochange`.
 	pub repository: String,
-	/// Branch the commit must land on, e.g. `monochange/release/release`.
+	/// Release branch the commit must land on, e.g. `monochange/release/release`.
 	pub branch: String,
-	/// Commit SHA the files were prepared from. The server rejects the request
-	/// when the branch has moved so a rerun never overwrites newer work.
+	/// Branch the release was prepared from, e.g. `main`.
+	///
+	/// The server only replaces an existing release branch while `base_commit`
+	/// is still the head of this branch, so a stale run never overwrites the
+	/// release prepared by a newer one. Older clients omit it and can only
+	/// create the release branch or fast-forward it from `base_commit`.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub base_branch: Option<String>,
+	/// Commit SHA the files were prepared from and the release commit's parent.
 	pub base_commit: String,
 	/// Release commit subject, e.g. `chore(release): prepare release`.
 	pub subject: String,

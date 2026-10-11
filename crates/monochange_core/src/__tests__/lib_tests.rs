@@ -2323,6 +2323,50 @@ fn every_builtin_step_input_has_useful_help_text() {
 }
 
 #[test]
+fn every_builtin_choice_input_declares_its_choices() {
+	// A choice input without choices rejects every value on the command line,
+	// which made `step open-release-request --hosted-auth oidc` unusable.
+	for step in all_step_variants() {
+		for input in step.step_inputs_schema() {
+			if input.kind == CliInputKind::Choice {
+				assert!(
+					!input.choices.is_empty(),
+					"{} input `{}` is a choice without choices",
+					step.kind_name(),
+					input.name,
+				);
+			}
+		}
+	}
+}
+
+#[test]
+fn hosted_release_steps_accept_the_same_hosted_inputs() {
+	for step in all_step_variants() {
+		let kind = step.kind_name();
+		if kind != "CommitRelease" && kind != "OpenReleaseRequest" {
+			continue;
+		}
+		let names = step
+			.valid_input_names()
+			.unwrap_or_else(|| panic!("{kind} declares its inputs"));
+		for name in ["hosted_auth", "hosted_url", "oidc_audience"] {
+			assert!(names.contains(&name), "{kind} is missing `{name}`");
+		}
+		assert_eq!(
+			step.valid_input_choices("hosted_auth"),
+			Some(["auto", "oidc", "token"].as_slice()),
+			"{kind} hosted_auth choices"
+		);
+		assert_eq!(
+			step.expected_input_kind("oidc_audience"),
+			Some(CliInputKind::String),
+			"{kind} oidc_audience kind"
+		);
+	}
+}
+
+#[test]
 fn unknown_builtin_step_inputs_receive_fallback_help_text() {
 	assert_eq!(
 		crate::step_input_help_text("future_input"),
@@ -2377,7 +2421,7 @@ fn expected_input_kind_returns_none_for_command_steps() {
 }
 
 #[test]
-fn expected_input_kind_returns_none_for_commit_release() {
+fn commit_release_accepts_an_output_format() {
 	let step = CliStepDefinition::CommitRelease {
 		name: None,
 		when: None,
@@ -2391,7 +2435,15 @@ fn expected_input_kind_returns_none_for_commit_release() {
 		oidc_audience: None,
 		inputs: BTreeMap::new(),
 	};
-	assert_eq!(step.expected_input_kind("format"), None);
+	assert_eq!(
+		step.expected_input_kind("format"),
+		Some(CliInputKind::Choice)
+	);
+	assert_eq!(
+		step.valid_input_choices("format"),
+		Some(["text", "json", "json-min", "md"].as_slice())
+	);
+	assert_eq!(step.expected_input_kind("unknown"), None);
 }
 
 #[test]

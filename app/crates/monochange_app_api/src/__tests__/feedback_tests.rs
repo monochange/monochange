@@ -50,7 +50,13 @@ async fn state() -> AppState {
 	.execute(&db)
 	.await
 	.unwrap();
-	let secrets: AppSecrets = serde_json::from_value(serde_json::json!({})).unwrap();
+	let secrets: AppSecrets = serde_json::from_value(serde_json::json!({
+		"database_url": "sqlite::memory:",
+		"jwt_secret": "feedback-test-signing-key",
+		"github_client_id": "",
+		"github_client_secret": "",
+	}))
+	.unwrap();
 	AppState::new(db, secrets).unwrap()
 }
 
