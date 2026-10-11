@@ -572,7 +572,7 @@ async fn affected_packages_skips_release_pull_request_branches_on_detached_head(
 
 	let _env_lock = TEST_ENV_LOCK
 		.lock()
-		.unwrap_or_else(|error| panic!("test env lock poisoned: {error}"));
+		.unwrap_or_else(std::sync::PoisonError::into_inner);
 	let evaluation = crate::tests::block_on_in_context(temp_env::async_with_vars(
 		[("GITHUB_HEAD_REF", Some("monochange/release/affected"))],
 		async {
@@ -610,7 +610,7 @@ async fn affected_packages_treats_deleted_changesets_as_consumed_without_release
 
 	let _env_lock = TEST_ENV_LOCK
 		.lock()
-		.unwrap_or_else(|error| panic!("test env lock poisoned: {error}"));
+		.unwrap_or_else(std::sync::PoisonError::into_inner);
 	let evaluation = crate::tests::block_on_in_context(temp_env::async_with_vars(
 		[("GITHUB_HEAD_REF", None::<&str>)],
 		async {
@@ -652,7 +652,7 @@ async fn affected_packages_ignores_non_release_head_branch_on_detached_head() {
 
 	let _env_lock = TEST_ENV_LOCK
 		.lock()
-		.unwrap_or_else(|error| panic!("test env lock poisoned: {error}"));
+		.unwrap_or_else(std::sync::PoisonError::into_inner);
 	let evaluation = crate::tests::block_on_in_context(temp_env::async_with_vars(
 		[("GITHUB_HEAD_REF", Some("feature/not-a-release"))],
 		async {

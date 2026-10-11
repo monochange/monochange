@@ -15,7 +15,7 @@ use super::*;
 fn telemetry_is_disabled_without_environment_opt_in() {
 	let _guard = TEST_ENV_LOCK
 		.lock()
-		.unwrap_or_else(|error| panic!("test env lock poisoned: {error}"));
+		.unwrap_or_else(std::sync::PoisonError::into_inner);
 	temp_env::with_vars(
 		[
 			(TELEMETRY_ENV, None::<&str>),
@@ -29,7 +29,7 @@ fn telemetry_is_disabled_without_environment_opt_in() {
 fn telemetry_file_environment_enables_local_jsonl_sink() {
 	let _guard = TEST_ENV_LOCK
 		.lock()
-		.unwrap_or_else(|error| panic!("test env lock poisoned: {error}"));
+		.unwrap_or_else(std::sync::PoisonError::into_inner);
 	let temp = tempfile::tempdir().unwrap_or_else(|error| panic!("temporary directory: {error}"));
 	let path = temp.path().join("telemetry.jsonl");
 	let path_value = path.to_string_lossy().to_string();
@@ -77,7 +77,7 @@ fn telemetry_file_environment_enables_local_jsonl_sink() {
 fn telemetry_mode_environment_uses_default_state_file() {
 	let _guard = TEST_ENV_LOCK
 		.lock()
-		.unwrap_or_else(|error| panic!("test env lock poisoned: {error}"));
+		.unwrap_or_else(std::sync::PoisonError::into_inner);
 	let temp = tempfile::tempdir().unwrap_or_else(|error| panic!("temporary directory: {error}"));
 	let state_home = temp.path().join("state");
 	let state_home_value = state_home.to_string_lossy().to_string();
@@ -123,7 +123,7 @@ fn telemetry_mode_environment_uses_default_state_file() {
 fn telemetry_disable_mode_overrides_custom_file() {
 	let _guard = TEST_ENV_LOCK
 		.lock()
-		.unwrap_or_else(|error| panic!("test env lock poisoned: {error}"));
+		.unwrap_or_else(std::sync::PoisonError::into_inner);
 	let temp = tempfile::tempdir().unwrap_or_else(|error| panic!("temporary directory: {error}"));
 	let path = temp.path().join("telemetry.jsonl");
 	let path_value = path.to_string_lossy().to_string();
@@ -215,7 +215,7 @@ fn error_kind_uses_sanitized_categories() {
 fn default_telemetry_file_uses_home_when_state_home_is_absent() {
 	let _guard = TEST_ENV_LOCK
 		.lock()
-		.unwrap_or_else(|error| panic!("test env lock poisoned: {error}"));
+		.unwrap_or_else(std::sync::PoisonError::into_inner);
 	let temp = tempfile::tempdir().unwrap_or_else(|error| panic!("temporary directory: {error}"));
 	let home = temp.path().join("home");
 	let home_value = home.to_string_lossy().to_string();
@@ -240,7 +240,7 @@ fn default_telemetry_file_uses_home_when_state_home_is_absent() {
 fn default_telemetry_file_falls_back_to_workspace_relative_path() {
 	let _guard = TEST_ENV_LOCK
 		.lock()
-		.unwrap_or_else(|error| panic!("test env lock poisoned: {error}"));
+		.unwrap_or_else(std::sync::PoisonError::into_inner);
 	temp_env::with_vars(
 		[("XDG_STATE_HOME", None::<&str>), ("HOME", None::<&str>)],
 		|| {

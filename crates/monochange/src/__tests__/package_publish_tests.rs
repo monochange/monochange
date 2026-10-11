@@ -363,7 +363,7 @@ fn sample_endpoints(base_url: &str) -> RegistryEndpoints {
 fn with_locked_env_vars<T>(action: impl FnOnce() -> T) -> T {
 	let _env_lock = TEST_ENV_LOCK
 		.lock()
-		.unwrap_or_else(|error| panic!("test env lock poisoned: {error}"));
+		.unwrap_or_else(std::sync::PoisonError::into_inner);
 	action()
 }
 

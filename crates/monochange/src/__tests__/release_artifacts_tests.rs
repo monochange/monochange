@@ -2271,7 +2271,7 @@ fn build_hosted_commit_request_requires_github_repository_environment() {
 	};
 	let _env_lock = TEST_ENV_LOCK
 		.lock()
-		.unwrap_or_else(|error| panic!("test env lock poisoned: {error}"));
+		.unwrap_or_else(std::sync::PoisonError::into_inner);
 	crate::tests::block_on_in_context(temp_env::async_with_vars(
 		[("GITHUB_REPOSITORY", None::<&str>)],
 		async {
@@ -2296,7 +2296,7 @@ fn build_hosted_commit_request_requires_github_repository_environment() {
 fn with_test_env_lock<T>(action: impl FnOnce() -> T) -> T {
 	let _env_lock = TEST_ENV_LOCK
 		.lock()
-		.unwrap_or_else(|error| panic!("test env lock poisoned: {error}"));
+		.unwrap_or_else(std::sync::PoisonError::into_inner);
 	action()
 }
 

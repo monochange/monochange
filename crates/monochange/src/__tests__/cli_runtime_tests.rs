@@ -1328,7 +1328,7 @@ fn render_cli_command_results_include_package_publish_reports() {
 
 	let _env_lock = TEST_ENV_LOCK
 		.lock()
-		.unwrap_or_else(|error| panic!("test env lock poisoned: {error}"));
+		.unwrap_or_else(std::sync::PoisonError::into_inner);
 	temp_env::with_var("NO_COLOR", Some("1"), || {
 		let markdown = render_cli_command_markdown_result(&cli_command, &context);
 		assert!(markdown.contains("## Package publishing"));
@@ -1967,7 +1967,7 @@ fn resolve_command_output_supports_package_publish_text_and_markdown_without_rel
 	});
 	let _env_lock = TEST_ENV_LOCK
 		.lock()
-		.unwrap_or_else(|error| panic!("test env lock poisoned: {error}"));
+		.unwrap_or_else(std::sync::PoisonError::into_inner);
 	temp_env::with_var("NO_COLOR", Some("1"), || {
 		let markdown = resolve_command_output(&cli_command, &markdown_context, true, None)
 			.unwrap_or_else(|error| panic!("package publish markdown output: {error}"));
