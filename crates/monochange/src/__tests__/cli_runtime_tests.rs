@@ -711,6 +711,29 @@ fn format_input(format: &str) -> BTreeMap<String, Vec<String>> {
 	BTreeMap::from([("format".to_string(), vec![format.to_string()])])
 }
 
+/// The `name` event that command `command_name` recorded with `outcome`.
+///
+/// `MC_TELEMETRY_FILE` is process-wide, so tests running at the same time can
+/// write their own events into another test's file; matching the command keeps
+/// each assertion on the command under test.
+fn telemetry_event<'a>(
+	events: &'a [serde_json::Value],
+	name: &str,
+	command_name: &str,
+	outcome: &str,
+) -> &'a serde_json::Value {
+	events
+		.iter()
+		.find(|event| {
+			event["body"]["string_value"] == name
+				&& event["attributes"]["command_name"] == command_name
+				&& event["attributes"]["outcome"] == outcome
+		})
+		.unwrap_or_else(|| {
+			panic!("expected {name} {outcome} event for {command_name}: {events:#?}")
+		})
+}
+
 fn read_telemetry_events(path: &Path) -> Vec<serde_json::Value> {
 	fs::read_to_string(path)
 		.unwrap_or_else(|error| panic!("telemetry file should be written: {error}"))
@@ -2703,20 +2726,8 @@ async fn execute_cli_command_captures_telemetry_when_step_input_resolution_fails
 	.await;
 
 	let events = read_telemetry_events(&telemetry_path);
-	let step_event = events
-		.iter()
-		.find(|event| {
-			event["body"]["string_value"] == "command_step"
-				&& event["attributes"]["outcome"] == "error"
-		})
-		.unwrap_or_else(|| panic!("expected command_step event: {events:#?}"));
-	let run_event = events
-		.iter()
-		.find(|event| {
-			event["body"]["string_value"] == "command_run"
-				&& event["attributes"]["outcome"] == "error"
-		})
-		.unwrap_or_else(|| panic!("expected command_run event: {events:#?}"));
+	let step_event = telemetry_event(&events, "command_step", "telemetry-input-error", "error");
+	let run_event = telemetry_event(&events, "command_run", "telemetry-input-error", "error");
 
 	assert_eq!(step_event["attributes"]["outcome"], "error");
 	assert_eq!(step_event["attributes"]["error_kind"], "config_error");
@@ -2764,20 +2775,13 @@ async fn execute_cli_command_captures_telemetry_when_step_condition_fails() {
 	.await;
 
 	let events = read_telemetry_events(&telemetry_path);
-	let step_event = events
-		.iter()
-		.find(|event| {
-			event["body"]["string_value"] == "command_step"
-				&& event["attributes"]["outcome"] == "error"
-		})
-		.unwrap_or_else(|| panic!("expected command_step event: {events:#?}"));
-	let run_event = events
-		.iter()
-		.find(|event| {
-			event["body"]["string_value"] == "command_run"
-				&& event["attributes"]["outcome"] == "error"
-		})
-		.unwrap_or_else(|| panic!("expected command_run event: {events:#?}"));
+	let step_event = telemetry_event(
+		&events,
+		"command_step",
+		"telemetry-condition-error",
+		"error",
+	);
+	let run_event = telemetry_event(&events, "command_run", "telemetry-condition-error", "error");
 
 	assert_eq!(step_event["attributes"]["outcome"], "error");
 	assert_eq!(step_event["attributes"]["error_kind"], "config_error");

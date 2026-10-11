@@ -21,10 +21,17 @@ async fn run_git_process_with_stdin(
 		.spawn()
 		.map_err(|error| MonochangeError::Discovery(format!("{error_message}: {error}")))?;
 	if let Some(mut stdin) = child.stdin.take() {
-		stdin
-			.write_all(input)
-			.await
-			.map_err(|error| MonochangeError::Discovery(format!("{error_message}: {error}")))?;
+		// A process that exits before reading its input closes the pipe; its
+		// exit status and stderr explain the failure better than the write.
+		match stdin.write_all(input).await {
+			Ok(()) => {}
+			Err(error) if error.kind() == std::io::ErrorKind::BrokenPipe => {}
+			Err(error) => {
+				return Err(MonochangeError::Discovery(format!(
+					"{error_message}: {error}"
+				)));
+			}
+		}
 	}
 	let output = child
 		.wait_with_output()
