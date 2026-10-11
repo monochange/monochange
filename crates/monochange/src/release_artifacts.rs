@@ -4,11 +4,11 @@ use std::io::BufReader;
 use std::io::BufWriter;
 use std::io::IsTerminal;
 
-use monochange_core::git::git_current_branch;
 use similar::TextDiff;
 
 use super::*;
 use crate::cli_runtime::build_release_request_result;
+use crate::cli_runtime::string_step_input;
 use crate::git_support::git_stage_all;
 use crate::output::text::Outcome;
 use crate::output::text::TableCell;
@@ -1860,6 +1860,7 @@ pub(crate) async fn commit_release(
 		} else {
 			Some(git_head_commit(root).await?)
 		},
+		verified: None,
 		tracked_paths: prepared.tracked_paths,
 		dry_run: context.dry_run,
 		status: if context.dry_run {
@@ -1918,21 +1919,65 @@ pub(crate) struct HostedCommitOptions {
 
 pub(crate) const DEFAULT_HOSTED_URL: &str = "https://monochange.dev";
 
-/// Resolve hosted commit options from step fields, falling back to defaults.
+/// Hosted backend settings configured on a `CommitRelease` or
+/// `OpenReleaseRequest` step in `monochange.toml`.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct ConfiguredHostedSettings<'a> {
+	pub(crate) auth: monochange_core::HostedCommitAuth,
+	pub(crate) url: Option<&'a str>,
+	pub(crate) oidc_audience: Option<&'a str>,
+}
+
+/// Resolve the hosted backend options for one step invocation.
+///
+/// Step inputs (command-line flags or workflow `inputs`) win over the
+/// environment, which wins over the step configuration. Only the URL has an
+/// environment override, `MONOCHANGE_HOSTED_URL`, so self-hosted monochange
+/// app deployments can redirect the backend without editing monochange.toml.
+/// Empty values are ignored so unset workflow inputs never shadow the
+/// configuration.
+///
+/// # Errors
+///
+/// Returns an error when the `hosted_auth` input is not a supported mode.
+pub(crate) fn hosted_commit_options_from_step(
+	step_inputs: &BTreeMap<String, Vec<String>>,
+	configured: ConfiguredHostedSettings<'_>,
+) -> MonochangeResult<HostedCommitOptions> {
+	let step_input =
+		|name: &str| string_step_input(step_inputs, name).filter(|value| !value.is_empty());
+	let auth = match step_input("hosted_auth") {
+		Some(value) => value.parse()?,
+		None => configured.auth,
+	};
+	let url = step_input("hosted_url")
+		.or_else(|| {
+			std::env::var("MONOCHANGE_HOSTED_URL")
+				.ok()
+				.filter(|value| !value.is_empty())
+		})
+		.or_else(|| configured.url.map(String::from));
+	let oidc_audience =
+		step_input("oidc_audience").or_else(|| configured.oidc_audience.map(String::from));
+	Ok(resolve_hosted_commit_options(
+		auth,
+		url.as_deref(),
+		oidc_audience.as_deref(),
+	))
+}
+
+/// Build hosted commit options from resolved values, falling back to the
+/// public app and an audience derived from its host.
 #[must_use]
 pub(crate) fn resolve_hosted_commit_options(
 	auth: monochange_core::HostedCommitAuth,
 	url: Option<&str>,
 	oidc_audience: Option<&str>,
 ) -> HostedCommitOptions {
-	// `MONOCHANGE_HOSTED_URL` overrides the configured URL so self-hosted
-	// monochange app deployments (and tests) can redirect the hosted backend
-	// without editing monochange.toml.
 	let url = url
-		.map(String::from)
-		.or_else(|| std::env::var("MONOCHANGE_HOSTED_URL").ok())
-		.unwrap_or_else(|| DEFAULT_HOSTED_URL.to_string());
-	let url = url.trim_end_matches('/').to_string();
+		.unwrap_or(DEFAULT_HOSTED_URL)
+		.trim_end_matches('/')
+		.to_string();
 	let oidc_audience =
 		oidc_audience.map_or_else(|| hosted_oidc_audience(&url), ToString::to_string);
 	HostedCommitOptions {
@@ -1967,7 +2012,8 @@ pub(crate) async fn hosted_commit_release(
 ) -> MonochangeResult<CommitReleaseReport> {
 	let prepared = prepare_release_commit(root, context, source, manifest, update_release_json)?;
 	let body = prepared.message.body.clone().unwrap_or_default();
-	let request = build_hosted_commit_request(root, &prepared, context.dry_run).await?;
+	let branches = hosted_commit_branches(source, &manifest.command);
+	let request = build_hosted_commit_request(root, &prepared, context.dry_run, &branches).await?;
 	let response = if context.dry_run {
 		HostedCommitResponse {
 			commit: None,
@@ -1983,20 +2029,50 @@ pub(crate) async fn hosted_commit_release(
 		subject: prepared.message.subject,
 		body,
 		commit: response.commit,
+		verified: (!context.dry_run).then_some(response.verified),
 		tracked_paths: prepared.tracked_paths,
 		dry_run: context.dry_run,
 		status: response.status.unwrap_or_else(|| "completed".to_string()),
 	})
 }
 
-/// Build the provider-neutral request the monochange app commits on our behalf.
+/// The branches a hosted release commit is written to and prepared from.
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub(crate) struct HostedCommitBranches {
+	/// Release branch the commit lands on; the release request's head branch.
+	pub(crate) release: String,
+	/// Branch the release was prepared from; the release request's base branch.
+	pub(crate) base: String,
+}
+
+/// Resolve the hosted commit branches from the `[source.pull_requests]`
+/// settings, so the commit lands on the branch `OpenReleaseRequest` opens.
 ///
-/// Testable with an explicit repository/branch so CI environments do not need
-/// GitHub Actions environment variables.
+/// The branch a workflow was triggered from is never the target: committing
+/// there would put the release commit on `main` instead of the release
+/// pull request.
+#[must_use]
+pub(crate) fn hosted_commit_branches(
+	source: Option<&SourceConfiguration>,
+	command: &str,
+) -> HostedCommitBranches {
+	let defaults = monochange_core::ProviderMergeRequestSettings::default();
+	let pull_requests = source.map_or(&defaults, |source| &source.pull_requests);
+	HostedCommitBranches {
+		release: monochange_hosting::release_pull_request_branch(
+			&pull_requests.branch_prefix,
+			command,
+		),
+		base: pull_requests.base.clone(),
+	}
+}
+
+/// Build the provider-neutral request the monochange app commits on our behalf.
 async fn build_hosted_commit_request(
 	root: &Path,
 	prepared: &PreparedReleaseCommit,
 	dry_run: bool,
+	branches: &HostedCommitBranches,
 ) -> MonochangeResult<HostedCommitRequest> {
 	let repository = std::env::var("GITHUB_REPOSITORY").map_err(|_| {
 		MonochangeError::Config(
@@ -2004,42 +2080,21 @@ async fn build_hosted_commit_request(
 				.to_string(),
 		)
 	})?;
-	let head_ref = std::env::var("GITHUB_HEAD_REF").ok();
-	let ref_name = std::env::var("GITHUB_REF_NAME").ok();
-	build_hosted_commit_request_for_github(
-		root,
-		prepared,
-		dry_run,
-		&repository,
-		head_ref.as_deref(),
-		ref_name.as_deref(),
-	)
-	.await
+	build_hosted_commit_request_for_github(root, prepared, dry_run, &repository, branches).await
 }
 
+/// Build the hosted commit request for an explicit repository, so tests do
+/// not need GitHub Actions environment variables.
 async fn build_hosted_commit_request_for_github(
 	root: &Path,
 	prepared: &PreparedReleaseCommit,
 	dry_run: bool,
 	repository: &str,
-	head_ref: Option<&str>,
-	ref_name: Option<&str>,
+	branches: &HostedCommitBranches,
 ) -> MonochangeResult<HostedCommitRequest> {
 	let (owner, repository) = repository.split_once('/').ok_or_else(|| {
 		MonochangeError::Config("GITHUB_REPOSITORY must use `owner/repo` format".to_string())
 	})?;
-	let branch = match head_ref
-		.filter(|value| !value.is_empty())
-		.or(ref_name)
-		.filter(|value| !value.is_empty())
-	{
-		Some(branch) => branch.to_string(),
-		None => {
-			git_current_branch(root)
-				.await
-				.unwrap_or_else(|_| "HEAD".to_string())
-		}
-	};
 	let files = prepared
 		.tracked_paths
 		.iter()
@@ -2049,7 +2104,8 @@ async fn build_hosted_commit_request_for_github(
 		provider: "github".to_string(),
 		owner: owner.to_string(),
 		repository: repository.to_string(),
-		branch,
+		branch: branches.release.clone(),
+		base_branch: Some(branches.base.clone()),
 		base_commit: git_head_commit(root).await?,
 		subject: prepared.message.subject.clone(),
 		body: prepared.message.body.clone().unwrap_or_default(),
@@ -2072,7 +2128,12 @@ fn hosted_commit_idempotency_key() -> Option<String> {
 
 /// Read one release-managed file; missing content deletes the path, which is
 /// how consumed changeset files are removed from the release commit.
+///
+/// Tracked paths are usually workspace-relative, but the release record is
+/// tracked by its absolute path; the app only accepts repository-relative
+/// paths, so absolute paths are made relative to `root`.
 fn hosted_commit_file(root: &Path, path: &Path) -> MonochangeResult<HostedCommitFile> {
+	let path = path.strip_prefix(root).unwrap_or(path);
 	let full_path = root.join(path);
 	let content = if full_path.exists() {
 		Some(fs::read_to_string(&full_path).map_err(|error| {

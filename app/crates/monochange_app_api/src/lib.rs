@@ -148,6 +148,9 @@ pub struct AppState {
 	pub github_app: Option<github_app::GitHubAppAuth>,
 	/// OIDC audience required in GitHub Actions tokens.
 	pub oidc_audience: String,
+	/// `MONOCHANGE_TOKEN` accepted by the hosted release endpoints; `None`
+	/// requires GitHub Actions OIDC.
+	pub api_token: Option<String>,
 	/// Shared HTTP client for GitHub API calls.
 	pub http: reqwest::Client,
 	/// Serialize refresh-token rotation so one browser session cannot invalidate another request.
@@ -178,6 +181,10 @@ impl AppState {
 					.filter(|audience| !audience.is_empty())
 			})
 			.unwrap_or_else(|| "monochange.dev".to_string());
+		let api_token = secrets
+			.monochange_token
+			.clone()
+			.filter(|token| !token.is_empty());
 		let http = reqwest::Client::builder()
 			.connect_timeout(std::time::Duration::from_secs(10))
 			.timeout(std::time::Duration::from_secs(30))
@@ -194,6 +201,7 @@ impl AppState {
 			github_api_origin: "https://api.github.com".to_string(),
 			github_app,
 			oidc_audience,
+			api_token,
 			http,
 			github_token_refresh_lock: Arc::new(tokio::sync::Mutex::new(())),
 		})

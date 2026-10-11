@@ -1,0 +1,8 @@
+---
+source: crates/monochange_integration_tests/tests/hosted_release_commit.rs
+expression: "String::from_utf8_lossy(&output.stderr)"
+---
+error[config.invalid]: invalid hosted auth `password`; expected `auto`, `oidc`, or `token`
+  command: monochange run commit-invalid-auth
+  step:    [2/2] commit release
+  help:    Check `monochange.toml` and the command arguments, then rerun the command.

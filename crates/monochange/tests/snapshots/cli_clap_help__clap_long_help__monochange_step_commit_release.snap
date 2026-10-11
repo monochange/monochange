@@ -7,7 +7,7 @@ Command: monochange step commit-release
 
 Run the built-in commit-release release workflow step
 
-[1m[97mUsage:[0m monochange step commit-release [--dry-run] [--no-verify] [--update-release-json] [--stage-all] [--commit-backend <COMMIT_BACKEND>] [--hosted-auth <HOSTED_AUTH>] [--hosted-url <HOSTED_URL>] [--oidc-audience <OIDC_AUDIENCE>]
+[1m[97mUsage:[0m monochange step commit-release [--dry-run] [--format <FORMAT>] [--no-verify] [--update-release-json] [--stage-all] [--commit-backend <COMMIT_BACKEND>] [--hosted-auth <HOSTED_AUTH>] [--hosted-url <HOSTED_URL>] [--oidc-audience <OIDC_AUDIENCE>]
 
 [1m[96mOptions:[0m
   [93m-h[0m, [93m--help[0m
@@ -18,6 +18,11 @@ Run the built-in commit-release release workflow step
           Run the command in dry-run mode when supported
 
 [1m[96mOptions:[0m
+      [93m--format[0m[95m [0m[95m<FORMAT>[0m
+          Result format: text, Markdown, pretty JSON, or compact JSON
+
+          [possible values: text, json, json-min, md]
+
       [93m--no-verify[0m
           Skip Git commit hooks for this operation
 
@@ -41,7 +46,7 @@ Run the built-in commit-release release workflow step
           Base URL of the hosted monochange app
 
       [93m--oidc-audience[0m[95m [0m[95m<OIDC_AUDIENCE>[0m
-          Audience required in the GitHub Actions OIDC token for hosted commits
+          Audience required in the GitHub Actions OIDC token for the hosted app
 
 [1m[96mGlobal Options:[0m
   [93m-q[0m, [93m--quiet[0m
