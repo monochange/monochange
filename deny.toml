@@ -13,6 +13,10 @@ ignore = [
 	# Pulled in by octocrab/jsonwebtoken. monochange uses personal-token auth only,
 	# and there is no patched release available yet.
 	"RUSTSEC-2023-0071",
+	# unsafe-libyaml is the YAML backend of serde_yaml_ng and has no patched
+	# release; the maintainer tracks it upstream and the crate is not used on
+	# untrusted input paths beyond fixture parsing.
+	"RUSTSEC-2024-0449",
 ]
 
 [licenses]
