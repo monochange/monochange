@@ -113,12 +113,14 @@ impl CargoSemverChecksAnalyzer {
 				version_text,
 			);
 		};
+
 		let Some(after) = after else {
 			return failed_analysis_with_version(
 				"the candidate snapshot is unavailable",
 				version_text,
 			);
 		};
+
 		if let Err(reason) = version {
 			return failed_analysis_with_version(&reason, None);
 		}
@@ -132,17 +134,22 @@ impl CargoSemverChecksAnalyzer {
 				);
 			}
 		};
+
 		let package_relative = manifest_relative.parent().unwrap_or_else(|| Path::new(""));
+
 		let before_root = match materialize_workspace(&mut state, context.repo_root, before) {
 			Ok(path) => path,
 			Err(reason) => return failed_analysis_with_version(&reason, version_text),
 		};
+
 		let after_root = match materialize_workspace(&mut state, context.repo_root, after) {
 			Ok(path) => path,
 			Err(reason) => return failed_analysis_with_version(&reason, version_text),
 		};
+
 		let current_manifest = after_root.join(&manifest_relative);
 		let baseline_root = before_root.join(package_relative);
+
 		if !current_manifest.is_file() || !baseline_root.join(CARGO_MANIFEST_FILE).is_file() {
 			return failed_analysis_with_version(
 				"the package manifest does not exist at both comparison endpoints",
@@ -160,6 +167,7 @@ impl CargoSemverChecksAnalyzer {
 			package_name: &context.package.name,
 			version: version_text.as_deref(),
 		};
+
 		for cell in &self.settings.matrix {
 			let key = MatrixCacheKey {
 				before: before.to_string(),
@@ -184,10 +192,12 @@ fn analyzer_version(state: &mut AnalyzerState, engine: &Path) -> Result<String, 
 	if let Some(version) = &state.version {
 		return version.clone();
 	}
+
 	let output = run_process(
 		Command::new(engine).args(["semver-checks", "--version"]),
 		Duration::from_secs(10),
 	);
+
 	let version = match output {
 		Ok(output) if output.success => parse_version(&output.stdout, &output.stderr),
 		Ok(output) => {
@@ -198,6 +208,7 @@ fn analyzer_version(state: &mut AnalyzerState, engine: &Path) -> Result<String, 
 		}
 		Err(reason) => Err(reason),
 	};
+
 	state.version = Some(version.clone());
 	version
 }
@@ -228,6 +239,7 @@ fn materialize_workspace(
 			"snapshot label `{label}` is not a trusted Git tree"
 		));
 	};
+
 	let temporary = tempfile::Builder::new()
 		// patch-coverage:ignore-start -- exercising temporary-directory allocation failure requires exhausting OS resources.
 		.prefix("monochange-cargo-semver-")
@@ -264,6 +276,7 @@ fn git_stdout(repo_root: &Path, args: &[&str]) -> Result<String, String> {
 		.args(args)
 		.output()
 		.map_err(|error| format!("failed to run git {}: {error}", args.join(" ")))?;
+
 	if !output.status.success() {
 		return Err(format!(
 			"git {} failed: {}",
@@ -271,6 +284,7 @@ fn git_stdout(repo_root: &Path, args: &[&str]) -> Result<String, String> {
 			String::from_utf8_lossy(&output.stderr).trim()
 		));
 	}
+
 	Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
 }
 
@@ -307,6 +321,7 @@ fn run_matrix_cell(
 	context: &MatrixRunContext<'_>,
 ) -> SemanticAnalyzerCheck {
 	let configuration = matrix_configuration(cell);
+
 	let target_dir = match tempfile::Builder::new()
 		// patch-coverage:ignore-start -- exercising temporary-directory allocation failure requires exhausting OS resources.
 		.prefix("monochange-cargo-semver-target-")
@@ -360,9 +375,11 @@ fn append_matrix_args(command: &mut Command, cell: &CargoSemverMatrixCell) {
 		}
 		_ => {}
 	}
+
 	append_feature_arg(command, "--features", &cell.features);
 	append_feature_arg(command, "--baseline-features", &cell.baseline_features);
 	append_feature_arg(command, "--current-features", &cell.current_features);
+
 	if let Some(target) = &cell.target {
 		command.args(["--target", target]);
 	}
@@ -431,6 +448,7 @@ fn run_process(command: &mut Command, timeout: Duration) -> Result<ProcessOutput
 		.map_err(|error| format!("failed while waiting for cargo-semver-checks: {error}"))?
 	else {
 		let _ = child.kill();
+
 		let _ = child.wait();
 		let _ = stdout_reader.join();
 		let _ = stderr_reader.join();
@@ -464,11 +482,13 @@ fn join_reader(
 		.join()
 		.map_err(|_| format!("cargo-semver-checks {stream} reader panicked"))?
 		.map_err(|error| format!("failed to read cargo-semver-checks {stream}: {error}"))?;
+
 	if bytes.len() > MAX_PROCESS_OUTPUT_BYTES as usize {
 		return Err(format!(
 			"cargo-semver-checks {stream} exceeded the 8 MiB output limit"
 		));
 	}
+
 	Ok(String::from_utf8_lossy(&bytes).into_owned())
 }
 
@@ -496,6 +516,7 @@ fn parse_matrix_output(
 			),
 		);
 	};
+
 	let diagnostics = parse_diagnostics(&combined, version);
 	SemanticAnalyzerCheck::new(
 		cell.name.clone(),
@@ -519,6 +540,7 @@ fn parse_diagnostics(output: &str, version: Option<&str>) -> Vec<SemanticAnalyze
 			if code.is_empty() {
 				return None;
 			}
+
 			let diagnostic = SemanticAnalyzerDiagnostic::new(code, message.trim());
 			Some(version.map_or(diagnostic.clone(), |version| {
 				diagnostic.with_reference(format!(
@@ -576,6 +598,7 @@ fn aggregate_analysis(
 	} else {
 		SemanticAnalysisCompleteness::Partial
 	};
+
 	let mut evidence = SemanticAnalyzerEvidence::new(
 		ANALYZER_ID,
 		ENGINE,
@@ -586,9 +609,11 @@ fn aggregate_analysis(
 		),
 	)
 	.with_checks(checks);
+
 	if let Some(version) = version {
 		evidence = evidence.with_version(version);
 	}
+
 	if let Some(reason) = fallback_reason {
 		evidence = evidence.with_fallback_reason(reason);
 	}
@@ -597,6 +622,7 @@ fn aggregate_analysis(
 	} else {
 		ApiConfidence::Low
 	};
+
 	let summary = match outcome {
 		SemanticAnalysisOutcome::Breaking => {
 			"cargo-semver-checks found a breaking Rust API change in the configured matrix"
@@ -614,6 +640,7 @@ fn aggregate_analysis(
 		_ => "cargo-semver-checks returned an unknown compatibility outcome",
 		// patch-coverage:ignore-end
 	};
+
 	CargoSemverAnalysis {
 		change: SemanticChange::new(
 			SemanticChangeCategory::PublicApi,
@@ -652,9 +679,11 @@ fn failed_analysis_with_version(reason: &str, version: Option<String>) -> CargoS
 	)
 	.with_fallback_reason(reason)
 	.with_checks(vec![check]);
+
 	if let Some(version) = version {
 		evidence = evidence.with_version(version);
 	}
+
 	CargoSemverAnalysis {
 		change: SemanticChange::new(
 			SemanticChangeCategory::PublicApi,

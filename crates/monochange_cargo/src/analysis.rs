@@ -140,12 +140,14 @@ fn merge_semver_analysis(
 	let Some(analysis) = analysis else {
 		return;
 	};
+
 	if analysis.replace_syntax_changes {
 		semantic_changes.retain(|change| {
 			change.category != SemanticChangeCategory::PublicApi
 				|| change.kind == SemanticChangeKind::Added
 		});
 	}
+
 	semantic_changes.push(analysis.change);
 }
 
@@ -252,6 +254,7 @@ fn snapshot_public_symbols(
 			path: change.package_path.clone(),
 			contents: contents.to_string(),
 		};
+
 		if !is_rust_source_file(&file) {
 			continue;
 		}
@@ -351,6 +354,7 @@ fn collect_public_symbols_from_items(
 					file_path,
 				);
 			}
+
 			syn::Item::Enum(item) if is_public(&item.vis) => {
 				push_symbol(
 					output,
@@ -362,6 +366,7 @@ fn collect_public_symbols_from_items(
 					file_path,
 				);
 			}
+
 			syn::Item::Fn(item) if is_public(&item.vis) => {
 				push_symbol(
 					output,
@@ -373,6 +378,7 @@ fn collect_public_symbols_from_items(
 					file_path,
 				);
 			}
+
 			syn::Item::Mod(item) if is_public(&item.vis) => {
 				push_symbol(
 					output,
@@ -395,6 +401,7 @@ fn collect_public_symbols_from_items(
 					);
 				}
 			}
+
 			syn::Item::Static(item) if is_public(&item.vis) => {
 				push_symbol(
 					output,
@@ -406,6 +413,7 @@ fn collect_public_symbols_from_items(
 					file_path,
 				);
 			}
+
 			syn::Item::Struct(item) if is_public(&item.vis) => {
 				push_symbol(
 					output,
@@ -417,6 +425,7 @@ fn collect_public_symbols_from_items(
 					file_path,
 				);
 			}
+
 			syn::Item::Trait(item) if is_public(&item.vis) => {
 				push_symbol(
 					output,
@@ -428,6 +437,7 @@ fn collect_public_symbols_from_items(
 					file_path,
 				);
 			}
+
 			syn::Item::Type(item) if is_public(&item.vis) => {
 				push_symbol(
 					output,
@@ -439,6 +449,7 @@ fn collect_public_symbols_from_items(
 					file_path,
 				);
 			}
+
 			syn::Item::Union(item) if is_public(&item.vis) => {
 				push_symbol(
 					output,
@@ -450,6 +461,7 @@ fn collect_public_symbols_from_items(
 					file_path,
 				);
 			}
+
 			syn::Item::Use(item) if is_public(&item.vis) => {
 				let use_tree = render_signature(&item.tree);
 				push_symbol(
@@ -462,6 +474,7 @@ fn collect_public_symbols_from_items(
 					file_path,
 				);
 			}
+
 			_ => {}
 		}
 	}
@@ -523,6 +536,7 @@ fn literal_elements(expression: &syn::Expr) -> Option<Vec<String>> {
 		// `&[..]` is how a `&[T]` constant is written.
 		syn::Expr::Reference(reference) => literal_elements(&reference.expr),
 		syn::Expr::Array(array) => Some(array.elems.iter().map(render_signature).collect()),
+
 		syn::Expr::Macro(expression) if expression.mac.path.is_ident("vec") => {
 			// The repeat form `vec![value; count]` is not an element sequence,
 			// so a failed parse falls through to the conservative default.
@@ -534,6 +548,7 @@ fn literal_elements(expression: &syn::Expr) -> Option<Vec<String>> {
 				.ok()
 				.map(|elements| elements.iter().map(render_signature).collect())
 		}
+
 		_ => None,
 	}
 }
@@ -546,6 +561,7 @@ fn slice_element_type(declared_type: &syn::Type) -> Option<String> {
 		syn::Type::Reference(reference) => reference.elem.as_ref(),
 		other => other,
 	};
+
 	match declared_type {
 		syn::Type::Slice(slice) => Some(render_signature(&slice.elem)),
 		syn::Type::Array(array) => Some(render_signature(&array.elem)),
@@ -558,9 +574,11 @@ fn slice_element_type(declared_type: &syn::Type) -> Option<String> {
 /// Return the element type of a `Vec<T>` path.
 fn vec_element_type(path: &syn::TypePath) -> Option<String> {
 	let segment = path.path.segments.last()?;
+
 	if segment.ident != "Vec" {
 		return None;
 	}
+
 	let syn::PathArguments::AngleBracketed(arguments) = &segment.arguments else {
 		return None;
 	};
@@ -591,6 +609,7 @@ fn module_prefix_for_file(path: &Path) -> Vec<String> {
 	};
 
 	let stem = last.strip_suffix(".rs").unwrap_or(&last);
+
 	if stem != "lib" && stem != "main" && stem != "mod" {
 		components.push(stem.to_string());
 	}
@@ -614,6 +633,7 @@ fn diff_public_symbols(
 					Some(after_symbol.signature.clone()),
 				));
 			}
+
 			Some(before_symbol) if before_symbol.signature != after_symbol.signature => {
 				let mut change = build_symbol_change(
 					SemanticChangeKind::Modified,
@@ -624,8 +644,10 @@ fn diff_public_symbols(
 				if let Some(assessment) = slice_append_assessment(before_symbol, after_symbol) {
 					change.assessment = Some(assessment);
 				}
+
 				changes.push(change);
 			}
+
 			Some(_) => {}
 		}
 	}
@@ -686,6 +708,7 @@ fn slice_append_assessment(
 ) -> Option<SemanticChangeAssessment> {
 	let before = before_symbol.initializer.as_ref()?;
 	let after = after_symbol.initializer.as_ref()?;
+
 	if !before.appends_into(after) {
 		return None;
 	}
@@ -768,6 +791,7 @@ fn parse_manifest(
 	warnings: &mut Vec<String>,
 ) -> Option<Value> {
 	let contents = contents?;
+
 	match toml::from_str::<Value>(contents) {
 		Ok(value) => Some(value),
 		Err(error) => {
@@ -854,6 +878,7 @@ fn compare_manifest_entries(
 					Some(after_entry.value.clone()),
 				));
 			}
+
 			Some(before_entry) if before_entry != after_entry => {
 				changes.push(build_manifest_change(
 					category,
@@ -865,6 +890,7 @@ fn compare_manifest_entries(
 					Some(after_entry.value.clone()),
 				));
 			}
+
 			Some(_) => {}
 		}
 	}

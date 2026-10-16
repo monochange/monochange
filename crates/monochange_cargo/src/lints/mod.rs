@@ -1,7 +1,6 @@
 #![forbid(clippy::indexing_slicing)]
 
 //! Cargo manifest lint suite.
-
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::fs;
@@ -400,6 +399,7 @@ impl DependencyFieldOrderRule {
 			.get_mut(section)
 			.and_then(Item::as_table_mut)
 			.expect("detection verified the dependency section is a table");
+
 		for dep_name in deps {
 			let dep_table = section_table
 				.get_mut(dep_name)
@@ -417,15 +417,18 @@ impl DependencyFieldOrderRule {
 			.iter()
 			.map(|(key, value)| (key.to_string(), value.clone()))
 			.collect();
+
 		for (key, _) in &items {
 			table.remove(key);
 		}
+
 		items.sort_by_key(|(key, _)| {
 			order
 				.iter()
 				.position(|preferred| preferred == key)
 				.unwrap_or(order.len())
 		});
+
 		for (key, value) in items {
 			table.insert(&key, value);
 		}
@@ -452,16 +455,19 @@ impl LintRuleRunner for DependencyFieldOrderRule {
 			};
 
 			let mut offending_deps = Vec::new();
+
 			for (dep_name, value) in table {
 				let Some(dep_table) = value.as_table() else {
 					continue;
 				};
 				let actual = dep_table.iter().map(|(key, _)| key).collect::<Vec<_>>();
 				let expected = Self::ordered_fields(dep_table);
+
 				if actual != expected {
 					offending_deps.push(dep_name.to_string());
 				}
 			}
+
 			if offending_deps.is_empty() {
 				continue;
 			}
@@ -492,9 +498,11 @@ impl LintRuleRunner for DependencyFieldOrderRule {
 					),
 					config.severity(),
 				);
+
 				if let Some(fix) = &shared_fix {
 					result = result.with_fix(fix.clone());
 				}
+
 				results.push(result);
 			}
 		}
@@ -536,6 +544,7 @@ impl InternalDependencyWorkspaceRule {
 			.get_mut(section)
 			.and_then(Item::as_table_mut)
 			.expect("detection verified the dependency section is a table");
+
 		for dep_name in deps {
 			let dep_item = section_table
 				.get_mut(dep_name)
@@ -571,15 +580,19 @@ impl LintRuleRunner for InternalDependencyWorkspaceRule {
 			};
 
 			let mut offending_deps = Vec::new();
+
 			for (dep_name, value) in table {
 				if !file.workspace_package_names.contains(dep_name) {
 					continue;
 				}
+
 				if value_has_workspace_enabled(value) {
 					continue;
 				}
+
 				offending_deps.push(dep_name.to_string());
 			}
+
 			if offending_deps.is_empty() {
 				continue;
 			}
@@ -607,9 +620,11 @@ impl LintRuleRunner for InternalDependencyWorkspaceRule {
 					format!("internal dependency `{dep_name}` should use workspace = true"),
 					config.severity(),
 				);
+
 				if let Some(fix) = &shared_fix {
 					result = result.with_fix(fix.clone());
 				}
+
 				results.push(result);
 			}
 		}
@@ -638,6 +653,7 @@ impl LintRuleRunner for PublishableDependencyRule {
 		if !config.severity().is_enabled() || ctx.metadata.publishable != Some(true) {
 			return Vec::new();
 		}
+
 		let Some(file) = cargo_file(ctx) else {
 			return Vec::new();
 		};
@@ -760,10 +776,13 @@ impl SortedDependenciesRule {
 			.iter()
 			.map(|(key, value)| (key.to_string(), value.clone()))
 			.collect();
+
 		for (key, _) in &items {
 			section_table.remove(key);
 		}
+
 		items.sort_by(|(left, _), (right, _)| left.cmp(right));
+
 		for (key, value) in items {
 			section_table.insert(&key, value);
 		}
@@ -792,6 +811,7 @@ impl LintRuleRunner for SortedDependenciesRule {
 			let keys = table.iter().map(|(key, _)| key).collect::<Vec<_>>();
 			let mut sorted_keys = keys.clone();
 			sorted_keys.sort_unstable();
+
 			if keys == sorted_keys {
 				continue;
 			}
@@ -818,6 +838,7 @@ impl LintRuleRunner for SortedDependenciesRule {
 				format!("dependencies in `{section}` are not sorted alphabetically"),
 				config.severity(),
 			);
+
 			if let Some(fix) = &shared_fix {
 				result = result.with_fix(fix.clone());
 			}
@@ -853,6 +874,7 @@ impl LintRuleRunner for UnlistedPackagePrivateRule {
 		if ctx.metadata.managed || ctx.metadata.publishable != Some(true) {
 			return Vec::new();
 		}
+
 		let Some(file) = cargo_file(ctx) else {
 			return Vec::new();
 		};
@@ -867,9 +889,11 @@ impl LintRuleRunner for UnlistedPackagePrivateRule {
 
 		if config.bool_option("fix", true) {
 			let mut rewritten = file.document.clone();
+
 			if let Some(package) = rewritten.get_mut("package").and_then(Item::as_table_mut) {
 				package.insert("publish", toml_value(false));
 			}
+
 			result = result.with_fix(LintFix::document(
 				"insert publish = false",
 				rewritten.to_string(),
@@ -908,6 +932,7 @@ fn inherited_workspace_repository(workspace_root: &Path) -> Option<String> {
 		.and_then(|w| w.as_table())
 		.and_then(|w| w.get("package"))
 		.and_then(|p| p.as_table());
+
 	if let Some(table) = workspace_package
 		&& let Some(repo) = table.get("repository").and_then(Item::as_str)
 	{
@@ -975,6 +1000,7 @@ impl LintRuleRunner for ManifestRepositoryRule {
 				if let Some(pkg) = doc.get_mut("package").and_then(Item::as_table_mut) {
 					pkg.insert("repository", toml_value(&expected));
 				}
+
 				let result = LintResult::new(
 					self.rule.id.clone(),
 					location,
@@ -999,12 +1025,15 @@ impl LintRuleRunner for ManifestRepositoryRule {
 					if config.bool_option("allow_workspace_inheritance", false) {
 						return Vec::new();
 					}
+
 					let Some(inherited) = inherited_workspace_repository(ctx.workspace_root) else {
 						return Vec::new();
 					};
+
 					if inherited == expected {
 						return Vec::new();
 					}
+
 					let span = item.span().map(|s| (s.start, s.end));
 					let location = location_from_span(ctx.manifest_path, ctx.contents, span);
 					let result = LintResult::new(
@@ -1056,9 +1085,11 @@ impl LintRuleRunner for ManifestRepositoryRule {
 /// cover key/value pairs safely.
 fn document_repository_fix(document: &DocumentMut, expected: &str, contents_len: usize) -> LintFix {
 	let mut doc = document.clone();
+
 	if let Some(pkg) = doc.get_mut("package").and_then(Item::as_table_mut) {
 		pkg.insert("repository", toml_value(expected));
 	}
+
 	LintFix::document("fix repository field", doc.to_string(), contents_len)
 }
 

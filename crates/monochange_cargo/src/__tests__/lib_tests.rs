@@ -26,6 +26,7 @@ use crate::discover_cargo_packages;
 use crate::discover_lockfiles;
 use crate::discover_workspace_packages;
 use crate::has_workspace_section;
+use crate::load_configured_cargo_package;
 use crate::lockfile_requires_command_refresh;
 use crate::parse_package_manifest;
 use crate::parse_package_version;
@@ -213,10 +214,12 @@ fn materialize_nested_worktree_gitdir(root: &Path) {
 		if placeholder.is_file() {
 			let gitdir = fs::read_to_string(&placeholder)
 				.unwrap_or_else(|error| panic!("read {}: {error}", placeholder.display()));
+
 			if let Some(parent) = git_path.parent() {
 				fs::create_dir_all(parent)
 					.unwrap_or_else(|error| panic!("create parent {}: {error}", parent.display()));
 			}
+
 			fs::write(&git_path, gitdir)
 				.unwrap_or_else(|error| panic!("write {}: {error}", git_path.display()));
 		}
@@ -450,6 +453,7 @@ fn lockfile_requires_command_refresh_for_incomplete_lockfiles() {
 		None,
 		PublishState::Public,
 	);
+
 	assert!(lockfile_requires_command_refresh(
 		&root.join("Cargo.lock"),
 		&[&core, &app],
@@ -1196,6 +1200,7 @@ core = { version = "1.0.0" }
 		None,
 		&versions,
 	);
+
 	crate::update_manifest_field(
 		&mut empty_document,
 		"workspace.dependencies.core.version",
@@ -1273,6 +1278,7 @@ fn discover_cargo_packages_reports_workspace_warnings_and_private_packages() {
 			.as_deref(),
 		Some("3.2.1")
 	);
+
 	assert_eq!(
 		workspace_versioned
 			.metadata
@@ -1591,4 +1597,33 @@ fn standalone_crates_without_workspace_root_keep_distinct_ids() {
 			"cargo:crates/gamma/Cargo.toml",
 		]
 	);
+}
+
+#[test]
+fn configured_manifest_declaring_workspace_is_its_own_workspace_root() {
+	let fixture_root = monochange_core::normalize_path(
+		&Path::new(env!("CARGO_MANIFEST_DIR"))
+			.join("../../fixtures/tests/cargo/configured-self-workspace"),
+	);
+	let package = load_configured_cargo_package(&fixture_root, &fixture_root)
+		.unwrap_or_else(|error| panic!("configured load: {error}"))
+		.expect("package record should parse");
+	assert_eq!(package.name, "self-workspace-root");
+	assert_eq!(package.workspace_root, fixture_root);
+	assert_eq!(package.current_version, Some(semver::Version::new(1, 4, 0)));
+	assert!(!package.metadata.contains_key("uses_workspace_version"));
+}
+
+#[test]
+fn configured_root_package_without_workspace_keeps_root_as_workspace_root() {
+	let fixture_root = monochange_core::normalize_path(
+		&Path::new(env!("CARGO_MANIFEST_DIR"))
+			.join("../../fixtures/tests/cargo/configured-root-package"),
+	);
+	let package = load_configured_cargo_package(&fixture_root, &fixture_root)
+		.unwrap_or_else(|error| panic!("configured load: {error}"))
+		.expect("package record should parse");
+	assert_eq!(package.name, "standalone-root-package");
+	assert_eq!(package.workspace_root, fixture_root);
+	assert_eq!(package.current_version, Some(semver::Version::new(0, 9, 1)));
 }

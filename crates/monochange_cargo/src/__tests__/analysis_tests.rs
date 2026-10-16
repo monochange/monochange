@@ -472,6 +472,7 @@ fn appending_to_a_public_slice_is_assessed_as_additive() {
 	let changes = diff_public_symbols(&before, &after);
 
 	assert_eq!(changes.len(), 2);
+
 	for change in &changes {
 		assert_eq!(change.kind, SemanticChangeKind::Modified);
 		let assessment = change
@@ -487,6 +488,7 @@ fn appending_to_a_public_slice_is_assessed_as_additive() {
 			assessment.evidence.coverage
 		);
 	}
+
 	assert_eq!(
 		monochange_semver::semantic_change_severity(&changes[0]),
 		BumpSeverity::Minor
@@ -842,6 +844,7 @@ fn manifest_helpers_cover_parse_failures_removed_entries_and_table_values() {
 	let dependency_value = dependency_table
 		.get("dep")
 		.unwrap_or_else(|| panic!("expected dep table"));
+
 	assert!(describe_manifest_value(dependency_value).contains("serde=1"));
 }
 
