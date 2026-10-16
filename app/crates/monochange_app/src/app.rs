@@ -104,7 +104,6 @@ pub fn App() -> impl IntoView {
 }
 
 // ── Login Page ──
-
 #[component]
 fn LoginPage() -> impl IntoView {
 	let login_url = Resource::new_blocking(
@@ -178,7 +177,6 @@ fn LoginPage() -> impl IntoView {
 }
 
 // ── Auth Callback Page ──
-
 #[component]
 fn AuthCallbackPage() -> impl IntoView {
 	let params = leptos_router::hooks::use_query_map();
@@ -193,6 +191,7 @@ fn AuthCallbackPage() -> impl IntoView {
 				if code.is_empty() {
 					return Err("No authorization code received".to_string());
 				}
+
 				crate::server_fns::auth::exchange_code(code, state)
 					.await
 					.map_err(|e| e.to_string())
@@ -243,6 +242,7 @@ fn AuthCallbackPage() -> impl IntoView {
 						</div>
 					}.into_any(),
 				})}
+
 			</Suspense>
 		</div>
 	}

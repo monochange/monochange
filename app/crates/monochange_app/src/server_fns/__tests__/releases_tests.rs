@@ -14,6 +14,7 @@ fn fixture() -> String {
 #[tokio::test]
 async fn history_sorts_semver_and_sanitizes_markdown() {
 	let directory = tempfile::tempdir().unwrap();
+
 	for version in ["0.2.0", "0.10.0"] {
 		std::fs::write(
 			directory.path().join(format!("{version}.json")),
@@ -21,6 +22,7 @@ async fn history_sorts_semver_and_sanitizes_markdown() {
 		)
 		.unwrap();
 	}
+
 	std::fs::write(directory.path().join("README.md"), "not release data").unwrap();
 	let releases = load_releases(directory.path()).await.unwrap();
 	assert_eq!(
@@ -32,6 +34,7 @@ async fn history_sorts_semver_and_sanitizes_markdown() {
 	);
 	let entry = &releases[0].sections[0].entries[0];
 	assert_eq!(entry.summary, "Read website updates");
+
 	assert!(entry.details_html.contains("<strong>your website</strong>"));
 	assert!(
 		entry

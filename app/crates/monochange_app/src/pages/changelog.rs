@@ -31,6 +31,7 @@ pub fn ChangelogPage() -> impl IntoView {
 fn release_history(result: Result<Vec<WebsiteRelease>, server_fn::ServerFnError>) -> AnyView {
 	match result {
 		Err(error) => view! { <p role="alert">{error.to_string()}</p> }.into_any(),
+
 		Ok(releases) if releases.is_empty() => {
 			view! {
 				<div class="release-empty">
@@ -40,6 +41,7 @@ fn release_history(result: Result<Vec<WebsiteRelease>, server_fn::ServerFnError>
 			}
 			.into_any()
 		}
+
 		Ok(releases) => {
 			releases
 				.into_iter()

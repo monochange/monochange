@@ -82,6 +82,7 @@ pub fn write_python_placeholder_manifest(
 
 fn python_placeholder_module_name(package_name: &str) -> String {
 	let mut module = String::new();
+
 	for character in package_name.chars() {
 		if character.is_ascii_alphanumeric() || character == '_' {
 			module.push(character.to_ascii_lowercase());
@@ -89,9 +90,11 @@ fn python_placeholder_module_name(package_name: &str) -> String {
 			module.push('_');
 		}
 	}
+
 	if module.is_empty() || module.starts_with(|character: char| character.is_ascii_digit()) {
 		module.insert_str(0, "placeholder_");
 	}
+
 	module
 }
 
@@ -145,6 +148,7 @@ pub fn supported_versioned_file_kind(path: &Path) -> Option<PythonVersionedFileK
 		.file_name()
 		.and_then(|name| name.to_str())
 		.unwrap_or_default();
+
 	match file_name {
 		PYPROJECT_FILE => Some(PythonVersionedFileKind::Manifest),
 		UV_LOCK_FILE | POETRY_LOCK_FILE => Some(PythonVersionedFileKind::Lock),
@@ -282,6 +286,7 @@ fn update_project_dependencies(
 	if versioned_deps.is_empty() {
 		return;
 	}
+
 	let Some(project) = document
 		.get_mut("project")
 		.and_then(Item::as_table_like_mut)
@@ -291,10 +296,12 @@ fn update_project_dependencies(
 	let Some(deps) = project.get_mut("dependencies").and_then(Item::as_array_mut) else {
 		return;
 	};
+
 	for item in deps.iter_mut() {
 		let Some(spec) = item.as_str() else {
 			continue;
 		};
+
 		if let Some(updated) = update_dependency_specifier(spec, versioned_deps) {
 			let mut new_value = toml_edit::Value::from(updated);
 			*new_value.decor_mut() = item.decor().clone();
@@ -402,6 +409,7 @@ fn parse_dependency_name(spec: &str) -> Option<String> {
 		.chars()
 		.take_while(|ch| ch.is_alphanumeric() || *ch == '-' || *ch == '_' || *ch == '.')
 		.collect();
+
 	if name.is_empty() { None } else { Some(name) }
 }
 
@@ -410,17 +418,20 @@ fn parse_dependency_name(spec: &str) -> Option<String> {
 fn normalize_python_package_name(name: &str) -> String {
 	let mut result = String::with_capacity(name.len());
 	let mut prev_was_separator = false;
+
 	for ch in name.chars() {
 		if ch == '-' || ch == '_' || ch == '.' {
 			if !prev_was_separator && !result.is_empty() {
 				result.push('-');
 			}
+
 			prev_was_separator = true;
 		} else {
 			result.push(ch.to_ascii_lowercase());
 			prev_was_separator = false;
 		}
 	}
+
 	result
 }
 
@@ -432,6 +443,7 @@ pub fn discover_python_packages(root: &Path) -> MonochangeResult<AdapterDiscover
 
 	// Phase 1: uv workspace discovery
 	let root_manifest = root.join(PYPROJECT_FILE);
+
 	if root_manifest.exists() {
 		let workspace_members = match parse_uv_workspace_members(&root_manifest) {
 			Ok(members) => members,
@@ -440,11 +452,13 @@ pub fn discover_python_packages(root: &Path) -> MonochangeResult<AdapterDiscover
 				None
 			}
 		};
+
 		if let Some(workspace_members) = workspace_members {
 			// Exclude the workspace root manifest from standalone discovery
 			included_manifests.insert(normalize_path(&root_manifest));
 			let member_manifests =
 				expand_workspace_members(root, &workspace_members, &mut warnings);
+
 			for manifest_path in member_manifests {
 				if let Some(package) = parse_python_package(&manifest_path, root)? {
 					included_manifests.insert(normalize_path(&manifest_path));
@@ -459,13 +473,16 @@ pub fn discover_python_packages(root: &Path) -> MonochangeResult<AdapterDiscover
 	// pyproject.toml files including test fixtures and generated files.
 	for manifest_path in find_all_pyproject_files(root) {
 		let normalized = normalize_path(&manifest_path);
+
 		if included_manifests.contains(&normalized) {
 			continue;
 		}
+
 		let manifest_dir = manifest_path
 			.parent()
 			.unwrap_or_else(|| Path::new("."))
 			.to_path_buf();
+
 		match parse_python_package(&manifest_path, &manifest_dir) {
 			Ok(Some(package)) => packages.push(package),
 			Ok(None) => {}
@@ -503,9 +520,11 @@ pub fn load_configured_python_package(
 		} else {
 			package_path.join(PYPROJECT_FILE)
 		};
+
 	if !manifest_path.is_file() {
 		return Ok(None);
 	}
+
 	parse_python_package(&manifest_path, root)
 }
 
@@ -611,6 +630,7 @@ fn parse_python_package(
 		(name, version, deps)
 	} else if let Some(poetry) = parsed.get("tool").and_then(|tool| tool.get("poetry")) {
 		let name = poetry.get("name").and_then(Value::as_str);
+
 		let version = poetry
 			.get("version")
 			.and_then(Value::as_str)
@@ -699,6 +719,7 @@ fn parse_poetry_dependencies(poetry: &Value) -> Vec<PackageDependency> {
 			if name == "python" {
 				continue;
 			}
+
 			let constraint = match value {
 				Value::String(version) => Some(version.clone()),
 				Value::Table(table) => {
@@ -709,6 +730,7 @@ fn parse_poetry_dependencies(poetry: &Value) -> Vec<PackageDependency> {
 				}
 				_ => None,
 			};
+
 			deps.push(PackageDependency {
 				name: normalize_python_package_name(name),
 				kind: DependencyKind::Runtime,
@@ -738,6 +760,7 @@ fn parse_poetry_dependencies(poetry: &Value) -> Vec<PackageDependency> {
 						}
 						_ => None,
 					};
+
 					deps.push(PackageDependency {
 						name: normalize_python_package_name(name),
 						kind: DependencyKind::Development,
@@ -761,7 +784,9 @@ fn extract_version_constraint(spec: &str, name: &str) -> Option<String> {
 	} else {
 		rest
 	};
+
 	let constraint = after_extras.split(';').next().unwrap_or("").trim();
+
 	if constraint.is_empty() {
 		None
 	} else {
@@ -779,8 +804,10 @@ fn parse_pep440_as_semver(version: &str) -> Option<Version> {
 	if let Ok(version) = Version::parse(version) {
 		return Some(version);
 	}
+
 	// Try adding .0 for two-part versions like "1.2"
 	let parts: Vec<&str> = version.split('.').collect();
+
 	match parts.len() {
 		2 => {
 			let extended = format!("{version}.0");

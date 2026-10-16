@@ -145,6 +145,7 @@ fn comment_released_issues_with_client_closes_skipped_existing_issues_when_plan_
 	});
 	list_issue_seven_comments.assert();
 	close_issue_seven.assert();
+
 	assert!(outcomes.iter().any(|outcome| {
 		outcome.issue_id == "#7"
 			&& outcome.operation == GitHubIssueCommentOperation::SkippedExisting
@@ -352,6 +353,7 @@ fn comment_released_issues_with_client_closes_issues_when_plan_close_is_true() {
 			})
 			.unwrap_or_else(|error| panic!("comment released issues: {error}"))
 	});
+
 	list_issue_seven_comments.assert();
 	create_issue_seven_comment.assert();
 	close_issue_seven.assert();
@@ -410,6 +412,7 @@ fn comment_released_issues_with_client_leaves_issue_open_when_plan_close_is_fals
 			.unwrap_or_else(|error| panic!("comment released issues: {error}"))
 	});
 	list_issue_seven_comments.assert();
+
 	create_issue_seven_comment.assert();
 	assert_eq!(
 		close_issue_seven.calls(),
@@ -1322,6 +1325,7 @@ async fn release_pull_request_commit_verification_uses_github_git_database_api()
 				r#"{{"sha":"{fallback}","message":"chore(release): prepare release\n\nbody","tree":{{"sha":"tree123"}},"parents":[{{"sha":"parent123"}}],"verification":{{"verified":false,"reason":"unsigned"}}}}"#
 			));
 	});
+
 	let parent_commit = server.mock(|when, then| {
 		when.method(GET)
 			.path("/repos/ifiokjr/monochange/git/commits/parent123");
@@ -1401,6 +1405,7 @@ async fn release_pull_request_commit_verification_falls_back_when_github_does_no
 				r#"{{"sha":"{fallback}","message":"chore(release): prepare release","tree":{{"sha":"tree123"}},"parents":[{{"sha":"parent123"}}],"verification":{{"verified":false,"reason":"unsigned"}}}}"#
 			));
 	});
+
 	let parent_commit = server.mock(|when, then| {
 		when.method(GET)
 			.path("/repos/ifiokjr/monochange/git/commits/parent123");
@@ -1465,7 +1470,6 @@ async fn release_pull_request_commit_verification_creates_blobs_for_varied_file_
 	std::os::unix::fs::symlink("regular.txt", root.join("link")).unwrap();
 
 	// deleted.txt intentionally does not exist
-
 	let tracked_paths = vec![
 		PathBuf::from("skipped_dir"),
 		PathBuf::from("regular.txt"),
@@ -1554,6 +1558,7 @@ async fn release_pull_request_commit_verification_creates_blobs_for_varied_file_
 			.header("content-type", "application/json")
 			.body(format!(r#"{{"object":{{"sha":"{fallback}"}}}}"#));
 	});
+
 	let update_ref = server.mock(|when, then| {
 		when.method(PATCH)
 			.path("/repos/ifiokjr/monochange/git/refs/heads/monochange/release/release")
@@ -1587,6 +1592,7 @@ async fn release_pull_request_commit_verification_creates_blobs_for_varied_file_
 	create_tree.assert();
 	create_commit.assert();
 	get_ref.assert();
+
 	update_ref.assert();
 	assert_eq!(result, Ok(verified.to_string()));
 }
@@ -1853,6 +1859,7 @@ fn publish_release_pull_request_falls_back_when_verified_commit_is_unavailable()
 				"{\"number\":7,\"html_url\":\"https://example.com/pr/7\",\"node_id\":\"PR_node\"}",
 			);
 	});
+
 	let add_labels = server.mock(|when, then| {
 		when.method(POST)
 			.path("/repos/ifiokjr/monochange/issues/7/labels");
@@ -1911,6 +1918,7 @@ fn publish_release_pull_request_falls_back_when_verified_commit_is_unavailable()
 	create_commit.assert();
 	create_pull_request.assert();
 	add_labels.assert();
+
 	assert_eq!(outcome.operation, GitHubPullRequestOperation::Created);
 	assert_eq!(outcome.number, 7);
 }
@@ -2240,6 +2248,7 @@ fn git_helpers_prepare_commit_and_push_release_branch() {
 	git(&repo, &["config", "user.name", "monochange Tests"]);
 	git(&repo, &["config", "user.email", "monochange@example.com"]);
 	git(&repo, &["config", "commit.gpgsign", "false"]);
+
 	fs::write(repo.join("release.txt"), "before\n")
 		.unwrap_or_else(|error| panic!("write release file: {error}"));
 	fs::write(repo.join("pnpm-lock.yaml"), "lockfileVersion: '9.0'\n")
@@ -2334,6 +2343,7 @@ fn git_stage_paths_skips_missing_untracked_paths_and_ignored_untracked_files() {
 		fs::write(repo.join("release.txt"), "before\n"),
 		"write release file",
 	);
+
 	must_ok(
 		fs::create_dir_all(repo.join(".monochange/releases")),
 		"create release state dir",
@@ -2401,6 +2411,7 @@ fn git_stage_paths_skips_gitignored_symlink_descendants() {
 		"write gitignore",
 	);
 	git(&repo, &["add", ".gitignore"]);
+
 	git(&repo, &["commit", "-m", "initial"]);
 
 	let sdk_metadata = tempdir
@@ -2573,6 +2584,7 @@ fn git_commit_paths_reports_io_and_non_noop_failures() {
 		std::os::unix::fs::PermissionsExt::from_mode(0o755),
 	)
 	.unwrap_or_else(|error| panic!("chmod hook: {error}"));
+
 	fs::write(repo.join("release.txt"), "initial\n")
 		.unwrap_or_else(|error| panic!("write release file: {error}"));
 	git(&repo, &["add", "release.txt"]);
@@ -2606,6 +2618,7 @@ fn git_commit_paths_treats_clean_worktrees_as_already_committed() {
 	fs::write(repo.join("release.txt"), "initial\n")
 		.unwrap_or_else(|error| panic!("write release file: {error}"));
 	git(&repo, &["add", "release.txt"]);
+
 	git(&repo, &["commit", "-m", "initial"]);
 
 	tokio::runtime::Runtime::new()
@@ -2711,6 +2724,7 @@ fn enrich_changeset_context_resolves_pull_requests_and_related_issues() {
 		.introduced
 		.as_ref()
 		.unwrap_or_else(|| panic!("expected introduced revision"));
+
 	assert_eq!(
 		introduced
 			.review_request
@@ -3077,6 +3091,7 @@ fn comment_released_issues_skips_existing_markers_and_posts_missing_comments() {
 			.header("content-type", "application/json")
 			.body("{\"html_url\":\"https://example.com/issues/9#comment-1\"}");
 	});
+
 	let close_issue_nine = server.mock(|when, then| {
 		when.method(PATCH)
 			.path("/repos/ifiokjr/monochange/issues/9");
@@ -3174,6 +3189,7 @@ fn comment_released_issues_skips_existing_markers_and_posts_missing_comments() {
 		0,
 		"a plain issue mention must never be closed by the release"
 	);
+
 	assert!(outcomes.iter().any(|outcome| {
 		outcome.issue_id == "#7" && outcome.operation == GitHubIssueCommentOperation::Closed
 	}));
@@ -3463,6 +3479,7 @@ fn release_body_selects_the_configured_github_changelog_output() {
 		"faster previews",
 	);
 	user.output = "user".to_string();
+
 	user.stream = "user".to_string();
 	manifest.changelogs = vec![developer, user];
 
@@ -3833,6 +3850,7 @@ fn seed_git_repository() -> (tempfile::TempDir, PathBuf) {
 	git(&repo, &["config", "user.name", "monochange Tests"]);
 	git(&repo, &["config", "user.email", "monochange@example.com"]);
 	git(&repo, &["config", "commit.gpgsign", "false"]);
+
 	git(&repo, &["config", "commit.gpgsign", "false"]);
 	fs::write(repo.join("release.txt"), "before\n")
 		.unwrap_or_else(|error| panic!("write release file: {error}"));
@@ -3920,12 +3938,15 @@ fn path_with_gh_dir(dir: &Path) -> String {
 #[cfg(unix)]
 fn resolve_executable(name: &str) -> Option<PathBuf> {
 	let path = env::var("PATH").ok()?;
+
 	for dir in path.split(':') {
 		let candidate = Path::new(dir).join(name);
+
 		if candidate.is_file() {
 			return Some(candidate);
 		}
 	}
+
 	None
 }
 

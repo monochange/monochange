@@ -36,6 +36,7 @@ fn setup_case(case: &str) -> TempDir {
 	git(root, &["config", "user.email", "test@example.com"]);
 	git(root, &["config", "commit.gpgsign", "false"]);
 	git(root, &["add", "."]);
+
 	let output = Command::new("git")
 		.current_dir(root)
 		.env("GIT_AUTHOR_DATE", "2026-04-05T00:00:00Z")
@@ -216,12 +217,14 @@ fn group_release_note_fallback_scenarios_snapshot_release_notes() {
 		let tempdir = setup_case(case);
 		let output = publish_release_dry_run(tempdir.path());
 		let bodies = release_bodies(&output);
+
 		for (index, body) in bodies.iter().enumerate() {
 			assert_snapshot!(
 				format!("release_body__{case}__{index}"),
 				normalize_commit_links(body)
 			);
 		}
+
 		snapshots.insert((*case).to_string(), release_summary(&output));
 	}
 

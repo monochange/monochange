@@ -155,31 +155,41 @@ pub fn classify_token(token: &str) -> Option<Sensitivity> {
 	if token.is_empty() {
 		return None;
 	}
+
 	if is_secret(token) {
 		return Some(Sensitivity::Secret);
 	}
+
 	let lower = token.to_ascii_lowercase();
+
 	if let Some(rest) = lower
 		.strip_prefix("http://")
 		.or_else(|| lower.strip_prefix("https://"))
 	{
 		let authority = rest.split(['/', '?', '#']).next().unwrap_or_default();
+
 		let host_and_port = authority.rsplit('@').next().unwrap_or_default();
 		let host = host_and_port.split(':').next().unwrap_or_default();
+
 		return is_internal_host(host).then_some(Sensitivity::InternalUrl);
 	}
+
 	if is_email(&lower) {
 		return Some(Sensitivity::PersonalData);
 	}
+
 	if is_private_address(lower.split(':').next().unwrap_or_default()) {
 		return Some(Sensitivity::InternalUrl);
 	}
+
 	if is_stack_frame(&lower) {
 		return Some(Sensitivity::StackFrame);
 	}
+
 	if is_source_path(&lower) {
 		return Some(Sensitivity::InternalPath);
 	}
+
 	None
 }
 
@@ -218,12 +228,14 @@ const SECRET_PREFIXES: [&str; 12] = [
 
 fn is_secret(token: &str) -> bool {
 	let lower = token.to_ascii_lowercase();
+
 	if SECRET_ASSIGNMENTS
 		.into_iter()
 		.any(|marker| lower.contains(marker))
 	{
 		return true;
 	}
+
 	if token.len() >= 20
 		&& SECRET_PREFIXES
 			.into_iter()
@@ -264,9 +276,11 @@ fn is_private_address(candidate: &str) -> bool {
 		.split('.')
 		.map_while(|part| part.parse().ok())
 		.collect();
+
 	if octets.len() != 4 || candidate.split('.').count() != 4 {
 		return false;
 	}
+
 	matches!(
 		(octets[0], octets[1]),
 		(10 | 127, _) | (192, 168) | (172, 16..=31)
@@ -342,6 +356,7 @@ fn split_wrappers(word: &str) -> (&str, &str, &str) {
 fn rewrite_words(text: &str, mut visit: impl FnMut(&str) -> Option<String>) -> String {
 	let mut output = String::with_capacity(text.len());
 	let mut rest = text;
+
 	while !rest.is_empty() {
 		let word_start = rest
 			.find(|character: char| !character.is_whitespace())
@@ -351,13 +366,17 @@ fn rewrite_words(text: &str, mut visit: impl FnMut(&str) -> Option<String>) -> S
 		let word_end = rest.find(char::is_whitespace).unwrap_or(rest.len());
 		let (prefix, core, suffix) = split_wrappers(&rest[..word_end]);
 		output.push_str(prefix);
+
 		match visit(core) {
 			Some(replacement) => output.push_str(&replacement),
 			None => output.push_str(core),
 		}
+
 		output.push_str(suffix);
+
 		rest = &rest[word_end..];
 	}
+
 	output
 }
 
@@ -368,6 +387,7 @@ pub fn sensitive_tokens(text: &str) -> Vec<(String, Sensitivity)> {
 		if let Some(sensitivity) = classify_token(core) {
 			found.push((core.to_owned(), sensitivity));
 		}
+
 		None
 	});
 	found
@@ -382,6 +402,7 @@ pub fn redact(text: &str, surface: Surface, visibility: RepositoryVisibility) ->
 		if sensitivity.allowed_on(surface, visibility) {
 			return None;
 		}
+
 		removed.push(sensitivity);
 		Some(REDACTED.to_owned())
 	});
@@ -401,6 +422,7 @@ impl DisclosureGate {
 		policy: DisclosurePolicy,
 	) -> Result<OutboundUpdate, DisclosureError> {
 		let screening_text = format!("{} {}", draft.title, draft.body);
+
 		if let ScreeningVerdict::InjectionSuspected { markers } = screen_untrusted(&screening_text)
 		{
 			return Err(DisclosureError::UntrustedContent(markers.join(", ")));

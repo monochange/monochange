@@ -396,12 +396,14 @@ pub fn render_changeset_api_validation(
 ) -> MonochangeResult<String> {
 	let report = build_change_classification_report(root, options)?;
 	let mismatches = changeset_validation_mismatches(&report, options.strict);
+
 	if !mismatches.is_empty() {
 		return Err(MonochangeError::Config(format!(
 			"changeset severity does not satisfy classification:\n- {}",
 			mismatches.join("\n- ")
 		)));
 	}
+
 	let output = match options.format {
 		ClassificationFormat::Json | ClassificationFormat::JsonMin => {
 			options
@@ -422,6 +424,7 @@ pub fn render_changeset_api_validation(
 			)
 		}
 	};
+
 	if let Some(path) = &options.output {
 		std::fs::write(path, &output).map_err(|error| {
 			MonochangeError::Io(format!("failed to write {}: {error}", path.display()))
@@ -472,6 +475,7 @@ pub fn render_change_classification(
 	options: &ClassifyOptions,
 ) -> MonochangeResult<String> {
 	let report = build_change_classification_report(root, options)?;
+
 	let output = match options.format {
 		ClassificationFormat::Json | ClassificationFormat::JsonMin => {
 			options
@@ -518,9 +522,11 @@ pub fn build_change_classification_report(
 	options: &ClassifyOptions,
 ) -> MonochangeResult<ChangeClassificationReport> {
 	let configuration = monochange_config::load_workspace_configuration(root)?;
+
 	if let Some(skipped) = skipped_classification(root, &configuration, options)? {
 		return Ok(skipped);
 	}
+
 	let default_branch = options
 		.base
 		.clone()
@@ -549,6 +555,7 @@ pub fn build_change_classification_report(
 	if let Some(working_tree) = &working_tree {
 		warnings.extend(working_tree.warnings.iter().cloned());
 	}
+
 	if let Some(note) = &candidate.note {
 		warnings.push(note.clone());
 	}
@@ -574,14 +581,17 @@ pub fn build_change_classification_report(
 	)?;
 	// patch-coverage:ignore-end
 	warnings.extend(changeset_warnings);
+
 	if options.packages.is_empty() {
 		selected_ids.extend(existing_changesets.keys().cloned());
 	}
 
 	let mut release_analyses = BTreeMap::<String, (ChangeAnalysis, ChangeAnalysis)>::new();
 	let mut package_reports = Vec::new();
+
 	for package in &packages {
 		let package_id = preferred_report_package_id(package);
+
 		if !selected_ids.remove(&package_id) {
 			continue;
 		}
@@ -591,6 +601,7 @@ pub fn build_change_classification_report(
 			.get(&package_id)
 			.and_then(|analysis| analysis.release_identity.clone())
 			.or_else(|| configuration.effective_release_identity(&package_id));
+
 		let latest_release = match &options.release {
 			Some(release) => Some(release.clone()),
 			None => {
@@ -604,6 +615,7 @@ pub fn build_change_classification_report(
 				// patch-coverage:ignore-end
 			}
 		};
+
 		let mut comparisons = vec![
 			ResolvedComparison {
 				kind: ComparisonKind::PullRequest,
@@ -742,6 +754,7 @@ pub fn build_change_classification_report(
 			.get(&package_id)
 			.cloned()
 			.unwrap_or_default();
+
 		let bump_ceiling = release_identity
 			.as_ref()
 			.and_then(|identity| identity.bump_ceiling);
@@ -826,6 +839,7 @@ pub fn build_change_classification_report(
 			}),
 		},
 	];
+
 	if working_tree.is_some() {
 		comparisons.push(ResolvedComparison {
 			kind: ComparisonKind::WorkingTree,
@@ -838,6 +852,7 @@ pub fn build_change_classification_report(
 			),
 		});
 	}
+
 	warnings.sort();
 	warnings.dedup();
 
@@ -876,6 +891,7 @@ fn skipped_classification(
 		.filter(|label| configured.iter().any(|candidate| candidate == *label))
 		.cloned()
 		.collect::<Vec<_>>();
+
 	if matched.is_empty() {
 		return Ok(None);
 	}
@@ -944,6 +960,7 @@ pub fn classification_report(
 			bump_ceiling,
 			classification_enforced,
 		);
+
 		let package_recommendation = decision.proposed_changeset_bump;
 
 		if package_recommendation > recommendation {
@@ -1052,6 +1069,7 @@ fn resolve_candidate(root: &Path, base: &str, head: &str) -> MonochangeResult<Ca
 		root,
 		&["merge-tree", "--write-tree", base, &source_reference],
 	);
+
 	match merge_tree {
 		Ok(output) => {
 			let tree = output
@@ -1233,6 +1251,7 @@ fn working_tree_analysis(
 	}
 
 	let frame = ChangeFrame::WorkingDirectory;
+
 	if frame.changed_files(root)?.is_empty() {
 		return Ok(None);
 	}
@@ -1248,6 +1267,7 @@ fn selected_package_ids(
 ) -> MonochangeResult<BTreeSet<String>> {
 	if !options.packages.is_empty() {
 		let mut selected = BTreeSet::new();
+
 		for package_reference in &options.packages {
 			let record_id =
 				monochange_config::resolve_package_reference(package_reference, root, packages)?;
@@ -1291,6 +1311,7 @@ fn existing_changesets_by_package(
 	if let Some(working_tree) = working_tree {
 		paths.extend(working_tree.frame.changed_files(root)?);
 	}
+
 	let context = monochange_config::build_changeset_load_context(configuration, packages);
 	let mut changesets = BTreeMap::<String, Vec<ExistingChangeset>>::new();
 	let mut warnings = Vec::new();
@@ -1359,6 +1380,7 @@ fn latest_release_tag(
 	let Some(release_identity) = release_identity else {
 		return Ok(None);
 	};
+
 	if !release_identity.tag {
 		return Ok(None);
 	}
@@ -1407,11 +1429,13 @@ fn release_tag_version(
 		if !tag[start..].starts_with(|character: char| character.is_ascii_digit()) {
 			continue;
 		}
+
 		for end in boundaries.iter().copied().skip(start_index + 1) {
 			let candidate = &tag[start..end];
 			let Ok(version) = semver::Version::parse(candidate) else {
 				continue;
 			};
+
 			if version_format
 				.render_tag(owner_id, candidate, ecosystem)
 				.is_ok_and(|rendered| rendered == tag)
@@ -1429,6 +1453,7 @@ fn release_owner(
 	latest_release: Option<String>,
 ) -> Option<ReleaseOwner> {
 	let release_identity = release_identity?;
+
 	let kind = match release_identity.owner_kind {
 		ReleaseOwnerKind::Group => "group",
 		ReleaseOwnerKind::Package => "package",
@@ -1459,6 +1484,7 @@ fn collect_findings(
 ) -> Vec<ClassificationFinding> {
 	let mut grouped =
 		BTreeMap::<String, BTreeMap<FindingEvidenceKey, PendingClassificationFinding>>::new();
+
 	for frame in evidence {
 		let Some(package) = frame.analysis.package_analyses.get(package_id) else {
 			continue;
@@ -1479,6 +1505,7 @@ fn collect_findings(
 						assessment.evidence.analyzer_id.as_str()
 					})
 			};
+
 			let base_id = finding_id(analyzer_id, change);
 			let pending = grouped
 				.entry(base_id)
@@ -1505,6 +1532,7 @@ fn collect_findings(
 				} else {
 					base_id.clone()
 				};
+
 				let mut finding = finding_from_semantic_change(
 					id,
 					&pending.analyzer_id,
@@ -1565,6 +1593,7 @@ impl FindingEvidenceKey {
 				hash ^= u64::from(*byte);
 				hash = hash.wrapping_mul(FNV_PRIME);
 			}
+
 			hash ^= 0xff;
 			hash = hash.wrapping_mul(FNV_PRIME);
 		}
@@ -1743,12 +1772,15 @@ fn analyzer_coverage_note(analyzer_id: &str) -> &'static str {
 	if analyzer_id == "monochange/package-lifecycle" {
 		return "package manifest presence was compared at both endpoints";
 	}
+
 	if analyzer_id.starts_with("cargo/") {
 		return "syntax-level Rust surface; module reachability, cfg and feature matrices, trait compatibility, and downstream witnesses are not complete";
 	}
+
 	if analyzer_id.starts_with("npm/") || analyzer_id.starts_with("deno/") {
 		return "package metadata and export syntax; entrypoint reachability and TypeScript assignability are not complete";
 	}
+
 	if analyzer_id.starts_with("dart/") {
 		return "Dart declaration syntax; library reachability and analyzer-level type compatibility are not complete";
 	}
@@ -1766,6 +1798,7 @@ fn ensure_unclassified_finding(
 	let has_pull_request_finding = findings
 		.iter()
 		.any(|finding| finding.comparisons.contains(&ComparisonKind::PullRequest));
+
 	if changed_files.is_empty() || has_pull_request_finding {
 		return;
 	}
@@ -1821,6 +1854,7 @@ fn collect_cli_surface_classification(
 	let baseline_path = crate::cli_surface::cli_snapshot_root_relative(root, &cli.name)
 		.display()
 		.to_string();
+
 	if options.skip_cli_snapshots {
 		return Some(PackageCliClassification {
 			name: cli.name.clone(),
@@ -1830,6 +1864,7 @@ fn collect_cli_surface_classification(
 			baseline: None,
 		});
 	}
+
 	if changed_files.is_empty() {
 		return None;
 	}
@@ -1849,6 +1884,7 @@ fn collect_cli_surface_classification(
 	};
 
 	let baseline = crate::cli_surface::read_cli_snapshot_baseline(root, &cli.name);
+
 	let before = match &baseline {
 		crate::cli_surface::CliSnapshotBaseline::Current(snapshot) => snapshot,
 		other => {
@@ -1915,6 +1951,7 @@ fn cli_surface_findings(
 			} else {
 				PathBuf::from(&command_path)
 			};
+
 			ClassificationFinding {
 				id,
 				rule_id: format!("{CLI_SURFACE_ANALYZER_ID}/{kind_name}"),
@@ -1948,6 +1985,7 @@ fn cli_surface_findings(
 
 fn cli_surface_impact(kind: &monochange_snapshot::SnapshotChangeKind) -> CompatibilityImpact {
 	use monochange_snapshot::SnapshotChangeKind;
+
 	match kind {
 		SnapshotChangeKind::CommandRemoved
 		| SnapshotChangeKind::OptionRemoved
@@ -1974,6 +2012,7 @@ fn bump_for_snapshot_severity(severity: monochange_snapshot::SnapshotSeverity) -
 
 fn snapshot_change_kind_name(kind: &monochange_snapshot::SnapshotChangeKind) -> &'static str {
 	use monochange_snapshot::SnapshotChangeKind;
+
 	match kind {
 		SnapshotChangeKind::CommandAdded => "command-added",
 		SnapshotChangeKind::CommandRemoved => "command-removed",
@@ -2064,6 +2103,7 @@ fn build_recommendation(
 	} else {
 		proposed_changeset_bump
 	};
+
 	let compatibility_impact = highest_compatibility_impact(&current);
 	let release_impact = has_release.then(|| highest_compatibility_impact(&release));
 	let confidence = current
@@ -2128,9 +2168,11 @@ fn apply_classification_policy(
 	let proposed = clamp(proposed);
 	let mut enforceable = clamp(enforceable);
 	let release_floor = clamp(release_floor);
+
 	if !classification_enforced {
 		enforceable = BumpSeverity::None;
 	}
+
 	(proposed, enforceable, release_floor)
 }
 
@@ -2141,12 +2183,14 @@ fn highest_compatibility_impact(findings: &[&ClassificationFinding]) -> Compatib
 	{
 		return CompatibilityImpact::Breaking;
 	}
+
 	if findings
 		.iter()
 		.any(|finding| finding.impact == CompatibilityImpact::Additive)
 	{
 		return CompatibilityImpact::Additive;
 	}
+
 	if findings
 		.iter()
 		.any(|finding| finding.impact == CompatibilityImpact::Unmodeled)
@@ -2168,6 +2212,7 @@ fn changeset_action(
 			ChangesetAction::Review
 		};
 	}
+
 	if existing.is_empty() {
 		return ChangesetAction::Create;
 	}
@@ -2177,6 +2222,7 @@ fn changeset_action(
 		.filter_map(|changeset| changeset.bump)
 		.max()
 		.unwrap_or(BumpSeverity::None);
+
 	if existing_bump < decision.proposed_changeset_bump {
 		ChangesetAction::Update
 	} else {
@@ -2201,15 +2247,19 @@ fn recommendation_summary(
 	} else {
 		""
 	};
+
 	match decision.proposed_changeset_bump {
 		BumpSeverity::Major => format!("{count} breaking finding(s) propose a major changeset"),
+
 		BumpSeverity::Minor if release_cap_note.is_empty() => {
 			format!("{count} additive finding(s) propose a minor changeset")
 		}
+
 		BumpSeverity::Minor => {
 			format!("{count} finding(s) propose a minor changeset{release_cap_note}")
 		}
 		BumpSeverity::Patch
+
 			if findings
 				.iter()
 				.any(|finding| finding.impact == CompatibilityImpact::Unmodeled) =>
@@ -2226,9 +2276,11 @@ fn recommendation_summary(
 			"the pull request does not change this package; the pending changeset intent needs review"
 				.to_string()
 		}
+
 		BumpSeverity::None if decision.review_required => {
 			"pending changeset intent has no matching package change and requires review".to_string()
 		}
+
 		BumpSeverity::None => {
 			format!("no package change requires a changeset{release_cap_note}")
 		}
@@ -2326,9 +2378,11 @@ fn propagate_public_dependency_impacts(
 			{
 				package.findings.push(finding);
 			}
+
 			if package.decision.proposed_changeset_bump < BumpSeverity::Patch {
 				package.decision.compatibility_impact = CompatibilityImpact::Compatible;
 				package.decision.proposed_changeset_bump = BumpSeverity::Patch;
+
 				package.decision.confidence = ClassificationConfidence::Medium;
 				package.decision.finding_ids = vec![finding_id];
 				package.recommendation = BumpSeverity::Patch;
@@ -2340,6 +2394,7 @@ fn propagate_public_dependency_impacts(
 			{
 				package.decision.finding_ids.push(finding_id);
 			}
+
 			package.decision.release_floor =
 				std::cmp::max(package.decision.release_floor, BumpSeverity::Patch);
 			// The propagated finding belongs to the pull request interval, so
@@ -2391,6 +2446,7 @@ fn propagate_public_dependency_impacts(
 
 fn public_dependency_impacts(analysis: &ChangeAnalysis) -> Vec<PublicDependencyImpact> {
 	let mut impacted_record_ids = BTreeMap::new();
+
 	for package in analysis.package_analyses.values() {
 		let recommendation = package
 			.semantic_changes
@@ -2398,6 +2454,7 @@ fn public_dependency_impacts(analysis: &ChangeAnalysis) -> Vec<PublicDependencyI
 			.map(monochange_semver::semantic_change_severity)
 			.max()
 			.unwrap_or(BumpSeverity::None);
+
 		if recommendation >= BumpSeverity::Minor {
 			impacted_record_ids.insert(
 				package.package_record_id.clone(),
@@ -2416,6 +2473,7 @@ fn public_dependency_impacts(analysis: &ChangeAnalysis) -> Vec<PublicDependencyI
 		.map(|package| (package.id.clone(), package))
 		.collect::<BTreeMap<_, _>>();
 	let mut impacts = Vec::new();
+
 	for edge in monochange_core::materialize_dependency_edges(&analysis.packages) {
 		if edge.dependency_kind != DependencyKind::Runtime
 			|| !impacted_record_ids.contains_key(&edge.to_package_id)
@@ -2427,6 +2485,7 @@ fn public_dependency_impacts(analysis: &ChangeAnalysis) -> Vec<PublicDependencyI
 			continue;
 			// patch-coverage:ignore-end
 		};
+
 		let upstream_name = impacted_record_ids
 			.get(&edge.to_package_id)
 			.cloned()
@@ -2517,7 +2576,9 @@ fn push_markdown_findings(lines: &mut Vec<String>, findings: &[&ClassificationFi
 	if findings.is_empty() {
 		return;
 	}
+
 	lines.push(String::new());
+
 	for finding in findings.iter().take(10) {
 		lines.push(format!(
 			"- `{}`: {} (`{}`, impact `{}`, bump `{}`, confidence `{}`, comparisons `{}`)",
@@ -2534,6 +2595,7 @@ fn push_markdown_findings(lines: &mut Vec<String>, findings: &[&ClassificationFi
 			markdown_finding_evidence(finding)
 		));
 	}
+
 	if findings.len() > 10 {
 		lines.push(format!("- {} more findings", findings.len() - 10));
 	}
@@ -2557,6 +2619,7 @@ fn push_text_findings(lines: &mut Vec<String>, findings: &[&ClassificationFindin
 			plain_text_fragment(&finding_evidence(finding))
 		));
 	}
+
 	if findings.len() > 10 {
 		lines.push(format!("  - {} more findings", findings.len() - 10));
 	}
@@ -2565,6 +2628,7 @@ fn push_text_findings(lines: &mut Vec<String>, findings: &[&ClassificationFindin
 #[coverage(off)]
 fn render_markdown_report(report: &ChangeClassificationReport) -> String {
 	let mut lines = vec!["# Change classification".to_string(), String::new()];
+
 	if report.skipped {
 		lines.push(report.summary.clone());
 		lines.push(String::new());
@@ -2572,22 +2636,27 @@ fn render_markdown_report(report: &ChangeClassificationReport) -> String {
 			"Matched skip labels: {}",
 			report.matched_skip_labels.join(", ")
 		));
+
 		return lines.join("\n");
 	}
+
 	lines.push(format!("- Schema version: `{}`", report.schema_version));
 	lines.push(format!(
 		"- Base branch: {}",
 		markdown_ref_with_commit(&report.default_branch, report.base_commit.as_deref())
 	));
+
 	if let Some(head_commit) = &report.head_commit {
 		lines.push(format!("- Head commit: `{}`", short_revision(head_commit)));
 	}
+
 	lines.push(format!("- Candidate: `{}`", report.candidate));
 	lines.push(format!("- Recommended bump: `{}`", report.recommendation));
 	lines.push(format!("- Packages analyzed: {}", report.packages.len()));
 	lines.push(String::new());
 	lines.push("## Comparisons".to_string());
 	lines.push(String::new());
+
 	for comparison in &report.comparisons {
 		let base = comparison.base.as_deref().unwrap_or("unavailable");
 		lines.push(format!(
@@ -2597,6 +2666,7 @@ fn render_markdown_report(report: &ChangeClassificationReport) -> String {
 			comparison_status_name(comparison.status)
 		));
 	}
+
 	lines.push(String::new());
 
 	if report.packages.is_empty() {
@@ -2604,9 +2674,11 @@ fn render_markdown_report(report: &ChangeClassificationReport) -> String {
 	} else {
 		lines.push("## Packages".to_string());
 		lines.push(String::new());
+
 		for package in &report.packages {
 			lines.push(format!("### `{}`", package.package_id));
 			lines.push(String::new());
+
 			lines.push(format!("- Ecosystem: `{}`", package.ecosystem));
 			lines.push(format!(
 				"- Proposed changeset bump: `{}`",
@@ -2627,9 +2699,11 @@ fn render_markdown_report(report: &ChangeClassificationReport) -> String {
 				)
 				.to_lowercase(),
 			);
+
 			if let Some(release_impact) = package.decision.release_impact {
 				lines.push(format!("- Release impact: `{release_impact:?}`").to_lowercase());
 			}
+
 			lines.push(format!("- Confidence: `{:?}`", package.decision.confidence).to_lowercase());
 			lines.push(
 				format!("- Completeness: `{:?}`", package.decision.completeness).to_lowercase(),
@@ -2640,6 +2714,7 @@ fn render_markdown_report(report: &ChangeClassificationReport) -> String {
 			));
 			lines.push(format!("- Changeset action: `{:?}`", package.action).to_lowercase());
 			lines.push(format!("- Summary: {}", package.summary));
+
 			if let Some(cli) = &package.cli {
 				lines.push(format!(
 					"- CLI: `{}` ({})",
@@ -2647,6 +2722,7 @@ fn render_markdown_report(report: &ChangeClassificationReport) -> String {
 					cli_classification_description(cli)
 				));
 			}
+
 			if let Some(owner) = &package.release_owner {
 				lines.push(format!("- Release owner: `{}` `{}`", owner.kind, owner.id));
 				lines.push(format!(
@@ -2654,8 +2730,10 @@ fn render_markdown_report(report: &ChangeClassificationReport) -> String {
 					owner.latest_release.as_deref().unwrap_or("none")
 				));
 			}
+
 			if !package.existing_changesets.is_empty() {
 				lines.push("- Existing changesets:".to_string());
+
 				for changeset in &package.existing_changesets {
 					lines.push(format!(
 						"  - `{}`: `{}`",
@@ -2666,9 +2744,11 @@ fn render_markdown_report(report: &ChangeClassificationReport) -> String {
 					));
 				}
 			}
+
 			let (current, inherited) = partition_findings(&package.findings);
 			lines.push(format!("- Findings: {}", current.len()));
 			push_markdown_findings(&mut lines, &current);
+
 			if !inherited.is_empty() {
 				lines.push(format!(
 					"- {}: {}",
@@ -2677,6 +2757,7 @@ fn render_markdown_report(report: &ChangeClassificationReport) -> String {
 				));
 				push_markdown_findings(&mut lines, &inherited);
 			}
+
 			lines.push(String::new());
 		}
 	}
@@ -2684,6 +2765,7 @@ fn render_markdown_report(report: &ChangeClassificationReport) -> String {
 	if !report.warnings.is_empty() {
 		lines.push("## Warnings".to_string());
 		lines.push(String::new());
+
 		for warning in &report.warnings {
 			lines.push(format!("- {warning}"));
 		}
@@ -2695,6 +2777,7 @@ fn render_markdown_report(report: &ChangeClassificationReport) -> String {
 #[coverage(off)]
 fn render_text_report(report: &ChangeClassificationReport) -> String {
 	let mut lines = vec!["Change classification".to_string(), String::new()];
+
 	if report.skipped {
 		lines.push(report.summary.clone());
 		lines.push(String::new());
@@ -2702,21 +2785,26 @@ fn render_text_report(report: &ChangeClassificationReport) -> String {
 			"Matched skip labels: {}",
 			report.matched_skip_labels.join(", ")
 		));
+
 		return lines.join("\n");
 	}
+
 	lines.push(format!("Schema version: {}", report.schema_version));
 	lines.push(format!(
 		"Base branch: {}",
 		text_ref_with_commit(&report.default_branch, report.base_commit.as_deref())
 	));
+
 	if let Some(head_commit) = &report.head_commit {
 		lines.push(format!("Head commit: {}", short_revision(head_commit)));
 	}
+
 	lines.push(format!("Candidate: {}", report.candidate));
 	lines.push(format!("Recommended bump: {}", report.recommendation));
 	lines.push(format!("Packages analyzed: {}", report.packages.len()));
 	lines.push(String::new());
 	lines.push("Comparisons".to_string());
+
 	for comparison in &report.comparisons {
 		let base = comparison.base.as_deref().unwrap_or("unavailable");
 		lines.push(format!(
@@ -2733,8 +2821,10 @@ fn render_text_report(report: &ChangeClassificationReport) -> String {
 	} else {
 		lines.push(String::new());
 		lines.push("Packages".to_string());
+
 		for package in &report.packages {
 			lines.push(String::new());
+
 			lines.push(package.package_id.clone());
 			lines.push(format!("  Ecosystem: {}", package.ecosystem));
 			lines.push(format!(
@@ -2753,12 +2843,14 @@ fn render_text_report(report: &ChangeClassificationReport) -> String {
 				"  Compatibility impact: {}",
 				compatibility_impact_name(package.decision.compatibility_impact)
 			));
+
 			if let Some(release_impact) = package.decision.release_impact {
 				lines.push(format!(
 					"  Release impact: {}",
 					compatibility_impact_name(release_impact)
 				));
 			}
+
 			lines.push(format!(
 				"  Confidence: {}",
 				classification_confidence_name(package.decision.confidence)
@@ -2775,6 +2867,7 @@ fn render_text_report(report: &ChangeClassificationReport) -> String {
 				"  Summary: {}",
 				plain_text_fragment(&package.summary)
 			));
+
 			if let Some(cli) = &package.cli {
 				lines.push(format!(
 					"  CLI: {} ({})",
@@ -2782,6 +2875,7 @@ fn render_text_report(report: &ChangeClassificationReport) -> String {
 					cli_classification_description(cli)
 				));
 			}
+
 			if let Some(owner) = &package.release_owner {
 				lines.push(format!("  Release owner: {} {}", owner.kind, owner.id));
 				lines.push(format!(
@@ -2789,8 +2883,10 @@ fn render_text_report(report: &ChangeClassificationReport) -> String {
 					owner.latest_release.as_deref().unwrap_or("none")
 				));
 			}
+
 			if !package.existing_changesets.is_empty() {
 				lines.push("  Existing changesets:".to_string());
+
 				for changeset in &package.existing_changesets {
 					lines.push(format!(
 						"    {}: {}",
@@ -2801,9 +2897,11 @@ fn render_text_report(report: &ChangeClassificationReport) -> String {
 					));
 				}
 			}
+
 			let (current, inherited) = partition_findings(&package.findings);
 			lines.push(format!("  Findings: {}", current.len()));
 			push_text_findings(&mut lines, &current);
+
 			if !inherited.is_empty() {
 				lines.push(format!(
 					"  {}: {}",
@@ -2858,6 +2956,7 @@ fn finding_checks_evidence(checks: &[SemanticAnalyzerCheck]) -> String {
 	if checks.is_empty() {
 		return String::new();
 	}
+
 	let checks = checks
 		.iter()
 		.map(|check| {
@@ -2874,6 +2973,7 @@ fn finding_checks_evidence(checks: &[SemanticAnalyzerCheck]) -> String {
 				_ => "unknown".to_string(),
 				// patch-coverage:ignore-end
 			};
+
 			let diagnostics = check
 				.diagnostics
 				.iter()
@@ -2889,6 +2989,7 @@ fn finding_checks_evidence(checks: &[SemanticAnalyzerCheck]) -> String {
 				} else {
 					format!(", +{omitted} more")
 				};
+
 				format!(
 					"{}={result} [{}{}]",
 					check.name,

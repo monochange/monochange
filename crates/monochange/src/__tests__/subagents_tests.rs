@@ -246,6 +246,7 @@ fn render_and_generate_helpers_cover_notes_and_target_variants() {
 	assert!(output.contains("- pi"));
 	assert!(output.contains("- codex"));
 	assert!(output.contains("- cursor"));
+
 	assert!(output.contains("Notes:"));
 	assert!(output.contains("Dry run only. No files were written."));
 

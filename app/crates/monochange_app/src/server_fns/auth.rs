@@ -139,6 +139,7 @@ pub async fn get_login_url() -> Result<String, server_fn::ServerFnError> {
 			.append_pair("client_id", &state.github_client_id)
 			.append_pair("redirect_uri", &state.github_callback_url)
 			.append_pair("state", &pending.state);
+
 		if let Some(challenge) = pending.code_challenge {
 			query
 				.append_pair("code_challenge", &challenge)
@@ -178,9 +179,11 @@ pub async fn exchange_code(
 		("code", code),
 		("redirect_uri", state.github_callback_url.clone()),
 	];
+
 	if let Some(verifier) = verified.code_verifier {
 		token_form.push(("code_verifier", verifier));
 	}
+
 	let token_response = state
 		.http
 		.post(format!(
@@ -288,6 +291,7 @@ pub(crate) async fn github_user_access_token(
 	let Some((access_token, refresh_token, access_expires_at, refresh_expires_at)) = stored else {
 		return Err(server_fn::ServerFnError::new("Invalid session"));
 	};
+
 	if access_token.trim().is_empty() {
 		return Err(server_fn::ServerFnError::new(
 			"please sign in again to verify organization access",
@@ -295,9 +299,11 @@ pub(crate) async fn github_user_access_token(
 	}
 
 	let now = chrono::Utc::now().timestamp();
+
 	if access_expires_at.is_none_or(|expires_at| expires_at > now + 60) {
 		return Ok(access_token);
 	}
+
 	let refresh_token = refresh_token
 		.filter(|token| !token.is_empty())
 		.filter(|_| refresh_expires_at.is_some_and(|expires_at| expires_at > now + 60))

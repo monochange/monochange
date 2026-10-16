@@ -45,17 +45,21 @@ fn normalized_progress_events(stderr: &str) -> Vec<Value> {
 				.unwrap_or_else(|error| panic!("parse progress event `{line}`: {error}"))
 		})
 		.collect::<Vec<_>>();
+
 	for event in &mut events {
 		let Some(object) = event.as_object_mut() else {
 			panic!("progress event should be an object: {event}");
 		};
+
 		if let Some(duration) = object.get_mut("duration_ms") {
 			*duration = Value::String("[duration_ms]".to_string());
 		}
+
 		if let Some(status) = object.get("status").and_then(Value::as_str) {
 			let redacted = status.replace("\\n", "[newline]");
 			object.insert("status".to_string(), Value::String(redacted));
 		}
+
 		if let Some(phase_timings) = object
 			.get_mut("phase_timings")
 			.and_then(Value::as_array_mut)
@@ -79,6 +83,7 @@ fn normalized_progress_events(stderr: &str) -> Vec<Value> {
 					_ => usize::MAX,
 				}
 			});
+
 			for phase in phase_timings {
 				if let Some(duration) = phase.get_mut("duration_ms") {
 					*duration = Value::String("[duration_ms]".to_string());
@@ -86,23 +91,28 @@ fn normalized_progress_events(stderr: &str) -> Vec<Value> {
 			}
 		}
 	}
+
 	let mut normalized = Vec::with_capacity(events.len());
 	let mut index = 0;
+
 	while index < events.len() {
 		let Some(event) = events.get(index) else {
 			break;
 		};
+
 		if event.get("event").and_then(Value::as_str) != Some("command_output") {
 			normalized.push(event.clone());
 			index += 1;
 			continue;
 		}
+
 		let start = index;
 		while events.get(index).is_some_and(|event| {
 			event.get("event").and_then(Value::as_str) == Some("command_output")
 		}) {
 			index += 1;
 		}
+
 		let mut output_events = events
 			.get(start..index)
 			.map_or_else(Vec::new, <[_]>::to_vec);
@@ -134,6 +144,7 @@ fn normalized_progress_events(stderr: &str) -> Vec<Value> {
 		});
 		normalized.extend(output_events);
 	}
+
 	for (sequence, event) in normalized.iter_mut().enumerate() {
 		if let Some(object) = event.as_object_mut() {
 			object.insert(
@@ -142,6 +153,7 @@ fn normalized_progress_events(stderr: &str) -> Vec<Value> {
 			);
 		}
 	}
+
 	normalized
 }
 
@@ -158,6 +170,7 @@ fn normalize_terminal_transcript(text: &str) -> String {
 	let mut pending: Vec<char> = Vec::new();
 	let mut cursor = 0;
 	let mut chars = text.chars().peekable();
+
 	while let Some(ch) = chars.next() {
 		match ch {
 			'\n' => {
@@ -172,10 +185,12 @@ fn normalize_terminal_transcript(text: &str) -> String {
 				let mut sequence = String::new();
 				for escape_ch in chars.by_ref() {
 					sequence.push(escape_ch);
+
 					if ('@'..='~').contains(&escape_ch) {
 						break;
 					}
 				}
+
 				// Only line erasure changes what is on screen; the styling
 				// sequences the reporter emits leave the text alone.
 				if sequence == "2K" {
@@ -188,10 +203,12 @@ fn normalize_terminal_transcript(text: &str) -> String {
 				} else {
 					pending.push(ch);
 				}
+
 				cursor += 1;
 			}
 		}
 	}
+
 	normalized.extend(pending);
 	normalized
 }
@@ -347,6 +364,7 @@ fn release_progress_renders_skipped_failed_steps_and_stderr_on_tty() {
 	assert!(transcript.contains("  └─ command failed (exit status: "));
 	assert!(transcript.contains("  │ fail loud\n  │   bad line"));
 	assert!(transcript.contains("error[step.command_failed]"));
+
 	assert!(transcript.contains("\n    stderr:\n    bad line"));
 	assert!(transcript.contains("step:    [3/5] fail loud"));
 	assert!(transcript.contains("✔ [4/5] cleanup"));
@@ -416,6 +434,7 @@ fn failing_cleanup_preserves_the_primary_workflow_error() {
 	let primary_error = "command `printf 'primary error\\n' >&2; exit 4` failed";
 	let cleanup_error = "command `printf 'cleanup error\\n' >&2; exit 5` failed";
 	assert_eq!(transcript.matches(primary_error).count(), 1, "{transcript}");
+
 	assert_eq!(transcript.matches(cleanup_error).count(), 0, "{transcript}");
 }
 

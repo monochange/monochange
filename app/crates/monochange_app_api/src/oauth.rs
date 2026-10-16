@@ -103,6 +103,7 @@ pub fn verify_login_state(
 	if received.is_empty() {
 		return Err(StatusCode::UNAUTHORIZED);
 	}
+
 	let cookie = jar.get(OAUTH_COOKIE_NAME).ok_or(StatusCode::UNAUTHORIZED)?;
 	let mut validation = Validation::default();
 	validation.leeway = 0;
@@ -112,9 +113,11 @@ pub fn verify_login_state(
 		&validation,
 	)
 	.map_err(|_| StatusCode::UNAUTHORIZED)?;
+
 	if claims.claims.nonce != received {
 		return Err(StatusCode::UNAUTHORIZED);
 	}
+
 	Ok(VerifiedOAuth {
 		intent: claims.claims.intent,
 		code_verifier: claims.claims.code_verifier,
@@ -145,6 +148,7 @@ pub fn session_cookie(token: String) -> Cookie<'static> {
 	} else {
 		Duration::days(7)
 	};
+
 	Cookie::build((SESSION_COOKIE_NAME, token))
 		.path("/")
 		.http_only(true)

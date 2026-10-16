@@ -4,7 +4,6 @@
 )]
 
 //! Normalized snapshots for command and API surfaces.
-
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 
@@ -177,6 +176,7 @@ pub struct OptionValue {
 	pub variadic: bool,
 	#[serde(default, skip_serializing_if = "Vec::is_empty")]
 	pub enum_values: Vec<String>,
+
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub default: Option<String>,
 }
@@ -300,10 +300,12 @@ impl CommandSnapshot {
 
 	fn without_descriptions(&self) -> Self {
 		let mut snapshot = self.clone();
+
 		for option in &mut snapshot.global_options {
 			option.summary = None;
 			option.description = None;
 		}
+
 		strip_command_descriptions(&mut snapshot.commands);
 		snapshot
 	}
@@ -311,9 +313,11 @@ impl CommandSnapshot {
 	fn as_index(&self) -> Self {
 		let mut snapshot = self.without_descriptions();
 		snapshot.global_options.clear();
+
 		for command in &mut snapshot.commands {
 			strip_command_details(command);
 		}
+
 		snapshot
 	}
 }
@@ -448,21 +452,27 @@ fn option_value_from_arg(arg: &Arg) -> OptionValue {
 
 fn option_names(arg: &Arg) -> Vec<String> {
 	let mut names = Vec::new();
+
 	if let Some(long) = arg.get_long() {
 		names.push(format!("--{long}"));
 	}
+
 	if let Some(short) = arg.get_short() {
 		names.push(format!("-{short}"));
 	}
+
 	if names.is_empty() {
 		names.push(arg.get_id().to_string());
 	}
+
 	for alias in arg.get_visible_aliases().unwrap_or_default() {
 		names.push(format!("--{alias}"));
 	}
+
 	for short_alias in arg.get_visible_short_aliases().unwrap_or_default() {
 		names.push(format!("-{short_alias}"));
 	}
+
 	unique(names)
 }
 
@@ -527,9 +537,11 @@ fn find_command<'a>(commands: &'a [CommandNode], path: &[String]) -> Option<&'a 
 	let command = commands
 		.iter()
 		.find(|command| command.path.last() == Some(first))?;
+
 	if rest.is_empty() {
 		return Some(command);
 	}
+
 	find_command(&command.commands, rest)
 }
 
@@ -537,14 +549,18 @@ fn strip_command_descriptions(commands: &mut [CommandNode]) {
 	for command in commands {
 		command.summary = None;
 		command.description = None;
+
 		for option in &mut command.options {
 			option.summary = None;
 			option.description = None;
 		}
+
 		for positional in &mut command.positionals {
 			positional.summary = None;
+
 			positional.description = None;
 		}
+
 		strip_command_descriptions(&mut command.commands);
 	}
 }
@@ -552,6 +568,7 @@ fn strip_command_descriptions(commands: &mut [CommandNode]) {
 fn strip_command_details(command: &mut CommandNode) {
 	command.options.clear();
 	command.positionals.clear();
+
 	for child in &mut command.commands {
 		strip_command_details(child);
 	}
@@ -564,11 +581,13 @@ fn is_builtin_metadata_subcommand(name: &str) -> bool {
 fn unique(values: Vec<String>) -> Vec<String> {
 	let mut seen = BTreeSet::new();
 	let mut unique_values = Vec::new();
+
 	for value in values {
 		if seen.insert(value.clone()) {
 			unique_values.push(value);
 		}
 	}
+
 	unique_values
 }
 
@@ -679,6 +698,7 @@ fn classify_command_changes(
 			format!("command `{}` description changed", before.path.join(" ")),
 		));
 	}
+
 	classify_option_changes(before, after, changes);
 	classify_positional_changes(before, after, changes);
 }
@@ -690,6 +710,7 @@ fn classify_option_changes(
 ) {
 	let before_options = options_by_canonical_name(&before.options);
 	let after_options = options_by_canonical_name(&after.options);
+
 	for (name, option) in &before_options {
 		let Some(after_option) = after_options.get(name) else {
 			changes.push(snapshot_change(
@@ -705,6 +726,7 @@ fn classify_option_changes(
 		};
 		classify_single_option_change(&before.path, option, after_option, changes);
 	}
+
 	for name in after_options.keys() {
 		if !before_options.contains_key(name) {
 			changes.push(snapshot_change(
@@ -731,7 +753,9 @@ fn classify_single_option_change(
 			format!("option `{}` description changed", before.canonical_name),
 		));
 	}
+
 	let severity = classify_value_change(&before.value, &after.value);
+
 	if severity == SnapshotSeverity::Major {
 		changes.push(snapshot_change(
 			SnapshotSeverity::Major,
@@ -761,6 +785,7 @@ fn classify_positional_changes(
 	changes: &mut Vec<SnapshotChange>,
 ) {
 	let max_len = before.positionals.len().max(after.positionals.len());
+
 	for index in 0..max_len {
 		match (before.positionals.get(index), after.positionals.get(index)) {
 			(Some(before), Some(after)) => {
@@ -799,6 +824,7 @@ fn classify_positional_changes(
 					format!("positional `{}` was added", added.name),
 				));
 			}
+
 			// patch-coverage:ignore-start -- range upper bound makes this defensive arm unreachable.
 			(None, None) => {} // patch-coverage:ignore-end
 		}
@@ -809,26 +835,34 @@ fn classify_value_change(before: &OptionValue, after: &OptionValue) -> SnapshotS
 	if !before.required && after.required {
 		return SnapshotSeverity::Major;
 	}
+
 	if before.required && !after.required {
 		return SnapshotSeverity::Minor;
 	}
+
 	if before.repeatable && !after.repeatable || before.variadic && !after.variadic {
 		return SnapshotSeverity::Major;
 	}
+
 	if !before.repeatable && after.repeatable || !before.variadic && after.variadic {
 		return SnapshotSeverity::Minor;
 	}
+
 	let before_values = before.enum_values.iter().collect::<BTreeSet<_>>();
 	let after_values = after.enum_values.iter().collect::<BTreeSet<_>>();
+
 	if !before_values.is_empty() && !before_values.is_subset(&after_values) {
 		return SnapshotSeverity::Major;
 	}
+
 	if !after_values.is_empty() && !after_values.is_subset(&before_values) {
 		return SnapshotSeverity::Minor;
 	}
+
 	match (before.kind, after.kind) {
 		(ValueKind::Enum, ValueKind::String) => SnapshotSeverity::Minor,
 		(ValueKind::String, ValueKind::Enum) => SnapshotSeverity::Major,
+
 		(before, after) if before != after => SnapshotSeverity::Major,
 		_ => SnapshotSeverity::None,
 	}
@@ -836,10 +870,12 @@ fn classify_value_change(before: &OptionValue, after: &OptionValue) -> SnapshotS
 
 fn flatten_commands(commands: &[CommandNode]) -> BTreeMap<Vec<String>, &CommandNode> {
 	let mut flattened = BTreeMap::new();
+
 	for command in commands {
 		flattened.insert(command.path.clone(), command);
 		flattened.extend(flatten_commands(&command.commands));
 	}
+
 	flattened
 }
 

@@ -16,11 +16,13 @@ in
 {
   packages =
     with pkgs;
+
     [
       cargo-binstall
       cargo-run-bin
       cacert
       custom.mdt
+      custom.monostyle
       doctl
       dprint
       gh
@@ -330,8 +332,17 @@ in
         fix:format
         fix:js
         fix:workflows
+        fix:monostyle
       '';
       description = "Fix all autofixable problems, including shared-doc synchronization via `mdt update`.";
+      binary = "bash";
+    };
+    "fix:monostyle" = {
+      exec = ''
+        set -euo pipefail
+        monostyle fix .
+      '';
+      description = "Apply monostyle's autofixable readability fixes.";
       binary = "bash";
     };
     "fix:format" = {
@@ -469,8 +480,17 @@ in
         run_step "deny:check" deny:check
         run_step "docs:check" docs:check
         run_step "lint:monochange" lint:monochange
+        run_step "lint:monostyle" lint:monostyle
       '';
       description = "Run all checks.";
+      binary = "bash";
+    };
+    "lint:monostyle" = {
+      exec = ''
+        set -euo pipefail
+        monostyle check . --fail-under 75
+      '';
+      description = "Check code readability and complexity with monostyle.";
       binary = "bash";
     };
     "lint:format" = {

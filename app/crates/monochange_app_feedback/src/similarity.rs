@@ -29,9 +29,11 @@ pub fn keywords(text: &str) -> BTreeSet<String> {
 /// Jaccard similarity of two keyword sets as a whole percentage.
 pub fn similarity_percent(left: &BTreeSet<String>, right: &BTreeSet<String>) -> u8 {
 	let union = left.union(right).count();
+
 	if union == 0 {
 		return 0;
 	}
+
 	let shared = left.intersection(right).count();
 	u8::try_from(shared * 100 / union).unwrap_or(100)
 }

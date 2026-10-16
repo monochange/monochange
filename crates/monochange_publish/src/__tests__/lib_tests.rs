@@ -856,6 +856,7 @@ fn assert_complete_failed_publish_run(
 					&& message.contains(expected_failure)
 		)
 	}));
+
 	for request in &requests[1..] {
 		assert!(events.iter().any(|event| {
 			matches!(
@@ -866,6 +867,7 @@ fn assert_complete_failed_publish_run(
 			)
 		}));
 	}
+
 	assert!(matches!(
 		events.last(),
 		Some(PublishProgressEvent::RunFinished {
@@ -1344,6 +1346,7 @@ async fn release_run_fails_duplicate_versions_when_fail_on_duplicate_is_enabled(
 			.contains("publishing first 1.0.0 failed earlier")
 	);
 	let events = progress.events.lock().unwrap();
+
 	assert!(events.iter().any(|event| {
 		matches!(
 			event,
@@ -1630,9 +1633,11 @@ async fn real_run_readiness_block_fails_the_run_before_any_mutation() {
 #[tokio::test(flavor = "multi_thread")]
 async fn placeholder_manifest_writer_failure_records_failed_package_and_blocked_tail() {
 	let mut requests = [publish_request("failed"), publish_request("tail")];
+
 	for request in &mut requests {
 		request.placeholder = true;
 	}
+
 	let (endpoints, registry_thread) = npm_not_found_endpoints(1);
 	let manifest_writers = PlaceholderManifestWriterRegistry::new().with_writer(
 		RegistryKind::Npm,
@@ -2497,6 +2502,7 @@ fn ecosystem_publish_order_package(
 	dependencies: Vec<PackageDependency>,
 ) -> PackageRecord {
 	let root = PathBuf::from("/workspace");
+
 	let manifest_name = match ecosystem {
 		Ecosystem::Cargo => "Cargo.toml",
 		Ecosystem::Dart => "pubspec.yaml",
@@ -2504,6 +2510,7 @@ fn ecosystem_publish_order_package(
 		Ecosystem::Go => "go.mod",
 		_ => "package.json",
 	};
+
 	let mut package = PackageRecord::new(
 		ecosystem,
 		name,
@@ -2565,6 +2572,7 @@ fn publish_order_configuration_for(
 	dependency_fields: Vec<&str>,
 ) -> WorkspaceConfiguration {
 	let mut configuration = publish_order_configuration(None);
+
 	let settings = match ecosystem {
 		Ecosystem::Cargo => &mut configuration.cargo,
 		Ecosystem::Deno => &mut configuration.deno,
@@ -2573,6 +2581,7 @@ fn publish_order_configuration_for(
 		Ecosystem::Go => &mut configuration.go,
 		_ => &mut configuration.npm,
 	};
+
 	settings.publish_order.dependency_fields =
 		Some(dependency_fields.into_iter().map(str::to_string).collect());
 	configuration
@@ -2592,11 +2601,13 @@ fn publish_order_request_for_package(package: &PackageRecord) -> PublishRequest 
 		ecosystem: package.ecosystem,
 		manifest_path: package.manifest_path.clone(),
 		package_root: package.manifest_path.parent().unwrap().to_path_buf(),
+
 		registry: if package.ecosystem == Ecosystem::Cargo {
 			RegistryKind::CratesIo
 		} else {
 			RegistryKind::Npm
 		},
+
 		package_manager: None,
 		package_metadata: BTreeMap::new(),
 		mode: PublishMode::Builtin,
@@ -2802,6 +2813,7 @@ fn empty_publish_report_marks_every_request_as_blocked() {
 	}));
 	assert_eq!(report.summary().total(), 2);
 	assert_eq!(report.summary().failed, 0);
+
 	assert_eq!(report.summary().blocked, 2);
 }
 
@@ -3103,6 +3115,7 @@ async fn pub_dev_trusted_publishing_ref_error_fails_the_run_before_minting() {
 	})]);
 	let mut endpoints = RegistryEndpoints::from_env();
 	endpoints.pub_dev_api = format!("http://{registry_address}");
+
 	let failure = try_execute_publish_requests_with_progress(
 		Path::new("."),
 		None,
@@ -3166,6 +3179,7 @@ async fn dart_trusted_publishing_publishes_from_tag_ref_runs() {
 	})]);
 	let mut endpoints = RegistryEndpoints::from_env();
 	endpoints.pub_dev_api = format!("http://{registry_address}");
+
 	let report = try_execute_publish_requests_with_progress(
 		Path::new("."),
 		None,
@@ -3225,11 +3239,13 @@ fn spawn_http_capture_server(
 				if read == 0 {
 					break;
 				}
+
 				request.extend_from_slice(&buffer[..read]);
 				if request.windows(4).any(|window| window == b"\r\n\r\n") {
 					break;
 				}
 			}
+
 			captured_clone
 				.lock()
 				.unwrap()
@@ -3301,6 +3317,7 @@ async fn dart_trusted_publish_mints_a_fresh_oidc_token_before_publishing() {
 	let env_map = actions_oidc_env_map(&oidc_base_url, "runner-secret");
 	let client = registry_client().unwrap_or_else(|error| panic!("registry client: {error}"));
 	let command_builder = build_publish_command_builder();
+
 	let manifest_writers = PlaceholderManifestWriterRegistry::default();
 	let readiness = PublishReadinessRegistry::default();
 	let trust_handler = TestTrustHandler;
@@ -3390,6 +3407,7 @@ async fn dart_publish_without_oidc_context_publishes_without_token_injection() {
 	let manifest_writers = PlaceholderManifestWriterRegistry::default();
 	let readiness = PublishReadinessRegistry::default();
 	let trust_handler = TestTrustHandler;
+
 	let mut executor = RecordingExecutor::default();
 
 	let report = execute_publish_requests(
@@ -3439,6 +3457,7 @@ async fn disabled_dart_trusted_publishing_does_not_mint_oidc_tokens() {
 	let client = registry_client().unwrap_or_else(|error| panic!("registry client: {error}"));
 	let command_builder = build_publish_command_builder();
 	let manifest_writers = PlaceholderManifestWriterRegistry::default();
+
 	let readiness = PublishReadinessRegistry::default();
 	let trust_handler = TestTrustHandler;
 	let mut executor = RecordingExecutor::default();
@@ -3480,6 +3499,7 @@ async fn dart_trusted_publish_dry_runs_without_minting_oidc_tokens() {
 	let command_builder = build_publish_command_builder();
 	let manifest_writers = PlaceholderManifestWriterRegistry::default();
 	let readiness = PublishReadinessRegistry::default();
+
 	let trust_handler = TestTrustHandler;
 	let mut executor = RecordingExecutor::default();
 
@@ -3585,6 +3605,7 @@ async fn dart_trusted_publish_fails_when_the_oidc_token_cannot_be_minted() {
 	let client = registry_client().unwrap_or_else(|error| panic!("registry client: {error}"));
 	let command_builder = build_publish_command_builder();
 	let manifest_writers = PlaceholderManifestWriterRegistry::default();
+
 	let readiness = PublishReadinessRegistry::default();
 	let trust_handler = TestTrustHandler;
 	let progress = RecordingPublishProgressReporter::default();

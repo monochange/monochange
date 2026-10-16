@@ -1,5 +1,6 @@
 // Keep the standalone book connected to the application's navigation.
 const toolbar = document.querySelector(".left-buttons");
+
 if (toolbar) {
 	const home = document.createElement("a");
 	home.href = "https://monochange.dev/book";

@@ -88,6 +88,7 @@ enum SchemaReleaseCommands {
 async fn main() {
 	let cli = Cli::parse();
 	let result = execute(cli).await;
+
 	if let Err(msg) = result {
 		eprintln!("{msg}");
 		std::process::exit(1);

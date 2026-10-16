@@ -92,6 +92,7 @@ fn normalize_repository_path(path: &str) -> String {
 	if normalized == "." {
 		return String::new();
 	}
+
 	normalized
 }
 
@@ -110,6 +111,7 @@ fn package_relative_path<'path>(
 	if package_root.is_empty() {
 		return Some(path);
 	}
+
 	path.strip_prefix(package_root_prefix)
 		.or_else(|| (path == package_root).then_some(""))
 }

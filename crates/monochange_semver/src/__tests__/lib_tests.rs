@@ -35,7 +35,6 @@ fn make_assessment(package_id: &str, severity: BumpSeverity) -> CompatibilityAss
 }
 
 // -- merge_severities --
-
 #[test]
 fn merge_severities_prefers_the_highest_bump() {
 	assert_eq!(
@@ -88,7 +87,6 @@ fn merge_severities_is_commutative() {
 }
 
 // -- strongest_assessment --
-
 #[test]
 fn strongest_assessment_returns_highest_severity_assessment() {
 	let strongest = strongest_assessment(&[
@@ -125,7 +123,6 @@ fn strongest_assessment_for_package_filters_by_package_id() {
 }
 
 // -- direct_release_severity --
-
 #[test]
 fn direct_release_severity_defaults_to_patch_without_requested_bump() {
 	assert_eq!(direct_release_severity(None, None), BumpSeverity::Patch);
@@ -158,7 +155,6 @@ fn direct_release_severity_keeps_requested_bump_when_higher_than_assessment() {
 }
 
 // -- propagated_release_severity --
-
 #[test]
 fn propagated_release_severity_uses_default_parent_bump_without_assessment() {
 	assert_eq!(
@@ -196,7 +192,6 @@ fn propagated_release_severity_keeps_parent_bump_when_higher_than_assessment() {
 }
 
 // -- property tests --
-
 use proptest::prelude::*;
 use proptest::prop_compose;
 use proptest::proptest;
@@ -383,7 +378,6 @@ proptest! {
 }
 
 // -- collect_assessments --
-
 struct TestProvider {
 	severity: BumpSeverity,
 }

@@ -8,11 +8,13 @@ function parseArgs(argv) {
 
 	for (let index = 0; index < argv.length; index += 1) {
 		const token = argv[index];
+
 		if (!token.startsWith("--")) {
 			continue;
 		}
 
 		const value = argv[index + 1];
+
 		if (value === undefined || value.startsWith("--")) {
 			continue;
 		}
@@ -30,6 +32,7 @@ function normalizeSourcePath(filePath, repoRoot) {
 
 function isSubpath(candidatePath, parentPath) {
 	const relativePath = relative(parentPath, candidatePath);
+
 	return relativePath === "" || (!relativePath.startsWith("..") && !path.isAbsolute(relativePath));
 }
 
@@ -85,6 +88,7 @@ function splitCoverageByCrate({ lcovText, repoRoot }) {
 		const crateInfo = publicCrates.find((candidate) =>
 			isSubpath(record.sourcePath, candidate.directory),
 		);
+
 		if (!crateInfo) {
 			continue;
 		}
@@ -142,6 +146,7 @@ function main(argv = process.argv.slice(2)) {
 	writeGitHubOutput(crateReports, options["github-output"]);
 
 	console.log(`prepared ${crateReports.length} Codecov flag report(s) in ${outDir}`);
+
 	for (const crateReport of crateReports) {
 		console.log(`- ${crateReport.name}`);
 	}

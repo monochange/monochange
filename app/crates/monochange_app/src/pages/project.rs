@@ -36,6 +36,7 @@ pub fn ProjectPage() -> impl IntoView {
 				Ok(None) => view! { <section class="site-width"><Unavailable title="Project not found" message="It may have been renamed or deleted, or it belongs to an organisation you don't own." /></section> }.into_any(),
 				Err(_) => view! { <section class="site-width"><Unavailable title="This project couldn't be loaded" message="Please reload the page to try again." /></section> }.into_any(),
 			})}
+
 		</Suspense>
 	}
 }
@@ -74,6 +75,7 @@ fn ProjectContent(details: ProjectDetails) -> impl IntoView {
 							Some(false) => "Public",
 							None => "Disconnected",
 						};
+
 						view! { <li><div><h3>{repository.full_name.clone()}</h3><p>{state}</p></div></li> }
 					}).collect::<Vec<_>>()}
 				</ul>

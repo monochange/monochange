@@ -125,6 +125,7 @@ fn noop_lint_progress_reporter_methods_are_noops() {
 	reporter.suite_finished("cargo", 1, 1);
 	reporter.file_started(path, 1);
 	reporter.file_rule_started(path, "cargo/example");
+
 	reporter.file_rule_finished(path, "cargo/example", 1);
 	reporter.file_finished(path, 1);
 	reporter.fix_started(1);

@@ -23,6 +23,7 @@ fn setup_workspace() -> TempDir {
 		&["config", "user.email", "test@example.com"],
 	);
 	git(tempdir.path(), &["config", "commit.gpgsign", "false"]);
+
 	git(tempdir.path(), &["add", "."]);
 	git(tempdir.path(), &["commit", "-m", "initial"]);
 	tempdir
@@ -97,10 +98,12 @@ fn normalize_io_error(contents: &str) -> String {
 		.rsplit_once(' ')
 		.map_or(operation, |(context, _path)| context);
 	let mut normalized = format!("{context} [PATH]: [OS ERROR]");
+
 	for line in lines {
 		normalized.push('\n');
 		normalized.push_str(line);
 	}
+
 	normalized
 }
 
@@ -166,6 +169,7 @@ fn release_outputs_filter_changesets_by_stream() {
 		.unwrap_or_else(|error| panic!("parse user notes: {error}"));
 	let user_group = serde_json::from_str::<serde_json::Value>(&user_group)
 		.unwrap_or_else(|error| panic!("parse user group notes: {error}"));
+
 	assert_json_snapshot!("user_release_notes", user_notes);
 	assert_snapshot!("app_developer_release_notes", app_developer_notes);
 	assert_snapshot!("user_text_release_notes", user_text);

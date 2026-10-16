@@ -112,6 +112,7 @@ async fn link_legacy_installations(
 		.collect();
 	unlinked.sort_unstable();
 	unlinked.dedup();
+
 	for (installation_id, github_installation_id) in unlinked {
 		let account = match app
 			.installation_account(&state.http, github_installation_id)
@@ -131,6 +132,7 @@ async fn link_legacy_installations(
 		)
 		.await
 		.map_err(database_error)?;
+
 		for repository in repositories
 			.iter_mut()
 			.filter(|repository| repository.installation_id == installation_id)
@@ -138,6 +140,7 @@ async fn link_legacy_installations(
 			repository.organization_id = Some(organization_id);
 		}
 	}
+
 	Ok(())
 }
 
@@ -154,8 +157,10 @@ async fn accessible_organizations(
 	link_legacy_installations(state, &mut repositories).await?;
 
 	let mut organizations: Vec<OrganizationAccess> = Vec::new();
+
 	for repository in repositories {
 		let login = repository.info.installation_login.clone();
+
 		if let Some(organization) = organizations
 			.iter_mut()
 			.find(|organization| organization.login.eq_ignore_ascii_case(&login))
@@ -163,6 +168,7 @@ async fn accessible_organizations(
 			organization.repositories.push(repository);
 			continue;
 		}
+
 		let record = match repository.organization_id {
 			Some(_) => {
 				monochange_app_db::projects::find_organization(
@@ -175,6 +181,7 @@ async fn accessible_organizations(
 			}
 			None => None,
 		};
+
 		organizations.push(OrganizationAccess {
 			personal: repository.account_type == "User",
 			login,
@@ -182,6 +189,7 @@ async fn accessible_organizations(
 			repositories: vec![repository],
 		});
 	}
+
 	organizations.sort_by_key(|organization| organization.login.to_ascii_lowercase());
 	Ok(Some((user_id, organizations)))
 }
@@ -202,6 +210,7 @@ async fn summarize(
 		}
 		None => Vec::new(),
 	};
+
 	Ok(OrganizationSummary {
 		avatar_url: organization
 			.record
@@ -383,9 +392,11 @@ pub async fn list_organizations() -> Result<Vec<OrganizationSummary>, server_fn:
 		return Ok(Vec::new());
 	};
 	let mut summaries = Vec::with_capacity(organizations.len());
+
 	for organization in organizations {
 		summaries.push(summarize(&state, organization).await?);
 	}
+
 	Ok(summaries)
 }
 
@@ -397,6 +408,7 @@ pub async fn organization_overview(
 	use std::sync::Arc;
 
 	let state: Arc<monochange_app_api::AppState> = leptos::prelude::expect_context();
+
 	match organization_access(&state, &organization).await? {
 		Some((_, access)) => Ok(Some(summarize(&state, access).await?)),
 		None => Ok(None),

@@ -72,13 +72,17 @@ fn utf16_len(text: &str) -> u32 {
 /// to a character boundary.
 fn byte_index(text: &str, utf16_offset: u32) -> usize {
 	let mut units = 0;
+
 	for (index, character) in text.char_indices() {
 		let width = u32::try_from(character.len_utf16()).unwrap_or(2);
+
 		if units + width > utf16_offset {
 			return index;
 		}
+
 		units += width;
 	}
+
 	text.len()
 }
 
@@ -115,6 +119,7 @@ pub fn apply_format(text: &str, start: u32, end: u32, format: MarkdownFormat) ->
 			} else {
 				selected
 			};
+
 			let placeholder = "https://";
 			let address_start = prefix_units + utf16_len(label) + 3;
 			FormattedText {

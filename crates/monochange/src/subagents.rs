@@ -122,6 +122,7 @@ fn push_generated_file(
 ) -> MonochangeResult<()> {
 	let Some(existing) = drafts.iter().find(|existing| existing.path == draft.path) else {
 		drafts.push(draft);
+
 		return Ok(());
 	};
 
@@ -157,6 +158,7 @@ fn classify_generated_file(
 fn write_subagent_plan(root: &Path, plan: &SubagentPlan, force: bool) -> MonochangeResult<()> {
 	if !force {
 		let mut conflict_message = String::new();
+
 		for file in plan
 			.files
 			.iter()
@@ -168,8 +170,10 @@ fn write_subagent_plan(root: &Path, plan: &SubagentPlan, force: bool) -> Monocha
 			} else {
 				conflict_message.push_str(", ");
 			}
+
 			let _ = write!(conflict_message, "{}", file.path.display());
 		}
+
 		if !conflict_message.is_empty() {
 			return Err(MonochangeError::Config(conflict_message));
 		}
@@ -276,6 +280,7 @@ fn generate_target_files(
 			} else {
 				"GitHub Copilot"
 			};
+
 			files.push(GeneratedFileDraft {
 				path: PathBuf::from(".github/agents/monochange-release-agent.agent.md"),
 				description: format!("{description} agent definition"),

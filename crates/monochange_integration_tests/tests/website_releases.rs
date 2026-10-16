@@ -30,6 +30,7 @@ fn website_release_writes_user_artifacts_and_preserves_cli_version() {
 		std::fs::read_to_string(workspace.path().join("Cargo.toml")).unwrap(),
 		root_before
 	);
+
 	assert!(
 		result["package_publications"]
 			.as_array()

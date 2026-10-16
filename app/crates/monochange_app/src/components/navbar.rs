@@ -82,6 +82,7 @@ fn SessionLinks(
 				Ok(None) => view! { <a href="/login" class="button button-brand nav-sign-in">"Sign in"</a> }.into_any(),
 				Err(_) => view! { <a href="/login" class="button button-brand nav-sign-in">"Sign in again"</a> }.into_any(),
 			})}
+
 		</Suspense>
 	}
 }

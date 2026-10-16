@@ -1,0 +1,25 @@
+[scoring]
+half-life = 12
+
+[rules]
+max-line-width = 120
+tab-width = 4
+
+[rules.ignore]
+defaults = true
+generated = true
+include = []
+patterns = [
+	"**/.bin/**",
+	"**/.devenv/**",
+	"**/.templates/**",
+	"**/.tmp-node/**",
+	"**/dist/**",
+	"**/fixtures/**",
+	"**/node_modules/**",
+	"**/snapshots/**",
+	"**/target/**",
+	"docs/book/**",
+	"pnpm-lock.yaml",
+	"worktrees/**",
+]

@@ -43,6 +43,7 @@ async fn prepare_preserves_explicit_npm_versioned_file_fields_and_prefixes() {
 	let lockfile_input = fs::read_to_string(root.join("lockfile-input.json"))
 		.unwrap_or_else(|error| panic!("read lockfile command input: {error}"));
 	assert_eq!(lockfile_input, manifest);
+
 	insta::assert_snapshot!(manifest);
 	let constraints = fs::read_to_string(root.join("packages/ui/constraints/package.json"))
 		.unwrap_or_else(|error| panic!("read prepared constraints: {error}"));

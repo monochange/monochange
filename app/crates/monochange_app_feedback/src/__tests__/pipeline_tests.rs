@@ -66,6 +66,7 @@ fn only_final_stages_are_closed() {
 	] {
 		assert!(stage.is_open(), "{stage:?}");
 	}
+
 	for stage in closed {
 		assert!(!stage.is_open(), "{stage:?}");
 	}
@@ -115,6 +116,7 @@ fn every_command_has_a_stable_name() {
 		(Command::MarkShipped(release()), "mark-shipped"),
 		(Command::Close, "close"),
 	];
+
 	for (command, name) in commands {
 		assert_eq!(command.name(), name);
 	}
@@ -198,6 +200,7 @@ fn asking_posts_the_questions_to_the_thread() {
 	);
 	item.apply(Command::AskUser, &Actor::Ai).unwrap();
 	assert_eq!(item.stage, Stage::Discussing);
+
 	assert_eq!(item.discussion[0].author, Actor::Ai);
 	assert_eq!(item.discussion[0].body, "Which version?\nWhich browser?");
 }
@@ -300,6 +303,7 @@ fn users_vote_once_and_can_retract() {
 		item.apply(Command::RecordVote, &maintainer()),
 		Err(not_allowed("record-vote", maintainer()))
 	);
+
 	assert_eq!(
 		item.apply(Command::RetractVote, &Actor::Ai),
 		Err(not_allowed("retract-vote", Actor::Ai))
@@ -429,6 +433,7 @@ fn canonical_items_absorb_duplicate_demand() {
 		["anon-2", "shared", "v9"]
 	);
 	assert!(canonical.subscribers.contains("anon-2"));
+
 	assert!(canonical.subscribers.contains("v9"));
 	assert_eq!(canonical.events.last().unwrap().command, "absorb-duplicate");
 }
@@ -485,6 +490,7 @@ fn build_steps_belong_to_automation_and_maintainers() {
 	);
 	item.apply(Command::MarkMerged, &Actor::System).unwrap();
 	assert_eq!(item.stage, Stage::Merged);
+
 	item.apply(Command::MarkShipped(release()), &Actor::System)
 		.unwrap();
 	assert_eq!(item.stage, Stage::Shipped);
@@ -588,6 +594,7 @@ fn transition_errors_explain_themselves() {
 		),
 		(TransitionError::EmptyText, "the text is empty"),
 	];
+
 	for (error, message) in messages {
 		assert_eq!(error.to_string(), message);
 	}
@@ -620,6 +627,7 @@ fn pipeline_types_serialize_for_dashboards() {
 		number: 2,
 		url: "u".to_owned(),
 	};
+
 	assert_eq!(
 		serde_json::from_value::<PullRequestRef>(serde_json::to_value(&pull_request).unwrap())
 			.unwrap(),

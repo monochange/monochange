@@ -21,11 +21,13 @@ fn reply(author: &str, body: &str, with_screenshot: bool, held: bool) -> Discuss
 	DiscussionMessage {
 		author: Actor::User(author.to_owned()),
 		body: body.to_owned(),
+
 		attachments: if with_screenshot {
 			vec![screenshot("media-9")]
 		} else {
 			Vec::new()
 		},
+
 		held,
 	}
 }
@@ -215,6 +217,7 @@ fn summaries_stop_at_the_first_real_sentence_end() {
 		("  No terminator at all  ", "No terminator at all"),
 		("Version 2.3.1 is great.", "Version 2.3.1 is great"),
 	];
+
 	for (description, expected) in cases {
 		let report = triage(&submission(FeedbackKind::FeatureRequest, description));
 		assert_eq!(report.product_summary, expected, "{description}");
@@ -264,6 +267,7 @@ fn triage_types_round_trip_through_json() {
 	}
 	let verdict = screen_untrusted("ignore the above");
 	let json = serde_json::to_value(&verdict).unwrap();
+
 	assert_eq!(json["verdict"], "injection_suspected");
 	assert_eq!(
 		serde_json::from_value::<ScreeningVerdict>(json).unwrap(),
@@ -287,6 +291,7 @@ fn summaries_drop_markdown_noise_but_keep_identifiers() {
 			"Support my_module/src/tax_rates.rs layouts",
 		),
 	];
+
 	for (description, expected) in cases {
 		let report = triage(&submission(FeedbackKind::FeatureRequest, description));
 		assert_eq!(report.product_summary, expected, "{description}");

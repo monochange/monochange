@@ -36,6 +36,7 @@ fn setup_fixture(relative: &str) -> TempDir {
 	);
 	git(root, &["add", "."]);
 	git(root, &["commit", "-m", "initial"]);
+
 	tempdir
 }
 

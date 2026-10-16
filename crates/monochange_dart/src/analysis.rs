@@ -162,6 +162,7 @@ fn snapshot_public_symbols(
 		else {
 			continue;
 		};
+
 		if !is_public_dart_source_file(&change.package_path) {
 			continue;
 		}
@@ -170,6 +171,7 @@ fn snapshot_public_symbols(
 			path: change.package_path.clone(),
 			contents: contents.to_string(),
 		};
+
 		for symbol in collect_public_symbols(&file) {
 			symbols.insert((symbol.item_kind.clone(), symbol.item_path.clone()), symbol);
 		}
@@ -191,6 +193,7 @@ fn collect_public_symbols(file: &PackageSnapshotFile) -> Vec<PublicSymbol> {
 
 	for raw_line in file.contents.lines() {
 		let line = trim_inline_comment(raw_line).trim();
+
 		if line.is_empty() {
 			brace_depth = update_brace_depth(brace_depth, line);
 			continue;
@@ -202,6 +205,7 @@ fn collect_public_symbols(file: &PackageSnapshotFile) -> Vec<PublicSymbol> {
 		}
 
 		let normalized_line = normalize_signature(line);
+
 		if let Some(target) = parse_export_directive(&normalized_line) {
 			push_symbol(
 				&mut symbols,
@@ -280,6 +284,7 @@ fn parse_type_declaration(line: &str) -> Option<(&'static str, String)> {
 
 fn find_keyword_name(line: &str, keyword: &str) -> Option<String> {
 	let mut previous = "";
+
 	for token in line.split_whitespace() {
 		if previous == keyword {
 			let name = token
@@ -287,8 +292,10 @@ fn find_keyword_name(line: &str, keyword: &str) -> Option<String> {
 					!character.is_ascii_alphanumeric() && character != '_'
 				})
 				.to_string();
+
 			return (!name.is_empty()).then_some(name);
 		}
+
 		previous = token;
 	}
 
@@ -299,6 +306,7 @@ fn parse_top_level_function(line: &str) -> Option<String> {
 	if !line.contains('(') || line.starts_with("export ") {
 		return None;
 	}
+
 	if line.starts_with("if ")
 		|| line.starts_with("for ")
 		|| line.starts_with("while ")
@@ -313,6 +321,7 @@ fn parse_top_level_function(line: &str) -> Option<String> {
 
 	let open_paren = line.find('(')?;
 	let before = line[..open_paren].trim_end();
+
 	if before.is_empty() || before.ends_with('=') {
 		return None;
 	}
@@ -357,6 +366,7 @@ fn module_prefix_for_file(path: &Path) -> Vec<String> {
 		.file_stem()
 		.and_then(|stem| stem.to_str())
 		.unwrap_or_default();
+
 	if !stem.is_empty() && stem != "index" {
 		components.push(stem.to_string());
 	}
@@ -403,6 +413,7 @@ fn diff_public_symbols(
 					Some(after_symbol.signature.clone()),
 				));
 			}
+
 			Some(before_symbol) if before_symbol.signature != after_symbol.signature => {
 				changes.push(build_symbol_change(
 					SemanticChangeKind::Modified,
@@ -411,6 +422,7 @@ fn diff_public_symbols(
 					Some(after_symbol.signature.clone()),
 				));
 			}
+
 			Some(_) => {}
 		}
 	}
@@ -535,6 +547,7 @@ fn parse_manifest(
 	warnings: &mut Vec<String>,
 ) -> Option<Mapping> {
 	let contents = contents?;
+
 	match serde_yaml_ng::from_str::<Mapping>(contents) {
 		Ok(value) => Some(value),
 		Err(error) => {
@@ -692,6 +705,7 @@ fn compare_manifest_entries(
 					Some(after_entry.value.clone()),
 				));
 			}
+
 			Some(before_entry) if before_entry != after_entry => {
 				changes.push(build_manifest_change(
 					category,
@@ -703,6 +717,7 @@ fn compare_manifest_entries(
 					Some(after_entry.value.clone()),
 				));
 			}
+
 			Some(_) => {}
 		}
 	}

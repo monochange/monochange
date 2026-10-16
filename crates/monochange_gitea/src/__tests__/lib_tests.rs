@@ -775,6 +775,7 @@ fn git_commit_paths_reports_io_and_non_noop_failures() {
 	.unwrap_or_else(|error| panic!("chmod hook: {error}"));
 	std::fs::write(repo.join("release.txt"), "initial\n")
 		.unwrap_or_else(|error| panic!("write release file: {error}"));
+
 	git(&repo, &["add", "release.txt"]);
 	let error = tokio::runtime::Runtime::new()
 		.unwrap()
@@ -1117,6 +1118,7 @@ fn seed_git_repository() -> (tempfile::TempDir, PathBuf) {
 	git(&repo, &["config", "user.name", "monochange Tests"]);
 	git(&repo, &["config", "user.email", "monochange@example.com"]);
 	git(&repo, &["config", "commit.gpgsign", "false"]);
+
 	std::fs::write(repo.join("release.txt"), "before\n")
 		.unwrap_or_else(|error| panic!("write release file: {error}"));
 	git(&repo, &["add", "release.txt"]);

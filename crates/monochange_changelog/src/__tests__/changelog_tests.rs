@@ -74,6 +74,7 @@ fn classify_release_note_change(
 		return ResolvedReleaseSectionTarget::Section(index);
 	}
 	let bump_selector = change.bump.to_string();
+
 	if let Some(index) = sections
 		.iter()
 		.position(|section| section_matches_resolved_type(section, &bump_selector))
@@ -599,6 +600,7 @@ fn named_output_builders_skip_ineligible_targets_and_report_bad_paths() {
 	let package_definition = sample_package_definition("pkg-a");
 	let group_definition = sample_group_definition(GroupChangelogInclude::All);
 	let mut configuration = empty_configuration(root);
+
 	configuration.packages = vec![package_definition.clone()];
 	configuration.groups = vec![group_definition.clone()];
 
@@ -962,6 +964,7 @@ fn rendered_changeset_context_and_signal_mapping_cover_hosted_metadata() {
 			.contains("> _Closed issues:_ [#123](https://example.com/issues/123)")
 	);
 	assert!(rendered.context.contains("> _Related issues:_ #456"));
+
 	assert_eq!(rendered.change_owner.as_deref(), Some("@octocat"));
 	assert_eq!(rendered.review_request.as_deref(), Some("PR 42"));
 	assert_eq!(rendered.closed_issues.as_deref(), Some("#123"));
@@ -1207,6 +1210,7 @@ fn render_helpers_cover_actor_labels_links_sections_and_templates() {
 			..HostedIssueRef::default()
 		},
 	];
+
 	let issue_refs = issues.iter().collect::<Vec<_>>();
 	assert_eq!(render_issue_labels(&issue_refs), "#1, #2");
 	assert_eq!(
@@ -1282,6 +1286,7 @@ fn render_helpers_cover_actor_labels_links_sections_and_templates() {
 		format_metadata_line(MetadataStyle::Plain, "Owner: @octocat"),
 		"Owner: @octocat"
 	);
+
 	assert_eq!(
 		format_metadata_line(MetadataStyle::Omit, "Owner: @octocat"),
 		""
@@ -1342,6 +1347,7 @@ fn render_helpers_cover_actor_labels_links_sections_and_templates() {
 	assert_eq!(render_release_note_context(&sample_entry, &omit_style), "");
 	assert!(render_release_note_context(&sample_entry, &blockquote_style).contains("> _Owner:_"));
 	assert!(render_release_note_context(&sample_entry, &plain_style).contains("\n_Review:_"));
+
 	let rendered = apply_release_note_entry_template(
 		"#### {{ summary }}\n\n{{ details }}\n\n{{ context }}\n\n{{ change_owner_link }}\n\n{{ review_request_link }}\n\n{{ introduced_commit_link }}\n\n{{ last_updated_commit_link }}\n\n{{ related_issue_links }}\n\n{{ closed_issue_links }}",
 		&sample_entry,
@@ -1448,6 +1454,7 @@ fn render_helpers_cover_actor_labels_links_sections_and_templates() {
 	);
 	assert_eq!(sections[0].title, "Highlights");
 	assert_eq!(sections[1].title, "Notes");
+
 	assert_eq!(sections[2].title, "Changed");
 	assert_eq!(sections[0].entries[0].summary, "Added group support");
 	assert_eq!(sections[2].entries[0].summary, "Breaking API");
@@ -1479,6 +1486,7 @@ fn package_and_group_release_note_helpers_cover_empty_filtered_and_aggregated_pa
 	configuration.defaults.empty_update_message =
 		Some("Default release for {{ package }} {{ version }}".to_string());
 	let mut package_definition = sample_package_definition("pkg-a");
+
 	package_definition.empty_update_message =
 		Some("Package release for {{ package }} in {{ group }} -> {{ version }}".to_string());
 	let mut group_definition =
@@ -1970,6 +1978,7 @@ fn render_sections_collapse_and_ignore_by_priority_thresholds() {
 			description: None,
 		},
 	);
+
 	settings.types.insert(
 		"internal".to_string(),
 		ChangelogType {
@@ -2988,7 +2997,6 @@ fn snapshot_metadata_styles_render_context_blocks() {
 }
 
 // --- filter_direct_package_changes tests ---
-
 #[test]
 fn filter_direct_package_changes_includes_changes_from_package_targeted_changeset() {
 	// A changeset that directly targets "pkg-a" (kind=Package) should be included

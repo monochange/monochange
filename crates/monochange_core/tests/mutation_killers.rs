@@ -16,7 +16,6 @@ use semver::Version;
 // ---------------------------------------------------------------------------
 // BumpSeverity
 // ---------------------------------------------------------------------------
-
 #[test]
 fn bump_severity_is_release_is_true_for_release_severities() {
 	assert!(BumpSeverity::Patch.is_release());
@@ -36,7 +35,6 @@ fn bump_severity_display_roundtrips_through_as_str() {
 // ---------------------------------------------------------------------------
 // Ecosystem
 // ---------------------------------------------------------------------------
-
 #[test]
 fn ecosystem_display_matches_as_str() {
 	assert_eq!(Ecosystem::Cargo.to_string(), "cargo");
@@ -49,7 +47,6 @@ fn ecosystem_display_matches_as_str() {
 // ---------------------------------------------------------------------------
 // DependencyKind
 // ---------------------------------------------------------------------------
-
 #[test]
 fn dependency_kind_display_matches_expected() {
 	assert_eq!(DependencyKind::Runtime.to_string(), "runtime");
@@ -63,7 +60,6 @@ fn dependency_kind_display_matches_expected() {
 // ---------------------------------------------------------------------------
 // PackageType & EcosystemType
 // ---------------------------------------------------------------------------
-
 #[test]
 fn package_type_as_str_returns_canonical_names() {
 	assert_eq!(PackageType::Cargo.as_str(), "cargo");
@@ -112,7 +108,6 @@ fn ecosystem_type_default_fields_are_non_empty_for_npm() {
 // ---------------------------------------------------------------------------
 // PackageRecord::relative_manifest_path
 // ---------------------------------------------------------------------------
-
 #[test]
 fn package_record_relative_manifest_path_is_some_when_under_root() {
 	let tmp = tempfile::tempdir().unwrap();
@@ -151,7 +146,6 @@ fn package_record_relative_manifest_path_is_none_when_outside_root() {
 // ---------------------------------------------------------------------------
 // strip_json_comments
 // ---------------------------------------------------------------------------
-
 #[test]
 fn strip_json_comments_removes_line_comments() {
 	let input = r#"{
@@ -197,7 +191,6 @@ fn strip_json_comments_preserves_escaped_quotes() {
 // ---------------------------------------------------------------------------
 // update_json_manifest_text (covers apply_json_replacements)
 // ---------------------------------------------------------------------------
-
 #[test]
 fn update_json_manifest_text_replaces_version() {
 	let contents = r#"{"version": "1.0.0"}"#;
@@ -228,7 +221,6 @@ fn update_json_manifest_text_returns_error_for_bad_span() {
 // ---------------------------------------------------------------------------
 // DiscoveryPathFilter
 // ---------------------------------------------------------------------------
-
 #[test]
 fn discovery_path_filter_allows_manifest_files() {
 	let tmp = tempfile::tempdir().unwrap();
@@ -279,7 +271,6 @@ fn discovery_path_filter_matches_gitignore_blocks_ignored_files() {
 // ---------------------------------------------------------------------------
 // MonochangeError::render
 // ---------------------------------------------------------------------------
-
 #[test]
 fn monochange_error_render_diagnostic() {
 	let err = MonochangeError::Diagnostic("bad config".to_string());

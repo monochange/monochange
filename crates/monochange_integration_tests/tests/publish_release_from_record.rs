@@ -86,9 +86,11 @@ impl Drop for MockGithubServer {
 fn github_api_response(method: &str, path: &str) -> String {
 	let not_found = not_found_response();
 	let releases_route = format!("/repos/{OWNER}/{REPO}/releases");
+
 	if method == "GET" && path.starts_with(&format!("{releases_route}/tags/")) {
 		return not_found;
 	}
+
 	if method == "POST" && path == releases_route {
 		let body =
 			r#"{"id":1,"html_url":"https://github.com/ifiokjr/monochange/releases/tag/v1.1.0"}"#;
@@ -97,6 +99,7 @@ fn github_api_response(method: &str, path: &str) -> String {
 			body.len()
 		);
 	}
+
 	not_found
 }
 
@@ -136,6 +139,7 @@ fn spawn_mock_github_server() -> MockGithubServer {
 			std::thread::spawn(move || handle_request(stream, captured));
 		}
 	});
+
 	ready_rx
 		.recv()
 		.unwrap_or_else(|error| panic!("wait for mock GitHub server readiness: {error}"));
@@ -156,6 +160,7 @@ fn handle_request(mut stream: std::net::TcpStream, captured: Arc<Mutex<Vec<Captu
 		.set_read_timeout(Some(Duration::from_secs(5)))
 		.expect("set mock connection read timeout");
 	let (head, leftover) = read_until_header_end(&mut stream);
+
 	if head.is_empty() {
 		return;
 	}
@@ -171,6 +176,7 @@ fn handle_request(mut stream: std::net::TcpStream, captured: Arc<Mutex<Vec<Captu
 		body.extend_from_slice(&read_exact_bytes(&mut stream, remaining, &mut pending));
 		body
 	};
+
 	let request_line = head
 		.lines()
 		.next()
@@ -179,10 +185,12 @@ fn handle_request(mut stream: std::net::TcpStream, captured: Arc<Mutex<Vec<Captu
 		.next()
 		.unwrap_or_default()
 		.to_string();
+
 	let (method, path) = match request_line.split_once(' ') {
 		Some((method, path)) => (method.to_string(), path.to_string()),
 		None => (String::new(), String::new()),
 	};
+
 	let response = github_api_response(&method, &path);
 	captured.lock().unwrap().push(CapturedRequest {
 		method,
@@ -198,6 +206,7 @@ fn handle_request(mut stream: std::net::TcpStream, captured: Arc<Mutex<Vec<Captu
 fn read_until_header_end(stream: &mut std::net::TcpStream) -> (String, Vec<u8>) {
 	let mut buffer = Vec::new();
 	let mut chunk = [0_u8; 4096];
+
 	loop {
 		match stream.read(&mut chunk) {
 			Ok(0) | Err(_) => break,
@@ -211,6 +220,7 @@ fn read_until_header_end(stream: &mut std::net::TcpStream) -> (String, Vec<u8>) 
 			}
 		}
 	}
+
 	(String::from_utf8_lossy(&buffer).into_owned(), Vec::new())
 }
 
@@ -224,38 +234,47 @@ fn read_chunked_body(stream: &mut std::net::TcpStream, mut leftover: Vec<u8>) ->
 	let mut body = Vec::new();
 	let mut pending = Vec::new();
 	pending.append(&mut leftover);
+
 	loop {
 		let size_line = read_line(stream, &mut pending);
 		let Ok(size) = usize::from_str_radix(size_line.trim(), 16) else {
 			break;
 		};
+
 		if size == 0 {
 			// Consume the trailing CRLF after the terminal chunk.
 			let _ = read_line(stream, &mut pending);
 			break;
 		}
+
 		body.extend_from_slice(&read_exact_bytes(stream, size, &mut pending));
 		// Consume the CRLF that follows each chunk's data.
 		let _ = read_line(stream, &mut pending);
 	}
+
 	body
 }
 
 fn read_line(stream: &mut std::net::TcpStream, pending: &mut Vec<u8>) -> String {
 	let mut line = Vec::new();
+
 	loop {
 		while pending.is_empty() {
 			let mut byte = [0_u8; 1];
+
 			match stream.read(&mut byte) {
 				Ok(0) | Err(_) => return String::from_utf8_lossy(&line).into_owned(),
 				Ok(_) => pending.push(byte[0]),
 			}
 		}
+
 		line.push(pending.remove(0));
+
 		if line.ends_with(b"\r\n") {
 			break;
 		}
 	}
+
 	String::from_utf8_lossy(&line).into_owned()
 }
 
@@ -279,6 +298,7 @@ fn read_exact_bytes(
 	let mut body = pending.drain(..from_pending).collect::<Vec<_>>();
 	let mut remaining = length - from_pending;
 	let mut chunk = vec![0_u8; remaining.max(1)];
+
 	while remaining > 0 {
 		match stream.read(&mut chunk[..remaining]) {
 			Ok(0) | Err(_) => break,
@@ -288,6 +308,7 @@ fn read_exact_bytes(
 			}
 		}
 	}
+
 	body
 }
 
@@ -301,6 +322,7 @@ fn setup_workspace(scenario: &str) -> TempDir {
 	let tempdir = TempDir::new().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
 	copy_directory(&fixture_path(scenario), root);
+
 	if scenario == "group" {
 		// The fixture's changeset renders as a compact bullet; a second
 		// changeset with multiline details exercises the expanded entry style,
@@ -311,12 +333,14 @@ fn setup_workspace(scenario: &str) -> TempDir {
 		)
 		.unwrap_or_else(|error| panic!("write expanded changeset: {error}"));
 	}
+
 	git(root, &["init", "-b", "main"]);
 	git(root, &["config", "user.name", "monochange-tests"]);
 	git(
 		root,
 		&["config", "user.email", "monochange-tests@example.com"],
 	);
+
 	git(root, &["config", "commit.gpgsign", "false"]);
 	git(root, &["add", "."]);
 	let output = Command::new("git")
@@ -370,6 +394,7 @@ fn commit_release_record(root: &Path) -> PathBuf {
 	);
 
 	let changeset_dir = root.join(".changeset");
+
 	if changeset_dir.is_dir() {
 		for entry in std::fs::read_dir(&changeset_dir)
 			.unwrap_or_else(|error| panic!("read changeset dir: {error}"))
@@ -377,6 +402,7 @@ fn commit_release_record(root: &Path) -> PathBuf {
 			let path = entry
 				.unwrap_or_else(|error| panic!("read changeset entry: {error}"))
 				.path();
+
 			if path.extension().and_then(|extension| extension.to_str()) == Some("md") {
 				std::fs::remove_file(&path)
 					.unwrap_or_else(|error| panic!("remove consumed changeset: {error}"));
@@ -451,6 +477,7 @@ fn mock_github_waits_for_delayed_request_headers() {
 		)
 		.expect("write delayed mock request");
 	let mut response = String::new();
+
 	stream
 		.read_to_string(&mut response)
 		.expect("read mock response");
@@ -630,6 +657,7 @@ fn publish_release_from_legacy_record_synthesizes_format_default_title() {
 	)
 	.unwrap_or_else(|error| panic!("parse release record: {error}"));
 	let mut legacy = record.clone();
+
 	for target in legacy["release_targets"]
 		.as_array_mut()
 		.unwrap_or_else(|| panic!("expected release targets"))
@@ -640,6 +668,7 @@ fn publish_release_from_legacy_record_synthesizes_format_default_title() {
 	assert_ne!(legacy, record, "expected the record to persist titles");
 	std::fs::write(&record_path, serde_json::to_string_pretty(&legacy).unwrap())
 		.unwrap_or_else(|error| panic!("write legacy record: {error}"));
+
 	git(root, &["add", "."]);
 	git(
 		root,

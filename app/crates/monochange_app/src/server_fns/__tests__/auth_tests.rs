@@ -85,11 +85,13 @@ fn context(state: Arc<AppState>, cookie_header: Option<String>) -> (Owner, Respo
 	let owner = Owner::new();
 	let response = ResponseOptions::default();
 	let mut request = Request::new(());
+
 	if let Some(cookie) = cookie_header {
 		request
 			.headers_mut()
 			.insert(COOKIE, cookie.parse().unwrap());
 	}
+
 	let (parts, ()) = request.into_parts();
 	owner.with(|| {
 		provide_context(state);
@@ -163,6 +165,7 @@ async fn login_sets_the_cookie_needed_to_validate_the_returned_state() {
 			.query_pairs()
 			.any(|(name, value)| { name == "code_challenge_method" && value == "S256" })
 	);
+
 	assert!(
 		login_url
 			.query_pairs()
@@ -183,6 +186,7 @@ async fn login_sets_the_cookie_needed_to_validate_the_returned_state() {
 async fn exchange_rejects_missing_or_mismatched_state_before_contacting_github() {
 	let state = state().await;
 	let pending = oauth::login_state(&state.jwt_secret).unwrap();
+
 	for cookie in [None, Some(pending.cookie.to_string())] {
 		let (owner, response) = context(state.clone(), cookie);
 		let result = owner
@@ -218,6 +222,7 @@ async fn valid_state_is_consumed_even_when_the_code_exchange_fails() {
 	let cleared = response_cookie(&response);
 	assert_eq!(cleared.name(), oauth::OAUTH_COOKIE_NAME);
 	assert_eq!(cleared.max_age(), Some(time::Duration::ZERO));
+
 	assert_eq!(cleared.secure(), Some(true));
 }
 
@@ -290,6 +295,7 @@ async fn installation_authorization_exchanges_without_pkce_and_creates_a_session
 	.fetch_one(&state.db)
 	.await
 	.unwrap();
+
 	assert_eq!(stored.0, "installation-access");
 	assert_eq!(stored.1, "installation-refresh");
 	assert!(stored.2 > chrono::Utc::now().timestamp());
@@ -306,6 +312,7 @@ async fn logout_expires_the_host_only_session_cookie() {
 	assert_eq!(cookie.secure(), Some(true));
 	assert_eq!(cookie.http_only(), Some(true));
 	assert_eq!(cookie.path(), Some("/"));
+
 	assert_eq!(cookie.domain(), None);
 }
 
@@ -384,6 +391,7 @@ async fn expired_github_app_token_is_refreshed_once_for_concurrent_requests() {
 	assert_eq!(stored.0, "new-access");
 	assert_eq!(stored.1, "new-refresh");
 	assert!(stored.2 > now);
+
 	assert!(stored.3 > stored.2);
 }
 

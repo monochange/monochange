@@ -38,6 +38,7 @@ fn setup_prepared_release_repo() -> TempDir {
 		root,
 		&["-c", "commit.gpgsign=false", "commit", "-m", "initial"],
 	);
+
 	tempdir
 }
 
@@ -84,6 +85,7 @@ fn setup_cache_invalidation_repo() -> TempDir {
 		root,
 		&["-c", "commit.gpgsign=false", "commit", "-m", "initial"],
 	);
+
 	tempdir
 }
 
@@ -459,6 +461,7 @@ async fn load_prepared_release_execution_rejects_tracked_path_drift() {
 			.unwrap_or_else(|error| panic!("serialize artifact: {error}")),
 	)
 	.unwrap_or_else(|error| panic!("rewrite artifact: {error}"));
+
 	let error =
 		load_prepared_release_execution(root, &configuration, Some(&artifact_path), false, false)
 			.await
@@ -510,6 +513,7 @@ async fn maybe_load_prepared_release_execution_ignores_stale_default_cache() {
 	.await
 	.unwrap_or_else(|error| panic!("save default prepared release artifact: {error}"));
 	assert!(default_path.is_file());
+
 	fs::write(
 		root.join("crates/core/CHANGELOG.md"),
 		"# Changelog\n\nautomatic drift\n",
@@ -1280,6 +1284,7 @@ async fn input_fingerprint_is_stable_across_equivalent_workspace_locations() {
 		.unwrap_or_else(|error| panic!("load first configuration: {error}"));
 	let second_configuration = load_workspace_configuration(second.path())
 		.unwrap_or_else(|error| panic!("load second configuration: {error}"));
+
 	for root in [first.path(), second.path()] {
 		install_changeset_payload(root, "alpha-minor.md", "feature.md");
 	}

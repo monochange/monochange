@@ -23,7 +23,6 @@
  * probed for its size (useful when the main binary was already measured
  * in a prior step).
  */
-
 import { statSync, writeFileSync } from "node:fs";
 
 const KIB = 1024;
@@ -36,14 +35,18 @@ function die(message) {
 
 function parseOptions(args, names) {
 	const options: Record<string, string> = {};
+
 	for (let index = 0; index < args.length; index += 1) {
 		const key = args[index];
+
 		if (!names.includes(key)) die(`unknown argument: ${key}`);
 		const value = args[index + 1];
+
 		if (value === undefined || value.startsWith("--")) die(`expected value for ${key}`);
 		options[key.replace(/^--/, "").replace(/-([a-z])/g, (_, c) => c.toUpperCase())] = value;
 		index += 1;
 	}
+
 	return options;
 }
 
@@ -57,6 +60,7 @@ function fileSize(path) {
 
 function formatBytes(bytes) {
 	if (bytes >= MIB) return `${(bytes / MIB).toFixed(2)} MiB`;
+
 	if (bytes >= KIB) return `${(bytes / KIB).toFixed(2)} KiB`;
 	return `${bytes} B`;
 }
@@ -64,21 +68,26 @@ function formatBytes(bytes) {
 function formatDelta(current, previous) {
 	const delta = current - previous;
 	const sign = delta > 0 ? "+" : "";
+
 	return `${sign}${formatBytes(Math.abs(delta))} (${sign}${((delta / previous) * 100).toFixed(1)}%)`;
 }
 
 function emojiForDelta(current, previous) {
 	const delta = current - previous;
+
 	if (delta < -KIB) return "📉";
+
 	if (delta > KIB) return "📈";
 	return "➡️";
 }
 
 function compareMode(args) {
 	const o = parseOptions(args, ["--main-bin", "--main-size-bytes", "--pr-bin", "--output"]);
+
 	if (!o.prBin || !o.output) {
 		die("compare requires --pr-bin and --output");
 	}
+
 	if (!o.mainBin && !o.mainSizeBytes) {
 		die("compare requires either --main-bin or --main-size-bytes");
 	}

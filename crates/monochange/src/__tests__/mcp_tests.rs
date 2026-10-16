@@ -40,6 +40,7 @@ macro_rules! assert_readable_json_snapshot {
 	($value:expr) => {{
 		let (redacted, multiline_fields) = redact_multiline_strings(&$value);
 		insta::assert_json_snapshot!(redacted);
+
 		for (path, contents) in multiline_fields {
 			insta::assert_snapshot!(format!("multiline_{}", snapshot_path_slug(&path)), contents);
 		}
@@ -78,6 +79,7 @@ fn redact_multiline_strings_at(
 			multiline_fields.push((path.to_owned(), contents.clone()));
 			*contents = "[multiline text]".to_owned();
 		}
+
 		serde_json::Value::Array(items) => {
 			for (index, item) in items.iter_mut().enumerate() {
 				redact_multiline_strings_at(item, &format!("{path}[{index}]"), multiline_fields);
@@ -141,6 +143,7 @@ fn setup_analysis_workspace() -> tempfile::TempDir {
 		&fixture_path("analysis/cargo-public-api-diff/after"),
 		tempdir.path(),
 	);
+
 	tempdir
 }
 
@@ -162,6 +165,7 @@ fn setup_classification_workspace() -> tempfile::TempDir {
 		&fixture_path("api-classification/mixed-api/after"),
 		tempdir.path(),
 	);
+
 	git(tempdir.path(), &["add", "."]);
 	git(tempdir.path(), &["commit", "-m", "api changes"]);
 	tempdir

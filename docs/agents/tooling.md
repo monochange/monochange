@@ -58,8 +58,18 @@ Use `--model`/`MONOCHANGE_EVAL_MODEL`, `--agent-bin`/`MONOCHANGE_EVAL_AGENT_BIN`
 - `snapshot:review`
 - `snapshot:update`
 
+### Readability and complexity
+
+- `lint:monostyle`: score the repository with monostyle and fail below 75 overall.
+- `fix:monostyle`: apply monostyle's autofixable whitespace fixes.
+- `monostyle check <path> --units`: list the worst-scoring functions in a path as a worklist.
+- `monostyle rules`: list every rule and its threshold.
+
+Scores come from `monostyle.toml` at the repository root; only set fields override monostyle's defaults, and generated or vendored trees are ignored through `[rules.ignore]`. `lint:monostyle` runs as part of `lint:all`, and `fix:monostyle` runs as part of `fix:all`. The fixes are whitespace-only and deliberately do not conflict with rustfmt, dprint, or oxfmt.
+
 ### Autofix
 
 - `fix:all`
 - `fix:clippy`
 - `fix:format`
+- `fix:monostyle`

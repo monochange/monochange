@@ -118,6 +118,7 @@ async fn new_projects_start_with_their_portal_and_strictest_visibility() {
 	let mut unknown = scope(false);
 	unknown.disconnected = 1;
 	assert_eq!(unknown.visibility(), RepositoryVisibility::Private);
+
 	let private = load(&state, &scope(true)).await.unwrap();
 	assert_eq!(
 		private.service.policy().visibility,
@@ -205,6 +206,7 @@ async fn lost_races_rerun_against_the_newer_document() {
 		if attempts.fetch_add(1, Ordering::SeqCst) == 0 {
 			cut_in(&state);
 		}
+
 		service.receive(submission("Totals are off"))
 	})
 	.await
@@ -366,6 +368,7 @@ async fn issue_creation_explains_why_it_cannot_run() {
 	let forbidden = create_issue(&state, &scope, "fb-1", "acme/api")
 		.await
 		.unwrap_err();
+
 	assert!(matches!(forbidden, FeedbackError::GitHub(_)));
 	// Nothing was linked, so the maintainer can retry.
 	assert!(

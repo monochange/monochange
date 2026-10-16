@@ -157,6 +157,7 @@ fn render_lint_catalog_lists_rules_and_presets() {
 	assert!(text.contains("dart/sdk-constraint-present"));
 	assert!(text.contains("dart/internal-path-dependency-policy"));
 	assert!(text.contains("dart/flutter-package-metadata-consistent"));
+
 	assert!(text.contains("dart/baseline"));
 	assert!(text.contains("dart/recommended"));
 	assert!(text.contains("dart/strict"));
@@ -345,6 +346,7 @@ fn run_check_command_reports_all_validation_errors_before_failing() {
 	let warning_text = run_check_command(warning_root, false, &[], &[], OutputFormat::Text, false)
 		.unwrap_or_else(|error| panic!("expected warning-only check to pass: {error}"));
 	assert!(warning_text.starts_with("▲ Checks passed with warnings"));
+
 	assert!(warning_text.contains("matches no files"));
 
 	let text_error = run_check_command(root, false, &[], &[], OutputFormat::Text, false)
@@ -569,6 +571,7 @@ fn scaffold_lint_rule_reports_write_failures() {
 	let mut permissions = fs::metadata(&fixture_dir).unwrap().permissions();
 	permissions.set_readonly(true);
 	fs::set_permissions(&fixture_dir, permissions).unwrap();
+
 	let error = scaffold_lint_rule(tempdir.path(), "cargo/no-path-dependencies")
 		.expect_err("expected fixture note write to fail");
 	assert!(!error.to_string().is_empty());

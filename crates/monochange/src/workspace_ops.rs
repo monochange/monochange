@@ -83,9 +83,11 @@ impl InitWorkspaceResult {
 	/// Returns a human-readable summary of what was written
 	pub fn summary(&self) -> String {
 		let mut lines = vec![format!("wrote {}", self.config_path.display())];
+
 		for path in &self.workflow_paths {
 			lines.push(format!("wrote {}", path.display()));
 		}
+
 		lines.join("\n")
 	}
 }
@@ -135,15 +137,18 @@ fn prerelease_state_path(root: &Path) -> PathBuf {
 
 fn load_prerelease_state(root: &Path) -> MonochangeResult<Option<PrereleaseState>> {
 	let path = prerelease_state_path(root);
+
 	if !path.exists() {
 		return Ok(None);
 	}
+
 	let contents = fs::read_to_string(&path).map_err(|error| {
 		MonochangeError::Io(format!("failed to read {}: {error}", path.display()))
 	})?;
 	let state = serde_json::from_str::<PrereleaseState>(&contents).map_err(|error| {
 		MonochangeError::Config(format!("failed to parse {}: {error}", path.display()))
 	})?;
+
 	if state.schema_version != PRERELEASE_STATE_SCHEMA_VERSION {
 		return Err(MonochangeError::Config(format!(
 			"{} uses unsupported schema_version {}",
@@ -151,6 +156,7 @@ fn load_prerelease_state(root: &Path) -> MonochangeResult<Option<PrereleaseState
 			state.schema_version
 		)));
 	}
+
 	Ok(Some(state))
 }
 
@@ -191,6 +197,7 @@ fn discovery_with_prerelease_baselines(
 	configuration: &PrereleaseConfiguration,
 ) -> DiscoveryReport {
 	let mut adjusted = discovery.clone();
+
 	for package in &mut adjusted.packages {
 		let baseline = match configuration.base {
 			PrereleaseBase::Fixed => configuration.base_version.clone(),
@@ -198,10 +205,12 @@ fn discovery_with_prerelease_baselines(
 				original_package_version(state, package)
 			}
 		};
+
 		if let Some(version) = baseline {
 			package.current_version = Some(version);
 		}
 	}
+
 	adjusted
 }
 
@@ -211,6 +220,7 @@ fn prerelease_identifier(
 	latest: Option<&Version>,
 ) -> String {
 	let channel = config.channel.to_ascii_lowercase();
+
 	match config.numbering {
 		PrereleaseNumbering::Increment => {
 			let next = latest
@@ -218,12 +228,14 @@ fn prerelease_identifier(
 					if stable_version(version) != *stable_base {
 						return None;
 					}
+
 					let (previous_channel, counter) = version.pre.as_str().rsplit_once('.')?;
 					// A channel switch starts a fresh sequence, so `alpha.4` must not
 					// become `beta.5` when the configured channel changes.
 					if !previous_channel.eq_ignore_ascii_case(&channel) {
 						return None;
 					}
+
 					counter.parse::<u64>().ok()
 				})
 				.map_or(0, |value| value + 1);
@@ -264,6 +276,7 @@ fn prerelease_release_note_signals(
 	if !config.release_notes {
 		return Vec::new();
 	}
+
 	let Some(state) = previous.filter(|state| {
 		// A channel switch starts a new series, so the first release of the new
 		// channel reports every pending change again.
@@ -294,10 +307,12 @@ fn apply_prerelease_versions_to_plan(
 		.map(|package| (package.id.as_str(), package))
 		.collect::<BTreeMap<_, _>>();
 	let mut planned_group_versions = BTreeMap::new();
+
 	for group in &mut plan.groups {
 		let Some(planned) = group.planned_version.clone() else {
 			continue;
 		};
+
 		let base = match config.base {
 			PrereleaseBase::Planned => planned,
 			PrereleaseBase::CurrentStable => {
@@ -306,6 +321,7 @@ fn apply_prerelease_versions_to_plan(
 			}
 			PrereleaseBase::Fixed => config.base_version.clone().unwrap_or(planned),
 		};
+
 		let latest = state
 			.and_then(|state| state.groups.get(&group.group_id))
 			.map(|entry| &entry.latest_prerelease);
@@ -313,10 +329,12 @@ fn apply_prerelease_versions_to_plan(
 		planned_group_versions.insert(group.group_id.clone(), prerelease.clone());
 		group.planned_version = Some(prerelease);
 	}
+
 	for decision in &mut plan.decisions {
 		let Some(planned) = decision.planned_version.clone() else {
 			continue;
 		};
+
 		if let Some(group_id) = decision.group_id.as_ref()
 			&& let Some(group_version) = planned_group_versions.get(group_id)
 		{
@@ -324,6 +342,7 @@ fn apply_prerelease_versions_to_plan(
 			continue;
 		}
 		let package = package_by_id.get(decision.package_id.as_str()).copied();
+
 		let base = match config.base {
 			PrereleaseBase::Planned => planned,
 			PrereleaseBase::CurrentStable => {
@@ -333,11 +352,13 @@ fn apply_prerelease_versions_to_plan(
 			}
 			PrereleaseBase::Fixed => config.base_version.clone().unwrap_or(planned),
 		};
+
 		let latest = state
 			.and_then(|state| state.packages.get(&decision.package_id))
 			.map(|entry| &entry.latest_prerelease);
 		decision.planned_version = Some(append_prerelease(&base, config, latest)?);
 	}
+
 	Ok(())
 }
 
@@ -440,6 +461,7 @@ fn build_prerelease_state_update(
 		.iter()
 		.map(|package| (package.id.as_str(), package))
 		.collect::<BTreeMap<_, _>>();
+
 	for decision in &plan.decisions {
 		let Some(latest) = decision.planned_version.clone() else {
 			continue;
@@ -457,6 +479,7 @@ fn build_prerelease_state_update(
 			},
 		);
 	}
+
 	for group in &plan.groups {
 		let Some(latest) = group.planned_version.clone() else {
 			continue;
@@ -475,6 +498,7 @@ fn build_prerelease_state_update(
 			},
 		);
 	}
+
 	// patch-coverage:ignore-start -- PrereleaseState contains only serializable primitives validated before construction.
 	let content = serde_json::to_vec_pretty(&state).map_err(|error| {
 		MonochangeError::Config(format!("failed to serialize prerelease state: {error}"))
@@ -556,9 +580,11 @@ pub(crate) fn detect_remote_owner_repo(root: &Path) -> Option<RemoteInfo> {
 		.args(["remote", "get-url", "origin"])
 		.output()
 		.ok()?;
+
 	if !output.status.success() {
 		return None;
 	}
+
 	let url = String::from_utf8(output.stdout).ok()?.trim().to_string();
 	parse_remote_url(&url)
 }
@@ -663,9 +689,11 @@ pub(crate) fn populate_workspace(root: &Path) -> MonochangeResult<PopulateWorksp
 	}
 
 	let mut updated = contents.trim_end().to_string();
+
 	if !updated.is_empty() {
 		updated.push_str("\n\n");
 	}
+
 	updated.push_str(&render_cli_commands_toml(&missing));
 	updated.push('\n');
 
@@ -700,27 +728,33 @@ fn existing_cli_command_names(contents: &str, path: &Path) -> MonochangeResult<B
 
 pub(crate) fn render_cli_commands_toml(commands: &[CliCommandDefinition]) -> String {
 	let mut rendered = String::new();
+
 	for (index, command) in commands.iter().enumerate() {
 		if index > 0 {
 			rendered.push_str("\n\n");
 		}
+
 		render_cli_command_toml(&mut rendered, command);
 	}
+
 	rendered
 }
 
 fn render_cli_command_toml(rendered: &mut String, command: &CliCommandDefinition) {
 	writeln!(rendered, "[cli.{}]", command.name)
 		.unwrap_or_else(|error| panic!("writing to String cannot fail: {error}"));
+
 	if let Some(help_text) = &command.help_text {
 		write_toml_key_value(rendered, "help_text", &render_toml_string(help_text));
 	}
+
 	for input in &command.inputs {
 		rendered.push('\n');
 		writeln!(rendered, "[[cli.{}.inputs]]", command.name)
 			.unwrap_or_else(|error| panic!("writing to String cannot fail: {error}"));
 		render_cli_input_toml(rendered, input);
 	}
+
 	for step in &command.steps {
 		rendered.push('\n');
 		writeln!(rendered, "[[cli.{}.steps]]", command.name)
@@ -750,12 +784,15 @@ fn render_cli_input_toml(rendered: &mut String, input: &monochange_core::CliInpu
 	input.help_text.iter().for_each(|help_text| {
 		write_toml_key_value(rendered, "help_text", &render_toml_string(help_text));
 	});
+
 	if input.required {
 		write_toml_key_value(rendered, "required", "true");
 	}
+
 	if let Some(default) = &input.default {
 		write_toml_key_value(rendered, "default", &render_toml_string(default));
 	}
+
 	if !input.choices.is_empty() {
 		write_toml_key_value(
 			rendered,
@@ -763,6 +800,7 @@ fn render_cli_input_toml(rendered: &mut String, input: &monochange_core::CliInpu
 			&render_toml_array(input.choices.iter()),
 		);
 	}
+
 	if let Some(short) = input.short {
 		write_toml_key_value(rendered, "short", &render_toml_string(&short.to_string()));
 	}
@@ -772,10 +810,12 @@ fn render_cli_step_toml(rendered: &mut String, step: &CliStepDefinition) {
 	let step_type = step.kind_name();
 	writeln!(rendered, "type = {}", render_toml_string(step_type))
 		.unwrap_or_else(|error| panic!("writing to String cannot fail: {error}"));
+
 	if let Some(when) = step.when() {
 		writeln!(rendered, "when = {}", render_toml_string(when))
 			.unwrap_or_else(|error| panic!("writing to String cannot fail: {error}"));
 	}
+
 	match step {
 		CliStepDefinition::Command {
 			command,
@@ -788,6 +828,7 @@ fn render_cli_step_toml(rendered: &mut String, step: &CliStepDefinition) {
 		} => {
 			writeln!(rendered, "command = {}", render_toml_string(command))
 				.unwrap_or_else(|error| panic!("writing to String cannot fail: {error}"));
+
 			if let Some(dry_run_command) = dry_run_command {
 				writeln!(
 					rendered,
@@ -796,6 +837,7 @@ fn render_cli_step_toml(rendered: &mut String, step: &CliStepDefinition) {
 				)
 				.unwrap_or_else(|error| panic!("writing to String cannot fail: {error}"));
 			}
+
 			match shell {
 				monochange_core::ShellConfig::None => {}
 				monochange_core::ShellConfig::Default => {
@@ -807,9 +849,11 @@ fn render_cli_step_toml(rendered: &mut String, step: &CliStepDefinition) {
 						.unwrap_or_else(|error| panic!("writing to String cannot fail: {error}"));
 				}
 			}
+
 			if let Some(id) = id {
 				write_toml_key_value(rendered, "id", &render_toml_string(id));
 			}
+
 			if let Some(variables) = variables {
 				writeln!(
 					rendered,
@@ -818,6 +862,7 @@ fn render_cli_step_toml(rendered: &mut String, step: &CliStepDefinition) {
 				)
 				.unwrap_or_else(|error| panic!("writing to String cannot fail: {error}"));
 			}
+
 			render_step_inputs_toml(rendered, inputs);
 		}
 		_ => {
@@ -850,18 +895,21 @@ fn render_step_inputs_inline_table(
 ) -> String {
 	let mut rendered = String::from("{ ");
 	let mut first = true;
+
 	for (name, value) in inputs {
 		if first {
 			first = false;
 		} else {
 			rendered.push_str(", ");
 		}
+
 		let _ = write!(
 			rendered,
 			"{name} = {}",
 			render_step_input_value(name, value)
 		);
 	}
+
 	rendered.push_str(" }");
 	rendered
 }
@@ -882,12 +930,14 @@ fn render_command_variables_inline_table(
 ) -> String {
 	let mut rendered = String::from("{ ");
 	let mut first = true;
+
 	for (name, value) in variables {
 		if first {
 			first = false;
 		} else {
 			rendered.push_str(", ");
 		}
+
 		let value = match value {
 			monochange_core::CommandVariable::Version => "version",
 			monochange_core::CommandVariable::GroupVersion => "group_version",
@@ -895,8 +945,10 @@ fn render_command_variables_inline_table(
 			monochange_core::CommandVariable::ChangedFiles => "changed_files",
 			monochange_core::CommandVariable::Changesets => "changesets",
 		};
+
 		let _ = write!(rendered, "{name} = {}", render_toml_string(value));
 	}
+
 	rendered.push_str(" }");
 	rendered
 }
@@ -918,12 +970,14 @@ where
 	S: AsRef<str>,
 {
 	let mut first = true;
+
 	for value in values {
 		if first {
 			first = false;
 		} else {
 			rendered.push_str(", ");
 		}
+
 		rendered.push_str(&render_toml_string(value.as_ref()));
 	}
 }
@@ -942,6 +996,7 @@ fn render_toml_key(value: &str) -> String {
 		&& value.chars().all(|character| {
 			character.is_ascii_alphanumeric() || character == '_' || character == '-'
 		});
+
 	if is_bare_key {
 		value.to_string()
 	} else {
@@ -1006,6 +1061,7 @@ fn render_annotated_init_config(
 
 		let pkg_type = package_type_for_ecosystem(package.ecosystem);
 		let changelog = detect_default_changelog(root, &manifest_dir);
+
 		let type_str = match pkg_type {
 			PackageType::Cargo => "cargo",
 			PackageType::Npm => "npm",
@@ -1064,6 +1120,7 @@ fn render_annotated_init_config(
 	for line in rendered.lines() {
 		if line.trim().is_empty() {
 			consecutive_blanks += 1;
+
 			if consecutive_blanks <= 2 {
 				collapsed.push('\n');
 			}
@@ -1268,7 +1325,6 @@ pub(crate) fn build_lockfile_command_executions(
 	Ok((dedup_lockfile_command_executions(executions), warnings))
 }
 // patch-coverage:ignore-end
-
 #[cfg(feature = "cargo")]
 fn incomplete_cargo_lockfile_warnings(
 	root: &Path,
@@ -1279,21 +1335,25 @@ fn incomplete_cargo_lockfile_warnings(
 	if !configuration.cargo.lockfile_commands.is_empty() {
 		return Vec::new();
 	}
+
 	let released_packages = packages
 		.iter()
 		.filter(|package| {
 			package.ecosystem == Ecosystem::Cargo && released_versions.contains_key(&package.id)
 		})
 		.collect::<Vec<_>>();
+
 	if released_packages.is_empty() {
 		return Vec::new();
 	}
+
 	let cargo_packages = packages
 		.iter()
 		.filter(|package| package.ecosystem == Ecosystem::Cargo)
 		.collect::<Vec<_>>();
 	let mut warned_lockfiles = BTreeSet::new();
 	let mut warnings = Vec::new();
+
 	for package in released_packages {
 		for lockfile in monochange_cargo::discover_lockfiles(package) {
 			let shared_packages = cargo_packages
@@ -1303,10 +1363,13 @@ fn incomplete_cargo_lockfile_warnings(
 					monochange_cargo::discover_lockfiles(candidate).contains(&lockfile)
 				})
 				.collect::<Vec<_>>();
+
 			if !monochange_cargo::lockfile_requires_command_refresh(&lockfile, &shared_packages) {
 				continue;
 			}
+
 			let relative_lockfile = root_relative(root, &lockfile);
+
 			if warned_lockfiles.insert(relative_lockfile.clone()) {
 				warnings.push(format!(
 					"`{}` still looks incomplete after monochange rewrote it directly; run `cargo generate-lockfile`, `cargo check`, or configure `[ecosystems.cargo].lockfile_commands` if you want cargo to refresh it automatically",
@@ -1315,6 +1378,7 @@ fn incomplete_cargo_lockfile_warnings(
 			}
 		}
 	}
+
 	warnings
 }
 
@@ -1326,6 +1390,7 @@ fn resolve_lockfile_command_executions(
 	if !has_released_packages || configured_commands.is_empty() {
 		return Ok(Vec::new());
 	}
+
 	configured_commands
 		.iter()
 		.map(|command| {
@@ -1460,6 +1525,7 @@ pub(crate) fn discover_release_workspace(
 			if package_definition.package_type == PackageType::GitHubActions {
 				return load_configured_github_actions_package(root, &path, package_definition);
 			}
+
 			registry
 				.load_configured(root, &path, package_definition.package_type.into())?
 				.ok_or_else(|| {
@@ -1507,6 +1573,7 @@ fn load_configured_github_actions_package(
 			package_definition.path.display()
 		)));
 	}
+
 	let manifest_path = ["action.yml", "action.yaml"]
 		.iter()
 		.map(|name| package_path.join(name))
@@ -1527,7 +1594,6 @@ fn load_configured_github_actions_package(
 	Ok(record)
 }
 // patch-coverage:ignore-end
-
 /// Seed release baselines for packages whose versions live in git tags.
 ///
 /// Tag-versioned ecosystems (currently Go) and `version_source = "tag"`
@@ -1545,9 +1611,11 @@ async fn seed_versions_from_release_tags(
 	let needs_seeding = discovery.packages.iter().any(|package| {
 		package.current_version.is_none() && package_reads_version_from_tags(package, configuration)
 	});
+
 	if !needs_seeding {
 		return;
 	}
+
 	let sorted_tags = load_sorted_tags(root).await;
 	seed_versions_from_tag_list(configuration, discovery, &sorted_tags);
 }
@@ -1572,9 +1640,11 @@ fn sorted_tags_from_git_output(output: std::io::Result<std::process::Output>) ->
 	let Ok(output) = output else {
 		return Vec::new();
 	};
+
 	if !output.status.success() {
 		return Vec::new();
 	}
+
 	parse_sorted_tag_lines(&output.stdout)
 }
 
@@ -1617,6 +1687,7 @@ pub(crate) fn seed_versions_from_tag_list(
 		let Some(identity) = configuration.effective_release_identity(&config_id) else {
 			continue;
 		};
+
 		if !identity.tag {
 			continue;
 		}
@@ -1625,6 +1696,7 @@ pub(crate) fn seed_versions_from_tag_list(
 		} else {
 			package_definition.package_type.as_str()
 		};
+
 		let Some((_, version)) = latest_release_tag_in(
 			sorted_tags,
 			&identity.owner_id,
@@ -1635,6 +1707,7 @@ pub(crate) fn seed_versions_from_tag_list(
 				package.current_version = Some(initial_version.clone());
 				continue;
 			}
+
 			let pattern = resolved_release_tag_template(
 				&identity.owner_id,
 				ecosystem,
@@ -1740,8 +1813,8 @@ pub fn add_change_file(
 		});
 		created?;
 	}
-	// patch-coverage:ignore-end
 
+	// patch-coverage:ignore-end
 	fs::write(&planned.path, planned.content).map_err(|error| {
 		MonochangeError::Io(format!(
 			"failed to write {}: {error}",
@@ -1793,8 +1866,8 @@ pub(crate) fn add_interactive_change_file(
 		});
 		created?;
 	}
-	// patch-coverage:ignore-end
 
+	// patch-coverage:ignore-end
 	fs::write(&planned.path, planned.content).map_err(|error| {
 		MonochangeError::Io(format!(
 			"failed to write {}: {error}",
@@ -1822,6 +1895,7 @@ fn is_plain_changeset_target_key(target_id: &str) -> bool {
 
 fn push_double_quoted_yaml_string(rendered: &mut String, value: &str) {
 	rendered.push('"');
+
 	for character in value.chars() {
 		match character {
 			'\\' => rendered.push_str("\\\\"),
@@ -1829,6 +1903,7 @@ fn push_double_quoted_yaml_string(rendered: &mut String, value: &str) {
 			_ => rendered.push(character),
 		}
 	}
+
 	rendered.push('"');
 }
 
@@ -1845,6 +1920,7 @@ fn push_caused_by_list(rendered: &mut String, caused_by: &[String]) {
 		if index > 0 {
 			rendered.push_str(", ");
 		}
+
 		push_double_quoted_yaml_string(rendered, reference);
 	}
 }
@@ -1895,32 +1971,42 @@ pub(crate) fn push_change_target_markdown(
 			rendered.push_str(": ");
 			rendered.push_str(change_type);
 			rendered.push('\n');
+
 			return Ok(());
 		}
 
 		push_target_object_start(rendered, target_id);
+
 		if bump != BumpSeverity::None {
 			let _ = writeln!(rendered, "  bump: {bump}");
 		}
+
 		let _ = writeln!(rendered, "  type: {change_type}");
+
 		if let Some(version) = version {
 			let _ = writeln!(rendered, "  version: \"{version}\"");
 		}
+
 		if forced_object_syntax {
 			push_caused_by_line(rendered, caused_by);
 		}
+
 		return Ok(());
 	}
 
 	if let Some(version) = version {
 		push_target_object_start(rendered, target_id);
+
 		if bump != BumpSeverity::None {
 			let _ = writeln!(rendered, "  bump: {bump}");
 		}
+
 		let _ = writeln!(rendered, "  version: \"{version}\"");
+
 		if forced_object_syntax {
 			push_caused_by_line(rendered, caused_by);
 		}
+
 		return Ok(());
 	}
 
@@ -1928,6 +2014,7 @@ pub(crate) fn push_change_target_markdown(
 		push_target_object_start(rendered, target_id);
 		let _ = writeln!(rendered, "  bump: {bump}");
 		push_caused_by_line(rendered, caused_by);
+
 		return Ok(());
 	}
 
@@ -1996,8 +2083,10 @@ fn materialize_lockfile_command_updates(
 		.map(|cmd| cmd.cwd.clone())
 		.collect();
 	let mut before_snapshots = BTreeMap::new();
+
 	for dir in &lockfile_dirs {
 		let full_dir = root.join(dir);
+
 		if full_dir.is_dir() {
 			snapshot_directory_files(root, &full_dir, &mut before_snapshots)?;
 		}
@@ -2013,8 +2102,10 @@ fn materialize_lockfile_command_updates(
 
 	// Snapshot the same directories after commands ran.
 	let mut after_snapshots = BTreeMap::new();
+
 	for dir in &lockfile_dirs {
 		let full_dir = root.join(dir);
+
 		if full_dir.is_dir() {
 			snapshot_directory_files(root, &full_dir, &mut after_snapshots)?;
 		}
@@ -2022,8 +2113,10 @@ fn materialize_lockfile_command_updates(
 
 	// Collect all updates: base updates + any lockfile changes.
 	let mut all_updates = base_updates.to_vec();
+
 	for (relative_path, after_content) in &after_snapshots {
 		let before = before_snapshots.get(relative_path);
+
 		if before != Some(after_content) {
 			all_updates.push(FileUpdate {
 				path: root.join(relative_path),
@@ -2031,6 +2124,7 @@ fn materialize_lockfile_command_updates(
 			});
 		}
 	}
+
 	all_updates.sort_by(|a, b| a.path.cmp(&b.path));
 	all_updates.dedup_by(|a, b| a.path == b.path);
 	Ok(all_updates)
@@ -2103,6 +2197,7 @@ fn run_lockfile_command_in_place(
 
 	let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
 	let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+
 	let details = match (stdout.is_empty(), stderr.is_empty()) {
 		(true, true) => output.status.to_string(),
 		(false, true) => format!("{}\nstdout:\n{stdout}", output.status),
@@ -2195,6 +2290,7 @@ pub(crate) async fn prepare_release_execution_with_configuration(
 				allow_empty_changesets || prerelease_allows_empty_changesets,
 			)
 		})?;
+
 	tracing::debug!(count = changeset_paths.len(), "discovered changesets");
 
 	if changeset_paths.is_empty() && allow_empty_changesets && !prerelease_allows_empty_changesets {
@@ -2295,6 +2391,7 @@ pub(crate) async fn prepare_release_execution_with_configuration(
 		)
 		.await;
 	}
+
 	// patch-coverage:ignore-end
 	let mut plan = measure_prepare_phase(&mut phase_timings, "build release plan", || {
 		if configuration.prerelease.enabled && change_signals.is_empty() {
@@ -2303,6 +2400,7 @@ pub(crate) async fn prepare_release_execution_with_configuration(
 			build_release_plan_from_signals(configuration, &planning_discovery, &change_signals)
 		}
 	})?;
+
 	if configuration.prerelease.enabled {
 		measure_prepare_phase(&mut phase_timings, "apply prerelease versions", || {
 			apply_prerelease_versions_to_plan(
@@ -2313,11 +2411,13 @@ pub(crate) async fn prepare_release_execution_with_configuration(
 			)
 		})?;
 	}
+
 	let released_packages = released_package_names(&discovery.packages, &plan);
 	tracing::debug!(
 		count = released_packages.len(),
 		"identified released packages"
 	);
+
 	if released_packages.is_empty() {
 		return Err(MonochangeError::Config(
 			"no releaseable packages were found in discovered changesets".to_string(),
@@ -2416,6 +2516,7 @@ pub(crate) async fn prepare_release_execution_with_configuration(
 	let (lockfile_commands, warnings) = lockfile_commands_result.0?;
 	let mut package_publications =
 		build_package_publication_targets(configuration, &discovery.packages, &plan);
+
 	if configuration.prerelease.enabled && !configuration.prerelease.publish_packages {
 		package_publications.clear();
 	}
@@ -2426,6 +2527,7 @@ pub(crate) async fn prepare_release_execution_with_configuration(
 			.take()
 			.unwrap_or_else(|| panic!("changesets should be available after local planning"))
 	};
+
 	let changelog_release_targets = release_targets
 		.iter()
 		.map(|target| {
@@ -2456,6 +2558,7 @@ pub(crate) async fn prepare_release_execution_with_configuration(
 	} else {
 		change_signals.clone()
 	};
+
 	let changelog_updates =
 		if configuration.prerelease.enabled && !configuration.prerelease.release_notes {
 			Vec::new()
@@ -2505,6 +2608,7 @@ pub(crate) async fn prepare_release_execution_with_configuration(
 	} else {
 		None
 	};
+
 	let prerelease_state_updates = prerelease_prepared_state
 		.as_ref()
 		.map(|prepared| vec![prepared.state_update.clone()])
@@ -2535,6 +2639,7 @@ pub(crate) async fn prepare_release_execution_with_configuration(
 			&lockfile_commands,
 		)?
 	};
+
 	let mut changed_files = file_updates
 		.iter()
 		.map(|update| root_relative(root, &update.path))
@@ -2543,12 +2648,14 @@ pub(crate) async fn prepare_release_execution_with_configuration(
 	// values and the release diff shows `build: 3 -> 4`.
 	if !dry_run {
 		let stamped = apply_counter_write_backs(root, &versioning.write_backs()).await?;
+
 		for path in stamped {
 			if !changed_files.contains(&path) {
 				changed_files.push(path);
 			}
 		}
 	}
+
 	changed_files.sort();
 	changed_files.dedup();
 	let changelogs = changelog_updates
@@ -2587,6 +2694,7 @@ pub(crate) async fn prepare_release_execution_with_configuration(
 	let version = shared_release_version(&plan);
 	let group_version = shared_group_version(&plan);
 	let mut deleted_changesets = Vec::new();
+
 	if !dry_run {
 		measure_prepare_phase(&mut phase_timings, "apply release changes", || {
 			// When lockfile commands ran, materialize_lockfile_command_updates
@@ -2609,8 +2717,10 @@ pub(crate) async fn prepare_release_execution_with_configuration(
 						MonochangeError::Io(format!("failed to delete {}: {error}", path.display()))
 					})?;
 				}
+
 				// patch-coverage:ignore-end
 			}
+
 			Ok(())
 		})?;
 	}
@@ -2734,6 +2844,7 @@ async fn resolve_release_values_for_prepare(
 	// Declared values are configured per package *config* id, so the released
 	// versions must be keyed the same way.
 	let released = released_versions_by_config_id(plan, packages);
+
 	if released.is_empty() {
 		return Ok(ResolvedReleaseValues::default());
 	}
@@ -2831,13 +2942,17 @@ fn existing_release_values(
 			})
 		}))
 		.collect::<Vec<_>>();
+
 	if targets.is_empty() {
 		return Ok(None);
 	}
+
 	let paths = release_record_paths(root, &targets);
+
 	if !paths.absolute.exists() {
 		return Ok(None);
 	}
+
 	let contents = fs::read_to_string(&paths.absolute).map_err(|error| {
 		MonochangeError::IoSource {
 			path: paths.absolute.clone(),
@@ -2850,15 +2965,18 @@ fn existing_release_values(
 			paths.relative.display()
 		))
 	})?;
+
 	if record.values.is_empty() && record.labels.is_empty() {
 		return Ok(None);
 	}
+
 	Ok(Some(values_from_record(&record)))
 }
 
 /// Rebuild resolved values from a record's frozen value map.
 fn values_from_record(record: &ReleaseRecord) -> ResolvedReleaseValues {
 	let mut packages: BTreeMap<String, PackageValues> = BTreeMap::new();
+
 	for (key, value) in &record.values {
 		if let Some((package_id, value_id)) = key.split_once('.') {
 			packages
@@ -2868,9 +2986,11 @@ fn values_from_record(record: &ReleaseRecord) -> ResolvedReleaseValues {
 				.insert(value_id.to_string(), value.clone());
 		}
 	}
+
 	for (package_id, label) in &record.labels {
 		packages.entry(package_id.clone()).or_default().label = Some(label.clone());
 	}
+
 	ResolvedReleaseValues {
 		packages,
 		label_inputs: record.label_inputs.clone(),
@@ -2895,6 +3015,7 @@ async fn previous_release_versioning(
 	} else {
 		Some(record.label_inputs)
 	};
+
 	let version = record
 		.release_targets
 		.first()
@@ -3046,6 +3167,7 @@ async fn apply_source_changeset_context(
 	changesets: &mut [PreparedChangeset],
 ) {
 	let adapter = hosted_sources::configured_hosted_source_adapter(source);
+
 	if dry_run {
 		adapter.annotate_changeset_context(source, changesets);
 	} else {

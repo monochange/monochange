@@ -43,6 +43,7 @@ pub fn provide_color_mode() -> ColorModeState {
 			if previous.is_none() {
 				set_mode.set(initial_mode());
 			}
+
 			apply_mode(mode.get());
 		});
 	}
@@ -87,6 +88,7 @@ fn initial_mode() -> ColorMode {
 					};
 				}
 			}
+
 			// Fall back to OS preference
 			if let Ok(Some(media)) = window.match_media("(prefers-color-scheme: dark)") {
 				if media.matches() {

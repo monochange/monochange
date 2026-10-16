@@ -44,9 +44,11 @@ fn replace_host_target_placeholder(root: &Path) {
 	let Ok(config) = std::fs::read_to_string(&config_path) else {
 		return;
 	};
+
 	if !config.contains("__HOST_TARGET__") {
 		return;
 	}
+
 	let output = Command::new("rustc")
 		.arg("-vV")
 		.output()
@@ -54,6 +56,7 @@ fn replace_host_target_placeholder(root: &Path) {
 	assert!(output.status.success(), "rustc -vV should succeed");
 	let version = String::from_utf8(output.stdout)
 		.unwrap_or_else(|error| panic!("rustc version should be UTF-8: {error}"));
+
 	let host = version
 		.lines()
 		.find_map(|line| line.strip_prefix("host: "))
@@ -166,6 +169,7 @@ fn setup_pull_request_scope_fixture() -> TempDir {
 	git(tempdir.path(), &["commit", "-m", "release"]);
 	git(tempdir.path(), &["branch", "-M", "main"]);
 	git(tempdir.path(), &["tag", "core/v1.0.0"]);
+
 	git(tempdir.path(), &["tag", "lints/v1.0.0"]);
 
 	copy_directory(&fixture_root.join("default-branch"), tempdir.path());
@@ -386,6 +390,7 @@ fn change_classify_detects_a_package_deleted_from_the_candidate() {
 		removed_public_api && removed_package
 	}));
 	let retired_js = package(&report, "retired_js");
+
 	assert_eq!(retired_js["release_owner"]["id"], "retired_js");
 	assert_eq!(
 		retired_js["release_owner"]["latest_release"],
@@ -586,6 +591,7 @@ fn change_classify_scopes_the_bump_to_the_pull_request_and_keeps_the_release_flo
 	assert_eq!(core["decision"]["release_floor"], "major");
 	assert_eq!(core["decision"]["release_impact"], "breaking");
 	assert_eq!(core["decision"]["compatibility_impact"], "compatible");
+
 	assert_eq!(core["decision"]["completeness"], "complete");
 	assert_eq!(core["decision"]["review_required"], false);
 	assert_eq!(core["decision"]["finding_ids"], serde_json::json!([]));
@@ -621,7 +627,9 @@ fn change_classify_scopes_the_bump_to_the_pull_request_and_keeps_the_release_flo
 	let findings = lints["findings"]
 		.as_array()
 		.unwrap_or_else(|| panic!("lints findings should be an array: {lints:#}"));
+
 	assert_eq!(findings.len(), 2);
+
 	for finding in findings {
 		assert_eq!(finding["change"], "modified");
 		assert_eq!(finding["impact"], "additive");
@@ -1014,14 +1022,17 @@ fn change_classify_treats_public_slice_appends_as_additive() {
 		.as_array()
 		.unwrap_or_else(|| panic!("lints findings should be an array: {package:#}"));
 	assert_eq!(findings.len(), 2);
+
 	for finding in findings {
 		assert_eq!(finding["change"], "modified");
 		assert_eq!(finding["impact"], "additive");
 		assert_eq!(finding["bump"], "minor");
 		assert_eq!(finding["confidence"], "high");
 		assert_eq!(finding["coverage"]["completeness"], "complete");
+
 		assert_eq!(finding["analyzer"]["engine"], "monochange");
 	}
+
 	// `LIMIT` is unchanged, so it contributes no finding.
 	assert!(
 		!findings.iter().any(|finding| {
@@ -1232,6 +1243,7 @@ fn setup_stacked_pull_request_fixture() -> TempDir {
 	git(tempdir.path(), &["commit", "-m", "release"]);
 	git(tempdir.path(), &["branch", "-M", "main"]);
 	git(tempdir.path(), &["tag", "core/v1.0.0"]);
+
 	git(tempdir.path(), &["tag", "lints/v1.0.0"]);
 
 	git(tempdir.path(), &["checkout", "-b", "parent"]);

@@ -26,12 +26,14 @@ fn generate_dart_inherited_glob_fixture(root: &Path, package_count: usize) {
 		config,
 		"[ecosystems.dart]\nversioned_files = [{{ path = \"packages/**/pubspec.yaml\", type = \"dart\" }}]\n"
 	);
+
 	for i in 0..package_count {
 		let _ = writeln!(
 			config,
 			"[package.pkg-{i}]\npath = \"packages/pkg-{i}\"\ntype = \"dart\"\n"
 		);
 	}
+
 	fs::write(root.join("monochange.toml"), config).unwrap();
 
 	for i in 0..package_count {
@@ -86,6 +88,7 @@ fn bench_validate_versioned_files_with_glob_dedup(c: &mut Criterion) {
 			},
 		);
 	}
+
 	group.finish();
 }
 
@@ -119,6 +122,7 @@ fn bench_validate_workspace_with_config(c: &mut Criterion) {
 			},
 		);
 	}
+
 	group.finish();
 }
 

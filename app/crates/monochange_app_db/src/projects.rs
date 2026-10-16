@@ -223,6 +223,7 @@ async fn replace_repositories(
 		.bind(project_id)
 		.execute(&mut *executor)
 		.await?;
+
 	for repository in repositories {
 		sqlx::query(
 			"INSERT INTO project_repositories (project_id, provider, repository_external_id, full_name, created_at)
@@ -236,6 +237,7 @@ async fn replace_repositories(
 		.execute(&mut *executor)
 		.await?;
 	}
+
 	Ok(())
 }
 

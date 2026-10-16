@@ -160,6 +160,7 @@ pub(crate) async fn resolve_release_values(
 				.await?;
 		resolved.packages.insert(package.id.clone(), package_values);
 	}
+
 	Ok(resolved)
 }
 
@@ -190,14 +191,18 @@ async fn resolve_package_values(
 
 	for (value_id, definition) in &package.values {
 		let value = resolve_value(context, package, value_id, definition, version).await?;
+
 		if let Some(write_back) = value.write_back {
 			write_backs.push(write_back);
 		}
+
 		if !value.monotonic {
 			monotonic = false;
 		}
+
 		resolved.values.insert(value_id.clone(), value.value);
 	}
+
 	resolved.write_backs = write_backs;
 	resolved.monotonic = monotonic;
 
@@ -216,6 +221,7 @@ async fn resolve_package_values(
 		);
 		resolved.label = Some(render_version_template(&scheme.template, &variables));
 	}
+
 	Ok(resolved)
 }
 
@@ -229,6 +235,7 @@ async fn resolve_value(
 	if let Some(file) = definition.file.as_deref() {
 		return resolve_file_counter(context, package, value_id, definition, file, version).await;
 	}
+
 	if let Some(hash_path) = definition.hash.as_deref() {
 		let full_path = context.root.join(hash_path);
 		let bytes = tokio::fs::read(&full_path).await.map_err(|error| {
@@ -245,6 +252,7 @@ async fn resolve_value(
 			write_back: None,
 		});
 	}
+
 	if let Some(variable) = definition.env.as_deref() {
 		let value = std::env::var(variable).map_err(|_| {
 			MonochangeError::Config(format!(
@@ -258,6 +266,7 @@ async fn resolve_value(
 			write_back: None,
 		});
 	}
+
 	if let Some(git) = definition.git {
 		let commit = context.commit.ok_or_else(|| {
 			MonochangeError::Config(format!(
@@ -265,6 +274,7 @@ async fn resolve_value(
 				package.id
 			))
 		})?;
+
 		let value = match git {
 			monochange_core::versioning::GitSource::ShortHash => {
 				commit.get(0..7).unwrap_or(commit).to_string()
@@ -288,6 +298,7 @@ async fn resolve_value(
 			write_back: None,
 		});
 	}
+
 	if let Some(timestamp) = definition.timestamp {
 		let stamp = match timestamp {
 			monochange_core::versioning::TimestampSource::Now => context.timestamp,
@@ -309,6 +320,7 @@ async fn resolve_value(
 			write_back: None,
 		});
 	}
+
 	Err(MonochangeError::Config(format!(
 		"package `{}` value `{value_id}` declares no source",
 		package.id
@@ -351,6 +363,7 @@ async fn resolve_file_counter(
 	let current = counter_from_json(&document, file, field)?;
 
 	let behaviour = definition.stamp_behaviour();
+
 	if !behaviour.is_stamped() {
 		return Ok(ResolvedValue {
 			value: current.to_string(),
@@ -396,6 +409,7 @@ pub(crate) async fn apply_counter_write_backs(
 	write_backs: &[CounterWriteBack],
 ) -> MonochangeResult<Vec<PathBuf>> {
 	let mut written = Vec::new();
+
 	for write_back in write_backs {
 		let full_path = root.join(&write_back.file);
 		let text = tokio::fs::read_to_string(&full_path)
@@ -422,10 +436,12 @@ pub(crate) async fn apply_counter_write_backs(
 					source: error,
 				}
 			})?;
+
 		if !written.contains(&write_back.file) {
 			written.push(write_back.file.clone());
 		}
 	}
+
 	Ok(written)
 }
 
@@ -438,17 +454,20 @@ fn rewrite_counter_field(text: &str, field: &str, value: u64) -> Result<String, 
 	let Some((leaf, parents)) = segments.split_last() else {
 		return Err("field path has no segments".to_string());
 	};
+
 	if !parents.is_empty() {
 		// Nested fields are rewritten by parsing and re-serialising only the
 		// matched value, which keeps the common flat case formatting-stable.
 		let mut document: serde_json::Value =
 			serde_json::from_str(text).map_err(|error| error.to_string())?;
 		let mut cursor = &mut document;
+
 		for segment in parents {
 			cursor = cursor
 				.get_mut(*segment)
 				.ok_or_else(|| format!("missing object segment `{segment}`"))?;
 		}
+
 		let object = cursor
 			.as_object_mut()
 			.ok_or_else(|| format!("field parent for `{field}` is not an object"))?;
@@ -470,15 +489,18 @@ fn rewrite_counter_field(text: &str, field: &str, value: u64) -> Result<String, 
 	};
 	let value_start = after_key + colon_offset + 1;
 	let remainder = &text[value_start..];
+
 	let leading = remainder.len() - remainder.trim_start().len();
 	let digits_start = value_start + leading;
 	let digits_len = text[digits_start..]
 		.chars()
 		.take_while(char::is_ascii_digit)
 		.count();
+
 	if digits_len == 0 {
 		return Err(format!("field `{leaf}` does not hold a number"));
 	}
+
 	let mut updated = String::with_capacity(text.len());
 	updated.push_str(&text[..digits_start]);
 	updated.push_str(&value.to_string());

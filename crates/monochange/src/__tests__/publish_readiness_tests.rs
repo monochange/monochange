@@ -84,6 +84,7 @@ fn validate_readiness_artifact_status(report: &PublishReadinessReport) -> Monoch
 	if report.status == PublishReadinessGlobalStatus::Ready {
 		return Ok(());
 	}
+
 	Err(MonochangeError::Config(
 		"publish readiness artifact is blocked; rerun `monochange step publish-readiness` and resolve blockers before `monochange step publish-packages`".to_string(),
 	))
@@ -93,6 +94,7 @@ fn validate_readiness_current_status(report: &PublishReadinessReport) -> Monocha
 	if report.status == PublishReadinessGlobalStatus::Ready {
 		return Ok(());
 	}
+
 	Err(MonochangeError::Config(
 		"current publish readiness is blocked; rerun `monochange step publish-readiness` and resolve blockers before `monochange step publish-packages`".to_string(),
 	))
@@ -104,15 +106,18 @@ fn validate_readiness_packages(
 ) -> MonochangeResult<()> {
 	let artifact_packages = package_identities(&artifact.packages)?;
 	let current_packages = package_identities(&current.packages)?;
+
 	if artifact.package_set_fingerprint != package_set_fingerprint(&artifact.packages) {
 		return Err(MonochangeError::Config(
 			"publish readiness artifact package fingerprint does not match its package list"
 				.to_string(),
 		));
 	}
+
 	if artifact_packages == current_packages {
 		return Ok(());
 	}
+
 	let missing = current_packages
 		.difference(&artifact_packages)
 		.map(render_package_identity)
@@ -331,6 +336,7 @@ async fn build_report_maps_publish_dry_run_statuses_to_readiness_statuses() {
 		readiness.packages[0].status,
 		PublishReadinessPackageStatus::Ready
 	);
+
 	assert_eq!(
 		readiness.packages[1].status,
 		PublishReadinessPackageStatus::AlreadyPublished
@@ -372,6 +378,7 @@ fn publish_readiness_input_fingerprint_tracks_publish_inputs() {
 	);
 	write_test_file(root.join("crates/core/Cargo.lock"), b"version = 4\n");
 	write_test_file(root.join("packages/web/package.json"), br#"{"name":"web"}"#);
+
 	write_test_file(
 		root.join("packages/web/pnpm-lock.yaml"),
 		b"lockfileVersion: '9.0'\n",
@@ -492,6 +499,7 @@ fn render_report_supports_json_text_and_markdown() {
 	assert!(markdown.contains("Trusted publishing"));
 	assert!(markdown.contains("Publish order: `core`"));
 	assert!(markdown.contains("Order finding (note)"));
+
 	let json = render_report(&report, OutputFormat::Json)
 		.unwrap_or_else(|error| panic!("json report: {error}"));
 	assert!(json.contains("\"status\": \"ready\""));
@@ -942,6 +950,7 @@ async fn build_publish_readiness_for_publish_falls_back_to_head_without_prepared
 		.args(["add", "."])
 		.output()
 		.unwrap_or_else(|error| panic!("git add: {error}"));
+
 	std::process::Command::new("git")
 		.current_dir(root)
 		.args(["commit", "-m", "initial"])
@@ -988,12 +997,14 @@ fn trust_request_for(
 		fail_on_duplicate: false,
 		placeholder_readme: "placeholder".to_string(),
 	};
+
 	if registry != "crates_io" {
 		request.package_id = "web".to_string();
 		request.package_name = "web".to_string();
 		request.ecosystem = Ecosystem::Npm;
 		request.registry = monochange_core::RegistryKind::Npm;
 	}
+
 	request
 }
 
@@ -1341,6 +1352,7 @@ async fn build_publish_readiness_report_handles_empty_release_publications() {
 	)
 	.unwrap();
 	let releases = root.join(".monochange/releases/abc123");
+
 	fs::create_dir_all(&releases).unwrap();
 	fs::write(
 		releases.join("release.json"),
@@ -1386,6 +1398,7 @@ fn blocked_readiness_reports_lead_with_the_blocked_count() {
 	published.status = PublishReadinessPackageStatus::AlreadyPublished;
 	let mut unsupported = sample_readiness_package();
 	unsupported.package = "docs".to_string();
+
 	unsupported.status = PublishReadinessPackageStatus::Unsupported;
 	let mut report = sample_readiness_report(vec![blocked, published, unsupported]);
 	report.status = PublishReadinessGlobalStatus::Blocked;

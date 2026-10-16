@@ -37,6 +37,7 @@ pub struct ProjectInput {
 /// `"invoices-billing"`.
 pub fn project_slug(name: &str) -> String {
 	let mut slug = String::with_capacity(name.len());
+
 	for character in name.chars() {
 		if character.is_ascii_alphanumeric() {
 			slug.push(character.to_ascii_lowercase());
@@ -44,6 +45,7 @@ pub fn project_slug(name: &str) -> String {
 			slug.push('-');
 		}
 	}
+
 	slug.trim_end_matches('-').to_owned()
 }
 
@@ -54,20 +56,27 @@ pub fn validate_project(
 	repositories: Vec<String>,
 ) -> Result<ProjectInput, ProjectInputError> {
 	let name = name.trim();
+
 	if name.is_empty() {
 		return Err(ProjectInputError::MissingName);
 	}
+
 	if name.chars().count() > MAX_NAME_CHARS {
 		return Err(ProjectInputError::NameTooLong);
 	}
+
 	let slug = project_slug(name);
+
 	if slug.is_empty() {
 		return Err(ProjectInputError::NameWithoutSlug);
 	}
+
 	let description = description.trim();
+
 	if description.chars().count() > MAX_DESCRIPTION_CHARS {
 		return Err(ProjectInputError::DescriptionTooLong);
 	}
+
 	let mut repositories: Vec<String> = repositories
 		.into_iter()
 		.map(|repository| repository.trim().to_owned())
@@ -75,9 +84,11 @@ pub fn validate_project(
 		.collect();
 	repositories.sort_by_key(|repository| repository.to_ascii_lowercase());
 	repositories.dedup_by(|left, right| left.eq_ignore_ascii_case(right));
+
 	if repositories.is_empty() {
 		return Err(ProjectInputError::NoRepositories);
 	}
+
 	Ok(ProjectInput {
 		name: name.to_owned(),
 		slug,

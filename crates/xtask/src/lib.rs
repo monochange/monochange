@@ -56,6 +56,7 @@ pub fn post_process_release(
 	else {
 		return;
 	};
+
 	if let Some(schema_version_obj) = props
 		.get_mut("schema_version")
 		.and_then(|schema_version| schema_version.as_object_mut())
@@ -65,6 +66,7 @@ pub fn post_process_release(
 			serde_json::Value::String(schema_version.to_string()),
 		);
 	}
+
 	if let Some(kind_obj) = props.get_mut("kind").and_then(|kind| kind.as_object_mut()) {
 		kind_obj.remove("default");
 		kind_obj.insert(
@@ -172,6 +174,7 @@ pub fn post_process_command_snapshot(schema: &mut serde_json::Value, id: &str, t
 	else {
 		return;
 	};
+
 	if let Some(schema_version_obj) = props
 		.get_mut("schema_version")
 		.and_then(|schema_version| schema_version.as_object_mut())
@@ -181,6 +184,7 @@ pub fn post_process_command_snapshot(schema: &mut serde_json::Value, id: &str, t
 			serde_json::Value::String(monochange_snapshot::SNAPSHOT_SCHEMA_VERSION.to_string()),
 		);
 	}
+
 	if let Some(kind_obj) = props.get_mut("kind").and_then(|kind| kind.as_object_mut()) {
 		kind_obj.remove("default");
 		kind_obj.insert(
@@ -197,10 +201,12 @@ pub fn run(update_mode: bool) -> Result<(), String> {
 	let workspace_dir = workspace_dir()?;
 	let docs_schemas_dir = workspace_dir.join("docs/src/schemas");
 	let mut inputs = Vec::new();
+
 	for paths in schema_crates(&workspace_dir) {
 		let version = current_schema_version(&paths.schema_version_path)?;
 		inputs.push(SchemaCrateInput { paths, version });
 	}
+
 	run_with_paths(update_mode, SchemaMode::Current, &docs_schemas_dir, &inputs)
 }
 
@@ -209,11 +215,13 @@ pub fn run_release(update_mode: bool, include_versioned: bool) -> Result<(), Str
 	let workspace_dir = workspace_dir()?;
 	let docs_schemas_dir = workspace_dir.join("docs/src/schemas");
 	let mut inputs = Vec::new();
+
 	for paths in schema_crates(&workspace_dir) {
 		let version =
 			expected_schema_version_for(&workspace_dir, &paths, &paths.changeset_package)?;
 		inputs.push(SchemaCrateInput { paths, version });
 	}
+
 	run_with_paths(
 		update_mode,
 		SchemaMode::Release { include_versioned },
@@ -301,6 +309,7 @@ pub fn run_with_paths(
 ) -> Result<(), String> {
 	let mut generated_files = Vec::new();
 	let mut version_checks = Vec::new();
+
 	for input in crates {
 		generated_files.extend(schema_files(
 			&input.paths.schemas_dir,
@@ -321,17 +330,22 @@ pub fn run_with_paths(
 				fs::create_dir_all(parent)
 					.map_err(|error| format!("Could not create {}: {error}", parent.display()))?;
 			}
+
 			fs::write(schema_version_path, contents).map_err(|error| {
 				format!("Could not write {}: {error}", schema_version_path.display())
 			})?;
 		}
+
 		for generated_file in &generated_files {
 			write_generated_file(generated_file)?;
 		}
+
 		for input in crates {
 			remove_stale_artifact_files(&input.paths.schemas_dir)?;
 		}
+
 		println!("Schemas updated successfully.");
+
 		return Ok(());
 	}
 
@@ -349,9 +363,11 @@ pub fn run_with_paths(
 		.iter()
 		.map(|file| (file.path.as_path(), file.contents.as_str()))
 		.collect::<Vec<_>>();
+
 	if let Err(error) = check_schemas(&schema_checks) {
 		errors.push(error);
 	}
+
 	for input in crates {
 		if let Err(error) = check_stale_artifact_files_absent(&input.paths.schemas_dir) {
 			errors.push(error);
@@ -412,6 +428,7 @@ fn classification_schema_files(
 		SchemaMode::Current => false,
 		SchemaMode::Release { include_versioned } => include_versioned,
 	};
+
 	if include_versioned {
 		let mut versioned_value = schema.clone().to_value();
 		post_process_config(
@@ -498,6 +515,7 @@ fn monochange_schema_files(
 		SchemaMode::Current => false,
 		SchemaMode::Release { include_versioned } => include_versioned,
 	};
+
 	if include_versioned {
 		let mut release_versioned_value = release_value.clone();
 		let mut config_versioned_value = config_value.clone();
@@ -529,6 +547,7 @@ fn monochange_schema_files(
 			"monochange command snapshot",
 		);
 		files.extend(artifact_files(&artifacts_dir, version, version));
+
 		files.extend([
 			GeneratedFile {
 				path: docs_schemas_dir.join(format!("release-record.v{version}.schema.json")),
@@ -558,6 +577,7 @@ fn artifact_files(
 	let config_variants = current_config_variants();
 	let artifacts_version_dir = artifacts_dir.join(version_dir);
 	let mut files = Vec::with_capacity(CURRENT_ARTIFACT_FIXTURE_COUNT * 2);
+
 	for (index, variant) in release_variants.iter().enumerate() {
 		let name = format!("{:02}.json", index + 1);
 		files.push(GeneratedFile {
@@ -565,6 +585,7 @@ fn artifact_files(
 			contents: release_record_artifact_fixture(schema_version, index + 1, variant),
 		});
 	}
+
 	for (index, variant) in config_variants.iter().enumerate() {
 		let name = format!("{:02}.json", index + 1);
 		files.push(GeneratedFile {
@@ -572,6 +593,7 @@ fn artifact_files(
 			contents: config_artifact_fixture(index + 1, variant),
 		});
 	}
+
 	files
 }
 
@@ -787,6 +809,7 @@ fn release_record_artifact_fixture(
 
 	// release targets
 	let mut release_targets = Vec::new();
+
 	for i in 0..variant.release_target_count {
 		let mut target = Map::new();
 		let (id, kind): (String, &str) = if i == 0 {
@@ -794,15 +817,18 @@ fn release_record_artifact_fixture(
 		} else {
 			(format!("{}_{}", variant.owner, i), "package")
 		};
+
 		target.insert("id".to_string(), json!(id));
 		target.insert("kind".to_string(), json!(kind));
 		let ver = format!("{version}.{fixture_index}");
+
 		target.insert("version".to_string(), json!(ver));
 		let vfmt = if i == 0 {
 			"primary"
 		} else {
 			&variant.version_format
 		};
+
 		target.insert("version_format".to_string(), json!(vfmt));
 		target.insert("tag".to_string(), json!(true));
 		target.insert("release".to_string(), json!(true));
@@ -811,10 +837,12 @@ fn release_record_artifact_fixture(
 		} else {
 			format!("{id}/v{version}.{fixture_index}")
 		};
+
 		target.insert("tag_name".to_string(), json!(tag_name));
 		target.insert("members".to_string(), json!(Vec::<String>::new()));
 		release_targets.push(Value::Object(target));
 	}
+
 	root.insert("release_targets".to_string(), json!(release_targets));
 
 	// released packages
@@ -835,6 +863,7 @@ fn release_record_artifact_fixture(
 		provider.insert("kind".to_string(), json!(&variant.provider_kind));
 		provider.insert("owner".to_string(), json!(&variant.owner));
 		provider.insert("repo".to_string(), json!(&variant.repo));
+
 		if variant.with_host {
 			provider.insert(
 				"host".to_string(),
@@ -843,6 +872,7 @@ fn release_record_artifact_fixture(
 		} else {
 			provider.insert("host".to_string(), Value::Null);
 		}
+
 		root.insert("provider".to_string(), Value::Object(provider));
 	}
 
@@ -858,12 +888,14 @@ fn release_record_artifact_fixture(
 		"main".to_string(),
 		json!(format!("{version}.{fixture_index}")),
 	);
+
 	for i in 0..variant.released_package_count.min(3) {
 		versions.insert(
 			format!("{}_{}", variant.owner, i),
 			json!(format!("{version}.{fixture_index}")),
 		);
 	}
+
 	root.insert("versions".to_string(), Value::Object(versions));
 
 	// changesets — targets is an array of PreparedChangesetTarget objects
@@ -892,18 +924,22 @@ fn release_record_artifact_fixture(
 		"origin".to_string(),
 		json!(format!(".changeset/schema-artifact-{fixture_index}.md")),
 	);
+
 	if let Some(ref bump) = variant.bump {
 		cs_target.insert("bump".to_string(), json!(bump));
 	}
+
 	if let Some(ref change_type) = variant.change_type {
 		cs_target.insert("change_type".to_string(), json!(change_type));
 	}
+
 	if variant.with_caused_by {
 		cs_target.insert(
 			"caused_by".to_string(),
 			json!([format!("{}-schema-compat", variant.owner)]),
 		);
 	}
+
 	cs_target.insert(
 		"evidence_refs".to_string(),
 		json!([format!("crates/{}_0/src/lib.rs", variant.owner)]),
@@ -920,6 +956,7 @@ fn release_record_artifact_fixture(
 		);
 		changeset.insert("context".to_string(), Value::Object(context));
 	}
+
 	root.insert("changesets".to_string(), json!([Value::Object(changeset)]));
 
 	// changelogs — ReleaseManifestChangelog objects
@@ -935,6 +972,7 @@ fn release_record_artifact_fixture(
 		);
 		changelog.insert("format".to_string(), json!("monochange"));
 		let mut notes = Map::new();
+
 		notes.insert(
 			"title".to_string(),
 			json!(format!("v{version}.{fixture_index}")),
@@ -1005,18 +1043,21 @@ fn config_artifact_fixture(_fixture_index: usize, variant: &ConfigVariant) -> St
 	source.insert("provider".to_string(), json!(&variant.provider_kind));
 	source.insert("owner".to_string(), json!(&variant.owner));
 	source.insert("repo".to_string(), json!(&variant.repo));
+
 	if variant.with_host {
 		source.insert(
 			"host".to_string(),
 			json!(format!("{}.example.com", variant.provider_kind)),
 		);
 	}
+
 	if variant.with_api_url {
 		source.insert(
 			"api_url".to_string(),
 			json!(format!("api.{}.example.com", variant.provider_kind)),
 		);
 	}
+
 	let mut pull_requests = Map::new();
 	pull_requests.insert("auto_merge".to_string(), json!(variant.auto_merge));
 	pull_requests.insert("base".to_string(), json!("main"));
@@ -1056,12 +1097,14 @@ fn config_artifact_fixture(_fixture_index: usize, variant: &ConfigVariant) -> St
 		"strict_version_conflicts".to_string(),
 		json!(variant.strict_version_conflicts),
 	);
+
 	if variant.with_changelog_version_title {
 		defaults.insert(
 			"changelog_version_title".to_string(),
 			json!(format!("v{{{{version}}}} — {} release", variant.owner)),
 		);
 	}
+
 	if variant.with_empty_update_message {
 		defaults.insert(
 			"empty_update_message".to_string(),
@@ -1071,12 +1114,14 @@ fn config_artifact_fixture(_fixture_index: usize, variant: &ConfigVariant) -> St
 			)),
 		);
 	}
+
 	if variant.with_release_title {
 		defaults.insert(
 			"release_title".to_string(),
 			json!(format!("{} release", variant.owner)),
 		);
 	}
+
 	root.insert("defaults".to_string(), Value::Object(defaults));
 
 	// === changelog ===
@@ -1100,6 +1145,7 @@ fn config_artifact_fixture(_fixture_index: usize, variant: &ConfigVariant) -> St
 		types.insert("fix".to_string(), Value::Object(fix_type));
 		let mut feat_type = Map::new();
 		feat_type.insert("bump".to_string(), json!("minor"));
+
 		feat_type.insert("description".to_string(), json!("New features"));
 		feat_type.insert("section".to_string(), json!("features"));
 		types.insert("feature".to_string(), Value::Object(feat_type));
@@ -1113,6 +1159,7 @@ fn config_artifact_fixture(_fixture_index: usize, variant: &ConfigVariant) -> St
 		sections.insert("bug-fixes".to_string(), Value::Object(bug_section));
 		let mut feat_section = Map::new();
 		feat_section.insert("heading".to_string(), json!("✨ Features"));
+
 		feat_section.insert("description".to_string(), json!("New capabilities"));
 		feat_section.insert("priority".to_string(), json!(20));
 		sections.insert("features".to_string(), Value::Object(feat_section));
@@ -1133,6 +1180,7 @@ fn config_artifact_fixture(_fixture_index: usize, variant: &ConfigVariant) -> St
 			json!([format!("crates/{}/", variant.owner)]),
 		);
 		affected.insert("ignored_paths".to_string(), json!(["**/*.md"]));
+
 		affected.insert("skip_labels".to_string(), json!(["skip-changeset"]));
 		changesets.insert("affected".to_string(), Value::Object(affected));
 		root.insert("changesets".to_string(), Value::Object(changesets));
@@ -1150,6 +1198,7 @@ fn config_artifact_fixture(_fixture_index: usize, variant: &ConfigVariant) -> St
 		let mut pub_settings = Map::new();
 		pub_settings.insert("enabled".to_string(), json!(true));
 		eco_settings.insert("publish".to_string(), Value::Object(pub_settings));
+
 		ecosystems.insert(
 			variant.enabled_ecosystem.clone(),
 			Value::Object(eco_settings),
@@ -1172,6 +1221,7 @@ fn config_artifact_fixture(_fixture_index: usize, variant: &ConfigVariant) -> St
 		group_entry.insert("version_format".to_string(), json!("namespaced"));
 		let mut group = Map::new();
 		group.insert("main".to_string(), Value::Object(group_entry));
+
 		root.insert("group".to_string(), Value::Object(group));
 	}
 
@@ -1191,6 +1241,7 @@ fn config_artifact_fixture(_fixture_index: usize, variant: &ConfigVariant) -> St
 
 	// === package ===
 	let mut packages = Map::new();
+
 	for i in 0..variant.package_count {
 		let pkg_name = format!("{}_{}", variant.owner, i);
 		let mut pkg = Map::new();
@@ -1198,9 +1249,11 @@ fn config_artifact_fixture(_fixture_index: usize, variant: &ConfigVariant) -> St
 		pkg.insert("type".to_string(), json!(&variant.default_ecosystem));
 		pkg.insert("version_format".to_string(), json!("namespaced"));
 		pkg.insert("release".to_string(), json!(i == 0)); // first package is released
+
 		pkg.insert("tag".to_string(), json!(i == 0)); // first package is tagged
 		packages.insert(pkg_name, Value::Object(pkg));
 	}
+
 	root.insert("package".to_string(), Value::Object(packages));
 
 	serde_json::to_string_pretty(&Value::Object(root))
@@ -1212,6 +1265,7 @@ fn write_generated_file(generated_file: &GeneratedFile) -> Result<(), String> {
 		fs::create_dir_all(parent)
 			.map_err(|error| format!("Could not create {}: {error}", parent.display()))?;
 	}
+
 	fs::write(&generated_file.path, &generated_file.contents)
 		.map_err(|error| format!("Could not write {}: {error}", generated_file.path.display()))
 }
@@ -1224,6 +1278,7 @@ fn remove_stale_artifact_files(schemas_dir: &Path) -> Result<(), String> {
 			return Err(format!("Could not remove {}: {error}", path.display()));
 		}
 	}
+
 	Ok(())
 }
 
@@ -1233,6 +1288,7 @@ fn check_stale_artifact_files_absent(schemas_dir: &Path) -> Result<(), String> {
 		.filter(|path| path.exists())
 		.map(|path| path.display().to_string())
 		.collect::<Vec<_>>();
+
 	if stale_files.is_empty() {
 		Ok(())
 	} else {
@@ -1252,26 +1308,32 @@ fn stale_artifact_files(schemas_dir: &Path) -> Result<Vec<PathBuf>, String> {
 		current_artifacts_dir.join("release-record.json"),
 		current_artifacts_dir.join("monochange.json"),
 	];
+
 	if !artifacts_dir.exists() {
 		return Ok(paths);
 	}
+
 	for entry in fs::read_dir(&artifacts_dir)
 		.map_err(|error| format!("Could not read {}: {error}", artifacts_dir.display()))?
 	{
 		let path = entry
 			.map_err(|error| format!("Could not read {}: {error}", artifacts_dir.display()))?
 			.path();
+
 		let Some(name) = path.file_name().and_then(|name| name.to_str()) else {
 			continue;
 		};
+
 		if (name.starts_with("release-record.v") || name.starts_with("monochange.v"))
 			&& name.ends_with(".json")
 		{
 			paths.push(path);
 		}
 	}
+
 	for kind in ["release-record", "monochange"] {
 		let kind_dir = current_artifacts_dir.join(kind);
+
 		if kind_dir.exists() {
 			for entry in fs::read_dir(&kind_dir)
 				.map_err(|error| format!("Could not read {}: {error}", kind_dir.display()))?
@@ -1282,6 +1344,7 @@ fn stale_artifact_files(schemas_dir: &Path) -> Result<Vec<PathBuf>, String> {
 				let Some(name) = path.file_name().and_then(|name| name.to_str()) else {
 					continue;
 				};
+
 				if let Some(stem) = name.strip_suffix(".json")
 					&& stem.len() < 2
 					&& stem.parse::<usize>().is_ok()
@@ -1291,6 +1354,7 @@ fn stale_artifact_files(schemas_dir: &Path) -> Result<Vec<PathBuf>, String> {
 			}
 		}
 	}
+
 	Ok(paths)
 }
 
@@ -1302,12 +1366,14 @@ fn current_schema_version(schema_version_path: &Path) -> Result<String, String> 
 		)
 	})?;
 	let version = contents.trim();
+
 	if version.is_empty() {
 		return Err(format!(
 			"Current schema version file is empty: {}",
 			schema_version_path.display()
 		));
 	}
+
 	Ok(version.to_string())
 }
 
@@ -1350,26 +1416,34 @@ fn schema_package_manifest_version(manifest_path: &Path) -> Result<String, Strin
 
 fn package_version_from_manifest(manifest: &str) -> Option<String> {
 	let mut in_package = false;
+
 	for line in manifest.lines() {
 		let trimmed = line.trim();
+
 		if trimmed == "[package]" {
 			in_package = true;
 			continue;
 		}
+
 		if trimmed.starts_with('[') {
 			in_package = false;
+
 			continue;
 		}
+
 		if !in_package {
 			continue;
 		}
+
 		let Some((key, value)) = trimmed.split_once('=') else {
 			continue;
 		};
+
 		if key.trim() == "version" {
 			return Some(clean_changeset_scalar(value).to_string());
 		}
 	}
+
 	None
 }
 
@@ -1382,6 +1456,7 @@ fn planned_schema_bump(
 		return Ok(BumpSeverity::None);
 	};
 	let mut bump = BumpSeverity::None;
+
 	for entry in entries {
 		let entry = entry.map_err(|error| {
 			format!(
@@ -1390,13 +1465,16 @@ fn planned_schema_bump(
 			)
 		})?;
 		let path = entry.path();
+
 		if path.extension().and_then(|value| value.to_str()) != Some("md") {
 			continue;
 		}
+
 		let contents = fs::read_to_string(&path)
 			.map_err(|error| format!("Could not read {}: {error}", path.display()))?;
 		bump = bump.max(changeset_bump_for_package(&contents, changeset_package));
 	}
+
 	Ok(bump)
 }
 
@@ -1411,8 +1489,10 @@ fn changeset_bump_for_package(contents: &str, package: &str) -> BumpSeverity {
 
 	let mut bump = BumpSeverity::None;
 	let mut active_package = false;
+
 	for line in frontmatter.lines() {
 		let trimmed = line.trim();
+
 		if trimmed.is_empty() || trimmed.starts_with('#') {
 			continue;
 		}
@@ -1421,6 +1501,7 @@ fn changeset_bump_for_package(contents: &str, package: &str) -> BumpSeverity {
 			if active_package {
 				bump = bump.max(nested_bump(trimmed));
 			}
+
 			continue;
 		}
 
@@ -1429,6 +1510,7 @@ fn changeset_bump_for_package(contents: &str, package: &str) -> BumpSeverity {
 			continue;
 		};
 		let key = clean_changeset_scalar(raw_key);
+
 		if key != package {
 			continue;
 		}
@@ -1436,6 +1518,7 @@ fn changeset_bump_for_package(contents: &str, package: &str) -> BumpSeverity {
 		active_package = true;
 		bump = bump.max(inline_bump(raw_value));
 	}
+
 	bump
 }
 
@@ -1443,18 +1526,23 @@ fn nested_bump(line: &str) -> BumpSeverity {
 	let Some((key, value)) = line.split_once(':') else {
 		return BumpSeverity::None;
 	};
+
 	if clean_changeset_scalar(key) != "bump" {
 		return BumpSeverity::None;
 	}
+
 	bump_from_text(clean_changeset_scalar(value))
 }
 
 fn inline_bump(value: &str) -> BumpSeverity {
 	let value = value.trim();
+
 	if value.is_empty() {
 		return BumpSeverity::None;
 	}
+
 	let direct = bump_from_text(clean_changeset_scalar(value));
+
 	if direct != BumpSeverity::None {
 		return direct;
 	}
@@ -1511,6 +1599,7 @@ pub fn run_skill_commands_with_paths(
 		fs::write(commands_path, updated)
 			.map_err(|error| format!("Could not write {}: {error}", commands_path.display()))?;
 		println!("Skill command inventory updated successfully.");
+
 		return Ok(());
 	}
 
@@ -1609,6 +1698,7 @@ fn push_inventory_group(inventory: &mut String, title: &str, commands: &BTreeSet
 		inventory.push_str(command);
 		inventory.push_str("`\n");
 	}
+
 	inventory.push('\n');
 }
 
@@ -1634,9 +1724,11 @@ fn replace_commands_inventory(current: &str, expected: &str) -> Result<String, S
 /// Compare expected text strings against files on disk.
 fn check_text_files(paths: &[(&Path, &str)]) -> Result<(), String> {
 	let mut errors = Vec::new();
+
 	for (path, expected) in paths {
 		if path.exists() {
 			let existing = fs::read_to_string(path).unwrap();
+
 			if existing != *expected {
 				errors.push(format!("Generated file mismatch: {}", path.display()));
 			}
@@ -1644,6 +1736,7 @@ fn check_text_files(paths: &[(&Path, &str)]) -> Result<(), String> {
 			errors.push(format!("Generated file missing: {}", path.display()));
 		}
 	}
+
 	if errors.is_empty() {
 		Ok(())
 	} else {
@@ -1654,9 +1747,11 @@ fn check_text_files(paths: &[(&Path, &str)]) -> Result<(), String> {
 /// Compare expected schema JSON strings against files on disk.
 fn check_schemas(paths: &[(&Path, &str)]) -> Result<(), String> {
 	let mut errors = Vec::new();
+
 	for (path, expected) in paths {
 		if path.exists() {
 			let existing = fs::read_to_string(path).unwrap();
+
 			let existing_value: serde_json::Value = match serde_json::from_str(&existing) {
 				Ok(v) => v,
 				Err(_) => {
@@ -1667,6 +1762,7 @@ fn check_schemas(paths: &[(&Path, &str)]) -> Result<(), String> {
 					continue;
 				}
 			};
+
 			let expected_value: serde_json::Value = match serde_json::from_str(expected) {
 				Ok(v) => v,
 				Err(_) => {
@@ -1677,6 +1773,7 @@ fn check_schemas(paths: &[(&Path, &str)]) -> Result<(), String> {
 					continue;
 				}
 			};
+
 			if existing_value != expected_value {
 				errors.push(format!("Schema mismatch: {}", path.display()));
 			}
@@ -1684,6 +1781,7 @@ fn check_schemas(paths: &[(&Path, &str)]) -> Result<(), String> {
 			errors.push(format!("Schema file missing: {}", path.display()));
 		}
 	}
+
 	if errors.is_empty() {
 		Ok(())
 	} else {

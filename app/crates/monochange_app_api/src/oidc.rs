@@ -133,6 +133,7 @@ impl OidcVerifier {
 			.map_err(|error| OidcError::InvalidToken(error.to_string()))?;
 		let mut validation = Validation::new(header.alg);
 		validation.set_issuer(std::slice::from_ref(&self.issuer));
+
 		validation.set_audience(std::slice::from_ref(&self.audience));
 		validation.validate_exp = true;
 		let data = decode::<OidcClaims>(token, &key, &validation).map_err(|error| {
@@ -141,11 +142,13 @@ impl OidcVerifier {
 				self.issuer, self.audience
 			))
 		})?;
+
 		if data.claims.repository.is_empty() {
 			return Err(OidcError::InvalidToken(
 				"token carries no repository claim".to_string(),
 			));
 		}
+
 		Ok(data.claims)
 	}
 
@@ -153,6 +156,7 @@ impl OidcVerifier {
 		if let Some(jwk) = self.cached_key(kid) {
 			return Ok(jwk);
 		}
+
 		self.refresh_cache().await?;
 		self.cached_key(kid).ok_or(OidcError::NoMatchingKey)
 	}
@@ -160,6 +164,7 @@ impl OidcVerifier {
 	fn cached_key(&self, kid: &str) -> Option<Jwk> {
 		let cache = self.cache.read().ok()?;
 		let cached = cache.as_ref()?;
+
 		if cached.fetched_at.elapsed() < Duration::from_secs(600) {
 			cached.keys_by_kid.get(kid).cloned()
 		} else {

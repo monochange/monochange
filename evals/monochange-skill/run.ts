@@ -41,15 +41,20 @@ function loadScenarios(): Scenario[] {
 	if (!existsSync(SCENARIO_DIR)) {
 		return [];
 	}
+
 	const scenarios: Scenario[] = [];
+
 	for (const entry of readdirSync(SCENARIO_DIR).toSorted()) {
 		if (!entry.endsWith(".json")) {
 			continue;
 		}
+
 		const path = join(SCENARIO_DIR, entry);
 		const parsed = JSON.parse(readFileSync(path, "utf8")) as Scenario;
+
 		scenarios.push(parsed);
 	}
+
 	return scenarios;
 }
 
@@ -59,18 +64,22 @@ function loadVariants(): string[] {
 				.filter((entry) => entry.isDirectory())
 				.map((entry) => entry.name)
 		: [];
+
 	return [...new Set([...frozen, ...builtinVariants()])].toSorted();
 }
 
 /// Path to a run workdir, without clearing it when re-grading.
 function runWorkdirFor(regrade: boolean, identity: string): string {
 	const path = join(WORK_DIR, "runs", identity);
+
 	if (regrade) {
 		if (!existsSync(path)) {
 			throw new Error(`No saved workdir to re-grade: ${path}`);
 		}
+
 		return path;
 	}
+
 	return runWorkdir(identity);
 }
 
@@ -81,13 +90,17 @@ async function main(): Promise<void> {
 
 	if (options.list) {
 		console.log("Scenarios:");
+
 		for (const scenario of scenarios) {
 			console.log(`  ${scenario.id.padEnd(28)} ${scenario.title}`);
 		}
+
 		console.log("\nSkill variants:");
+
 		for (const variant of variants) {
 			console.log(`  ${variant}`);
 		}
+
 		return;
 	}
 
@@ -117,9 +130,11 @@ async function main(): Promise<void> {
 		cwd: HARNESS_ROOT,
 		timeoutSeconds: 60,
 	});
+
 	if (version.exit !== 0) {
 		throw new Error(`Cannot run evaluated monochange CLI: ${version.stderr}`);
 	}
+
 	console.log(`monochange version: ${version.stdout.trim()}`);
 
 	mkdirSync(RESULT_DIR, { recursive: true });
@@ -161,6 +176,7 @@ async function main(): Promise<void> {
 						resetDir(transcriptDir);
 						writeFileSync(provenancePath, `${JSON.stringify(runProvenance, null, "\t")}\n`);
 					}
+
 					if (!options.regrade) {
 						copyFixture(scenario.fixture, workdir);
 
@@ -169,13 +185,16 @@ async function main(): Promise<void> {
 							ensureParent(target);
 							writeFileSync(target, contents);
 						}
+
 						initializeRepository(workdir, scenario.setupCommands ?? []);
+
 						for (const command of scenario.setupCommands ?? []) {
 							const result = exec(command, {
 								cwd: workdir,
 								timeoutSeconds: 300,
 								env: { PATH: `${dirname(monochangeCli)}:${process.env["PATH"] ?? ""}` },
 							});
+
 							if (result.exit !== 0) {
 								throw new Error(
 									`setup command failed (${result.exit}): ${command}\n${result.stderr}`,
@@ -238,12 +257,15 @@ async function main(): Promise<void> {
 
 					const error = agentFailure(agent, options.timeoutSeconds);
 					const passed = !error && allPassed(checks);
+
 					for (const result of checks) {
 						const mark = result.passed ? "PASS" : "FAIL";
 						console.log(`  [${mark}] ${result.check.id}: ${result.detail.split("\n")[0]}`);
+
 						if (!result.passed) {
 							console.log(`         why: ${result.check.why}`);
 							const extra = result.detail.split("\n").slice(1).join("\n");
+
 							if (extra.trim()) {
 								console.log(
 									extra
@@ -254,6 +276,7 @@ async function main(): Promise<void> {
 							}
 						}
 					}
+
 					console.log(`  => ${passed ? "PASS" : "FAIL"} (${(agentDurationMs / 1000).toFixed(1)}s)`);
 
 					runs.push({
@@ -341,10 +364,13 @@ function renderMarkdown(report: Report): string {
 	lines.push(`- Started: ${report.startedAt}`);
 	lines.push(`- Finished: ${report.finishedAt}`);
 	lines.push(`- Repeats per cell: ${report.repeats}`);
+
 	if (report.provenance) {
 		lines.push(`- Grading checkout: \`${report.provenance.checkoutCommit}\``);
+
 		lines.push(`- Grading CLI SHA-256: \`${report.provenance.cliSha256}\``);
 	}
+
 	lines.push("");
 
 	const variants = [...new Set(report.runs.map(cellKey))];
@@ -354,6 +380,7 @@ function renderMarkdown(report: Report): string {
 	lines.push("");
 	lines.push(`| Scenario | ${variants.join(" | ")} |`);
 	lines.push(`| --- | ${variants.map(() => "---").join(" | ")} |`);
+
 	for (const scenario of scenarios) {
 		const cells = variants.map((variant) => {
 			const cellRuns = report.runs.filter(
@@ -362,21 +389,26 @@ function renderMarkdown(report: Report): string {
 			if (cellRuns.length === 0) {
 				return "-";
 			}
+
 			const passed = cellRuns.filter((run) => run.passed).length;
 			return `${passed}/${cellRuns.length}`;
 		});
 		lines.push(`| ${scenario} | ${cells.join(" | ")} |`);
 	}
+
 	lines.push("");
+
 	lines.push("Agent-free contracts validate the CLI; they do not compare skill effectiveness.", "");
 
 	const errors = report.runs.filter((run) => run.error);
 
 	if (errors.length > 0) {
 		lines.push("## Harness and agent errors", "");
+
 		for (const run of errors) {
 			lines.push(`- ${run.scenario} / ${cellKey(run)}: ${run.error?.replaceAll("\n", " ")}`);
 		}
+
 		lines.push("");
 	}
 
@@ -385,16 +417,19 @@ function renderMarkdown(report: Report): string {
 	const failures = report.runs.flatMap((run) =>
 		run.checks.filter((check) => !check.passed).map((check) => ({ run, check })),
 	);
+
 	if (failures.length === 0) {
 		lines.push("None.");
 	} else {
 		lines.push("| Scenario | Variant | Check | Detail |");
 		lines.push("| --- | --- | --- | --- |");
+
 		for (const { run, check } of failures) {
 			const detail = check.detail.split("\n")[0]?.replaceAll("|", "\\|") ?? "";
 			lines.push(`| ${run.scenario} | ${run.variant} | ${check.check.id} | ${detail} |`);
 		}
 	}
+
 	lines.push("");
 
 	const tokenTotal = report.runs.reduce(

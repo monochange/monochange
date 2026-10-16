@@ -61,6 +61,7 @@ impl VoteTally {
 
 pub fn evaluate(tally: &VoteTally, rules: &VotingRules) -> VotingOutcome {
 	let votes = tally.total();
+
 	if votes >= rules.acceptance_threshold {
 		VotingOutcome::ThresholdReached { votes }
 	} else {

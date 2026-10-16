@@ -36,8 +36,10 @@ fn book_asset(asset: &str) -> Response {
 		Some("svg") => "image/svg+xml",
 		Some("png") => "image/png",
 		Some("json") => "application/json",
+
 		_ => return StatusCode::NOT_FOUND.into_response(),
 	};
+
 	match crate::book::BOOK_FILES.get_file(asset) {
 		Some(file) => {
 			(

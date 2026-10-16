@@ -407,6 +407,7 @@ fn forgejo_json_helpers_cover_not_found_and_status_errors() {
 		when.method(GET).path("/invalid-optional");
 		then.status(200).body("not json");
 	});
+
 	let invalid_get = server.mock(|when, then| {
 		when.method(GET).path("/invalid-get");
 		then.status(200).body("not json");
@@ -599,6 +600,7 @@ fn forgejo_json_helpers_cover_not_found_and_status_errors() {
 	failing_patch.assert();
 	invalid_optional.assert();
 	invalid_get.assert();
+
 	invalid_post.assert();
 	invalid_patch.assert();
 }
@@ -811,6 +813,7 @@ fn publish_release_requests_reports_create_and_update_api_errors() {
 				} else {
 					"/api/v1/repos/org/monochange/releases"
 				});
+
 			then.status(500);
 		});
 		let source = sample_source(
@@ -1109,6 +1112,7 @@ fn git_commit_paths_reports_io_and_non_noop_failures() {
 	.unwrap_or_else(|error| panic!("chmod hook: {error}"));
 	std::fs::write(repo.join("release.txt"), "initial\n")
 		.unwrap_or_else(|error| panic!("write release file: {error}"));
+
 	git(&repo, &["add", "release.txt"]);
 	let error = tokio::runtime::Runtime::new()
 		.unwrap()
@@ -1454,6 +1458,7 @@ fn seed_git_repository() -> (tempfile::TempDir, PathBuf) {
 	git(&repo, &["config", "user.name", "monochange Tests"]);
 	git(&repo, &["config", "user.email", "monochange@example.com"]);
 	git(&repo, &["config", "commit.gpgsign", "false"]);
+
 	std::fs::write(repo.join("release.txt"), "before\n")
 		.unwrap_or_else(|error| panic!("write release file: {error}"));
 	git(&repo, &["add", "release.txt"]);

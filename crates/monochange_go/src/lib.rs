@@ -81,6 +81,7 @@ pub fn supported_versioned_file_kind(path: &Path) -> Option<GoVersionedFileKind>
 		.file_name()
 		.and_then(|name| name.to_str())
 		.unwrap_or_default();
+
 	match file_name {
 		GO_MOD_FILE => Some(GoVersionedFileKind::GoMod),
 		GO_SUM_FILE => Some(GoVersionedFileKind::GoSum),
@@ -152,15 +153,18 @@ pub fn update_go_mod_text(
 	let resolved = resolve_short_dependency_keys(contents, versioned_deps);
 
 	let mut result = String::with_capacity(contents.len());
+
 	for line in contents.lines() {
 		let updated = update_require_line(line, versioned_deps, &resolved);
 		result.push_str(&updated);
 		result.push('\n');
 	}
+
 	// Preserve trailing newline status from the original content
 	if !contents.ends_with('\n') && result.ends_with('\n') {
 		result.pop();
 	}
+
 	result
 }
 
@@ -174,11 +178,13 @@ fn resolve_short_dependency_keys(
 ) -> std::collections::BTreeMap<String, String> {
 	let mut candidates =
 		std::collections::BTreeMap::<String, std::collections::BTreeSet<String>>::new();
+
 	for line in contents.lines() {
 		let Some(module_path) = required_module_path(line) else {
 			continue;
 		};
 		let identity = derive_module_name(&module_path);
+
 		for key in versioned_deps.keys() {
 			if identity == *key {
 				candidates
@@ -188,6 +194,7 @@ fn resolve_short_dependency_keys(
 			}
 		}
 	}
+
 	candidates
 		.into_iter()
 		.filter_map(|(key, paths)| {
@@ -201,6 +208,7 @@ fn resolve_short_dependency_keys(
 /// The module path a `require` line names, with quotes removed.
 fn required_module_path(line: &str) -> Option<String> {
 	let trimmed = line.trim();
+
 	if trimmed.starts_with("//")
 		|| trimmed.starts_with("module ")
 		|| trimmed.starts_with("go ")
@@ -213,14 +221,18 @@ fn required_module_path(line: &str) -> Option<String> {
 	{
 		return None;
 	}
+
 	let parts: Vec<&str> = match trimmed.strip_prefix("require ") {
 		Some(rest) => rest.split_whitespace().collect(),
 		None => trimmed.split_whitespace().collect(),
 	};
+
 	let raw = parts.first().copied()?;
+
 	if parts.len() < 2 {
 		return None;
 	}
+
 	Some(unquote_module_path(raw).to_string())
 }
 
@@ -369,9 +381,11 @@ pub fn load_configured_go_package(
 	package_path: &Path,
 ) -> MonochangeResult<Option<PackageRecord>> {
 	let go_mod_path = package_path.join(GO_MOD_FILE);
+
 	if !go_mod_path.is_file() {
 		return Ok(None);
 	}
+
 	parse_go_module(&go_mod_path, root)
 }
 
@@ -412,6 +426,7 @@ fn parse_go_module(go_mod_path: &Path, root: &Path) -> MonochangeResult<Option<P
 		.unwrap_or(Path::new(""))
 		.to_string_lossy()
 		.to_string();
+
 	if !relative_path.is_empty() && relative_path != "." {
 		record
 			.metadata
@@ -431,10 +446,12 @@ fn parse_go_module(go_mod_path: &Path, root: &Path) -> MonochangeResult<Option<P
 fn parse_module_path(contents: &str) -> Option<String> {
 	for line in contents.lines() {
 		let trimmed = line.trim();
+
 		if let Some(path) = trimmed.strip_prefix("module ") {
 			return Some(path.trim().to_string());
 		}
 	}
+
 	None
 }
 
@@ -484,6 +501,7 @@ fn parse_require_directives(contents: &str) -> Vec<PackageDependency> {
 			in_require_block = true;
 			continue;
 		}
+
 		if trimmed == ")" {
 			in_require_block = false;
 			continue;
@@ -511,6 +529,7 @@ fn parse_require_directives(contents: &str) -> Vec<PackageDependency> {
 /// Parse a single require entry like `github.com/org/shared v1.2.3 // indirect`.
 fn parse_require_entry(entry: &str) -> Option<PackageDependency> {
 	let parts: Vec<&str> = entry.split_whitespace().collect();
+
 	if parts.len() < 2 {
 		return None;
 	}

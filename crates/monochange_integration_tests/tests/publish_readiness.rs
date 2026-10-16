@@ -78,6 +78,7 @@ fn setup_publish_readiness_repo() -> TempDir {
 	);
 	git(root, &["config", "commit.gpgsign", "false"]);
 	git(root, &["add", "."]);
+
 	git(root, &["commit", "-m", "initial"]);
 	tempdir
 }
@@ -110,6 +111,7 @@ fn guarded_output(mut command: Command, phase: &str) -> std::process::Output {
 	let stderr_pipe = child.stderr.take();
 	let (stdout_tx, stdout_rx) = std::sync::mpsc::channel::<Vec<u8>>();
 	let (stderr_tx, stderr_rx) = std::sync::mpsc::channel::<String>();
+
 	if let Some(mut pipe) = stdout_pipe {
 		std::thread::spawn(move || {
 			let mut buffer = Vec::new();
@@ -118,6 +120,7 @@ fn guarded_output(mut command: Command, phase: &str) -> std::process::Output {
 			}
 		});
 	}
+
 	if let Some(mut pipe) = stderr_pipe {
 		std::thread::spawn(move || {
 			let mut buffer = String::new();
@@ -126,8 +129,10 @@ fn guarded_output(mut command: Command, phase: &str) -> std::process::Output {
 			}
 		});
 	}
+
 	let deadline = std::time::Instant::now() + std::time::Duration::from_secs(90);
 	let mut last_report = std::time::Instant::now() - std::time::Duration::from_secs(2);
+
 	loop {
 		if last_report.elapsed() > std::time::Duration::from_secs(1) {
 			eprintln!(
@@ -136,6 +141,7 @@ fn guarded_output(mut command: Command, phase: &str) -> std::process::Output {
 			);
 			last_report = std::time::Instant::now();
 		}
+
 		match child.try_wait() {
 			Ok(Some(status)) => {
 				let stdout = stdout_rx
@@ -166,6 +172,7 @@ fn guarded_output(mut command: Command, phase: &str) -> std::process::Output {
 						.collect();
 					panic!("{phase} did not finish within 90s; stderr tail:\n{tail}");
 				}
+
 				std::thread::sleep(std::time::Duration::from_millis(50));
 			}
 			Err(error) => panic!("wait {phase}: {error}"),
@@ -216,6 +223,7 @@ fn publish_readiness_command(root: &Path, crates_io_port: u16) -> Command {
 	command.arg("publish-readiness");
 	command.arg("--from");
 	command.arg("HEAD");
+
 	command.arg("--format");
 	command.arg("json");
 	command
@@ -279,6 +287,7 @@ fn publish_readiness_reports_trusted_publishing_and_publish_order() {
 		.as_array()
 		.unwrap_or_else(|| panic!("expected packages array"));
 	assert_eq!(packages.len(), 2);
+
 	for package in packages {
 		let trusted = &package["trusted_publishing"];
 		assert_eq!(
@@ -335,6 +344,7 @@ fn mock_crates_io_missing(request_count: usize) -> (u16, MockCratesIo) {
 				Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
 					std::thread::sleep(std::time::Duration::from_millis(25));
 				}
+
 				Err(_) => break,
 			}
 		}
@@ -376,6 +386,7 @@ fn publish_readiness_blocks_never_published_packages_in_ci_trusted_publishing() 
 	);
 	let value: Value = serde_json::from_slice(&output.stdout)
 		.unwrap_or_else(|error| panic!("parse publish readiness json: {error}"));
+
 	let report = &value;
 
 	assert_eq!(report["status"].as_str(), Some("blocked"));
@@ -383,11 +394,13 @@ fn publish_readiness_blocks_never_published_packages_in_ci_trusted_publishing() 
 		.as_array()
 		.unwrap_or_else(|| panic!("expected packages array"));
 	assert_eq!(packages.len(), 2);
+
 	for package in packages {
 		assert_eq!(package["status"].as_str(), Some("blocked"));
 		let trusted = &package["trusted_publishing"];
 		assert_eq!(trusted["status"].as_str(), Some("blocked"));
 		let message = trusted["message"].as_str().unwrap_or_default();
+
 		assert!(
 			message.contains("placeholder-publish"),
 			"expected bootstrap guidance in {message}"

@@ -29,9 +29,11 @@ pub(crate) async fn verify_release_ref_for_tags(
 	let Some(source) = source else {
 		return Ok(None);
 	};
+
 	if !source.releases.enforce_for_tags {
 		return Ok(None);
 	}
+
 	let policy = effective_release_branch_policy(&source.releases, prerelease);
 	verify_release_ref(root, &policy, ref_name).await.map(Some)
 }
@@ -45,9 +47,11 @@ pub(crate) async fn verify_release_ref_for_publish(
 	let Some(source) = source else {
 		return Ok(None);
 	};
+
 	if !source.releases.enforce_for_publish {
 		return Ok(None);
 	}
+
 	let policy = effective_release_branch_policy(&source.releases, prerelease);
 	verify_release_ref(root, &policy, ref_name).await.map(Some)
 }
@@ -60,9 +64,11 @@ pub(crate) async fn verify_release_ref_for_commit(
 	let Some(source) = source else {
 		return Ok(None);
 	};
+
 	if !source.releases.enforce_for_commit {
 		return Ok(None);
 	}
+
 	verify_release_ref(root, &source.releases, ref_name)
 		.await
 		.map(Some)
@@ -73,9 +79,11 @@ fn effective_release_branch_policy(
 	prerelease: &PrereleaseConfiguration,
 ) -> ProviderReleaseSettings {
 	let mut policy = stable.clone();
+
 	if prerelease.enabled && !prerelease.branches.is_empty() {
 		policy.branches.clone_from(&prerelease.branches);
 	}
+
 	policy
 }
 
@@ -121,6 +129,7 @@ pub(crate) async fn verify_release_ref(
 fn write_branch_ref_names(output: &mut String, branch_refs: &[BranchRef]) {
 	if branch_refs.is_empty() {
 		output.push_str("none found");
+
 		return;
 	}
 
@@ -134,12 +143,14 @@ fn write_branch_ref_names(output: &mut String, branch_refs: &[BranchRef]) {
 
 fn write_comma_separated<'a>(output: &mut String, values: impl IntoIterator<Item = &'a str>) {
 	let mut is_first = true;
+
 	for value in values {
 		if is_first {
 			is_first = false;
 		} else {
 			output.push_str(", ");
 		}
+
 		output.push_str(value);
 	}
 }
@@ -178,6 +189,7 @@ async fn candidate_release_branch_refs(
 	.await?;
 
 	let mut branches = Vec::new();
+
 	for (ref_name, display_name) in output
 		.lines()
 		.filter(|line| !line.trim().is_empty())
@@ -199,10 +211,13 @@ fn display_branch_name(ref_name: &str) -> Option<String> {
 	if let Some(local) = ref_name.strip_prefix("refs/heads/") {
 		return Some(local.to_string());
 	}
+
 	let remote = ref_name.strip_prefix("refs/remotes/")?;
+
 	if remote.ends_with("/HEAD") {
 		return None;
 	}
+
 	Some(remote.to_string())
 }
 

@@ -104,6 +104,7 @@ pub async fn affected_packages(
 	let mut matched_paths = Vec::new();
 	let mut ignored_paths = Vec::new();
 	let mut affected_package_ids = BTreeSet::new();
+
 	for path in changed_paths
 		.iter()
 		.filter(|path| !is_changeset_markdown_path(path))
@@ -131,6 +132,7 @@ pub async fn affected_packages(
 
 		let mut matched_any_package = false;
 		let mut ignored_by_package = false;
+
 		for matcher in &package_matchers {
 			match matcher.classify(Path::new(path)) {
 				PackagePathMatch::Touched => {
@@ -143,6 +145,7 @@ pub async fn affected_packages(
 				PackagePathMatch::Unmatched | _ => {}
 			}
 		}
+
 		if matched_any_package {
 			matched_paths.push(path.clone());
 		} else if ignored_by_package {
@@ -153,6 +156,7 @@ pub async fn affected_packages(
 	let mut covered_package_ids = BTreeSet::new();
 	let mut warnings = Vec::new();
 	let mut errors = Vec::new();
+
 	if !changeset_paths.is_empty() {
 		let config_packages = configuration_package_records(&configuration);
 		let coverage = covered_package_ids_from_changesets(
@@ -170,6 +174,7 @@ pub async fn affected_packages(
 		.difference(&covered_package_ids)
 		.cloned()
 		.collect::<Vec<_>>();
+
 	if matched_skip_labels.is_empty() && !uncovered_package_ids.is_empty() {
 		errors.push(format!(
 			"changed packages are not covered by attached changesets: {}",
@@ -191,8 +196,10 @@ pub async fn affected_packages(
 		(true, true, true) => ChangesetPolicyStatus::NotRequired,
 		(true, true, false) => ChangesetPolicyStatus::Passed,
 	};
+
 	let summary = match status {
 		ChangesetPolicyStatus::Failed
+
 			if errors
 				.iter()
 				.any(|error| error.contains("not covered by attached changesets")) =>
@@ -240,6 +247,7 @@ pub async fn affected_packages(
 		warnings,
 		errors,
 	};
+
 	if evaluation.status == ChangesetPolicyStatus::Failed && verify.comment_on_failure {
 		evaluation.comment = Some(render_changeset_verification_comment(verify, &evaluation));
 	}
@@ -253,6 +261,7 @@ async fn current_branch_matches_pull_request_branch_prefix(
 ) -> Option<(String, String)> {
 	let source = source?;
 	let branch_prefix = source.pull_requests.branch_prefix.trim();
+
 	if branch_prefix.is_empty() {
 		return None;
 	}
@@ -268,6 +277,7 @@ async fn current_branch_matches_pull_request_branch_prefix(
 				.filter(|branch| !branch.is_empty())?
 		}
 	};
+
 	current_branch
 		.starts_with(branch_prefix)
 		.then(|| (current_branch, branch_prefix.to_string()))
@@ -333,12 +343,14 @@ pub(crate) fn compute_changed_paths_since(
 			"failed to run git diff --name-only {since_rev}: {error}"
 		))
 	})?;
+
 	if !diff_output.status.success() {
 		let stderr = String::from_utf8_lossy(&diff_output.stderr);
 		return Err(MonochangeError::Config(format!(
 			"git diff --name-only {since_rev} failed: {stderr}"
 		)));
 	}
+
 	let mut paths: BTreeSet<String> = String::from_utf8_lossy(&diff_output.stdout)
 		.lines()
 		.map(|line| line.trim().to_string())
@@ -353,9 +365,11 @@ pub(crate) fn compute_changed_paths_since(
 	let untracked_output = untracked_command
 		.output()
 		.map_err(|error| MonochangeError::Config(format!("failed to run git ls-files: {error}")))?;
+
 	if untracked_output.status.success() {
 		for line in String::from_utf8_lossy(&untracked_output.stdout).lines() {
 			let path = line.trim().to_string();
+
 			if !path.is_empty() {
 				paths.insert(path);
 			}
@@ -400,6 +414,7 @@ fn covered_package_ids_from_changesets(
 
 	for changeset_path in changeset_paths {
 		let absolute_path = root.join(changeset_path);
+
 		if !absolute_path.exists() {
 			// The change itself deleted the changeset — a release consuming its
 			// files — so there is nothing left to load for coverage.
@@ -418,6 +433,7 @@ fn covered_package_ids_from_changesets(
 					signals.push(signal);
 				}
 			}
+
 			Err(error) => errors.push(error.render()),
 		}
 	}
@@ -447,17 +463,19 @@ pub(crate) fn check_changeset_bump_alignment(
 		&evaluation.changeset_paths,
 		&packages,
 	);
+
 	if !coverage.errors.is_empty() {
 		return Err(MonochangeError::Config(coverage.errors.join("\n")));
 	}
+
 	evaluation.warnings.extend(coverage.warnings);
 	let requested_bumps = requested_bumps_by_package(&coverage.signals);
 	// patch-coverage:ignore-start -- explicit-version-only changesets have no requested bump to compare against API classification.
 	if requested_bumps.is_empty() {
 		return Ok(());
 	}
-	// patch-coverage:ignore-end
 
+	// patch-coverage:ignore-end
 	let frame = ChangeFrame::CustomRange {
 		base: base_ref.to_string(),
 		head: "HEAD".to_string(),
@@ -473,12 +491,13 @@ pub(crate) fn check_changeset_bump_alignment(
 		recommended_bumps.insert(package.package_id.clone(), package.recommendation);
 		recommended_bumps.insert(package.package_name.clone(), package.recommendation);
 	}
-	// patch-coverage:ignore-end
 
+	// patch-coverage:ignore-end
 	// Only a new alignment error means the bumps underestimate API impact;
 	// earlier errors (such as uncovered packages) keep their own summary.
 	let errors_before_alignment = evaluation.errors.len();
 	apply_bump_alignment(requested_bumps, &recommended_bumps, evaluation);
+
 	if evaluation.errors.len() > errors_before_alignment {
 		// patch-coverage:ignore-start -- failure message is exercised by affected changeset CI; error comparison is covered by bump alignment unit tests.
 		evaluation.status = ChangesetPolicyStatus::Failed;
@@ -501,6 +520,7 @@ pub(crate) fn apply_bump_alignment(
 			.get(&package_id)
 			.copied()
 			.unwrap_or(BumpSeverity::None);
+
 		if requested_bump < recommended_bump {
 			evaluation.errors.push(format!(
 				"changeset bump for `{package_id}` is insufficient: requested `{requested_bump}`, API classification recommends `{recommended_bump}`"
@@ -515,6 +535,7 @@ pub(crate) fn apply_bump_alignment(
 
 fn requested_bumps_by_package(signals: &[ChangeSignal]) -> BTreeMap<String, BumpSeverity> {
 	let mut requested_bumps = BTreeMap::new();
+
 	for signal in signals {
 		let Some(requested_bump) = signal.requested_bump else {
 			continue;
@@ -528,6 +549,7 @@ fn requested_bumps_by_package(signals: &[ChangeSignal]) -> BTreeMap<String, Bump
 			})
 			.or_insert(requested_bump);
 	}
+
 	requested_bumps
 }
 
@@ -607,41 +629,52 @@ fn render_changeset_verification_comment(
 		String::new(),
 		evaluation.summary.clone(),
 	];
+
 	if !evaluation.matched_paths.is_empty() {
 		lines.push(String::new());
 		lines.push("Changed package paths:".to_string());
+
 		for path in &evaluation.matched_paths {
 			lines.push(format!("- `{path}`"));
 		}
 	}
+
 	if !evaluation.affected_package_ids.is_empty() {
 		lines.push(String::new());
 		lines.push("Affected packages:".to_string());
+
 		for package_id in &evaluation.affected_package_ids {
 			lines.push(format!("- `{package_id}`"));
 		}
 	}
+
 	if !evaluation.changeset_paths.is_empty() {
 		lines.push(String::new());
 		lines.push("Attached changeset files:".to_string());
+
 		for path in &evaluation.changeset_paths {
 			lines.push(format!("- `{path}`"));
 		}
 	}
+
 	if !evaluation.errors.is_empty() {
 		lines.push(String::new());
 		lines.push("Errors:".to_string());
+
 		for error in &evaluation.errors {
 			lines.push(format!("- {error}"));
 		}
 	}
+
 	if !verify.skip_labels.is_empty() {
 		lines.push(String::new());
 		lines.push("Allowed skip labels:".to_string());
+
 		for label in &verify.skip_labels {
 			lines.push(format!("- `{label}`"));
 		}
 	}
+
 	lines.push(String::new());
 	lines.push("How to fix:".to_string());
 	lines.push("- add or update a `.changeset/*.md` file so it references every changed package or owning group".to_string());
@@ -649,12 +682,14 @@ fn render_changeset_verification_comment(
 		"- for example: `monochange change --package <id> --bump patch --reason \"describe the change\"`"
 			.to_string(),
 	);
+
 	if !verify.skip_labels.is_empty() {
 		lines.push(
 			"- or apply one of the configured skip labels when no release note is required"
 				.to_string(),
 		);
 	}
+
 	lines.join("\n")
 }
 

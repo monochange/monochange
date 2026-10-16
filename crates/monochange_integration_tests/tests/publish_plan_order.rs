@@ -29,6 +29,7 @@ fn setup_publish_plan_dependency_order_repo() -> TempDir {
 	);
 	git(root, &["add", "."]);
 	git(root, &["commit", "-m", "initial"]);
+
 	tempdir
 }
 
@@ -94,6 +95,7 @@ fn publish_plan_integration_preserves_dependency_order_across_grouped_batches() 
 	.map(String::from);
 	assert_package_batch(publish_rate_limits, 0, &expected[..10]);
 	assert_package_batch(publish_rate_limits, 1, &expected[10..]);
+
 	assert_json_snapshot!(publish_rate_limits);
 }
 
@@ -152,6 +154,7 @@ fn publish_plan_all_integration_includes_every_configured_package() {
 	.map(String::from);
 	packages.sort();
 	expected.sort();
+
 	assert_eq!(packages, expected);
 }
 
@@ -205,5 +208,6 @@ fn publish_all_integration_plans_every_configured_package() {
 	.map(String::from);
 	packages.sort();
 	expected.sort();
+
 	assert_eq!(packages, expected);
 }

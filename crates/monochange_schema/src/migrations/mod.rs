@@ -8,6 +8,7 @@ mod release_record_0_4_to_0_5;
 mod release_record_0_5_to_0_6;
 mod release_record_0_6_to_0_7;
 mod release_record_0_7_to_0_8;
+
 mod release_record_0_8_to_0_9;
 mod release_record_0_9_to_0_10;
 
@@ -93,16 +94,20 @@ pub(crate) fn apply_release_record_edges(
 	to: SchemaVersion,
 ) -> Result<(), SchemaError> {
 	let mut cursor = from;
+
 	while cursor != to {
 		let Some(edge) = release_record_edge_from(cursor) else {
 			return Err(missing_release_record_path(cursor, to));
 		};
+
 		if edge.to > to {
 			return Err(missing_release_record_path(cursor, to));
 		}
+
 		(edge.apply)(value)?;
 		cursor = edge.to;
 	}
+
 	Ok(())
 }
 
@@ -130,9 +135,11 @@ pub(crate) fn rename_top_level_field(
 	destination: &str,
 ) -> Result<(), SchemaError> {
 	let object = object_mut(value)?;
+
 	if let Some(field_value) = object.remove(source) {
 		object.insert(destination.to_string(), field_value);
 	}
+
 	Ok(())
 }
 

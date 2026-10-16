@@ -50,6 +50,7 @@ pub async fn repository_connection() -> Result<RepositoryConnectionStatus, serve
 			}
 			_ => "GitHub repository setup could not be loaded".to_string(),
 		};
+
 		server_fn::ServerFnError::new(message)
 	})?;
 	let pending = monochange_app_api::oauth::installation_state(&state.jwt_secret)

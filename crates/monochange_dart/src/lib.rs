@@ -65,9 +65,11 @@ pub fn write_dart_placeholder_manifest(
 		request.version,
 		dart_placeholder_environment(request)
 	);
+
 	if let Some(repository) = repository {
 		let _ = writeln!(rendered, "repository: {repository}");
 	}
+
 	fs::write(dir.join("pubspec.yaml"), rendered).map_err(|error| {
 		MonochangeError::Io(format!("failed to write placeholder pubspec.yaml: {error}"))
 	})
@@ -90,9 +92,11 @@ fn dart_placeholder_environment(request: &PublishRequest) -> String {
 
 fn default_dart_placeholder_environment(request: &PublishRequest) -> String {
 	let mut environment = "environment:\n  sdk: '>=3.0.0 <4.0.0'\n".to_string();
+
 	if request.package_metadata.contains_key("is_flutter") {
 		environment.push_str("  flutter: '>=3.0.0'\n");
 	}
+
 	environment
 }
 
@@ -109,8 +113,10 @@ pub fn supported_versioned_file_kind(path: &Path) -> Option<DartVersionedFileKin
 		.file_name()
 		.and_then(|name| name.to_str())
 		.unwrap_or_default();
+
 	match file_name {
 		"pubspec.lock" => Some(DartVersionedFileKind::Lock),
+
 		_ if path.extension().and_then(|ext| ext.to_str()) == Some("yaml")
 			|| path.extension().and_then(|ext| ext.to_str()) == Some("yml") =>
 		{
@@ -241,6 +247,7 @@ pub fn update_manifest_text(
 	replacements.sort_by_key(|right| std::cmp::Reverse(right.0.0));
 
 	let mut updated = contents.to_string();
+
 	for ((start, end), replacement) in replacements {
 		updated.replace_range(start..end, &replacement);
 	}
@@ -251,15 +258,18 @@ pub fn update_manifest_text(
 fn yaml_line_ranges(contents: &str) -> Vec<(usize, usize)> {
 	let mut ranges = Vec::new();
 	let mut start = 0usize;
+
 	for (index, ch) in contents.char_indices() {
 		if ch == '\n' {
 			ranges.push((start, index));
 			start = index + 1;
 		}
 	}
+
 	if start <= contents.len() {
 		ranges.push((start, contents.len()));
 	}
+
 	ranges
 }
 
@@ -295,37 +305,48 @@ fn find_yaml_dependency_scalar(
 	let section = parse_yaml_line(contents, *line_ranges.get(section_index)?)?;
 	let section_indent = section.indent;
 	let mut index = section_index + 1;
+
 	while let Some(range) = line_ranges.get(index) {
 		let Some(line) = parse_yaml_line(contents, *range) else {
 			index += 1;
 			continue;
 		};
+
 		if line.indent <= section_indent {
 			break;
 		}
+
 		if line.key == dep_name {
 			if let Some(value_span) = line.value_span {
 				return Some(value_span);
 			}
+
 			let dep_indent = line.indent;
 			let mut nested_index = index + 1;
+
 			while let Some(nested_range) = line_ranges.get(nested_index) {
 				let Some(nested_line) = parse_yaml_line(contents, *nested_range) else {
 					nested_index += 1;
 					continue;
 				};
+
 				if nested_line.indent <= dep_indent {
 					break;
 				}
+
 				if nested_line.key == "version" {
 					return nested_line.value_span;
 				}
+
 				nested_index += 1;
 			}
+
 			return None;
 		}
+
 		index += 1;
 	}
+
 	None
 }
 
@@ -352,6 +373,7 @@ fn unquote_yaml_key(key: &str) -> Cow<'_, str> {
 	else {
 		return Cow::Borrowed(key);
 	};
+
 	if key.len() < 2 || !key.ends_with(quote) {
 		return Cow::Borrowed(key);
 	}
@@ -362,15 +384,19 @@ fn unquote_yaml_key(key: &str) -> Cow<'_, str> {
 fn parse_yaml_line(contents: &str, range: (usize, usize)) -> Option<ParsedYamlLine<'_>> {
 	let line = &contents[range.0..range.1];
 	let trimmed = line.trim_start_matches([' ', '\t']);
+
 	if trimmed.is_empty() || trimmed.starts_with('#') {
 		return None;
 	}
+
 	let indent = line.len() - trimmed.len();
 	let colon = trimmed.find(':')?;
 	let key = unquote_yaml_key(trimmed[..colon].trim());
+
 	if key.is_empty() {
 		return None;
 	}
+
 	let value_span = yaml_value_span(line, range.0, indent + colon + 1);
 	Some(ParsedYamlLine {
 		indent,
@@ -387,9 +413,11 @@ fn yaml_value_span(
 	let suffix = line.get(value_start_in_line..)?;
 	let value_offset = suffix.find(|ch: char| !matches!(ch, ' ' | '\t'))?;
 	let value = &suffix[value_offset..];
+
 	if value.starts_with('#') {
 		return None;
 	}
+
 	let span_start = line_start + value_start_in_line + value_offset;
 	let span_end = if let Some(quote) = value
 		.chars()
@@ -409,11 +437,13 @@ fn yaml_value_span(
 fn find_yaml_quote_end(value: &str, quote: char) -> Option<usize> {
 	let mut chars = value.char_indices();
 	chars.next()?;
+
 	for (index, ch) in chars {
 		if ch == quote {
 			return Some(index);
 		}
 	}
+
 	None
 }
 
@@ -421,9 +451,11 @@ fn render_yaml_scalar(existing: &str, value: &str) -> String {
 	if existing.starts_with('"') && existing.ends_with('"') {
 		return format!("\"{value}\"");
 	}
+
 	if existing.starts_with('\'') && existing.ends_with('\'') {
 		return format!("'{value}'");
 	}
+
 	value.to_string()
 }
 
@@ -433,6 +465,7 @@ pub fn update_pubspec_lock(mapping: &mut Mapping, raw_versions: &BTreeMap<String
 	else {
 		return;
 	};
+
 	for (name, version) in raw_versions {
 		let key = Value::String(name.clone());
 		let Some(Value::Mapping(entry)) = packages.get_mut(&key) else {
@@ -507,6 +540,7 @@ pub fn discover_dart_packages(root: &Path) -> MonochangeResult<AdapterDiscovery>
 		let (workspace_packages, workspace_warnings) =
 			discover_workspace_packages(&workspace_manifest)?;
 		warnings.extend(workspace_warnings);
+
 		for package in workspace_packages {
 			included_manifests.insert(package.manifest_path.clone());
 			packages.push(package);
@@ -579,12 +613,14 @@ fn expand_workspace_patterns(
 ) -> BTreeSet<PathBuf> {
 	let filter = DiscoveryPathFilter::new(root);
 	let mut manifests = BTreeSet::new();
+
 	for pattern in patterns {
 		let matches = monochange_core::workspace_glob_paths(root, pattern, true)
 			.unwrap_or_default()
 			.into_iter()
 			.filter(|path| filter.allows(path))
 			.collect::<Vec<_>>();
+
 		if matches.is_empty() {
 			warnings.push(format!(
 				"dart workspace pattern `{pattern}` under {} matched no packages",
@@ -598,6 +634,7 @@ fn expand_workspace_patterns(
 			} else {
 				matched_path
 			};
+
 			if manifest_path.file_name().and_then(|name| name.to_str()) == Some(PUBSPEC_FILE)
 				&& manifest_path.exists()
 				&& filter.allows(&manifest_path)
@@ -606,6 +643,7 @@ fn expand_workspace_patterns(
 			}
 		}
 	}
+
 	manifests
 }
 
@@ -629,11 +667,13 @@ fn parse_manifest(
 		version,
 		publish_state,
 	);
+
 	if is_flutter {
 		package
 			.metadata
 			.insert("is_flutter".to_string(), "true".to_string());
 	}
+
 	package.declared_dependencies = parse_dependencies(&parsed);
 	Ok(Some(package))
 }
@@ -667,6 +707,7 @@ fn parse_dependencies(parsed: &Mapping) -> Vec<PackageDependency> {
 						}
 						_ => None,
 					},
+
 					optional: false,
 					source_field: Some(section.to_string()),
 				}
@@ -740,6 +781,7 @@ pub fn validate_versioned_file(
 				let writable = yaml.get(field.as_str()).is_some_and(|value| {
 					value.is_string() || value.is_mapping() || value.is_sequence()
 				});
+
 				if !writable {
 					return Err(MonochangeError::Config(format!(
 						"versioned file `{display_path}` does not contain a `{field}` string field"
@@ -820,6 +862,7 @@ pub fn sync_internal_dependency_versions(
 				if current_version == &new_constraint {
 					continue;
 				}
+
 				changes.push(DependencySyncChange {
 					dependency_name: dep_name.to_string(),
 					section: section.to_string(),
@@ -875,6 +918,7 @@ fn detail_to_string(detail: &Mapping) -> String {
 		.iter()
 		.filter_map(|(k, v)| {
 			let key = k.as_str()?;
+
 			let val = match v {
 				Value::String(s) => s.clone(),
 				Value::Bool(b) => b.to_string(),
@@ -882,6 +926,7 @@ fn detail_to_string(detail: &Mapping) -> String {
 				Value::Null => "null".to_string(),
 				_ => "[...]".to_string(),
 			};
+
 			Some(format!("{key}: {val}"))
 		})
 		.collect();

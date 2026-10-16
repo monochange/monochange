@@ -298,6 +298,7 @@ fn run_cli_round_trip() {
 	assert!(current_artifacts.join("monochange/10.json").exists());
 	assert!(!artifacts.join("release-record.current.json").exists());
 	assert!(!artifacts.join("monochange.current.json").exists());
+
 	assert!(
 		!artifacts
 			.join(version)
@@ -377,6 +378,7 @@ fn run_cli_round_trip() {
 	assert!(current_artifacts.join("monochange/01.json").exists());
 	assert!(current_artifacts.join("monochange/10.json").exists());
 	assert!(versioned_artifacts.join("release-record/01.json").exists());
+
 	assert!(versioned_artifacts.join("release-record/10.json").exists());
 	assert!(versioned_artifacts.join("monochange/01.json").exists());
 	assert!(versioned_artifacts.join("monochange/10.json").exists());
@@ -519,6 +521,7 @@ fn check_schemas_invalid_json() {
 	assert!(result.is_err());
 	let msg = result.unwrap_err();
 	assert!(msg.contains("mismatch"));
+
 	assert!(msg.contains("invalid JSON"));
 }
 
@@ -552,5 +555,6 @@ fn check_schemas_expected_invalid_json() {
 	assert!(result.is_err());
 	let msg = result.unwrap_err();
 	assert!(msg.contains("invalid JSON"));
+
 	assert!(msg.contains("Generated"));
 }

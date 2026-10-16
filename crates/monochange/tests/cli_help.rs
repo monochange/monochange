@@ -1,7 +1,6 @@
 #![allow(clippy::large_futures)]
 #![allow(clippy::disallowed_methods)]
 //! Integration tests for `monochange help` subcommand output.
-
 use std::path::PathBuf;
 
 use insta_cmd::assert_cmd_snapshot;

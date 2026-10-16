@@ -231,6 +231,7 @@ fn upsert_cli_command_document_writes_step_inputs() {
 		"packages".to_string(),
 		CliStepInputValue::List(vec!["core".to_string(), "cli".to_string()]),
 	);
+
 	let update = CommandUpdate {
 		original_name: None,
 		name: "release-pr".to_string(),
@@ -291,6 +292,7 @@ fn command_step_with_default_inputs_adds_and_inherits_expected_inputs() {
 	assert_eq!(command_inputs[1].kind, "boolean");
 	assert_eq!(command_inputs[2].name, "release_json");
 	assert_eq!(command_inputs[2].kind, "boolean");
+
 	assert_eq!(
 		step.inputs.get("format"),
 		Some(&CliStepInputValue::Inherited)
@@ -493,6 +495,7 @@ steps = [{ type = "Command", name = "install", command = "pnpm install --lockfil
 		command.inputs[0].help_text.as_deref(),
 		Some("Workspace path")
 	);
+
 	assert!(command.inputs[0].required);
 	assert_eq!(command.inputs[0].short, Some('w'));
 	assert_eq!(command.steps.len(), 1);
@@ -561,6 +564,7 @@ fn step_choices_and_labels_include_described_ranked_shell_command_and_save_actio
 		Some(9_999)
 	);
 	assert_eq!(step_choice_scorer("zzzz", &choices[1], "", 0), None);
+
 	let save_choice = choices
 		.iter()
 		.find(|choice| choice.kind == SAVE_STEPS_LABEL)

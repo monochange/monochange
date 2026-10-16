@@ -84,6 +84,7 @@ fn accepted_bug() -> FeedbackItem {
 		&maintainer(),
 	)
 	.unwrap();
+
 	item
 }
 
@@ -115,6 +116,7 @@ fn private_issues_keep_internals_but_never_personal_data() {
 	assert!(body.contains("Submitted through `invoices`."));
 	assert!(body.contains("- Route: `/invoices`"));
 	assert!(body.contains("- App version: 2.3.1"));
+
 	assert!(body.contains("- Pinned element: `#export-csv` (\"Export CSV\")"));
 	assert!(body.contains("- Attachments: 3 (open them from the feedback dashboard)"));
 	assert!(body.contains("1. Open /invoices in the app"));
@@ -158,6 +160,7 @@ fn sparse_items_render_only_what_exists() {
 	assert_eq!(draft.title, "Dark theme for every screen");
 	assert_eq!(draft.labels, ["feedback", "enhancement"]);
 	assert!(!draft.body.contains("## Where"));
+
 	assert!(!draft.body.contains("Attachments"));
 	assert!(!draft.body.contains("Technical findings"));
 	assert!(
@@ -178,6 +181,7 @@ fn sparse_items_render_only_what_exists() {
 	let body = issue_draft(&no_version, Public).unwrap().body;
 	assert!(body.contains("- Route: `/settings`"));
 	assert!(!body.contains("App version"));
+
 	assert!(!body.contains("Pinned element"));
 	assert!(!body.contains("## Discussion"));
 }
@@ -245,6 +249,7 @@ fn bug_briefs_fix_on_a_feedback_branch_and_never_merge() {
 		"Work on the branch `fix/feedback-fb-1` and open one pull request that closes #42."
 	);
 	assert!(brief.constraints[1].starts_with("Never merge the pull request"));
+
 	assert!(brief.constraints[3].contains(".changeset/feedback-fb-1.md"));
 	assert_eq!(brief.constraints.len(), 5);
 	assert!(
@@ -338,6 +343,7 @@ fn handoff_errors_explain_themselves() {
 			"outbound content contains untrusted instructions: x",
 		),
 	];
+
 	for (error, message) in messages {
 		assert_eq!(error.to_string(), message);
 	}

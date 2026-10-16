@@ -137,6 +137,7 @@ async fn repository_lifecycle_updates_the_dashboard_and_keeps_connection_availab
 	let alice_cookie = format!("{}={alice_token}", oauth::SESSION_COOKIE_NAME);
 	let bob_token = monochange_app_api::create_token(&state.jwt_secret, 2, 202, "bob").unwrap();
 	let bob_cookie = format!("{}={bob_token}", oauth::SESSION_COOKIE_NAME);
+
 	let app = router(state.clone()).merge(monochange_app_api::api_router((*state).clone()));
 	let owner = serde_json::json!({"id":1001,"account":{"id":101,"login":"alice","type":"User"},"repository_selection":"all"});
 	let empty = dashboard_html(&app, &alice_cookie).await;
@@ -163,6 +164,7 @@ async fn repository_lifecycle_updates_the_dashboard_and_keeps_connection_availab
 	assert!(connected.contains("Connect repositories on GitHub"));
 	assert!(!connected.contains("No repositories connected yet"));
 	assert!(!connected.contains("bob/private"));
+
 	let other_account = dashboard_html(&app, &bob_cookie).await;
 	assert!(other_account.contains("bob/private"));
 	assert!(!other_account.contains("alice/private"));
@@ -251,6 +253,7 @@ async fn dashboard_rechecks_organization_ownership_and_reports_expired_authoriza
 	sqlx::query("INSERT INTO installations (id, user_id, github_installation_id, github_account_login, github_account_type) VALUES (1, 1, 1001, 'acme', 'Organization')").execute(&state.db).await.unwrap();
 	sqlx::query("INSERT INTO repositories (installation_id, github_repo_id, github_full_name, github_private) VALUES (1, 11, 'acme/private', 1)").execute(&state.db).await.unwrap();
 	let token = monochange_app_api::create_token(&state.jwt_secret, 1, 101, "alice").unwrap();
+
 	let cookie = format!("{}={token}", oauth::SESSION_COOKIE_NAME);
 	let app = router(state);
 	assert!(dashboard_html(&app, &cookie).await.contains("acme/private"));
@@ -384,6 +387,7 @@ async fn login_delivers_browser_state_before_github_authorization_link() {
 			.unwrap();
 	assert_eq!(cookie.name(), oauth::OAUTH_COOKIE_NAME);
 	assert_eq!(cookie.http_only(), Some(true));
+
 	assert_eq!(cookie.secure(), Some(true));
 	let body = html(response).await;
 	let authorize = body
@@ -462,6 +466,7 @@ async fn configured_dashboard_connects_to_verified_app_and_shows_suspended_repos
 		)
 		.await
 		.unwrap();
+
 	let body = html(response).await;
 	assert!(body.contains("href=\"https://github.com/apps/test-app/installations/new?state="));
 	assert!(body.contains("Connect repositories on GitHub"));
@@ -495,6 +500,7 @@ async fn failed_app_metadata_dashboard_shows_retry_without_unverified_install_li
 		.unwrap();
 	let body = html(response).await;
 	assert!(body.contains("Repository setup couldn't be loaded"));
+
 	assert!(body.contains("Try again"));
 	assert!(!body.contains("test-only-sensitive-response"));
 	assert!(!body.contains("Connect repositories on GitHub"));
@@ -546,6 +552,7 @@ async fn callback_delivers_session_cookie_before_showing_success_and_dashboard_u
 		.await
 		.unwrap();
 	assert_eq!(response.status(), StatusCode::FOUND);
+
 	assert_eq!(response.headers()[LOCATION], "/dashboard");
 	let cookies: Vec<_> = response
 		.headers()
@@ -620,6 +627,7 @@ async fn signed_in_dashboard_navigation_offers_dashboard_and_sign_out() {
 		body.contains("Sign out"),
 		"authenticated navigation must offer sign out"
 	);
+
 	assert!(body.contains("Dashboard"));
 	assert!(!body.contains(">Sign in<"));
 }
@@ -658,6 +666,7 @@ async fn simultaneous_callbacks_share_one_identity_and_preserve_an_existing_work
 			.unwrap()
 	};
 	let app = router(state.clone());
+
 	let (first, second) = tokio::join!(app.clone().oneshot(request()), app.oneshot(request()));
 	assert_eq!(first.unwrap().status(), StatusCode::FOUND);
 	assert_eq!(second.unwrap().status(), StatusCode::FOUND);
@@ -719,6 +728,7 @@ async fn callback_failure_does_not_create_a_session_and_consumes_the_pending_log
 		.collect();
 	let body = html(response).await;
 	assert!(body.contains("Sign in failed"));
+
 	assert!(
 		!cookies
 			.iter()
@@ -838,6 +848,7 @@ async fn browser_flow_fixture_server() {
 	sqlx::query("INSERT INTO users (id, github_id, github_login, github_access_token) VALUES (1, 101, 'alice', 'test-only-token')").execute(&state.db).await.unwrap();
 	sqlx::query("INSERT INTO installations (id, user_id, github_installation_id, github_account_login, github_account_type) VALUES (1, 1, 1001, 'alice', 'User')").execute(&state.db).await.unwrap();
 	sqlx::query("INSERT INTO repositories (installation_id, github_repo_id, github_full_name, github_private) VALUES (1, 11, 'alice/public', 0), (1, 12, 'alice/private', 1)").execute(&state.db).await.unwrap();
+
 	let site = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../target/site");
 	let app = router(state)
 		.merge(crate::public_routes::book_redirects())
@@ -893,6 +904,7 @@ async fn organisations_lead_to_projects_that_work_without_javascript() {
 	let token = monochange_app_api::create_token(&state.jwt_secret, 1, 101, "alice").unwrap();
 	let cookie = format!("{}={token}", oauth::SESSION_COOKIE_NAME);
 	let app = router(state.clone()).merge(monochange_app_api::api_router((*state).clone()));
+
 	deliver_repository_event(
 		&app,
 		"installation",
@@ -941,6 +953,7 @@ async fn organisations_lead_to_projects_that_work_without_javascript() {
 	let team = page_html(&app, "/dashboard/team", &cookie).await;
 	assert!(team.contains("GitHub organisation"));
 	let legacy = page_html(&app, "/dashboard/legacy", &cookie).await;
+
 	assert!(legacy.contains("still confirming this account with GitHub"));
 	assert!(!legacy.contains("Create project"));
 

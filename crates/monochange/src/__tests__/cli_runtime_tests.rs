@@ -290,6 +290,7 @@ fn evaluate_fast_cli_step_condition_handles_changeset_count_and_inputs() {
 		),
 		Some(false)
 	);
+
 	assert_eq!(
 		evaluate_fast_cli_step_condition(
 			"{{ number_of_changesets > 0 && inputs.tag }}",
@@ -349,6 +350,7 @@ fn evaluate_fast_cli_step_condition_falls_back_for_complex_conditions() {
 		evaluate_fast_cli_step_condition("{{ inputs.missing }}", &context, &BTreeMap::new()),
 		None
 	);
+
 	assert_eq!(
 		evaluate_fast_cli_step_condition(
 			"{{ inputs.multi }}",
@@ -593,6 +595,7 @@ fn initialized_workspace_dir() -> TempDir {
 	git_in_dir(root, &["config", "user.email", "monochange@example.com"]);
 	git_in_dir(root, &["config", "commit.gpgsign", "false"]);
 	git_in_dir(root, &["add", "Cargo.toml"]);
+
 	git_in_dir(root, &["commit", "-m", "initial"]);
 	workspace_dir
 }
@@ -873,6 +876,7 @@ fn prepared_release_git_workspace() -> TempDir {
 	git_in_dir(root, &["config", "user.email", "monochange@example.com"]);
 	git_in_dir(root, &["config", "commit.gpgsign", "false"]);
 	git_in_dir(root, &["add", "Cargo.toml"]);
+
 	git_in_dir(root, &["commit", "-m", "initial"]);
 	workspace_dir
 }
@@ -927,6 +931,7 @@ fn render_helpers_cover_release_commit_and_markdown_sections() {
 	untracked.status = "completed".to_string();
 	untracked.tracked_paths = vec![PathBuf::from("/repo/.monochange/releases/abc/release.json")];
 	render_release_commit_section(&mut text, &untracked, Path::new("/repo"));
+
 	insta::assert_snapshot!("release_commit_sections", text.render());
 
 	let markdown_lines = render_release_commit_report_markdown(&report);
@@ -1133,6 +1138,7 @@ fn render_cli_command_results_include_release_details_policy_and_logs() {
 		dry_run: false,
 		status: "completed".to_string(),
 	});
+
 	context.prepared_release = Some(PreparedRelease {
 		plan: ReleasePlan {
 			workspace_root: PathBuf::from("."),
@@ -1568,6 +1574,7 @@ fn package_publish_headlines_distinguish_every_outcome() {
 		)),
 		"Published 1 package"
 	);
+
 	assert_eq!(
 		headline(&report(
 			package_publish::PackagePublishRunMode::Release,
@@ -2528,6 +2535,7 @@ fn drain_stream_events_collects_stdout_stderr_and_handles_closed_channels() {
 	sender
 		.send(StreamEvent::Closed(CommandStream::Stderr))
 		.unwrap_or_else(|error| panic!("close stderr: {error}"));
+
 	drop(sender);
 	let (stdout, stderr) = drain_stream_events(&receiver, &mut progress, 0, &step);
 	assert_eq!(stdout, b"hello\n");

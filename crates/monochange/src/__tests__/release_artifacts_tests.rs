@@ -199,6 +199,7 @@ fn sample_package(root: &Path, config_id: &str, package_type: PackageType) -> Pa
 	.unwrap_or_else(|error| panic!("create package dir: {error}"));
 	fs::write(&manifest_path, "manifest\n")
 		.unwrap_or_else(|error| panic!("write manifest: {error}"));
+
 	let ecosystem = match package_type {
 		PackageType::Cargo => Ecosystem::Cargo,
 		PackageType::Npm => Ecosystem::Npm,
@@ -206,6 +207,7 @@ fn sample_package(root: &Path, config_id: &str, package_type: PackageType) -> Pa
 		PackageType::Dart => Ecosystem::Dart,
 		_ => unreachable!("unsupported package type in sample_package"),
 	};
+
 	let mut package = PackageRecord::new(
 		ecosystem,
 		config_id,
@@ -828,6 +830,7 @@ fn render_release_cli_command_json_includes_command_step_results() {
 	assert_eq!(value["commands"][0]["exit_code"], 0);
 	// Without other sections, the manifest keeps its top-level shape.
 	assert!(value.get("manifest").is_none());
+
 	assert_eq!(value["command"], json!(manifest.command));
 
 	let file_diffs = vec![PreparedFileDiff {
@@ -896,6 +899,7 @@ async fn release_manifest_and_source_helpers_cover_provider_specific_paths() {
 	assert!(tag_url_for_provider(&gitea, "sdk/v2.0.0").contains("/releases/tag/"));
 
 	let github = source_configuration(SourceProvider::GitHub);
+
 	match publish_source_release_requests(&github, &[]).await {
 		Ok(outcomes) => assert!(outcomes.is_empty()),
 		Err(error) => assert!(!error.to_string().is_empty()),
@@ -1258,9 +1262,11 @@ fn load_dedup_index_from_reader_returns_none_on_read_error() {
 	impl std::io::Read for BrokenBufRead {
 		fn read(&mut self, buffer: &mut [u8]) -> std::io::Result<usize> {
 			let available = self.fill_buf()?;
+
 			if available.is_empty() {
 				return Ok(0);
 			}
+
 			let length = available.len().min(buffer.len());
 			buffer[..length].copy_from_slice(&available[..length]);
 			self.consume(length);
@@ -1273,6 +1279,7 @@ fn load_dedup_index_from_reader_returns_none_on_read_error() {
 			if self.read_error {
 				return Err(std::io::Error::other("broken reader"));
 			}
+
 			Ok(self.line)
 		}
 
@@ -1280,8 +1287,10 @@ fn load_dedup_index_from_reader_returns_none_on_read_error() {
 			if amount >= self.line.len() {
 				self.line = b"";
 				self.read_error = true;
+
 				return;
 			}
+
 			self.line = &self.line[amount..];
 		}
 	}
@@ -1601,6 +1610,7 @@ fn custom_release_tag_matcher_rejects_invalid_or_missing_version_templates() {
 			None
 		);
 	}
+
 	assert_eq!(
 		find_previous_tag_in("not-a-tag", &[], "sdk", "go", &VersionFormat::Namespaced),
 		None
@@ -1827,12 +1837,12 @@ fn git_repo_with_commit() -> tempfile::TempDir {
 	fs::write(root.join("readme.md"), "readme")
 		.unwrap_or_else(|error| panic!("write readme: {error}"));
 	hosted_test_git(root, &["add", "readme.md"]);
+
 	hosted_test_git(root, &["commit", "-m", "initial"]);
 	tempdir
 }
 
 // ── Hosted release commit backend tests ──
-
 #[test]
 fn resolve_hosted_commit_options_defaults_to_public_app() {
 	let options =
@@ -2038,6 +2048,7 @@ fn build_hosted_commit_request_for_github_targets_the_release_branch() {
 	assert_eq!(request.subject, "chore(release): prepare release");
 	assert_eq!(request.body, "release body");
 	assert_eq!(request.files.len(), 1);
+
 	assert_eq!(request.files[0].path, "changelog.md");
 	assert_eq!(request.files[0].content.as_deref(), Some("notes"));
 	assert_eq!(
@@ -2162,7 +2173,6 @@ fn release_backend_parses_from_step_input_strings() {
 }
 
 // ── Hosted release commit network and auth tests ──
-
 use httpmock::MockServer;
 use monochange_core::HostedCommitFile;
 
@@ -2212,6 +2222,7 @@ async fn send_hosted_commit_request_parses_success_response() {
 	assert_eq!(response.commit.as_deref(), Some("def456"));
 	assert!(response.verified);
 	assert_eq!(response.status.as_deref(), Some("completed"));
+
 	mock.assert();
 }
 
@@ -2292,7 +2303,6 @@ fn build_hosted_commit_request_requires_github_repository_environment() {
 }
 
 // ── Hosted release auth tests (lock-protected env vars only) ──
-
 fn with_test_env_lock<T>(action: impl FnOnce() -> T) -> T {
 	let _env_lock = TEST_ENV_LOCK
 		.lock()
@@ -2600,7 +2610,6 @@ fn hosted_oidc_token_rejects_invalid_payloads() {
 }
 
 // ── Hosted release request endpoint tests ──
-
 fn hosted_change_request_fixture() -> SourceChangeRequest {
 	SourceChangeRequest {
 		provider: monochange_core::SourceProvider::GitHub,

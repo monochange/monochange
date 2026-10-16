@@ -105,5 +105,6 @@ fn jq_filter_ignores_invalid_or_missing_paths() {
 	assert_eq!(apply_jq_filter(output, ".items[0.name").unwrap(), "");
 	assert_eq!(apply_jq_filter(output, ".name[0]").unwrap(), "");
 	assert_eq!(apply_jq_filter(output, ".%").unwrap(), "");
+
 	assert_eq!(apply_jq_filter(output, ".items[].name.foo").unwrap(), "");
 }

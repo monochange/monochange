@@ -258,6 +258,7 @@ pub fn build_release_plan(
 
 		if group_max.is_release() {
 			let reason = format!("shares version group `{group_id}`");
+
 			for member_id in &group.members {
 				apply_decision(
 					&mut states,
@@ -355,6 +356,7 @@ fn resolve_explicit_versions(
 			source_path: signal.source_path.clone(),
 			version,
 		};
+
 		if let Some(group_id) = package_by_id
 			.get(signal.package_id.as_str())
 			.and_then(|package| package.version_group_id.as_ref())
@@ -441,6 +443,7 @@ fn resolve_explicit_version_choice(
 		.iter()
 		.map(|input| input.version.clone())
 		.collect::<BTreeSet<_>>();
+
 	if distinct_versions.len() > 1 {
 		let details = inputs
 			.iter()
@@ -457,11 +460,14 @@ fn resolve_explicit_version_choice(
 		let message = format!(
 			"conflicting explicit versions for {owner}; using highest version `{chosen_version}` from: {details}"
 		);
+
 		if strict_version_conflicts {
 			return Err(MonochangeError::Config(message));
 		}
+
 		warnings.push(message);
 	}
+
 	if let Some(current_version) = current_version
 		&& chosen_version <= *current_version
 	{
@@ -491,9 +497,11 @@ fn build_propagation_suppression(
 		.filter(|signal| !signal.caused_by.is_empty())
 	{
 		let resolved = resolve_caused_by_sources(&signal.caused_by, package_by_id, group_by_id);
+
 		if resolved.is_empty() {
 			continue;
 		}
+
 		suppression
 			.entry(signal.package_id.clone())
 			.or_default()
@@ -513,6 +521,7 @@ fn resolved_upstream_sources(
 	}
 
 	let resolved = resolve_caused_by_sources(&signal.caused_by, package_by_id, group_by_id);
+
 	if resolved.is_empty() {
 		return BTreeSet::from([signal.package_id.clone()]);
 	}
@@ -532,6 +541,7 @@ fn resolve_caused_by_sources(
 			resolved.insert(reference.clone());
 			continue;
 		}
+
 		if let Some(group) = group_by_id.get(reference.as_str()) {
 			resolved.extend(group.members.iter().cloned());
 		}
@@ -571,9 +581,11 @@ fn apply_decision<'a>(
 		state.severity = new_severity;
 		queue.push_back(package_id);
 	}
+
 	if trigger_priority(trigger_type) > trigger_priority(&state.trigger_type) {
 		state.trigger_type = trigger_type.to_string();
 	}
+
 	state.reasons.insert(reason.to_string());
 	state
 		.upstream_sources
@@ -615,6 +627,7 @@ fn planned_group(
 		})
 		.max()
 		.unwrap_or(BumpSeverity::None);
+
 	if !recommended_bump.is_release() {
 		return None;
 	}

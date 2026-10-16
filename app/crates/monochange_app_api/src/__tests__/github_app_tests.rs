@@ -165,6 +165,7 @@ async fn installation_account_recovers_the_stable_account_identity() {
 		account.avatar_url.as_deref(),
 		Some("https://avatars/acme.png")
 	);
+
 	assert_eq!(account.provider, "github");
 }
 
@@ -186,7 +187,6 @@ async fn installation_account_failures_keep_github_status() {
 }
 
 // ── Hosted release commits ──
-
 const RELEASE_BRANCH: &str = "monochange/release/release";
 const BASE_COMMIT: &str = "base-sha";
 const RELEASE_COMMIT: &str = "release-sha";
@@ -221,6 +221,7 @@ fn mock_branch<'a>(server: &'a MockServer, branch: &str, sha: Option<&str>) -> M
 	let path = format!("/repos/acme/actions/git/ref/heads/{branch}");
 	server.mock(|when, then| {
 		when.method(Method::GET).path(path);
+
 		match sha {
 			Some(sha) => {
 				then.status(200)
@@ -395,6 +396,7 @@ async fn stale_run_cannot_replace_the_release_branch() {
 		matches!(
 			&error,
 			GitHubAppError::BaseMoved(branch, actual, expected)
+
 				if branch == "main" && actual == "newer-base-sha" && expected == BASE_COMMIT
 		),
 		"{error}"
@@ -423,6 +425,7 @@ async fn missing_base_branch_cannot_replace_the_release_branch() {
 		matches!(
 			&error,
 			GitHubAppError::Status("read base branch ref", status, _)
+
 				if *status == reqwest::StatusCode::NOT_FOUND
 		),
 		"{error}"
@@ -450,6 +453,7 @@ async fn release_branch_that_moved_is_never_force_updated(
 		matches!(
 			&error,
 			GitHubAppError::BranchMoved(moved, actual, expected)
+
 				if moved == branch && actual == "other-sha" && expected == BASE_COMMIT
 		),
 		"{error}"
@@ -478,6 +482,7 @@ async fn unreadable_release_branch_fails_before_writing() {
 		matches!(
 			&error,
 			GitHubAppError::Status("read release branch ref", status, body)
+
 				if *status == reqwest::StatusCode::INTERNAL_SERVER_ERROR && body == "unavailable"
 		),
 		"{error}"
@@ -508,6 +513,7 @@ async fn rejected_fast_forward_reports_the_ref_update() {
 		matches!(
 			&error,
 			GitHubAppError::Status("update release branch ref", status, _)
+
 				if *status == reqwest::StatusCode::UNPROCESSABLE_ENTITY
 		),
 		"{error}"
@@ -540,6 +546,7 @@ async fn only_release_branches_that_are_not_the_default_branch_are_forced(
 		matches!(
 			&error,
 			GitHubAppError::BranchMoved(moved, actual, expected)
+
 				if moved == branch && actual == "other-sha" && expected == BASE_COMMIT
 		),
 		"{error}"
@@ -570,6 +577,7 @@ async fn unreadable_repository_metadata_refuses_to_force() {
 		matches!(
 			&error,
 			GitHubAppError::Status("read repository", status, _)
+
 				if *status == reqwest::StatusCode::FORBIDDEN
 		),
 		"{error}"

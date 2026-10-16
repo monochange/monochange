@@ -1,7 +1,6 @@
 #![forbid(clippy::indexing_slicing)]
 
 //! npm-family manifest lint suite.
-
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::fmt::Write as _;
@@ -314,8 +313,10 @@ fn line_column_for_offset(contents: &str, offset: usize) -> Option<(usize, usize
 	if offset > contents.len() || !contents.is_char_boundary(offset) {
 		return None;
 	}
+
 	let mut line = 1usize;
 	let mut column = 1usize;
+
 	for character in contents[..offset].chars() {
 		if character == '\n' {
 			line += 1;
@@ -324,6 +325,7 @@ fn line_column_for_offset(contents: &str, offset: usize) -> Option<(usize, usize
 			column += 1;
 		}
 	}
+
 	Some((line, column))
 }
 
@@ -398,6 +400,7 @@ fn sorted_dependency_section_text(
 			|relative| leading_line_indent(contents, open_offset + 1 + relative).to_string(),
 		);
 	let mut output = String::from("{");
+
 	for (index, key) in sorted_keys.iter().enumerate() {
 		let value = object.get(key)?;
 		let key_text = serde_json::to_string(key).ok()?;
@@ -407,14 +410,17 @@ fn sorted_dependency_section_text(
 		} else {
 			","
 		};
+
 		write!(output, "\n{entry_indent}{key_text}: {value_text}{comma}").ok()?;
 	}
+
 	write!(output, "\n{section_indent}}}").ok()?;
 	Some(output)
 }
 
 fn matching_brace_offset(contents: &str, open_offset: usize) -> Option<usize> {
 	let mut depth = 0usize;
+
 	for (offset, ch) in contents[open_offset..].char_indices() {
 		match ch {
 			'{' => depth += 1,
@@ -427,6 +433,7 @@ fn matching_brace_offset(contents: &str, open_offset: usize) -> Option<usize> {
 			_ => {}
 		}
 	}
+
 	None
 }
 
@@ -471,6 +478,7 @@ impl LintRuleRunner for WorkspaceProtocolRule {
 		if ctx.metadata.private == Some(true) && !config.bool_option("require_for_private", false) {
 			return Vec::new();
 		}
+
 		let Some(file) = npm_file(ctx) else {
 			return Vec::new();
 		};
@@ -480,10 +488,12 @@ impl LintRuleRunner for WorkspaceProtocolRule {
 			let Some(object) = file.manifest.get(section).and_then(Value::as_object) else {
 				continue;
 			};
+
 			for (dep_name, version) in object {
 				let Some(version) = version.as_str() else {
 					continue;
 				};
+
 				if !file.workspace_package_names.contains(dep_name)
 					|| version.starts_with("workspace:")
 				{
@@ -563,6 +573,7 @@ impl LintRuleRunner for SortedDependenciesRule {
 				.unwrap_or_else(|| keys.iter().map(|key| (*key).clone()).collect::<Vec<_>>());
 			let mut sorted_keys = keys.iter().map(|key| (*key).clone()).collect::<Vec<_>>();
 			sorted_keys.sort();
+
 			if source_order == sorted_keys {
 				continue;
 			}
@@ -573,6 +584,7 @@ impl LintRuleRunner for SortedDependenciesRule {
 				format!("dependencies in `{section}` are not sorted alphabetically"),
 				config.severity(),
 			);
+
 			if config.bool_option("fix", true)
 				&& let Some(span) = dependency_section_object_span(ctx.contents, section)
 				&& let Some(replacement) =
@@ -682,12 +694,14 @@ impl LintRuleRunner for RootNoProdDepsRule {
 		if ctx.manifest_path.parent() != Some(ctx.workspace_root) {
 			return Vec::new();
 		}
+
 		let Some(file) = npm_file(ctx) else {
 			return Vec::new();
 		};
 		let Some(deps) = file.manifest.get("dependencies").and_then(Value::as_object) else {
 			return Vec::new();
 		};
+
 		if deps.is_empty() {
 			return Vec::new();
 		}
@@ -698,8 +712,10 @@ impl LintRuleRunner for RootNoProdDepsRule {
 			"root package.json should not have production dependencies; move them to devDependencies",
 			config.severity(),
 		);
+
 		if config.bool_option("fix", true) {
 			let mut rewritten = file.manifest.clone();
+
 			if let Some(root) = manifest_object_mut(&mut rewritten) {
 				let moved = root
 					.remove("dependencies")
@@ -708,12 +724,14 @@ impl LintRuleRunner for RootNoProdDepsRule {
 				let dev_dependencies = root
 					.entry("devDependencies".to_string())
 					.or_insert_with(|| Value::Object(Map::new()));
+
 				if let Some(dev_dependencies) = dev_dependencies.as_object_mut() {
 					for (name, value) in moved {
 						dev_dependencies.insert(name, value);
 					}
 				}
 			}
+
 			result = result.with_fix(LintFix::document(
 				"move root dependencies to devDependencies",
 				serde_json::to_string_pretty(&rewritten)
@@ -721,6 +739,7 @@ impl LintRuleRunner for RootNoProdDepsRule {
 				ctx.contents.len(),
 			));
 		}
+
 		vec![result]
 	}
 }
@@ -760,20 +779,24 @@ impl LintRuleRunner for NoDuplicateDependenciesRule {
 			return Vec::new();
 		};
 		let mut seen = BTreeMap::<String, Vec<&'static str>>::new();
+
 		for section in dependency_sections() {
 			let Some(object) = file.manifest.get(section).and_then(Value::as_object) else {
 				continue;
 			};
+
 			for dep_name in object.keys() {
 				seen.entry(dep_name.clone()).or_default().push(section);
 			}
 		}
 
 		let mut results = Vec::new();
+
 		for (dep_name, sections) in seen {
 			if sections.len() <= 1 {
 				continue;
 			}
+
 			let mut result = LintResult::new(
 				self.rule.id.clone(),
 				location_for_needle(ctx, &dep_name),
@@ -783,18 +806,22 @@ impl LintRuleRunner for NoDuplicateDependenciesRule {
 				),
 				config.severity(),
 			);
+
 			if config.bool_option("fix", true) {
 				let mut rewritten = file.manifest.clone();
+
 				if let Some(root) = manifest_object_mut(&mut rewritten) {
 					let keep_in = if sections.contains(&"devDependencies") {
 						"devDependencies"
 					} else {
 						sections.first().copied().unwrap_or("dependencies")
 					};
+
 					for section in &sections {
 						if *section == keep_in {
 							continue;
 						}
+
 						if let Some(section_obj) =
 							root.get_mut(*section).and_then(Value::as_object_mut)
 						{
@@ -802,6 +829,7 @@ impl LintRuleRunner for NoDuplicateDependenciesRule {
 						}
 					}
 				}
+
 				result = result.with_fix(LintFix::document(
 					"remove duplicate dependency entries from later sections",
 					serde_json::to_string_pretty(&rewritten)
@@ -809,8 +837,10 @@ impl LintRuleRunner for NoDuplicateDependenciesRule {
 					ctx.contents.len(),
 				));
 			}
+
 			results.push(result);
 		}
+
 		results
 	}
 }
@@ -849,6 +879,7 @@ impl LintRuleRunner for UnlistedPackagePrivateRule {
 		if ctx.metadata.managed || ctx.metadata.private == Some(true) {
 			return Vec::new();
 		}
+
 		let Some(file) = npm_file(ctx) else {
 			return Vec::new();
 		};
@@ -858,11 +889,14 @@ impl LintRuleRunner for UnlistedPackagePrivateRule {
 			"unmanaged npm-family packages must set private: true or be declared in monochange.toml",
 			config.severity(),
 		);
+
 		if config.bool_option("fix", true) {
 			let mut rewritten = file.manifest.clone();
+
 			if let Some(root) = manifest_object_mut(&mut rewritten) {
 				root.insert("private".to_string(), Value::Bool(true));
 			}
+
 			result = result.with_fix(LintFix::document(
 				"insert private: true",
 				serde_json::to_string_pretty(&rewritten)
@@ -870,6 +904,7 @@ impl LintRuleRunner for UnlistedPackagePrivateRule {
 				ctx.contents.len(),
 			));
 		}
+
 		vec![result]
 	}
 }
@@ -933,6 +968,7 @@ impl LintRuleRunner for ManifestRepositoryRule {
 				if let Some(obj) = manifest_object_mut(&mut manifest) {
 					obj.insert("repository".to_string(), Value::String(expected.clone()));
 				}
+
 				let fixed = serde_json::to_string_pretty(&manifest)
 					.unwrap_or_else(|_| ctx.contents.to_string());
 				let result = LintResult::new(
@@ -953,11 +989,13 @@ impl LintRuleRunner for ManifestRepositoryRule {
 				if current == expected {
 					return Vec::new();
 				}
+
 				let loc = location(ctx);
 				let mut manifest = file.manifest.clone();
 				if let Some(obj) = manifest_object_mut(&mut manifest) {
 					obj.insert("repository".to_string(), Value::String(expected.clone()));
 				}
+
 				let fixed = serde_json::to_string_pretty(&manifest)
 					.unwrap_or_else(|_| ctx.contents.to_string());
 				let result = LintResult::new(

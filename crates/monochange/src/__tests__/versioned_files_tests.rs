@@ -142,6 +142,7 @@ fn npm_versioned_file_respects_explicit_version_field_selection(
 	} else {
 		"versioned-files/npm-field-selection"
 	});
+
 	let configuration =
 		monochange_config::load_workspace_configuration(&fixture_path("monochange/release-base"))
 			.unwrap_or_else(|error| panic!("configuration: {error}"));
@@ -684,6 +685,7 @@ fn apply_versioned_file_definition_supports_format_mode_and_reports_format_error
 		value_template: None,
 	};
 	let mut updates = BTreeMap::new();
+
 	apply_versioned_file_definition(
 		root,
 		&mut updates,
@@ -797,6 +799,7 @@ fn value_template_renders_declared_values_into_a_file() {
 	};
 	let definition = value_template_definition("pubspec.yaml", "{{ identity }}+{{ build }}", None);
 	let mut updates = BTreeMap::new();
+
 	apply_versioned_file_definition(
 		root,
 		&mut updates,
@@ -836,6 +839,7 @@ fn value_template_reports_an_unresolved_variable() {
 	};
 	let definition = value_template_definition("pubspec.yaml", "{{ identity }}+{{ build }}", None);
 	let mut updates = BTreeMap::new();
+
 	let error = apply_versioned_file_definition(
 		root,
 		&mut updates,
@@ -870,6 +874,7 @@ fn value_template_reports_a_file_without_a_semver_to_replace() {
 	};
 	let definition = value_template_definition("store.json", "{{ identity }}", None);
 	let mut updates = BTreeMap::new();
+
 	let error = apply_versioned_file_definition(
 		root,
 		&mut updates,
@@ -915,6 +920,7 @@ fn value_template_with_format_fields_writes_the_rendered_value_into_each_field()
 	};
 	let mut definition = value_template_definition("deploy.json", "{{ digest }}", None);
 	definition.format = Some(monochange_core::VersionedFileFormat::Json);
+
 	definition.fields = Some(vec!["sha256".to_string()]);
 	let mut updates = BTreeMap::new();
 	apply_versioned_file_definition(
@@ -927,10 +933,12 @@ fn value_template_with_format_fields_writes_the_rendered_value_into_each_field()
 		&context,
 	)
 	.unwrap_or_else(|error| panic!("apply value template with fields: {error}"));
+
 	let contents = match updates.get(&root.join("deploy.json")) {
 		Some(CachedDocument::Text(contents)) => contents.clone(),
 		other => panic!("expected a text update for deploy.json, got: {other:?}"),
 	};
+
 	assert!(
 		contents.contains("\"sha256\": \"a88cb6254c22fd13\""),
 		"the rendered digest must land in the declared field, got: {contents}"
@@ -964,6 +972,7 @@ fn value_template_with_format_fields_reports_an_unresolved_variable() {
 	};
 	let mut definition = value_template_definition("deploy.json", "{{ digest }}", None);
 	definition.format = Some(monochange_core::VersionedFileFormat::Json);
+
 	definition.fields = Some(vec!["sha256".to_string()]);
 	let mut updates = BTreeMap::new();
 	let error = apply_versioned_file_definition(
@@ -1000,6 +1009,7 @@ fn value_template_with_format_fields_reports_unparseable_contents() {
 	};
 	let mut definition = value_template_definition("deploy.json", "{{ identity }}", None);
 	definition.format = Some(monochange_core::VersionedFileFormat::Json);
+
 	definition.fields = Some(vec!["sha256".to_string()]);
 	let mut updates = BTreeMap::new();
 	let error = apply_versioned_file_definition(
@@ -1041,6 +1051,7 @@ fn value_template_with_format_and_missing_fields_is_an_error() {
 	};
 	let mut definition = value_template_definition("deploy.json", "{{ identity }}", None);
 	definition.format = Some(monochange_core::VersionedFileFormat::Json);
+
 	let mut updates = BTreeMap::new();
 	let error = apply_versioned_file_definition(
 		root,
@@ -1139,6 +1150,7 @@ fn value_template_renders_prerelease_identity_without_build_metadata() {
 	// `{{ prerelease }}` carries the prerelease tail with build metadata removed.
 	let definition = value_template_definition("version.txt", "{{ prerelease }}", None);
 	let mut updates = BTreeMap::new();
+
 	apply_versioned_file_definition(
 		root,
 		&mut updates,
@@ -1162,12 +1174,14 @@ fn recursive_versioned_file_globs_skip_ignored_workspace_directories() {
 	let package_metadata = root.join("packages/app/metadata.json");
 	let fvm_metadata = root.join(".fvm/versions/3.44.1/metadata.json");
 	let repos_metadata = root.join(".repos/external/metadata.json");
+
 	for path in [&package_metadata, &fvm_metadata, &repos_metadata] {
 		std::fs::create_dir_all(path.parent().unwrap_or(root))
 			.unwrap_or_else(|error| panic!("create metadata parent: {error}"));
 		std::fs::write(path, "{\"release\":{\"version\":\"1.0.0\"}}")
 			.unwrap_or_else(|error| panic!("write metadata: {error}"));
 	}
+
 	let configuration =
 		monochange_config::load_workspace_configuration(&fixture_path("monochange/release-base"))
 			.unwrap_or_else(|error| panic!("configuration: {error}"));
@@ -1316,6 +1330,7 @@ fn build_versioned_file_updates_prewarms_group_versioned_file_globs() {
 	let configuration = monochange_config::load_workspace_configuration(root)
 		.unwrap_or_else(|error| panic!("configuration: {error}"));
 	let package = npm_package_record(root, "app");
+
 	let plan = monochange_core::ReleasePlan {
 		workspace_root: root.to_path_buf(),
 		decisions: vec![monochange_core::ReleaseDecision {
@@ -1644,6 +1659,7 @@ fn apply_versioned_file_definition_reports_go_for_unsupported_glob_match() {
 		regex: None,
 		value_template: None,
 	};
+
 	let mut updates = BTreeMap::new();
 
 	let error = apply_versioned_file_definition(
@@ -1684,6 +1700,7 @@ fn apply_versioned_file_definition_updates_go_mod_dependencies() {
 		labels: BTreeMap::new(),
 		release_values: BTreeMap::new(),
 	};
+
 	let definition = monochange_core::VersionedFileDefinition {
 		path: "go.mod".to_string(),
 		ecosystem_type: Some(EcosystemType::Go),

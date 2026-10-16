@@ -39,7 +39,6 @@ fn package_record(
 }
 
 // --- version inventory tests ---
-
 #[test]
 fn syncing_deno_jsonc_preserves_comments_and_trailing_commas() {
 	let contents = r#"// Internal dependencies
@@ -142,6 +141,7 @@ fn version_inventory_uses_configured_package_ids_and_group_ids() {
 	assert!(!inventory.contains_key("workflow-core"));
 	assert!(!inventory.contains_key("native-package-name"));
 	assert!(!inventory.contains_key("unversioned"));
+
 	assert!(!inventory.contains_key("empty"));
 }
 
@@ -170,7 +170,6 @@ fn format_version_inventory_supports_text_and_json() {
 }
 
 // --- apply_sync_changes tests ---
-
 #[test]
 fn apply_sync_changes_dart_manifest_updates_version() {
 	let contents = r"name: my_app
@@ -370,7 +369,6 @@ dependencies:
 }
 
 // --- format_sync_result tests ---
-
 fn dart_sync_change() -> sync::FileSyncResult {
 	sync::FileSyncResult {
 		path: "/workspace/pubspec.yaml".to_string(),
@@ -485,6 +483,7 @@ fn format_sync_result_for_cli_supports_text_and_json() {
 	assert!(text.contains("Skipped unsupported ecosystems (1)"));
 	assert!(json.contains(r#""package_name": "go-lib""#));
 	assert!(json_min.contains(r#""package_name":"go-lib""#));
+
 	assert!(json_min.contains('\n'));
 }
 
@@ -514,7 +513,6 @@ fn parse_versions_output_format_parses_json_and_json_min() {
 }
 
 // --- parse_strategy tests ---
-
 #[test]
 fn parse_strategy_exact() {
 	assert_eq!(sync::parse_strategy("exact"), VersionStrategy::Exact);
@@ -541,7 +539,6 @@ fn parse_strategy_default_fallback() {
 }
 
 // --- struct construction tests ---
-
 #[test]
 fn sync_result_tracks_file_changes() {
 	let dep_change = DependencySyncChange {
@@ -678,7 +675,6 @@ fn apply_version_sync_plan_wraps_apply_errors() {
 }
 
 // --- build_versions_subcommand tests ---
-
 #[test]
 fn build_versions_subcommand_parses_defaults() {
 	let command = Command::new("monochange").subcommand(cli::build_versions_subcommand());
@@ -1056,6 +1052,7 @@ fn read_manifest_reports_missing_file() {
 	let temp = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let missing = temp.path().join("missing.json");
 	let result = sync::read_manifest(&missing);
+
 	let error = match result {
 		Ok(contents) => panic!("expected missing file error, got: {contents}"),
 		Err(error) => error,
@@ -1069,6 +1066,7 @@ fn write_manifest_reports_missing_parent() {
 	let temp = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let missing_parent = temp.path().join("missing/package.json");
 	let result = sync::write_manifest(&missing_parent, "{}".to_string());
+
 	let error = match result {
 		Ok(()) => panic!("expected missing parent write error"),
 		Err(error) => error,
@@ -1136,6 +1134,7 @@ fn detect_go_changes_resolves_nested_module_path_to_workspace_package() {
 	.unwrap_or_else(|error| panic!("detect_go_changes: {error}"));
 	assert_eq!(result.len(), 1);
 	assert_eq!(result[0].dependency_name, "github.com/acme/core");
+
 	assert_eq!(result[0].section, "require");
 	assert_eq!(result[0].old_value, "v1.2.0");
 	assert_eq!(result[0].new_value, "v1.3.0");

@@ -207,9 +207,11 @@ fn run_command(root: &Path, command: &str) -> std::process::Output {
 	let mut process = monochange_command(None);
 	process.current_dir(root);
 	let command_parts = command.split_whitespace().collect::<Vec<_>>();
+
 	if !matches!(command_parts.first().copied(), Some("step")) {
 		process.arg("run");
 	}
+
 	process
 		.args(command_parts)
 		.arg("--dry-run")
@@ -224,9 +226,11 @@ fn run_command_without_dry_run(root: &Path, command: &str) -> std::process::Outp
 fn run_command_args_without_dry_run(root: &Path, args: &[&str]) -> std::process::Output {
 	let mut process = monochange_command(None);
 	process.current_dir(root);
+
 	if !matches!(args.first().copied(), Some("step")) {
 		process.arg("run");
 	}
+
 	process
 		.args(args)
 		.output()

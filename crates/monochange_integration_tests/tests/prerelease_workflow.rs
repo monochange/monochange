@@ -39,6 +39,7 @@ fn setup_fixture(relative: &str) -> TempDir {
 	);
 	git(root, &["add", "."]);
 	git(root, &["commit", "-m", "initial"]);
+
 	tempdir
 }
 
@@ -158,6 +159,7 @@ fn prerelease_notes_report_only_changesets_added_since_the_previous_prerelease()
 			"notes": notes_from(&second, "core", "release"),
 		})
 	);
+
 	commit_all(root, "prepare alpha 1");
 
 	// A newly added changeset is the only thing the next prerelease reports: the

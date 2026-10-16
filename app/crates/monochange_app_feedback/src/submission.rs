@@ -108,12 +108,15 @@ impl FeedbackSubmission {
 		if self.description.trim().is_empty() {
 			return Err(IntakeError::EmptyDescription);
 		}
+
 		if self.description.chars().count() > MAX_DESCRIPTION_CHARS {
 			return Err(IntakeError::DescriptionTooLong);
 		}
+
 		if self.submitter.anonymous_id.trim().is_empty() {
 			return Err(IntakeError::MissingSubmitter);
 		}
+
 		Ok(())
 	}
 }

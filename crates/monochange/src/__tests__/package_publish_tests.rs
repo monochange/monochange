@@ -194,11 +194,13 @@ impl CommandExecutor for FakeExecutor {
 fn sample_request(registry: RegistryKind) -> PublishRequest {
 	PublishRequest {
 		package_id: "pkg".to_string(),
+
 		package_name: if registry == RegistryKind::Jsr {
 			"@scope/pkg".to_string()
 		} else {
 			"pkg".to_string()
 		},
+
 		ecosystem: if registry == RegistryKind::CratesIo {
 			Ecosystem::Cargo
 		} else if registry == RegistryKind::Npm {
@@ -212,6 +214,7 @@ fn sample_request(registry: RegistryKind) -> PublishRequest {
 		} else {
 			Ecosystem::Deno
 		},
+
 		manifest_path: PathBuf::from("/workspace/pkg/manifest"),
 		package_root: PathBuf::from("/workspace/pkg"),
 		registry,
@@ -391,6 +394,7 @@ fn configure_npm_trusted_publishing(
 	let context = resolve_github_trust_context(root, source, &request.trusted_publishing, env_map)?;
 	let list_command = build_npm_trust_list_command(request);
 	let list_output = executor.run(&list_command)?;
+
 	if trust_list_contains_context(&list_output.stdout, &context) {
 		return Ok(TrustedPublishingOutcome {
 			status: TrustedPublishingStatus::Configured,
@@ -405,6 +409,7 @@ fn configure_npm_trusted_publishing(
 
 	let trust_command = build_npm_trust_command(request, &context);
 	let trust_output = executor.run(&trust_command)?;
+
 	if !trust_output.success {
 		return Err(MonochangeError::Discovery(format!(
 			"`{}` failed: {}",
@@ -414,6 +419,7 @@ fn configure_npm_trusted_publishing(
 	}
 
 	let verify_output = executor.run(&list_command)?;
+
 	if !trust_list_contains_context(&verify_output.stdout, &context) {
 		return Err(MonochangeError::Discovery(format!(
 			"npm trusted publishing could not be verified for `{}` after running `{}`",
@@ -545,6 +551,7 @@ fn commit_release_record(root: &Path, publications: Vec<PackagePublicationTarget
 			hasher.write(target.id.as_bytes());
 			hasher.write(target.version.as_bytes());
 		}
+
 		format!("{:016x}", hasher.finish())
 	};
 	let dir = root.join(".monochange/releases").join(&hash);
@@ -941,6 +948,7 @@ fn build_publish_command_covers_all_supported_registries() {
 		false,
 	);
 	assert_eq!(pnpm_placeholder.program, "pnpm");
+
 	let pnpm = build_publish_command(&pnpm_request, PackagePublishRunMode::Release, None, false);
 	assert_eq!(pnpm.program, "pnpm");
 	let trusted_pnpm_request = PublishRequest {
@@ -1249,6 +1257,7 @@ fn manual_setup_url_matches_each_registry() {
 		"https://pkg.go.dev/github.com/example/pkg".to_string()
 	);
 	assert_eq!(trust_docs_url(RegistryKind::Npm), NPM_TRUST_DOCS_URL);
+
 	assert_eq!(
 		trust_docs_url(RegistryKind::CratesIo),
 		CRATES_TRUST_DOCS_URL
@@ -1339,6 +1348,7 @@ async fn registry_version_exists_parses_all_supported_registry_shapes() {
 		}));
 	});
 	install_rustls_ring_provider();
+
 	let client = Client::builder().build().expect("http client:");
 	let endpoints = RegistryEndpoints {
 		npm_registry: server.base_url(),
@@ -1426,6 +1436,7 @@ async fn registry_version_exists_treats_any_existing_version_as_placeholder_boot
 	});
 	install_rustls_ring_provider();
 	let client = Client::builder().build().expect("http client:");
+
 	let endpoints = sample_endpoints(&server.base_url());
 	let placeholder = |registry| {
 		PublishRequest {
@@ -1643,6 +1654,7 @@ async fn registry_version_exists_returns_false_for_missing_packages() {
 		package_name: "missing".to_string(),
 		..request
 	};
+
 	assert!(
 		!registry_version_exists(&client, &endpoints, &request)
 			.await
@@ -1786,6 +1798,7 @@ fn write_cargo_placeholder_manifest_requires_license_metadata() {
 		Some(&sample_source()),
 	)
 	.expect_err("expected cargo placeholder error");
+
 	let text = error.to_string();
 	assert!(text.contains("license"), "{text}");
 }
@@ -3937,6 +3950,7 @@ async fn execute_publish_requests_skips_external_and_existing_versions() {
 	};
 	let existing = sample_request(RegistryKind::Npm);
 	let mut executor = FakeExecutor::new(Vec::new());
+
 	let report = execute_publish_requests(
 		Path::new("."),
 		Some(&sample_source()),
@@ -3984,6 +3998,7 @@ async fn filter_pending_publish_requests_skips_external_and_existing_versions() 
 		package_name: "pkg-next".to_string(),
 		..sample_request(RegistryKind::Npm)
 	};
+
 	server.mock(|when, then| {
 		when.method(GET).path("/pkg-next");
 		then.status(404);
@@ -4080,6 +4095,7 @@ async fn execute_publish_requests_reports_staged_outcome_for_staged_flow() {
 	let root = workflow_root();
 	let mut request = sample_request(RegistryKind::Npm);
 	request.flow = PublishFlow::Staged;
+
 	let mut executor = FakeExecutor::new(vec![CommandOutput {
 		success: true,
 		stdout: String::new(),
@@ -4158,6 +4174,7 @@ async fn release_dry_run_orders_cargo_dev_and_build_dependencies_before_dependen
 		("zephyr-build", None),
 	];
 	let server = MockServer::start();
+
 	for (package, _) in packages {
 		server.mock(|when, then| {
 			when.method(GET).path(format!("/crates/{package}"));
@@ -4614,6 +4631,7 @@ async fn run_publish_packages_discovers_release_record_publications_from_head() 
 	.expect("manifest:");
 	fs::write(root.path().join("tracked.txt"), "initial\n").expect("tracked:");
 	git(root.path(), &["init"]);
+
 	git(root.path(), &["config", "user.name", "monochange Tests"]);
 	git(
 		root.path(),
@@ -5305,6 +5323,7 @@ fn write_cargo_placeholder_manifest_reads_workspace_license_file_from_root() {
 		..sample_request(RegistryKind::CratesIo)
 	};
 	let placeholder_dir = tempfile::tempdir().expect("tempdir");
+
 	write_cargo_placeholder_manifest(placeholder_dir.path(), &request, root.path(), None)
 		.expect("cargo placeholder");
 	let placeholder_manifest = fs::read_to_string(placeholder_dir.path().join("Cargo.toml"))
@@ -5428,6 +5447,7 @@ fn build_release_requests_uses_publication_targets_and_package_metadata() {
 	assert_eq!(requests.len(), 1);
 	let request = requests.first().expect("request");
 	assert_eq!(request.version, "1.2.3");
+
 	assert_eq!(request.package_name, "pkg");
 	assert_eq!(request.package_manager.as_deref(), Some("pnpm"));
 	assert_eq!(

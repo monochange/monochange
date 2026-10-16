@@ -368,6 +368,7 @@ pub(crate) fn version_prefix_for_strategy(
 	if strategy == VersionStrategy::Exact {
 		return "";
 	}
+
 	if matches!(ecosystem, Ecosystem::Cargo | Ecosystem::Go) {
 		return if strategy == VersionStrategy::Compatible {
 			">="
@@ -375,6 +376,7 @@ pub(crate) fn version_prefix_for_strategy(
 			""
 		};
 	}
+
 	match ecosystem {
 		Ecosystem::Dart => monochange_dart::default_dependency_version_prefix(),
 		Ecosystem::Deno => monochange_deno::default_dependency_version_prefix(),
@@ -397,6 +399,7 @@ pub(crate) fn target_constraint(
 	} else {
 		version.to_string()
 	};
+
 	format!(
 		"{}{}",
 		version_prefix_for_strategy(ecosystem, strategy),
@@ -432,26 +435,31 @@ fn parse_python_dependency_name(spec: &str) -> Option<String> {
 pub(crate) fn normalize_python_package_name(name: &str) -> String {
 	let mut result = String::with_capacity(name.len());
 	let mut prev_was_separator = false;
+
 	for ch in name.chars() {
 		if matches!(ch, '-' | '_' | '.') {
 			if !prev_was_separator {
 				result.push('-');
 			}
+
 			prev_was_separator = true;
 		} else {
 			result.push(ch.to_ascii_lowercase());
 			prev_was_separator = false;
 		}
 	}
+
 	result
 }
 
 pub(crate) fn extract_python_version_constraint(spec: &str, name: &str) -> Option<String> {
 	let mut rest = spec.get(name.len()..)?.trim_start();
+
 	if rest.starts_with('[') {
 		let extras_end = rest.find(']')? + 1;
 		rest = rest.get(extras_end..)?.trim_start();
 	}
+
 	let constraint = rest.split(';').next().unwrap_or_default().trim();
 	(!constraint.is_empty()).then(|| constraint.to_string())
 }
@@ -473,6 +481,7 @@ fn detect_toml_dependency_changes(
 		let Some(table) = document.get(field).and_then(Item::as_table_like) else {
 			continue;
 		};
+
 		for dep_name in workspace_package_names {
 			let Some(item) = table.get(dep_name) else {
 				continue;
@@ -481,10 +490,12 @@ fn detect_toml_dependency_changes(
 				continue;
 			};
 			let new_value = target_constraint(ecosystem, version, strategy);
+
 			if let Some(old_value) = item.as_str() {
 				push_change(&mut changes, dep_name, field, old_value, new_value);
 				continue;
 			}
+
 			let Some(old_value) = item
 				.as_inline_table()
 				.and_then(|table| table.get("version"))
@@ -548,6 +559,7 @@ pub(crate) fn detect_python_changes(
 		let Some(version) = version_map.get(workspace_name) else {
 			continue;
 		};
+
 		let new_value = target_constraint(Ecosystem::Python, version, strategy);
 		let old_value = extract_python_version_constraint(dep, &dep_name).unwrap_or_default();
 		push_change(
@@ -572,6 +584,7 @@ pub(crate) fn detect_go_changes(
 	let contents = std::str::from_utf8(contents.as_bytes())
 		.map_err(|error| MonochangeError::Config(format!("failed to read go.mod text: {error}")))?;
 	let mut changes = Vec::new();
+
 	for line in contents.lines() {
 		let trimmed = line.trim();
 		let parts = trimmed.split_whitespace().collect::<Vec<_>>();
@@ -583,6 +596,7 @@ pub(crate) fn detect_go_changes(
 		}) else {
 			continue;
 		};
+
 		let Some(workspace_name) = resolve_go_workspace_package(
 			module_path,
 			workspace_package_names,
@@ -601,6 +615,7 @@ pub(crate) fn detect_go_changes(
 			target_constraint(Ecosystem::Go, version, strategy),
 		);
 	}
+
 	Ok(changes)
 }
 
@@ -642,10 +657,12 @@ pub(crate) fn detect_deno_changes(
 		MonochangeError::Config(format!("failed to parse deno json for sync: {error}"))
 	})?;
 	let mut changes = Vec::new();
+
 	for section in ["imports", "dependencies"] {
 		let Some(deps) = json.get(section).and_then(JsonValue::as_object) else {
 			continue;
 		};
+
 		for dep_name in workspace_package_names {
 			let Some(old_value) = deps.get(dep_name).and_then(JsonValue::as_str) else {
 				continue;
@@ -662,6 +679,7 @@ pub(crate) fn detect_deno_changes(
 			);
 		}
 	}
+
 	Ok(changes)
 }
 
@@ -813,6 +831,7 @@ pub(crate) fn format_sync_result(
 		.map(|file_result| file_result.changes.len())
 		.sum::<usize>();
 	let strategy = format!("strategy {}", strategy_name(result.strategy));
+
 	if change_count == 0 {
 		text.headline(
 			Outcome::Success,
@@ -824,6 +843,7 @@ pub(crate) fn format_sync_result(
 			format!("in {}", plural(result.changes.len(), "file", "files")),
 			strategy,
 		];
+
 		if check_only {
 			details.push("no files were modified".to_string());
 		} else if dry_run {
@@ -834,6 +854,7 @@ pub(crate) fn format_sync_result(
 		} else {
 			(Outcome::Success, "Updated")
 		};
+
 		text.headline(
 			outcome,
 			&format!(
@@ -890,6 +911,7 @@ pub(crate) fn format_sync_result(
 			Tone::Plain,
 		);
 	}
+
 	text.paragraph(
 		"Strategy order: package config → ecosystem config → ecosystem default; `--strategy` overrides.",
 		Tone::Muted,

@@ -24,6 +24,7 @@ fn write_file(path: &Path, content: impl AsRef<str>) {
 	if let Some(parent) = path.parent() {
 		fs::create_dir_all(parent).unwrap();
 	}
+
 	fs::write(path, content.as_ref()).unwrap();
 }
 
@@ -32,6 +33,7 @@ fn generate_npm_fixture(root: &Path, package_count: usize) {
 		&root.join("package.json"),
 		"{\"private\":true,\"workspaces\":[\"packages/*\"]}\n",
 	);
+
 	for index in 0..package_count {
 		write_file(
 			&root.join(format!("packages/pkg-{index}/package.json")),
@@ -47,6 +49,7 @@ fn generate_deno_fixture(root: &Path, package_count: usize) {
 		&root.join("deno.json"),
 		"{\"workspace\":[\"packages/*\"]}\n",
 	);
+
 	for index in 0..package_count {
 		write_file(
 			&root.join(format!("packages/pkg-{index}/deno.json")),
@@ -60,6 +63,7 @@ fn generate_python_fixture(root: &Path, package_count: usize) {
 		&root.join("pyproject.toml"),
 		"[tool.uv.workspace]\nmembers = [\"packages/*\"]\n",
 	);
+
 	for index in 0..package_count {
 		write_file(
 			&root.join(format!("packages/pkg-{index}/pyproject.toml")),
@@ -149,6 +153,7 @@ fn bench_existing_fixture_discovery(c: &mut Criterion) {
 	let mut group = c.benchmark_group("existing_fixture_discovery");
 
 	let dart_small = fixture_path("dart/workspace");
+
 	if dart_small.exists() {
 		group.bench_with_input(
 			BenchmarkId::new("dart", "2_packages"),
@@ -160,6 +165,7 @@ fn bench_existing_fixture_discovery(c: &mut Criterion) {
 	}
 
 	let dart_medium = fixture_path("dart/monorepo");
+
 	if dart_medium.exists() {
 		group.bench_with_input(
 			BenchmarkId::new("dart", "11_packages"),
@@ -171,6 +177,7 @@ fn bench_existing_fixture_discovery(c: &mut Criterion) {
 	}
 
 	let dart_large = fixture_path("dart/large-monorepo");
+
 	if dart_large.exists() {
 		group.bench_with_input(
 			BenchmarkId::new("dart", "51_packages"),

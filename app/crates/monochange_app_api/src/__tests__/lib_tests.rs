@@ -9,7 +9,6 @@ use rstest::rstest;
 use crate::*;
 
 // ── JWT token tests ──
-
 #[rstest]
 fn test_create_and_verify_token() {
 	let secret = "test-secret-key-123";
@@ -91,7 +90,6 @@ fn test_token_with_special_characters_in_login() {
 }
 
 // ── Claims serialization tests ──
-
 #[rstest]
 fn test_claims_serialization_roundtrip() {
 	let claims = Claims {
@@ -127,7 +125,6 @@ fn test_claims_json_has_expected_fields() {
 }
 
 // ── GitHub App webhook signature tests ──
-
 mod webhook_tests {
 	use hmac::Hmac;
 	use hmac::Mac;
@@ -187,7 +184,6 @@ mod webhook_tests {
 }
 
 // ── GitHub Actions OIDC verification tests ──
-
 mod oidc_tests {
 	use base64::Engine;
 	use base64::engine::general_purpose::URL_SAFE_NO_PAD;
@@ -345,7 +341,6 @@ mod oidc_tests {
 }
 
 // ── Monosecret loading tests ──
-
 mod secret_loading_tests {
 	use std::collections::BTreeMap;
 	use std::path::Path;
@@ -384,6 +379,7 @@ mod secret_loading_tests {
 			Some("loader-test-openrouter-key")
 		);
 		assert_eq!(secrets.github_app_id, None);
+
 		assert_eq!(secrets.op_service_account_token, None);
 	}
 

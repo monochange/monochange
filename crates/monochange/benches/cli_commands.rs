@@ -19,16 +19,20 @@ use httpmock::MockServer;
 fn generate_fixture(root: &Path, num_packages: usize, num_changesets: usize) {
 	use std::fmt::Write;
 	let mut workspace_members = String::from("[workspace]\nmembers = [\n");
+
 	for i in 0..num_packages {
 		let _ = writeln!(workspace_members, "  \"crates/pkg-{i}\",");
 	}
+
 	workspace_members.push_str("]\nresolver = \"2\"\n");
 	fs::write(root.join("Cargo.toml"), &workspace_members).unwrap();
 
 	let mut config = String::from("[defaults]\npackage_type = \"cargo\"\n\n");
+
 	for i in 0..num_packages {
 		let _ = write!(config, "[package.pkg-{i}]\npath = \"crates/pkg-{i}\"\n\n");
 	}
+
 	config.push_str("[ecosystems.cargo]\nenabled = true\n\n");
 	config.push_str("[cli.discover]\n[[cli.discover.steps]]\ntype = \"Discover\"\n\n");
 	config.push_str("[cli.release]\n[[cli.release.steps]]\ntype = \"PrepareRelease\"\n");
@@ -51,6 +55,7 @@ fn generate_fixture(root: &Path, num_packages: usize, num_changesets: usize) {
 
 	let changeset_dir = root.join(".changeset");
 	fs::create_dir_all(&changeset_dir).unwrap();
+
 	for i in 0..num_changesets {
 		let target_pkg = i % num_packages;
 		fs::write(
@@ -65,12 +70,14 @@ fn write_synthetic_cargo_lock(root: &Path, num_packages: usize) {
 	use std::fmt::Write;
 
 	let mut cargo_lock = String::from("version = 3\n\n");
+
 	for i in 0..num_packages {
 		let _ = writeln!(
 			cargo_lock,
 			"[[package]]\nname = \"pkg-{i}\"\nversion = \"1.0.0\"\n"
 		);
 	}
+
 	fs::write(root.join("Cargo.lock"), cargo_lock).unwrap();
 }
 
@@ -94,16 +101,20 @@ fn write_dependency_chain_cargo_lock(root: &Path, num_packages: usize) {
 	use std::fmt::Write;
 
 	let mut cargo_lock = String::from("version = 3\n\n");
+
 	for i in 0..num_packages {
 		let _ = writeln!(
 			cargo_lock,
 			"[[package]]\nname = \"pkg-{i}\"\nversion = \"1.0.0\""
 		);
+
 		if i > 0 {
 			let _ = writeln!(cargo_lock, "dependencies = [\"pkg-{}\"]", i - 1);
 		}
+
 		cargo_lock.push('\n');
 	}
+
 	fs::write(root.join("Cargo.lock"), cargo_lock).unwrap();
 }
 
@@ -120,6 +131,7 @@ fn generate_fixture_with_cargo_lock(root: &Path, num_packages: usize, num_change
 		),
 	)
 	.unwrap();
+
 	for i in 0..num_packages {
 		fs::write(
 			root.join(format!("crates/pkg-{i}/changelog.md")),
@@ -127,6 +139,7 @@ fn generate_fixture_with_cargo_lock(root: &Path, num_packages: usize, num_change
 		)
 		.unwrap();
 	}
+
 	write_synthetic_cargo_lock(root, num_packages);
 }
 
@@ -181,6 +194,7 @@ fn seed_release_pr_git_repository(root: &Path) {
 	git(root, &["add", "."]);
 	git(root, &["commit", "-m", "initial"]);
 	git(root, &["init", "--bare", bare.to_string_lossy().as_ref()]);
+
 	git(
 		root,
 		&["remote", "add", "origin", bare.to_string_lossy().as_ref()],
@@ -194,9 +208,11 @@ fn release_pr_args(dry_run: bool) -> Vec<OsString> {
 		OsString::from("run"),
 		OsString::from("release-pr"),
 	];
+
 	if dry_run {
 		args.push(OsString::from("--dry-run"));
 	}
+
 	args.push(OsString::from("--format"));
 	args.push(OsString::from("json"));
 	args
@@ -204,15 +220,20 @@ fn release_pr_args(dry_run: bool) -> Vec<OsString> {
 
 fn command_args(command: &str, dry_run: bool) -> Vec<OsString> {
 	let mut args = vec![OsString::from("monochange")];
+
 	if matches!(command, "commit-release" | "release-pr" | "release") {
 		args.push(OsString::from("run"));
 	}
+
 	args.push(OsString::from(command));
+
 	if dry_run {
 		args.push(OsString::from("--dry-run"));
 	}
+
 	args.push(OsString::from("--format"));
 	args.push(OsString::from("json"));
+
 	args
 }
 
@@ -268,12 +289,14 @@ fn generate_inherited_glob_fixture(
 		config,
 		"[ecosystems.{ecosystem}]\nversioned_files = [{{ path = \"packages/**/{manifest}\", type = \"{ecosystem}\" }}]\n"
 	);
+
 	for index in 0..package_count {
 		let _ = writeln!(
 			config,
 			"[package.pkg-{index}]\npath = \"packages/pkg-{index}\"\ntype = \"{ecosystem}\"\n"
 		);
 	}
+
 	fs::write(root.join("monochange.toml"), config).unwrap();
 
 	for index in 0..package_count {
@@ -302,6 +325,7 @@ fn write_ecosystem_manifest(path: &Path, ecosystem: &str, index: usize) {
 		"go" => format!("module example.com/pkg-{index}\n\ngo 1.22\n"),
 		_ => unreachable!("unknown ecosystem {ecosystem}"),
 	};
+
 	fs::write(path, content).unwrap();
 }
 
@@ -391,12 +415,14 @@ fn generate_multi_glob_versioned_file_fixture(root: &Path) {
 	use std::fmt::Write as _;
 
 	let mut config = String::from("[defaults]\npackage_type = \"cargo\"\nchangelog = false\n\n");
+
 	for i in 0..MULTI_GLOB_PATTERN_COUNT {
 		let _ = write!(
 			config,
 			"[package.app{i}]\npath = \"packages/app{i}\"\nversioned_files = [{{ path = \"**/metadata-{i}.json\", format = \"json\", fields = [\"release.version\"] }}]\n\n"
 		);
 	}
+
 	config.push_str("[cli.release]\n[[cli.release.steps]]\ntype = \"PrepareRelease\"\n");
 	fs::write(root.join("monochange.toml"), &config).unwrap();
 
@@ -415,7 +441,9 @@ fn generate_multi_glob_versioned_file_fixture(root: &Path) {
 		)
 		.unwrap();
 	}
+
 	fs::create_dir_all(root.join(".changeset")).unwrap();
+
 	for i in 0..MULTI_GLOB_PATTERN_COUNT {
 		fs::write(
 			root.join(format!(".changeset/app{i}.md")),
@@ -486,6 +514,7 @@ fn bench_config_load(c: &mut Criterion) {
 			},
 		);
 	}
+
 	group.finish();
 }
 
@@ -505,6 +534,7 @@ fn bench_discover(c: &mut Criterion) {
 			},
 		);
 	}
+
 	group.finish();
 }
 
@@ -524,6 +554,7 @@ fn bench_validate(c: &mut Criterion) {
 			},
 		);
 	}
+
 	group.finish();
 }
 
@@ -565,6 +596,7 @@ fn bench_changeset_loading(c: &mut Criterion) {
 			},
 		);
 	}
+
 	group.finish();
 }
 
@@ -613,6 +645,7 @@ fn bench_prepare_release_dry_run(c: &mut Criterion) {
 			},
 		);
 	}
+
 	group.finish();
 }
 
@@ -635,9 +668,11 @@ fn generate_fixture_with_git_history(
 	generate_fixture(root, num_packages, num_changesets);
 	// Remove changesets — we'll add them interleaved with history.
 	let changeset_dir = root.join(".changeset");
+
 	if changeset_dir.exists() {
 		fs::remove_dir_all(&changeset_dir).unwrap();
 	}
+
 	fs::create_dir_all(&changeset_dir).unwrap();
 
 	// Init git repo.
@@ -672,6 +707,7 @@ fn generate_fixture_with_git_history(
 	} else {
 		usize::MAX
 	};
+
 	let mut changesets_added = 0;
 
 	for commit_idx in 0..num_history_commits {
@@ -741,6 +777,7 @@ fn bench_prepare_release_apply(c: &mut Criterion) {
 			},
 		);
 	}
+
 	group.finish();
 }
 
@@ -822,6 +859,7 @@ fn bench_prepare_release_with_git_history(c: &mut Criterion) {
 			},
 		);
 	}
+
 	group.finish();
 }
 

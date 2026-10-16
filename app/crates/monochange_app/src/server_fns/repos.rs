@@ -58,6 +58,7 @@ pub(crate) async fn signed_in_user_id(
 		.fetch_optional(&state.db)
 		.await
 		.map_err(|error| server_fn::ServerFnError::new(format!("DB: {error}")))?;
+
 	match user {
 		Some(github_id) if github_id == claims.github_id => Ok(Some(claims.sub)),
 		_ => Err(server_fn::ServerFnError::new("Invalid session")),
@@ -106,9 +107,11 @@ pub(crate) async fn accessible_repositories(
 				} else {
 					let token = super::auth::github_user_access_token(state, user_id).await?;
 					let allowed = organization_owner(state, &token, &installation_login).await?;
+
 					access_token = Some(token);
 					allowed
 				};
+
 				organizations.insert(installation_login.clone(), allowed);
 				allowed
 			};

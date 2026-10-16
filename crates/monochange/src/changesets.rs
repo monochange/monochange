@@ -167,8 +167,10 @@ pub(crate) fn resolve_changeset_path(root: &Path, requested: &str) -> Monochange
 
 pub(crate) fn render_changeset_diagnostics(report: &ChangesetDiagnosticsReport) -> String {
 	let mut text = TextReport::new(TextTheme::for_stdout());
+
 	if report.changesets.is_empty() {
 		text.headline(Outcome::Neutral, "No matching changesets found", &[]);
+
 		return text.render();
 	}
 
@@ -177,12 +179,15 @@ pub(crate) fn render_changeset_diagnostics(report: &ChangesetDiagnosticsReport) 
 		&plural(report.changesets.len(), "changeset", "changesets"),
 		&[],
 	);
+
 	for changeset in &report.changesets {
 		text.paragraph(&changeset.path.display().to_string(), Tone::Heading);
+
 		match changeset.summary.as_deref() {
 			Some(summary) => text.indented(summary, Tone::Plain),
 			None => text.indented("(missing summary)", Tone::Warning),
 		}
+
 		if let Some(details) = &changeset.details {
 			if text.is_verbose() {
 				for line in details.trim().lines() {
@@ -216,6 +221,7 @@ pub(crate) fn render_changeset_diagnostics(report: &ChangesetDiagnosticsReport) 
 				.collect::<Vec<_>>();
 			text.indented("", Tone::Plain);
 			text.nested_table(&rows, 4);
+
 			for target in &changeset.targets {
 				if !target.caused_by.is_empty() {
 					text.indented(
@@ -223,6 +229,7 @@ pub(crate) fn render_changeset_diagnostics(report: &ChangesetDiagnosticsReport) 
 						Tone::Muted,
 					);
 				}
+
 				if !target.evidence_refs.is_empty() {
 					text.indented(
 						&format!(
@@ -238,12 +245,14 @@ pub(crate) fn render_changeset_diagnostics(report: &ChangesetDiagnosticsReport) 
 
 		if let Some(context) = &changeset.context {
 			let provenance = changeset_provenance(context);
+
 			if !provenance.is_empty() {
 				text.indented("", Tone::Plain);
 				text.indented(&provenance.join(" · "), Tone::Muted);
 			}
 		}
 	}
+
 	text.render()
 }
 
@@ -252,6 +261,7 @@ const DETAILS_PREVIEW_WIDTH: usize = 100;
 
 fn changeset_provenance(context: &ChangesetContext) -> Vec<String> {
 	let mut provenance = Vec::new();
+
 	if let Some(introduced) = context
 		.introduced
 		.as_ref()
@@ -259,6 +269,7 @@ fn changeset_provenance(context: &ChangesetContext) -> Vec<String> {
 	{
 		provenance.push(format!("introduced {}", introduced.short_sha));
 	}
+
 	if let Some(last_updated) = context
 		.last_updated
 		.as_ref()
@@ -276,12 +287,14 @@ fn changeset_provenance(context: &ChangesetContext) -> Vec<String> {
 				.as_ref()
 				.and_then(|revision| revision.review_request.as_ref())
 		});
+
 	if let Some(review_request) = review_request {
 		provenance.push(match &review_request.url {
 			Some(url) => format!("review {} ({url})", review_request.id),
 			None => format!("review {}", review_request.id),
 		});
 	}
+
 	if !context.related_issues.is_empty() {
 		provenance.push(format!(
 			"related {}",
@@ -293,6 +306,7 @@ fn changeset_provenance(context: &ChangesetContext) -> Vec<String> {
 				.join(", ")
 		));
 	}
+
 	provenance
 }
 
@@ -470,6 +484,7 @@ fn batch_git_log(
 		Ok(output) if output.status.success() => output,
 		_ => return (HashMap::new(), HashMap::new()),
 	};
+
 	parse_batch_git_log_bytes(&output.stdout, paths)
 }
 
@@ -511,26 +526,32 @@ fn parse_batch_git_log_output(
 	let mut last_updated = HashMap::new();
 
 	let mut current_fields: Option<Vec<&str>> = None;
+
 	for line in stdout.lines() {
 		let trimmed = line.trim();
+
 		if trimmed.is_empty() {
 			// Blank lines separate the header from filenames AND separate
 			// commits from each other. Don't reset current_fields here —
 			// a new header line (containing \x1f) will replace it.
 			continue;
 		}
+
 		if trimmed.contains('\u{1f}') {
 			// This is a commit header line — start a new commit block.
 			current_fields = Some(trimmed.split('\u{1f}').collect());
 			continue;
 		}
+
 		// This is a filename line associated with the current commit.
 		let Some(ref fields) = current_fields else {
 			continue;
 		};
+
 		if fields.len() != 5 {
 			continue;
 		}
+
 		let mut parts = trimmed.splitn(2, '\t');
 		let Some(status) = parts.next() else {
 			continue;
@@ -538,9 +559,11 @@ fn parse_batch_git_log_output(
 		let Some(file_path) = parts.next() else {
 			continue;
 		};
+
 		if !wanted_paths.contains(file_path) {
 			continue;
 		}
+
 		let [sha, author_name, author_email, authored_at, committed_at] = fields.as_slice() else {
 			continue;
 		};
@@ -570,6 +593,7 @@ fn parse_batch_git_log_output(
 		last_updated
 			.entry(file_path.to_string())
 			.or_insert_with(|| revision.clone());
+
 		if status == "A" {
 			introduced.insert(file_path.to_string(), revision);
 		}
@@ -653,35 +677,43 @@ fn enforce_classification_policy(
 		.collect::<BTreeMap<_, _>>();
 	let mut kept = Vec::new();
 	let mut advisory_severity_by_package = BTreeMap::<String, BumpSeverity>::new();
+
 	for assessment in evidence {
 		// Packages without a configured identity keep the default enforced
 		// policy, matching `unwrap_or(true)` in the identity resolver.
 		let enforced = configuration
 			.effective_release_identity(&assessment.package_id)
 			.is_none_or(|identity| identity.classification_enforced);
+
 		if enforced {
 			kept.push(assessment);
 			continue;
 		}
+
 		let severity = advisory_severity_by_package
 			.entry(assessment.package_id.clone())
 			.or_insert(BumpSeverity::None);
+
 		if assessment.severity > *severity {
 			*severity = assessment.severity;
 		}
 	}
+
 	let mut warnings = Vec::new();
+
 	for (package_id, severity) in advisory_severity_by_package {
 		let requested = requested_by_package
 			.get(package_id.as_str())
 			.copied()
 			.unwrap_or(BumpSeverity::Patch);
+
 		if severity > requested {
 			warnings.push(format!(
 				"compatibility evidence suggests a {severity} release for `{package_id}` but classification is advisory (`classification_enforced = false`); the changeset bump was kept",
 			));
 		}
 	}
+
 	(kept, warnings)
 }
 
@@ -704,7 +736,9 @@ fn semantic_compatibility_evidence(
 			);
 		}
 	};
+
 	let changed_files = frame.changed_files(root).unwrap_or_default();
+
 	if !has_semantic_guardrail_candidate(&changed_files) {
 		return (Vec::new(), Vec::new());
 	}
@@ -782,13 +816,16 @@ fn semantic_package_targets(
 	changeset_packages: &BTreeSet<&str>,
 ) -> BTreeMap<String, String> {
 	let mut targets = BTreeMap::new();
+
 	for package in packages {
 		if !changeset_packages.contains(package.id.as_str()) {
 			continue;
 		}
+
 		targets.insert(package.id.clone(), package.id.clone());
 		targets.insert(package.name.clone(), package.id.clone());
 	}
+
 	targets
 }
 
@@ -799,6 +836,7 @@ pub(crate) fn canonical_change_packages(
 	packages: &[PackageRecord],
 ) -> MonochangeResult<Vec<String>> {
 	let mut canonical_packages = Vec::new();
+
 	for package_ref in package_refs {
 		let canonical_key = if configuration
 			.groups
@@ -824,10 +862,12 @@ pub(crate) fn canonical_change_packages(
 				.cloned()
 				.unwrap_or_else(|| package.name.clone())
 		};
+
 		if !canonical_packages.contains(&canonical_key) {
 			canonical_packages.push(canonical_key);
 		}
 	}
+
 	Ok(canonical_packages)
 }
 
@@ -879,6 +919,7 @@ pub(crate) fn resolve_changelog_targets(
 			},
 		);
 	}
+
 	for group_definition in &configuration.groups {
 		let Some(changelog_path) = &group_definition.changelog else {
 			continue;
@@ -914,6 +955,7 @@ pub(crate) fn default_change_path_for_ref(root: &Path, package_ref: Option<&str>
 		.map_or(0, |duration| duration.as_secs());
 	let slug_source = package_ref.unwrap_or("change");
 	let mut slug = String::with_capacity(slug_source.len());
+
 	for character in slug_source.chars() {
 		if character.is_ascii_alphanumeric() {
 			slug.push(character.to_ascii_lowercase());
@@ -921,6 +963,7 @@ pub(crate) fn default_change_path_for_ref(root: &Path, package_ref: Option<&str>
 			slug.push('-');
 		}
 	}
+
 	let slug = slug.trim_matches('-');
 	let slug = if slug.is_empty() { "change" } else { slug };
 	let directory = root.join(CHANGESET_DIR);
@@ -929,10 +972,12 @@ pub(crate) fn default_change_path_for_ref(root: &Path, package_ref: Option<&str>
 	// and the second write would silently replace the first changeset.
 	// Disambiguate with a counter until an unused name is found.
 	let mut counter = 1;
+
 	while path.exists() && counter < 100 {
 		counter += 1;
 		path = directory.join(format!("{timestamp}-{slug}-{counter}.md"));
 	}
+
 	path
 }
 
@@ -948,6 +993,7 @@ pub(crate) fn render_changeset_markdown(
 	details: Option<&str>,
 ) -> MonochangeResult<String> {
 	let mut rendered = String::from("---\n");
+
 	for package in package_refs {
 		push_change_target_markdown(
 			&mut rendered,
@@ -963,11 +1009,13 @@ pub(crate) fn render_changeset_markdown(
 	rendered.push_str("---\n\n# ");
 	rendered.push_str(reason);
 	rendered.push('\n');
+
 	if let Some(details) = details.map(str::trim).filter(|value| !value.is_empty()) {
 		rendered.push('\n');
 		rendered.push_str(details);
 		rendered.push('\n');
 	}
+
 	Ok(rendered)
 }
 

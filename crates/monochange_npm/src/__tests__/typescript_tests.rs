@@ -31,6 +31,7 @@ fn typescript_path_detection_covers_sources_and_declarations() {
 	for path in ["index.ts", "index.tsx", "index.mts", "index.cts"] {
 		assert!(is_typescript_target(path), "expected {path}");
 	}
+
 	for path in ["index.js", "index.jsx", "tsconfig.json", "types.txt"] {
 		assert!(!is_typescript_target(path), "did not expect {path}");
 	}

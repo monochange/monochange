@@ -60,6 +60,7 @@ async fn first_visits_get_a_viewer_cookie_and_unknown_projects_nothing() {
 		.to_str()
 		.unwrap()
 		.to_owned();
+
 	assert!(cookie.starts_with(&format!("{VIEWER_COOKIE}=")));
 	assert!(cookie.contains("HttpOnly") && cookie.contains("Secure") && cookie.contains("Path=/"));
 
@@ -129,6 +130,7 @@ async fn sharing_files_an_item_the_visitor_can_follow() {
 	assert_eq!(own.stage, Stage::Discussing);
 	assert_eq!(own.update.title, "Dark mode for invoices");
 	assert!(own.question.as_deref().unwrap().contains("What outcome"));
+
 	assert!(snapshot.threads.contains_key("fb-1"));
 
 	// Someone else sees the request on the roadmap but not as theirs.
@@ -178,6 +180,7 @@ async fn answering_the_question_opens_voting_and_updates_follow() {
 
 	// Another visitor votes, then changes their mind, then votes again.
 	let (voter, vote_response) = context(&state, None, Some("token-b"));
+
 	for on in [true, false, true] {
 		let (organization, project) = args("pocketbook");
 		voter
@@ -185,6 +188,7 @@ async fn answering_the_question_opens_voting_and_updates_follow() {
 			.await
 			.unwrap();
 	}
+
 	assert_eq!(
 		location(&vote_response).as_deref(),
 		Some("/p/alice/pocketbook#roadmap")
@@ -214,6 +218,7 @@ async fn answering_the_question_opens_voting_and_updates_follow() {
 		})
 		.await
 		.unwrap();
+
 	for viewer in [&owner, &voter] {
 		let (organization, project) = args("pocketbook");
 		let snapshot = viewer
@@ -223,6 +228,7 @@ async fn answering_the_question_opens_voting_and_updates_follow() {
 			.unwrap();
 		assert_eq!(snapshot.updates[0].update.body, "Accepted and planned");
 	}
+
 	let (organization, project) = args("pocketbook");
 	let voted_items = voter
 		.with(|| ScopedFuture::new(portal_view(organization, project)))
@@ -230,6 +236,7 @@ async fn answering_the_question_opens_voting_and_updates_follow() {
 		.unwrap()
 		.unwrap()
 		.voted;
+
 	assert_eq!(voted_items, ["fb-1"]);
 }
 

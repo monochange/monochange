@@ -27,6 +27,7 @@ macro_rules! assert_readable_json_snapshot {
 			.unwrap_or_else(|error| panic!("serialize readable json snapshot: {error}"));
 		let (redacted, multiline_fields) = $crate::test_support::redact_multiline_strings(&value);
 		insta::assert_json_snapshot!(redacted);
+
 		for (path, contents) in multiline_fields {
 			insta::assert_snapshot!(
 				format!(
@@ -42,6 +43,7 @@ macro_rules! assert_readable_json_snapshot {
 			.unwrap_or_else(|error| panic!("serialize readable json snapshot: {error}"));
 		let (redacted, multiline_fields) = $crate::test_support::redact_multiline_strings(&value);
 		insta::assert_json_snapshot!($name, redacted);
+
 		for (path, contents) in multiline_fields {
 			insta::assert_snapshot!(
 				format!(
@@ -102,6 +104,7 @@ fn readable_multiline_snapshot_contents(
 		};
 
 		let (redacted_json, nested_fields) = redact_multiline_strings(&json_value);
+
 		for (nested_path, nested_contents) in nested_fields {
 			multiline_fields.push((
 				format!("{path}.jsonBlocks[{code_block_index}]{nested_path}"),
@@ -140,6 +143,7 @@ fn redact_multiline_strings_at(
 			multiline_fields.push((path.to_owned(), snapshot_contents));
 			"[multiline text]".clone_into(contents);
 		}
+
 		Value::Array(items) => {
 			for (index, item) in items.iter_mut().enumerate() {
 				redact_multiline_strings_at(item, &format!("{path}[{index}]"), multiline_fields);
@@ -170,9 +174,11 @@ pub fn setup_scenario_workspace(relative: &str) -> tempfile::TempDir {
 		env!("CARGO_MANIFEST_DIR"),
 		relative,
 	);
+
 	if !relative.starts_with("affected/") {
 		append_legacy_cli_commands_for_integration_tests(tempdir.path());
 	}
+
 	tempdir
 }
 
@@ -342,18 +348,23 @@ pub fn run_in_tty_with_env(
 	command.env("NO_COLOR", "1");
 	command.env_remove("RUST_LOG");
 	command.env_remove("GITHUB_ACTIONS");
+
 	if let Some(release_date) = release_date {
 		command.env("MONOCHANGE_RELEASE_DATE", release_date);
 	}
+
 	for (key, value) in env {
 		command.env(key, value);
 	}
+
 	if !matches!(args.first().copied(), Some("step" | "run" | "help")) {
 		command.arg("run");
 	}
+
 	for arg in args {
 		command.arg(arg);
 	}
+
 	let mut child = pair
 		.slave
 		.spawn_command(command)
@@ -375,6 +386,7 @@ pub fn run_in_tty_with_env(
 		.master
 		.take_writer()
 		.unwrap_or_else(|error| panic!("take tty writer: {error}"));
+
 	for action in actions {
 		match action {
 			TtyAction::Sleep(duration) => thread::sleep(*duration),
@@ -386,17 +398,20 @@ pub fn run_in_tty_with_env(
 							.unwrap_or_else(|error| panic!("flush tty input: {error}"));
 						thread::sleep(*pause_after);
 					}
+
 					Err(error) if error.raw_os_error() == Some(5) => break,
 					Err(error) => panic!("write tty input: {error}"),
 				}
 			}
 		}
 	}
+
 	drop(writer);
 	let status = child
 		.wait()
 		.unwrap_or_else(|error| panic!("wait for tty command: {error}"));
 	drop(pair.master);
+
 	let transcript = reader_thread
 		.join()
 		.unwrap_or_else(|_| panic!("tty reader thread panicked"));
@@ -416,9 +431,11 @@ pub fn run_json_command(root: &Path, command: &str, release_date: Option<&str>) 
 	let mut process = monochange_command(release_date);
 	process.current_dir(root);
 	let command_parts = command.split_whitespace().collect::<Vec<_>>();
+
 	if !matches!(command_parts.first().copied(), Some("step")) {
 		process.arg("run");
 	}
+
 	let output = process
 		.args(command_parts)
 		.arg("--dry-run")
@@ -438,12 +455,14 @@ pub fn run_json_command(root: &Path, command: &str, release_date: Option<&str>) 
 #[allow(dead_code)]
 pub fn json_subset(value: &Value, fields: &[(&str, &str)]) -> Value {
 	let mut subset = Map::new();
+
 	for (key, pointer) in fields {
 		subset.insert(
 			(*key).to_string(),
 			value.pointer(pointer).cloned().unwrap_or(Value::Null),
 		);
 	}
+
 	Value::Object(subset)
 }
 

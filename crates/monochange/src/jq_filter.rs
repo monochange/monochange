@@ -16,19 +16,23 @@ pub(crate) fn apply_jq_filter(output: &str, expression: &str) -> MonochangeResul
 
 fn evaluate_pipeline(values: Vec<Value>, expression: &str) -> MonochangeResult<Vec<Value>> {
 	let mut current = values;
+
 	for stage in split_top_level(expression, '|') {
 		let stage = stage.trim();
+
 		if stage.is_empty() {
 			continue;
 		}
 
 		if let Some(condition) = select_condition(stage) {
 			let mut filtered = Vec::new();
+
 			for value in current {
 				if condition_matches(&value, condition)? {
 					filtered.push(value);
 				}
 			}
+
 			current = filtered;
 			continue;
 		}
@@ -46,6 +50,7 @@ fn evaluate_pipeline(values: Vec<Value>, expression: &str) -> MonochangeResult<V
 			.flat_map(|value| evaluate_path(value, stage))
 			.collect();
 	}
+
 	Ok(current)
 }
 
@@ -66,6 +71,7 @@ fn condition_matches(value: &Value, condition: &str) -> MonochangeResult<bool> {
 			return Ok(false);
 		}
 	}
+
 	Ok(true)
 }
 
@@ -73,6 +79,7 @@ fn single_condition_matches(value: &Value, condition: &str) -> MonochangeResult<
 	if let Some(index) = find_top_level_operator(condition, "==") {
 		return compare_operands(value, &condition[..index], &condition[index + 2..], true);
 	}
+
 	if let Some(index) = find_top_level_operator(condition, "!=") {
 		return compare_operands(value, &condition[..index], &condition[index + 2..], false);
 	}
@@ -90,14 +97,17 @@ fn compare_operands(value: &Value, left: &str, right: &str, equal: bool) -> Mono
 			.iter()
 			.any(|right_value| left_value == right_value)
 	});
+
 	Ok(if equal { matched } else { !matched })
 }
 
 fn evaluate_operand(value: &Value, operand: &str) -> MonochangeResult<Vec<Value>> {
 	let operand = operand.trim();
+
 	if operand.starts_with('.') {
 		return Ok(evaluate_path(value, operand));
 	}
+
 	parse_literal(operand).map(|literal| vec![literal])
 }
 
@@ -106,11 +116,13 @@ fn parse_literal(value: &str) -> MonochangeResult<Value> {
 		"true" => Ok(Value::Bool(true)),
 		"false" => Ok(Value::Bool(false)),
 		"null" => Ok(Value::Null),
+
 		_ if value.starts_with('"') => {
 			serde_json::from_str::<Value>(value).map_err(|error| {
 				MonochangeError::Config(format!("invalid --jq string literal `{value}`: {error}"))
 			})
 		}
+
 		_ => {
 			serde_json::from_str::<Value>(value).map_err(|error| {
 				MonochangeError::Config(format!("unsupported --jq operand `{value}`: {error}"))
@@ -121,9 +133,11 @@ fn parse_literal(value: &str) -> MonochangeResult<Value> {
 
 fn evaluate_path(value: &Value, path: &str) -> Vec<Value> {
 	let path = path.trim();
+
 	if path == "." {
 		return vec![value.clone()];
 	}
+
 	if !path.starts_with('.') {
 		return Vec::new();
 	}
@@ -131,6 +145,7 @@ fn evaluate_path(value: &Value, path: &str) -> Vec<Value> {
 	let mut current = vec![value.clone()];
 	let chars = path.chars().collect::<Vec<_>>();
 	let mut index = 1;
+
 	while let Some(character) = chars.get(index).copied() {
 		match character {
 			'.' => index += 1,
@@ -171,6 +186,7 @@ fn evaluate_path(value: &Value, path: &str) -> Vec<Value> {
 					.collect();
 				index = end + 1;
 			}
+
 			_ => {
 				let start = index;
 				while chars
@@ -182,6 +198,7 @@ fn evaluate_path(value: &Value, path: &str) -> Vec<Value> {
 				if start == index {
 					return Vec::new();
 				}
+
 				let field = chars
 					.iter()
 					.skip(start)
@@ -199,6 +216,7 @@ fn evaluate_path(value: &Value, path: &str) -> Vec<Value> {
 			}
 		}
 	}
+
 	current
 }
 
@@ -212,6 +230,7 @@ fn split_top_level(expression: &str, delimiter: char) -> Vec<&str> {
 	let mut depth = 0usize;
 	let mut in_string = false;
 	let mut escaped = false;
+
 	for (index, character) in expression.char_indices() {
 		if in_string {
 			if escaped {
@@ -221,19 +240,24 @@ fn split_top_level(expression: &str, delimiter: char) -> Vec<&str> {
 			} else if character == '"' {
 				in_string = false;
 			}
+
 			continue;
 		}
+
 		match character {
 			'"' => in_string = true,
 			'(' | '[' => depth += 1,
 			')' | ']' => depth = depth.saturating_sub(1),
+
 			_ if character == delimiter && depth == 0 => {
 				parts.push(&expression[start..index]);
 				start = index + character.len_utf8();
 			}
+
 			_ => {}
 		}
 	}
+
 	parts.push(&expression[start..]);
 	parts
 }
@@ -246,8 +270,10 @@ fn split_top_level_and(expression: &str) -> Vec<&str> {
 	let mut escaped = false;
 	let bytes = expression.as_bytes();
 	let mut index = 0;
+
 	while index < bytes.len() {
 		let character = expression[index..].chars().next().unwrap_or_default();
+
 		if in_string {
 			if escaped {
 				escaped = false;
@@ -256,9 +282,11 @@ fn split_top_level_and(expression: &str) -> Vec<&str> {
 			} else if character == '"' {
 				in_string = false;
 			}
+
 			index += character.len_utf8();
 			continue;
 		}
+
 		match character {
 			'"' => in_string = true,
 			'(' | '[' => depth += 1,
@@ -278,8 +306,10 @@ fn split_top_level_and(expression: &str) -> Vec<&str> {
 			}
 			_ => {}
 		}
+
 		index += character.len_utf8();
 	}
+
 	parts.push(&expression[start..]);
 	parts
 }
@@ -288,6 +318,7 @@ fn find_top_level_operator(expression: &str, operator: &str) -> Option<usize> {
 	let mut depth = 0usize;
 	let mut in_string = false;
 	let mut escaped = false;
+
 	for (index, character) in expression.char_indices() {
 		if in_string {
 			if escaped {
@@ -297,16 +328,20 @@ fn find_top_level_operator(expression: &str, operator: &str) -> Option<usize> {
 			} else if character == '"' {
 				in_string = false;
 			}
+
 			continue;
 		}
+
 		match character {
 			'"' => in_string = true,
 			'(' | '[' => depth += 1,
 			')' | ']' => depth = depth.saturating_sub(1),
+
 			_ if depth == 0 && expression[index..].starts_with(operator) => return Some(index),
 			_ => {}
 		}
 	}
+
 	None
 }
 
@@ -316,12 +351,15 @@ fn truthy(value: &Value) -> bool {
 
 fn render_values(values: &[Value]) -> String {
 	let mut rendered = String::new();
+
 	for (index, value) in values.iter().enumerate() {
 		if index > 0 {
 			rendered.push('\n');
 		}
+
 		write_value(&mut rendered, value);
 	}
+
 	rendered
 }
 

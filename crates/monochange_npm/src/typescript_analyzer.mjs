@@ -70,6 +70,7 @@ function buildEndpoint(ts, request, snapshot, side) {
 	);
 	const emitted = emitDeclarations(ts, packageRoot, files, hostAccess);
 	const manifestPath = path.posix.join(packageRoot, "package.json");
+
 	const manifestText = files.get(manifestPath);
 
 	if (manifestText === undefined) {
@@ -178,6 +179,7 @@ function createHostAccess(
 		if (files.has(normalized)) {
 			return true;
 		}
+
 		if (isSnapshotOwned(normalized)) {
 			return false;
 		}
@@ -200,6 +202,7 @@ function createHostAccess(
 		if (inMemory !== undefined) {
 			return inMemory;
 		}
+
 		if (isSnapshotOwned(normalized)) {
 			return undefined;
 		}
@@ -227,6 +230,7 @@ function createHostAccess(
 		if ([...files.keys()].some((fileName) => fileName.startsWith(prefix))) {
 			return true;
 		}
+
 		if (isSnapshotOwned(normalized)) {
 			return false;
 		}
@@ -255,9 +259,11 @@ function createHostAccess(
 		if (isSnapshotOwned(normalizedRoot)) {
 			return inMemory;
 		}
+
 		if (translated === null || !ts.sys.directoryExists?.(translated)) {
 			return inMemory;
 		}
+
 		externalInputs.add(normalizedRoot);
 
 		const fromDisk = ts.sys
@@ -512,9 +518,11 @@ function exportsContainTypes(value) {
 	if (typeof value === "string") {
 		return isDeclarationFile(value) || isTypeScriptSource(value);
 	}
+
 	if (Array.isArray(value)) {
 		return value.some(exportsContainTypes);
 	}
+
 	if (value === null || typeof value !== "object") {
 		return false;
 	}
@@ -626,6 +634,7 @@ function compareEndpoints(ts, request, before, after) {
 			if (allFiles.has(normalized)) {
 				return true;
 			}
+
 			const access = translatedComparisonPath(normalized);
 
 			if (access !== null && baseHost.fileExists(access.real)) {
@@ -643,6 +652,7 @@ function compareEndpoints(ts, request, before, after) {
 			if (inMemory !== undefined) {
 				return inMemory;
 			}
+
 			const access = translatedComparisonPath(normalized);
 
 			if (access !== null && baseHost.fileExists(access.real)) {
@@ -657,6 +667,7 @@ function compareEndpoints(ts, request, before, after) {
 			if (hasVirtualDirectory(directoryName)) {
 				return true;
 			}
+
 			const access = translatedComparisonPath(directoryName);
 
 			return access !== null
@@ -798,6 +809,7 @@ function compareEndpoints(ts, request, before, after) {
 		before.externalInputs.size > 0 ? "before" : null,
 		after.externalInputs.size > 0 ? "after" : null,
 	].filter((side) => side !== null);
+
 	if (externalSides.length > 0) {
 		partialReasons.push(
 			`${externalSides.join(" and ")} used config or dependency declarations from the current workspace`,
@@ -889,9 +901,11 @@ function compareEntrypoint(ts, checker, program, request, entrypoint, beforePath
 		}
 
 		const result = compareSymbolTypes(ts, checker, beforeDescription, afterDescription);
+
 		if (sameSignature && result.outcome === "compatible") {
 			continue;
 		}
+
 		changes.push({
 			outcome: result.outcome,
 			suggestedBump: result.suggestedBump,
@@ -1028,6 +1042,7 @@ function declarationHasNominalMembers(ts, declaration) {
 	function visit(node) {
 		if (ts.isPrivateIdentifier(node)) {
 			nominal = true;
+
 			return;
 		}
 
@@ -1039,6 +1054,7 @@ function declarationHasNominalMembers(ts, declaration) {
 			)
 		) {
 			nominal = true;
+
 			return;
 		}
 
@@ -1100,12 +1116,15 @@ function compareSymbolTypes(ts, checker, before, after) {
 			if (afterMember === undefined) {
 				return breakingSymbol(itemKind, `removed public member ${name} from`);
 			}
+
 			if (!beforeMember.readonly && afterMember.readonly) {
 				return breakingSymbol(itemKind, `public member ${name} became readonly on`);
 			}
+
 			if (beforeMember.optional && !afterMember.optional) {
 				return breakingSymbol(itemKind, `public member ${name} became required on`);
 			}
+
 			additive = additive || (beforeMember.readonly && !afterMember.readonly);
 		}
 
@@ -1163,6 +1182,7 @@ function valueAddsCapability(ts, checker, beforeType, afterType) {
 		if (afterSignatures.length > beforeSignatures.length) {
 			return true;
 		}
+
 		for (let index = 0; index < beforeSignatures.length; index += 1) {
 			const beforeSignature = beforeSignatures[index];
 			const afterSignature = afterSignatures[index];

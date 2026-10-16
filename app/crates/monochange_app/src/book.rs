@@ -34,6 +34,7 @@ impl Book {
 		let mut section = "Overview".to_owned();
 		let mut chapters = Vec::new();
 		let mut events = Parser::new(summary);
+
 		while let Some(event) = events.next() {
 			match event {
 				Event::Start(Tag::Heading { .. }) => {
@@ -67,10 +68,13 @@ impl Book {
 				_ => {}
 			}
 		}
+
 		if chapters.is_empty() {
 			return Err("book has no chapters".to_owned());
 		}
+
 		let links = chapters.iter().map(chapter_link).collect::<Vec<_>>();
+
 		for (index, chapter) in chapters.iter_mut().enumerate() {
 			chapter.previous = index
 				.checked_sub(1)
@@ -78,6 +82,7 @@ impl Book {
 				.cloned();
 			chapter.next = links.get(index + 1).cloned();
 		}
+
 		Ok(Self { chapters })
 	}
 
@@ -88,6 +93,7 @@ impl Book {
 		} else {
 			format!("/book/{slug}")
 		};
+
 		self.chapters.iter().find(|chapter| chapter.href == href)
 	}
 }
@@ -118,6 +124,7 @@ fn read_file<'a>(files: &'a include_dir::Dir<'_>, path: &str) -> Result<&'a str,
 pub(crate) fn chapter_href(source: &str) -> String {
 	let path = std::path::Path::new(source).with_extension("");
 	let slug = path.to_string_lossy();
+
 	if slug == "readme" || slug == "index" {
 		"/book".to_owned()
 	} else {
@@ -143,6 +150,7 @@ fn render_markdown(markdown: &str, source: &str, syntax: &SyntaxSet) -> Result<S
 		markdown,
 		Options::ENABLE_TABLES | Options::ENABLE_STRIKETHROUGH | Options::ENABLE_TASKLISTS,
 	);
+
 	while let Some(event) = events.next() {
 		match event {
 			Event::Start(Tag::Heading { level, .. }) => {
@@ -177,6 +185,7 @@ fn render_markdown(markdown: &str, source: &str, syntax: &SyntaxSet) -> Result<S
 					classes: Vec::new(),
 					attrs: Vec::new(),
 				}));
+
 				rendered.extend(contents);
 				rendered.push(Event::End(TagEnd::Heading(level)));
 			}
@@ -185,6 +194,7 @@ fn render_markdown(markdown: &str, source: &str, syntax: &SyntaxSet) -> Result<S
 					CodeBlockKind::Fenced(language) => language.into_string(),
 					CodeBlockKind::Indented => String::new(),
 				};
+
 				let code = plain_text(
 					events
 						.by_ref()
@@ -195,6 +205,7 @@ fn render_markdown(markdown: &str, source: &str, syntax: &SyntaxSet) -> Result<S
 					"bash" | "shell" | "console" => "sh",
 					language => language,
 				};
+
 				let grammar = syntax
 					.find_syntax_by_token(token)
 					.unwrap_or_else(|| syntax.find_syntax_plain_text());
@@ -207,6 +218,7 @@ fn render_markdown(markdown: &str, source: &str, syntax: &SyntaxSet) -> Result<S
 							format!("book code highlighting failed in {source}: {error}")
 						})?;
 				}
+
 				rendered.push(Event::Html(
 					format!("<pre><code>{}</code></pre>", generator.finalize()).into(),
 				));
@@ -214,6 +226,7 @@ fn render_markdown(markdown: &str, source: &str, syntax: &SyntaxSet) -> Result<S
 			event => rendered.push(event),
 		}
 	}
+
 	let mut html = String::new();
 	pulldown_cmark::html::push_html(&mut html, rendered.into_iter());
 	Ok(ammonia::Builder::default()
@@ -238,10 +251,13 @@ impl ammonia::UrlRelativeEvaluate<'_> for BookLinks {
 		if destination.starts_with('#') {
 			return Some(Cow::Borrowed(destination));
 		}
+
 		let target = self.base.join(destination).ok()?;
+
 		if target.origin() != self.base.origin() {
 			return Some(Cow::Owned(target.to_string()));
 		}
+
 		let Some(path) = target
 			.path()
 			.strip_prefix("/monochange/monochange/blob/main/docs/src/")
@@ -259,14 +275,17 @@ impl ammonia::UrlRelativeEvaluate<'_> for BookLinks {
 		} else {
 			format!("/book-assets/{path}")
 		};
+
 		if let Some(query) = target.query() {
 			href.push('?');
 			href.push_str(query);
 		}
+
 		if let Some(fragment) = target.fragment() {
 			href.push('#');
 			href.push_str(fragment);
 		}
+
 		Some(Cow::Owned(href))
 	}
 }

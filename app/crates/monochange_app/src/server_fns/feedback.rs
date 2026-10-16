@@ -85,6 +85,7 @@ pub fn console_actions(item: &FeedbackItem) -> Vec<ConsoleAction> {
 				ConsoleAction::Close,
 			]
 		}
+
 		Stage::Accepted if item.issue.is_none() => {
 			vec![
 				ConsoleAction::CreateIssue,
@@ -92,6 +93,7 @@ pub fn console_actions(item: &FeedbackItem) -> Vec<ConsoleAction> {
 				ConsoleAction::Close,
 			]
 		}
+
 		Stage::Accepted | Stage::Building | Stage::InReview => {
 			vec![ConsoleAction::EditSummary, ConsoleAction::Close]
 		}
@@ -168,6 +170,7 @@ pub(crate) fn feedback_error(
 #[cfg(not(target_arch = "wasm32"))]
 fn sentence(message: &str) -> String {
 	let mut characters = message.chars();
+
 	match characters.next() {
 		Some(first) => {
 			format!(
@@ -310,6 +313,7 @@ pub async fn feedback_action(
 	let required = |value: Option<String>, message: &str| {
 		optional(value).ok_or_else(|| server_fn::ServerFnError::new(message.to_owned()))
 	};
+
 	let result = match action {
 		ConsoleAction::CreateIssue => {
 			let repository = required(repository, "Choose the repository the issue belongs in.")?;
@@ -349,6 +353,7 @@ pub async fn feedback_action(
 			.await
 		}
 	};
+
 	result.map_err(feedback_error)
 }
 

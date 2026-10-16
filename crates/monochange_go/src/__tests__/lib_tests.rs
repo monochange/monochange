@@ -27,7 +27,6 @@ fn fixture_path(relative: &str) -> PathBuf {
 }
 
 // -- adapter --
-
 #[test]
 fn adapter_reports_go_ecosystem() {
 	let go_adapter = GoAdapter;
@@ -71,7 +70,6 @@ fn adapter_discover_delegates_to_discover_go_modules() {
 }
 
 // -- supported_versioned_file_kind --
-
 #[test]
 fn supported_versioned_file_kind_recognizes_go_files() {
 	use crate::supported_versioned_file_kind;
@@ -88,7 +86,6 @@ fn supported_versioned_file_kind_recognizes_go_files() {
 }
 
 // -- parse_module_path --
-
 #[test]
 fn parse_module_path_extracts_trimmed_module_directive() {
 	let contents = "module   github.com/org/repo  \n\ngo 1.22\n";
@@ -129,7 +126,6 @@ fn parse_module_path_skips_empty_module_directive() {
 }
 
 // -- derive_module_name --
-
 #[test]
 fn derive_module_name_extracts_last_segment() {
 	assert_eq!(derive_module_name("github.com/org/repo"), "repo");
@@ -152,7 +148,6 @@ fn derive_module_name_handles_single_segment() {
 }
 
 // -- is_major_version_suffix --
-
 #[test]
 fn is_major_version_suffix_identifies_version_segments() {
 	assert!(is_major_version_suffix("v2"));
@@ -166,7 +161,6 @@ fn is_major_version_suffix_identifies_version_segments() {
 }
 
 // -- parse_go_version --
-
 #[test]
 fn parse_go_version_handles_standard_and_prefixed_versions() {
 	assert_eq!(parse_go_version("v1.2.3"), Some(Version::new(1, 2, 3)));
@@ -177,7 +171,6 @@ fn parse_go_version_handles_standard_and_prefixed_versions() {
 }
 
 // -- parse_require_directives --
-
 #[test]
 fn parse_require_directives_extracts_block_and_single_line_deps() {
 	let contents = r"module github.com/example/app
@@ -232,7 +225,6 @@ exclude github.com/example/old v0.1.0
 }
 
 // -- discover_go_modules --
-
 #[test]
 fn discover_go_modules_finds_single_module() {
 	let root = fixture_path("go/single-module");
@@ -358,7 +350,6 @@ fn discover_go_modules_handles_versioned_module_dependencies() {
 }
 
 // -- discover_lockfiles --
-
 #[test]
 fn discover_lockfiles_finds_go_sum() {
 	let root = fixture_path("go/single-module");
@@ -391,7 +382,6 @@ fn discover_lockfiles_returns_empty_without_go_sum() {
 }
 
 // -- default_lockfile_commands --
-
 #[test]
 fn default_lockfile_commands_infers_go_mod_tidy() {
 	let root = fixture_path("go/single-module");
@@ -409,7 +399,6 @@ fn default_lockfile_commands_infers_go_mod_tidy() {
 }
 
 // -- update_go_mod_text --
-
 #[test]
 fn update_go_mod_text_updates_require_versions() {
 	let input = r"module github.com/example/monorepo/api
@@ -644,7 +633,6 @@ fn update_go_mod_text_preserves_quoted_module_path_and_trailing_comment() {
 }
 
 // -- should_descend --
-
 #[test]
 fn discover_go_modules_skips_vendor_directory() {
 	use std::fs;
@@ -680,7 +668,6 @@ fn discover_go_modules_skips_vendor_directory() {
 }
 
 // -- edge cases --
-
 #[test]
 fn discover_go_modules_handles_nonexistent_directory() {
 	let discovery = discover_go_modules(std::path::Path::new("/nonexistent/path/to/repo"));
@@ -786,7 +773,6 @@ fn validate_versioned_file_returns_ok_for_missing_file() {
 }
 
 // -- load_configured --
-
 #[test]
 fn load_configured_go_package_loads_module_record() {
 	let root = fixture_path("go/single-module");

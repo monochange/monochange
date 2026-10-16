@@ -41,6 +41,7 @@ fn reports_lead_with_a_headline_and_separate_sections() {
 		("Manifest", "release.json".to_string()),
 		("Log", "notes".to_string()),
 	]);
+
 	report.paragraph("Run it again.", Tone::Plain);
 	report.raw_block("--- a\n+++ b");
 	report.indented("detail", Tone::Muted);
@@ -116,6 +117,7 @@ fn colored_themes_wrap_each_tone_and_reset_it() {
 	assert_eq!(theme.paint("x", Tone::Error), "\u{1b}[31;1mx\u{1b}[0m");
 	assert_eq!(theme.paint("x", Tone::Muted), "\u{1b}[2mx\u{1b}[0m");
 	assert_eq!(theme.paint("x", Tone::Accent), "\u{1b}[36mx\u{1b}[0m");
+
 	assert_eq!(theme.paint("x", Tone::Value), "\u{1b}[32mx\u{1b}[0m");
 	assert_eq!(plain().paint("x", Tone::Error), "x");
 

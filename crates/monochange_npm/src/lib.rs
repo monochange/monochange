@@ -67,15 +67,18 @@ pub fn supported_versioned_file_kind(path: &Path) -> Option<NpmVersionedFileKind
 		.file_name()
 		.and_then(|name| name.to_str())
 		.unwrap_or_default();
+
 	match file_name {
 		"package-lock.json" => Some(NpmVersionedFileKind::PackageLock),
 		"pnpm-lock.yaml" => Some(NpmVersionedFileKind::PnpmLock),
 		"yarn.lock" => Some(NpmVersionedFileKind::YarnLock),
 		"bun.lock" => Some(NpmVersionedFileKind::BunLock),
 		"bun.lockb" => Some(NpmVersionedFileKind::BunLockBinary),
+
 		_ if path.extension().and_then(|ext| ext.to_str()) == Some("json") => {
 			Some(NpmVersionedFileKind::Manifest)
 		}
+
 		_ => None,
 	}
 }
@@ -178,6 +181,7 @@ pub fn update_package_lock(
 	{
 		obj.insert("version".to_string(), Value::String(version.clone()));
 	}
+
 	if let Some(packages) = value.get_mut("packages").and_then(Value::as_object_mut) {
 		for (entry_path, entry_value) in packages {
 			let Some(entry_object) = entry_value.as_object_mut() else {
@@ -192,6 +196,7 @@ pub fn update_package_lock(
 				entry_object.insert("version".to_string(), Value::String(version.clone()));
 				continue;
 			}
+
 			for (name, package_dir) in package_paths_by_name {
 				if entry_path == &package_dir.to_string_lossy()
 					&& let Some(version) = raw_versions.get(name)
@@ -201,6 +206,7 @@ pub fn update_package_lock(
 			}
 		}
 	}
+
 	if let Some(dependencies) = value.get_mut("dependencies").and_then(Value::as_object_mut) {
 		for (name, version) in raw_versions {
 			if let Some(entry) = dependencies.get_mut(name).and_then(Value::as_object_mut) {
@@ -225,10 +231,12 @@ pub fn update_pnpm_lock(
 		else {
 			continue;
 		};
+
 		for value in section.values_mut() {
 			let Some(entry_mapping) = value.as_mapping_mut() else {
 				continue;
 			};
+
 			for dependency_field in [
 				"dependencies",
 				"devDependencies",
@@ -240,6 +248,7 @@ pub fn update_pnpm_lock(
 				else {
 					continue;
 				};
+
 				for (name, version) in raw_versions {
 					let key = serde_yaml_ng::Value::String(name.clone());
 					let Some(entry) = dependencies.get_mut(&key) else {
@@ -249,6 +258,7 @@ pub fn update_pnpm_lock(
 					let Some(text) = entry.as_str() else {
 						if let Some(entry_mapping) = entry.as_mapping_mut() {
 							let version_key = serde_yaml_ng::Value::String("version".to_string());
+
 							if let Some(version_value) = entry_mapping.get_mut(&version_key)
 								&& let Some(text) = version_value.as_str()
 								&& !uses_workspace_reference(text)
@@ -289,6 +299,7 @@ pub fn update_pnpm_lock_text(
 	validate_pnpm_lock_documents(contents)?;
 	let line_ranges = yaml_line_ranges(contents);
 	let mut replacements = Vec::<((usize, usize), String)>::new();
+
 	for section_name in ["importers", "packages", "snapshots"] {
 		for section_index in find_yaml_key_lines(contents, &line_ranges, 0, section_name) {
 			collect_pnpm_section_replacements(
@@ -300,11 +311,14 @@ pub fn update_pnpm_lock_text(
 			);
 		}
 	}
+
 	replacements.sort_by_key(|right| std::cmp::Reverse(right.0.0));
 	let mut updated = contents.to_string();
+
 	for ((start, end), replacement) in replacements {
 		updated.replace_range(start..end, &replacement);
 	}
+
 	Ok(updated)
 }
 
@@ -320,6 +334,7 @@ fn validate_pnpm_lock_documents(contents: &str) -> MonochangeResult<()> {
 			MonochangeError::Config(format!("failed to parse pnpm lock yaml: {error}"))
 		})?;
 	}
+
 	Ok(())
 }
 
@@ -337,24 +352,30 @@ fn collect_pnpm_section_replacements(
 		return;
 	};
 	let mut index = section_index + 1;
+
 	while let Some(range) = line_ranges.get(index) {
 		let Some(line) = parse_yaml_line(contents, *range) else {
 			index += 1;
 			continue;
 		};
+
 		if line.indent <= section.indent {
 			break;
 		}
+
 		let entry_indent = line.indent;
 		index += 1;
+
 		while let Some(nested_range) = line_ranges.get(index) {
 			let Some(nested_line) = parse_yaml_line(contents, *nested_range) else {
 				index += 1;
 				continue;
 			};
+
 			if nested_line.indent <= entry_indent {
 				break;
 			}
+
 			if is_pnpm_dependency_field(&nested_line.key) {
 				collect_pnpm_dependency_replacements(
 					contents,
@@ -364,6 +385,7 @@ fn collect_pnpm_section_replacements(
 					replacements,
 				);
 			}
+
 			index += 1;
 		}
 	}
@@ -383,39 +405,49 @@ fn collect_pnpm_dependency_replacements(
 		return;
 	};
 	let mut index = section_index + 1;
+
 	while let Some(range) = line_ranges.get(index) {
 		let Some(line) = parse_yaml_line(contents, *range) else {
 			index += 1;
 			continue;
 		};
+
 		if line.indent <= section.indent {
 			break;
 		}
+
 		let Some(version) = raw_versions.get(line.key.as_ref()) else {
 			index += 1;
 			continue;
 		};
+
 		if let Some(value_span) = line.value_span {
 			push_pnpm_scalar_replacement(contents, value_span, version, replacements);
 			index += 1;
 			continue;
 		}
+
 		let dependency_indent = line.indent;
 		index += 1;
+
 		while let Some(nested_range) = line_ranges.get(index) {
 			let Some(nested_line) = parse_yaml_line(contents, *nested_range) else {
 				index += 1;
 				continue;
 			};
+
 			if nested_line.indent <= dependency_indent {
 				break;
 			}
+
 			if nested_line.key == "version" {
 				if let Some(value_span) = nested_line.value_span {
 					push_pnpm_scalar_replacement(contents, value_span, version, replacements);
 				}
+
 				break;
 			}
+
 			index += 1;
 		}
 	}
@@ -430,10 +462,13 @@ fn push_pnpm_scalar_replacement(
 	let Some(existing) = contents.get(span.0..span.1) else {
 		return;
 	};
+
 	if !yaml_scalar_is_updatable(existing) {
 		return;
 	}
+
 	let replacement = render_yaml_scalar(existing, version);
+
 	if replacement != existing {
 		replacements.push((span, replacement));
 	}
@@ -462,15 +497,18 @@ pub fn update_yarn_lock(contents: &str, raw_versions: &BTreeMap<String, String>)
 	let line_ranges = yaml_line_ranges(contents);
 	let mut replacements = Vec::<((usize, usize), String)>::new();
 	let mut index = 0usize;
+
 	while let Some(range) = line_ranges.get(index) {
 		let Some(header) = parse_yarn_entry_header(contents, *range) else {
 			index += 1;
 			continue;
 		};
 		index += 1;
+
 		if header.workspace_resolved {
 			continue;
 		}
+
 		let Some(version) = raw_versions.get(header.package_name) else {
 			continue;
 		};
@@ -482,11 +520,14 @@ pub fn update_yarn_lock(contents: &str, raw_versions: &BTreeMap<String, String>)
 			&mut replacements,
 		);
 	}
+
 	replacements.sort_by_key(|right| std::cmp::Reverse(right.0.0));
 	let mut updated = contents.to_string();
+
 	for ((start, end), replacement) in replacements {
 		updated.replace_range(start..end, &replacement);
 	}
+
 	updated
 }
 
@@ -499,14 +540,19 @@ struct YarnEntryHeader<'a> {
 fn parse_yarn_entry_header(contents: &str, range: (usize, usize)) -> Option<YarnEntryHeader<'_>> {
 	let line = contents.get(range.0..range.1)?;
 	let trimmed = line.trim_start_matches([' ', '\t']);
+
 	if trimmed.is_empty() || trimmed.starts_with('#') {
 		return None;
 	}
+
 	let indent = line.len() - trimmed.len();
+
 	if indent != 0 || !trimmed.ends_with(':') {
 		return None;
 	}
+
 	let specifiers = trimmed.strip_suffix(':')?;
+
 	let first_specifier = specifiers.split(',').next()?.trim();
 	let package_name = yarn_specifier_package_name(first_specifier)?;
 	Some(YarnEntryHeader {
@@ -523,9 +569,11 @@ fn parse_yarn_entry_header(contents: &str, range: (usize, usize)) -> Option<Yarn
 fn yarn_specifier_package_name(specifier: &str) -> Option<&str> {
 	let specifier = specifier.strip_prefix('"').unwrap_or(specifier);
 	let specifier = specifier.strip_suffix('"').unwrap_or(specifier);
+
 	if specifier.is_empty() {
 		return None;
 	}
+
 	match specifier
 		.char_indices()
 		.find(|(index, character)| *index > 0 && *character == '@')
@@ -545,6 +593,7 @@ fn collect_yarn_entry_version_replacement(
 	replacements: &mut Vec<((usize, usize), String)>,
 ) {
 	let mut index = entry_start;
+
 	while let Some(range) = line_ranges.get(index) {
 		index += 1;
 		// Line spans come from `yaml_line_ranges`, so slicing them back out of
@@ -552,29 +601,37 @@ fn collect_yarn_entry_version_replacement(
 		// blank line.
 		let line = contents.get(range.0..range.1).unwrap_or_default();
 		let trimmed = line.trim_start_matches([' ', '\t']);
+
 		if trimmed.is_empty() || trimmed.starts_with('#') {
 			continue;
 		}
+
 		let indent = line.len() - trimmed.len();
+
 		if indent == 0 {
 			return;
 		}
+
 		let Some(value_offset) = yarn_version_value_offset(trimmed) else {
 			continue;
 		};
 		let value = trimmed.get(value_offset..).unwrap_or_default();
+
 		if value.is_empty() {
 			continue;
 		}
+
 		let span = (
 			range.0 + indent + value_offset,
 			range.0 + indent + value_offset + yarn_version_value_end(value),
 		);
 		let existing = contents.get(span.0..span.1).unwrap_or_default();
 		let replacement = render_yaml_scalar(existing, version);
+
 		if replacement != existing {
 			replacements.push((span, replacement));
 		}
+
 		return;
 	}
 }
@@ -586,12 +643,16 @@ fn yarn_version_value_offset(trimmed: &str) -> Option<usize> {
 		("version:".len(), rest)
 	} else {
 		let rest = trimmed.strip_prefix("version")?;
+
 		if !rest.starts_with([' ', '\t']) {
 			return None;
 		}
+
 		("version".len(), rest)
 	};
+
 	let whitespace = after_key.len() - after_key.trim_start_matches([' ', '\t']).len();
+
 	Some(key_length + whitespace)
 }
 
@@ -620,15 +681,18 @@ fn is_pnpm_dependency_field(key: &str) -> bool {
 fn yaml_line_ranges(contents: &str) -> Vec<(usize, usize)> {
 	let mut ranges = Vec::new();
 	let mut start = 0usize;
+
 	for (index, ch) in contents.char_indices() {
 		if ch == '\n' {
 			ranges.push((start, index));
 			start = index + 1;
 		}
 	}
+
 	if start <= contents.len() {
 		ranges.push((start, contents.len()));
 	}
+
 	ranges
 }
 
@@ -673,6 +737,7 @@ fn unquote_yaml_key(key: &str) -> Cow<'_, str> {
 	else {
 		return Cow::Borrowed(key);
 	};
+
 	if key.len() < 2 || !key.ends_with(quote) {
 		return Cow::Borrowed(key);
 	}
@@ -683,15 +748,19 @@ fn unquote_yaml_key(key: &str) -> Cow<'_, str> {
 fn parse_yaml_line(contents: &str, range: (usize, usize)) -> Option<ParsedYamlLine<'_>> {
 	let line = contents.get(range.0..range.1)?;
 	let trimmed = line.trim_start_matches([' ', '\t']);
+
 	if trimmed.is_empty() || trimmed.starts_with('#') {
 		return None;
 	}
+
 	let indent = line.len() - trimmed.len();
 	let colon = trimmed.find(':')?;
 	let key = unquote_yaml_key(trimmed.get(..colon)?.trim());
+
 	if key.is_empty() {
 		return None;
 	}
+
 	let value_span = yaml_value_span(line, range.0, indent + colon + 1);
 	Some(ParsedYamlLine {
 		indent,
@@ -708,9 +777,11 @@ fn yaml_value_span(
 	let suffix = line.get(value_start_in_line..)?;
 	let value_offset = suffix.find(|ch: char| !matches!(ch, ' ' | '\t'))?;
 	let value = suffix.get(value_offset..)?;
+
 	if value.starts_with('#') {
 		return None;
 	}
+
 	let span_start = line_start + value_start_in_line + value_offset;
 	let span_end = if let Some(quote) = value
 		.chars()
@@ -733,11 +804,13 @@ fn yaml_value_span(
 fn find_yaml_quote_end(value: &str, quote: char) -> Option<usize> {
 	let mut chars = value.char_indices();
 	chars.next()?;
+
 	for (index, ch) in chars {
 		if ch == quote {
 			return Some(index);
 		}
 	}
+
 	None
 }
 
@@ -745,9 +818,11 @@ fn render_yaml_scalar(existing: &str, value: &str) -> String {
 	if existing.starts_with('"') && existing.ends_with('"') {
 		return format!("\"{value}\"");
 	}
+
 	if existing.starts_with('\'') && existing.ends_with('\'') {
 		return format!("'{value}'");
 	}
+
 	value.to_string()
 }
 
@@ -764,15 +839,19 @@ fn render_yaml_scalar(existing: &str, value: &str) -> String {
 /// commas and comments).
 pub fn update_bun_lock(contents: &str, raw_versions: &BTreeMap<String, String>) -> String {
 	let mut replacements = Vec::<((usize, usize), String)>::new();
+
 	for (name, version) in raw_versions {
 		collect_bun_pin_replacements(contents, name, version, &mut replacements);
 		collect_bun_descriptor_replacements(contents, name, version, &mut replacements);
 	}
+
 	replacements.sort_by_key(|right| std::cmp::Reverse(right.0.0));
 	let mut updated = contents.to_string();
+
 	for ((start, end), replacement) in replacements {
 		updated.replace_range(start..end, &replacement);
 	}
+
 	updated
 }
 
@@ -785,6 +864,7 @@ fn collect_bun_pin_replacements(
 ) {
 	let key = format!("\"{name}\":");
 	let mut cursor = 0usize;
+
 	while let Some(remainder) = contents.get(cursor..) {
 		let Some(key_offset) = remainder.find(&key) else {
 			break;
@@ -794,6 +874,7 @@ fn collect_bun_pin_replacements(
 		let Some(value_span) = bun_string_value_span(contents, cursor) else {
 			continue;
 		};
+
 		if let Some(existing) = contents.get(value_span.0..value_span.1)
 			&& Version::parse(existing).is_ok()
 		{
@@ -815,12 +896,14 @@ fn collect_bun_descriptor_replacements(
 	let entry = format!("\"{name}\": [\"");
 	let descriptor_prefix = format!("{name}@");
 	let mut cursor = 0usize;
+
 	while let Some(remainder) = contents.get(cursor..) {
 		let Some(entry_offset) = remainder.find(&entry) else {
 			break;
 		};
 		let entry_start = cursor + entry_offset;
 		let descriptor_start = entry_start + entry.len();
+
 		cursor = descriptor_start;
 		// The pattern was found inside `contents`, so slicing from its end
 		// stays in bounds; a truncated tail simply has no closing quote.
@@ -835,6 +918,7 @@ fn collect_bun_descriptor_replacements(
 		let Some(current_version) = descriptor.strip_prefix(&descriptor_prefix) else {
 			continue;
 		};
+
 		if Version::parse(current_version).is_ok() {
 			let version_start = descriptor_start + descriptor_prefix.len();
 			replacements.push(((version_start, descriptor_span.1), version.to_string()));
@@ -857,19 +941,24 @@ pub fn update_bun_lock_binary(
 	raw_versions: &BTreeMap<String, String>,
 ) -> Vec<u8> {
 	let mut updated = contents.to_vec();
+
 	for (name, old_version) in old_versions {
 		let Some(new_version) = raw_versions.get(name) else {
 			continue;
 		};
 		let old_bytes = old_version.as_bytes();
 		let new_bytes = new_version.as_bytes();
+
 		if old_bytes == new_bytes {
 			continue;
 		}
+
 		if old_bytes.is_empty() {
 			continue;
 		}
+
 		let mut cursor = 0usize;
+
 		while let Some(remaining) = updated.get(cursor..) {
 			let Some(relative_index) = remaining
 				.windows(old_bytes.len())
@@ -882,6 +971,7 @@ pub fn update_bun_lock_binary(
 			cursor = index + new_bytes.len();
 		}
 	}
+
 	updated
 }
 
@@ -949,6 +1039,7 @@ pub fn discover_npm_packages(root: &Path) -> MonochangeResult<AdapterDiscovery> 
 		let (workspace_packages, workspace_warnings) =
 			discover_package_json_workspace(&workspace_manifest)?;
 		warnings.extend(workspace_warnings);
+
 		for package in workspace_packages {
 			included_manifests.insert(package.manifest_path.clone());
 			packages.push(package);
@@ -959,6 +1050,7 @@ pub fn discover_npm_packages(root: &Path) -> MonochangeResult<AdapterDiscovery> 
 		let (workspace_packages, workspace_warnings) =
 			discover_pnpm_workspace(&workspace_manifest)?;
 		warnings.extend(workspace_warnings);
+
 		for package in workspace_packages {
 			included_manifests.insert(package.manifest_path.clone());
 			packages.push(package);
@@ -1022,9 +1114,11 @@ pub fn load_configured_npm_package(
 		&workspace_root,
 		detect_npm_manager(&workspace_root),
 	)?;
+
 	if let Some(package) = package.as_mut() {
 		normalize_package_id(root, package);
 	}
+
 	Ok(package)
 }
 
@@ -1032,18 +1126,23 @@ pub fn load_configured_npm_package(
 /// npm-family workspace, stopping the walk at `root`.
 fn find_nearest_npm_workspace_root(root: &Path, manifest_path: &Path) -> Option<PathBuf> {
 	let mut current = manifest_path.parent();
+
 	while let Some(directory) = current {
 		if directory.join(PNPM_WORKSPACE_FILE).exists() {
 			return Some(directory.to_path_buf());
 		}
+
 		if package_json_declares_workspaces(&directory.join(PACKAGE_JSON_FILE)).unwrap_or(false) {
 			return Some(directory.to_path_buf());
 		}
+
 		if directory == root {
 			break;
 		}
+
 		current = directory.parent();
 	}
+
 	None
 }
 
@@ -1284,12 +1383,14 @@ fn expand_member_patterns(
 ) -> BTreeSet<PathBuf> {
 	let filter = DiscoveryPathFilter::new(root);
 	let mut manifests = BTreeSet::new();
+
 	for pattern in patterns {
 		let matches = monochange_core::workspace_glob_paths(root, pattern, true)
 			.unwrap_or_default()
 			.into_iter()
 			.filter(|path| filter.allows(path))
 			.collect::<Vec<_>>();
+
 		if matches.is_empty() {
 			warnings.push(format!(
 				"npm workspace pattern `{pattern}` under {} matched no packages",
@@ -1303,6 +1404,7 @@ fn expand_member_patterns(
 			} else {
 				matched_path
 			};
+
 			if manifest_path.file_name().and_then(|name| name.to_str()) == Some(PACKAGE_JSON_FILE)
 				&& manifest_path.exists()
 				&& filter.allows(&manifest_path)
@@ -1312,6 +1414,7 @@ fn expand_member_patterns(
 			}
 		}
 	}
+
 	manifests
 }
 
@@ -1357,6 +1460,7 @@ pub fn write_npm_placeholder_manifest(
 		"description".to_string(),
 		Value::String(format!("Placeholder package for {}", request.package_name)),
 	);
+
 	if let Some(source) = source {
 		manifest.insert(
 			"repository".to_string(),
@@ -1366,6 +1470,7 @@ pub fn write_npm_placeholder_manifest(
 			)),
 		);
 	}
+
 	fs::write(
 		dir.join("package.json"),
 		Value::Object(manifest).to_string(),
@@ -1408,6 +1513,7 @@ fn build_npm_cli_command(request: &PublishRequest, args: Vec<String>) -> Command
 	if uses_pnpm_publish_manager(request) {
 		let mut wrapped_args = vec!["exec".to_string(), "npm".to_string()];
 		wrapped_args.extend(args);
+
 		return CommandSpec {
 			program: "pnpm".to_string(),
 			args: wrapped_args,
@@ -1497,6 +1603,7 @@ fn validate_json_versioned_file(
 	{
 		let writable = resolve_field(&json, &field)
 			.is_some_and(|value| value.is_string() || value.is_object() || value.is_array());
+
 		if !writable {
 			return Err(MonochangeError::Config(format!(
 				"versioned file `{display_path}` does not contain a `{field}` string field"
@@ -1510,9 +1617,11 @@ fn validate_json_versioned_file(
 /// Resolve a dotted `field` path against a parsed manifest.
 fn resolve_field<'a>(doc: &'a Value, field: &str) -> Option<&'a Value> {
 	let mut current = doc;
+
 	for segment in field.split('.') {
 		current = current.get(segment)?;
 	}
+
 	Some(current)
 }
 

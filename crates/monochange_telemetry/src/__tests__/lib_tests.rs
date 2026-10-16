@@ -61,6 +61,7 @@ fn telemetry_file_environment_enables_local_jsonl_sink() {
 	assert_eq!(json_str(event, "/scope/name"), TELEMETRY_SCOPE_NAME);
 	assert_eq!(json_str(event, "/scope/version"), TELEMETRY_SCOPE_VERSION);
 	assert_eq!(json_str(event, "/severity_text"), "INFO");
+
 	assert!(json_value(event, "/time_unix_nano").as_u64().is_some());
 	assert_eq!(json_str(event, "/attributes/command_name"), "validate");
 	assert_eq!(json_str(event, "/attributes/command_source"), "configured");
@@ -113,6 +114,7 @@ fn telemetry_mode_environment_uses_default_state_file() {
 	assert_eq!(json_u64(event, "/attributes/step_index"), 3);
 	assert_eq!(json_str(event, "/attributes/step_kind"), "Validate");
 	assert!(json_bool(event, "/attributes/skipped"));
+
 	assert_eq!(json_u64(event, "/attributes/duration_ms"), 7);
 	assert_eq!(json_str(event, "/attributes/outcome"), "skipped");
 	assert_eq!(json_str(event, "/attributes/error_kind"), "config_error");

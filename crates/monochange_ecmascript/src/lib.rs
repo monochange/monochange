@@ -5,7 +5,6 @@
 #![forbid(clippy::indexing_slicing)]
 
 //! Shared ECMAScript semantic-analysis helpers for `monochange` adapters.
-
 use std::collections::BTreeMap;
 use std::path::Path;
 use std::path::PathBuf;
@@ -85,6 +84,7 @@ pub fn snapshot_exported_symbols(
 			path: change.package_path.clone(),
 			contents: contents.to_string(),
 		};
+
 		for symbol in collect_public_symbols(&file, config) {
 			symbols.insert((symbol.item_kind.clone(), symbol.item_path.clone()), symbol);
 		}
@@ -138,6 +138,7 @@ pub fn diff_public_symbols(
 					Some(after_symbol.signature.clone()),
 				));
 			}
+
 			Some(before_symbol) if before_symbol.signature != after_symbol.signature => {
 				changes.push(build_symbol_change(
 					SemanticChangeKind::Modified,
@@ -146,6 +147,7 @@ pub fn diff_public_symbols(
 					Some(after_symbol.signature.clone()),
 				));
 			}
+
 			Some(_) => {}
 		}
 	}
@@ -327,6 +329,7 @@ fn collect_public_symbols_from_declaration(
 	output: &mut Vec<ExportedSymbol>,
 ) {
 	let normalized_signature = normalize_signature(signature);
+
 	match declaration {
 		Declaration::FunctionDeclaration(function) => {
 			if let Some(identifier) = &function.id {
@@ -435,6 +438,7 @@ fn collect_public_symbols_from_default_export(
 	output: &mut Vec<ExportedSymbol>,
 ) {
 	let normalized_signature = normalize_signature(signature);
+
 	match declaration {
 		ExportDefaultDeclarationKind::FunctionDeclaration(function) => {
 			let body_start = function
@@ -512,6 +516,7 @@ fn function_signature_without_body(signature: &str, body_start: Option<usize>) -
 	};
 	let prefix = normalize_signature(&signature[..body_start]);
 	let prefix = prefix.trim_end();
+
 	if prefix.ends_with(';') {
 		prefix.to_string()
 	} else {
@@ -532,7 +537,6 @@ fn variable_item_kind(kind: oxc_ast::ast::VariableDeclarationKind) -> &'static s
 	}
 }
 // patch-coverage:ignore-end
-
 fn collect_public_symbols_with_legacy_scanner(
 	file: &PackageSnapshotFile,
 	config: &EcmascriptExportConfig,
@@ -542,6 +546,7 @@ fn collect_public_symbols_with_legacy_scanner(
 
 	for raw_line in file.contents.lines() {
 		let line = normalize_signature(raw_line);
+
 		if !line.starts_with("export ") || line == "export {}" || line == "export {};" {
 			continue;
 		}
@@ -559,6 +564,7 @@ fn collect_public_symbols_with_legacy_scanner(
 		}
 
 		let named_exports = parse_named_exports(&line);
+
 		if !named_exports.is_empty() {
 			for (item_kind, item_name) in named_exports {
 				push_symbol(
@@ -570,6 +576,7 @@ fn collect_public_symbols_with_legacy_scanner(
 					&file.path,
 				);
 			}
+
 			continue;
 		}
 
@@ -603,13 +610,16 @@ fn parse_named_exports(line: &str) -> Vec<(String, String)> {
 		return Vec::new();
 	};
 	let mut item_kind = "reexport";
+
 	if let Some(stripped) = rest.strip_prefix("type ") {
 		rest = stripped;
 		item_kind = "type_reexport";
 	}
+
 	if !rest.starts_with('{') {
 		return Vec::new();
 	}
+
 	let brace_start = rest
 		.find('{')
 		.expect("named exports should include an opening brace after the prefix check");
@@ -622,9 +632,11 @@ fn parse_named_exports(line: &str) -> Vec<(String, String)> {
 		.split(',')
 		.filter_map(|entry| {
 			let entry = entry.trim();
+
 			if entry.is_empty() {
 				return None;
 			}
+
 			let exported_name = entry.split(" as ").last().unwrap_or(entry).trim();
 			(!exported_name.is_empty()).then(|| (item_kind.to_string(), exported_name.to_string()))
 		})
@@ -636,17 +648,21 @@ fn parse_declaration_export(
 	config: &EcmascriptExportConfig,
 ) -> Option<(&'static str, String)> {
 	let mut rest = line.strip_prefix("export ")?;
+
 	if config.legacy_supports_declare_prefix
 		&& let Some(stripped) = rest.strip_prefix("declare ")
 	{
 		rest = stripped;
 	}
+
 	if let Some(stripped) = rest.strip_prefix("default ") {
 		rest = stripped;
 	}
+
 	if let Some(stripped) = rest.strip_prefix("async ") {
 		rest = stripped;
 	}
+
 	if let Some(stripped) = rest.strip_prefix("abstract ") {
 		rest = stripped;
 	}
@@ -724,6 +740,7 @@ fn module_prefix_for_file(path: &Path, config: &EcmascriptExportConfig) -> Vec<S
 				stem.to_string()
 			}
 		});
+
 	if !stem.is_empty() && !config.ignored_module_stems.contains(&stem.as_str()) {
 		components.push(stem);
 	}

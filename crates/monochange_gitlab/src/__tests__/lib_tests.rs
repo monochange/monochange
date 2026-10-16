@@ -437,6 +437,7 @@ fn gitlab_json_helpers_cover_not_found_and_status_errors() {
 	});
 	let client = gitlab_client().unwrap_or_else(|error| panic!("client: {error}"));
 	let base = server.base_url();
+
 	let headers = auth_headers("token").unwrap_or_else(|error| panic!("headers: {error}"));
 
 	let missing_value = tokio::runtime::Runtime::new()
@@ -609,6 +610,7 @@ fn publish_release_requests_creates_release_via_gitlab_api() {
 			.unwrap_or_else(|error| panic!("publish release: {error}"))
 	});
 	lookup.assert();
+
 	create.assert();
 	assert_eq!(
 		outcomes
@@ -820,6 +822,7 @@ fn git_commit_paths_reports_io_and_non_noop_failures() {
 	.unwrap_or_else(|error| panic!("chmod hook: {error}"));
 	std::fs::write(repo.join("release.txt"), "initial\n")
 		.unwrap_or_else(|error| panic!("write release file: {error}"));
+
 	git(&repo, &["add", "release.txt"]);
 	let error = tokio::runtime::Runtime::new()
 		.unwrap()
@@ -1146,6 +1149,7 @@ fn seed_git_repository() -> (tempfile::TempDir, PathBuf) {
 	git(&repo, &["config", "user.name", "monochange Tests"]);
 	git(&repo, &["config", "user.email", "monochange@example.com"]);
 	git(&repo, &["config", "commit.gpgsign", "false"]);
+
 	std::fs::write(repo.join("release.txt"), "before\n")
 		.unwrap_or_else(|error| panic!("write release file: {error}"));
 	git(&repo, &["add", "release.txt"]);

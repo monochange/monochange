@@ -161,6 +161,7 @@ fn release_record_command_skips_malformed_file_based_record_in_ancestry() {
 		repo,
 		&["add", ".monochange/releases/malformed-record/release.json"],
 	);
+
 	git(
 		repo,
 		&["commit", "-m", "chore: add malformed release record"],
@@ -760,6 +761,7 @@ fn setup_release_repo() -> TempDir {
 	git(repo, &["config", "user.email", "monochange@example.com"]);
 	git(repo, &["config", "commit.gpgsign", "false"]);
 	git(repo, &["add", "release.txt"]);
+
 	git(repo, &["commit", "-m", "initial"]);
 	tempdir
 }
@@ -807,6 +809,7 @@ fn git_command(root: &Path, args: &[&str]) -> Option<String> {
 		.args(args)
 		.output()
 		.unwrap_or_else(|error| panic!("git {args:?}: {error}"));
+
 	if !output.status.success() {
 		return None;
 	}
@@ -815,6 +818,7 @@ fn git_command(root: &Path, args: &[&str]) -> Option<String> {
 		.unwrap_or_else(|error| panic!("git stdout utf8: {error}"))
 		.trim()
 		.to_string();
+
 	if stdout.is_empty() {
 		None
 	} else {
@@ -873,6 +877,7 @@ fn commit_release_record(root: &Path, record: &ReleaseRecord) -> (String, String
 			hasher.write(target.id.as_bytes());
 			hasher.write(target.version.as_bytes());
 		}
+
 		format!("{:016x}", hasher.finish())
 	};
 	let dir = root.join(".monochange/releases").join(&hash);

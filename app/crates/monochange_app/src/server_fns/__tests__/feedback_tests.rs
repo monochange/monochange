@@ -96,6 +96,7 @@ async fn act(owner: &Owner, act: Act<'_>) -> Result<(), String> {
 #[tokio::test]
 async fn only_maintainers_see_the_console() {
 	let state = state().await;
+
 	for user in [None, Some(2)] {
 		let (owner, _) = context(&state, user, None);
 		assert!(
@@ -177,6 +178,7 @@ fn actions_follow_the_stage() {
 			ConsoleAction::Close,
 		]
 	);
+
 	for stage in [Stage::Building, Stage::InReview] {
 		assert_eq!(
 			actions(stage),
@@ -230,6 +232,7 @@ async fn the_console_shows_items_newest_first_through_the_gate() {
 		.unwrap();
 	assert_eq!(view.organization, "alice");
 	assert_eq!(view.project_name, "Pocketbook");
+
 	assert_eq!(view.project_slug, "pocketbook");
 	assert_eq!(view.visibility, RepositoryVisibility::Private);
 	assert_eq!(view.acceptance_threshold, 3);
@@ -483,6 +486,7 @@ async fn accepted_items_become_github_issues() {
 		.await
 		.unwrap()
 		.unwrap();
+
 	let issue = view.items[0].item.issue.clone().unwrap();
 	assert_eq!(issue.number, 9);
 	assert_eq!(
@@ -536,6 +540,7 @@ fn every_action_round_trips_through_its_name() {
 	for action in ConsoleAction::ALL {
 		assert_eq!(ConsoleAction::parse(action.as_str()), Some(action));
 	}
+
 	assert_eq!(ConsoleAction::parse("launch"), None);
 }
 

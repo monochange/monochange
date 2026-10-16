@@ -82,6 +82,7 @@ fn submissions_round_trip_through_json() {
 	assert_eq!(json["attachments"][0]["type"], "screenshot");
 	assert_eq!(json["page"]["element"]["selector"], "#export-csv");
 	let decoded: FeedbackSubmission = serde_json::from_value(json).unwrap();
+
 	assert_eq!(decoded, original);
 
 	let app = app();
