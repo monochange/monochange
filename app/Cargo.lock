@@ -3348,7 +3348,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_app"
-version = "0.2.3"
+version = "0.3.0"
 dependencies = [
  "ammonia",
  "axum",

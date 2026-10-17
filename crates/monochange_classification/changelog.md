@@ -2,6 +2,15 @@
 
 All notable changes to this crate are documented here. See [keep a changelog](https://keepachangelog.com/en/1.1.0/) for the format.
 
+## monochange_classification [0.4.4](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.4.4) (2026-10-17)
+
+<details>
+<summary><strong>🔨 Refactor</strong></summary>
+
+- **Readability formatting across the workspace.** Apply monostyle's formatter-safe whitespace conventions and dprint normalization across every crate — blank-line separation around control flow and consistent formatting only, with no behavior changes. The repository now scores 84.5 overall on monostyle (readability 89.6) and gates future changes through `lint:monostyle`. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #793](https://github.com/monochange/monochange/pull/793)
+
+</details>
+
 ## monochange_classification [0.4.3](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.4.3) (2026-10-08)
 
 ### Changed

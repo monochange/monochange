@@ -1,0 +1,144 @@
+{
+	"title": "0.3.0",
+	"summary": [],
+	"sections": [
+		{
+			"title": "New",
+			"collapsed": false,
+			"entries": [
+				{
+					"summary": "Follow feedback from pull request to release",
+					"details_markdown": "Accepted feedback now moves on its own as the work happens on GitHub. When a pull request that fixes the feedback's issue is opened, the item shows as in review. When it merges, it shows as done. When a release is published, it shows as shipped, with a link to the release notes. Everyone who shared, voted on, or discussed the item gets each update on the project's feedback portal, and maintainers no longer update the status by hand.\n\nIf you registered your own GitHub App for monochange, add the **Release** event to its webhook subscriptions.",
+					"change_type": "website_feature",
+					"bump": "minor",
+					"stream": "website",
+					"style": "expanded",
+					"provenance": {
+						"source_path": ".changeset/feedback-delivery-website.md",
+						"changeset_path": ".changeset/feedback-delivery-website.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #788",
+							"url": "https://github.com/monochange/monochange/pull/788"
+						},
+						"introduced_commit": {
+							"label": "cc04702",
+							"url": "https://github.com/monochange/monochange/commit/cc047021fb9616c1b75811dc8e1624dcd541d912"
+						},
+						"closed_issues": [
+							{
+								"label": "#12",
+								"url": "https://github.com/monochange/monochange/issues/12"
+							}
+						]
+					}
+				},
+				{
+					"summary": "Connect repositories from your monochange dashboard",
+					"details_markdown": "Sign in and install the monochange GitHub App from the dashboard to choose the personal or organization repositories you want to connect. monochange keeps the connection available when you return to add or change repositories later.",
+					"change_type": "website_feature",
+					"bump": "minor",
+					"stream": "website",
+					"style": "compact",
+					"provenance": {
+						"source_path": ".changeset/github-app-repository-onboarding.md",
+						"changeset_path": ".changeset/github-app-repository-onboarding.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #782",
+							"url": "https://github.com/monochange/monochange/pull/782"
+						},
+						"introduced_commit": {
+							"label": "c1614f5",
+							"url": "https://github.com/monochange/monochange/commit/c1614f5df8b124141d80600efe5c7348e491a01e"
+						}
+					}
+				},
+				{
+					"summary": "Organise repositories into projects",
+					"details_markdown": "Your workspace now groups connected repositories by organisation. Open an organisation to see its repositories and create a project that brings several of them together under one name. You can rename a project, change its repositories, or delete it at any time. A project keeps its repositories if the GitHub App is uninstalled and reinstalled, and shows them as disconnected in between.",
+					"change_type": "website_feature",
+					"bump": "minor",
+					"stream": "website",
+					"style": "compact",
+					"provenance": {
+						"source_path": ".changeset/organisation-projects-website.md",
+						"changeset_path": ".changeset/organisation-projects-website.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #785",
+							"url": "https://github.com/monochange/monochange/pull/785"
+						},
+						"introduced_commit": {
+							"label": "1dc99f1",
+							"url": "https://github.com/monochange/monochange/commit/1dc99f14d00b6e6fefed993959b2051d796e6f21"
+						}
+					}
+				},
+				{
+					"summary": "Collect feedback from the people who use your projects",
+					"details_markdown": "Every project now has a public feedback portal at `/p/{organisation}/{project}`. Visitors can report a bug or suggest an idea in a Markdown editor with formatting buttons and a preview. Before they send, they see similar requests they could vote for instead. They can then follow everything they shared on the same page, answer follow-up questions, and read status updates until it ships.\n\nMaintainers triage it all in the project's feedback console. There they accept, decline, or fold duplicates, rewrite public titles, reply, and open a GitHub issue for accepted work in any of the project's repositories. If any of a project's repositories is private, the portal hides internal paths and addresses from public view; secrets and personal details are hidden on every project.",
+					"change_type": "website_feature",
+					"bump": "minor",
+					"stream": "website",
+					"style": "expanded",
+					"provenance": {
+						"source_path": ".changeset/project-feedback-website.md",
+						"changeset_path": ".changeset/project-feedback-website.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #786",
+							"url": "https://github.com/monochange/monochange/pull/786"
+						},
+						"introduced_commit": {
+							"label": "0a2b549",
+							"url": "https://github.com/monochange/monochange/commit/0a2b54935e5c3a2e826863831bef47cfb4ef1e5a"
+						}
+					}
+				}
+			]
+		},
+		{
+			"title": "Improved",
+			"collapsed": false,
+			"entries": [
+				{
+					"summary": "Keep hosted release pull requests up to date on every push",
+					"details_markdown": "Repositories that publish releases through monochange.dev get a refreshed release pull request after each push to the base branch. Previously only the first push opened the release pull request, and later pushes failed until it was merged. No action is needed beyond using a monochange CLI that includes this release.",
+					"change_type": "website_fix",
+					"bump": "patch",
+					"stream": "website",
+					"style": "compact",
+					"provenance": {
+						"source_path": ".changeset/hosted-release-pull-request-refresh-website.md",
+						"changeset_path": ".changeset/hosted-release-pull-request-refresh-website.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #789",
+							"url": "https://github.com/monochange/monochange/pull/789"
+						},
+						"introduced_commit": {
+							"label": "f3ae256",
+							"url": "https://github.com/monochange/monochange/commit/f3ae25698244212ffe72881e1bb849886cda1a6d"
+						}
+					}
+				}
+			]
+		}
+	]
+}
