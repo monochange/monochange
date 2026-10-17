@@ -66,6 +66,7 @@ toml_edit = { version = "0.25.10", default-features = false, features = ["parse"
 tracing = { version = "0.1", default-features = false, features = ["attributes"] }
 tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "ansi"] }
 typed-builder = { version = "0.23.2", default-features = false }
+unicode-width = { version = "0.2", default-features = false }
 urlencoding = { version = "2", default-features = false }
 walkdir = { version = "2", default-features = false }
 wait-timeout = { version = "0.2", default-features = false }

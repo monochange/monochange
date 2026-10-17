@@ -1275,9 +1275,14 @@ async fn run_with_args_in_dir_with_progress(
 	progress: &mut output::ProgressReporter,
 ) -> MonochangeResult<String> {
 	let verbose = output::terminal::verbose_requested(&args);
+	let ascii = output::terminal::ProgressSettings::from_args(&args).format
+		== output::ProgressFormat::Ascii;
 	output::text::with_verbosity(
 		verbose,
-		Box::pin(dispatch_cli_args(bin_name, args, root, progress)),
+		output::text::with_ascii_symbols(
+			ascii,
+			Box::pin(dispatch_cli_args(bin_name, args, root, progress)),
+		),
 	)
 	.await
 }

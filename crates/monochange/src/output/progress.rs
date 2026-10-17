@@ -25,6 +25,7 @@ use crate::output::terminal::ProgressFormat;
 use crate::output::terminal::ProgressSettings;
 use crate::output::terminal::SharedStderr;
 use crate::output::terminal::TerminalCapabilities;
+use crate::output::text::display_width;
 use crate::output::warnings::WarningMode;
 use crate::output::warnings::WarningSink;
 use crate::output::warnings::escape_workflow_data;
@@ -1422,10 +1423,6 @@ fn step_heading_width(cli_command: &CliCommandDefinition) -> usize {
 		})
 		.max()
 		.unwrap_or_default()
-}
-
-fn display_width(text: &str) -> usize {
-	text.chars().count()
 }
 
 fn pad_to(text: &str, width: usize) -> String {

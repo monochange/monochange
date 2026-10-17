@@ -1,0 +1,10 @@
+---
+source: crates/monochange_integration_tests/tests/cli_output_contract.rs
+expression: stdout
+---
++ Next versions - 3 packages
+
+Packages
+  core         0.1.1  patch
+  docs-日本語  0.1.1  patch
+  🚀-launcher  0.1.1  minor
