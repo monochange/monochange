@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## monochange_schema [0.10.1](https://github.com/monochange/monochange/releases/tag/monochange_schema/v0.10.1) (2026-10-17)
+
+<details>
+<summary><strong>🔨 Refactor</strong></summary>
+
+- **Readability formatting across the workspace.** Apply monostyle's formatter-safe whitespace conventions and dprint normalization across every crate — blank-line separation around control flow and consistent formatting only, with no behavior changes. The repository now scores 84.5 overall on monostyle (readability 89.6) and gates future changes through `lint:monostyle`. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #793](https://github.com/monochange/monochange/pull/793)
+
+</details>
+
 ## monochange_schema [0.10.0](https://github.com/monochange/monochange/releases/tag/monochange_schema/v0.10.0) (2026-10-08)
 
 ### 💥 Breaking Change

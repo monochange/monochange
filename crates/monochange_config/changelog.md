@@ -4,6 +4,32 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-17)
+
+### 💥 Breaking Change
+
+#### ChangesetLoadContext borrows configured change types
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #793](https://github.com/monochange/monochange/pull/793)
+
+`ChangesetLoadContext.change_types_by_target` now stores `ChangeTypeLookup<'a>`, which borrows change-type names from the workspace configuration instead of cloning `String` vectors for every context build. The field is public API, so code that names this type explicitly must carry the lifetime. The same change removes four `realpath` syscalls per package from every changeset load, cutting changeset loading time by 84–96% on the benchmark workspaces.
+
+```rust
+// before
+let lookup: &ChangeTypeLookup = context.change_types_by_target
+	.get(target)
+	.expect("target lookup exists");
+
+// after: the lookup borrows from the workspace configuration
+let lookup: &ChangeTypeLookup<'_> = context.change_types_by_target
+	.get(target)
+	.expect("target lookup exists");
+```
+
+### 🐛 Fixed
+
+- **Wire yarn.lock through release preparation.** The `monochange` crate reads and rewrites `yarn.lock` versioned files during release preparation, and `monochange_config` accepts `yarn.lock` as a typed npm-family versioned-file path so `monochange check` validates entries that target it. The npm CLI wrapper readme lists Yarn alongside npm, pnpm, and Bun. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)
+
 ## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)
 
 ### 🚀 Feature
