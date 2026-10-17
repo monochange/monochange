@@ -289,6 +289,15 @@ fn build_command_with_workflows(
 				.action(ArgAction::SetTrue),
 		)
 		.arg(
+			Arg::new("color")
+				.long("color")
+				.global(true)
+				.help_heading(GLOBAL_OPTIONS_HELP_HEADING)
+				.help("Control when output uses color; `auto` honors NO_COLOR, CLICOLOR, and CLICOLOR_FORCE")
+				.value_name("WHEN")
+				.value_parser(["auto", "always", "never"]),
+		)
+		.arg(
 			Arg::new("progress-format")
 				.long("progress-format")
 				.global(true)

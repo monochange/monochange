@@ -103,6 +103,25 @@ expression: value
       }
     },
     {
+      "canonical_name": "--color",
+      "global": true,
+      "hidden": false,
+      "names": [
+        "--color"
+      ],
+      "value": {
+        "enum_values": [
+          "auto",
+          "always",
+          "never"
+        ],
+        "kind": "enum",
+        "repeatable": true,
+        "required": false,
+        "variadic": false
+      }
+    },
+    {
       "canonical_name": "--progress-format",
       "global": true,
       "hidden": false,

@@ -2,7 +2,6 @@ use std::cell::Cell;
 use std::io::BufRead;
 use std::io::BufReader;
 use std::io::BufWriter;
-use std::io::IsTerminal;
 
 use similar::TextDiff;
 
@@ -10,6 +9,7 @@ use super::*;
 use crate::cli_runtime::build_release_request_result;
 use crate::cli_runtime::string_step_input;
 use crate::git_support::git_stage_all;
+use crate::output::color::stdout_color;
 use crate::output::text::Outcome;
 use crate::output::text::TableCell;
 use crate::output::text::TextReport;
@@ -810,8 +810,7 @@ pub(crate) fn build_file_diff_previews(
 	root: &Path,
 	updates: &[FileUpdate],
 ) -> MonochangeResult<Vec<PreparedFileDiff>> {
-	let colorize_diffs = diff_output_colors_enabled();
-
+	let colorize_diffs = stdout_color();
 	if FORCE_BUILD_FILE_DIFF_PREVIEWS_ERROR.with(Cell::get) {
 		return Err(MonochangeError::Io(
 			"forced build_file_diff_previews test error".to_string(),
@@ -873,32 +872,6 @@ fn render_display_file_diff(diff: &str, colorize: bool) -> String {
 	}
 
 	colorize_diff_output(diff)
-}
-
-fn diff_output_colors_enabled() -> bool {
-	diff_output_supports_color(std::io::stdout().is_terminal())
-}
-
-pub(crate) fn diff_output_supports_color(stdout_is_terminal: bool) -> bool {
-	if std::env::var_os("NO_COLOR").is_some() {
-		return false;
-	}
-
-	if std::env::var("CLICOLOR_FORCE")
-		.ok()
-		.is_some_and(|value| value != "0")
-	{
-		return true;
-	}
-
-	if std::env::var("CLICOLOR")
-		.ok()
-		.is_some_and(|value| value == "0")
-	{
-		return false;
-	}
-
-	stdout_is_terminal
 }
 
 pub(crate) fn colorize_diff_output(diff: &str) -> String {
