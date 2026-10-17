@@ -37,16 +37,21 @@ pub fn get_cargo_bin(name: &str) -> std::path::PathBuf {
 	} else {
 		name.to_owned()
 	};
+
 	// patch-coverage:ignore-end
 	let mut current_exe = std::env::current_exe()
 		.unwrap_or_else(|error| panic!("resolve current test executable path: {error}"));
+
 	while let Some(file_name) = current_exe.file_name().and_then(|value| value.to_str()) {
 		if file_name == "debug" || file_name == "release" {
 			break;
 		}
+
 		current_exe.pop();
 	}
+
 	let binary_path = current_exe.join(&binary_name);
+
 	if binary_path.exists() {
 		return binary_path;
 	}

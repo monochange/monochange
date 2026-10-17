@@ -23,6 +23,7 @@ async fn prepare_release_updates_poetry_version_and_preserves_metadata() {
 		.unwrap_or_else(|error| panic!("read dry-run manifest: {error}"));
 	let dry_run_parsed: toml::Value = toml::from_str(&dry_run_manifest)
 		.unwrap_or_else(|error| panic!("parse dry-run manifest: {error}"));
+
 	assert_eq!(
 		dry_run_parsed["tool"]["poetry"]["version"].as_str(),
 		Some("3.1.0")
@@ -63,6 +64,7 @@ async fn prepare_release_updates_internal_poetry_dependency_constraints() {
 		parsed["tool"]["poetry"]["group"]["dev"]["dependencies"]["py-core"].as_str(),
 		Some(">=1.1.0")
 	);
+
 	insta::assert_snapshot!(manifest);
 }
 
@@ -123,6 +125,7 @@ async fn prepare_release_normalizes_native_python_producer_names_for_both_manife
 		.unwrap_or_else(|error| panic!("read prepared PEP 621 manifest: {error}"));
 	let pep621: toml::Value = toml::from_str(&pep621_manifest)
 		.unwrap_or_else(|error| panic!("parse prepared PEP 621 manifest: {error}"));
+
 	assert_eq!(
 		pep621["project"]["dependencies"][0].as_str(),
 		Some("py_core>=1.1.0")

@@ -10,7 +10,6 @@ use welds::state::DbState;
 use crate::models::*;
 
 // ── Model construction tests ──
-
 #[rstest]
 fn test_user_new_has_defaults() {
 	let user = User::new();
@@ -49,7 +48,6 @@ fn test_org_member_new() {
 }
 
 // ── Migration tests ──
-
 #[rstest]
 fn test_migration_writer_up_sql() {
 	use welds::migrations::MigrationWriter;
@@ -61,6 +59,7 @@ fn test_migration_writer_up_sql() {
 	assert!(combined.contains("CREATE TABLE IF NOT EXISTS installations"));
 	assert!(combined.contains("CREATE TABLE IF NOT EXISTS repositories"));
 	assert!(combined.contains("organization_members"));
+
 	assert!(combined.contains("organizations"));
 }
 
@@ -123,6 +122,7 @@ fn test_migration_writers_emit_one_statement_per_entry() {
 	.concat();
 
 	assert!(!statements.is_empty());
+
 	for statement in statements {
 		assert!(
 			statement.trim_end().ends_with(';'),
@@ -173,7 +173,6 @@ fn test_up_sql_includes_indexes() {
 }
 
 // ── SQLite integration tests ──
-
 #[tokio::test]
 async fn sqlite_migrations_create_expected_timestamp_columns() {
 	let pool = crate::create_pool("sqlite::memory:")
@@ -245,7 +244,6 @@ async fn welds_timestamp_hooks_set_created_and_updated_at() {
 }
 
 // ── Error type tests ──
-
 #[rstest]
 fn test_db_error_connection_display() {
 	let err = crate::DbError::Connection("timeout".into());
@@ -276,6 +274,7 @@ fn organizations_and_projects_migration_is_reversible_where_sqlite_allows() {
 	let down = writer.down_sql(welds::Syntax::Sqlite).join("\n");
 	assert!(down.contains("DROP TABLE IF EXISTS projects;"));
 	assert!(down.contains("ALTER TABLE users DROP COLUMN provider;"));
+
 	// SQLite cannot drop a foreign-key column, so rollback leaves it inert.
 	assert!(!down.contains("DROP COLUMN organization_id"));
 }

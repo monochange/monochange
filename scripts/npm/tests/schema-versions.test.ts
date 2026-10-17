@@ -12,9 +12,11 @@ import {
 function makeSchemasDir(entries: string[]) {
 	const dir = mkdtempSync(join(tmpdir(), "schema-versions-"));
 	mkdirSync(dir, { recursive: true });
+
 	for (const entry of entries) {
 		writeFileSync(join(dir, entry), "{}\n");
 	}
+
 	return dir;
 }
 

@@ -85,16 +85,19 @@ export function packageMetadata(dir) {
 
 export function hasBinary(dir) {
 	const binDir = join(dir, "bin");
+
 	if (!existsSync(binDir)) {
 		return false;
 	}
 
 	const entries = readdirSync(binDir);
+
 	return entries.some((entry) => entry.startsWith("monochange"));
 }
 
 export function assertTrustedPublishingContext(env = process.env) {
 	const configuredTokenKeys = FORBIDDEN_NPM_TOKEN_ENV_KEYS.filter((key) => env[key]);
+
 	if (configuredTokenKeys.length > 0) {
 		throw new Error(
 			`Refusing to publish npm packages with long-lived npm token environment variables: ${configuredTokenKeys.join(", ")}. ` +
@@ -109,15 +112,19 @@ export function assertTrustedPublishingContext(env = process.env) {
 	if (env.GITHUB_ACTIONS !== "true") {
 		missing.push("GITHUB_ACTIONS=true");
 	}
+
 	if (env.GITHUB_REPOSITORY !== TRUSTED_PUBLISHING_REPOSITORY) {
 		missing.push(`GITHUB_REPOSITORY=${TRUSTED_PUBLISHING_REPOSITORY}`);
 	}
+
 	if (!workflowRef.startsWith(expectedWorkflowPath)) {
 		missing.push(`GITHUB_WORKFLOW_REF=${expectedWorkflowPath}<ref>`);
 	}
+
 	if (!env.ACTIONS_ID_TOKEN_REQUEST_URL) {
 		missing.push("ACTIONS_ID_TOKEN_REQUEST_URL");
 	}
+
 	if (!env.ACTIONS_ID_TOKEN_REQUEST_TOKEN) {
 		missing.push("ACTIONS_ID_TOKEN_REQUEST_TOKEN");
 	}
@@ -133,6 +140,7 @@ export function assertTrustedPublishingContext(env = process.env) {
 
 export function main(argv = process.argv.slice(2)) {
 	const args = parseArgs(argv);
+
 	if (!args["packages-dir"]) {
 		throw new Error("usage: populate-packages.ts --packages-dir <dir>");
 	}
@@ -142,23 +150,27 @@ export function main(argv = process.argv.slice(2)) {
 	for (const dirName of PLATFORM_PACKAGE_DIRS) {
 		const dir = join(packagesDir, dirName);
 		const pkg = packageMetadata(dir);
+
 		if (hasBinary(dir) === false) {
 			throw new Error(
 				`Cannot populate ${pkg.name}@${pkg.version}: no binary found in ${join(dir, "bin")}. ` +
 					"Run build-packages.ts first to populate platform binaries.",
 			);
 		}
+
 		console.log(`Populated ${pkg.name}@${pkg.version}`);
 	}
 
 	const cliDir = join(packagesDir, CLI_PACKAGE_DIR);
 	const cliPkg = packageMetadata(cliDir);
+
 	if (hasBinary(cliDir) === false) {
 		throw new Error(
 			`Cannot populate ${cliPkg.name}@${cliPkg.version}: no binary found in ${join(cliDir, "bin")}. ` +
 				"Run build-packages.ts first to populate platform binaries.",
 		);
 	}
+
 	console.log(`Populated ${cliPkg.name}@${cliPkg.version}`);
 }
 

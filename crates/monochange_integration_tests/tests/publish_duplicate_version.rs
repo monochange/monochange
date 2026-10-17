@@ -121,9 +121,11 @@ fn publish_packages_command_with(
 	command.arg("publish-packages");
 	command.arg("--all");
 	command.arg("--package").arg(package);
+
 	if fail_on_duplicate {
 		command.arg("--fail-on-duplicate");
 	}
+
 	command.arg("--dry-run");
 	command.arg("--format").arg("json");
 	command
@@ -287,6 +289,7 @@ fn dry_run_publish_packages_plans_stage_command_for_staged_flow() {
 	let message = outcome["message"]
 		.as_str()
 		.unwrap_or_else(|| panic!("expected a planned message, got: {outcome}"));
+
 	assert!(
 		message.starts_with("would stage staged 1.0.0 on npm"),
 		"expected staged flow guidance in the planned message, got: {message}"

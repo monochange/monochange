@@ -8,7 +8,6 @@ import { join } from "node:path";
 // exactly this failure: the release post-merge job aborted on
 // `RELEASE_COMMIT: unbound variable` before it could dispatch the publish
 // workflow. This check fails linting before such a step reaches CI.
-
 interface ParsedStep {
 	stepName: string;
 	shellIsDevenv: boolean;
@@ -35,10 +34,12 @@ function yamlFiles(directory: string): string[] {
 
 		for (const entry of entries) {
 			const path = join(current, entry.name);
+
 			if (entry.isDirectory()) {
 				walk(path);
 				continue;
 			}
+
 			if (entry.isFile() && /\.(yml|yaml)$/.test(entry.name)) {
 				files.push(path);
 			}
@@ -46,6 +47,7 @@ function yamlFiles(directory: string): string[] {
 	}
 
 	walk(directory);
+
 	return files;
 }
 
@@ -75,6 +77,7 @@ function readKeepList(): Set<string> {
 
 		if (inClean && inKeep) {
 			const entry = /^ {4}- ([A-Z][A-Z0-9_]*)$/.exec(line);
+
 			if (entry) {
 				keep.add(entry[1] as string);
 			}
@@ -91,21 +94,29 @@ function collectFileEnvKeys(lines: string[]): string[] {
 
 	for (let index = 0; index < lines.length; index += 1) {
 		const line = lines[index] ?? "";
+
 		if (/^env:\s*$/.test(line)) {
 			let cursor = index + 1;
+
 			while (cursor < lines.length) {
 				const candidate = lines[cursor] ?? "";
+
 				if (candidate.trim() === "" || indentOf(candidate) < 2) {
 					break;
 				}
+
 				const key = /^ {2}([A-Z][A-Z0-9_]*):/.exec(candidate);
+
 				if (key) {
 					keys.push(key[1] as string);
 				}
+
 				cursor += 1;
 			}
+
 			break;
 		}
+
 		if (/^jobs:\s*$/.test(line)) {
 			break;
 		}
@@ -121,25 +132,34 @@ function collectJobEnvKeys(lines: string[], stepsLine: number, stepsIndent: numb
 
 	for (let index = stepsLine - 1; index >= 0; index -= 1) {
 		const line = lines[index] ?? "";
+
 		if (line.trim() === "") {
 			continue;
 		}
+
 		if (indentOf(line) < stepsIndent) {
 			break;
 		}
+
 		if (indentOf(line) === stepsIndent && /^\s*env:\s*$/.test(line)) {
 			let cursor = index + 1;
+
 			while (cursor < lines.length) {
 				const candidate = lines[cursor] ?? "";
+
 				if (candidate.trim() === "" || indentOf(candidate) < stepsIndent + 2) {
 					break;
 				}
+
 				const key = new RegExp(`^ {${stepsIndent + 2}}([A-Z][A-Z0-9_]*):`).exec(candidate);
+
 				if (key) {
 					keys.push(key[1] as string);
 				}
+
 				cursor += 1;
 			}
+
 			break;
 		}
 	}
@@ -176,15 +196,19 @@ function scanStepsSection(lines: string[], stepsLine: number, stepsIndent: numbe
 	const steps: ParsedStep[] = [];
 
 	let index = stepsLine + 1;
+
 	while (index < lines.length) {
 		const line = lines[index] ?? "";
+
 		if (line.trim() === "") {
 			index += 1;
 			continue;
 		}
+
 		if (indentOf(line) <= stepsIndent) {
 			break;
 		}
+
 		if (indentOf(line) !== itemIndent || !line.trimStart().startsWith("- ")) {
 			index += 1;
 			continue;
@@ -195,8 +219,10 @@ function scanStepsSection(lines: string[], stepsLine: number, stepsIndent: numbe
 		// key rides on the `- ` line, so normalize it to the key indent.
 		const block: string[] = [`${" ".repeat(keyIndent)}${line.trimStart().slice(2)}`];
 		let cursor = index + 1;
+
 		while (cursor < lines.length) {
 			const candidate = lines[cursor] ?? "";
+
 			if (candidate.trim() !== "") {
 				const candidateIndent = indentOf(candidate);
 				if (
@@ -206,6 +232,7 @@ function scanStepsSection(lines: string[], stepsLine: number, stepsIndent: numbe
 					break;
 				}
 			}
+
 			block.push(candidate);
 			cursor += 1;
 		}
@@ -220,6 +247,7 @@ function scanStepsSection(lines: string[], stepsLine: number, stepsIndent: numbe
 		for (let blockIndex = 0; blockIndex < block.length; blockIndex += 1) {
 			const blockLine = block[blockIndex] ?? "";
 			const keyMatch = new RegExp(`^ {${keyIndent}}([A-Za-z][A-Za-z0-9_-]*):(.*)$`).exec(blockLine);
+
 			if (!keyMatch) {
 				continue;
 			}
@@ -236,20 +264,25 @@ function scanStepsSection(lines: string[], stepsLine: number, stepsIndent: numbe
 				if (rest.includes("devenv shell")) {
 					step.shellIsDevenv = true;
 				}
+
 				continue;
 			}
 
 			if (key === "env") {
 				for (let envIndex = blockIndex + 1; envIndex < block.length; envIndex += 1) {
 					const envLine = block[envIndex] ?? "";
+
 					if (envLine.trim() === "" || indentOf(envLine) < envIndent) {
 						break;
 					}
+
 					const envKey = new RegExp(`^ {${envIndent}}([A-Z][A-Z0-9_]*):`).exec(envLine);
+
 					if (envKey) {
 						step.envKeys.push(envKey[1] as string);
 					}
 				}
+
 				continue;
 			}
 
@@ -257,13 +290,16 @@ function scanStepsSection(lines: string[], stepsLine: number, stepsIndent: numbe
 				if (/[|>][+-]?$/.test(rest)) {
 					for (let runIndex = blockIndex + 1; runIndex < block.length; runIndex += 1) {
 						const runLine = block[runIndex] ?? "";
+
 						if (runLine.trim() === "") {
 							step.scriptLines.push(runLine);
 							continue;
 						}
+
 						if (indentOf(runLine) <= keyIndent) {
 							break;
 						}
+
 						step.scriptLines.push(runLine);
 					}
 				} else if (rest !== "") {
@@ -289,6 +325,7 @@ for (const path of yamlFiles(join(process.cwd(), ".github"))) {
 
 	for (let index = 0; index < lines.length; index += 1) {
 		const line = lines[index] ?? "";
+
 		if (!/^\s*steps:\s*$/.test(line)) {
 			continue;
 		}
@@ -323,9 +360,11 @@ if (violations.length > 0) {
 	console.error(
 		"devenv shell steps reference environment variables missing from devenv.yaml clean.keep:",
 	);
+
 	for (const violation of violations) {
 		console.error(`  - ${violation}`);
 	}
+
 	process.exit(1);
 }
 

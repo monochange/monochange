@@ -180,11 +180,13 @@ pub(crate) fn render_config_step(
 		let config_path = monochange_config::config_path(root);
 		let display_path = config_path.strip_prefix(root).unwrap_or(&config_path);
 		let mut package_counts = BTreeMap::<&str, usize>::new();
+
 		for package in &configuration.packages {
 			*package_counts
 				.entry(package.package_type.as_str())
 				.or_default() += 1;
 		}
+
 		let package_breakdown = package_counts
 			.into_iter()
 			.map(|(ecosystem, count)| format!("{count} {ecosystem}"))
@@ -195,6 +197,7 @@ pub(crate) fn render_config_step(
 		} else {
 			format!("{} ({package_breakdown})", configuration.packages.len())
 		};
+
 		return Ok(format!(
 			"Workspace configuration\n\nPath: {}\nPackages: {packages}\nVersion groups: {}\nConfigured commands: {}\nChangelog streams: {}\n\nUse `--format json` to print the complete resolved configuration.",
 			display_path.display(),
@@ -633,9 +636,11 @@ pub async fn run_from_env(bin_name: &'static str) -> MonochangeResult<()> {
 	tracing_setup::init_tracing(log_level.as_deref(), progress.warning_sink());
 	let root = current_dir_or_dot();
 	let output = run_with_args_in_dir_with_progress(bin_name, args, &root, &mut progress).await?;
+
 	if !quiet && !output.is_empty() {
 		println!("{output}");
 	}
+
 	Ok(())
 }
 
@@ -660,11 +665,13 @@ pub async fn run_cli_binary_from_env(bin_name: &'static str) -> ExitCode {
 		&mut progress,
 	))
 	.await;
+
 	match result {
 		Ok(output) => {
 			if !quiet && !output.is_empty() {
 				println!("{output}");
 			}
+
 			ExitCode::SUCCESS
 		}
 		Err(error) => {
@@ -675,8 +682,10 @@ pub async fn run_cli_binary_from_env(bin_name: &'static str) -> ExitCode {
 				if let Some(output) = error.reported_output().filter(|output| !output.is_empty()) {
 					println!("{output}");
 				}
+
 				progress.write_diagnostic(diagnostic);
 			}
+
 			ExitCode::from(exit_code)
 		}
 	}
@@ -721,12 +730,14 @@ fn cli_diagnostic_command(args: &[OsString]) -> Option<String> {
 		command_args_after_globals(args).filter(|argument| !argument.starts_with('-'));
 	let first = command_args.next()?;
 	let mut command = format!("monochange {first}");
+
 	if matches!(first, "run" | "step" | "versions" | "lint" | "publish")
 		&& let Some(second) = command_args.next()
 	{
 		command.push(' ');
 		command.push_str(second);
 	}
+
 	Some(command)
 }
 
@@ -760,9 +771,11 @@ fn selected_cli_output_format(matches: &clap::ArgMatches) -> MonochangeResult<Ou
 	if let Ok(Some(value)) = matches.try_get_one::<String>("format") {
 		return parse_output_format(value);
 	}
+
 	if let Some((_, subcommand)) = matches.subcommand() {
 		return selected_cli_output_format(subcommand);
 	}
+
 	Ok(OutputFormat::Text)
 }
 
@@ -777,6 +790,7 @@ fn parse_snapshot_request(args: &[OsString]) -> Option<SnapshotRequest> {
 		.skip(1)
 		.map(|arg| arg.to_string_lossy().to_string());
 	let first = values.next()?;
+
 	if first == "--snapshot" {
 		return Some(SnapshotRequest {
 			path: Vec::new(),
@@ -785,9 +799,11 @@ fn parse_snapshot_request(args: &[OsString]) -> Option<SnapshotRequest> {
 	}
 
 	let mut path = Vec::new();
+
 	if !first.starts_with('-') {
 		path.push(first);
 	}
+
 	for value in values {
 		if value == "--snapshot" {
 			return Some(SnapshotRequest {
@@ -795,10 +811,12 @@ fn parse_snapshot_request(args: &[OsString]) -> Option<SnapshotRequest> {
 				view: monochange_snapshot::SnapshotView::Full,
 			});
 		}
+
 		if !value.starts_with('-') {
 			path.push(value);
 		}
 	}
+
 	None
 }
 
@@ -846,10 +864,12 @@ fn skill_action_from_matches(matches: &clap::ArgMatches) -> SkillAction {
 fn command_path_from_matches(matches: &clap::ArgMatches) -> Vec<String> {
 	let mut path = Vec::new();
 	let mut current = matches;
+
 	while let Some((name, child)) = current.subcommand() {
 		path.push(name.to_string());
 		current = child;
 	}
+
 	path
 }
 
@@ -886,6 +906,7 @@ fn render_cli_snapshot_classification(args: &[OsString]) -> MonochangeResult<Opt
 	let Some(subcommand) = args.get(2).and_then(|value| value.to_str()) else {
 		return Ok(None);
 	};
+
 	if command != "change" || subcommand != "classify" {
 		return Ok(None);
 	}
@@ -894,6 +915,7 @@ fn render_cli_snapshot_classification(args: &[OsString]) -> MonochangeResult<Opt
 	let mut after = None;
 	let mut format = OutputFormat::Text;
 	let mut index = 3;
+
 	while let Some(arg) = args.get(index).and_then(|value| value.to_str()) {
 		match arg {
 			"--cli-snapshot-before" => {
@@ -919,14 +941,17 @@ fn render_cli_snapshot_classification(args: &[OsString]) -> MonochangeResult<Opt
 			}
 			_ => {}
 		}
+
 		index += 1;
 	}
+
 	let (Some(before), Some(after)) = (before, after) else {
 		return Ok(None);
 	};
 	let before = read_cli_snapshot(&before)?;
 	let after = read_cli_snapshot(&after)?;
 	let report = monochange_snapshot::diff_command_snapshots(&before, &after);
+
 	let output = match format {
 		OutputFormat::Json | OutputFormat::JsonMin => {
 			let mut output = format.render_json_value(&report, "CLI snapshot classification")?;
@@ -935,6 +960,7 @@ fn render_cli_snapshot_classification(args: &[OsString]) -> MonochangeResult<Opt
 		}
 		_ => render_cli_snapshot_classification_text(&report),
 	};
+
 	Ok(Some(output))
 }
 
@@ -943,9 +969,11 @@ fn render_cli_snapshot_classification_text(
 ) -> String {
 	let mut output =
 		format!("CLI snapshot recommendation: {:?}\n", report.recommendation).to_lowercase();
+
 	for change in &report.changes {
 		output.push_str(&format!("- {:?}: {}\n", change.severity, change.summary).to_lowercase());
 	}
+
 	output
 }
 
@@ -1086,9 +1114,11 @@ fn help_command_requested(args: &[OsString]) -> bool {
 fn command_help_request(args: &[OsString]) -> Option<&str> {
 	let command_args = command_args_after_globals(args).collect::<Vec<_>>();
 	let command_name = command_args.iter().find(|arg| !arg.starts_with('-'))?;
+
 	if *command_name == "help" {
 		return None;
 	}
+
 	command_args
 		.iter()
 		.any(|arg| matches!(*arg, "--help" | "-h"))
@@ -1154,6 +1184,7 @@ fn render_unknown_clap_help_path(
 	} else {
 		format!("{bin_name} {}", path.join(" "))
 	};
+
 	let mut output = format!("error: unrecognized command path `{requested}`\n\n");
 	output.push_str("Run one of these commands to inspect available help paths:\n");
 	let _ = writeln!(output, "  {bin_name} --help");
@@ -1165,8 +1196,10 @@ fn render_unknown_clap_help_path(
 		.map(clap::Command::get_name)
 		.collect::<Vec<_>>();
 	subcommands.sort_unstable();
+
 	if !subcommands.is_empty() {
 		output.push_str("\nVisible top-level commands:\n");
+
 		for subcommand in subcommands {
 			let _ = writeln!(output, "  {subcommand}");
 		}
@@ -1196,12 +1229,15 @@ fn format_populate_workspace_result(result: &PopulateWorkspaceResult) -> String 
 			result.path.display(),
 			result.added_commands.len()
 		);
+
 		for (index, command) in result.added_commands.iter().enumerate() {
 			if index > 0 {
 				message.push_str(", ");
 			}
+
 			message.push_str(command);
 		}
+
 		message
 	}
 }
@@ -1253,27 +1289,36 @@ async fn dispatch_cli_args(
 	progress: &mut output::ProgressReporter,
 ) -> MonochangeResult<String> {
 	let root_help_requested = is_root_help_request(&args);
+
 	if root_help_requested {
 		let cli = cli_commands_for_root(root);
+
 		return Ok(render_clap_long_help(bin_name, &cli, &[]));
 	}
+
 	if help_command_requested(&args) {
 		let cli = cli_commands_for_root(root);
+
 		return Ok(render_help_command(bin_name, &args, &cli));
 	}
+
 	if let Some(snapshot_request) = parse_snapshot_request(&args) {
 		let configuration = load_workspace_configuration(root);
 		let cli = cli_commands_from_config(&configuration);
 		let command = cli::build_snapshot_command(bin_name, &cli, &snapshot_request.path);
+
 		return render_snapshot_request(&command, &snapshot_request);
 	}
+
 	if let Some(output) = render_cli_snapshot_classification(&args)? {
 		return Ok(output);
 	}
+
 	// Fast path: parse config-free command shapes before any workspace loading.
 	// This keeps version and root help responsive even in repositories with costly
 	// package or glob validation.
 	let base_command = build_command_with_cli(bin_name, &monochange_core::default_cli_commands());
+
 	if let Err(error) = base_command.try_get_matches_from(args.clone()) {
 		if matches!(error.kind(), ErrorKind::DisplayVersion) {
 			return Ok(format_clap_error(
@@ -1281,14 +1326,17 @@ async fn dispatch_cli_args(
 				!cfg!(test) && std::io::stdout().is_terminal(),
 			));
 		}
+
 		if matches!(error.kind(), ErrorKind::DisplayHelp)
 			&& !command_help_request(&args)
 				.is_some_and(command_help_requires_workspace_configuration)
 		{
 			let cli = cli_commands_for_root(root);
+
 			if is_root_help_request(&args) {
 				return Ok(render_clap_long_help(bin_name, &cli, &[]));
 			}
+
 			if let Err(help_error) =
 				build_command_with_cli(bin_name, &cli).try_get_matches_from(args.clone())
 				&& matches!(help_error.kind(), ErrorKind::DisplayHelp)
@@ -1299,10 +1347,12 @@ async fn dispatch_cli_args(
 				));
 			}
 		}
+
 		if let Some(command_name) = command_help_request(&args)
 			&& !command_help_requires_workspace_configuration(command_name)
 		{
 			let cli = cli_commands_for_root(root);
+
 			if let Err(help_error) =
 				build_command_with_cli(bin_name, &cli).try_get_matches_from(args.clone())
 				&& matches!(help_error.kind(), ErrorKind::DisplayHelp)
@@ -1318,10 +1368,13 @@ async fn dispatch_cli_args(
 	// Slow path: load workspace configuration for command execution.
 	let configuration_started = std::time::Instant::now();
 	let show_configuration_progress = command_help_request(&args).is_none();
+
 	if show_configuration_progress {
 		progress.phase_started("Loading workspace configuration");
 	}
+
 	let configuration = load_workspace_configuration(root);
+
 	if show_configuration_progress {
 		match &configuration {
 			Ok(_) => {
@@ -1339,8 +1392,10 @@ async fn dispatch_cli_args(
 			}
 		}
 	}
+
 	let cli = cli_commands_from_config(&configuration);
 	let quiet = extract_quiet_from_args(args.iter().cloned());
+
 	let matches = match build_command_with_cli(bin_name, &cli).try_get_matches_from(args.clone()) {
 		Ok(matches) => matches,
 		Err(error)
@@ -1396,6 +1451,7 @@ async fn dispatch_cli_args(
 	}
 
 	let jq_expression = matches.get_one::<String>("jq").cloned();
+
 	if jq_expression.is_some()
 		&& !matches.get_flag("snapshot")
 		&& !matches!(matches.subcommand_name(), Some("snapshot"))
@@ -1408,6 +1464,7 @@ async fn dispatch_cli_args(
 				.to_string(),
 		));
 	}
+
 	let output = match matches.subcommand() {
 		Some(("snapshot", snapshot_matches)) => {
 			if snapshot_matches.get_flag("list") {
@@ -1483,6 +1540,7 @@ async fn dispatch_cli_args(
 			} else {
 				parse_subagent_targets(subagent_matches.get_many::<String>("target"))?
 			};
+
 			let format = parse_subagent_output_format_or_default(
 				subagent_matches.get_one::<String>("format"),
 			);
@@ -1745,6 +1803,7 @@ async fn dispatch_cli_args(
 #[coverage(off)]
 fn run_command_wizard_for_cli(root: &Path, quiet: bool) -> MonochangeResult<String> {
 	let output = run_command_wizard(root)?;
+
 	Ok(if quiet { String::new() } else { output })
 }
 

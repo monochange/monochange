@@ -191,6 +191,7 @@ macro_rules! assert_readable_json_snapshot {
 	($value:expr) => {{
 		let (redacted, multiline_fields) = redact_multiline_strings(&$value);
 		insta::assert_json_snapshot!(redacted);
+
 		for (path, contents) in multiline_fields {
 			insta::assert_snapshot!(format!("multiline_{}", snapshot_path_slug(&path)), contents);
 		}
@@ -198,6 +199,7 @@ macro_rules! assert_readable_json_snapshot {
 	($name:expr, $value:expr) => {{
 		let (redacted, multiline_fields) = redact_multiline_strings(&$value);
 		insta::assert_json_snapshot!($name, redacted);
+
 		for (path, contents) in multiline_fields {
 			insta::assert_snapshot!(
 				format!("{}_multiline_{}", $name, snapshot_path_slug(&path)),
@@ -239,6 +241,7 @@ fn redact_multiline_strings_at(
 			multiline_fields.push((path.to_owned(), contents.clone()));
 			*contents = "[multiline text]".to_owned();
 		}
+
 		serde_json::Value::Array(items) => {
 			for (index, item) in items.iter_mut().enumerate() {
 				redact_multiline_strings_at(item, &format!("{path}[{index}]"), multiline_fields);
@@ -314,6 +317,7 @@ where
 			"--help",
 			"--version",
 		];
+
 		if !builtins.contains(&command) {
 			args.insert(command_index, OsString::from("run"));
 		}
@@ -1034,6 +1038,7 @@ fn generated_step_commands_cover_all_builtin_steps_except_command() {
 	let step_command = command
 		.find_subcommand("step")
 		.unwrap_or_else(|| panic!("expected step command namespace"));
+
 	for command_name in expected {
 		let step_name = command_name.trim_start_matches("step ");
 		assert!(
@@ -1041,6 +1046,7 @@ fn generated_step_commands_cover_all_builtin_steps_except_command() {
 			"expected generated {command_name} command"
 		);
 	}
+
 	assert!(step_command.find_subcommand("command").is_none());
 }
 
@@ -1262,6 +1268,7 @@ async fn cli_help_returns_success_output() {
 	assert!(output.contains("step"));
 	assert!(output.contains("Run built-in release workflow steps"));
 	assert!(output.contains("run"));
+
 	assert!(output.contains("Run workflow commands defined in monochange.toml"));
 }
 
@@ -1857,6 +1864,7 @@ steps = [{ name = "noop", type = "Command", command = "true" }]
 	assert!(report.contains("[--format <FORMAT>]"));
 	assert!(report.contains("This command comes from [cli.publish] in monochange.toml"));
 	assert!(report.contains("{ name = \"all\", type = \"boolean\" }"));
+
 	assert!(!report.contains("config error: error:"));
 	assert!(!report.contains("[OPTIONS]"));
 }
@@ -2471,6 +2479,7 @@ fn render_cli_commands_toml_handles_release_and_command_step_variants() {
 	assert!(rendered.contains("required = true"));
 	assert!(rendered.contains("default = \"safe\""));
 	assert!(rendered.contains("choices = [\"safe\", \"fast\"]"));
+
 	assert!(rendered.contains("short = \"m\""));
 	assert!(rendered.contains("[[cli.custom.steps]]"));
 	assert!(rendered.contains("type = \"PrepareRelease\""));
@@ -2567,6 +2576,7 @@ fn discover_workspace_aggregates_packages_from_multiple_ecosystems() {
 		.version_groups
 		.first()
 		.unwrap_or_else(|| panic!("expected a version group"));
+
 	assert_eq!(version_group.members.len(), 2);
 }
 
@@ -2988,6 +2998,7 @@ fn collect_cli_command_inputs_omits_default_bump_for_type_only_changes() {
 		);
 	let inputs = crate::collect_cli_command_inputs(&cli_command, subcommand_matches);
 	assert!(inputs.get("bump").is_some_and(Vec::is_empty));
+
 	assert_eq!(
 		inputs
 			.get("type")
@@ -3718,6 +3729,7 @@ async fn command_versions_reports_planned_versions_without_mutating_files() {
 	let matches = crate::build_command_with_cli("monochange", &configuration.cli)
 		.try_get_matches_from(["monochange", "step", "display-versions", "--format", "text"])
 		.unwrap_or_else(|error| panic!("versions matches: {error}"));
+
 	let (_, step_matches) = matches
 		.subcommand()
 		.unwrap_or_else(|| panic!("expected step namespace matches"));
@@ -4006,6 +4018,7 @@ fn command_release_updates_manifests_changelogs_and_deletes_changesets() {
 		output.starts_with("✔ Prepared release"),
 		"unexpected command output:\n{output}"
 	);
+
 	assert!(output.contains("group ") && output.contains("sdk"));
 	assert!(output.contains("v1.1.0"));
 	assert!(workspace_manifest.contains("version = \"1.1.0\""));
@@ -5149,6 +5162,7 @@ fn seed_release_fixture(root: &Path, command_step: Option<&str>, failing_changel
 	} else {
 		copy_fixture("monochange/release-base", root);
 	}
+
 	let _ = command_step;
 }
 
@@ -5327,12 +5341,15 @@ fn seed_step_outputs_fixture(root: &Path) {
 		"crates/core/CHANGELOG.md",
 		".changeset/feature.md",
 	];
+
 	for file in &files {
 		let source = fixture_dir.join(file);
 		let target = root.join(file);
+
 		if let Some(parent) = target.parent() {
 			fs::create_dir_all(parent).unwrap_or_else(|error| panic!("create dir: {error}"));
 		}
+
 		fs::copy(&source, &target)
 			.unwrap_or_else(|error| panic!("copy {}: {error}", source.display()));
 	}
@@ -5353,12 +5370,15 @@ fn make_executable(_path: &Path) {}
 
 fn with_path_prefixed<T>(root: &Path, action: impl FnOnce() -> T) -> T {
 	let bin_dir = root.join("tools/bin");
+
 	for tool in ["cargo", "npm", "npx", "pnpm", "bun", "bunx", "custom-lock"] {
 		let candidate = bin_dir.join(tool);
+
 		if candidate.exists() {
 			make_executable(&candidate);
 		}
 	}
+
 	let existing = std::env::var_os("PATH").unwrap_or_default();
 	let mut combined = std::env::split_paths(&existing).collect::<Vec<_>>();
 	combined.insert(0, bin_dir);
@@ -5452,7 +5472,6 @@ fn step_override_missing_template_reference_produces_empty_changed_paths() {
 // Unit tests for private helper functions in the input-override pipeline.
 // These tests cover branches not reached by integration paths (e.g.
 // Null/Number/Object JSON types, invalid template reference forms).
-
 #[test]
 fn parse_direct_template_reference_returns_inner_path_for_valid_refs() {
 	use super::parse_direct_template_reference;
@@ -5800,6 +5819,7 @@ fn should_execute_cli_step_gates_on_release_streams_and_outputs() {
 		!evaluate("{{ 'store' in release.streams }}"),
 		"a stream the release did not render must not gate the step on"
 	);
+
 	assert!(
 		evaluate("{{ 'upgrade_notes' in release.outputs }}"),
 		"named outputs are exposed alongside streams"
@@ -6025,6 +6045,7 @@ fn build_release_record_captures_provider_and_release_targets() {
 	assert_eq!(record.release_targets[0].tag_name, "v1.2.3");
 	assert_eq!(record.updated_changelogs.len(), 1);
 	assert_eq!(record.deleted_changesets.len(), 1);
+
 	let provider = record
 		.provider
 		.unwrap_or_else(|| panic!("expected provider block"));
@@ -6072,6 +6093,7 @@ fn sample_release_manifest_for_commit_message(
 		}],
 		released_packages: vec!["monochange".to_string(), "monochange_core".to_string()],
 		changed_files: vec![Path::new("Cargo.lock").to_path_buf()],
+
 		changelogs: if include_changelog {
 			vec![monochange_core::ReleaseManifestChangelog {
 				owner_id: "sdk".to_string(),
@@ -6090,12 +6112,15 @@ fn sample_release_manifest_for_commit_message(
 		} else {
 			Vec::new()
 		},
+
 		changesets: Vec::new(),
+
 		deleted_changesets: if include_deleted_changeset {
 			vec![Path::new(".changeset/feature.md").to_path_buf()]
 		} else {
 			Vec::new()
 		},
+
 		package_publications: Vec::new(),
 		plan: monochange_core::ReleaseManifestPlan {
 			workspace_root: Path::new(".").to_path_buf(),
@@ -6776,6 +6801,7 @@ async fn find_release_record_files_at_commit_falls_back_to_tree_when_parent_is_m
 	fs::write(source_root.join("readme.md"), "initial\n")
 		.unwrap_or_else(|error| panic!("write readme: {error}"));
 	git_in_temp_repo(source_root, &["add", "readme.md"]);
+
 	git_in_temp_repo(source_root, &["commit", "-m", "initial"]);
 
 	let release_dir = source_root.join(".monochange/releases/0000000000000000");
@@ -6883,6 +6909,7 @@ fn validate_release_record_file_does_not_rewrite_when_only_formatting_differs() 
 	let reformatted = content.replace("  ", "\t");
 	fs::write(&expected_path, &reformatted)
 		.unwrap_or_else(|error| panic!("reformat record: {error}"));
+
 	let actual_path = validate_release_record_file(root, None, &manifest, true)
 		.unwrap_or_else(|error| panic!("validate record: {error}"));
 	assert_eq!(expected_path, actual_path);
@@ -6953,6 +6980,7 @@ fn validate_release_record_file_reports_write_error_when_file_is_readonly() {
 	let mut permissions = fs::metadata(&expected_path).unwrap().permissions();
 	permissions.set_readonly(true);
 	fs::set_permissions(&expected_path, permissions).unwrap();
+
 	let result = validate_release_record_file(root, None, &manifest, true);
 	let mut restore = fs::metadata(&expected_path).unwrap().permissions();
 	restore.set_readonly(false);
@@ -7002,6 +7030,7 @@ fn validate_release_record_file_errors_when_update_release_json_is_false_and_rec
 		"expected error when update_release_json is false, got: {result:?}"
 	);
 	let message = result.unwrap_err().to_string();
+
 	assert!(
 		message.contains("does not match expected content"),
 		"expected mismatch error, got: {message}"
@@ -7135,6 +7164,7 @@ fn repair_release_command_rejects_non_descendant_targets_without_force() {
 	git_in_temp_repo(root, &["add", "monochange.toml", "release.txt"]);
 	git_in_temp_repo(root, &["commit", "-m", "initial"]);
 	let initial_commit = git_output_in_temp_repo(root, &["rev-parse", "HEAD"]);
+
 	fs::write(root.join("release.txt"), "release\n")
 		.unwrap_or_else(|error| panic!("write release file: {error}"));
 	git_in_temp_repo(root, &["add", "release.txt"]);
@@ -7149,6 +7179,7 @@ fn repair_release_command_rejects_non_descendant_targets_without_force() {
 			hasher.write(target.id.as_bytes());
 			hasher.write(target.version.as_bytes());
 		}
+
 		format!("{:016x}", hasher.finish())
 	};
 	let dir = root.join(".monochange/releases").join(&hash);
@@ -7160,6 +7191,7 @@ fn repair_release_command_rejects_non_descendant_targets_without_force() {
 	git_in_temp_repo(root, &["tag", "v1.2.3"]);
 	fs::write(root.join("release.txt"), "follow-up\n")
 		.unwrap_or_else(|error| panic!("write follow-up file: {error}"));
+
 	git_in_temp_repo(root, &["add", "release.txt"]);
 	git_in_temp_repo(root, &["commit", "-m", "fix: follow-up release change"]);
 	let main_branch = git_output_in_temp_repo(root, &["branch", "--show-current"]);
@@ -7486,6 +7518,7 @@ fn template_context_exposes_manifest_affected_steps_and_custom_variables() {
 			.and_then(serde_json::Value::as_str),
 		Some("passed")
 	);
+
 	assert_eq!(
 		template_context
 			.get("steps")
@@ -7666,6 +7699,7 @@ fn render_cli_command_markdown_result_uses_markdown_sections_for_prepare_release
 	assert!(rendered.contains("## Release targets"));
 	assert!(rendered.contains("## File diffs"));
 	assert!(rendered.contains("```diff"));
+
 	assert!(rendered.contains("## Commands"));
 	assert!(rendered.contains("skipped command `cargo publish` (dry-run)"));
 }
@@ -7727,6 +7761,7 @@ fn render_cli_command_markdown_result_renders_release_follow_up_sections() {
 	assert!(rendered.contains("## Release request"));
 	assert!(rendered.contains("opened monochange/release"));
 	assert!(rendered.contains("## Issue comments"));
+
 	assert!(rendered.contains("commented on #123"));
 	assert!(rendered.contains("## Changed files"));
 	assert!(rendered.contains("abcdef1"));
@@ -7861,6 +7896,7 @@ branches = ["release/*"]
 	git_in_temp_repo(tempdir.path(), &["commit", "-m", "initial"]);
 	let configuration = load_workspace_configuration(tempdir.path())
 		.unwrap_or_else(|error| panic!("configuration: {error}"));
+
 	let mut step_inputs = BTreeMap::new();
 	step_inputs.insert(
 		"from".to_string(),
@@ -7932,6 +7968,7 @@ async fn execute_cli_command_release_follow_up_steps_require_prepare_release() {
 		.args(["add", "tracked.txt"])
 		.output()
 		.unwrap_or_else(|error| panic!("git add: {error}"));
+
 	std::process::Command::new("git")
 		.current_dir(tempdir.path())
 		.args(["commit", "-m", "initial commit"])
@@ -7976,6 +8013,7 @@ async fn execute_cli_command_release_follow_up_steps_require_prepare_release() {
 			"no monochange release record found in first-parent ancestry",
 		),
 	];
+
 	for (name, step, expected) in cases {
 		let cli_command = CliCommandDefinition {
 			name: name.to_string(),
@@ -8045,6 +8083,7 @@ async fn execute_cli_command_source_follow_up_steps_require_source_configuration
 	.await
 	.err()
 	.unwrap_or_else(|| panic!("expected github source requirement error"));
+
 	assert!(
 		error.to_string().contains(
 			"`CommentReleasedIssues` is not supported for `[source].provider = \"gitlab\"`"
@@ -8350,12 +8389,15 @@ fn find_release_records(root: &Path) -> Vec<PathBuf> {
 		return Vec::new();
 	};
 	let mut records = Vec::new();
+
 	for entry in entries.flatten() {
 		let record_path = entry.path().join("release.json");
+
 		if record_path.is_file() {
 			records.push(record_path);
 		}
 	}
+
 	records
 }
 
@@ -8547,6 +8589,7 @@ async fn execute_cli_command_supports_placeholder_and_package_publish_steps() {
 		.unwrap_or_else(|error| panic!("core src file: {error}"));
 	fs::write(root.join("crates/app/src/lib.rs"), "pub fn app() {}\n")
 		.unwrap_or_else(|error| panic!("app src file: {error}"));
+
 	fs::write(
 		root.join("crates/core/Cargo.toml"),
 		concat!(
@@ -8794,8 +8837,10 @@ fn spawn_failing_test_registry() -> (
 					std::thread::sleep(std::time::Duration::from_millis(10));
 					continue;
 				}
+
 				Err(error) => panic!("accept test registry connection: {error}"),
 			};
+
 			// macOS accepts inherit O_NONBLOCK; headers can arrive after accept.
 			stream
 				.set_nonblocking(false)
@@ -8816,6 +8861,7 @@ fn spawn_failing_test_registry() -> (
 			} else {
 				b"HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
 			};
+
 			std::io::Write::write_all(&mut stream, response)
 				.unwrap_or_else(|error| panic!("write test registry response: {error}"));
 			served += 1;
@@ -8839,6 +8885,7 @@ fn read_test_registry_headers(stream: &mut std::net::TcpStream) -> bool {
 				request.is_empty(),
 				"test registry request ended before its headers"
 			);
+
 			return false;
 		}
 
@@ -8880,6 +8927,7 @@ fn test_registry_waits_for_delayed_complete_request_headers() {
 			error.kind(),
 			std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut
 		));
+
 		std::io::Write::write_all(&mut stream, b"\r\n")
 			.unwrap_or_else(|error| panic!("complete registry request: {error}"));
 		stream
@@ -9026,6 +9074,7 @@ async fn execute_cli_command_publish_packages_step_surfaces_publish_execution_fa
 				served_not_found = true;
 				b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
 			};
+
 			let _ = std::io::Write::write_all(&mut stream, response);
 		}
 	});
@@ -9129,6 +9178,7 @@ async fn execute_cli_command_publish_packages_step_writes_report_artifact_on_exe
 				served_not_found = true;
 				b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
 			};
+
 			let _ = std::io::Write::write_all(&mut stream, response);
 		}
 	});
@@ -9906,6 +9956,7 @@ async fn plan_release_retarget_collects_tag_and_provider_updates() {
 	git_in_temp_repo(root, &["tag", "v1.2.3"]);
 	fs::write(root.join("release.txt"), "second\n")
 		.unwrap_or_else(|error| panic!("write second release file: {error}"));
+
 	git_in_temp_repo(root, &["add", "release.txt"]);
 	git_in_temp_repo(root, &["commit", "-m", "second"]);
 
@@ -9949,6 +10000,7 @@ async fn plan_release_retarget_rejects_non_descendant_without_force() {
 	git_in_temp_repo(root, &["commit", "-m", "initial"]);
 	let main_branch = git_output_in_temp_repo(root, &["branch", "--show-current"]);
 	let base_commit = git_output_in_temp_repo(root, &["rev-parse", "HEAD"]);
+
 	fs::write(root.join("release.txt"), "second\n")
 		.unwrap_or_else(|error| panic!("write second release file: {error}"));
 	git_in_temp_repo(root, &["add", "release.txt"]);
@@ -10009,6 +10061,7 @@ async fn execute_release_retarget_moves_tags_and_pushes_origin_refs() {
 	git_in_temp_repo(&repo, &["add", "release.txt"]);
 	git_in_temp_repo(&repo, &["commit", "-m", "initial"]);
 	let record_commit = git_output_in_temp_repo(&repo, &["rev-parse", "HEAD"]);
+
 	git_in_temp_repo(&repo, &["tag", "v1.2.3"]);
 	git_in_temp_repo(
 		&repo,
@@ -10091,6 +10144,7 @@ async fn plan_release_retarget_marks_existing_target_tag_as_up_to_date() {
 	git_in_temp_repo(root, &["commit", "-m", "initial"]);
 	let record_commit = git_output_in_temp_repo(root, &["rev-parse", "HEAD"]);
 	git_in_temp_repo(root, &["tag", "v1.2.3"]);
+
 	let discovery = monochange_core::ReleaseRecordDiscovery {
 		input_ref: "v1.2.3".to_string(),
 		resolved_commit: record_commit.clone(),
@@ -10135,6 +10189,7 @@ async fn plan_release_retarget_marks_unsupported_provider_sync_in_dry_run() {
 	git_in_temp_repo(root, &["commit", "-m", "initial"]);
 	let record_commit = git_output_in_temp_repo(root, &["rev-parse", "HEAD"]);
 	git_in_temp_repo(root, &["tag", "v1.2.3"]);
+
 	let mut record = sample_release_record_for_retarget();
 	record.provider = Some(monochange_core::ReleaseRecordProvider {
 		kind: monochange_core::SourceProvider::GitLab,
@@ -10229,6 +10284,7 @@ async fn plan_release_retarget_rejects_provider_kind_mismatches() {
 	git_in_temp_repo(root, &["commit", "-m", "initial"]);
 	let record_commit = git_output_in_temp_repo(root, &["rev-parse", "HEAD"]);
 	git_in_temp_repo(root, &["tag", "v1.2.3"]);
+
 	let discovery = monochange_core::ReleaseRecordDiscovery {
 		input_ref: "v1.2.3".to_string(),
 		resolved_commit: record_commit.clone(),
@@ -10269,6 +10325,7 @@ async fn plan_release_retarget_rejects_repository_mismatches() {
 	git_in_temp_repo(root, &["commit", "-m", "initial"]);
 	let record_commit = git_output_in_temp_repo(root, &["rev-parse", "HEAD"]);
 	git_in_temp_repo(root, &["tag", "v1.2.3"]);
+
 	let mut record = sample_release_record_for_retarget();
 	record.provider = Some(monochange_core::ReleaseRecordProvider {
 		kind: monochange_core::SourceProvider::GitHub,
@@ -10308,6 +10365,7 @@ async fn plan_release_retarget_skips_provider_updates_when_no_provider_is_availa
 	git_in_temp_repo(root, &["commit", "-m", "initial"]);
 	let record_commit = git_output_in_temp_repo(root, &["rev-parse", "HEAD"]);
 	git_in_temp_repo(root, &["tag", "v1.2.3"]);
+
 	let mut record = sample_release_record_for_retarget();
 	record.provider = None;
 	let discovery = monochange_core::ReleaseRecordDiscovery {
@@ -10334,6 +10392,7 @@ async fn plan_release_retarget_accepts_missing_record_provider_with_configured_s
 	git_in_temp_repo(root, &["commit", "-m", "initial"]);
 	let record_commit = git_output_in_temp_repo(root, &["rev-parse", "HEAD"]);
 	git_in_temp_repo(root, &["tag", "v1.2.3"]);
+
 	let mut record = sample_release_record_for_retarget();
 	record.provider = None;
 	let discovery = monochange_core::ReleaseRecordDiscovery {
@@ -10402,6 +10461,7 @@ async fn execute_release_retarget_delegates_github_provider_sync() {
 	.await
 	.unwrap_or_else(|error| panic!("execute retarget: {error}"));
 	assert_eq!(result.provider_results.len(), 1);
+
 	release_lookup.assert();
 	assert_eq!(update_release.calls(), 0);
 	assert_eq!(
@@ -10435,6 +10495,7 @@ async fn retarget_release_succeeds_end_to_end_without_provider_sync() {
 			remote.to_str().unwrap_or("remote.git"),
 		],
 	);
+
 	fs::write(repo.join("release.txt"), "initial\n")
 		.unwrap_or_else(|error| panic!("write release file: {error}"));
 	git_in_temp_repo(&repo, &["add", "release.txt"]);
@@ -10723,6 +10784,7 @@ async fn first_parent_commits_returns_head_then_ancestors() {
 	fs::write(root.join("release.txt"), "initial\n")
 		.unwrap_or_else(|error| panic!("write initial file: {error}"));
 	git_in_temp_repo(root, &["add", "release.txt"]);
+
 	git_in_temp_repo(root, &["commit", "-m", "initial"]);
 	fs::write(root.join("release.txt"), "second\n")
 		.unwrap_or_else(|error| panic!("write second file: {error}"));
@@ -10855,6 +10917,7 @@ fn versioned_file_kind_detects_supported_paths_across_ecosystems() {
 		),
 		Some(crate::VersionedFileKind::Dart(_))
 	));
+
 	assert!(matches!(
 		crate::versioned_file_kind(
 			monochange_core::EcosystemType::Python,
@@ -10881,6 +10944,7 @@ fn read_cached_document_returns_cached_entries_before_disk_lookup() {
 	let cached =
 		crate::read_cached_document(&mut updates, &path, monochange_core::EcosystemType::Cargo)
 			.unwrap_or_else(|error| panic!("cached document: {error}"));
+
 	assert!(matches!(cached, crate::CachedDocument::Text(contents) if contents == "cached"));
 	assert!(updates.is_empty());
 }
@@ -10946,6 +11010,7 @@ fn read_cached_document_parses_supported_document_formats() {
 		monochange_core::EcosystemType::Npm,
 	)
 	.unwrap_or_else(|error| panic!("bun lockb: {error}"));
+
 	assert!(matches!(bun_binary, crate::CachedDocument::Bytes(contents) if !contents.is_empty()));
 
 	let npm_manifest = crate::read_cached_document(
@@ -11299,6 +11364,7 @@ fn build_manifest_updates_preserve_npm_deno_and_dart_formatting() {
 		"{\n    \"name\": \"web\",\n    \"version\": \"1.0.0\",\n    \"private\": false\n}\n",
 	)
 	.unwrap_or_else(|error| panic!("write package.json: {error}"));
+
 	fs::write(
 		&deno_path,
 		"{\n  \"name\": \"tool\",\n  \"version\": \"1.0.0\",\n  \"imports\": {\n    \"core\": \"^1.0.0\"\n  }\n}\n",
@@ -11404,6 +11470,7 @@ fn build_manifest_updates_report_parse_and_io_errors() {
 		monochange_core::PublishState::Public,
 	);
 	let deno_invalid_path = tempdir.path().join("invalid/deno.json");
+
 	fs::create_dir_all(deno_invalid_path.parent().expect("deno manifest parent"))
 		.unwrap_or_else(|error| panic!("create invalid deno dir: {error}"));
 	fs::write(&deno_invalid_path, "{")
@@ -11526,6 +11593,7 @@ fn build_manifest_updates_report_parse_and_io_errors() {
 		monochange_core::PublishState::Public,
 	);
 	let cargo_workspace_dir = tempdir.path().join("cargo-workspace-dir");
+
 	fs::create_dir_all(cargo_workspace_dir.join("crates/core"))
 		.unwrap_or_else(|error| panic!("create cargo workspace package dir: {error}"));
 	fs::write(
@@ -12195,6 +12263,7 @@ monochange = { path = "crates/monochange", version = "1.0.0" }
 	let document = updates
 		.remove(&tempdir.path().join("Cargo.toml"))
 		.unwrap_or_else(|| panic!("expected cargo manifest update"));
+
 	assert!(matches!(
 		document,
 		crate::CachedDocument::Text(contents)
@@ -12296,6 +12365,7 @@ fn apply_versioned_file_definition_updates_bun_lockb_and_deno_text_variants() {
 	let original_bun =
 		fs::read(&bun_path).unwrap_or_else(|error| panic!("read bun lockb: {error}"));
 	let mut bun_updates = BTreeMap::new();
+
 	apply_versioned_file_definition(
 		bun_tempdir.path(),
 		&mut bun_updates,
@@ -12394,6 +12464,7 @@ fn apply_versioned_file_definition_updates_regex_versioned_files_from_cached_tex
 	let updated_document = updates
 		.remove(&tempdir.path().join("README.md"))
 		.unwrap_or_else(|| panic!("expected regex versioned file update"));
+
 	assert!(matches!(
 		updated_document,
 		crate::CachedDocument::Text(contents)
@@ -12479,6 +12550,7 @@ fn apply_versioned_file_definition_updates_npm_manifest_and_lock_variants() {
 	let manifest_document = manifest_updates
 		.remove(&manifest_path)
 		.unwrap_or_else(|| panic!("expected npm manifest update"));
+
 	assert!(matches!(
 		manifest_document,
 		crate::CachedDocument::Text(contents)
@@ -12527,6 +12599,7 @@ fn apply_versioned_file_definition_updates_npm_manifest_and_lock_variants() {
 	let package_lock_path = package_lock_tempdir
 		.path()
 		.join("packages/app/package-lock.json");
+
 	let package_lock_document = package_lock_updates
 		.remove(&package_lock_path)
 		.unwrap_or_else(|| panic!("expected package-lock update"));
@@ -12571,6 +12644,7 @@ fn apply_versioned_file_definition_updates_npm_manifest_and_lock_variants() {
 	let pnpm_document = pnpm_updates
 		.remove(&pnpm_path)
 		.unwrap_or_else(|| panic!("expected pnpm lock update"));
+
 	assert!(matches!(
 		pnpm_document,
 		crate::CachedDocument::Text(contents)
@@ -12611,6 +12685,7 @@ fn apply_versioned_file_definition_updates_npm_manifest_and_lock_variants() {
 	let yarn_document = yarn_updates
 		.remove(&yarn_path)
 		.unwrap_or_else(|| panic!("expected yarn lock update"));
+
 	assert!(matches!(
 		yarn_document,
 		crate::CachedDocument::Text(contents)
@@ -12651,6 +12726,7 @@ fn apply_versioned_file_definition_updates_npm_manifest_and_lock_variants() {
 	let bun_document = bun_updates
 		.remove(&bun_path)
 		.unwrap_or_else(|| panic!("expected bun lock update"));
+
 	assert!(matches!(
 		bun_document,
 		crate::CachedDocument::Text(contents) if contents.contains("\"left-pad\": \"2.0.0\"")
@@ -12852,6 +12928,7 @@ fn apply_versioned_file_definition_updates_deno_and_dart_variants() {
 	let deno_manifest_document = deno_manifest_updates
 		.remove(&deno_manifest_path)
 		.unwrap_or_else(|| panic!("expected deno manifest update"));
+
 	assert!(matches!(
 		deno_manifest_document,
 		crate::CachedDocument::Text(contents)
@@ -12891,6 +12968,7 @@ fn apply_versioned_file_definition_updates_deno_and_dart_variants() {
 	let deno_lock_document = deno_lock_updates
 		.remove(&deno_lock_path)
 		.unwrap_or_else(|| panic!("expected deno lock update"));
+
 	assert!(matches!(
 		deno_lock_document,
 		crate::CachedDocument::Json(value) if value.to_string().contains("npm:app@2.0.0")
@@ -12931,6 +13009,7 @@ fn apply_versioned_file_definition_updates_deno_and_dart_variants() {
 	let dart_manifest_document = dart_manifest_updates
 		.remove(&dart_manifest_path)
 		.unwrap_or_else(|| panic!("expected dart manifest update"));
+
 	assert!(matches!(
 		dart_manifest_document,
 		crate::CachedDocument::Text(contents)
@@ -12970,6 +13049,7 @@ fn apply_versioned_file_definition_updates_deno_and_dart_variants() {
 	let dart_lock_document = dart_lock_updates
 		.remove(&dart_lock_path)
 		.unwrap_or_else(|| panic!("expected dart lock update"));
+
 	assert!(matches!(
 		dart_lock_document,
 		crate::CachedDocument::Yaml(mapping)
@@ -13122,6 +13202,7 @@ fn create_release_record_commit_from_record(
 			hasher.write(target.id.as_bytes());
 			hasher.write(target.version.as_bytes());
 		}
+
 		format!("{:016x}", hasher.finish())
 	};
 	let dir = root.join(".monochange/releases").join(&hash);
@@ -14087,6 +14168,7 @@ fn cli_command_after_help_covers_supported_commands_and_custom_commands() {
 			"Treats reruns on the same commit as already up to date",
 		),
 	];
+
 	for (name, expected) in cases {
 		let after_help = cli_command_after_help(&CliCommandDefinition {
 			name: name.to_string(),
@@ -14098,6 +14180,7 @@ fn cli_command_after_help_covers_supported_commands_and_custom_commands() {
 		.unwrap_or_else(|| panic!("expected after_help for {name}"));
 		assert!(after_help.contains(expected));
 	}
+
 	assert!(
 		cli_command_after_help(&CliCommandDefinition {
 			name: "custom".to_string(),
@@ -14224,6 +14307,7 @@ fn build_cli_command_subcommand_parses_supported_input_kinds() {
 			.map(String::as_str),
 		Some("false")
 	);
+
 	assert_eq!(
 		subcommand_matches
 			.get_one::<String>("type")
@@ -14246,6 +14330,7 @@ async fn render_release_record_discovery_supports_text_and_json_formats() {
 	let json = crate::render_release_record_discovery(root, "HEAD", crate::OutputFormat::Json)
 		.await
 		.unwrap_or_else(|error| panic!("release-record json: {error}"));
+
 	assert!(json.contains("\"record\""));
 	assert!(json.contains("\"resolved_commit\""));
 	assert!(json.contains("\"input_ref\": "));
@@ -14665,6 +14750,7 @@ fn format_publish_state_and_source_operation_labels_are_stable() {
 		),
 		"updated"
 	);
+
 	assert_eq!(
 		crate::format_change_request_operation(
 			&monochange_core::SourceChangeRequestOperation::Skipped
@@ -14873,6 +14959,7 @@ async fn find_previous_tag_returns_previous_matching_prefix() {
 	fs::write(tempdir.path().join("release.txt"), "second\n")
 		.unwrap_or_else(|error| panic!("write release file: {error}"));
 	git_in_temp_repo(tempdir.path(), &["add", "release.txt"]);
+
 	git_in_temp_repo(tempdir.path(), &["commit", "-m", "second release"]);
 	git_in_temp_repo(tempdir.path(), &["tag", "core/v1.2.0"]);
 	git_in_temp_repo(tempdir.path(), &["tag", "app/v9.9.9"]);
@@ -14982,6 +15069,7 @@ fn build_source_release_requests_and_change_request_cover_gitea_dispatch() {
 	assert_eq!(requests[0].repository, "ifiokjr/monochange");
 	let request = crate::build_source_change_request(&source, &manifest);
 	assert_eq!(request.provider, monochange_core::SourceProvider::Gitea);
+
 	assert_eq!(request.repository, "ifiokjr/monochange");
 	assert!(!request.commit_message.subject.is_empty());
 }
@@ -15029,6 +15117,7 @@ async fn build_source_release_requests_and_change_request_cover_forgejo_dispatch
 	let request = crate::build_source_change_request(&source, &manifest);
 	assert_eq!(request.provider, monochange_core::SourceProvider::Forgejo);
 	assert_eq!(request.repository, "ifiokjr/monochange");
+
 	assert!(!request.commit_message.subject.is_empty());
 
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
@@ -15634,6 +15723,7 @@ fn batch_changeset_contexts_resolves_introduced_and_updated_commits() {
 			"introduced commit should match the commit that added the file"
 		);
 	}
+
 	if let Some(updated) = observed_updated {
 		assert_eq!(
 			updated,
@@ -16189,6 +16279,7 @@ fn lint_cli_lists_and_explains_rules() {
 	assert!(list_output.contains("dart/required-package-fields"));
 	assert!(list_output.contains("dart/sdk-constraint-present"));
 	assert!(list_output.contains("dart/no-unexpected-dependency-overrides"));
+
 	assert!(list_output.contains("dart/internal-path-dependency-policy"));
 	assert!(list_output.contains("dart/flutter-package-metadata-consistent"));
 
@@ -16553,6 +16644,7 @@ branches = ["release/*"]
 			hasher.write(target.id.as_bytes());
 			hasher.write(target.version.as_bytes());
 		}
+
 		format!("{:016x}", hasher.finish())
 	};
 	let dir = tempdir.path().join(".monochange/releases").join(&hash);
@@ -16644,6 +16736,7 @@ repo = "monochange"
 		.args(["add", "tracked.txt"])
 		.output()
 		.unwrap_or_else(|error| panic!("git add: {error}"));
+
 	std::process::Command::new("git")
 		.current_dir(tempdir.path())
 		.args(["commit", "-m", "initial commit"])
@@ -16713,6 +16806,7 @@ repo = "monochange"
 			hasher.write(target.id.as_bytes());
 			hasher.write(target.version.as_bytes());
 		}
+
 		format!("{:016x}", hasher.finish())
 	};
 	let dir = tempdir.path().join(".monochange/releases").join(&hash);
@@ -16813,6 +16907,7 @@ fn write_release_record_file_snapshot_matches_expected_content() {
 	let value: serde_json::Value =
 		serde_json::from_str(&content).unwrap_or_else(|error| panic!("parse record: {error}"));
 	let mut value = value;
+
 	value["created_at"] = serde_json::Value::String("[timestamp]".to_string());
 	// The on-disk schema_version follows the release package version. Redacting it
 	// keeps this snapshot focused on record shape instead of failing every schema
@@ -16960,6 +17055,7 @@ async fn execute_cli_command_retarget_release_applies_git_updates_without_provid
 	);
 	fs::write(root.join("release.txt"), "initial\n")
 		.unwrap_or_else(|error| panic!("write initial release file: {error}"));
+
 	git_in_temp_repo(&root, &["add", "release.txt"]);
 	let record_commit = create_release_record_commit(&root);
 	git_in_temp_repo(&root, &["tag", "v1.2.3"]);
@@ -17438,6 +17534,7 @@ fn cli_snapshot_classification_renders_json_output() {
 	let output = render_cli_snapshot_classification(&args)
 		.unwrap_or_else(|error| panic!("text classification: {error}"))
 		.unwrap_or_else(|| panic!("text classification output"));
+
 	assert!(output.contains("cli snapshot recommendation: minor"));
 	assert!(output.contains("command `deploy` was added"));
 }
@@ -17533,6 +17630,7 @@ command = "printf hello"
 	assert_eq!(value["commands"][0]["id"], "hello");
 	assert_eq!(value["commands"][0]["status"], "succeeded");
 	assert_eq!(value["commands"][0]["exit_code"], 0);
+
 	assert_eq!(value["commands"][0]["stdout"], "hello");
 
 	let dry_run = run(&["announce", "--dry-run", "--format", "json"])

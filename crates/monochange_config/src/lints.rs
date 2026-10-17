@@ -1,7 +1,6 @@
 #![forbid(clippy::indexing_slicing)]
 
 //! Changeset lint suite for monochange.
-
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::fs;
@@ -138,11 +137,13 @@ impl LintSuite for ChangesetLintSuite {
 		configuration: &WorkspaceConfiguration,
 	) -> MonochangeResult<Vec<LintTarget>> {
 		let changeset_dir = workspace_root.join(".changeset");
+
 		if !changeset_dir.exists() {
 			return Ok(Vec::new());
 		}
 
 		let mut targets = Vec::new();
+
 		for entry in fs::read_dir(&changeset_dir)
 			.map_err(|error| {
 				MonochangeError::Io(format!("failed to read changeset directory: {error}"))
@@ -153,10 +154,13 @@ impl LintSuite for ChangesetLintSuite {
 			let Some(ext) = path.extension() else {
 				continue;
 			};
+
 			if ext != "md" {
 				continue;
 			}
+
 			let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+
 			if !Path::new(file_name)
 				.extension()
 				.is_some_and(|ext| ext.eq_ignore_ascii_case("md"))
@@ -203,6 +207,7 @@ fn target_change_types(
 	configuration: &WorkspaceConfiguration,
 ) -> BTreeMap<String, TargetChangeTypes> {
 	let mut target_types = BTreeMap::new();
+
 	for package in &configuration.packages {
 		target_types.insert(
 			package.id.clone(),
@@ -214,6 +219,7 @@ fn target_change_types(
 			},
 		);
 	}
+
 	for group in &configuration.groups {
 		target_types.insert(
 			group.id.clone(),
@@ -225,6 +231,7 @@ fn target_change_types(
 			},
 		);
 	}
+
 	target_types
 }
 
@@ -235,9 +242,11 @@ fn normalize_change_bumps(file: &mut ChangesetLintFile) {
 		if change.bump.is_some() {
 			continue;
 		}
+
 		let Some(change_type) = change.change_type.as_deref() else {
 			continue;
 		};
+
 		if let Some(default_bump) = file
 			.target_types
 			.get(change.package.as_str())
@@ -266,7 +275,7 @@ fn change_type_default_bumps(
 /// Returns `Some(file)` if the file has valid frontmatter,
 /// or `None` if it doesn't look like a changeset file.
 fn parse_changeset_for_lint(contents: &str) -> Option<ChangesetLintFile> {
-	let contents = contents.replace("\r\n", "\n").replace('\r', "\n");
+	let contents = crate::normalize_changeset_line_endings(contents);
 	let without_opening = contents.strip_prefix("---")?;
 	let (frontmatter, body_with_separator) = without_opening.split_once("\n---\n")?;
 	let body = body_with_separator.trim().to_string();
@@ -274,6 +283,7 @@ fn parse_changeset_for_lint(contents: &str) -> Option<ChangesetLintFile> {
 
 	let mut changes = Vec::new();
 	let mut raw_values = Vec::new();
+
 	for (key, value) in mapping {
 		let package = key.as_str()?;
 		let (bump, change_type) = parse_simple_change_value(&value);
@@ -304,6 +314,7 @@ fn parse_simple_change_value(
 		if let Some(bump) = parse_bump_severity(token) {
 			return (Some(bump), None);
 		}
+
 		return (None, Some(token.to_string()));
 	}
 
@@ -318,6 +329,7 @@ fn parse_simple_change_value(
 			.map(str::trim)
 			.filter(|s| !s.is_empty())
 			.map(ToString::to_string);
+
 		return (bump, change_type);
 	}
 
@@ -329,7 +341,6 @@ fn changeset_file<'a>(ctx: &'a LintContext<'a>) -> Option<&'a ChangesetLintFile>
 }
 
 // ── Summary rule ───────────────────────────────────────────────────────────
-
 #[derive(Debug)]
 struct SummaryRule {
 	rule: LintRule,
@@ -357,6 +368,7 @@ impl LintRuleRunner for SummaryRule {
 
 	fn run(&self, ctx: &LintContext<'_>, config: &LintRuleConfig) -> Vec<LintResult> {
 		let severity = config.severity();
+
 		if !severity.is_enabled() {
 			return Vec::new();
 		}
@@ -405,10 +417,12 @@ impl LintRuleRunner for SummaryRule {
 					severity,
 				));
 			}
+
 			return results;
 		};
 
 		let heading = markdown_heading_level(first_line);
+
 		if required && heading.is_none() {
 			results.push(LintResult::new(
 				self.rule.id.clone(),
@@ -451,6 +465,7 @@ impl LintRuleRunner for SummaryRule {
 		} else {
 			max_length
 		};
+
 		if let Some(max) = effective_max_length
 			&& summary.chars().count() > max
 		{
@@ -459,6 +474,7 @@ impl LintRuleRunner for SummaryRule {
 			} else {
 				"changeset summary"
 			};
+
 			results.push(LintResult::new(
 				self.rule.id.clone(),
 				LintLocation::new(ctx.manifest_path, 1, 1),
@@ -535,9 +551,11 @@ impl LintRuleRunner for SummaryDescriptionRule {
 
 	fn run(&self, ctx: &LintContext<'_>, config: &LintRuleConfig) -> Vec<LintResult> {
 		let severity = config.severity();
+
 		if !severity.is_enabled() {
 			return Vec::new();
 		}
+
 		let Some(file) = changeset_file(ctx) else {
 			return Vec::new();
 		};
@@ -548,6 +566,7 @@ impl LintRuleRunner for SummaryDescriptionRule {
 			.split_inclusive(['.', '!', '?'])
 			.next()
 			.unwrap_or(&paragraph);
+
 		if normalized_release_note_text(&summary) != normalized_release_note_text(first_sentence) {
 			return Vec::new();
 		}
@@ -567,19 +586,25 @@ fn summary_and_first_description(body: &str) -> Option<(String, String)> {
 	let summary =
 		crate::markdown_heading_text(summary_line).unwrap_or_else(|| summary_line.to_string());
 	let mut paragraph = Vec::new();
+
 	for line in lines {
 		let trimmed = line.trim();
+
 		if trimmed.is_empty() {
 			if !paragraph.is_empty() {
 				break;
 			}
+
 			continue;
 		}
+
 		if trimmed.starts_with('#') && paragraph.is_empty() {
 			continue;
 		}
+
 		paragraph.push(trimmed);
 	}
+
 	(!paragraph.is_empty()).then(|| (summary, paragraph.join(" ")))
 }
 
@@ -600,7 +625,6 @@ fn normalized_release_note_text(value: &str) -> String {
 }
 
 // ── No section headings rule ─────────────────────────────────────────────────
-
 #[derive(Debug)]
 struct NoSectionHeadingsRule {
 	rule: LintRule,
@@ -628,6 +652,7 @@ impl LintRuleRunner for NoSectionHeadingsRule {
 
 	fn run(&self, ctx: &LintContext<'_>, config: &LintRuleConfig) -> Vec<LintResult> {
 		let severity = config.severity();
+
 		if !severity.is_enabled() {
 			return Vec::new();
 		}
@@ -647,6 +672,7 @@ impl LintRuleRunner for NoSectionHeadingsRule {
 			.collect();
 
 		let mut results = Vec::new();
+
 		for change_type in change_types {
 			if markdown_has_heading(&file.body, change_type) {
 				results.push(LintResult::new(
@@ -663,7 +689,6 @@ impl LintRuleRunner for NoSectionHeadingsRule {
 }
 
 // ── Bump scope rule ────────────────────────────────────────────────────────
-
 #[derive(Debug)]
 struct BumpScopeRule {
 	rule: LintRule,
@@ -699,7 +724,6 @@ impl LintRuleRunner for BumpScopeRule {
 }
 
 // ── Type scope rule ────────────────────────────────────────────────────────
-
 #[derive(Debug)]
 struct TypeScopeRule {
 	rule: LintRule,
@@ -741,6 +765,7 @@ fn run_scoped_rule(
 	matches: impl Fn(&RawChangeEntry) -> bool,
 ) -> Vec<LintResult> {
 	let severity = config.severity();
+
 	if !severity.is_enabled() {
 		return Vec::new();
 	}
@@ -854,7 +879,6 @@ fn run_scoped_rule(
 }
 
 // ── Prefer inline rule ────────────────────────────────────────────────────
-
 #[derive(Debug)]
 struct PreferInlineRule {
 	rule: LintRule,
@@ -882,6 +906,7 @@ impl LintRuleRunner for PreferInlineRule {
 
 	fn run(&self, ctx: &LintContext<'_>, config: &LintRuleConfig) -> Vec<LintResult> {
 		let severity = config.severity();
+
 		if !severity.is_enabled() {
 			return Vec::new();
 		}
@@ -899,6 +924,7 @@ impl LintRuleRunner for PreferInlineRule {
 			.collect();
 
 		let mut results = Vec::new();
+
 		for (package, value) in &file.raw_values {
 			let Some(span) = span_by_target.get(package.as_str()) else {
 				continue;
@@ -908,6 +934,7 @@ impl LintRuleRunner for PreferInlineRule {
 				continue;
 			};
 			let message = prefer_inline_message(package, case, &token);
+
 			results.push(
 				LintResult::new(
 					self.rule.id.clone(),
@@ -939,6 +966,7 @@ fn inline_equivalent_token(
 	let mut bump: Option<BumpSeverity> = None;
 	let mut bump_token: Option<String> = None;
 	let mut change_type: Option<String> = None;
+
 	for (key, field) in mapping {
 		match key.as_str()? {
 			"bump" => {
@@ -984,27 +1012,34 @@ fn inline_equivalent_token(
 		} else {
 			PreferInlineCase::TypeOnly
 		};
+
 		(token, case)
 	} else {
 		// A bare bump converts inline when the bump keyword is also a
 		// configured change type that implies the same bump: the inline
 		// entry keeps the bump and gains the type.
 		let name = bump_token?;
+
 		let severity = bump?;
+
 		if severity == BumpSeverity::None {
 			// `bump: none` alone is rejected by changeset validation, so the
 			// inline form is not an equivalent rewrite.
 			return None;
 		}
+
 		let default_bump = target_types
 			.get(package)?
 			.default_bumps
 			.get(name.as_str())?;
+
 		if *default_bump != severity {
 			return None;
 		}
+
 		(name, PreferInlineCase::BareBump)
 	};
+
 	Some((token, case))
 }
 
@@ -1052,6 +1087,7 @@ fn inline_scalar_token(token: &str) -> String {
 			token,
 			"true" | "false" | "null" | "~" | "yes" | "no" | "on" | "off"
 		);
+
 	if plain_safe {
 		token.to_string()
 	} else {
@@ -1080,13 +1116,17 @@ fn frontmatter_entry_spans(contents: &str) -> Option<Vec<FrontmatterEntrySpan>> 
 	let mut entries = Vec::new();
 	let mut keys = Vec::new();
 	let mut index = 0usize;
+
 	while let Some((line_start, line)) = lines.get(index) {
 		let trimmed = line.trim();
+
 		if trimmed.is_empty() || trimmed.starts_with('#') {
 			index += 1;
 			continue;
 		}
+
 		let indent = line.len() - line.trim_start_matches(' ').len();
+
 		if indent > 0 {
 			// Continuation line without a parent entry; ignore defensively.
 			index += 1;
@@ -1096,17 +1136,22 @@ fn frontmatter_entry_spans(contents: &str) -> Option<Vec<FrontmatterEntrySpan>> 
 		let (package, after_colon) = parse_frontmatter_entry_line(line)?;
 		keys.push(package.clone());
 		let inline_value = line.get(after_colon..).unwrap_or("").trim_start();
+
 		if inline_value.is_empty() || inline_value.starts_with('#') {
 			let (span, next_index) = block_value_span(&lines, index, *line_start, after_colon);
+
 			if let Some(span) = span {
 				entries.push(FrontmatterEntrySpan { package, span });
 			}
+
 			index = next_index;
+
 			continue;
 		}
 
 		if inline_value.starts_with('{') {
 			let value_start = line_start + line.len() - inline_value.len();
+
 			if let Some(value_end) = flow_mapping_end(contents, value_start) {
 				entries.push(FrontmatterEntrySpan {
 					package,
@@ -1115,6 +1160,7 @@ fn frontmatter_entry_spans(contents: &str) -> Option<Vec<FrontmatterEntrySpan>> 
 					span: (line_start + after_colon, value_end),
 				});
 			}
+
 			index += 1;
 			continue;
 		}
@@ -1135,10 +1181,12 @@ fn frontmatter_entry_spans(contents: &str) -> Option<Vec<FrontmatterEntrySpan>> 
 fn collect_frontmatter_lines(frontmatter: &str, base: usize) -> Vec<(usize, String)> {
 	let mut lines = Vec::new();
 	let mut offset = 0usize;
+
 	for line in frontmatter.split('\n') {
 		lines.push((base + offset, line.trim_end_matches('\r').to_string()));
 		offset += line.len() + 1;
 	}
+
 	lines
 }
 
@@ -1153,23 +1201,30 @@ fn block_value_span(
 ) -> (Option<(usize, usize)>, usize) {
 	let mut value_end: Option<usize> = None;
 	let mut index = entry_index + 1;
+
 	while let Some((line_start, line)) = lines.get(index) {
 		let trimmed = line.trim();
+
 		if trimmed.is_empty() {
 			index += 1;
 			continue;
 		}
+
 		let indent = line.len() - line.trim_start_matches(' ').len();
+
 		if indent == 0 {
 			break;
 		}
+
 		if trimmed.starts_with('#') {
 			// Comments inside the block are not safe to rewrite.
 			return (None, index + 1);
 		}
+
 		value_end = Some(line_start + line.len());
 		index += 1;
 	}
+
 	let span = value_end.map(|end| (entry_line_start + after_colon, end));
 	(span, index)
 }
@@ -1184,6 +1239,7 @@ fn flow_mapping_end(contents: &str, start: usize) -> Option<usize> {
 	let mut in_double_quote = false;
 	let mut escaped = false;
 	let mut chars = remainder.char_indices().peekable();
+
 	while let Some((offset, ch)) = chars.next() {
 		if in_double_quote {
 			if escaped {
@@ -1193,8 +1249,10 @@ fn flow_mapping_end(contents: &str, start: usize) -> Option<usize> {
 			} else if ch == '"' {
 				in_double_quote = false;
 			}
+
 			continue;
 		}
+
 		if in_single_quote {
 			if ch == '\'' {
 				if chars.peek().map(|(_, next)| *next) == Some('\'') {
@@ -1203,8 +1261,10 @@ fn flow_mapping_end(contents: &str, start: usize) -> Option<usize> {
 					in_single_quote = false;
 				}
 			}
+
 			continue;
 		}
+
 		match ch {
 			'"' => in_double_quote = true,
 			'\'' => in_single_quote = true,
@@ -1216,6 +1276,7 @@ fn flow_mapping_end(contents: &str, start: usize) -> Option<usize> {
 					let rest = contents.get(end..).unwrap_or("");
 					let line_rest = rest.split('\n').next().unwrap_or("");
 					let trimmed = line_rest.trim();
+
 					if trimmed.is_empty() || trimmed.starts_with('#') {
 						return Some(end);
 					}
@@ -1225,6 +1286,7 @@ fn flow_mapping_end(contents: &str, start: usize) -> Option<usize> {
 			_ => {}
 		}
 	}
+
 	None
 }
 
@@ -1239,23 +1301,29 @@ fn parse_frontmatter_entry_line(line: &str) -> Option<(String, usize)> {
 
 fn parse_plain_entry_key(line: &str) -> Option<(String, usize)> {
 	let mut colon: Option<usize> = None;
+
 	for (offset, ch) in line.char_indices() {
 		if ch != ':' {
 			continue;
 		}
+
 		let followed_by_space = line
 			.get(offset + 1..)
 			.is_none_or(|rest| rest.is_empty() || rest.starts_with(' ') || rest.starts_with('\t'));
+
 		if followed_by_space {
 			colon = Some(offset);
 			break;
 		}
 	}
+
 	let colon = colon?;
 	let key = line.get(..colon)?.trim().to_string();
+
 	if key.is_empty() {
 		return None;
 	}
+
 	let after_colon = colon + 1;
 	Some((key, after_colon))
 }
@@ -1266,6 +1334,7 @@ fn parse_quoted_entry_key(line: &str) -> Option<(String, usize)> {
 	let mut key = String::new();
 	let mut closed_at: Option<usize> = None;
 	let mut chars = body.char_indices().peekable();
+
 	while let Some((offset, ch)) = chars.next() {
 		if quote == '"' && ch == '\\' {
 			match chars.next() {
@@ -1284,23 +1353,27 @@ fn parse_quoted_entry_key(line: &str) -> Option<(String, usize)> {
 			key.push(ch);
 		}
 	}
+
 	let closed_at = closed_at?;
 	let after_quote = 1 + closed_at + quote.len_utf8();
 	let tail = line.get(after_quote..)?;
 	let without_indent = tail.trim_start_matches([' ', '\t']);
+
 	if !without_indent.starts_with(':') {
 		return None;
 	}
+
 	let after_colon = after_quote + (tail.len() - without_indent.len()) + 1;
 	let rest = without_indent.get(1..).unwrap_or("");
+
 	if !rest.is_empty() && !rest.starts_with(' ') && !rest.starts_with('\t') {
 		return None;
 	}
+
 	Some((key, after_colon))
 }
 
 // ── Trait extension for LintRuleConfig ─────────────────────────────────────
-
 #[allow(dead_code)]
 trait LintRuleConfigExt {
 	fn bool_option(&self, key: &str, default: bool) -> bool;

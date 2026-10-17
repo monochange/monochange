@@ -121,12 +121,14 @@ impl DeliveryPayload {
 					body: pull_request.body.unwrap_or_default(),
 				})
 			}
+
 			("pull_request", "closed", Some(pull_request), _) if pull_request.merged => {
 				Some(Delivery::PullRequestMerged {
 					repository,
 					number: pull_request.number,
 				})
 			}
+
 			("release", "published", _, Some(release)) if !release.prerelease => {
 				Some(Delivery::ReleasePublished {
 					repository,
@@ -136,6 +138,7 @@ impl DeliveryPayload {
 					},
 				})
 			}
+
 			_ => None,
 		}
 	}
@@ -243,6 +246,7 @@ pub async fn github_webhook(
 			}),
 		));
 	};
+
 	if !app.webhook_configured() {
 		return Err((
 			StatusCode::SERVICE_UNAVAILABLE,
@@ -251,6 +255,7 @@ pub async fn github_webhook(
 			}),
 		));
 	}
+
 	let signature = headers
 		.get("x-hub-signature-256")
 		.and_then(|value| value.to_str().ok())
@@ -268,9 +273,11 @@ pub async fn github_webhook(
 		.get("x-github-event")
 		.and_then(|value| value.to_str().ok())
 		.unwrap_or_default();
+
 	if matches!(event_name, "pull_request" | "release") {
 		return delivery_event(&state, event_name, &body).await;
 	}
+
 	if !matches!(event_name, "installation" | "installation_repositories") {
 		return Ok(StatusCode::OK);
 	}
@@ -408,6 +415,7 @@ async fn sync_installation(
 		} else {
 			sender
 		};
+
 		let github_id = owner.and_then(|owner| owner.id).filter(|id| *id > 0);
 		let owner_login = owner
 			.and_then(|owner| owner.login.as_deref())
@@ -420,6 +428,7 @@ async fn sync_installation(
 				}),
 			));
 		};
+
 		let user_id: i32 = sqlx::query_scalar(
 			"INSERT INTO users (github_id, github_login, github_access_token)
 			 VALUES ($1, $2, '') ON CONFLICT(github_id) DO UPDATE SET github_login = excluded.github_login RETURNING id",
@@ -469,6 +478,7 @@ async fn sync_installation(
 					.fetch_optional(&mut *transaction)
 					.await
 					.map_err(|error| db_error(&error))?;
+
 			if exists.is_some() {
 				sqlx::query(
 					"UPDATE repositories SET installation_id = $2, github_full_name = $3, github_private = $4, updated_at = $5 WHERE github_repo_id = $1",
@@ -506,6 +516,7 @@ async fn sync_installation(
 			.map_err(|error| db_error(&error))?;
 		}
 	}
+
 	transaction
 		.commit()
 		.await

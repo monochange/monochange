@@ -25,6 +25,7 @@ fn snapshot_schema_version_tracks_package_major_minor() {
 	} else {
 		format!("{major}.{minor}")
 	};
+
 	assert_eq!(SNAPSHOT_SCHEMA_VERSION, expected);
 }
 
@@ -182,6 +183,7 @@ fn snapshot_from_clap_captures_command_options_and_positionals() {
 	assert_eq!(run.summary.as_deref(), Some("Run a task"));
 	assert_eq!(run.options[0].value.kind, ValueKind::Enum);
 	assert_eq!(run.options[0].value.enum_values, vec!["json", "text"]);
+
 	assert_eq!(run.positionals[0].name, "task");
 	assert!(run.positionals[0].value.required);
 }
@@ -422,6 +424,7 @@ fn clap_extractor_trait_and_json_render_are_usable() {
 	));
 	assert!(snapshot.view(SnapshotView::Index).global_options.is_empty());
 	assert_eq!(snapshot.global_options[0].value.kind, ValueKind::Flag);
+
 	assert_eq!(snapshot.global_options[1].value.kind, ValueKind::Counter);
 	let option_names = snapshot
 		.global_options
@@ -486,6 +489,7 @@ fn diff_classifies_option_removal_and_description_changes() {
 	let mut after_verbose = option("--verbose", value(ValueKind::Flag));
 	after_verbose.summary = Some("new".to_string());
 	before_command.options.push(before_verbose);
+
 	after_command.options.push(after_verbose);
 	let report = diff_command_snapshots(
 		&command_snapshot(vec![before_command]),

@@ -20,11 +20,13 @@ async fn run_git_process_with_stdin(
 		.stderr(Stdio::piped())
 		.spawn()
 		.map_err(|error| MonochangeError::Discovery(format!("{error_message}: {error}")))?;
+
 	if let Some(mut stdin) = child.stdin.take() {
 		// A process that exits before reading its input closes the pipe; its
 		// exit status and stderr explain the failure better than the write.
 		match stdin.write_all(input).await {
 			Ok(()) => {}
+
 			Err(error) if error.kind() == std::io::ErrorKind::BrokenPipe => {}
 			Err(error) => {
 				return Err(MonochangeError::Discovery(format!(
@@ -33,6 +35,7 @@ async fn run_git_process_with_stdin(
 			}
 		}
 	}
+
 	let output = child
 		.wait_with_output()
 		.await
@@ -188,6 +191,7 @@ async fn git_stage_paths_returns_ok_when_all_paths_are_non_stageable() {
 		.unwrap_or_else(|error| panic!("write release state: {error}"));
 	init_git_repo(root);
 	git(root, &["add", "."]);
+
 	git(root, &["add", "-f", ".monochange/releases/release.json"]);
 	git(root, &["commit", "-m", "initial"]);
 	fs::create_dir_all(root.join(".monochange/local"))
@@ -493,6 +497,7 @@ async fn find_release_record_files_at_commit_detects_records_added_by_merged_bra
 			"release-prep",
 		],
 	);
+
 	let merge_commit = git_output(root, &["rev-parse", "HEAD"]);
 
 	let files_at_merge = find_release_record_files_at_commit(root, &merge_commit)

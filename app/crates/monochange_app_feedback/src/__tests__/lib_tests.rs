@@ -77,6 +77,7 @@ fn into_review(service: &mut FeedbackService<RuleBasedTriage>, id: &str, number:
 	for voter in ["v1", "v2", "v3"] {
 		service.vote(id, voter).unwrap();
 	}
+
 	service.accept(id, decision(None)).unwrap();
 	service
 		.link_issue(
@@ -184,6 +185,7 @@ fn accepted_with_issue(service: &mut FeedbackService<RuleBasedTriage>, id: &str,
 	for voter in ["v1", "v2", "v3"] {
 		service.vote(id, voter).unwrap();
 	}
+
 	service.accept(id, decision(None)).unwrap();
 	service
 		.link_issue(
@@ -228,11 +230,13 @@ fn pull_requests_that_close_an_items_issue_move_it_to_review() {
 		)
 		.unwrap();
 	assert_eq!(advanced, [closed.clone(), building.clone()]);
+
 	for id in [&closed, &building] {
 		let item = service.item(id).unwrap();
 		assert_eq!(item.stage, Stage::InReview);
 		assert_eq!(item.pull_request.as_ref().unwrap().number, 50);
 	}
+
 	assert_eq!(service.item(&untouched).unwrap().stage, Stage::Accepted);
 
 	// Items already in review aren't moved again.
@@ -706,6 +710,7 @@ fn service_errors_explain_themselves() {
 			"link a GitHub issue before briefing the agent",
 		),
 	];
+
 	for (error, message) in messages {
 		assert_eq!(error.to_string(), message);
 	}
@@ -747,6 +752,7 @@ fn service_types_round_trip_through_json() {
 		message
 	);
 	let observation = release(vec![1]);
+
 	assert_eq!(
 		serde_json::from_value::<ReleaseObservation>(serde_json::to_value(&observation).unwrap())
 			.unwrap(),
@@ -840,6 +846,7 @@ fn merges_and_releases_match_the_pull_requests_repository() {
 		service.ship_merged(Some("acme/invoices"), &link),
 		Ok(vec![id.clone()])
 	);
+
 	assert_eq!(service.item(&id).unwrap().stage, Stage::Shipped);
 	assert_eq!(service.ship_merged(None, &link), Ok(vec![]));
 }

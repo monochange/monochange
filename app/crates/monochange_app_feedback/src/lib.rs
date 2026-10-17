@@ -39,6 +39,7 @@ pub mod roadmap;
 pub mod similarity;
 pub mod submission;
 pub mod triage;
+
 pub mod voting;
 
 use std::collections::BTreeMap;
@@ -316,6 +317,7 @@ impl<T: TriageEngine> FeedbackService<T> {
 				if percent < SIMILARITY_THRESHOLD_PERCENT {
 					return None;
 				}
+
 				let entry = roadmap::roadmap_entry(item, self.policy, &self.cadence).ok()?;
 				Some(SimilarItem {
 					id: entry.id,
@@ -341,13 +343,16 @@ impl<T: TriageEngine> FeedbackService<T> {
 	/// Quarantined items stop until [`Self::resume_triage`].
 	pub fn receive(&mut self, submission: FeedbackSubmission) -> Result<Receipt, ServiceError> {
 		submission.validate()?;
+
 		if !self.apps.contains_key(&submission.app_slug) {
 			return Err(ServiceError::UnknownApp(submission.app_slug));
 		}
+
 		let similar = self.similar(&submission.description, 3);
 		// Items are never deleted, so the count names the next one.
 		let id = format!("fb-{}", self.items.len() + 1);
 		let mut item = FeedbackItem::new(id.clone(), submission, self.rules);
+
 		if let ScreeningVerdict::InjectionSuspected { .. } =
 			screen_untrusted(&item.submission.description)
 		{
@@ -401,6 +406,7 @@ impl<T: TriageEngine> FeedbackService<T> {
 					item.apply(Command::OpenVoting, &Actor::System)?;
 				}
 			}
+
 			Ok(item.stage)
 		})
 	}
@@ -478,9 +484,11 @@ impl<T: TriageEngine> FeedbackService<T> {
 		let target = self
 			.item(canonical)
 			.ok_or_else(|| ServiceError::NotFound(canonical.to_owned()))?;
+
 		if !target.stage.is_open() || target.duplicate_of.is_some() {
 			return Err(ServiceError::InvalidDuplicateTarget(canonical.to_owned()));
 		}
+
 		let actor = Actor::Maintainer(maintainer.to_owned());
 		let duplicate = self.mutate(id, |item, _| {
 			item.apply(
@@ -543,12 +551,15 @@ impl<T: TriageEngine> FeedbackService<T> {
 			})
 			.map(|item| (item.id.clone(), item.stage))
 			.collect();
+
 		for (id, stage) in &delivered {
 			if *stage == Stage::Accepted {
 				self.start_build(id)?;
 			}
+
 			self.open_pull_request(id, pull_request.clone())?;
 		}
+
 		Ok(delivered.into_iter().map(|(id, _)| id).collect())
 	}
 
@@ -573,6 +584,7 @@ impl<T: TriageEngine> FeedbackService<T> {
 		release: &ReleaseObservation,
 	) -> Result<Vec<String>, ServiceError> {
 		let mut shipped = Vec::new();
+
 		for &number in &release.pull_requests {
 			let Some(id) = self.item_in_review(
 				release.repository.as_deref(),
@@ -588,6 +600,7 @@ impl<T: TriageEngine> FeedbackService<T> {
 			self.apply(&id, Command::MarkShipped(link), &Actor::System)?;
 			shipped.push(id);
 		}
+
 		Ok(shipped)
 	}
 
@@ -610,9 +623,11 @@ impl<T: TriageEngine> FeedbackService<T> {
 			})
 			.map(|item| item.id.clone())
 			.collect();
+
 		for id in &merged {
 			self.apply(id, Command::MarkShipped(release.clone()), &Actor::System)?;
 		}
+
 		Ok(merged)
 	}
 
@@ -660,6 +675,7 @@ impl<T: TriageEngine> FeedbackService<T> {
 					Actor::Maintainer(_) => PublicAuthor::Maintainer,
 					Actor::Ai | Actor::System => PublicAuthor::Assistant,
 				};
+
 				PublicMessage {
 					author,
 					body: disclosure::redact(
@@ -728,6 +744,7 @@ impl<T: TriageEngine> FeedbackService<T> {
 		let item = &mut self.items[index];
 		let before = roadmap::public_status_line(item.stage);
 		let result = change(item, &self.triage)?;
+
 		if roadmap::public_status_line(item.stage) != before
 			&& let Ok(update) = roadmap::public_item_update(item, self.policy)
 		{
@@ -753,11 +770,13 @@ fn run_triage<T: TriageEngine>(triage: &T, item: &mut FeedbackItem) -> Result<St
 	let report = triage.triage(&item.submission, &item.visible_discussion());
 	let has_questions = !report.questions.is_empty();
 	item.apply(Command::CompleteTriage(report), &Actor::Ai)?;
+
 	if has_questions {
 		item.apply(Command::AskUser, &Actor::Ai)?;
 	} else {
 		item.apply(Command::OpenVoting, &Actor::System)?;
 	}
+
 	Ok(item.stage)
 }
 

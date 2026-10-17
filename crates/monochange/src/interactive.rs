@@ -206,6 +206,7 @@ const MAX_GROUP_DISPLAY_LENGTH: usize = 64;
 
 fn render_group_target_display(group_id: &str, package_ids: &[String]) -> String {
 	let full = format!("[group] {group_id} ({})", package_ids.join(", "));
+
 	if full.len() <= MAX_GROUP_DISPLAY_LENGTH {
 		full
 	} else {
@@ -276,6 +277,7 @@ fn validate_semver_input(input: &str) -> Validation {
 	if input.is_empty() {
 		return Validation::Valid;
 	}
+
 	match semver::Version::parse(input) {
 		Ok(_) => Validation::Valid,
 		Err(error) => Validation::Invalid(format!("invalid semver: {error}").into()),

@@ -149,6 +149,7 @@ async fn signed_in_visitor_can_open_the_configured_app_installation_page() {
 	let oauth_cookie = axum_extra::extract::cookie::Cookie::parse_encoded(set_cookie)
 		.unwrap()
 		.into_owned();
+
 	let verified = oauth::verify_login_state(
 		"connection-test-signing-key",
 		&axum_extra::extract::cookie::CookieJar::new().add(oauth_cookie),

@@ -4,7 +4,6 @@
 //! These snapshots intentionally render help through clap itself. They are the
 //! safety net for refactoring monochange help away from hand-maintained text and
 //! toward clap-owned command definitions, doc comments, and clap attributes.
-
 use std::path::PathBuf;
 
 use clap::ColorChoice;
@@ -123,6 +122,7 @@ fn render_help_snapshot(path: &[String]) -> String {
 		.map(str::trim_end)
 		.collect::<Vec<_>>()
 		.join("\n");
+
 	if ends_with_newline {
 		help.push('\n');
 	}

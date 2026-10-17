@@ -114,17 +114,21 @@ async fn build_report(
 		.map_or(selected_package.ecosystem.as_str(), |package| {
 			package.package_type.as_str()
 		});
+
 	let main_ref = match main_ref {
 		Some(main_ref) => main_ref.to_string(),
 		None => default_branch_name(root).await?,
 	};
+
 	let head_ref = head_ref.map_or_else(|| "HEAD".to_string(), ToString::to_string);
+
 	let resolved_release_ref = match release_ref {
 		Some(release_ref) => Some(release_ref.to_string()),
 		None => {
 			latest_release_tag_for_identity(root, release_identity.as_ref(), tag_ecosystem).await?
 		}
 	};
+
 	let config = AnalysisConfig {
 		detection_level,
 		..AnalysisConfig::default()
@@ -253,6 +257,7 @@ async fn default_branch_name(root: &Path) -> MonochangeResult<String> {
 	.await
 	.ok()
 	.and_then(|symbolic_ref| parse_origin_head_branch(&symbolic_ref));
+
 	match result {
 		Some(branch) => Ok(branch),
 		None => fallback_default_branch(root).await,
@@ -279,6 +284,7 @@ async fn latest_release_tag_for_identity(
 	let Some(release_identity) = release_identity else {
 		return Ok(None);
 	};
+
 	if !release_identity.tag {
 		return Ok(None);
 	}
@@ -288,6 +294,7 @@ async fn latest_release_tag_for_identity(
 	} else {
 		ecosystem
 	};
+
 	let tag_output = run_git_capture(
 		root,
 		&["tag", "--list", "--sort=-v:refname"],
@@ -362,9 +369,11 @@ fn render_text_report(report: &AnalyzeReport) -> String {
 		report.refs.main,
 		report.refs.head
 	)];
+
 	if report.first_release {
 		details.push("first release".to_string());
 	}
+
 	text.headline(
 		Outcome::Success,
 		&format!("Analyzed {package_id}"),
@@ -382,9 +391,11 @@ fn render_text_report(report: &AnalyzeReport) -> String {
 			report.package.manifest_path.display().to_string(),
 		),
 	];
+
 	if let Some(version_group_id) = &report.package.version_group_id {
 		fields.push(("Version group", version_group_id.clone()));
 	}
+
 	if let Some(release_identity) = &report.release_identity {
 		fields.push((
 			"Released as",
@@ -395,6 +406,7 @@ fn render_text_report(report: &AnalyzeReport) -> String {
 			),
 		));
 	}
+
 	fields.push((
 		"Refs",
 		format!(
@@ -420,12 +432,15 @@ fn render_text_report(report: &AnalyzeReport) -> String {
 		&report.frames.main_to_head,
 		package_id,
 	);
+
 	if let Some(release_to_main) = &report.frames.release_to_main {
 		render_frame_section(&mut text, "release → main", release_to_main, package_id);
 	}
+
 	if let Some(release_to_head) = &report.frames.release_to_head {
 		render_frame_section(&mut text, "release → head", release_to_head, package_id);
 	}
+
 	text.render()
 }
 
@@ -445,6 +460,7 @@ fn render_frame_section(
 	);
 	text.indented(&format!("frame {}", analysis.frame), Tone::Muted);
 	let mut warnings = analysis.warnings.clone();
+
 	match package_analysis {
 		None => {
 			text.indented(
@@ -484,9 +500,11 @@ fn render_frame_section(
 					FRAME_LIST_LIMIT,
 				);
 			}
+
 			warnings.splice(0..0, package_analysis.warnings.iter().cloned());
 		}
 	}
+
 	text.list(
 		warnings.iter().map(|warning| format!("▲ {warning}")),
 		usize::MAX,

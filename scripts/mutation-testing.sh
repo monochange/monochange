@@ -50,10 +50,12 @@ run_mutants() {
 	timeout_seconds=$(get_timeout "$crate")
 
 	echo "=== Running mutants for $crate (timeout: ${timeout_seconds}s) ==="
+
 	if timeout "$timeout_seconds" cargo mutants -p "$crate" --no-shuffle --output "$REPORT_DIR/$crate" 2>&1 | tee -a "$REPORT_DIR/$crate.out"; then
 		echo "ok       $crate"
 	else
 		local exit_code=$?
+
 		if [ "$exit_code" -eq 124 ]; then
 			echo "TIMEOUT  $crate (exceeded ${timeout_seconds}s)"
 		else
@@ -73,6 +75,7 @@ fi
 
 # Generate a summary report.
 echo "=== Mutation Testing Summary ===" | tee "$REPORT_DIR/summary.txt"
+
 for crate in "${CRATES[@]}"; do
 	out="$REPORT_DIR/$crate.out"
 	if [ -f "$out" ]; then

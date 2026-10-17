@@ -67,9 +67,11 @@ pub fn push_body_entries(lines: &mut Vec<String>, entries: &[String]) {
 
 		if trimmed.contains('\n') {
 			lines.extend(trimmed.lines().map(ToString::to_string));
+
 			if index + 1 < entries.len() {
 				lines.push(String::new());
 			}
+
 			continue;
 		}
 
@@ -123,6 +125,7 @@ pub fn release_pull_request_branch(branch_prefix: &str, command: &str) -> String
 	} else {
 		command
 	};
+
 	let command = command
 		.chars()
 		.map(|character| {
@@ -186,12 +189,14 @@ pub fn render_release_pull_request_body(
 	} else {
 		release_pull_request_sections(manifest)
 	};
+
 	let original_chars =
 		assemble_release_pull_request_body(&header, &sections, sections.len(), None, manifest)
 			.chars()
 			.count();
 
 	let mut kept = sections.len();
+
 	if let Some(max_chars) = max_chars {
 		while kept > 0
 			&& assemble_release_pull_request_body(
@@ -280,6 +285,7 @@ fn release_pull_request_header(manifest: &ReleaseManifest) -> Vec<String> {
 /// Render every droppable span of release content, in body order.
 fn release_pull_request_sections(manifest: &ReleaseManifest) -> Vec<ReleaseBodySection> {
 	let mut sections = Vec::new();
+
 	for (group, target) in manifest
 		.release_targets
 		.iter()
@@ -303,10 +309,12 @@ fn release_pull_request_sections(manifest: &ReleaseManifest) -> Vec<ReleaseBodyS
 		};
 
 		let mut intro = vec![format!("### {} {}", target.id, target.version)];
+
 		for paragraph in &changelog.notes.summary {
 			intro.push(String::new());
 			intro.push(paragraph.clone());
 		}
+
 		sections.push(ReleaseBodySection {
 			text: intro.join("\n"),
 			entries: 0,
@@ -319,6 +327,7 @@ fn release_pull_request_sections(manifest: &ReleaseManifest) -> Vec<ReleaseBodyS
 			if section.entries.is_empty() {
 				continue;
 			}
+
 			let mut lines = vec![format!("### {}", section.title), String::new()];
 			push_body_entries(&mut lines, &section.entries);
 			sections.push(ReleaseBodySection {
@@ -333,9 +342,11 @@ fn release_pull_request_sections(manifest: &ReleaseManifest) -> Vec<ReleaseBodyS
 
 	if !manifest.changed_files.is_empty() {
 		let mut lines = vec!["## Changed files".to_string(), String::new()];
+
 		for path in &manifest.changed_files {
 			lines.push(format!("- {}", path.display()));
 		}
+
 		sections.push(ReleaseBodySection {
 			text: lines.join("\n"),
 			entries: 0,
@@ -373,18 +384,22 @@ fn assemble_release_pull_request_body(
 	if !notes.is_empty() || pointer.is_none() {
 		lines.push(String::new());
 		lines.push("## Release notes".to_string());
+
 		for section in notes {
 			lines.push(String::new());
 			lines.push(section.text.clone());
 		}
 	}
+
 	for section in kept.iter().filter(|section| !section.notes) {
 		lines.push(String::new());
 		lines.push(section.text.clone());
 	}
+
 	if let Some(dropped_entries) = pointer {
 		push_release_pull_request_changelog_pointer(&mut lines, manifest, dropped_entries);
 	}
+
 	lines.join("\n")
 }
 
@@ -400,6 +415,7 @@ fn push_release_pull_request_changelog_pointer(
 	lines.push(String::new());
 	lines.push("## Full release notes".to_string());
 	lines.push(String::new());
+
 	if dropped_entries > 0 {
 		lines.push(format!(
 			"{dropped_entries} entries omitted to fit the body limit. The complete notes are in:"
@@ -409,13 +425,16 @@ fn push_release_pull_request_changelog_pointer(
 	}
 
 	let paths = release_pull_request_changelog_paths(manifest);
+
 	if paths.is_empty() {
 		lines.push(String::new());
 		lines.push("Run `monochange notes --output <id>` to read them.".to_string());
+
 		return;
 	}
 
 	lines.push(String::new());
+
 	for path in paths {
 		lines.push(format!("- `{path}`"));
 	}
@@ -424,6 +443,7 @@ fn push_release_pull_request_changelog_pointer(
 /// Collect the changelog paths for outward release targets, in target order.
 fn release_pull_request_changelog_paths(manifest: &ReleaseManifest) -> Vec<String> {
 	let mut paths = Vec::new();
+
 	for target in manifest
 		.release_targets
 		.iter()
@@ -435,6 +455,7 @@ fn release_pull_request_changelog_paths(manifest: &ReleaseManifest) -> Vec<Strin
 			continue;
 		};
 		let path = changelog.path.display().to_string();
+
 		if !paths.contains(&path) {
 			paths.push(path);
 		}
@@ -484,6 +505,7 @@ fn monochange_release_body(
 		Some(changelog) if changelog_has_release_notes(changelog) => {
 			provider_body_from_changelog_rendered(&changelog.rendered)
 		}
+
 		_ => minimal_release_body(manifest, target),
 	}
 }
@@ -498,13 +520,17 @@ fn monochange_release_body(
 /// expanded entries as `### <entry>`.
 fn provider_body_from_changelog_rendered(rendered: &str) -> String {
 	let mut lines = rendered.lines().collect::<Vec<_>>();
+
 	if lines.first().is_some_and(|first| first.starts_with("## ")) {
 		lines.remove(0);
+
 		while lines.first().is_some_and(|line| line.trim().is_empty()) {
 			lines.remove(0);
 		}
 	}
+
 	let mut promoted = Vec::with_capacity(lines.len());
+
 	for line in lines {
 		if let Some(rest) = line.strip_prefix("#### ") {
 			promoted.push(format!("### {rest}"));
@@ -514,6 +540,7 @@ fn provider_body_from_changelog_rendered(rendered: &str) -> String {
 			promoted.push(line.to_string());
 		}
 	}
+
 	promoted.join("\n")
 }
 
@@ -572,15 +599,18 @@ where
 		.map_err(|error| {
 			MonochangeError::Config(format!("{provider} API GET `{url}` failed: {error}"))
 		})?;
+
 	if response.status().as_u16() == 404 {
 		return Ok(None);
 	}
+
 	if !response.status().is_success() {
 		return Err(MonochangeError::Config(format!(
 			"{provider} API GET `{url}` failed with status {}",
 			response.status()
 		)));
 	}
+
 	response.json::<T>().await.map(Some).map_err(|error| {
 		MonochangeError::Config(format!("{provider} API GET `{url}` failed: {error}"))
 	})
@@ -604,12 +634,14 @@ where
 		.map_err(|error| {
 			MonochangeError::Config(format!("{provider} API GET `{url}` failed: {error}"))
 		})?;
+
 	if !response.status().is_success() {
 		return Err(MonochangeError::Config(format!(
 			"{provider} API GET `{url}` failed with status {}",
 			response.status()
 		)));
 	}
+
 	response.json::<T>().await.map_err(|error| {
 		MonochangeError::Config(format!("{provider} API GET `{url}` failed: {error}"))
 	})
@@ -636,12 +668,14 @@ where
 		.map_err(|error| {
 			MonochangeError::Config(format!("{provider} API POST `{url}` failed: {error}"))
 		})?;
+
 	if !response.status().is_success() {
 		return Err(MonochangeError::Config(format!(
 			"{provider} API POST `{url}` failed with status {}",
 			response.status()
 		)));
 	}
+
 	response.json::<Response>().await.map_err(|error| {
 		MonochangeError::Config(format!("{provider} API POST `{url}` failed: {error}"))
 	})
@@ -668,12 +702,14 @@ where
 		.map_err(|error| {
 			MonochangeError::Config(format!("{provider} API PUT `{url}` failed: {error}"))
 		})?;
+
 	if !response.status().is_success() {
 		return Err(MonochangeError::Config(format!(
 			"{provider} API PUT `{url}` failed with status {}",
 			response.status()
 		)));
 	}
+
 	response.json::<Response>().await.map_err(|error| {
 		MonochangeError::Config(format!("{provider} API PUT `{url}` failed: {error}"))
 	})
@@ -700,12 +736,14 @@ where
 		.map_err(|error| {
 			MonochangeError::Config(format!("{provider} API PATCH `{url}` failed: {error}"))
 		})?;
+
 	if !response.status().is_success() {
 		return Err(MonochangeError::Config(format!(
 			"{provider} API PATCH `{url}` failed with status {}",
 			response.status()
 		)));
 	}
+
 	response.json::<Response>().await.map_err(|error| {
 		MonochangeError::Config(format!("{provider} API PATCH `{url}` failed: {error}"))
 	})
@@ -716,6 +754,7 @@ pub async fn git_checkout_branch(root: &Path, branch: &str, context: &str) -> Mo
 	if matches!(git_current_branch(root).await.as_deref(), Ok(current) if current == branch) {
 		return Ok(());
 	}
+
 	run_command(git_checkout_branch_command(root, branch), context).await
 }
 
@@ -732,6 +771,7 @@ pub async fn git_stage_paths(
 	} else {
 		git_stage_paths_command(root, tracked_paths)
 	};
+
 	// patch-coverage:ignore-end
 	run_command(command, context).await
 }

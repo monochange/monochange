@@ -155,6 +155,7 @@ fn tag_release_moves_floating_tags_for_github_actions() {
 
 	let tags = git_output(tempdir.path(), &["tag", "--list"]);
 	let commit = git_output(tempdir.path(), &["rev-parse", "HEAD"]);
+
 	for tag in ["v1.0.1", "v1.0", "v1"] {
 		assert!(
 			tags.lines().any(|line| line.trim() == tag),

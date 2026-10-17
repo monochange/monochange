@@ -23,6 +23,7 @@ fn setup_analysis_repo(relative: &str) -> tempfile::TempDir {
 	git(tempdir.path(), &["add", "."]);
 	git(tempdir.path(), &["commit", "-m", "base"]);
 	git(tempdir.path(), &["branch", "-M", "main"]);
+
 	tempdir
 }
 
@@ -482,6 +483,7 @@ fn discovery_file_filter_accepts_only_safe_workspace_controls() {
 	let error = validate_discovery_paths(&[PathBuf::from("../Cargo.toml")])
 		.expect_err("unsafe discovery paths should be rejected")
 		.render();
+
 	assert!(error.contains("refused to materialize unsafe repository path"));
 }
 
@@ -517,6 +519,7 @@ fn snapshot_discovery_rejects_invalid_text_and_preserves_binary_lock_markers() {
 	git(invalid_repo.path(), &["add", "."]);
 	git(invalid_repo.path(), &["commit", "-m", "invalid manifest"]);
 	let invalid_destination = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+
 	let error = materialize_discovery_files(
 		invalid_repo.path(),
 		&SnapshotTarget::GitRevision("HEAD".to_string()),
@@ -541,6 +544,7 @@ fn snapshot_discovery_rejects_invalid_text_and_preserves_binary_lock_markers() {
 	git(lock_repo.path(), &["add", "."]);
 	git(lock_repo.path(), &["commit", "-m", "binary lockfile"]);
 	let lock_destination = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+
 	materialize_discovery_files(
 		lock_repo.path(),
 		&SnapshotTarget::GitRevision("HEAD".to_string()),
@@ -700,6 +704,7 @@ fn snapshot_helpers_cover_error_paths_and_filtered_content() {
 	let index_label = snapshot_label(&root, &SnapshotTarget::GitIndex)
 		.unwrap_or_else(|error| panic!("index label: {error}"));
 	assert_eq!(working_label.len(), 40);
+
 	assert_eq!(index_label.len(), 40);
 	assert_eq!(
 		snapshot_label(&root, &SnapshotTarget::GitRevision(head.clone()))
@@ -1099,6 +1104,7 @@ fn latest_workspace_release_tag_reports_missing_tags_and_git_failures() {
 	);
 	git(root, &["add", "."]);
 	git(root, &["commit", "-m", "release"]);
+
 	git(root, &["branch", "-M", "main"]);
 
 	let no_tag_error = tokio::runtime::Runtime::new()
@@ -1122,6 +1128,7 @@ fn latest_workspace_release_tag_ignores_higher_namespaced_tags() {
 	);
 	git(root, &["add", "."]);
 	git(root, &["commit", "-m", "release"]);
+
 	git(root, &["branch", "-M", "main"]);
 	git(root, &["tag", "v9.9.9/namespace"]);
 	git(root, &["tag", "v1.2.3"]);
@@ -1154,6 +1161,7 @@ fn auto_release_trajectory_resolution_uses_latest_workspace_tag_and_branch_refs(
 	git(root, &["commit", "-m", "release"]);
 	git(root, &["branch", "-M", "main"]);
 	git(root, &["tag", "pkg-a/v9.9.9"]);
+
 	git(root, &["tag", "v1.0.0"]);
 
 	copy_directory(&main, root);

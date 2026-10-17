@@ -88,6 +88,7 @@ async fn uses_resolved_pem_and_webhook_secret_without_environment_export() {
 	assert!(auth.webhook_configured());
 	let payload = b"installation-test";
 	let mut signature = Hmac::<Sha256>::new_from_slice(b"a-secret").unwrap();
+
 	signature.update(payload);
 	let signature = format!("sha256={}", hex::encode(signature.finalize().into_bytes()));
 	assert!(auth.verify_webhook_signature(payload, &signature).is_ok());

@@ -61,6 +61,7 @@ pub async fn save_feedback(
 	notifications: &[NotificationRecord],
 ) -> Result<SaveOutcome, sqlx::Error> {
 	let mut transaction = pool.begin().await?;
+
 	let saved = match expected_version {
 		None => {
 			sqlx::query(
@@ -86,9 +87,11 @@ pub async fn save_feedback(
 		.await?
 		.rows_affected(),
 	};
+
 	if saved == 0 {
 		return Ok(SaveOutcome::Conflict);
 	}
+
 	for notification in notifications {
 		sqlx::query(
 			"INSERT INTO feedback_notifications (project_id, recipient, item_id, notification_json, created_at)
@@ -102,6 +105,7 @@ pub async fn save_feedback(
 		.execute(&mut *transaction)
 		.await?;
 	}
+
 	transaction.commit().await?;
 	Ok(SaveOutcome::Saved {
 		version: expected_version.map_or(1, |version| version + 1),

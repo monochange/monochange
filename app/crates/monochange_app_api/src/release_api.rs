@@ -93,6 +93,7 @@ async fn resolve_caller(
 				format!("OIDC verification failed: {error}"),
 			)
 		})?;
+
 		if claims.repository != repository {
 			return Err((
 				StatusCode::FORBIDDEN,
@@ -102,6 +103,7 @@ async fn resolve_caller(
 				),
 			));
 		}
+
 		Ok(Caller::ActionsRun)
 	} else {
 		validate_api_token(state.api_token.as_deref(), &authorization)?;
@@ -120,6 +122,7 @@ fn validate_api_token(expected: Option<&str>, token: &str) -> Result<(), (Status
 			"MONOCHANGE_TOKEN authentication is not configured on this deployment".to_string(),
 		)
 	})?;
+
 	if constant_time_eq(expected.as_bytes(), token.as_bytes()) {
 		Ok(())
 	} else {
@@ -134,6 +137,7 @@ fn constant_time_eq(left: &[u8], right: &[u8]) -> bool {
 	if left.len() != right.len() {
 		return false;
 	}
+
 	left.iter()
 		.zip(right)
 		.fold(0u8, |acc, (a, b)| acc | (a ^ b))
@@ -169,20 +173,24 @@ impl ApiError {
 fn validate_commit_paths(request: &HostedCommitRequest) -> Result<(), String> {
 	for file in &request.files {
 		let path = &file.path;
+
 		if path.starts_with('/') || path.contains("..") || path.contains('\\') {
 			return Err(format!(
 				"release file path `{path}` must be repository-relative"
 			));
 		}
+
 		if path == ".git" || path.starts_with(".git/") {
 			return Err(format!("release file path `{path}` must not touch .git"));
 		}
+
 		if path.starts_with(".github/workflows/") {
 			return Err(format!(
 				"release file path `{path}` must not modify GitHub workflows"
 			));
 		}
 	}
+
 	Ok(())
 }
 
@@ -199,6 +207,7 @@ fn validate_branch_name(field: &str, branch: &str) -> Result<(), String> {
 				' ' | '~' | '^' | ':' | '?' | '*' | '[' | '\\' | '#' | '%'
 			)
 	};
+
 	if branch.is_empty()
 		|| branch.starts_with(['/', '-'])
 		|| branch.ends_with(['/', '.'])
@@ -253,6 +262,7 @@ pub async fn create_release_commit(
 			Json(ApiError::new(format!("invalid request body: {error}"))),
 		)
 	})?;
+
 	if request.provider != "github" {
 		return Err((
 			StatusCode::BAD_REQUEST,
@@ -262,6 +272,7 @@ pub async fn create_release_commit(
 			))),
 		));
 	}
+
 	validate_branch_names(&request.branch, request.base_branch.as_deref())
 		.and_then(|()| validate_commit_paths(&request))
 		.map_err(|message| (StatusCode::BAD_REQUEST, Json(ApiError::new(message))))?;
@@ -278,6 +289,7 @@ pub async fn create_release_commit(
 				))),
 			)
 		})?;
+
 	if repository.github_repo_id.to_string() != request.repository
 		&& repository.full_name != full_name
 	{

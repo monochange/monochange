@@ -146,6 +146,7 @@ fn only_reviewed_items_are_listed() {
 	for stage in [Stage::Received, Stage::Triaging] {
 		assert!(!is_listed(&bug_at(stage)), "{stage:?}");
 	}
+
 	assert!(is_listed(&bug_at(Stage::Discussing)));
 	assert!(is_listed(&bug_at(Stage::Shipped)));
 
@@ -190,6 +191,7 @@ fn ship_windows_only_promise_merged_work() {
 		ship_window(&bug_at(Stage::Merged), &CadenceSnapshot::default()),
 		ShipWindow::NextRelease { label: None }
 	);
+
 	for stage in [Stage::Accepted, Stage::Building, Stage::InReview] {
 		assert_eq!(
 			ship_window(&bug_at(stage), &cadence()),
@@ -197,12 +199,14 @@ fn ship_windows_only_promise_merged_work() {
 			"{stage:?}"
 		);
 	}
+
 	assert_eq!(
 		ship_window(&bug_at(Stage::Voting), &cadence()),
 		ShipWindow::Unscheduled
 	);
 	let mut shipped_without_link = bug_at(Stage::Shipped);
 	shipped_without_link.release = None;
+
 	assert_eq!(
 		ship_window(&shipped_without_link, &cadence()),
 		ShipWindow::Unscheduled
@@ -219,6 +223,7 @@ fn entries_describe_the_item_through_the_gate() {
 	assert_eq!(public.status_line, "In review");
 	assert_eq!(public.votes, 3);
 	assert_eq!(public.links.len(), 2);
+
 	assert!(public.title.contains("/app/src/billing.rs"));
 
 	let private = roadmap_entry(&item, policy(RepositoryVisibility::Private), &cadence()).unwrap();
@@ -284,6 +289,7 @@ fn the_feed_lists_reviewed_items_and_withholds_refusals() {
 	let mut building = bug_at(Stage::Building);
 	building.id = "fb-building".to_owned();
 	let mut shipped_first = bug_at(Stage::Shipped);
+
 	shipped_first.id = "fb-shipped-1".to_owned();
 	let mut shipped_second = bug_at(Stage::Shipped);
 	shipped_second.id = "fb-shipped-2".to_owned();
@@ -371,6 +377,7 @@ fn feed_types_round_trip_through_json() {
 	assert_eq!(serde_json::from_value::<FeedRender>(json).unwrap(), render);
 	let feed: StatusFeed =
 		serde_json::from_value(serde_json::to_value(&render.feed).unwrap()).unwrap();
+
 	assert_eq!(feed, render.feed);
 	let withheld = Withheld {
 		id: "fb-1".to_owned(),
@@ -385,6 +392,7 @@ fn feed_types_round_trip_through_json() {
 			.unwrap(),
 		cadence()
 	);
+
 	for window in [ShipWindow::Planned, ShipWindow::Unscheduled] {
 		assert_eq!(
 			serde_json::from_value::<ShipWindow>(serde_json::to_value(&window).unwrap()).unwrap(),

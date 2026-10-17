@@ -38,6 +38,7 @@ const STATUS_ORDER: [(PublicStatus, &str); 4] = [
 /// Draws every `[redacted]` token as a redaction bar.
 pub fn with_redaction_bars(text: &str) -> Vec<AnyView> {
 	let mut parts = Vec::new();
+
 	for (index, piece) in text.split("[redacted]").enumerate() {
 		if index > 0 {
 			parts.push(
@@ -45,10 +46,12 @@ pub fn with_redaction_bars(text: &str) -> Vec<AnyView> {
 					.into_any(),
 			);
 		}
+
 		if !piece.is_empty() {
 			parts.push(piece.to_owned().into_any());
 		}
 	}
+
 	parts
 }
 
@@ -92,6 +95,7 @@ async fn similar_to_draft(
 	if text.trim().chars().count() < 8 {
 		return Ok(Vec::new());
 	}
+
 	similar_requests(organization, project, text).await
 }
 
@@ -122,6 +126,7 @@ fn preview_pane(result: Result<String, ServerFnError>) -> AnyView {
 		Ok(html) if !html.is_empty() => {
 			view! { <div class="editor-preview book-prose" inner_html=html></div> }.into_any()
 		}
+
 		Ok(_) => {
 			view! { <p class="editor-preview project-empty">"Nothing to preview yet."</p> }
 				.into_any()
@@ -157,6 +162,7 @@ pub fn PortalPage() -> impl IntoView {
 				Ok(None) => view! { <section class="site-width"><Unavailable title="Project not found" message="This feedback portal doesn't exist. Check the link you were given." /></section> }.into_any(),
 				Err(_) => view! { <section class="site-width"><Unavailable title="Feedback couldn't be loaded" message="Please reload the page to try again." /></section> }.into_any(),
 			})}
+
 		</Suspense>
 	}
 }
@@ -205,6 +211,7 @@ fn PortalContent(
 			<section id="roadmap" class="portal-panel" aria-labelledby="roadmap-title">
 				<h2 id="roadmap-title">"Roadmap"</h2>
 				{move || vote.value().get().and_then(Result::err).map(|error| view! { <p class="form-error" role="alert">{action_error(&error)}</p> })}
+
 				{if has_roadmap {
 					view! {
 						<div>{groups.into_iter().map(|(heading, entries)| view! {
@@ -236,10 +243,12 @@ fn PortalContent(
 						</ul>
 					</div>
 				})}
+
 			</section>
 			<section id="yours" class="portal-panel" aria-labelledby="yours-title">
 				<h2 id="yours-title">"Yours"</h2>
 				{move || reply.value().get().and_then(Result::err).map(|error| view! { <p class="form-error" role="alert">{action_error(&error)}</p> })}
+
 				{if snapshot.own.is_empty() {
 					view! { <p class="project-empty">"What you share appears here, with every update until it ships."</p> }.into_any()
 				} else {
@@ -259,6 +268,7 @@ fn PortalContent(
 						</ul>
 					</div>
 				})}
+
 			</section>
 		</div>
 	}
@@ -281,6 +291,7 @@ fn RoadmapRow(
 			ShipWindow::NextRelease { .. } | ShipWindow::Released { .. }
 		);
 	let discussable = entry.status != PublicStatus::Declined;
+
 	let kind = match entry.kind {
 		monochange_app_feedback::FeedbackKind::BugReport => "Bug",
 		monochange_app_feedback::FeedbackKind::FeatureRequest => "Idea",
@@ -290,6 +301,7 @@ fn RoadmapRow(
 	} else {
 		format!("Vote ({})", entry.votes)
 	};
+
 	let anchor = format!("item-{}", entry.id);
 	let thread_view = (discussable || !thread.is_empty()).then(|| {
 		view! { <Thread thread=thread item=entry.id.clone() organization=organization.clone() project=project.clone() reply=reply discussable=discussable /> }
@@ -442,7 +454,6 @@ pub fn MarkdownEditor(
 		let _ = element.set_selection_range(result.selection_start, result.selection_end);
 	};
 	// patch-coverage:ignore-end
-
 	view! {
 		<div class="editor">
 			<div class="editor-bar">

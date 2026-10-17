@@ -70,6 +70,7 @@ fn stamp_behaviour_strings_match_config_values() {
 	assert_eq!(TimestampSource::Now.as_str(), "now");
 	assert_eq!(TimestampSource::Commit.as_str(), "commit");
 	assert_eq!(GitSource::ShortHash.as_str(), "short_hash");
+
 	assert_eq!(GitSource::CommitCount.as_str(), "commit_count");
 	assert_eq!(HashEncoding::Hex.as_str(), "hex");
 	assert_eq!(HashEncoding::Base32.as_str(), "base32");
@@ -284,6 +285,7 @@ fn template_variables_include_context_and_values() {
 	assert_eq!(variables.get("year"), Some(&"2026".to_string()));
 	assert_eq!(variables.get("year_short"), Some(&"26".to_string()));
 	assert_eq!(variables.get("month"), Some(&"9".to_string()));
+
 	assert_eq!(variables.get("month_padded"), Some(&"09".to_string()));
 	assert_eq!(variables.get("quarter"), Some(&"3".to_string()));
 	assert_eq!(variables.get("day"), Some(&"19".to_string()));

@@ -12,7 +12,6 @@ fn fixture_path(name: &str) -> PathBuf {
 
 // -- Kill mutant: is_disabled() guard replaced with false in build_group_definitions --
 // A disabled group changelog with no path should produce None, not an error.
-
 #[test]
 fn load_workspace_configuration_allows_disabled_group_changelog_without_path() {
 	let root = fixture_path("group-changelog-disabled");
@@ -31,7 +30,6 @@ fn load_workspace_configuration_allows_disabled_group_changelog_without_path() {
 }
 
 // -- Kill mutant: "all" arm deleted in parse_group_changelog_include --
-
 #[test]
 fn load_workspace_configuration_supports_group_changelog_include_all() {
 	let root = fixture_path("group-changelog-include-all");
@@ -55,7 +53,6 @@ fn load_workspace_configuration_supports_group_changelog_include_all() {
 
 // -- Kill mutant: matches!(table.enabled, Some(false)) replaced with false --
 // A package should have no inherited changelog when defaults have enabled=false.
-
 #[test]
 fn load_workspace_configuration_disabled_default_changelog_produces_no_package_changelog() {
 	let root = fixture_path("defaults-changelog-disabled");

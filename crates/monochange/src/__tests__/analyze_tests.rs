@@ -31,9 +31,11 @@ fn setup_analyze_repo(tag_release: bool, with_origin_head: bool) -> TempDir {
 	git(root, &["add", "."]);
 	git(root, &["commit", "-m", "release"]);
 	git(root, &["branch", "-M", "main"]);
+
 	if tag_release {
 		git(root, &["tag", "v1.0.0"]);
 	}
+
 	if with_origin_head {
 		let remote_dir = TempDir::new().unwrap_or_else(|error| panic!("tempdir: {error}"));
 		git(remote_dir.path(), &["init", "--bare"]);

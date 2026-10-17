@@ -56,13 +56,16 @@ proptest! {
 		if !pre.is_empty() {
 			version.pre = semver::Prerelease::new(&pre).unwrap_or_default();
 		}
+
 		if !build.is_empty() {
 			version.build = semver::BuildMetadata::new(&build).unwrap_or_default();
 		}
+
 		for severity in [BumpSeverity::Patch, BumpSeverity::Minor, BumpSeverity::Major] {
 			let next = severity.apply_to_version(&version);
 			let next_s = next.to_string();
 			let version_s = version.to_string();
+
 			prop_assert!(
 				next.pre.is_empty(),
 				"pre-release metadata should be cleared: {version_s} -> {next_s}"

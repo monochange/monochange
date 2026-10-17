@@ -163,6 +163,7 @@ fn config_artifact_fixtures_are_valid_json() -> Result<(), Box<dyn Error>> {
 		);
 		assert!(!json_str(&raw, "/source/owner")?.is_empty());
 		assert!(!json_str(&raw, "/source/repo")?.is_empty());
+
 		for key in source.keys() {
 			assert!(
 				[
@@ -178,6 +179,7 @@ fn config_artifact_fixtures_are_valid_json() -> Result<(), Box<dyn Error>> {
 				"{name} includes unexpected source key `{key}`"
 			);
 		}
+
 		if source.contains_key("host") {
 			let host = json_str(&raw, "/source/host")?;
 			assert!(
@@ -193,6 +195,7 @@ fn config_artifact_fixtures_are_valid_json() -> Result<(), Box<dyn Error>> {
 #[test]
 fn committed_artifact_fixtures_validate_against_their_json_schemas() -> Result<(), Box<dyn Error>> {
 	let paths = schema_asset_paths()?;
+
 	for artifact_path in release_record_artifact_paths(&paths)? {
 		let schema_path = release_record_schema_path_for_artifact(&paths, &artifact_path)?;
 		let schema = parse_json(&schema_path)?;
@@ -205,6 +208,7 @@ fn committed_artifact_fixtures_validate_against_their_json_schemas() -> Result<(
 		let artifact = parse_json(&artifact_path)?;
 		validate_json(&validator, &artifact, &artifact_path)?;
 	}
+
 	for artifact_path in config_artifact_paths(&paths)? {
 		let schema_path = config_schema_path_for_artifact(&paths, &artifact_path)?;
 		let schema = parse_json(&schema_path)?;
@@ -279,6 +283,7 @@ fn release_preflight_schema_assets_are_aligned() -> Result<(), Box<dyn Error>> {
 	);
 	assert!(paths.versioned_release_schema.is_file());
 	assert!(paths.versioned_config_schema.is_file());
+
 	assert!(paths.versioned_command_snapshot_schema.is_file());
 
 	Ok(())
@@ -290,6 +295,7 @@ fn schema_version_ahead_of_crate_version_requires_schema_changeset() -> Result<(
 	let crate_version = schema_crate_version(&paths)?;
 	let manifest_schema = monochange_schema::SchemaVersion::from_package_version(&crate_version)?;
 	let current_schema = monochange_schema::current_schema_version()?;
+
 	if current_schema > manifest_schema {
 		assert!(
 			schema_crate_has_changeset(&paths)?,
@@ -304,12 +310,15 @@ fn schema_version_ahead_of_crate_version_requires_schema_changeset() -> Result<(
 fn current_artifact_fixtures_are_colocated() -> Result<(), Box<dyn Error>> {
 	let paths = schema_asset_paths()?;
 	let mut names = Vec::new();
+
 	for entry in std::fs::read_dir(&paths.current_artifacts_dir)? {
 		let path = entry?.path();
+
 		if path.is_dir() {
 			names.push(file_name(&path)?);
 		}
 	}
+
 	names.sort();
 
 	assert_eq!(names, vec!["monochange", "release-record"]);
@@ -329,6 +338,7 @@ fn current_artifact_fixtures_are_colocated() -> Result<(), Box<dyn Error>> {
 			.join("release-record.current.json")
 			.exists()
 	);
+
 	for entry in std::fs::read_dir(&paths.artifacts_dir)? {
 		let path = entry?.path();
 		let Some(name) = path.file_name().and_then(|name| name.to_str()) else {
@@ -339,6 +349,7 @@ fn current_artifact_fixtures_are_colocated() -> Result<(), Box<dyn Error>> {
 			"versioned artifact fixture should not exist before a release writes it: {name}"
 		);
 	}
+
 	Ok(())
 }
 
@@ -465,6 +476,7 @@ fn config_schema_covers_current_root_toml_top_level_keys() -> Result<(), Box<dyn
 	}
 
 	let lints_schema = json_object(&schema, "/properties/lints")?;
+
 	for keyword in ["additionalProperties", "properties", "type"] {
 		assert!(
 			!lints_schema.contains_key(keyword),
@@ -561,6 +573,7 @@ fn release_record_schema_multiline_fields_are_snapshot_individually() -> Result<
 		"release_record_required_fields",
 		json_array(&release_schema, "/required")?
 	);
+
 	assert_snapshot!(
 		"config_schema_description",
 		json_str(&config_schema, "/description")?
@@ -601,16 +614,19 @@ fn schema_crate_version_stays_decoupled_from_public_schema_version() -> Result<(
 #[test]
 fn release_record_migration_outcomes_match_snapshot() {
 	let mut missing_version = sample_release_record();
+
 	if let Some(object) = missing_version.as_object_mut() {
 		object.remove("schema_version");
 	}
 
 	let mut missing_kind = sample_release_record();
+
 	if let Some(object) = missing_kind.as_object_mut() {
 		object.remove("kind");
 	}
 
 	let mut pre_public_shape = sample_release_record();
+
 	if let Some(object) = pre_public_shape.as_object_mut() {
 		object.remove("v");
 		object.insert("schema_version".to_string(), json!(1));
@@ -697,6 +713,7 @@ fn release_record_migration_outcomes_match_snapshot() {
 					));
 				}
 			}
+
 			outcome
 		})
 		.collect();
@@ -731,21 +748,27 @@ fn schema_version_prefix_len(text: &str) -> Option<usize> {
 	let mut seen_separator = false;
 	let mut seen_minor_digit = false;
 	let mut end = 0;
+
 	for (index, character) in text.char_indices() {
 		if character.is_ascii_digit() {
 			if seen_separator {
 				seen_minor_digit = true;
 			}
+
 			end = index + character.len_utf8();
+
 			continue;
 		}
+
 		if character == '.' && !seen_separator {
 			seen_separator = true;
 			end = index + character.len_utf8();
 			continue;
 		}
+
 		break;
 	}
+
 	seen_minor_digit.then_some(end)
 }
 
@@ -822,11 +845,13 @@ fn artifact_paths_for_kind(
 	let mut artifact_paths = Vec::new();
 	collect_artifact_paths_for_kind(&paths.artifacts_dir, kind, &mut artifact_paths)?;
 	artifact_paths.sort();
+
 	if artifact_paths.is_empty() {
 		return Err(test_error(format!(
 			"no {kind} artifact fixtures were found"
 		)));
 	}
+
 	Ok(artifact_paths)
 }
 
@@ -837,19 +862,23 @@ fn collect_artifact_paths_for_kind(
 ) -> Result<(), Box<dyn Error>> {
 	for entry in std::fs::read_dir(dir)? {
 		let path = entry?.path();
+
 		if path.is_dir() {
 			collect_artifact_paths_for_kind(&path, kind, artifact_paths)?;
 			continue;
 		}
+
 		let parent_name = path
 			.parent()
 			.and_then(Path::file_name)
 			.and_then(|name| name.to_str());
 		let extension = path.extension().and_then(|extension| extension.to_str());
+
 		if parent_name == Some(kind) && extension == Some("json") {
 			artifact_paths.push(path);
 		}
 	}
+
 	Ok(())
 }
 
@@ -858,6 +887,7 @@ fn assert_artifact_file_names_by_schema_dir(
 	artifact_paths: &[PathBuf],
 ) -> Result<(), Box<dyn Error>> {
 	let mut names_by_schema_dir = BTreeMap::<String, Vec<String>>::new();
+
 	for artifact_path in artifact_paths {
 		let schema_dir = artifact_schema_dir(paths, artifact_path)?;
 		names_by_schema_dir
@@ -871,6 +901,7 @@ fn assert_artifact_file_names_by_schema_dir(
 	}
 
 	let expected = expected_artifact_file_names();
+
 	for (schema_dir, names) in &mut names_by_schema_dir {
 		names.sort();
 		assert_eq!(
@@ -988,9 +1019,11 @@ fn sample_release_record_for_version(
 	version: &str,
 ) -> Result<Value, Box<dyn Error>> {
 	let artifact_dir = paths.artifacts_dir.join(version).join("release-record");
+
 	if !artifact_dir.is_dir() {
 		return Ok(legacy_release_record_sample(version));
 	}
+
 	let mut entries = std::fs::read_dir(&artifact_dir)?
 		.map(|entry| entry.map(|entry| entry.path()))
 		.collect::<Result<Vec<_>, _>>()?;
@@ -1015,6 +1048,7 @@ fn legacy_release_record_sample(version: &str) -> Value {
 		"releasedPackages": [],
 		"changedFiles": []
 	});
+
 	if let Some(object) = record.as_object_mut() {
 		if version == "0.0" {
 			object.insert("v".to_string(), json!(version));
@@ -1022,6 +1056,7 @@ fn legacy_release_record_sample(version: &str) -> Value {
 			object.insert("schemaVersion".to_string(), json!(version));
 		}
 	}
+
 	record
 }
 
@@ -1083,6 +1118,7 @@ fn validate_json(
 			path.display()
 		)));
 	}
+
 	Ok(())
 }
 
@@ -1097,9 +1133,11 @@ fn release_record_schema_path_for_artifact(
 	artifact_path: &Path,
 ) -> Result<PathBuf, Box<dyn Error>> {
 	let schema_dir = artifact_schema_dir(paths, artifact_path)?;
+
 	if schema_dir == "current" {
 		return Ok(paths.canonical_release_schema.clone());
 	}
+
 	Ok(versioned_release_schema_path(paths, &schema_dir))
 }
 
@@ -1108,9 +1146,11 @@ fn config_schema_path_for_artifact(
 	artifact_path: &Path,
 ) -> Result<PathBuf, Box<dyn Error>> {
 	let schema_dir = artifact_schema_dir(paths, artifact_path)?;
+
 	if schema_dir == "current" {
 		return Ok(paths.config_schema.clone());
 	}
+
 	Ok(paths.root.join(format!(
 		"docs/src/schemas/monochange.v{schema_dir}.schema.json"
 	)))
@@ -1120,15 +1160,19 @@ fn release_record_schema_version_text(value: &Value) -> Result<String, Box<dyn E
 	if let Some(version) = value.get("schema_version").and_then(Value::as_str) {
 		return Ok(version.to_string());
 	}
+
 	if let Some(version) = value.get("schemaVersion").and_then(Value::as_str) {
 		return Ok(version.to_string());
 	}
+
 	if let Some(version) = value.get("v").and_then(Value::as_str) {
 		return Ok(version.to_string());
 	}
+
 	if let Some(version) = value.get("v").and_then(Value::as_u64) {
 		return Ok(format!("0.{version}"));
 	}
+
 	Err(test_error("expected release record schema version key"))
 }
 
@@ -1137,6 +1181,7 @@ fn versioned_release_schema_versions(
 ) -> Result<Vec<String>, Box<dyn Error>> {
 	let mut versions = Vec::new();
 	let schemas_dir = paths.root.join("docs/src/schemas");
+
 	for entry in std::fs::read_dir(&schemas_dir)? {
 		let path = entry?.path();
 		let Some(name) = path.file_name().and_then(|name| name.to_str()) else {
@@ -1150,17 +1195,22 @@ fn versioned_release_schema_versions(
 		};
 		versions.push(version.to_string());
 	}
+
 	Ok(versions)
 }
 
 fn schema_crate_has_changeset(paths: &SchemaAssetPaths) -> Result<bool, Box<dyn Error>> {
 	let changesets_dir = paths.root.join(".changeset");
+
 	for entry in std::fs::read_dir(&changesets_dir)? {
 		let path = entry?.path();
+
 		if path.extension().and_then(|extension| extension.to_str()) != Some("md") {
 			continue;
 		}
+
 		let text = std::fs::read_to_string(path)?;
+
 		if text
 			.lines()
 			.any(|line| line.trim_start().starts_with("monochange_schema:"))
@@ -1168,6 +1218,7 @@ fn schema_crate_has_changeset(paths: &SchemaAssetPaths) -> Result<bool, Box<dyn 
 			return Ok(true);
 		}
 	}
+
 	Ok(false)
 }
 

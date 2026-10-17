@@ -31,5 +31,6 @@ fn rendered_chapter_keeps_site_navigation_and_source_links() {
 		)
 	);
 	assert!(html.contains("Previous"));
+
 	assert!(html.contains("Next"));
 }

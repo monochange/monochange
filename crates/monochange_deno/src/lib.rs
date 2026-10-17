@@ -50,8 +50,10 @@ pub fn supported_versioned_file_kind(path: &Path) -> Option<DenoVersionedFileKin
 		.file_name()
 		.and_then(|name| name.to_str())
 		.unwrap_or_default();
+
 	match file_name {
 		"deno.lock" => Some(DenoVersionedFileKind::Lock),
+
 		_ if path.extension().and_then(|ext| ext.to_str()) == Some("json")
 			|| path.extension().and_then(|ext| ext.to_str()) == Some("jsonc") =>
 		{
@@ -83,6 +85,7 @@ pub fn write_jsr_placeholder_manifest(
 				.collect(),
 		),
 	);
+
 	if let Some(source) = source {
 		manifest.insert(
 			"repository".to_string(),
@@ -92,6 +95,7 @@ pub fn write_jsr_placeholder_manifest(
 			)),
 		);
 	}
+
 	fs::write(dir.join("deno.json"), Value::Object(manifest).to_string()).map_err(|error| {
 		MonochangeError::Io(format!("failed to write placeholder deno.json: {error}"))
 	})?;
@@ -233,6 +237,7 @@ pub fn discover_deno_packages(root: &Path) -> MonochangeResult<AdapterDiscovery>
 		let (workspace_packages, workspace_warnings) =
 			discover_workspace_packages(&workspace_manifest)?;
 		warnings.extend(workspace_warnings);
+
 		for package in workspace_packages {
 			included_manifests.insert(package.manifest_path.clone());
 			packages.push(package);
@@ -277,6 +282,7 @@ pub fn load_configured_deno_package(
 			.find(|candidate| candidate.exists())
 			.unwrap_or_else(|| package_path.join(DENO_MANIFEST_FILES[0]))
 	};
+
 	parse_manifest(&manifest_path, manifest_path.parent().unwrap_or(root))
 }
 
@@ -318,12 +324,14 @@ fn expand_workspace_patterns(
 ) -> BTreeSet<PathBuf> {
 	let filter = DiscoveryPathFilter::new(root);
 	let mut manifests = BTreeSet::new();
+
 	for pattern in patterns {
 		let matches = monochange_core::workspace_glob_paths(root, pattern, true)
 			.unwrap_or_default()
 			.into_iter()
 			.filter(|path| filter.allows(path))
 			.collect::<Vec<_>>();
+
 		if matches.is_empty() {
 			warnings.push(format!(
 				"deno workspace pattern `{pattern}` under {} matched no packages",
@@ -338,6 +346,7 @@ fn expand_workspace_patterns(
 				} else {
 					matched_path.clone()
 				};
+
 				if manifest_path.file_name().and_then(|name| name.to_str()) == Some(manifest_name)
 					&& manifest_path.exists()
 					&& filter.allows(&manifest_path)
@@ -347,6 +356,7 @@ fn expand_workspace_patterns(
 			}
 		}
 	}
+
 	manifests
 }
 
@@ -581,9 +591,11 @@ pub fn validate_versioned_file(
 /// Resolve a dotted `field` path against a parsed deno manifest.
 fn resolve_field<'a>(doc: &'a Value, field: &str) -> Option<&'a Value> {
 	let mut current = doc;
+
 	for segment in field.split('.') {
 		current = current.get(segment)?;
 	}
+
 	Some(current)
 }
 

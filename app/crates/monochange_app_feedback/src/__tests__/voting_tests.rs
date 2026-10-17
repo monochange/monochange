@@ -57,6 +57,7 @@ fn voting_types_round_trip_through_json() {
 		serde_json::from_value(serde_json::to_value(VotingRules::default()).unwrap()).unwrap();
 	assert_eq!(rules, VotingRules::default());
 	let outcome = VotingOutcome::ThresholdReached { votes: 3 };
+
 	let json = serde_json::to_value(outcome).unwrap();
 	assert_eq!(json["outcome"], "threshold_reached");
 	assert_eq!(

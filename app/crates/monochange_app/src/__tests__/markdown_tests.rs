@@ -92,6 +92,7 @@ fn every_toolbar_button_has_a_name_and_glyph() {
 		assert!(!format.label().is_empty());
 		assert!(!format.glyph().is_empty());
 	}
+
 	assert_eq!(MarkdownFormat::BulletList.label(), "Bulleted list");
 }
 

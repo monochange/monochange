@@ -153,6 +153,7 @@ async fn the_roadmap_shows_ship_windows_links_votes_and_every_voice() {
 		status: PublicStatus::Planned,
 		update: update("Bulk [redacted] export"),
 	}];
+
 	let html = render_portal(snapshot, Some("fb-7")).await;
 
 	for expected in [

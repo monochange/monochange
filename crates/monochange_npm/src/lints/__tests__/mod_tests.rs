@@ -64,6 +64,7 @@ fn presets_are_exposed() {
 		recommended.rules.get("npm/workspace-protocol"),
 		Some(&LintRuleConfig::Severity(LintSeverity::Off))
 	);
+
 	let strict = presets
 		.get(2)
 		.unwrap_or_else(|| panic!("expected npm strict preset"));

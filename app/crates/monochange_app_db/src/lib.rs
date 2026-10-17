@@ -70,7 +70,6 @@ pub async fn run_migrations(pool: &DbPool) -> Result<(), DbError> {
 }
 
 // ── Migration functions ──
-
 // The welds `MigrationFn` type alias requires the `Result` return type.
 #[allow(clippy::unnecessary_wraps)]
 fn create_users_tables(

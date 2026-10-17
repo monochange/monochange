@@ -117,6 +117,7 @@ pub async fn load(
 	scope: &ProjectScope,
 ) -> Result<ProjectFeedback, FeedbackError> {
 	let stored = monochange_app_db::feedback::load_feedback(&state.db, scope.project_id).await?;
+
 	let (document, version) = match stored {
 		Some(stored) => {
 			(
@@ -126,15 +127,18 @@ pub async fn load(
 		}
 		None => (FeedbackState::default(), None),
 	};
+
 	let mut service = FeedbackService::from_state(
 		RuleBasedTriage,
 		DisclosurePolicy::for_visibility(scope.visibility()),
 		CadenceSnapshot::default(),
 		document,
 	);
+
 	if service.app(PORTAL_APP).is_none() {
 		service.register_app(portal_app());
 	}
+
 	Ok(ProjectFeedback { service, version })
 }
 
@@ -163,6 +167,7 @@ pub async fn update<R>(
 			})
 			.collect::<Result<Vec<_>, serde_json::Error>>()?;
 		let state_json = serde_json::to_string(&feedback.service.state())?;
+
 		if state_json == before && notifications.is_empty() {
 			return Ok(result);
 		}
@@ -179,6 +184,7 @@ pub async fn update<R>(
 			SaveOutcome::Conflict => {}
 		}
 	}
+
 	Err(FeedbackError::Busy)
 }
 
@@ -205,6 +211,7 @@ pub async fn create_issue(
 		} else {
 			RepositoryVisibility::Public
 		}));
+
 	let draft = feedback.service.issue_draft(item_id)?;
 	let token = app
 		.installation_token(&state.http, target.github_installation_id)
@@ -348,6 +355,7 @@ pub async fn observe_delivery(
 	.fetch_all(&state.db)
 	.await?;
 	let mut advanced = Vec::new();
+
 	for row in projects {
 		let scope = project_scope(state, row.get("project_id"), row.get("linked")).await?;
 		let ids = update(state, &scope, |service| {
@@ -367,10 +375,12 @@ pub async fn observe_delivery(
 			}
 		})
 		.await?;
+
 		if !ids.is_empty() {
 			advanced.push((scope.project_id, ids));
 		}
 	}
+
 	Ok(advanced)
 }
 

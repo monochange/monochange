@@ -25,14 +25,17 @@ fn crates_embedding_crate_docs_ship_the_file_in_their_package() -> Result<(), Bo
 	for entry in std::fs::read_dir(&crates_root)? {
 		let crate_root = entry?.path();
 		let lib_rs = crate_root.join("src/lib.rs");
+
 		if !lib_rs.exists() {
 			continue;
 		}
 
 		let lib_source = std::fs::read_to_string(&lib_rs)?;
+
 		if !lib_source.contains(CRATE_DOC_INCLUDE) {
 			continue;
 		}
+
 		checked += 1;
 
 		let crate_docs = crate_root.join("src/crate_docs.md");
@@ -41,6 +44,7 @@ fn crates_embedding_crate_docs_ship_the_file_in_their_package() -> Result<(), Bo
 			.and_then(|name| name.to_str())
 			.unwrap_or_default()
 			.to_string();
+
 		if !crate_docs.exists() {
 			failures.push(format!(
 				"{crate_name}: src/crate_docs.md must exist in git because src/lib.rs embeds it"
@@ -64,6 +68,7 @@ fn crates_embedding_crate_docs_ship_the_file_in_their_package() -> Result<(), Bo
 		let covered = patterns
 			.iter()
 			.any(|pattern| COVERING_PATTERNS.contains(pattern));
+
 		if !covered {
 			failures.push(format!(
 				"{crate_name}: package.include must list \"src/crate_docs.md\" (or \"src/**/*.md\") because src/lib.rs embeds it; current list: {patterns:?}"

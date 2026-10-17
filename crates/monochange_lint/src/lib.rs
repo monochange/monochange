@@ -92,21 +92,26 @@ impl LintRegistry {
 	#[must_use]
 	pub fn new(suites: Vec<Box<dyn LintSuite>>) -> Self {
 		let mut registry = Self::default();
+
 		for suite in suites {
 			registry.register_suite(suite);
 		}
+
 		registry
 	}
 
 	/// Register one suite.
 	pub fn register_suite(&mut self, suite: Box<dyn LintSuite>) {
 		let suite_id = suite.suite_id().to_string();
+
 		for preset in suite.presets() {
 			self.presets.insert(preset.id.clone(), preset);
 		}
+
 		for rule in suite.rules() {
 			self.rules.register(rule);
 		}
+
 		self.suites.insert(suite_id, suite);
 	}
 
@@ -262,6 +267,7 @@ impl Linter {
 	pub fn apply_fixes(&self, report: &LintReport) -> BTreeMap<PathBuf, String> {
 		let mut fixes_by_file: BTreeMap<PathBuf, Vec<LintFix>> = BTreeMap::new();
 		let mut suites_by_file: BTreeMap<PathBuf, String> = BTreeMap::new();
+
 		for result in report.autofixable() {
 			if let Some(fix) = &result.fix {
 				fixes_by_file
@@ -275,6 +281,7 @@ impl Linter {
 		}
 
 		let mut fixed_files = BTreeMap::new();
+
 		for (file_path, fixes) in fixes_by_file {
 			let Ok(contents) = std::fs::read_to_string(&file_path) else {
 				continue;
@@ -289,6 +296,7 @@ impl Linter {
 				.iter()
 				.flat_map(|fix| fix.edits.iter())
 				.any(|edit| edit.span == (0, contents.len()));
+
 			if has_document_rewrite
 				&& !suites_by_file
 					.get(&file_path)
@@ -316,6 +324,7 @@ impl Linter {
 	) -> LintReport {
 		let mut report = LintReport::new();
 		let applicable_rules = self.registry.rules.applicable_rules(target);
+
 		if applicable_rules.is_empty() {
 			return report;
 		}
@@ -324,9 +333,11 @@ impl Linter {
 
 		for rule in applicable_rules {
 			let rule_id = rule.rule().id.as_str();
+
 			if !self.selection.allows_rule(rule_id) {
 				continue;
 			}
+
 			if target.metadata.package_name.is_some()
 				&& !target.metadata.managed
 				&& !rule_id.ends_with("/unlisted-package-private")
@@ -337,6 +348,7 @@ impl Linter {
 			let config = self
 				.resolve_rule_config(target, rule_id)
 				.unwrap_or(LintRuleConfig::Severity(LintSeverity::Error));
+
 			if !config.severity().is_enabled() {
 				continue;
 			}
@@ -351,12 +363,15 @@ impl Linter {
 
 			reporter.file_rule_started(&target.manifest_path, rule_id);
 			let mut rule_results = Vec::new();
+
 			for mut result in rule.run(&ctx, &config) {
 				result.severity = config.severity();
 				fill_location_from_span(&mut result.location, &target.contents);
 				rule_results.push(result);
 			}
+
 			reporter.file_rule_finished(&target.manifest_path, rule_id, rule_results.len());
+
 			for result in rule_results {
 				report.add(result);
 			}
@@ -374,6 +389,7 @@ impl Linter {
 
 	fn resolve_rule_config(&self, target: &LintTarget, rule_id: &str) -> Option<LintRuleConfig> {
 		let mut resolved = None;
+
 		for preset_id in &self.settings.presets {
 			resolved = merge_config(
 				resolved,
@@ -383,12 +399,14 @@ impl Linter {
 					.and_then(|preset| preset.rules.get(rule_id)),
 			);
 		}
+
 		resolved = merge_config(resolved, self.settings.rules.get(rule_id));
 
 		for scope in &self.settings.scopes {
 			if !selector_matches(&scope.selector, target) {
 				continue;
 			}
+
 			for preset_id in &scope.presets {
 				resolved = merge_config(
 					resolved,
@@ -398,6 +416,7 @@ impl Linter {
 						.and_then(|preset| preset.rules.get(rule_id)),
 				);
 			}
+
 			resolved = merge_config(resolved, scope.rules.get(rule_id));
 		}
 
@@ -429,6 +448,7 @@ impl Linter {
 		}
 
 		let relative = target.metadata.relative_path.to_string_lossy();
+
 		if !self.settings.include.is_empty()
 			&& !self
 				.settings
@@ -456,6 +476,7 @@ fn fill_location_from_span(location: &mut monochange_core::lint::LintLocation, c
 	if location.line != 1 || location.column != 1 {
 		return;
 	}
+
 	let Some((start, _)) = location.span else {
 		return;
 	};
@@ -470,8 +491,10 @@ fn line_column_for_offset(contents: &str, offset: usize) -> Option<(usize, usize
 	if offset > contents.len() || !contents.is_char_boundary(offset) {
 		return None;
 	}
+
 	let mut line = 1usize;
 	let mut column = 1usize;
+
 	for character in contents[..offset].chars() {
 		if character == '\n' {
 			line += 1;
@@ -480,6 +503,7 @@ fn line_column_for_offset(contents: &str, offset: usize) -> Option<(usize, usize
 			column += 1;
 		}
 	}
+
 	Some((line, column))
 }
 
@@ -554,6 +578,7 @@ fn selector_matches(selector: &LintSelector, target: &LintTarget) -> bool {
 				|pattern| pattern.matches(relative.as_ref()),
 			)
 		});
+
 		if !matches_path {
 			return false;
 		}
@@ -607,9 +632,11 @@ fn selector_matches(selector: &LintSelector, target: &LintTarget) -> bool {
 fn apply_fixes_to_content(contents: &str, fixes: &[LintFix]) -> String {
 	let edits = non_overlapping_edits(contents, fixes);
 	let mut result = contents.to_string();
+
 	for edit in edits {
 		result.replace_range(edit.span.0..edit.span.1, &edit.replacement);
 	}
+
 	result
 }
 
@@ -619,8 +646,10 @@ fn non_overlapping_edits<'a>(contents: &str, fixes: &'a [LintFix]) -> Vec<&'a Li
 
 	let mut next_allowed_start = contents.len();
 	let mut retained = Vec::new();
+
 	for edit in edits {
 		let (start, end) = edit.span;
+
 		if start > end
 			|| end > contents.len()
 			|| end > next_allowed_start
@@ -632,6 +661,7 @@ fn non_overlapping_edits<'a>(contents: &str, fixes: &'a [LintFix]) -> Vec<&'a Li
 		next_allowed_start = start;
 		retained.push(edit);
 	}
+
 	retained
 }
 

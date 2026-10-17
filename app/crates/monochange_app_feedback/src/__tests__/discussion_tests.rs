@@ -20,6 +20,7 @@ fn actor_roles_are_distinct() {
 		(Actor::User("u".to_owned()), false, false),
 		(Actor::Maintainer("m".to_owned()), true, false),
 	];
+
 	for (actor, maintainer, automation) in roles {
 		assert_eq!(actor.is_maintainer(), maintainer, "{actor:?}");
 		assert_eq!(actor.is_automation(), automation, "{actor:?}");

@@ -86,6 +86,7 @@ pub fn screen_untrusted(text: &str) -> ScreeningVerdict {
 		.filter(|marker| lower.contains(marker))
 		.map(String::from)
 		.collect::<Vec<_>>();
+
 	if markers.is_empty() {
 		ScreeningVerdict::Clean
 	} else {
@@ -148,6 +149,7 @@ impl TriageEngine for RuleBasedTriage {
 				}
 			})
 			.collect();
+
 		for reply in &replies {
 			findings.extend(sensitive_tokens(&reply.body).into_iter().map(
 				|(detail, sensitivity)| {
@@ -172,6 +174,7 @@ impl TriageEngine for RuleBasedTriage {
 fn classify(submission: &FeedbackSubmission) -> FeedbackKind {
 	let lower = submission.description.to_ascii_lowercase();
 	let mentions_bug = BUG_WORDS.into_iter().any(|word| lower.contains(word));
+
 	if submission.kind == FeedbackKind::BugReport || mentions_bug {
 		FeedbackKind::BugReport
 	} else {
@@ -187,6 +190,7 @@ fn reproduce(
 	if classification == FeedbackKind::FeatureRequest {
 		return ReproductionOutcome::NotApplicable;
 	}
+
 	let Some(page) = &submission.page else {
 		return if has_evidence {
 			ReproductionOutcome::NotReproduced {
@@ -199,6 +203,7 @@ fn reproduce(
 		};
 	};
 	let mut steps = vec![format!("Open {} in the app", page.route)];
+
 	if let Some(element) = &page.element {
 		let target = element.label.as_ref().map_or_else(
 			|| format!("`{}`", element.selector),
@@ -208,6 +213,7 @@ fn reproduce(
 	} else {
 		steps.push("Repeat the action described in the report".to_owned());
 	}
+
 	steps.push("Compare the result with the reported behavior".to_owned());
 	ReproductionOutcome::Reproduced { steps }
 }
@@ -222,11 +228,13 @@ fn follow_up_questions(
 		.page
 		.as_ref()
 		.is_some_and(|page| page.element.is_some());
+
 	if !has_evidence && !pinned {
 		questions.push(
 			"Can you attach a screenshot, or point at the part of the screen you mean?".to_owned(),
 		);
 	}
+
 	match classification {
 		FeedbackKind::BugReport => {
 			if submission
@@ -241,6 +249,7 @@ fn follow_up_questions(
 			questions.push("What outcome would make this feel complete for you?".to_owned());
 		}
 	}
+
 	questions
 }
 
@@ -254,8 +263,10 @@ fn product_summary(submission: &FeedbackSubmission, classification: FeedbackKind
 			FeedbackKind::FeatureRequest => "Feature request pending maintainer review".to_owned(),
 		};
 	}
+
 	let plain = plain_text(&submission.description);
 	let sentence = first_sentence(&plain).to_owned();
+
 	match (classification, &submission.page) {
 		(FeedbackKind::BugReport, Some(page)) => format!("Problem on {}: {sentence}", page.route),
 		(FeedbackKind::BugReport, None) => format!("Problem: {sentence}"),
@@ -269,14 +280,17 @@ fn product_summary(submission: &FeedbackSubmission, classification: FeedbackKind
 /// and identifiers the disclosure rules must still see.
 fn plain_text(markdown: &str) -> String {
 	let mut line = markdown.trim_start();
+
 	for marker in ["#", ">"] {
 		line = line.trim_start_matches(marker).trim_start();
 	}
+
 	for marker in ["- ", "* ", "+ "] {
 		if let Some(rest) = line.strip_prefix(marker) {
 			line = rest;
 		}
 	}
+
 	if let Some((number, rest)) = line.split_once(". ")
 		&& !number.is_empty()
 		&& number.bytes().all(|byte| byte.is_ascii_digit())
@@ -297,6 +311,7 @@ fn plain_text(markdown: &str) -> String {
 fn first_sentence(text: &str) -> &str {
 	let text = text.trim();
 	let mut characters = text.char_indices().peekable();
+
 	while let Some((index, character)) = characters.next() {
 		let ends_sentence = match character {
 			'\n' => true,
@@ -307,10 +322,12 @@ fn first_sentence(text: &str) -> &str {
 			}
 			_ => false,
 		};
+
 		if ends_sentence {
 			return text[..index].trim();
 		}
 	}
+
 	text
 }
 

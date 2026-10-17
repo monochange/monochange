@@ -46,13 +46,17 @@ pub struct ActionsOidcContext {
 /// `permissions: id-token: write`.
 pub fn actions_oidc_context(env_map: &BTreeMap<String, String>) -> Option<ActionsOidcContext> {
 	let request_url = env_map.get(ACTIONS_ID_TOKEN_REQUEST_URL_ENV)?.trim();
+
 	if request_url.is_empty() {
 		return None;
 	}
+
 	let request_token = env_map.get(ACTIONS_ID_TOKEN_REQUEST_TOKEN_ENV)?.trim();
+
 	if request_token.is_empty() {
 		return None;
 	}
+
 	Some(ActionsOidcContext {
 		request_url: request_url.to_string(),
 		request_token: request_token.to_string(),
@@ -89,6 +93,7 @@ pub async fn mint_actions_id_token(
 				"GitHub Actions OIDC token request for {request_url} failed: {error}"
 			))
 		})?;
+
 	if !response.status().is_success() {
 		return Err(MonochangeError::Io(format!(
 			"GitHub Actions OIDC token request for {request_url} failed with HTTP {}: the workflow job must grant `permissions: id-token: write`",

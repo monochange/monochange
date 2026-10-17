@@ -236,6 +236,7 @@ fn listing() -> String {
 		+ 2;
 	let mut output =
 		String::from("The monochange agent skill is bundled in this binary. Read a topic:\n");
+
 	for topic in topics() {
 		// Writing to a `String` cannot fail.
 		let _ = writeln!(
@@ -244,8 +245,10 @@ fn listing() -> String {
 			topic.name, topic.file, topic.description
 		);
 	}
+
 	output.push('\n');
 	output.push_str("  monochange skill read <topic>            # raw Markdown on stdout\n");
+
 	output.push_str(
 		"  monochange skill install --dir <dir>     # write the whole skill for an agent runtime\n",
 	);
@@ -285,6 +288,7 @@ fn install(destination: Option<PathBuf>, force: bool) -> MonochangeResult<SkillO
 			destination.display()
 		)));
 	}
+
 	// `write_tree` names the exact file that failed; the destination is added
 	// here so an agent knows which install directory was being populated.
 	let files = write_tree(&destination).map_err(|error| {
@@ -314,7 +318,9 @@ fn validate_install_paths(directory: &Path) -> MonochangeResult<()> {
 						component.display()
 					)));
 				}
+
 				Ok(_) => {}
+
 				Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
 				Err(error) => {
 					return Err(MonochangeError::Io(format!(
@@ -332,6 +338,7 @@ fn validate_install_paths(directory: &Path) -> MonochangeResult<()> {
 /// Write every bundled document under `directory`, returning the file count.
 fn write_tree(directory: &Path) -> MonochangeResult<usize> {
 	let mut written = 0usize;
+
 	for topic in topics() {
 		// Static install paths have been checked for existing symlinks before writing.
 		let path = directory.join(topic.file);
@@ -344,12 +351,14 @@ fn write_tree(directory: &Path) -> MonochangeResult<usize> {
 			});
 			created?;
 		}
+
 		// patch-coverage:ignore-end
 		std::fs::write(&path, topic.content).map_err(|error| {
 			MonochangeError::Io(format!("failed to write {}: {error}", path.display()))
 		})?;
 		written += 1;
 	}
+
 	Ok(written)
 }
 
@@ -379,6 +388,7 @@ fn missing_destination_message() -> String {
 	let mut message = String::from(
 		"no skill destination; pass --dir <directory>, for example:\n  monochange skill install --dir ./.claude/skills/monochange\n",
 	);
+
 	if suggestions.is_empty() {
 		for runtime in [".claude", ".codex", ".agents"] {
 			// Writing to a `String` cannot fail.
@@ -397,6 +407,7 @@ fn missing_destination_message() -> String {
 			);
 		}
 	}
+
 	message.trim_end().to_string()
 }
 

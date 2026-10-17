@@ -87,9 +87,11 @@ impl GitHubAppAuth {
 		let app_id = std::env::var("GITHUB_APP_ID").ok()?;
 		let private_key = std::env::var("GITHUB_APP_PRIVATE_KEY").ok()?;
 		let webhook_secret = std::env::var("GITHUB_APP_WEBHOOK_SECRET").ok()?;
+
 		if app_id.is_empty() || private_key.is_empty() {
 			return None;
 		}
+
 		let api_url = std::env::var("GITHUB_API_URL")
 			.ok()
 			.filter(|url| !url.is_empty())
@@ -115,6 +117,7 @@ impl GitHubAppAuth {
 		signature: &str,
 	) -> Result<(), GitHubAppError> {
 		let expected = webhook_signature(&self.webhook_secret, payload);
+
 		if constant_time_eq(expected.as_bytes(), signature.as_bytes()) {
 			Ok(())
 		} else {
@@ -156,6 +159,7 @@ impl GitHubAppAuth {
 		if !response.status().is_success() {
 			let status = response.status();
 			let body = response.text().await?;
+
 			return Err(GitHubAppError::Status("read app metadata", status, body));
 		}
 
@@ -190,6 +194,7 @@ impl GitHubAppAuth {
 			.header("Accept", "application/vnd.github+json")
 			.send()
 			.await?;
+
 		if !response.status().is_success() {
 			let status = response.status();
 			let body = response.text().await.unwrap_or_default();
@@ -199,6 +204,7 @@ impl GitHubAppAuth {
 				body,
 			));
 		}
+
 		let token: InstallationTokenResponse = response.json().await?;
 		Ok(token.token)
 	}
@@ -225,11 +231,14 @@ impl GitHubAppAuth {
 			.header("User-Agent", "monochange")
 			.send()
 			.await?;
+
 		if !response.status().is_success() {
 			let status = response.status();
 			let body = response.text().await.unwrap_or_default();
+
 			return Err(GitHubAppError::Status("read installation", status, body));
 		}
+
 		let installation: InstallationResponse = response.json().await?;
 		Ok(monochange_app_db::projects::AccountIdentity {
 			provider: monochange_app_db::projects::GITHUB.to_owned(),
@@ -246,6 +255,7 @@ fn constant_time_eq(left: &[u8], right: &[u8]) -> bool {
 	if left.len() != right.len() {
 		return false;
 	}
+
 	left.iter()
 		.zip(right)
 		.fold(0u8, |acc, (a, b)| acc | (a ^ b))
@@ -416,6 +426,7 @@ pub async fn list_installation_repositories(
 		.header("Accept", "application/vnd.github+json")
 		.send()
 		.await?;
+
 	if !response.status().is_success() {
 		let status = response.status();
 		let body = response.text().await.unwrap_or_default();
@@ -425,6 +436,7 @@ pub async fn list_installation_repositories(
 			body,
 		));
 	}
+
 	let page: InstallationRepositoriesResponse = response.json().await?;
 	Ok(page.repositories)
 }
@@ -451,14 +463,18 @@ async fn read_branch_head(
 		.header("Accept", "application/vnd.github+json")
 		.send()
 		.await?;
+
 	if response.status() == reqwest::StatusCode::NOT_FOUND {
 		return Ok(None);
 	}
+
 	if !response.status().is_success() {
 		let status = response.status();
 		let body = response.text().await.unwrap_or_default();
+
 		return Err(api_error(operation, status, body));
 	}
+
 	let reference: RefResponse = response.json().await?;
 	Ok(Some(reference.object.sha))
 }
@@ -479,11 +495,14 @@ async fn read_default_branch(
 		.header("Accept", "application/vnd.github+json")
 		.send()
 		.await?;
+
 	if !response.status().is_success() {
 		let status = response.status();
 		let body = response.text().await.unwrap_or_default();
+
 		return Err(api_error("read repository", status, body));
 	}
+
 	let repository: RepositoryResponse = response.json().await?;
 	Ok(repository.default_branch)
 }
@@ -552,9 +571,11 @@ async fn plan_release_branch_update(
 	let Some(release_head) = release_head else {
 		return Ok(ReleaseBranchUpdate::Create);
 	};
+
 	if release_head == request.base_commit {
 		return Ok(ReleaseBranchUpdate::FastForward);
 	}
+
 	let branch_moved = |release_head: String| {
 		GitHubAppError::BranchMoved(
 			request.branch.clone(),
@@ -583,6 +604,7 @@ async fn plan_release_branch_update(
 			format!("base branch `{base_branch}` does not exist"),
 		)
 	})?;
+
 	if base_head != request.base_commit {
 		return Err(GitHubAppError::BaseMoved(
 			base_branch.to_string(),
@@ -590,9 +612,11 @@ async fn plan_release_branch_update(
 			request.base_commit.clone(),
 		));
 	}
+
 	if read_default_branch(http, api_url, token, request).await? == request.branch {
 		return Err(branch_moved(release_head));
 	}
+
 	Ok(ReleaseBranchUpdate::Regenerate)
 }
 
@@ -616,6 +640,7 @@ pub async fn create_release_commit(
 
 	// 2. Blobs for every file with content.
 	let mut tree = Vec::new();
+
 	for file in &request.files {
 		match &file.content {
 			Some(content) => {
@@ -634,6 +659,7 @@ pub async fn create_release_commit(
 					let body = response.text().await.unwrap_or_default();
 					return Err(api_error("create blob", status, body));
 				}
+
 				let blob: TreeResponse = response.json().await?;
 				tree.push(TreeEntry {
 					path: file.path.clone(),
@@ -666,11 +692,14 @@ pub async fn create_release_commit(
 		})
 		.send()
 		.await?;
+
 	if !response.status().is_success() {
 		let status = response.status();
 		let body = response.text().await.unwrap_or_default();
+
 		return Err(api_error("create tree", status, body));
 	}
+
 	let tree_response: TreeResponse = response.json().await?;
 
 	// 4. Commit with the prepared base as its only parent.
@@ -679,6 +708,7 @@ pub async fn create_release_commit(
 	} else {
 		format!("{}\n\n{}", request.subject, request.body)
 	};
+
 	let response = http
 		.post(format!("{api_url}/repos/{owner}/{repo}/git/commits"))
 		.bearer_auth(installation_token)
@@ -690,11 +720,14 @@ pub async fn create_release_commit(
 		})
 		.send()
 		.await?;
+
 	if !response.status().is_success() {
 		let status = response.status();
 		let body = response.text().await.unwrap_or_default();
+
 		return Err(api_error("create commit", status, body));
 	}
+
 	let commit: CommitResponse = response.json().await?;
 	let verified = commit
 		.verification
@@ -704,6 +737,7 @@ pub async fn create_release_commit(
 		.verification
 		.as_ref()
 		.and_then(|verification| verification.reason.clone());
+
 	if !verified {
 		tracing::warn!(
 			commit = %commit.sha,
@@ -719,6 +753,7 @@ pub async fn create_release_commit(
 			"update release branch ref"
 		}
 	};
+
 	let response = match update {
 		ReleaseBranchUpdate::Create => {
 			http.post(format!("{api_url}/repos/{owner}/{repo}/git/refs"))
@@ -742,9 +777,11 @@ pub async fn create_release_commit(
 	.header("Accept", "application/vnd.github+json")
 	.send()
 	.await?;
+
 	if !response.status().is_success() {
 		let status = response.status();
 		let body = response.text().await.unwrap_or_default();
+
 		return Err(api_error(operation, status, body));
 	}
 
@@ -768,11 +805,14 @@ async fn find_open_pull_request(
 		.header("Accept", "application/vnd.github+json")
 		.send()
 		.await?;
+
 	if !response.status().is_success() {
 		let status = response.status();
 		let body = response.text().await.unwrap_or_default();
+
 		return Err(api_error("list pull requests", status, body));
 	}
+
 	let pulls: Vec<PullRequestResponse> = response.json().await?;
 	Ok(pulls.into_iter().next())
 }
@@ -813,11 +853,14 @@ pub async fn publish_release_pull_request(
 			})
 			.send()
 			.await?;
+
 		if !response.status().is_success() {
 			let status = response.status();
 			let body = response.text().await.unwrap_or_default();
+
 			return Err(api_error("update pull request", status, body));
 		}
+
 		let pull: PullRequestResponse = response.json().await?;
 		(pull, SourceChangeRequestOperation::Updated)
 	} else {
@@ -833,11 +876,14 @@ pub async fn publish_release_pull_request(
 			})
 			.send()
 			.await?;
+
 		if !response.status().is_success() {
 			let status = response.status();
 			let body = response.text().await.unwrap_or_default();
+
 			return Err(api_error("create pull request", status, body));
 		}
+
 		let pull: PullRequestResponse = response.json().await?;
 		(pull, SourceChangeRequestOperation::Created)
 	};
@@ -855,9 +901,11 @@ pub async fn publish_release_pull_request(
 			})
 			.send()
 			.await?;
+
 		if !response.status().is_success() {
 			let status = response.status();
 			let body = response.text().await.unwrap_or_default();
+
 			return Err(api_error("label pull request", status, body));
 		}
 	}
@@ -940,10 +988,13 @@ pub async fn create_issue(
 		})
 		.send()
 		.await?;
+
 	if !response.status().is_success() {
 		let status = response.status();
 		let body = response.text().await.unwrap_or_default();
+
 		return Err(api_error("create issue", status, body));
 	}
+
 	Ok(response.json().await?)
 }

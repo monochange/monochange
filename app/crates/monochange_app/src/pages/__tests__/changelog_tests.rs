@@ -22,6 +22,7 @@ async fn generated_history_renders_links_and_safe_formatted_notes() {
 	assert!(html.contains("v0.2.0"));
 	assert!(html.contains("href=\"/releases/0.2.0.json\""));
 	assert!(html.contains("&lt;script&gt;unsafe summary&lt;/script&gt;"));
+
 	assert!(html.contains("<strong>your website</strong>"));
 	assert!(!html.contains("<script"));
 	assert!(!html.contains("javascript:"));

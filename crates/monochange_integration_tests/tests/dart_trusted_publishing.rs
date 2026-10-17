@@ -48,6 +48,7 @@ const DART_TOKEN_ADD_ARGS: [&str; 6] = [
 	"--env-var",
 	"PUB_TOKEN",
 ];
+
 const DART_PUBLISH_ARGS: [&str; 3] = ["pub", "publish", "--force"];
 
 fn http_ok_token_response(token: &str) -> String {
@@ -130,6 +131,7 @@ fn spawn_endpoint_server(oidc_response: Option<String>) -> MockServer {
 	let stop = Arc::new(std::sync::atomic::AtomicBool::new(false));
 	let stop_for_thread = Arc::clone(&stop);
 	let (ready_tx, ready_rx) = std::sync::mpsc::sync_channel(0);
+
 	std::thread::spawn(move || {
 		let _ = listener.set_nonblocking(true);
 		ready_tx
@@ -157,6 +159,7 @@ fn spawn_endpoint_server(oidc_response: Option<String>) -> MockServer {
 					}
 				}
 			}
+
 			captured
 				.lock()
 				.unwrap()
@@ -166,6 +169,7 @@ fn spawn_endpoint_server(oidc_response: Option<String>) -> MockServer {
 			} else {
 				PUB_DEV_NOT_FOUND_RESPONSE.to_string()
 			};
+
 			let _ = stream.write_all(response.as_bytes());
 			let _ = stream.flush();
 		}
@@ -219,6 +223,7 @@ fn placeholder_publish_command(
 	dry_run: bool,
 ) -> Command {
 	let mut command = base_command(root, base_url);
+
 	if let Some(oidc_base) = actions_oidc_base {
 		command.env(
 			ACTIONS_ID_TOKEN_REQUEST_URL_ENV,
@@ -226,12 +231,15 @@ fn placeholder_publish_command(
 		);
 		command.env(ACTIONS_ID_TOKEN_REQUEST_TOKEN_ENV, RUNNER_REQUEST_TOKEN);
 	}
+
 	command.arg("step").arg("placeholder-publish");
 	command.arg("--package").arg("dart_pkg");
 	command.arg("--format").arg("json");
+
 	if dry_run {
 		command.arg("--dry-run");
 	}
+
 	command
 }
 
@@ -305,6 +313,7 @@ fn read_dart_invocations(log_path: &std::path::Path) -> Vec<DartInvocation> {
 		fs::read_to_string(log_path).unwrap_or_else(|error| panic!("read dart stub log: {error}"));
 	let mut invocations = Vec::new();
 	let mut pending: Option<DartInvocation> = None;
+
 	for line in contents.lines() {
 		if let Some(pub_token) = line.strip_prefix("pub-token=") {
 			assert!(
@@ -327,6 +336,7 @@ fn read_dart_invocations(log_path: &std::path::Path) -> Vec<DartInvocation> {
 			invocations.push(invocation);
 		}
 	}
+
 	invocations
 }
 

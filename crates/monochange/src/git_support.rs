@@ -95,9 +95,11 @@ async fn push_git_tags_with_options(
 	error_message: &str,
 ) -> MonochangeResult<()> {
 	let mut args = vec!["push"];
+
 	if force {
 		args.push("--force");
 	}
+
 	args.push("origin");
 
 	let tag_refs: Vec<String> = tags
@@ -184,6 +186,7 @@ pub(crate) async fn find_release_record_files_at_commit(
 	let shallow_file = root.join(PathBuf::from(shallow_file.trim()));
 	let is_shallow_boundary = fs::read_to_string(shallow_file)
 		.is_ok_and(|contents| contents.lines().any(|line| line == resolved_commit.trim()));
+
 	if let Some(parent) = first_parent.as_deref()
 		&& !is_shallow_boundary
 		&& git_command_output(root, &["cat-file", "-e", &format!("{parent}^{{commit}}")])
@@ -306,7 +309,6 @@ pub(crate) async fn git_stage_all(root: &Path) -> MonochangeResult<()> {
 	.await
 }
 // patch-coverage:ignore-end
-
 async fn resolve_stageable_release_paths(
 	root: &Path,
 	tracked_paths: &[PathBuf],
@@ -331,6 +333,7 @@ async fn release_path_requires_staging(
 	path_filter: &DiscoveryPathFilter,
 ) -> MonochangeResult<bool> {
 	let relative = root_relative_path(root, path);
+
 	if !relative.starts_with(".monochange/releases")
 		&& release_path_is_ignored_by_filter(root, relative, path_filter)
 	{
@@ -338,6 +341,7 @@ async fn release_path_requires_staging(
 	}
 
 	let absolute_path = root.join(path);
+
 	if !absolute_path.exists() {
 		return git_path_is_tracked(root, path).await;
 	}
@@ -345,6 +349,7 @@ async fn release_path_requires_staging(
 	if relative.starts_with(".monochange/releases") {
 		return Ok(true);
 	}
+
 	if git_path_is_tracked(root, path).await? {
 		return Ok(true);
 	}
@@ -452,6 +457,7 @@ fn git_error_message_with_detail(error_message: &str, stderr: &str) -> String {
 	if error_message.is_empty() {
 		return stderr.to_string();
 	}
+
 	if stderr.is_empty() {
 		return error_message.to_string();
 	}
@@ -474,6 +480,7 @@ fn handle_git_process_output(
 			&stderr,
 		)));
 	}
+
 	Ok(())
 }
 

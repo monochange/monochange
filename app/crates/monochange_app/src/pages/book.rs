@@ -36,6 +36,7 @@ fn book_page(result: Result<Option<BookPage>, server_fn::ServerFnError>) -> AnyV
 			if let Some(response) = use_context::<leptos_axum::ResponseOptions>() {
 				response.set_status(axum::http::StatusCode::NOT_FOUND);
 			}
+
 			view! { <ErrorTemplate status=404 message="Chapter not found" /> }.into_any()
 		}
 		Ok(Some(page)) => {

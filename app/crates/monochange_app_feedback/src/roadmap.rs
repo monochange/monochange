@@ -154,36 +154,47 @@ fn truncate_title(summary: &str) -> String {
 	if summary.chars().count() <= TITLE_LIMIT {
 		return summary.to_owned();
 	}
+
 	let budget = TITLE_LIMIT - 1;
 	let mut result = String::new();
+
 	for word in summary.split(' ') {
 		let separator = usize::from(!result.is_empty());
+
 		if result.chars().count() + separator + word.chars().count() > budget {
 			break;
 		}
+
 		if separator == 1 {
 			result.push(' ');
 		}
+
 		result.push_str(word);
 	}
+
 	if result.is_empty() {
 		result = summary.chars().take(budget).collect();
 	}
+
 	result.push('…');
 	result
 }
 
 fn links_for(item: &FeedbackItem) -> Vec<PublicLink> {
 	let mut links = Vec::new();
+
 	if let Some(IssueRef { url: Some(url), .. }) = &item.issue {
 		links.push(PublicLink::Issue(url.clone()));
 	}
+
 	if let Some(pull_request) = &item.pull_request {
 		links.push(PublicLink::PullRequest(pull_request.url.clone()));
 	}
+
 	if let Some(release) = &item.release {
 		links.push(PublicLink::ReleaseNotes(release.notes_url.clone()));
 	}
+
 	links
 }
 
@@ -213,6 +224,7 @@ fn neutral_title(item: &FeedbackItem) -> &'static str {
 
 fn outbound_draft(item: &FeedbackItem, title: String) -> OutboundDraft {
 	let status = public_status_line(item.stage);
+
 	let body = match (&item.duplicate_of, item.stage, &item.decision) {
 		(Some(_), ..) => {
 			"Merged into a matching request. Your vote moved with it, so you will hear about it there."
@@ -221,6 +233,7 @@ fn outbound_draft(item: &FeedbackItem, title: String) -> OutboundDraft {
 		(None, Stage::Declined, Some(decision)) => format!("{status}: {}", decision.rationale),
 		_ => status.to_owned(),
 	};
+
 	OutboundDraft {
 		title,
 		body,
@@ -270,6 +283,7 @@ pub fn status_feed<'a>(
 	cadence: &CadenceSnapshot,
 ) -> FeedRender {
 	let mut render = FeedRender::default();
+
 	for item in items.into_iter().filter(|item| is_listed(item)) {
 		let entry = match roadmap_entry(item, policy, cadence) {
 			Ok(entry) => entry,
@@ -281,6 +295,7 @@ pub fn status_feed<'a>(
 				continue;
 			}
 		};
+
 		match (&item.release, item.stage) {
 			(Some(release), Stage::Shipped) => {
 				render.feed.shipped.push(ShippedEntry {
@@ -293,6 +308,7 @@ pub fn status_feed<'a>(
 			_ => render.feed.roadmap.push(entry),
 		}
 	}
+
 	render.feed.roadmap.sort_by(|left, right| {
 		left.status
 			.cmp(&right.status)

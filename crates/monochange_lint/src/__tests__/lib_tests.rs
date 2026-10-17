@@ -194,6 +194,7 @@ fn linter_runs_preset_backed_rules() {
 		.results
 		.first()
 		.unwrap_or_else(|| panic!("expected one lint result"));
+
 	assert_eq!(result.location.line, 2);
 	assert_eq!(result.location.column, 9);
 }

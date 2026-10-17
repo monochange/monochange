@@ -409,6 +409,7 @@ fn build_prepared_changesets_moves_loaded_fields_into_prepared_changesets() {
 	assert_eq!(prepared[0].targets[0].id, "core");
 	assert_eq!(prepared[0].targets[0].origin, "manual");
 	assert_eq!(prepared[0].targets[0].evidence_refs, vec!["src/lib.rs"]);
+
 	assert_eq!(prepared[0].targets[0].change_type.as_deref(), Some("fix"));
 	assert_eq!(prepared[0].targets[0].caused_by, vec!["core"]);
 	let context = prepared[0]
@@ -499,6 +500,7 @@ fn semantic_guardrail_skips_changeset_only_updates_without_warning() {
 		.unwrap_or_else(|error| panic!("write initial changeset: {error}"));
 	run_git_test_command(tempdir.path(), &["add", "."]);
 	run_git_test_command(tempdir.path(), &["commit", "-m", "initial fixture"]);
+
 	fs::write(tempdir.path().join(".changeset/core.md"), "updated")
 		.unwrap_or_else(|error| panic!("write updated changeset: {error}"));
 	let signal = make_test_change_signal("core", BumpSeverity::Patch);
@@ -647,9 +649,11 @@ fn release_plan_propagates_graph_errors_after_semantic_guardrail_collection() {
 fn run_git_test_command(root: &Path, args: &[&str]) {
 	let mut command = std::process::Command::new("git");
 	command.arg("-C").arg(root);
+
 	if args.first() == Some(&"commit") {
 		command.arg("-c").arg("commit.gpgsign=false");
 	}
+
 	let status = command
 		.args(args)
 		.status()
@@ -662,10 +666,13 @@ fn replace_workspace_contents(destination: &Path, source: &Path) {
 		fs::read_dir(destination).unwrap_or_else(|error| panic!("read temp workspace: {error}"))
 	{
 		let entry = entry.unwrap_or_else(|error| panic!("read temp entry: {error}"));
+
 		if entry.file_name() == ".git" {
 			continue;
 		}
+
 		let path = entry.path();
+
 		if path.is_dir() {
 			fs::remove_dir_all(&path)
 				.unwrap_or_else(|error| panic!("remove dir {}: {error}", path.display()));
@@ -695,6 +702,7 @@ fn setup_semantic_guardrail_git_fixture(relative: &str) -> tempfile::TempDir {
 		&["config", "user.email", "test@example.com"],
 	);
 	run_git_test_command(tempdir.path(), &["add", "."]);
+
 	run_git_test_command(tempdir.path(), &["commit", "-m", "initial fixture"]);
 	replace_workspace_contents(tempdir.path(), &after);
 	tempdir
@@ -735,6 +743,7 @@ fn semantic_guardrail_warns_when_semantic_analysis_fails() {
 		"packages = [invalid",
 	)
 	.unwrap_or_else(|error| panic!("write invalid changed config: {error}"));
+
 	let signal = make_test_change_signal("core", BumpSeverity::Patch);
 
 	let (evidence, warnings) = semantic_compatibility_evidence(tempdir.path(), &[], &[signal]);

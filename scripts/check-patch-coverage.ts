@@ -9,11 +9,13 @@ export function parseArgs(argv) {
 
 	for (let index = 0; index < argv.length; index += 1) {
 		const token = argv[index];
+
 		if (!token.startsWith("--")) {
 			continue;
 		}
 
 		const value = argv[index + 1];
+
 		if (value === undefined || value.startsWith("--")) {
 			continue;
 		}
@@ -44,9 +46,11 @@ export function parseLcov(text, repoRoot = process.cwd()) {
 	for (const line of text.split(/\r?\n/u)) {
 		if (line.startsWith("SF:")) {
 			currentFile = normalizePath(line.slice(3), repoRoot);
+
 			if (currentFile && !coverageByFile.has(currentFile)) {
 				coverageByFile.set(currentFile, new Map());
 			}
+
 			continue;
 		}
 
@@ -142,25 +146,32 @@ export function parseChangedLines(text, repoRoot = process.cwd()) {
 
 function buildIgnoreRangeChecker() {
 	const cache = new Map();
+
 	return (filePath, lineNumber) => {
 		if (!cache.has(filePath)) {
 			const ranges = [];
+
 			if (!existsSync(filePath)) {
 				cache.set(filePath, ranges);
+
 				return false;
 			}
 
 			let start = null;
+
 			for (const [index, line] of readFileSync(filePath, "utf8").split(/\r?\n/u).entries()) {
 				const currentLine = index + 1;
+
 				if (line.includes("patch-coverage:ignore-start")) {
 					start = currentLine;
 				}
+
 				if (line.includes("patch-coverage:ignore-end") && start !== null) {
 					ranges.push([start, currentLine]);
 					start = null;
 				}
 			}
+
 			cache.set(filePath, ranges);
 		}
 		return cache.get(filePath).some(([start, end]) => lineNumber >= start && lineNumber <= end);
@@ -175,20 +186,24 @@ export function computePatchCoverage(coverageByFile, changedLinesByFile) {
 
 	for (const [filePath, changedLines] of changedLinesByFile.entries()) {
 		const lineCoverage = coverageByFile.get(filePath);
+
 		if (!lineCoverage) {
 			continue;
 		}
 
 		const sortedChangedLines = [...changedLines].toSorted((left, right) => left - right);
+
 		for (const lineNumber of sortedChangedLines) {
 			if (isIgnoredLine(filePath, lineNumber)) {
 				continue;
 			}
+
 			if (!lineCoverage.has(lineNumber)) {
 				continue;
 			}
 
 			executableChangedLines += 1;
+
 			if ((lineCoverage.get(lineNumber) ?? 0) > 0) {
 				coveredLines += 1;
 				continue;
@@ -212,6 +227,7 @@ export function computePatchCoverage(coverageByFile, changedLinesByFile) {
 export function formatCoverageSummary(result, target) {
 	const percentage = result.percentage.toFixed(2);
 	const summary = `PATCH_COVERAGE ${result.coveredLines}/${result.executableChangedLines} (${percentage}%)`;
+
 	if (result.executableChangedLines === 0) {
 		return `${summary}\nNo executable changed lines were found in the coverage report.`;
 	}
@@ -227,6 +243,7 @@ export function formatCoverageSummary(result, target) {
 	const missingLines = result.uncoveredLines
 		.map(({ filePath, lineNumber }) => `- ${filePath}:${lineNumber}`)
 		.join("\n");
+
 	return `${summary}\nRequired patch coverage: ${target.toFixed(
 		2,
 	)}%\nUncovered executable changed lines:\n${missingLines}`;
@@ -276,6 +293,7 @@ export function main(argv = process.argv.slice(2)) {
 	if (!base) {
 		throw new Error("missing required --base <git-ref> option");
 	}
+
 	if (!Number.isFinite(target)) {
 		throw new Error(`invalid --target value: ${options.target}`);
 	}

@@ -48,8 +48,11 @@ export function parseArgs(argv: string[]): Options {
 			flag === "--all"
 		) {
 			if (flag === "--list") options.list = true;
+
 			if (flag === "--keep") options.keep = true;
+
 			if (flag === "--regrade") options.regrade = true;
+
 			if (flag === "--contract-only") options.contractOnly = true;
 			continue;
 		}
@@ -107,6 +110,7 @@ export function parseArgs(argv: string[]): Options {
 				if (value !== "cli" && value !== "installed") {
 					throw new Error("--skill-source must be installed or cli");
 				}
+
 				options.skillSource = value;
 				break;
 		}

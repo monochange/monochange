@@ -383,6 +383,7 @@ fn analyzer_reports_invalid_trees_and_missing_endpoint_manifests() {
 		label: tree,
 		files: Vec::new(),
 	};
+
 	let invalid = PackageSnapshot {
 		label: "HEAD".to_string(),
 		files: Vec::new(),

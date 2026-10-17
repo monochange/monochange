@@ -142,6 +142,7 @@ struct GroupReleaseNoteKey {
 
 fn root_relative(root: &Path, path: &Path) -> PathBuf {
 	let relative = relative_to_root(root, path).unwrap_or_else(|| path.to_path_buf());
+
 	if relative.as_os_str().is_empty() {
 		PathBuf::from(".")
 	} else {
@@ -232,6 +233,7 @@ pub fn build_changelog_updates(
 	let mut updates = Vec::new();
 	let package_changelog_targets = &context.changelog_targets.0;
 	let group_changelog_targets = &context.changelog_targets.1;
+
 	for decision in context
 		.plan
 		.decisions
@@ -252,6 +254,7 @@ pub fn build_changelog_updates(
 			continue;
 		};
 		let package_id = config_package_id(package);
+
 		let package_definition = package_definitions_by_record_id
 			.get(decision.package_id.as_str())
 			.copied();
@@ -274,6 +277,7 @@ pub fn build_changelog_updates(
 				.get(&decision.package_id)
 				.cloned()
 		};
+
 		let changes = package_release_note_changes(
 			context.configuration,
 			package_definition,
@@ -389,6 +393,7 @@ pub fn build_changelog_updates(
 				|| planned_version.to_string(),
 				|rt| rt.rendered_changelog_title.clone(),
 			);
+
 		let release_notes_style = context
 			.configuration
 			.changelog
@@ -490,12 +495,14 @@ pub fn build_changelog_updates(
 
 fn validate_changelog_update_paths(updates: &[ChangelogUpdate]) -> MonochangeResult<()> {
 	let mut owners_by_path = BTreeMap::new();
+
 	for update in updates {
 		let identity = (
 			update.output.as_str(),
 			update.owner_kind,
 			update.owner_id.as_str(),
 		);
+
 		if let Some(previous) = owners_by_path.insert(&update.file.path, identity)
 			&& previous != identity
 		{
@@ -507,6 +514,7 @@ fn validate_changelog_update_paths(updates: &[ChangelogUpdate]) -> MonochangeRes
 			)));
 		}
 	}
+
 	Ok(())
 }
 
@@ -589,9 +597,11 @@ fn build_named_package_changelog_update(
 	} else {
 		stream_changes.get(&decision.package_id).cloned()
 	};
+
 	if direct_changes.as_ref().is_none_or(Vec::is_empty) {
 		return Ok(None);
 	}
+
 	let changes = package_release_note_changes(
 		context.configuration,
 		Some(package_definition),
@@ -677,9 +687,11 @@ fn build_named_group_changelog_update(
 		&planned_version.to_string(),
 		GroupChangeSelection::RespectInclude,
 	);
+
 	if !changes.iter().any(|change| change.source_path.is_some()) {
 		return Ok(None);
 	}
+
 	let title = release_target_changelog_title(
 		context.release_targets,
 		&group_definition.id,
@@ -761,12 +773,14 @@ fn render_named_output_path(
 		.replace("{{id}}", owner_id)
 		.replace("{{ version }}", version)
 		.replace("{{version}}", version);
+
 	if rendered.contains("{{") || rendered.contains("}}") {
 		return Err(MonochangeError::Config(format!(
 			"changelog output path `{}` contains an unsupported template variable",
 			output.path
 		)));
 	}
+
 	let path = PathBuf::from(rendered);
 
 	Ok(if path.is_absolute() {
@@ -808,6 +822,7 @@ fn build_named_changelog_update(
 		&owner_id,
 		version,
 	);
+
 	let file_content = match output.mode {
 		ChangelogOutputMode::Append => {
 			append_changelog_section(&target.path, &rendered, Some(initial_header))?
@@ -870,11 +885,13 @@ fn render_package_initial_changelog_header(
 			.map(ToString::to_string)
 			.unwrap_or_default(),
 	);
+
 	if let Some(group) = group_definition {
 		metadata.insert("group", group.id.clone());
 		metadata.insert("group_id", group.id.clone());
 		metadata.insert("group_name", group.id.clone());
 	}
+
 	render_initial_changelog_header(changelog_target, &metadata)
 }
 
@@ -953,6 +970,7 @@ fn append_changelog_section(
 	};
 
 	let current = current.trim_end();
+
 	if current.is_empty() {
 		let Some(initial_header) = initial_header
 			.map(str::trim)
@@ -960,6 +978,7 @@ fn append_changelog_section(
 		else {
 			return Ok(format!("{section}\n"));
 		};
+
 		return Ok(format!("{initial_header}\n\n{section}\n"));
 	}
 
@@ -1115,6 +1134,7 @@ fn build_rendered_changeset_context(
 	let mut lines = Vec::new();
 	let Some(context) = changeset.context.as_ref() else {
 		rendered.context = lines.join("\n");
+
 		return rendered;
 	};
 
@@ -1122,11 +1142,13 @@ fn build_rendered_changeset_context(
 		.introduced
 		.as_ref()
 		.or(context.last_updated.as_ref());
+
 	if let Some(actor) = primary_revision.and_then(|revision| revision.actor.as_ref()) {
 		let label = render_actor_label(actor);
 		let link = render_markdown_link(&label, actor.url.as_deref());
 		rendered.change_owner = Some(label.clone());
 		rendered.change_owner_link = Some(link.clone());
+
 		if metadata_style != MetadataStyle::Omit {
 			let prefix = format!("_Owner:_ {link}");
 			lines.push(format_metadata_line(metadata_style, &prefix));
@@ -1143,11 +1165,13 @@ fn build_rendered_changeset_context(
 				.as_ref()
 				.and_then(|revision| revision.review_request.as_ref())
 		});
+
 	if let Some(review_request) = review_request {
 		let label = render_review_request_label(review_request);
 		let link = render_markdown_link(&label, review_request.url.as_deref());
 		rendered.review_request = Some(label.clone());
 		rendered.review_request_link = Some(link.clone());
+
 		if metadata_style != MetadataStyle::Omit {
 			let prefix = format!("_Review:_ {link}");
 			lines.push(format_metadata_line(metadata_style, &prefix));
@@ -1168,6 +1192,7 @@ fn build_rendered_changeset_context(
 		let link = render_markdown_link(&format!("`{label}`"), commit.url.as_deref());
 		rendered.introduced_commit = Some(label);
 		rendered.introduced_commit_link = Some(link.clone());
+
 		if include_commits && metadata_style != MetadataStyle::Omit {
 			let prefix = format!("_Introduced in:_ {link}");
 			lines.push(format_metadata_line(metadata_style, &prefix));
@@ -1179,6 +1204,7 @@ fn build_rendered_changeset_context(
 		.as_ref()
 		.and_then(|revision| revision.commit.as_ref())
 		.map(|commit| commit.sha.as_str());
+
 	if let Some(commit) = context
 		.last_updated
 		.as_ref()
@@ -1189,6 +1215,7 @@ fn build_rendered_changeset_context(
 		let link = render_markdown_link(&format!("`{label}`"), commit.url.as_deref());
 		rendered.last_updated_commit = Some(label);
 		rendered.last_updated_commit_link = Some(link.clone());
+
 		if include_commits && metadata_style != MetadataStyle::Omit {
 			let prefix = format!("_Last updated in:_ {link}");
 			lines.push(format_metadata_line(metadata_style, &prefix));
@@ -1200,11 +1227,13 @@ fn build_rendered_changeset_context(
 		.iter()
 		.filter(|issue| issue.relationship == HostedIssueRelationshipKind::ClosedByReviewRequest)
 		.collect::<Vec<_>>();
+
 	if !closed_issues.is_empty() {
 		let labels = render_issue_labels(&closed_issues);
 		let issue_links = render_issue_links(&closed_issues);
 		rendered.closed_issues = Some(labels.clone());
 		rendered.closed_issue_links = Some(issue_links.clone());
+
 		if metadata_style != MetadataStyle::Omit {
 			let prefix = format!("_Closed issues:_ {issue_links}");
 			lines.push(format_metadata_line(metadata_style, &prefix));
@@ -1216,11 +1245,13 @@ fn build_rendered_changeset_context(
 		.iter()
 		.filter(|issue| issue.relationship != HostedIssueRelationshipKind::ClosedByReviewRequest)
 		.collect::<Vec<_>>();
+
 	if !related_issues.is_empty() {
 		let labels = render_issue_labels(&related_issues);
 		let issue_links = render_issue_links(&related_issues);
 		rendered.related_issues = Some(labels.clone());
 		rendered.related_issue_links = Some(issue_links.clone());
+
 		if metadata_style != MetadataStyle::Omit {
 			let prefix = format!("_Related issues:_ {issue_links}");
 			lines.push(format_metadata_line(metadata_style, &prefix));
@@ -1233,6 +1264,7 @@ fn build_rendered_changeset_context(
 			lines.join("\n")
 		}
 	};
+
 	rendered
 }
 
@@ -1430,6 +1462,7 @@ fn render_jinja_template_with_behavior(
 			});
 			let cache_ref = cache.borrow();
 			let env = cache_ref.get(template_source).unwrap_or_else(|| unreachable!("just inserted"));
+
 			match env.get_template("t") {
 				Ok(tmpl) => tmpl
 					.render(context)
@@ -1470,6 +1503,7 @@ fn package_release_note_changes(
 	planned_version: &str,
 ) -> Vec<ReleaseNoteChange> {
 	let mut changes = direct_changes.cloned().unwrap_or_default();
+
 	if changes.is_empty() {
 		changes.push(ReleaseNoteChange {
 			package_id: decision.package_id.clone(),
@@ -1504,6 +1538,7 @@ fn package_release_note_changes(
 			closed_issue_links: None,
 		});
 	}
+
 	changes
 }
 
@@ -1554,6 +1589,7 @@ fn group_release_note_changes(
 			)
 		})
 		.collect::<Vec<_>>();
+
 	if changes.is_empty() {
 		let summary = if unfiltered_changes.is_empty() {
 			render_group_empty_update_message(
@@ -1566,6 +1602,7 @@ fn group_release_note_changes(
 		} else {
 			render_group_filtered_update_message(&planned_group.group_id)
 		};
+
 		changes.push(ReleaseNoteChange {
 			package_id: planned_group.group_id.clone(),
 			package_name: planned_group.group_id.clone(),
@@ -1594,6 +1631,7 @@ fn group_release_note_changes(
 	} else {
 		changes = aggregate_group_release_note_changes(changes);
 	}
+
 	changes
 }
 
@@ -1631,8 +1669,10 @@ fn route_group_release_note_change(
 	}) {
 		let mut change = change.clone();
 		change.package_name.clone_from(&planned_group.group_id);
+
 		return Some(change);
 	}
+
 	let in_group_targets = targets
 		.iter()
 		.filter(|target| {
@@ -1642,14 +1682,18 @@ fn route_group_release_note_change(
 		})
 		.map(|target| target.id.clone())
 		.collect::<BTreeSet<_>>();
+
 	if in_group_targets.is_empty() {
 		return None;
 	}
+
 	if selection == GroupChangeSelection::CompleteRelease {
 		return Some(change.clone());
 	}
+
 	let default_include = GroupChangelogInclude::All;
 	let include = group_definition.map_or(&default_include, |group| &group.changelog_include);
+
 	if group_changelog_include_allows(include, &in_group_targets) {
 		Some(change.clone())
 	} else {
@@ -1690,6 +1734,7 @@ pub fn filter_direct_package_changes(
 ) -> Option<Vec<ReleaseNoteChange>> {
 	let changes = changes?;
 	let mut filtered = Vec::new();
+
 	for change in changes {
 		let is_direct = match change.source_path.as_ref() {
 			Some(source_path) => {
@@ -1705,10 +1750,12 @@ pub fn filter_direct_package_changes(
 			}
 			None => true, // No source path: include by default
 		};
+
 		if is_direct {
 			filtered.push(change.clone());
 		}
 	}
+
 	Some(filtered)
 }
 
@@ -1721,6 +1768,7 @@ pub fn render_group_filtered_update_message(group_id: &str) -> String {
 fn aggregate_group_release_note_changes(changes: Vec<ReleaseNoteChange>) -> Vec<ReleaseNoteChange> {
 	let mut aggregated = Vec::<ReleaseNoteChange>::new();
 	let mut indexes = BTreeMap::<GroupReleaseNoteKey, usize>::new();
+
 	for change in changes {
 		let key = GroupReleaseNoteKey {
 			source_path: change.source_path.clone(),
@@ -1730,6 +1778,7 @@ fn aggregate_group_release_note_changes(changes: Vec<ReleaseNoteChange>) -> Vec<
 			change_type: change.change_type.clone(),
 			context: change.context.clone(),
 		};
+
 		if let Some(index) = indexes.get(&key).copied() {
 			if let Some(entry) = aggregated.get_mut(index)
 				&& !entry
@@ -1738,16 +1787,19 @@ fn aggregate_group_release_note_changes(changes: Vec<ReleaseNoteChange>) -> Vec<
 					.any(|label| label == &change.package_name)
 			{
 				entry.package_labels.push(change.package_name.clone());
+
 				entry.package_name = entry.package_labels.join(", ");
 			}
 			continue;
 		}
+
 		let mut change = change;
 		change.package_labels = vec![change.package_name.clone()];
 		change.package_name = change.package_labels.join(", ");
 		indexes.insert(key, aggregated.len());
 		aggregated.push(change);
 	}
+
 	aggregated
 }
 
@@ -1834,6 +1886,7 @@ fn build_release_note_sections(
 
 	let mut section_entries: BTreeMap<String, Vec<ReleaseNotesEntry>> = BTreeMap::new();
 	let mut uncategorized = Vec::<ReleaseNotesEntry>::new();
+
 	for change in routed {
 		match change.section_key {
 			Some(section_key) => {
@@ -1848,10 +1901,12 @@ fn build_release_note_sections(
 
 	// Build sections in priority order
 	let mut sections = Vec::new();
+
 	for (section_key, heading, priority) in &sorted_sections {
 		if *priority > ignored_threshold {
 			continue;
 		}
+
 		if let Some(entries) = section_entries.remove(*section_key)
 			&& !entries.is_empty()
 		{
@@ -1862,6 +1917,7 @@ fn build_release_note_sections(
 			});
 		}
 	}
+
 	if !uncategorized.is_empty() {
 		sections.push(ReleaseNotesSection {
 			title: "Changed".to_string(),
@@ -1869,6 +1925,7 @@ fn build_release_note_sections(
 			entries: uncategorized,
 		});
 	}
+
 	if sections.is_empty() {
 		sections.push(ReleaseNotesSection {
 			title: "Changed".to_string(),
@@ -1884,8 +1941,10 @@ fn build_release_note_sections(
 				provenance: ReleaseNoteProvenance::default(),
 			}],
 		});
+
 		return sections;
 	}
+
 	sections
 }
 
@@ -1911,9 +1970,11 @@ fn merge_release_note_changes(
 	let ignored_threshold = changelog.section_thresholds.ignored;
 
 	let mut routed = Vec::<RoutedReleaseNote>::new();
+
 	for change in changes {
 		let entry = release_notes_entry(change, target_id);
 		let identity = ReleaseNoteIdentity::from_entry(&entry);
+
 		if !identity.is_mergeable() {
 			routed.push(RoutedReleaseNote {
 				identity,
@@ -1923,6 +1984,7 @@ fn merge_release_note_changes(
 			});
 			continue;
 		}
+
 		let section_key = changelog
 			.types
 			.get(change.change_type.as_deref().unwrap_or(""))
@@ -1958,6 +2020,7 @@ fn merge_release_note_changes(
 			}
 		}
 	}
+
 	routed
 }
 
@@ -1977,6 +2040,7 @@ fn merge_entry_packages(entry: &mut ReleaseNotesEntry, incoming: ReleaseNotesEnt
 			None => entry.packages.push(package),
 		}
 	}
+
 	entry.bump = entry.bump.max(incoming.bump);
 }
 
@@ -1988,6 +2052,7 @@ fn release_notes_entry(change: &ReleaseNoteChange, target_id: &str) -> ReleaseNo
 	} else {
 		change.package_labels.clone()
 	};
+
 	let packages = labels
 		.into_iter()
 		.map(|name| ReleaseNotePackage::new(name, change.bump))
@@ -2023,6 +2088,7 @@ fn release_note_entry_style_for(
 		let lowercase = details.to_ascii_lowercase();
 		details.contains("```") || details.contains('\n') || lowercase.contains("migration")
 	});
+
 	if is_breaking || details_need_space {
 		ReleaseNoteEntryStyle::Expanded
 	} else {
@@ -2110,6 +2176,7 @@ fn render_changelog_release_notes(
 	if uses_default_change_templates(templates) {
 		return render_structured_release_notes(format, document, style);
 	}
+
 	render_structured_release_notes_with(format, document, style, |entry, style| {
 		render_configured_release_note_entry(entry, style, templates, target_id, version)
 	})
@@ -2166,6 +2233,7 @@ fn render_configured_release_note_entry(
 	if uses_default_change_templates(templates) {
 		return render_release_note_entry_markdown(entry, style);
 	}
+
 	for template in templates
 		.iter()
 		.map(String::as_str)
@@ -2205,16 +2273,21 @@ fn apply_release_note_entry_template(
 	context.insert("version", version.to_string());
 	context.insert("target_id", target_id.to_string());
 	context.insert("bump", entry.bump.to_string());
+
 	if let Some(value) = entry.details_markdown.as_ref() {
 		context.insert("details", value.clone());
 	}
+
 	if let Some(value) = entry.change_type.as_ref() {
 		context.insert("type", value.clone());
 	}
+
 	let rendered_context = render_release_note_context(entry, style);
+
 	if !rendered_context.is_empty() {
 		context.insert("context", rendered_context);
 	}
+
 	insert_provenance_template_values(&mut context, &entry.provenance);
 
 	let jinja_context = minijinja::Value::from_serialize(&context);
@@ -2230,6 +2303,7 @@ fn insert_provenance_template_values(
 	if let Some(value) = provenance.changeset_path.as_ref() {
 		context.insert("changeset_path", value.clone());
 	}
+
 	insert_reference_template_values(
 		context,
 		"change_owner",
@@ -2290,6 +2364,7 @@ fn insert_references_template_values(
 	if references.is_empty() {
 		return;
 	}
+
 	context.insert(
 		label_key,
 		references
@@ -2317,12 +2392,14 @@ fn insert_references_template_values(
 fn render_release_note_context(entry: &ReleaseNotesEntry, style: &ChangelogStyle) -> String {
 	let package_line = render_affected_packages_metadata(entry, style);
 	let mut metadata_lines = Vec::new();
+
 	if let Some(reference) = entry.provenance.change_owner.as_ref() {
 		metadata_lines.push(format!(
 			"_Owner:_ {}",
 			render_release_note_reference(reference)
 		));
 	}
+
 	if let Some(reference) = entry.provenance.review_request.as_ref() {
 		metadata_lines.push(format!(
 			"_Review:_ {}",
@@ -2335,6 +2412,7 @@ fn render_release_note_context(entry: &ReleaseNotesEntry, style: &ChangelogStyle
 				render_release_note_reference(reference)
 			));
 		}
+
 		if let Some(reference) = entry.provenance.last_updated_commit.as_ref() {
 			metadata_lines.push(format!(
 				"_Last updated in:_ {}",
@@ -2342,6 +2420,7 @@ fn render_release_note_context(entry: &ReleaseNotesEntry, style: &ChangelogStyle
 			));
 		}
 	}
+
 	if !entry.provenance.closed_issues.is_empty() {
 		metadata_lines.push(format!(
 			"_Closed issues:_ {}",
@@ -2354,6 +2433,7 @@ fn render_release_note_context(entry: &ReleaseNotesEntry, style: &ChangelogStyle
 				.join(", ")
 		));
 	}
+
 	if !entry.provenance.related_issues.is_empty() {
 		metadata_lines.push(format!(
 			"_Related issues:_ {}",
@@ -2366,6 +2446,7 @@ fn render_release_note_context(entry: &ReleaseNotesEntry, style: &ChangelogStyle
 				.join(", ")
 		));
 	}
+
 	let metadata = match style.metadata_style {
 		MetadataStyle::Inline => metadata_lines.join(" · "),
 		MetadataStyle::Blockquote => {
@@ -2378,6 +2459,7 @@ fn render_release_note_context(entry: &ReleaseNotesEntry, style: &ChangelogStyle
 		MetadataStyle::Plain => metadata_lines.join("\n"),
 		MetadataStyle::Omit | _ => String::new(),
 	};
+
 	[package_line, Some(metadata)]
 		.into_iter()
 		.flatten()
@@ -2445,9 +2527,11 @@ fn format_structured_labeled_entry(
 	let Some(package_line) = render_affected_packages_metadata(entry, style) else {
 		return rendered.to_string();
 	};
+
 	if rendered.contains(&package_line) {
 		return rendered.to_string();
 	}
+
 	if let Some((heading, body)) = rendered.split_once('\n')
 		&& heading.starts_with('#')
 	{

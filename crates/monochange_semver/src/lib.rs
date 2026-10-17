@@ -113,6 +113,7 @@ pub fn propagated_release_severity(
 	assessment: Option<&CompatibilityAssessment>,
 ) -> BumpSeverity {
 	let assessment_severity = assessment.map_or(BumpSeverity::None, |value| value.severity);
+
 	match declaration {
 		Some(BumpPropagation {
 			mode: BumpPropagationMode::Inherit,
@@ -139,6 +140,7 @@ pub fn semantic_change_severity(change: &SemanticChange) -> BumpSeverity {
 			SemanticAnalysisOutcome::Compatible => BumpSeverity::None,
 			_ => BumpSeverity::Patch,
 		};
+
 		return merge_severities(outcome_floor, assessment.suggested_bump);
 	}
 
@@ -170,6 +172,7 @@ pub fn semantic_change_severity(change: &SemanticChange) -> BumpSeverity {
 		change.category,
 		SemanticChangeCategory::Dependency | SemanticChangeCategory::Metadata
 	);
+
 	if is_dependency_or_metadata { BumpSeverity::Patch } else { BumpSeverity::None }
 }
 /// Build release-planning compatibility evidence from semantic analyzer output.

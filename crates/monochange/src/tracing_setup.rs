@@ -22,6 +22,7 @@ pub(crate) fn init_tracing(log_level: Option<&str>, warnings: Option<WarningSink
 		if let Some(sink) = warnings {
 			let _ = tracing::subscriber::set_global_default(warning_subscriber(sink));
 		}
+
 		return;
 	};
 	let level = level.parse::<LevelFilter>().unwrap_or(LevelFilter::INFO);

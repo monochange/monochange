@@ -133,6 +133,7 @@ pub fn ensure_parent_directory(path: &Path) -> MonochangeResult<()> {
 			MonochangeError::Io(format!("failed to create {}: {error}", parent.display()))
 		})?;
 	}
+
 	Ok(())
 }
 
@@ -159,6 +160,7 @@ pub fn collect_workspace_files(
 			.map_err(|error| MonochangeError::Io(format!("directory entry error: {error}")))?;
 
 		let path = entry.path();
+
 		if path.file_name().is_some_and(|name| name == ".git") {
 			continue;
 		}
@@ -193,6 +195,7 @@ pub fn copy_workspace_tree(source: &Path, destination: &Path) -> MonochangeResul
 			.map_err(|error| MonochangeError::Io(format!("directory entry error: {error}")))?;
 
 		let source_path = entry.path();
+
 		if source_path.file_name().is_some_and(|name| name == ".git") {
 			continue;
 		}

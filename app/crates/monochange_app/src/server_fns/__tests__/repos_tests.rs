@@ -40,11 +40,13 @@ async fn state() -> Arc<AppState> {
 fn context(state: Arc<AppState>, cookie: Option<String>) -> Owner {
 	let owner = Owner::new();
 	let mut request = Request::new(());
+
 	if let Some(cookie) = cookie {
 		request
 			.headers_mut()
 			.insert(COOKIE, cookie.parse().unwrap());
 	}
+
 	let (parts, ()) = request.into_parts();
 	owner.with(|| {
 		provide_context(state);
@@ -71,6 +73,7 @@ async fn signed_in_user_sees_own_public_and_private_repositories() {
 	assert_eq!(repos.len(), 2);
 	assert_eq!(repos[0].github_full_name, "alice/private");
 	assert!(repos[0].github_private);
+
 	assert_eq!(repos[1].github_full_name, "alice/public");
 	assert!(!repos[1].github_private);
 }
@@ -184,6 +187,7 @@ async fn organization_repositories_require_current_active_owner_membership() {
 			.count(),
 		2
 	);
+
 	membership.assert_calls_async(1).await;
 }
 
@@ -221,6 +225,7 @@ async fn one_user_token_checks_repositories_from_multiple_organizations() {
 	.unwrap();
 	let cookie = session(&state, 1);
 	let owner = context(state, Some(cookie));
+
 	let repositories = owner
 		.with(|| ScopedFuture::new(list_repos()))
 		.await
@@ -296,6 +301,7 @@ async fn removed_organization_member_cannot_read_organization_repositories() {
 			.iter()
 			.all(|repository| repository.installation_login == "alice")
 	);
+
 	membership.assert_calls_async(1).await;
 }
 
@@ -341,6 +347,7 @@ async fn provider_failure_is_a_repository_error_instead_of_an_empty_workspace() 
 				.to_string()
 				.contains("organization access could not be verified")
 		);
+
 		membership.assert_calls_async(1).await;
 	}
 }
@@ -390,6 +397,7 @@ async fn missing_oauth_token_requires_sign_in_without_a_provider_request() {
 		.await
 		.unwrap_err();
 	assert!(error.to_string().contains("sign in again"));
+
 	outbound.assert_calls_async(0).await;
 }
 
@@ -461,6 +469,7 @@ async fn personal_repositories_do_not_need_a_provider_membership_request() {
 	state.github_api_origin = server.base_url();
 	let state = Arc::new(state);
 	let cookie = session(&state, 1);
+
 	let owner = context(state, Some(cookie));
 	assert_eq!(
 		owner
@@ -512,6 +521,7 @@ async fn database_failure_cannot_be_reported_as_an_empty_workspace() {
 	let closed_pool = state().await;
 	let cookie = session(&closed_pool, 1);
 	closed_pool.db.close().await;
+
 	let owner = context(closed_pool, Some(cookie));
 	assert!(
 		owner

@@ -6,6 +6,7 @@ doc_comment::doctest!("../../crates/monochange_cargo/readme.md");
 doc_comment::doctest!("../../crates/monochange_config/readme.md");
 doc_comment::doctest!("../../crates/monochange_graph/readme.md");
 doc_comment::doctest!("../../crates/monochange_github/readme.md");
+
 doc_comment::doctest!("../../crates/monochange_npm/readme.md");
 doc_comment::doctest!("../../crates/monochange_deno/readme.md");
 doc_comment::doctest!("../../crates/monochange_dart/readme.md");
@@ -34,6 +35,7 @@ doc_comment::doctest!("guide/03-discovery.md");
 doc_comment::doctest!("guide/04-configuration.md");
 doc_comment::doctest!("guide/05-version-groups.md");
 doc_comment::doctest!("guide/06-release-planning.md");
+
 doc_comment::doctest!("guide/08-github-automation.md");
 doc_comment::doctest!("guide/09-assistant-setup.md");
 doc_comment::doctest!("guide/migrations/from-knope.md");

@@ -42,6 +42,7 @@ fn setup_hosted_fixture() -> TempDir {
 	);
 	git(root, &["config", "commit.gpgsign", "false"]);
 	git(root, &["add", "."]);
+
 	git(root, &["commit", "-m", "initial"]);
 	tempdir
 }
@@ -68,9 +69,11 @@ fn run_hosted_release(root: &Path, server: &MockServer, dry_run: bool) -> std::p
 		.arg("release")
 		.arg("--format")
 		.arg("json");
+
 	if dry_run {
 		command.arg("--dry-run");
 	}
+
 	command
 		.output()
 		.unwrap_or_else(|error| panic!("run hosted release: {error}"))

@@ -43,6 +43,7 @@ async fn first_installation_is_saved_before_the_installer_has_a_website_account(
 	}).to_string();
 	let mut mac = Hmac::<Sha256>::new_from_slice(b"test-only-webhook-secret").unwrap();
 	mac.update(payload.as_bytes());
+
 	let signature = format!("sha256={}", hex::encode(mac.finalize().into_bytes()));
 	let response = api_router(state)
 		.oneshot(
@@ -98,6 +99,7 @@ async fn deliver(state: &AppState, payload: serde_json::Value) -> StatusCode {
 	} else {
 		"installation"
 	};
+
 	deliver_event(state, event, payload).await
 }
 
@@ -352,6 +354,7 @@ async fn repository_lifecycle_is_scoped_to_its_installation() {
 		1
 	);
 	assert_eq!(deliver(&state, serde_json::json!({"action":"added","installation":alice,"repositories_added":[{"id":12,"full_name":"alice/second","private":false}]})).await, StatusCode::OK);
+
 	assert_eq!(
 		deliver(
 			&state,
@@ -645,6 +648,7 @@ async fn pull_requests_and_releases_carry_accepted_feedback_to_users() {
 	let feedback = crate::feedback::load(&state, &scope).await.unwrap();
 	let item = feedback.service.item("fb-1").unwrap();
 	assert_eq!(format!("{:?}", item.stage), "Shipped");
+
 	let release = item.release.as_ref().unwrap();
 	assert_eq!(release.version, "1.2.0");
 	assert_eq!(

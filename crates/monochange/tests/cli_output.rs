@@ -60,6 +60,7 @@ fn setup_analyze_cli_repo(first_release: bool) -> tempfile::TempDir {
 	git(root, &["add", "."]);
 	git(root, &["commit", "-m", "release"]);
 	git(root, &["branch", "-M", "main"]);
+
 	if !first_release {
 		git(root, &["tag", "v1.0.0"]);
 	}
@@ -532,6 +533,7 @@ fn release_cli_writes_group_changelog_and_skips_packages_without_changelogs() {
 	assert!(!tempdir.path().join("crates/app/CHANGELOG.md").exists());
 	assert!(!tempdir.path().join("crates/app/changelog.md").exists());
 	assert!(workspace_manifest.contains("version = \"1.1.0\""));
+
 	assert!(group_versioned_file.contains("version = \"1.1.0\""));
 }
 

@@ -1157,6 +1157,7 @@ async fn write_backs_collects_counters_across_packages() {
 	.unwrap_or_else(|error| panic!("resolve: {error}"));
 	let write_backs = resolved.write_backs();
 	assert_eq!(write_backs.len(), 2);
+
 	assert!(write_backs.iter().any(|write_back| write_back.value == 2));
 	assert!(write_backs.iter().any(|write_back| write_back.value == 11));
 }
@@ -1421,6 +1422,7 @@ async fn counter_write_back_reports_a_write_failure() {
 	let result = apply_counter_write_backs(root, &write_backs).await;
 	// Restore permissions so the temp directory can be cleaned up.
 	let _ = fs::set_permissions(&counter, fs::Permissions::from_mode(0o644));
+
 	let error = result
 		.err()
 		.unwrap_or_else(|| panic!("writing a read-only counter should fail"));

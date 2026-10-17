@@ -44,13 +44,16 @@ pub fn format_report(report: &LintReport) -> String {
 #[must_use]
 pub fn format_fixed_files(fixed_files: &BTreeMap<PathBuf, String>) -> String {
 	let mut output = String::new();
+
 	for (path, contents) in fixed_files {
 		let _ = writeln!(output, "== {} ==", path.display());
 		output.push_str(contents);
+
 		if !contents.ends_with('\n') {
 			output.push('\n');
 		}
 	}
+
 	output
 }
 
@@ -65,6 +68,7 @@ pub fn apply_and_format_fixes(linter: &Linter, report: &LintReport) -> String {
 pub fn format_fix(fix: &LintFix) -> String {
 	let mut output = String::new();
 	let _ = writeln!(output, "{}", fix.description);
+
 	for edit in &fix.edits {
 		let _ = writeln!(
 			output,
@@ -72,6 +76,7 @@ pub fn format_fix(fix: &LintFix) -> String {
 			edit.span.0, edit.span.1, edit.replacement
 		);
 	}
+
 	output
 }
 

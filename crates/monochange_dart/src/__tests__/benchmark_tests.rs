@@ -16,6 +16,7 @@ fn discover_dart_packages_large_monorepo_benchmark() {
 	// Benchmark
 	let start = Instant::now();
 	let iterations = 10;
+
 	for _ in 0..iterations {
 		let discovery = discover_dart_packages(&fixture_root).unwrap();
 		assert_eq!(
@@ -24,6 +25,7 @@ fn discover_dart_packages_large_monorepo_benchmark() {
 			"should discover all 50 packages plus root"
 		);
 	}
+
 	let elapsed = start.elapsed();
 	let avg_per_iter = elapsed / iterations;
 

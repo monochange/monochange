@@ -37,6 +37,7 @@ fn the_redaction_matrix_matches_the_module_docs() {
 		(Sensitivity::Secret, false, false, false, false),
 		(Sensitivity::PersonalData, false, false, false, false),
 	];
+
 	for (sensitivity, portal_public, portal_private, repo_public, repo_private) in matrix {
 		assert_eq!(
 			sensitivity.allowed_on(Portal, Public),
@@ -97,9 +98,11 @@ fn classifies_secrets() {
 		"AKIAIOSFODNN7EXAMPLE",
 		"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2lnbmF0dXJl",
 	];
+
 	for token in secrets {
 		assert_eq!(classify_token(token), Some(Sensitivity::Secret), "{token}");
 	}
+
 	let lookalikes = [
 		"ghp_short",
 		"sk-8",
@@ -108,6 +111,7 @@ fn classifies_secrets() {
 		"eyJ.only.short",
 		"eyJ-no-dots-at-all-but-long-enough",
 	];
+
 	for token in lookalikes {
 		assert_ne!(classify_token(token), Some(Sensitivity::Secret), "{token}");
 	}
@@ -129,6 +133,7 @@ fn classifies_internal_urls_and_addresses() {
 		"10.0.3.4:5432",
 		"127.0.0.1",
 	];
+
 	for token in internal {
 		assert_eq!(
 			classify_token(token),
@@ -136,6 +141,7 @@ fn classifies_internal_urls_and_addresses() {
 			"{token}"
 		);
 	}
+
 	let public = [
 		"https://github.com/monochange",
 		"https://invoices.example/help?topic=export",
@@ -146,6 +152,7 @@ fn classifies_internal_urls_and_addresses() {
 		"10.0.0.1.5",
 		"2.3.1",
 	];
+
 	for token in public {
 		assert_eq!(classify_token(token), None, "{token}");
 	}
@@ -172,6 +179,7 @@ fn classifies_personal_data() {
 #[test]
 fn classifies_stack_frames_and_source_paths() {
 	let frames = ["app/src/main.rs:41:9", "Billing.tsx:12", "settings.json:3"];
+
 	for token in frames {
 		assert_eq!(
 			classify_token(token),
@@ -179,6 +187,7 @@ fn classifies_stack_frames_and_source_paths() {
 			"{token}"
 		);
 	}
+
 	let paths = [
 		"/app/src/billing.rs",
 		"./scripts/seed.ts",
@@ -190,6 +199,7 @@ fn classifies_stack_frames_and_source_paths() {
 		"services/src/tax.go",
 		"C:\\work\\billing.cs",
 	];
+
 	for token in paths {
 		assert_eq!(
 			classify_token(token),

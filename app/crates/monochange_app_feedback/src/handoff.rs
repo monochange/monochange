@@ -116,25 +116,30 @@ const CLOSING_KEYWORDS: [&str; 9] = [
 pub fn closing_issue_numbers(body: &str, repository: &str) -> Vec<u64> {
 	let words: Vec<&str> = body.split_whitespace().collect();
 	let mut numbers = Vec::new();
+
 	for pair in words.windows(2) {
 		let keyword = pair[0]
 			.trim_start_matches(['(', '*', '_'])
 			.trim_end_matches([':', '*', '_'])
 			.to_ascii_lowercase();
+
 		if !CLOSING_KEYWORDS.contains(&keyword.as_str()) {
 			continue;
 		}
+
 		if let Some(number) = issue_reference(pair[1], repository)
 			&& !numbers.contains(&number)
 		{
 			numbers.push(number);
 		}
 	}
+
 	numbers
 }
 
 fn issue_reference(token: &str, repository: &str) -> Option<u64> {
 	let token = token.trim_end_matches(['.', ',', ';', ')']);
+
 	let (target, number) = match token.strip_prefix("https://github.com/") {
 		Some(rest) => {
 			let (target, number) = rest.split_once("/issues/")?;
@@ -142,9 +147,11 @@ fn issue_reference(token: &str, repository: &str) -> Option<u64> {
 		}
 		None => token.split_once('#')?,
 	};
+
 	if !(target.is_empty() || target.eq_ignore_ascii_case(repository)) {
 		return None;
 	}
+
 	number.parse().ok().filter(|number| *number > 0)
 }
 
@@ -177,17 +184,21 @@ pub fn issue_draft(
 	let mut body = String::new();
 
 	body.push_str("## Report\n\n");
+
 	for line in repository_text(&item.submission.description, visibility).lines() {
 		let _ = writeln!(body, "> {line}");
 	}
+
 	let _ = writeln!(body, "\nSubmitted through `{}`.", item.submission.app_slug);
 
 	if let Some(page) = &item.submission.page {
 		body.push_str("\n## Where\n\n");
 		let _ = writeln!(body, "- Route: `{}`", page.route);
+
 		if let Some(version) = &page.app_version {
 			let _ = writeln!(body, "- App version: {version}");
 		}
+
 		if let Some(element) = &page.element {
 			let label = element
 				.label
@@ -196,12 +207,14 @@ pub fn issue_draft(
 			let _ = writeln!(body, "- Pinned element: `{}`{label}", element.selector);
 		}
 	}
+
 	let attachments = item.submission.attachments.len()
 		+ item
 			.visible_discussion()
 			.iter()
 			.map(|message| message.attachments.len())
 			.sum::<usize>();
+
 	if attachments > 0 {
 		let _ = writeln!(
 			body,
@@ -210,6 +223,7 @@ pub fn issue_draft(
 	}
 
 	body.push_str("\n## Triage\n\n");
+
 	match &report.reproduction {
 		ReproductionOutcome::NotApplicable => {
 			body.push_str("Feature request; nothing to reproduce.\n");
@@ -227,8 +241,10 @@ pub fn issue_draft(
 			let _ = writeln!(body, "Needs more context: {}", missing.join("; "));
 		}
 	}
+
 	if !report.findings.is_empty() {
 		body.push_str("\nTechnical findings:\n\n");
+
 		for finding in &report.findings {
 			let _ = writeln!(
 				body,
@@ -244,8 +260,10 @@ pub fn issue_draft(
 		.into_iter()
 		.filter(|message| !message.body.trim().is_empty())
 		.collect();
+
 	if !replies.is_empty() {
 		body.push_str("\n## Discussion\n\n");
+
 		for message in replies {
 			let author = match &message.author {
 				Actor::User(id) if *id == item.submission.submitter.anonymous_id => "submitter",
@@ -253,6 +271,7 @@ pub fn issue_draft(
 				Actor::Maintainer(_) => "maintainer",
 				Actor::Ai | Actor::System => "triage",
 			};
+
 			let text = repository_text(&message.body, visibility).replace('\n', " ");
 			let _ = writeln!(body, "- **{author}:** {text}");
 		}
@@ -265,6 +284,7 @@ pub fn issue_draft(
 		item.votes.total(),
 		item.rules.acceptance_threshold
 	);
+
 	if let Some(decision) = &item.decision {
 		let _ = writeln!(
 			body,
@@ -272,6 +292,7 @@ pub fn issue_draft(
 			decision.maintainer,
 			repository_text(&decision.rationale, visibility)
 		);
+
 		if let Some(rationale) = &decision.override_vote_threshold {
 			let _ = writeln!(
 				body,
@@ -280,12 +301,14 @@ pub fn issue_draft(
 			);
 		}
 	}
+
 	let _ = write!(body, "\n{}\n", feedback_trailer(item));
 
 	let kind_label = match report.classification {
 		FeedbackKind::BugReport => "bug",
 		FeedbackKind::FeatureRequest => "enhancement",
 	};
+
 	Ok(IssueDraft {
 		title: repository_text(summary, visibility),
 		body,
@@ -334,7 +357,9 @@ pub fn agent_brief(
 			)
 		}
 	};
+
 	let branch = format!("{prefix}/feedback-{}", item.id);
+
 	let reproduction = match &report.reproduction {
 		ReproductionOutcome::Reproduced { steps } => {
 			steps
@@ -355,6 +380,7 @@ pub fn agent_brief(
 			changeset.path
 		),
 	];
+
 	if visibility == RepositoryVisibility::Private {
 		constraints.push(
 			"Release notes are public: keep code paths, hostnames, and internal names out of the changeset."
@@ -392,6 +418,7 @@ pub fn changeset_draft(
 		.summary_override
 		.clone()
 		.unwrap_or_else(|| report.product_summary.clone());
+
 	let (change_type, lead) = match report.classification {
 		FeedbackKind::BugReport => {
 			(
@@ -406,6 +433,7 @@ pub fn changeset_draft(
 			)
 		}
 	};
+
 	let published = DisclosureGate::publish(
 		OutboundDraft {
 			title,

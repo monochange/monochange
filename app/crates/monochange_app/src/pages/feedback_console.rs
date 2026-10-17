@@ -93,6 +93,7 @@ pub fn FeedbackConsolePage() -> impl IntoView {
 					Ok(None) => view! { <Unavailable title="Project not found" message="It may have been renamed or deleted, or it belongs to an organisation you don't own." /> }.into_any(),
 					Err(_) => view! { <Unavailable title="Feedback couldn't be loaded" message="Please reload the page to try again." /> }.into_any(),
 				})}
+
 			</Suspense>
 		</section>
 	}
@@ -112,6 +113,7 @@ fn ConsoleContent(
 			"Every repository in this project is public, so users see code paths; internal addresses, secrets, and personal details are still redacted."
 		}
 	};
+
 	let organization = view.organization.clone();
 	let project = view.project_slug.clone();
 	let count = view.items.len();
@@ -134,6 +136,7 @@ fn ConsoleContent(
 		{move || reply.value().get().and_then(Result::err).map(|error| view! { <p class="form-error" role="alert">{action_error(&error)}</p> })}
 		<section class="repository-section" aria-labelledby="feedback-items-title">
 			<div class="repository-heading"><h2 id="feedback-items-title">"Items"</h2><p>{plural(count, "item")}</p></div>
+
 			{if view.items.is_empty() {
 				view! { <p class="project-empty">"No feedback yet. Share the public portal link with your users; what they send appears here for triage."</p> }.into_any()
 			} else {
@@ -157,6 +160,7 @@ fn ConsoleContent(
 					</div>
 				}.into_any()
 			}}
+
 		</section>
 	}
 }
@@ -218,6 +222,7 @@ fn context_lines(item: &FeedbackItem, threshold: u32) -> Vec<String> {
 		FeedbackKind::BugReport => format!("Bug report via {}", submission.app_slug),
 		FeedbackKind::FeatureRequest => format!("Feature request via {}", submission.app_slug),
 	}];
+
 	match &submission.page {
 		Some(page) => {
 			lines.push(match &page.app_version {
@@ -234,20 +239,24 @@ fn context_lines(item: &FeedbackItem, threshold: u32) -> Vec<String> {
 		}
 		None => lines.push("No page context".to_owned()),
 	}
+
 	lines.push(format!(
 		"{} · {} of {threshold} votes · {}",
 		plural(submission.attachments.len(), "attachment"),
 		item.votes.total(),
 		plural(item.subscribers.len(), "subscriber"),
 	));
+
 	if let Some(canonical) = &item.duplicate_of {
 		lines.push(format!("Folded into {canonical}"));
 	}
+
 	if let Some(decision) = &item.decision {
 		let decided = format!(
 			"Decided by @{}: {}",
 			decision.maintainer, decision.rationale
 		);
+
 		lines.push(match &decision.override_vote_threshold {
 			Some(override_rationale) => {
 				format!("{decided} (threshold overridden: {override_rationale})")
@@ -255,6 +264,7 @@ fn context_lines(item: &FeedbackItem, threshold: u32) -> Vec<String> {
 			None => decided,
 		});
 	}
+
 	if let Some(issue) = &item.issue {
 		lines.push(format!(
 			"Issue {}#{}",
@@ -262,6 +272,7 @@ fn context_lines(item: &FeedbackItem, threshold: u32) -> Vec<String> {
 			issue.number
 		));
 	}
+
 	lines
 }
 
@@ -353,6 +364,7 @@ fn ConsoleCard(
 				}.into_any())}
 				<div class="console-block">
 					<h4>"What users see"</h4>
+
 					{match (&entry.withheld, &entry.portal_title) {
 						(Some(reason), _) => view! { <p class="form-error">"Withheld from users: " {reason.clone()} ". Rewrite its public title."</p> }.into_any(),
 						(None, Some(portal_title)) => view! {
@@ -363,6 +375,7 @@ fn ConsoleCard(
 						}.into_any(),
 						(None, None) => view! { <p class="project-empty">"Not on the public roadmap while " {stage_label(item.stage)} "."</p> }.into_any(),
 					}}
+
 				</div>
 				{(!item.discussion.is_empty()).then(|| view! {
 					<div class="console-block">

@@ -13,6 +13,7 @@ fn compiled_book_renders_safe_chapters_with_working_navigation() {
 	assert!(first.html.contains("id=\"see-the-plan\""));
 	assert!(first.html.contains("id=\"see-the-plan-1\""));
 	assert!(first.html.contains("class=\""));
+
 	assert!(first.html.contains("storage type function rust"));
 	assert!(first.html.contains("href=\"/book/guide/next\""));
 	assert!(first.html.contains("href=\"/book\""));
@@ -41,12 +42,15 @@ fn compiled_book_renders_safe_chapters_with_working_navigation() {
 fn real_book_has_all_listed_chapters_and_working_internal_links() {
 	let book = Book::read(&BOOK_FILES).unwrap();
 	assert!(book.chapters.len() > 40);
+
 	for chapter in &book.chapters {
 		assert!(!chapter.html.contains("href=\"../"));
 		assert!(!chapter.html.contains("href=\"./"));
+
 		for link in chapter.html.split("href=\"").skip(1) {
 			let destination = link.split('"').next().unwrap();
 			let path = destination.split(['?', '#']).next().unwrap();
+
 			if path == "/book" || path.starts_with("/book/") {
 				assert!(
 					book.chapters.iter().any(|target| target.href == path),
@@ -56,6 +60,7 @@ fn real_book_has_all_listed_chapters_and_working_internal_links() {
 			}
 		}
 	}
+
 	assert!(
 		book.chapter("")
 			.unwrap()

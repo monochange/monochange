@@ -92,6 +92,7 @@ pub fn spawn_sqlite_automation_worker(
 ) -> Option<JoinHandle<()>> {
 	if !config.enabled {
 		info!("release automation worker disabled");
+
 		return None;
 	}
 
@@ -144,6 +145,7 @@ fn parse_mode(
 	mode: Option<&str>,
 ) -> Result<AutomationRuntimeMode, AutomationError> {
 	let value = mode.or(automation).unwrap_or("dry-run");
+
 	match value.trim().to_ascii_lowercase().as_str() {
 		"" | "1" | "true" | "on" | "yes" | "dry-run" | "dry_run" => {
 			Ok(AutomationRuntimeMode::DryRun)

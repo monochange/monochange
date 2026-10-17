@@ -47,15 +47,20 @@ pub(crate) async fn load_releases(
 ) -> Result<Vec<WebsiteRelease>, Box<dyn std::error::Error + Send + Sync>> {
 	let mut entries = match tokio::fs::read_dir(directory).await {
 		Ok(entries) => entries,
+
 		Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
 		Err(error) => return Err(error.into()),
 	};
+
 	let mut releases = Vec::new();
+
 	while let Some(entry) = entries.next_entry().await? {
 		let path = entry.path();
+
 		if path.extension().and_then(|value| value.to_str()) != Some("json") {
 			continue;
 		}
+
 		let version = semver::Version::parse(
 			path.file_stem()
 				.and_then(|value| value.to_str())
@@ -64,9 +69,11 @@ pub(crate) async fn load_releases(
 		let text = tokio::fs::read_to_string(&path).await?;
 		let notes: monochange_core::ReleaseNotesDocument<monochange_core::ReleaseNotesEntry> =
 			serde_json::from_str(&text)?;
+
 		if notes.title != version.to_string() || !version.pre.is_empty() {
 			return Err("release notes must match their stable version filename".into());
 		}
+
 		if notes
 			.sections
 			.iter()
@@ -77,6 +84,7 @@ pub(crate) async fn load_releases(
 		}
 		releases.push((version, present_release(notes)));
 	}
+
 	releases.sort_by(|(left, _), (right, _)| right.cmp(left));
 	Ok(releases.into_iter().map(|(_, release)| release).collect())
 }

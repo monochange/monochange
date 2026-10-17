@@ -44,6 +44,7 @@ async fn state(server: &MockServer) -> Arc<AppState> {
 	sqlx::query("INSERT INTO installations (id, user_id, github_installation_id, github_account_login, github_account_type) VALUES (1, 1, 1001, 'alice', 'User'), (2, 2, 1002, 'bob', 'User'), (3, 1, 1003, 'team', 'Organization')").execute(&db).await.unwrap();
 	sqlx::query("INSERT INTO repositories (installation_id, github_repo_id, github_full_name, github_private) VALUES (1, 11, 'alice/api', 0), (1, 12, 'alice/web', 1), (2, 21, 'bob/private', 1), (3, 31, 'team/app', 1)").execute(&db).await.unwrap();
 	let mut connection = db.acquire().await.unwrap();
+
 	for (installation, external_id, login, account_type) in
 		[(1, 101, "alice", "User"), (3, 5001, "team", "Organization")]
 	{
@@ -87,12 +88,14 @@ fn context(state: &Arc<AppState>, user_id: Option<i32>) -> (Owner, ResponseOptio
 	let owner = Owner::new();
 	let response = ResponseOptions::default();
 	let mut request = Request::new(());
+
 	if let Some(user_id) = user_id {
 		let (github_id, login) = if user_id == 1 {
 			(101, "alice")
 		} else {
 			(202, "bob")
 		};
+
 		let token = create_token(&state.jwt_secret, user_id, github_id, login).unwrap();
 		request.headers_mut().insert(
 			COOKIE,
@@ -101,6 +104,7 @@ fn context(state: &Arc<AppState>, user_id: Option<i32>) -> (Owner, ResponseOptio
 				.unwrap(),
 		);
 	}
+
 	let (parts, ()) = request.into_parts();
 	owner.with(|| {
 		provide_context(state.clone());
@@ -193,6 +197,7 @@ async fn organisations_group_the_repositories_a_user_manages() {
 		[("alice", true, true, 2), ("team", false, true, 1)]
 	);
 	assert_eq!(organizations[0].path(), "/dashboard/alice");
+
 	assert!(
 		organizations
 			.iter()
@@ -312,6 +317,7 @@ async fn project_forms_explain_what_went_wrong() {
 		),
 		("alice", " ", &["alice/api"], "Give the project a name."),
 	];
+
 	for (organization, name, names, expected) in cases {
 		let error = create(&owner, organization, name, names).await.unwrap_err();
 		assert_eq!(message(&error), expected, "{organization} {name}");
@@ -449,6 +455,7 @@ async fn unlinked_installations_wait_for_github_before_offering_projects() {
 			.unwrap()
 			.is_none()
 	);
+
 	let error = create(&bob, "bob", "Private", &["bob/private"])
 		.await
 		.unwrap_err();
@@ -478,6 +485,7 @@ async fn unlinked_installations_are_linked_through_the_github_app() {
 		.await
 		.unwrap();
 	assert!(organizations[0].supports_projects);
+
 	assert_eq!(
 		organizations[0].avatar_url.as_deref(),
 		Some("https://avatars/bob.png")

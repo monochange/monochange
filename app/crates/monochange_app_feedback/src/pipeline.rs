@@ -287,6 +287,7 @@ impl FeedbackItem {
 	pub fn apply(&mut self, command: Command, actor: &Actor) -> Result<(), TransitionError> {
 		let name = command.name();
 		let automation_or_maintainer = actor.is_automation() || actor.is_maintainer();
+
 		match command {
 			Command::Quarantine => {
 				self.ensure(&[Stage::Received], name)?;
@@ -301,6 +302,7 @@ impl FeedbackItem {
 				} else {
 					automation_or_maintainer
 				};
+
 				authorize(name, actor, allowed)?;
 				self.enter(Stage::Triaging, actor, name);
 			}
@@ -322,6 +324,7 @@ impl FeedbackItem {
 				if questions.trim().is_empty() {
 					return Err(TransitionError::EmptyText);
 				}
+
 				self.discussion.push(DiscussionMessage {
 					author: actor.clone(),
 					body: questions,
@@ -341,6 +344,7 @@ impl FeedbackItem {
 				if body.trim().is_empty() && attachments.is_empty() {
 					return Err(TransitionError::EmptyText);
 				}
+
 				let held = matches!(actor, Actor::User(_))
 					&& matches!(
 						screen_untrusted(&body),
@@ -349,6 +353,7 @@ impl FeedbackItem {
 				if let (Actor::User(id), false) = (actor, held) {
 					self.subscribers.insert(id.clone());
 				}
+
 				self.discussion.push(DiscussionMessage {
 					author: actor.clone(),
 					body,
@@ -363,6 +368,7 @@ impl FeedbackItem {
 				if !self.votes.record(voter) {
 					return Err(TransitionError::DuplicateVote(voter.to_owned()));
 				}
+
 				self.subscribers.insert(voter.to_owned());
 				self.record_event(actor, name);
 			}
@@ -372,6 +378,7 @@ impl FeedbackItem {
 				if !self.votes.retract(voter) {
 					return Err(TransitionError::NotVoted(voter.to_owned()));
 				}
+
 				self.record_event(actor, name);
 			}
 			Command::EditSummary(summary) => {
@@ -381,6 +388,7 @@ impl FeedbackItem {
 				if summary.is_empty() {
 					return Err(TransitionError::EmptyText);
 				}
+
 				self.summary_override = Some(summary.to_owned());
 				self.record_event(actor, name);
 			}
@@ -390,6 +398,7 @@ impl FeedbackItem {
 				if self.triage.is_none() {
 					return Err(TransitionError::MissingTriageReport);
 				}
+
 				let threshold_reached = matches!(
 					evaluate(&self.votes, &self.rules),
 					VotingOutcome::ThresholdReached { .. }
@@ -397,6 +406,7 @@ impl FeedbackItem {
 				if !threshold_reached && decision.override_vote_threshold.is_none() {
 					return Err(TransitionError::OverrideRequired);
 				}
+
 				self.decision = Some(decision);
 				self.enter(Stage::Accepted, actor, name);
 			}
@@ -412,6 +422,7 @@ impl FeedbackItem {
 				if of == self.id {
 					return Err(TransitionError::SelfDuplicate);
 				}
+
 				self.duplicate_of = Some(of);
 				self.enter(Stage::Closed, actor, name);
 			}
@@ -427,6 +438,7 @@ impl FeedbackItem {
 				if self.issue.is_none() {
 					return Err(TransitionError::IssueRequired);
 				}
+
 				self.enter(Stage::Building, actor, name);
 			}
 			Command::OpenPullRequest(pull_request) => {
@@ -454,6 +466,7 @@ impl FeedbackItem {
 				self.enter(Stage::Closed, actor, name);
 			}
 		}
+
 		Ok(())
 	}
 
@@ -468,9 +481,11 @@ impl FeedbackItem {
 	pub fn absorb_duplicate(&mut self, duplicate: &FeedbackItem, maintainer: &Actor) {
 		self.votes
 			.record(&duplicate.submission.submitter.anonymous_id);
+
 		for voter in duplicate.votes.voters() {
 			self.votes.record(voter);
 		}
+
 		self.subscribers
 			.extend(duplicate.subscribers.iter().cloned());
 		self.record_event(maintainer, "absorb-duplicate");

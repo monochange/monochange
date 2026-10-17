@@ -376,6 +376,7 @@ where
 					job_id: job.id,
 				})
 			}
+
 			Err(error) if should_retry(&job, &error) => {
 				let next_run_at = retry_at(now, job.attempts);
 				self.store
@@ -387,6 +388,7 @@ where
 					next_run_at,
 				})
 			}
+
 			Err(error) => {
 				self.store.mark_dead(job.id, error.message).await?;
 				Ok(WorkerTickOutcome::Dead {

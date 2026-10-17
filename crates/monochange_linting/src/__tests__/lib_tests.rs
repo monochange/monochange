@@ -25,6 +25,7 @@ fn declare_lint_rule_macro_builds_expected_metadata() {
 	assert_eq!(rule.rule.maturity, LintMaturity::Experimental);
 	assert!(rule.rule.autofixable);
 	assert_eq!(rule.rule.options.len(), 1);
+
 	assert_eq!(
 		rule.rule.options.first().map(|option| option.name.as_str()),
 		Some("fix")

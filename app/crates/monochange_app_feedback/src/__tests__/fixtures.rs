@@ -156,6 +156,7 @@ pub fn item_at(stage: Stage, submission: FeedbackSubmission) -> FeedbackItem {
 					.questions
 					.push("Which browser are you using?".to_owned());
 			}
+
 			item.apply(Command::CompleteTriage(report), &Actor::Ai)
 				.unwrap();
 			item.apply(Command::AskUser, &Actor::Ai).unwrap();
@@ -165,6 +166,7 @@ pub fn item_at(stage: Stage, submission: FeedbackSubmission) -> FeedbackItem {
 			for voter in ["v1", "v2", "v3"] {
 				item.apply(Command::RecordVote, &user(voter)).unwrap();
 			}
+
 			item.apply(Command::Accept(decision(None)), &maintainer())
 				.unwrap();
 		},
@@ -207,8 +209,10 @@ pub fn item_at(stage: Stage, submission: FeedbackSubmission) -> FeedbackItem {
 		.iter()
 		.position(|reachable| *reachable == stage)
 		.unwrap_or_else(|| panic!("item_at cannot build {stage:?}"));
+
 	for step in &steps[..target] {
 		step(&mut item);
 	}
+
 	item
 }

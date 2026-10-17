@@ -22,6 +22,7 @@ fn sync_npm_detects_internal_deps() {
 	assert_eq!(changes.len(), 1);
 	assert_eq!(changes[0].dependency_name, "my-package");
 	assert_eq!(changes[0].old_value, "^0.5.0");
+
 	assert_eq!(changes[0].new_value, "^0.7.0");
 	assert_eq!(changes[0].section, "dependencies");
 }

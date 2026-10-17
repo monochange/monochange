@@ -75,6 +75,7 @@ async fn viewer_token() -> ServerResult<String> {
 	use leptos_axum::extract;
 
 	let jar: CookieJar = extract().await?;
+
 	if let Some(token) = jar
 		.get(VIEWER_COOKIE)
 		.map(|cookie| cookie.value().to_owned())
@@ -96,6 +97,7 @@ async fn viewer_token() -> ServerResult<String> {
 		axum::http::HeaderValue::from_str(&cookie.encoded().to_string())
 			.map_err(|error| server_fn::ServerFnError::new(format!("Cookie: {error}")))?,
 	);
+
 	Ok(token)
 }
 
@@ -158,8 +160,10 @@ pub async fn portal_view(
 	let mut threads = BTreeMap::new();
 	let mut voted = Vec::new();
 	let mut own = Vec::new();
+
 	for item in service.items() {
 		let mine = item.submission.submitter.anonymous_id == viewer;
+
 		if roadmap::is_listed(item) || mine {
 			threads.insert(
 				item.id.clone(),
@@ -168,9 +172,11 @@ pub async fn portal_view(
 					.map_err(|error| server_fn::ServerFnError::new(error.to_string()))?,
 			);
 		}
+
 		if item.votes.has_voted(&viewer) {
 			voted.push(item.id.clone());
 		}
+
 		if mine {
 			let question = (item.stage == Stage::Discussing)
 				.then(|| {
@@ -181,6 +187,7 @@ pub async fn portal_view(
 						.map(|message| message.body.clone())
 				})
 				.flatten();
+
 			own.push(OwnItem {
 				id: item.id.clone(),
 				stage: item.stage,
@@ -191,6 +198,7 @@ pub async fn portal_view(
 			});
 		}
 	}
+
 	own.reverse();
 	let updates = monochange_app_api::feedback::notifications_for(
 		&state,
@@ -232,11 +240,13 @@ pub async fn share_feedback(
 	let (public, viewer) = visitor_context(&state, &organization, &project)
 		.await?
 		.ok_or_else(not_found)?;
+
 	let kind = match kind.as_str() {
 		"bug_report" => FeedbackKind::BugReport,
 		"feature_request" => FeedbackKind::FeatureRequest,
 		_ => return Err(server_fn::ServerFnError::new("Choose a bug or an idea.")),
 	};
+
 	let submission = FeedbackSubmission {
 		kind,
 		description,
@@ -346,5 +356,6 @@ pub async fn preview_markdown(text: String) -> Result<String, server_fn::ServerF
 			"That's longer than feedback can be.",
 		));
 	}
+
 	Ok(crate::markdown::render(&text))
 }

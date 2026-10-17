@@ -101,11 +101,13 @@ pub(crate) fn apply_runtime_prepare_release_output_formats(cli: &mut [CliCommand
 			.choices
 			.iter()
 			.any(|choice| choice == "markdown");
+
 		if !has_markdown {
 			format_input.choices.insert(0, "markdown".to_string());
 		}
 
 		let has_md = format_input.choices.iter().any(|choice| choice == "md");
+
 		if !has_md {
 			format_input.choices.push("md".to_string());
 		}
@@ -145,6 +147,7 @@ fn markdown_to_clap_help(markdown: &str) -> String {
 
 	for line in markdown.lines() {
 		let trimmed = line.trim();
+
 		if trimmed.starts_with("<!--") && trimmed.ends_with("-->") {
 			continue;
 		}
@@ -159,6 +162,7 @@ fn markdown_to_clap_help(markdown: &str) -> String {
 				output.push('\n');
 				previous_blank = true;
 			}
+
 			continue;
 		}
 
@@ -195,16 +199,19 @@ fn strip_inline_markdown(value: &str) -> String {
 					if next == ']' {
 						break;
 					}
+
 					label.push(next);
 				}
 				if chars.peek() == Some(&'(') {
 					chars.next();
+
 					for next in chars.by_ref() {
 						if next == ')' {
 							break;
 						}
 					}
 				}
+
 				output.push_str(&label);
 			}
 			_ => output.push(character),
@@ -422,6 +429,7 @@ When provided, the generated config includes:\n\
 	let top_level = cli
 		.iter()
 		.filter(|cli_command| top_level_workflows && !builtin_names.contains(&cli_command.name));
+
 	for cli_command in top_level {
 		command = command.subcommand(build_cli_command_subcommand_with_prefix(
 			cli_command,
@@ -489,6 +497,7 @@ fn root_help_template(
 		.collect::<Vec<_>>();
 	let mut sections = Vec::new();
 	let mut grouped = BTreeSet::new();
+
 	for (heading, names) in HELP_COMMAND_GROUPS {
 		let rows = names
 			.iter()
@@ -498,6 +507,7 @@ fn root_help_template(
 		grouped.extend(names.iter().map(ToString::to_string));
 		sections.push(((*heading).to_string(), rows));
 	}
+
 	let ungrouped = visible
 		.iter()
 		.filter(|(name, _)| !grouped.contains(name))
@@ -532,13 +542,16 @@ fn root_help_template(
 	let header = crate::cli_theme::header();
 	let literal = crate::cli_theme::literal();
 	let mut template = String::from("{before-help}{about-with-newline}\n{usage-heading} {usage}");
+
 	for (heading, rows) in sections.iter().filter(|(_, rows)| !rows.is_empty()) {
 		let _ = write!(template, "\n\n{header}{heading}:{header:#}");
+
 		for (name, about) in rows {
 			let padding = " ".repeat(width - name.chars().count());
 			let _ = write!(template, "\n  {literal}{name}{literal:#}{padding}  {about}");
 		}
 	}
+
 	let _ = write!(
 		template,
 		"\n\n{header}Options:{header:#}\n{{options}}{{after-help}}"
@@ -1399,6 +1412,7 @@ pub(crate) fn build_run_subcommand(cli: &[CliCommandDefinition]) -> Command {
 		if cli_command.name == "versions" {
 			continue;
 		}
+
 		command = command.subcommand(build_cli_command_subcommand_with_prefix(
 			cli_command,
 			"monochange run",
@@ -1453,6 +1467,7 @@ pub(crate) fn build_cli_command_subcommand_with_prefix(
 	}
 
 	command = command.next_help_heading("Options");
+
 	for input in &cli_command.inputs {
 		command = command.arg(build_cli_command_input_arg(input));
 	}
@@ -1653,6 +1668,7 @@ pub(crate) fn cli_command_usage_with_prefix(
 
 pub(crate) fn cli_input_usage(input: &CliInputDefinition) -> String {
 	let long_name = input.name.replace('_', "-");
+
 	let value_name = match input.kind {
 		CliInputKind::Boolean => None,
 		CliInputKind::Path => Some("PATH".to_string()),
@@ -1660,10 +1676,12 @@ pub(crate) fn cli_input_usage(input: &CliInputDefinition) -> String {
 			Some(input.name.to_uppercase())
 		}
 	};
+
 	let option = value_name.map_or_else(
 		|| format!("--{long_name}"),
 		|name| format!("--{long_name} <{name}>"),
 	);
+
 	if input.required {
 		option
 	} else {

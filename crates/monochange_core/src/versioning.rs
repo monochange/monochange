@@ -289,6 +289,7 @@ impl ValueDefinition {
 	pub fn stamp_behaviour(&self) -> StampBehaviour {
 		match self.on_release {
 			Some(behaviour) => behaviour,
+
 			None if self.is_file_counter() => StampBehaviour::Increment,
 			None => StampBehaviour::None,
 		}
@@ -300,21 +301,27 @@ impl ValueDefinition {
 	#[must_use]
 	pub fn declared_sources(&self) -> Vec<&'static str> {
 		let mut sources = Vec::new();
+
 		if self.file.is_some() {
 			sources.push("file");
 		}
+
 		if self.hash.is_some() {
 			sources.push("hash");
 		}
+
 		if self.env.is_some() {
 			sources.push("env");
 		}
+
 		if self.git.is_some() {
 			sources.push("git");
 		}
+
 		if self.timestamp.is_some() {
 			sources.push("timestamp");
 		}
+
 		sources
 	}
 
@@ -414,16 +421,19 @@ impl ReleaseTimestamp {
 				"release timestamp month `{month}` is out of range; expected 1-12"
 			)));
 		}
+
 		if !(1..=31).contains(&day) {
 			return Err(MonochangeError::Config(format!(
 				"release timestamp day `{day}` is out of range; expected 1-31"
 			)));
 		}
+
 		if hour > 23 || minute > 59 || second > 59 {
 			return Err(MonochangeError::Config(format!(
 				"release timestamp `{hour:02}{minute:02}{second:02}` is out of range"
 			)));
 		}
+
 		Ok(Self {
 			year,
 			month,
@@ -440,11 +450,13 @@ impl ReleaseTimestamp {
 		let year = date_parts.next().and_then(|part| part.parse::<u16>().ok());
 		let month = date_parts.next().and_then(|part| part.parse::<u8>().ok());
 		let day = date_parts.next().and_then(|part| part.parse::<u8>().ok());
+
 		if date_parts.next().is_some() {
 			return Err(MonochangeError::Config(format!(
 				"release timestamp date `{date}` is malformed; expected `YYYY-MM-DD`"
 			)));
 		}
+
 		let (Some(year), Some(month), Some(day)) = (year, month, day) else {
 			return Err(MonochangeError::Config(format!(
 				"release timestamp date `{date}` is malformed; expected `YYYY-MM-DD`"
@@ -455,6 +467,7 @@ impl ReleaseTimestamp {
 			let hour = time.get(0..2).and_then(|part| part.parse::<u8>().ok());
 			let minute = time.get(2..4).and_then(|part| part.parse::<u8>().ok());
 			let second = time.get(4..6).and_then(|part| part.parse::<u8>().ok());
+
 			match (hour, minute, second) {
 				(Some(hour), Some(minute), Some(second)) => (hour, minute, second),
 				_ => {
@@ -562,8 +575,10 @@ pub fn chain_label_inputs(previous: Option<&LabelInputs>, now: ReleaseTimestamp)
 				},
 			)
 		}
+
 		None => (1, 1, 1),
 	};
+
 	LabelInputs {
 		date: now.date(),
 		time: now.time(),
@@ -582,6 +597,7 @@ pub fn encode_hash(digest: &[u8], encoding: HashEncoding, length: Option<usize>)
 		HashEncoding::Base36 => base36_encode(digest),
 		HashEncoding::Digits => decimal_digits(digest),
 	};
+
 	truncate_rendered(rendered, length)
 }
 
@@ -608,9 +624,11 @@ fn encoding_is_right_aligned(length: usize, rendered: &str) -> bool {
 fn hex_encode(digest: &[u8]) -> String {
 	use std::fmt::Write;
 	let mut rendered = String::with_capacity(digest.len().saturating_mul(2));
+
 	for byte in digest {
 		let _ = write!(rendered, "{byte:02x}");
 	}
+
 	rendered
 }
 
@@ -631,11 +649,14 @@ fn encode_bits(digest: &[u8], bit_width: u32, alphabet: &[u8]) -> String {
 	let mut accumulator = 0u32;
 	let mut bits = 0u32;
 	let mut rendered = String::new();
+
 	for byte in digest {
 		accumulator = (accumulator << 8) | u32::from(*byte);
 		bits += 8;
+
 		while bits >= bit_width {
 			let shift = bits - bit_width;
+
 			let index = (accumulator >> shift) & ((1 << bit_width) - 1);
 			let character = alphabet.get(index as usize).copied().unwrap_or(b'0') as char;
 			rendered.push(character);
@@ -643,12 +664,15 @@ fn encode_bits(digest: &[u8], bit_width: u32, alphabet: &[u8]) -> String {
 			accumulator &= (1 << bits) - 1;
 		}
 	}
+
 	if bits > 0 {
 		let index = (accumulator << (bit_width - bits)) & ((1 << bit_width) - 1);
 		let character = alphabet.get(index as usize).copied().unwrap_or(b'0') as char;
 		rendered.push(character);
 	}
+
 	let trimmed = rendered.trim_start_matches('0');
+
 	if trimmed.is_empty() {
 		"0".to_string()
 	} else {
@@ -664,26 +688,34 @@ fn decimal_digits(digest: &[u8]) -> String {
 	if digest.is_empty() {
 		return "0".to_string();
 	}
+
 	let mut working = digest.to_vec();
 	let mut digits = Vec::new();
+
 	while working.iter().any(|byte| *byte != 0) {
 		let mut remainder = 0u32;
 		let mut quotient = Vec::with_capacity(working.len());
+
 		for byte in &working {
 			let current = remainder * 256 + u32::from(*byte);
 			let next = current / 10;
 			remainder = current % 10;
 			quotient.push(u8::try_from(next).unwrap_or(0));
 		}
+
 		digits.push(char::from_digit(remainder, 10).unwrap_or('0').to_string());
+
 		while quotient.first() == Some(&0) {
 			quotient.remove(0);
 		}
+
 		working = quotient;
 	}
+
 	if digits.is_empty() {
 		return "0".to_string();
 	}
+
 	digits.reverse();
 	digits.concat()
 }
@@ -743,6 +775,7 @@ pub fn template_variables(
 		inputs.of_quarter.to_string(),
 	);
 	variables.insert("release_of_year".to_string(), inputs.of_year.to_string());
+
 	if let Ok(timestamp) = ReleaseTimestamp::parse(&inputs.date, &inputs.time) {
 		variables.insert("year".to_string(), timestamp.year.to_string());
 		variables.insert("year_short".to_string(), timestamp.year_short().to_string());
@@ -751,9 +784,11 @@ pub fn template_variables(
 		variables.insert("quarter".to_string(), timestamp.quarter().to_string());
 		variables.insert("day".to_string(), timestamp.day.to_string());
 	}
+
 	for (key, value) in values {
 		variables.insert(key.clone(), value.clone());
 	}
+
 	variables
 }
 
@@ -827,6 +862,7 @@ pub fn counter_from_json(
 	field: &str,
 ) -> Result<u64, CounterFileError> {
 	let mut cursor = document;
+
 	for segment in field.split('.') {
 		let Some(next) = cursor.get(segment) else {
 			return Err(CounterFileError::MissingField {
@@ -836,6 +872,7 @@ pub fn counter_from_json(
 		};
 		cursor = next;
 	}
+
 	cursor.as_u64().ok_or_else(|| {
 		CounterFileError::NotAnInteger {
 			path: path.to_path_buf(),
@@ -872,11 +909,13 @@ pub fn validate_value_definition(id: &str, definition: &ValueDefinition) -> Mono
 			"value `{id}` sets `file` without `field`; declare the dot-separated field that holds the counter"
 		)));
 	}
+
 	if definition.field.is_some() && definition.file.is_none() {
 		return Err(MonochangeError::Config(format!(
 			"value `{id}` sets `field` without `file`; declare the file that holds the counter"
 		)));
 	}
+
 	if let Some(field) = definition.field.as_deref()
 		&& counter_field_segments(field).is_empty()
 	{
@@ -886,11 +925,13 @@ pub fn validate_value_definition(id: &str, definition: &ValueDefinition) -> Mono
 	}
 
 	let sources = definition.declared_sources();
+
 	if sources.is_empty() {
 		return Err(MonochangeError::Config(format!(
 			"value `{id}` declares no source; set exactly one of `file`, `hash`, `env`, `git`, or `timestamp`"
 		)));
 	}
+
 	if sources.len() > 1 {
 		return Err(MonochangeError::Config(format!(
 			"value `{id}` declares multiple sources ({}); set exactly one of `file`, `hash`, `env`, `git`, or `timestamp`",
@@ -904,6 +945,7 @@ pub fn validate_value_definition(id: &str, definition: &ValueDefinition) -> Mono
 				"value `{id}` sets `length` without `hash`; `length` only applies to hash values"
 			)));
 		}
+
 		if definition.algorithm != HashAlgorithm::default()
 			|| definition.encoding != HashEncoding::default()
 		{
@@ -912,18 +954,21 @@ pub fn validate_value_definition(id: &str, definition: &ValueDefinition) -> Mono
 			)));
 		}
 	}
+
 	if !definition.is_file_counter() {
 		if definition.reset != ResetPolicy::default() {
 			return Err(MonochangeError::Config(format!(
 				"value `{id}` sets `reset` without a file counter; `reset` only applies to `file` values"
 			)));
 		}
+
 		if definition.on_release.is_some() {
 			return Err(MonochangeError::Config(format!(
 				"value `{id}` sets `on_release` without a file counter; derived values are read-only"
 			)));
 		}
 	}
+
 	Ok(())
 }
 
@@ -934,25 +979,30 @@ pub fn validate_value_id(id: &str) -> MonochangeResult<()> {
 			"value ids must not be empty".to_string(),
 		));
 	}
+
 	if RESERVED_TEMPLATE_VARIABLES.contains(&id) {
 		return Err(MonochangeError::Config(format!(
 			"value id `{id}` is a reserved template variable; rename the value (reserved: {})",
 			RESERVED_TEMPLATE_VARIABLES.join(", ")
 		)));
 	}
+
 	let valid = id.chars().all(|character| {
 		character.is_ascii_lowercase() || character.is_ascii_digit() || character == '_'
 	});
+
 	if !valid {
 		return Err(MonochangeError::Config(format!(
 			"value id `{id}` must use lowercase letters, digits, and underscores"
 		)));
 	}
+
 	if id.starts_with(|character: char| character.is_ascii_digit()) {
 		return Err(MonochangeError::Config(format!(
 			"value id `{id}` must not start with a digit"
 		)));
 	}
+
 	Ok(())
 }
 
@@ -961,17 +1011,21 @@ pub fn validate_value_id(id: &str) -> MonochangeResult<()> {
 pub fn template_variables_used(template: &str) -> Vec<String> {
 	let mut variables = Vec::new();
 	let mut rest = template;
+
 	while let Some(start) = rest.find("{{") {
 		let after_start = &rest[start + 2..];
 		let Some(end) = after_start.find("}}") else {
 			break;
 		};
 		let variable = after_start[..end].trim().to_string();
+
 		if !variable.is_empty() {
 			variables.push(variable);
 		}
+
 		rest = &after_start[end + 2..];
 	}
+
 	variables
 }
 
@@ -987,14 +1041,17 @@ pub fn validate_template_variables(
 	for variable in template_variables_used(template) {
 		if variable.starts_with("build.") {
 			let axis = variable.trim_start_matches("build.");
+
 			if !available.contains_key(axis) {
 				return Err(MonochangeError::Config(format!(
 					"{surface} uses unknown value `{axis}`; declared values are: {}",
 					render_available_values(available)
 				)));
 			}
+
 			continue;
 		}
+
 		if !available.contains_key(&variable) {
 			return Err(MonochangeError::Config(format!(
 				"{surface} uses unknown variable `{{{{ {variable} }}}}`; available variables are: {}",
@@ -1002,6 +1059,7 @@ pub fn validate_template_variables(
 			)));
 		}
 	}
+
 	Ok(())
 }
 
@@ -1011,9 +1069,11 @@ fn render_available_values(available: &BTreeMap<String, String>) -> String {
 		.filter(|key| !RESERVED_TEMPLATE_VARIABLES.contains(&key.as_str()))
 		.cloned()
 		.collect::<Vec<_>>();
+
 	if values.is_empty() {
 		return "none declared".to_string();
 	}
+
 	values.join(", ")
 }
 
@@ -1030,6 +1090,7 @@ pub fn render_version_template(template: &str, variables: &BTreeMap<String, Stri
 	let mut rendered = template.to_string();
 	let mut names = variables.keys().collect::<Vec<_>>();
 	names.sort_by_key(|name| std::cmp::Reverse(name.len()));
+
 	for name in names {
 		// patch-coverage:ignore-start -- `names` is built from `variables.keys()`, so every lookup succeeds.
 		let Some(value) = variables.get(name) else {
@@ -1040,6 +1101,7 @@ pub fn render_version_template(template: &str, variables: &BTreeMap<String, Stri
 			rendered = rendered.replace(&pattern, value);
 		}
 	}
+
 	rendered
 }
 

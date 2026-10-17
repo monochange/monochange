@@ -37,6 +37,7 @@ pub fn OrganizationPage() -> impl IntoView {
 					Ok(None) => view! { <Unavailable title="Organisation not found" message="It isn't connected, or you're not one of its owners." /> }.into_any(),
 					Err(_) => view! { <Unavailable title="This organisation couldn't be loaded" message="Please reload the page to try again." /> }.into_any(),
 				})}
+
 			</Suspense>
 		</section>
 	}
@@ -59,6 +60,7 @@ fn OrganizationContent(organization: OrganizationSummary) -> impl IntoView {
 	} else {
 		"GitHub organisation"
 	};
+
 	let login = organization.login.clone();
 	view! {
 		<nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/dashboard">"Workspace"</a><span aria-hidden="true">"/"</span><span aria-current="page">{login.clone()}</span></nav>
@@ -68,6 +70,7 @@ fn OrganizationContent(organization: OrganizationSummary) -> impl IntoView {
 		</div>
 		<section class="repository-section" aria-labelledby="projects-title">
 			<div class="repository-heading"><h2 id="projects-title">"Projects"</h2><p>"Group repositories that ship one product."</p></div>
+
 			{if organization.projects.is_empty() {
 				view! { <p class="project-empty">"No projects yet. A project brings several of this organisation's repositories together under one name."</p> }.into_any()
 			} else {
@@ -83,11 +86,13 @@ fn OrganizationContent(organization: OrganizationSummary) -> impl IntoView {
 					</ul>
 				}.into_any()
 			}}
+
 			{if organization.supports_projects {
 				view! { <NewProjectForm organization=organization.clone() /> }.into_any()
 			} else {
 				view! { <p class="form-note">"monochange is still confirming this account with GitHub. Reload the page in a moment to create projects."</p> }.into_any()
 			}}
+
 		</section>
 		<section class="repository-section" aria-labelledby="repositories-title">
 			<div class="repository-heading"><h2 id="repositories-title">"Repositories"</h2><p>{organization.repositories.len()} " connected"</p></div>

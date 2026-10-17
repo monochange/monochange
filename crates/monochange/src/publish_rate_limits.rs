@@ -69,6 +69,7 @@ pub(crate) async fn plan_publish_rate_limits(
 		)
 		.await?
 	};
+
 	Ok(plan_publish_rate_limits_for_dependency_ordered_requests(
 		&requests,
 		packages,
@@ -109,6 +110,7 @@ async fn build_release_plan_requests(
 		)
 		.await?
 	};
+
 	let requests = package_publish::build_release_requests(
 		configuration,
 		packages,
@@ -128,11 +130,13 @@ pub(super) fn sort_requests_by_dependencies(
 
 	let mut request_ids_by_record_id: BTreeMap<String, String> = BTreeMap::new();
 	let request_ids: BTreeSet<String> = requests.iter().map(|r| r.package_id.clone()).collect();
+
 	for package in packages {
 		if request_ids.contains(&package.id) {
 			request_ids_by_record_id.insert(package.id.clone(), package.id.clone());
 			continue;
 		}
+
 		if let Some(request) = requests
 			.iter()
 			.find(|request| request.package_name == package.name)
@@ -140,6 +144,7 @@ pub(super) fn sort_requests_by_dependencies(
 			request_ids_by_record_id.insert(package.id.clone(), request.package_id.clone());
 		}
 	}
+
 	// Build graph: dependency_id -> list of dependent_ids
 	let mut dependents: BTreeMap<String, Vec<String>> = BTreeMap::new();
 	let mut in_degree: BTreeMap<String, usize> = BTreeMap::new();
@@ -186,6 +191,7 @@ pub(super) fn sort_requests_by_dependencies(
 
 	while let Some(id) = queue.pop_front() {
 		sorted_ids.push(id.clone());
+
 		if let Some(deps) = dependents.get(&id) {
 			#[allow(clippy::single_match)]
 			for dependent in deps {
@@ -240,10 +246,12 @@ fn plan_publish_rate_limits_for_requests(
 ) -> PublishRateLimitReport {
 	let mut requests_by_registry =
 		BTreeMap::<RegistryKind, Vec<&package_publish::PublishRequest>>::new();
+
 	for request in requests {
 		if request.mode == monochange_core::PublishMode::External {
 			continue;
 		}
+
 		requests_by_registry
 			.entry(request.registry)
 			.or_default()
@@ -314,11 +322,13 @@ pub(crate) fn enforce_publish_rate_limits(
 				.package_by_id(package)
 				.is_some_and(|definition| definition.publish.rate_limits.enforce)
 		});
+
 	if !enforced_packages {
 		return Ok(());
 	}
 
 	let mut details = String::new();
+
 	for window in report
 		.windows
 		.iter()
@@ -327,6 +337,7 @@ pub(crate) fn enforce_publish_rate_limits(
 		if !details.is_empty() {
 			details.push_str("; ");
 		}
+
 		let _ = write!(
 			details,
 			"{} {} {} packages={} batches={} window={}",
@@ -338,6 +349,7 @@ pub(crate) fn enforce_publish_rate_limits(
 			render_rate_limit_window(window.window_seconds)
 		);
 	}
+
 	if details.is_empty() {
 		return Ok(());
 	}

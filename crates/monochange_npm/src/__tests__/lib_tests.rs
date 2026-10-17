@@ -469,6 +469,7 @@ fn pnpm_text_helper_functions_cover_edge_cases() {
 		&mut replacements,
 	);
 	let outer_blank = "importers:\n\n  .:\n";
+
 	let outer_blank_ranges = crate::yaml_line_ranges(outer_blank);
 	let outer_blank_index =
 		*crate::find_yaml_key_lines(outer_blank, &outer_blank_ranges, 0, "importers")
@@ -896,6 +897,7 @@ fn yarn_helpers_cover_edge_cases() {
 		Some(8)
 	);
 	assert_eq!(crate::yarn_version_value_offset("versioned: nope"), None);
+
 	assert_eq!(crate::yarn_version_value_offset("resolved \"...\""), None);
 	assert_eq!(crate::yarn_version_value_end("\"1.2.3\""), 7);
 	assert_eq!(crate::yarn_version_value_end("1.2.3  "), 5);
@@ -1051,6 +1053,7 @@ fn discovers_object_style_package_json_workspaces_and_warnings() {
 		.iter()
 		.find(|package| package.name == "object-web")
 		.unwrap_or_else(|| panic!("expected object-web package"));
+
 	assert_eq!(
 		web_package.metadata.get("manager").map(String::as_str),
 		Some("npm")
@@ -1185,6 +1188,7 @@ fn detect_npm_manager_prefers_bun_then_pnpm_then_npm() {
 	assert_eq!(detect_npm_manager(&pnpm_root), "pnpm");
 	let npm_root =
 		Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/tests/npm/standalone-package");
+
 	assert_eq!(detect_npm_manager(&npm_root), "npm");
 }
 

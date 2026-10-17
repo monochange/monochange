@@ -17,12 +17,14 @@ const SCHEMA_URL_BASE = "https://monochange.github.io/monochange/schemas";
  */
 export function isBreakingAxisVersion(version) {
 	const [major, minor] = version.split(".");
+
 	return major === "0" || minor === "0";
 }
 
 function compareVersions(left, right) {
 	const [leftMajor, leftMinor] = left.split(".").map(Number);
 	const [rightMajor, rightMinor] = right.split(".").map(Number);
+
 	return leftMajor - rightMajor || leftMinor - rightMinor;
 }
 
@@ -38,15 +40,20 @@ export function collectSchemaVersions(schemasDir) {
 
 	for (const entry of readdirSync(schemasDir)) {
 		const match = /^(?<family>.+?)\.v(?<version>\d+\.\d+)\.schema\.json$/.exec(entry);
+
 		if (!match?.groups) {
 			continue;
 		}
+
 		const { family, version } = match.groups;
+
 		if (!isBreakingAxisVersion(version)) {
 			continue;
 		}
+
 		const versions = families.get(family) ?? new Set();
 		versions.add(version);
+
 		families.set(family, versions);
 	}
 
@@ -72,14 +79,18 @@ export function collectSchemaVersions(schemasDir) {
  */
 export function renderSchemaIndex(families, { urlBase = SCHEMA_URL_BASE } = {}) {
 	const lines = [];
+
 	for (const { family, versions } of families) {
 		lines.push(`**\`${family}.schema.json\`**`, "");
 		lines.push(`- Current: <${urlBase}/${family}.schema.json>`);
+
 		for (const version of versions) {
 			lines.push(`- v${version}: <${urlBase}/${family}.v${version}.schema.json>`);
 		}
+
 		lines.push("");
 	}
+
 	return lines.join("\n").replace(/\n+$/, "");
 }
 

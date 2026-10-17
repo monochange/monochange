@@ -89,6 +89,7 @@ pub(crate) fn run_migration_command(
 	if quiet {
 		return Ok(String::new());
 	}
+
 	match migrate_matches.subcommand() {
 		Some(("release-records", record_matches)) => {
 			let format = record_matches
@@ -117,6 +118,7 @@ pub(crate) fn migrate_release_records(
 	dry_run: bool,
 ) -> MonochangeResult<ReleaseRecordMigrationReport> {
 	let mut records = Vec::new();
+
 	for path in release_record_paths(root)? {
 		let original = fs::read_to_string(&path).map_err(|error| {
 			MonochangeError::Io(format!(
@@ -137,6 +139,7 @@ pub(crate) fn migrate_release_records(
 		migrated.push('\n');
 		let is_current =
 			!schema_version.legacy && from_schema_version == RELEASE_RECORD_SCHEMA_VERSION;
+
 		let status = if is_current {
 			ReleaseRecordMigrationStatus::Current
 		} else if dry_run {
@@ -150,6 +153,7 @@ pub(crate) fn migrate_release_records(
 			})?;
 			ReleaseRecordMigrationStatus::Migrated
 		};
+
 		records.push(ReleaseRecordMigrationEntry {
 			path: root_relative_string(root, &path),
 			status,
@@ -183,15 +187,19 @@ pub(crate) fn migrate_release_records(
 
 fn release_record_paths(root: &Path) -> MonochangeResult<Vec<PathBuf>> {
 	let releases_dir = root.join(".monochange/releases");
+
 	if !releases_dir.exists() {
 		return Ok(Vec::new());
 	}
+
 	let mut paths = Vec::new();
+
 	for entry in fs::read_dir(&releases_dir)
 		.map_err(|error| MonochangeError::Io(format!("read release records dir: {error}")))?
 		.flatten()
 	{
 		let path = entry.path().join("release.json");
+
 		if path.is_file() {
 			paths.push(path);
 		}
@@ -216,6 +224,7 @@ fn release_record_schema_version(json_text: &str) -> MonochangeResult<ReleaseRec
 			"release record json root must be an object".to_string(),
 		));
 	};
+
 	if let Some(version) = object
 		.get("schema_version")
 		.or_else(|| object.get("schemaVersion"))
@@ -226,6 +235,7 @@ fn release_record_schema_version(json_text: &str) -> MonochangeResult<ReleaseRec
 			legacy: false,
 		});
 	}
+
 	if object
 		.get("schema_version")
 		.or_else(|| object.get("schemaVersion"))
@@ -237,12 +247,14 @@ fn release_record_schema_version(json_text: &str) -> MonochangeResult<ReleaseRec
 			legacy: true,
 		});
 	}
+
 	if let Some(version) = object.get("v").and_then(serde_json::Value::as_str) {
 		return Ok(ReleaseRecordSchemaVersion {
 			version: version.to_string(),
 			legacy: true,
 		});
 	}
+
 	Err(MonochangeError::Config(
 		"release record is missing `schema_version` or legacy `schemaVersion`/`v`".to_string(),
 	))
@@ -273,6 +285,7 @@ fn text_release_record_migration_report(report: &ReleaseRecordMigrationReport) -
 	let mut text = TextReport::new(TextTheme::for_stdout());
 	let schema = format!("schema {}", report.current_schema_version);
 	let scanned = plural(report.scanned, "release record", "release records");
+
 	if report.migrated == 0 {
 		text.headline(
 			Outcome::Success,
@@ -292,6 +305,7 @@ fn text_release_record_migration_report(report: &ReleaseRecordMigrationReport) -
 			&[],
 		);
 	}
+
 	if !report.records.is_empty() {
 		text.section("Records", Some(report.records.len()));
 		let rows = report
@@ -303,6 +317,7 @@ fn text_release_record_migration_report(report: &ReleaseRecordMigrationReport) -
 					ReleaseRecordMigrationStatus::Migrated => ("migrated", Tone::Success),
 					ReleaseRecordMigrationStatus::WouldMigrate => ("would migrate", Tone::Accent),
 				};
+
 				vec![
 					TableCell::plain(&record.path),
 					TableCell::new(status, tone),
@@ -318,6 +333,7 @@ fn text_release_record_migration_report(report: &ReleaseRecordMigrationReport) -
 			.collect::<Vec<_>>();
 		text.table(&rows);
 	}
+
 	text.render()
 }
 
@@ -397,6 +413,7 @@ pub(crate) fn audit_migration(root: &Path) -> MonochangeResult<MigrationAuditRep
 		"release.toml",
 		"cargo-release configuration detected",
 	);
+
 	add_path_signal(
 		root,
 		&mut signals,
@@ -405,6 +422,7 @@ pub(crate) fn audit_migration(root: &Path) -> MonochangeResult<MigrationAuditRep
 		"mdt.toml",
 		"mdt changelog provider detected; compare generated changelogs with monochange changelog sections",
 	);
+
 	for path in ["CHANGELOG.md", "changelog.md"] {
 		add_path_signal(
 			root,
@@ -500,8 +518,10 @@ fn detect_workflow_release_tools(
 	signals: &mut Vec<MigrationAuditSignal>,
 ) -> MonochangeResult<()> {
 	let workflows = root.join(".github/workflows");
+
 	let entries = match fs::read_dir(&workflows) {
 		Ok(entries) => entries,
+
 		Err(error) if error.kind() == ErrorKind::NotFound => return Ok(()),
 		Err(error) => {
 			return Err(MonochangeError::Io(format!(
@@ -513,9 +533,11 @@ fn detect_workflow_release_tools(
 
 	for entry in entries.flatten() {
 		let path = entry.path();
+
 		if !is_workflow_file(&path) {
 			continue;
 		}
+
 		let contents = fs::read_to_string(&path).map_err(|error| {
 			MonochangeError::Io(format!("failed to read {}: {error}", path.display()))
 		})?;
@@ -566,6 +588,7 @@ fn is_workflow_file(path: &Path) -> bool {
 fn optional_read_to_string(path: &Path) -> MonochangeResult<Option<String>> {
 	match fs::read_to_string(path) {
 		Ok(contents) => Ok(Some(contents)),
+
 		Err(error) if error.kind() == ErrorKind::NotFound => Ok(None),
 		Err(error) => {
 			Err(MonochangeError::Io(format!(
@@ -618,6 +641,7 @@ fn build_recommendations(signals: &[MigrationAuditSignal]) -> Vec<MigrationAudit
 	let has_ci = signals.iter().any(|signal| signal.kind == "ci-workflow");
 
 	let mut recommendations = Vec::new();
+
 	if !has_monochange {
 		recommendations.push(MigrationAuditRecommendation {
 			id: "generate-config".to_string(),
@@ -625,6 +649,7 @@ fn build_recommendations(signals: &[MigrationAuditSignal]) -> Vec<MigrationAudit
 			detail: "Run `monochange init --provider github` or create `monochange.toml` manually, then review package groups, changelog sections, and publish settings.".to_string(),
 		});
 	}
+
 	if has_legacy_release_tool {
 		recommendations.push(MigrationAuditRecommendation {
 			id: "translate-release-tooling".to_string(),
@@ -632,6 +657,7 @@ fn build_recommendations(signals: &[MigrationAuditSignal]) -> Vec<MigrationAudit
 			detail: "Map legacy release rules, package ordering, tag formats, and release notes into monochange release commands before removing old tooling.".to_string(),
 		});
 	}
+
 	if has_changelog {
 		recommendations.push(MigrationAuditRecommendation {
 			id: "audit-changelogs".to_string(),
@@ -639,6 +665,7 @@ fn build_recommendations(signals: &[MigrationAuditSignal]) -> Vec<MigrationAudit
 			detail: "Compare existing changelog files and providers with monochange changelog recommendations so releases do not produce duplicate or divergent notes.".to_string(),
 		});
 	}
+
 	if has_ci {
 		recommendations.push(MigrationAuditRecommendation {
 			id: "replace-ci-workflows".to_string(),
@@ -646,6 +673,7 @@ fn build_recommendations(signals: &[MigrationAuditSignal]) -> Vec<MigrationAudit
 			detail: "Update CI to run `monochange check`, release planning, `monochange step publish-readiness`, and trusted publishing setup before deleting the legacy workflow.".to_string(),
 		});
 	}
+
 	if has_legacy_release_tool || !has_monochange {
 		recommendations.push(MigrationAuditRecommendation {
 			id: "trusted-publishing-checklist".to_string(),
@@ -680,6 +708,7 @@ fn render_migration_audit_report(
 fn render_text_report(report: &MigrationAuditReport) -> String {
 	let mut text = TextReport::new(TextTheme::for_stdout());
 	let signals = plural(report.signals.len(), "signal", "signals");
+
 	match report.status {
 		MigrationAuditStatus::Ready => {
 			text.headline(Outcome::Success, "No migration needed", &[signals]);
@@ -688,7 +717,9 @@ fn render_text_report(report: &MigrationAuditReport) -> String {
 			text.headline(Outcome::Warning, "Migration needed", &[signals]);
 		}
 	}
+
 	text.fields(&[("Workspace", report.root.clone())]);
+
 	if !report.signals.is_empty() {
 		text.section("Signals", Some(report.signals.len()));
 		let rows = report
@@ -705,6 +736,7 @@ fn render_text_report(report: &MigrationAuditReport) -> String {
 			.collect::<Vec<_>>();
 		text.table(&rows);
 	}
+
 	if !report.recommendations.is_empty() {
 		text.section("Recommendations", Some(report.recommendations.len()));
 		text.list(
@@ -714,6 +746,7 @@ fn render_text_report(report: &MigrationAuditReport) -> String {
 			usize::MAX,
 		);
 	}
+
 	if !report.next_steps.is_empty() {
 		text.section("Next steps", None);
 		text.list(
@@ -725,6 +758,7 @@ fn render_text_report(report: &MigrationAuditReport) -> String {
 			usize::MAX,
 		);
 	}
+
 	text.render()
 }
 

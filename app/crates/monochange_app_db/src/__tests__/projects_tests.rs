@@ -167,6 +167,7 @@ async fn slugs_are_unique_within_an_organisation() {
 	let duplicate = create_project(&pool, organization, 1, &draft("invoices", vec![]))
 		.await
 		.unwrap_err();
+
 	assert!(matches!(duplicate, ProjectStoreError::SlugTaken(ref slug) if slug == "invoices"));
 	assert_eq!(
 		duplicate.to_string(),

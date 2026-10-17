@@ -93,7 +93,6 @@ async fn main() -> Result<(), MonochangeError> {
 	let secrets = resolved_secrets.secrets;
 	let database_url = secrets.database_url.clone();
 	// patch-coverage:ignore-end
-
 	// Create database connection pool
 	info!("Connecting to database...");
 	let pool = monochange_app_db::create_pool(&database_url)

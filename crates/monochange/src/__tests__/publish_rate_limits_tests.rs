@@ -88,10 +88,12 @@ fn plan_unbatched_publish_order_for_requests(
 		.collect::<BTreeMap<_, _>>();
 	let mut requests_by_registry =
 		BTreeMap::<RegistryKind, Vec<&package_publish::PublishRequest>>::new();
+
 	for request in requests {
 		if request.mode == monochange_core::PublishMode::External {
 			continue;
 		}
+
 		requests_by_registry
 			.entry(request.registry)
 			.or_default()
@@ -100,6 +102,7 @@ fn plan_unbatched_publish_order_for_requests(
 
 	let mut batches = Vec::new();
 	let mut windows = Vec::new();
+
 	for (registry, requests) in requests_by_registry {
 		let policy = policies
 			.get(&registry)
@@ -153,12 +156,14 @@ fn copy_fixture_entry(source: &Path, destination: &Path, current: &Path) {
 	if metadata.is_dir() {
 		fs::create_dir_all(&target)
 			.unwrap_or_else(|error| panic!("create fixture dir {}: {error}", target.display()));
+
 		for entry in fs::read_dir(current)
 			.unwrap_or_else(|error| panic!("read fixture dir {}: {error}", current.display()))
 		{
 			let entry = entry.unwrap_or_else(|error| panic!("fixture dir entry: {error}"));
 			copy_fixture_entry(source, destination, &entry.path());
 		}
+
 		return;
 	}
 
@@ -166,6 +171,7 @@ fn copy_fixture_entry(source: &Path, destination: &Path, current: &Path) {
 		fs::create_dir_all(parent)
 			.unwrap_or_else(|error| panic!("create fixture parent {}: {error}", parent.display()));
 	}
+
 	fs::copy(current, &target)
 		.unwrap_or_else(|error| panic!("copy fixture {}: {error}", current.display()));
 }
@@ -207,6 +213,7 @@ fn publish_request(package_id: &str, registry: RegistryKind) -> package_publish:
 		RegistryKind::Npm => monochange_core::Ecosystem::Npm,
 		other => panic!("unsupported test registry: {other}"),
 	};
+
 	sample_publish_request(package_id, ecosystem, registry, PublishMode::Builtin)
 }
 
@@ -219,6 +226,7 @@ fn dependency_levels(dependencies: &BTreeMap<&str, Vec<&str>>) -> BTreeMap<usize
 		if let Some(rank) = ranks.get(package) {
 			return *rank;
 		}
+
 		let package_rank = dependencies.get(package).map_or(0, |package_dependencies| {
 			package_dependencies
 				.iter()
@@ -231,14 +239,17 @@ fn dependency_levels(dependencies: &BTreeMap<&str, Vec<&str>>) -> BTreeMap<usize
 	}
 
 	let mut ranks = BTreeMap::new();
+
 	for package in dependencies.keys() {
 		rank(package, dependencies, &mut ranks);
 	}
 
 	let mut levels = BTreeMap::<usize, Vec<String>>::new();
+
 	for (package, rank) in ranks {
 		levels.entry(rank).or_default().push(package.to_string());
 	}
+
 	levels
 }
 
@@ -254,6 +265,7 @@ fn dependency_packages(
 				monochange_core::Ecosystem::Npm => "package.json",
 				_ => "manifest",
 			};
+
 			let mut record = monochange_core::PackageRecord::new(
 				ecosystem,
 				*package,
@@ -328,14 +340,19 @@ fn render_publish_dependency_snapshot(
 	let crate_levels = dependency_levels(crate_dependencies);
 	let npm_levels = dependency_levels(npm_dependencies);
 	let mut lines = vec!["dependency ranks:".to_string(), "  crates_io:".to_string()];
+
 	for (rank, packages) in crate_levels {
 		lines.push(format!("    rank {rank}: {}", packages.join(", ")));
 	}
+
 	lines.push("  npm:".to_string());
+
 	for (rank, packages) in npm_levels {
 		lines.push(format!("    rank {rank}: {}", packages.join(", ")));
 	}
+
 	lines.push("planned batches:".to_string());
+
 	for batch in &report.batches {
 		lines.push(format!(
 			"  {} batch {}/{}: {}",
@@ -345,6 +362,7 @@ fn render_publish_dependency_snapshot(
 			batch.packages.join(", ")
 		));
 	}
+
 	lines.join("\n")
 }
 
@@ -1046,6 +1064,7 @@ async fn plan_publish_rate_limits_skips_versions_that_are_already_published() {
 		when.method(GET).path("/docs");
 		then.status(404);
 	});
+
 	server.mock(|when, then| {
 		when.method(GET).path("/web");
 		then.status(404);
@@ -1119,6 +1138,7 @@ async fn build_placeholder_plan_requests_skips_packages_when_any_registry_versio
 		when.method(GET).path("/docs");
 		then.status(404);
 	});
+
 	server.mock(|when, then| {
 		when.method(GET).path("/web");
 		then.status(404);
@@ -1206,6 +1226,7 @@ async fn plan_publish_rate_limits_preserves_large_dependency_chain_across_limite
 		plan_publish_rate_limits_for_requests(&requests, RateLimitOperation::Publish, true);
 
 	assert_eq!(report.batches.len(), 5);
+
 	for (batch_index, batch) in report.batches.iter().enumerate() {
 		let expected_start = batch_index * 10;
 		let expected_end = expected_start + 10;
@@ -1622,6 +1643,7 @@ async fn test_sort_requests_by_dependencies_orders_dependencies_first() {
 			fail_on_duplicate: false,
 		},
 	];
+
 	sort_requests_by_dependencies(&mut requests, &packages);
 	assert_eq!(requests[0].package_id, helper.id);
 	assert_eq!(requests[1].package_id, dependent.id);
@@ -1705,6 +1727,7 @@ async fn test_sort_requests_by_dependencies_keeps_original_order_on_cycle() {
 		},
 	];
 	sort_requests_by_dependencies(&mut requests, &packages);
+
 	// With a cycle, we expect the original order to be preserved
 	assert_eq!(requests[0].package_id, original_ids[0]);
 	assert_eq!(requests[1].package_id, original_ids[1]);

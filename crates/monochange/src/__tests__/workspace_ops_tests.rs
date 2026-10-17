@@ -43,6 +43,7 @@ fn collect_workspace_file_updates(
 	for update in base_updates {
 		if let Some(parent) = update.path.parent() {
 			let normalized = monochange_core::normalize_path(parent);
+
 			if let Ok(relative) = normalized.strip_prefix(&normalized_root) {
 				dirs_to_scan.insert(relative.to_path_buf());
 			}
@@ -51,6 +52,7 @@ fn collect_workspace_file_updates(
 
 	for command in lockfile_commands {
 		let normalized = monochange_core::normalize_path(&command.cwd);
+
 		if let Ok(relative) = normalized.strip_prefix(&normalized_root) {
 			dirs_to_scan.insert(relative.to_path_buf());
 		} else {
@@ -66,9 +68,11 @@ fn collect_workspace_file_updates(
 	for dir in &dirs_to_scan {
 		let original_dir = root.join(dir);
 		let temp_dir = temp_root.join(dir);
+
 		if original_dir.is_dir() {
 			collect_workspace_files(root, &original_dir, &mut relative_paths)?;
 		}
+
 		if temp_dir.is_dir() {
 			collect_workspace_files(temp_root, &temp_dir, &mut relative_paths)?;
 		}
@@ -79,6 +83,7 @@ fn collect_workspace_file_updates(
 	for relative in relative_paths {
 		let before = read_optional_file(&root.join(&relative))?;
 		let after = read_optional_file(&temp_root.join(&relative))?;
+
 		if let Some(content) = after.filter(|content| before.as_ref() != Some(content)) {
 			updates.push(FileUpdate {
 				path: root.join(relative),
@@ -181,8 +186,10 @@ fn retry_while_text_file_busy<T>(
 	mut run: impl FnMut() -> MonochangeResult<T>,
 ) -> MonochangeResult<T> {
 	let mut attempts = 0;
+
 	loop {
 		let result = run();
+
 		match &result {
 			Err(error) if attempts < 50 && error.to_string().contains("Text file busy") => {
 				attempts += 1;
@@ -235,17 +242,21 @@ fn sample_changeset_with_context() -> PreparedChangeset {
 fn sample_source(provider: SourceProvider) -> SourceConfiguration {
 	SourceConfiguration {
 		provider,
+
 		host: match provider {
 			SourceProvider::Gitea | SourceProvider::Forgejo => {
 				Some("https://codeberg.org".to_string())
 			}
 			SourceProvider::GitHub | SourceProvider::GitLab => None,
 		},
+
 		api_url: None,
+
 		owner: match provider {
 			SourceProvider::GitLab => "group".to_string(),
 			_ => "org".to_string(),
 		},
+
 		repo: "monochange".to_string(),
 		releases: ProviderReleaseSettings::default(),
 		pull_requests: ProviderMergeRequestSettings::default(),
@@ -360,6 +371,7 @@ fn init_rendering_helpers_cover_duplicate_names_changelogs_and_package_types() {
 		"[package]\nname = \"core\"\nversion = \"1.0.0\"\nedition = \"2021\"\n",
 	)
 	.unwrap();
+
 	fs::write(
 		root.join("packages/core/package.json"),
 		r#"{ "name": "core", "version": "1.0.0" }"#,
@@ -398,6 +410,7 @@ fn init_rendering_helpers_cover_duplicate_names_changelogs_and_package_types() {
 	assert!(rendered.contains("type = \"dart\""));
 	assert!(rendered.contains("changelog = \"packages/core/changelog.md\""));
 	assert!(rendered.contains("packages/core"));
+
 	assert!(
 		rendered.contains("[package.\"@acme/sdk\"]"),
 		"scoped npm ids must render as quoted TOML keys:\n{rendered}"
@@ -686,12 +699,15 @@ path = "packages/web"
 #[test]
 fn run_lockfile_command_reports_parse_spawn_and_exit_failures() {
 	let fixture = setup_workspace_ops_fixture();
+
 	for script in ["fail-no-stderr", "fail-stderr"] {
 		make_executable(&fixture.path().join("tools/bin").join(script));
 	}
+
 	let temp_root = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	copy_workspace_tree(fixture.path(), temp_root.path())
 		.unwrap_or_else(|error| panic!("copy workspace: {error}"));
+
 	for script in ["fail-no-stderr", "fail-stderr"] {
 		make_executable(&temp_root.path().join("tools/bin").join(script));
 	}
@@ -1128,6 +1144,7 @@ fn lockfile_update_helpers_cover_missing_dirs_unreadable_files_and_stderr_paths(
 	#[cfg(unix)]
 	{
 		use std::os::unix::fs::PermissionsExt;
+
 		fs::set_permissions(&unreadable_file, fs::Permissions::from_mode(0o000)).unwrap();
 	}
 	let snapshot_error = snapshot_directory_files(root, &unreadable_dir, &mut BTreeMap::new())
@@ -2474,7 +2491,6 @@ async fn prepare_release_execution_with_configuration_uses_passed_configuration(
 }
 
 // -- seed_versions_from_tag_list --
-
 #[rstest::rstest]
 #[case::package("go/custom-tag-baseline/workspace")]
 #[case::group("go/custom-group-tag-baseline/workspace")]
@@ -2487,6 +2503,7 @@ fn seed_custom_tag_baseline_uses_configured_owner_instead_of_native_name(#[case]
 	let tags = std::fs::read_to_string(tag_path).expect("read tag fixture");
 	let tags = tags.lines().map(str::to_string).collect::<Vec<_>>();
 	seed_versions_from_tag_list(&configuration, &mut discovery, &tags);
+
 	assert_eq!(
 		discovery
 			.packages
@@ -2516,11 +2533,13 @@ fn go_release_record(config_id: Option<&str>) -> monochange_core::PackageRecord 
 		None,
 		monochange_core::PublishState::Public,
 	);
+
 	if let Some(config_id) = config_id {
 		record
 			.metadata
 			.insert("config_id".to_string(), config_id.to_string());
 	}
+
 	record
 }
 
@@ -2664,7 +2683,6 @@ fn seed_versions_from_tag_list_skips_packages_without_tagging() {
 }
 
 // -- version_source / initial_version seeding --
-
 #[test]
 fn seed_versions_from_tag_list_honors_version_source_tag_on_manifest_packages() {
 	let fixture = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
@@ -2756,6 +2774,7 @@ fn seed_versions_from_tag_list_ignores_manifest_version_source() {
 		None,
 		monochange_core::PublishState::Public,
 	);
+
 	unversioned
 		.metadata
 		.insert("config_id".to_string(), "other".to_string());
@@ -2803,7 +2822,6 @@ fn github_actions_definition(id: &str, path: &str) -> monochange_core::PackageDe
 }
 
 // -- github_actions package loading --
-
 #[test]
 fn load_configured_github_actions_package_prefers_action_yaml_and_stamps_config_id() {
 	let fixture = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
@@ -2893,9 +2911,11 @@ fn frozen_record_json(with_values: bool, with_labels: bool) -> String {
 		"updatedChangelogs": [],
 		"deletedChangesets": [],
 	});
+
 	if with_values {
 		record["values"] = serde_json::json!({"app.build": "5"});
 	}
+
 	if with_labels {
 		record["labels"] = serde_json::json!({"app": "2026.9.1"});
 		record["labelInputs"] = serde_json::json!({
@@ -2906,6 +2926,7 @@ fn frozen_record_json(with_values: bool, with_labels: bool) -> String {
 			"ofYear": 1
 		});
 	}
+
 	record.to_string()
 }
 

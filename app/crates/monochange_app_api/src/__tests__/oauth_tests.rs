@@ -28,6 +28,7 @@ fn valid_state_requires_the_initiating_browser_cookie() {
 		verify_login_state(SECRET, &jar, "another-browser-state"),
 		Err(StatusCode::UNAUTHORIZED)
 	);
+
 	assert_eq!(
 		verify_login_state(SECRET, &jar, ""),
 		Err(StatusCode::UNAUTHORIZED)
@@ -60,6 +61,7 @@ fn rejects_expired_tampered_and_wrongly_signed_state() {
 	);
 	let pending = login_state(SECRET).unwrap();
 	let jar = CookieJar::new().add(pending.cookie);
+
 	assert_eq!(
 		verify_login_state("wrong-signing-key", &jar, &pending.state),
 		Err(StatusCode::UNAUTHORIZED)
@@ -76,6 +78,7 @@ fn state_is_unique_and_cookies_are_host_bound_and_secure() {
 	assert_eq!(cookie.path(), Some("/"));
 	assert_eq!(cookie.domain(), None);
 	assert_eq!(cookie.http_only(), Some(true));
+
 	assert_eq!(cookie.secure(), Some(true));
 	assert_eq!(cookie.same_site(), Some(SameSite::Lax));
 	assert_eq!(cookie.max_age(), Some(time::Duration::minutes(10)));
@@ -106,6 +109,7 @@ fn session_cookie_and_logout_keep_the_same_security_attributes() {
 	assert_eq!(cookie.secure(), Some(true));
 	assert_eq!(cookie.same_site(), Some(SameSite::Lax));
 	assert_eq!(cookie.max_age(), Some(time::Duration::days(7)));
+
 	let cleared = session_cookie(String::new());
 	assert_eq!(cleared.name(), SESSION_COOKIE_NAME);
 	assert_eq!(cleared.max_age(), Some(time::Duration::ZERO));

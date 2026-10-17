@@ -89,6 +89,7 @@ pub(crate) mod feedback {
 		.unwrap();
 		drop(connection);
 		sqlx::query("INSERT INTO projects (id, organization_id, slug, name, description) VALUES (1, $1, 'pocketbook', 'Pocketbook', 'Invoicing')").bind(organization).execute(&db).await.unwrap();
+
 		sqlx::query("INSERT INTO project_repositories (project_id, repository_external_id, full_name) VALUES (1, 11, 'alice/web'), (1, 12, 'alice/api')").execute(&db).await.unwrap();
 		let secrets: AppSecrets = serde_json::from_value(serde_json::json!({
 			"database_url": "sqlite::memory:",
@@ -111,26 +112,31 @@ pub(crate) mod feedback {
 		let response = ResponseOptions::default();
 		let mut request = Request::new(());
 		let mut cookies = Vec::new();
+
 		if let Some(user) = user {
 			let (github_id, login) = if user == 1 {
 				(101, "alice")
 			} else {
 				(202, "bob")
 			};
+
 			let token = create_token(&state.jwt_secret, user, github_id, login).unwrap();
 			cookies.push(format!("{}={token}", oauth::SESSION_COOKIE_NAME));
 		}
+
 		if let Some(viewer) = viewer {
 			cookies.push(format!(
 				"{}={viewer}",
 				crate::server_fns::portal::VIEWER_COOKIE
 			));
 		}
+
 		if !cookies.is_empty() {
 			request
 				.headers_mut()
 				.insert(COOKIE, cookies.join("; ").parse().unwrap());
 		}
+
 		let (parts, ()) = request.into_parts();
 		owner.with(|| {
 			provide_context(state.clone());
@@ -171,7 +177,6 @@ pub(crate) mod feedback {
 }
 
 // ── AppError tests ──
-
 #[rstest]
 #[case(AppError::NotFound("test".into()), 404)]
 #[case(AppError::Unauthorized, 401)]
@@ -214,7 +219,6 @@ fn test_app_error_debug() {
 }
 
 // ── ColorMode tests ──
-
 #[rstest]
 fn test_color_mode_as_str() {
 	assert_eq!(ColorMode::Light.as_str(), "light");
@@ -249,7 +253,6 @@ fn test_color_mode_debug() {
 }
 
 // ── Color mode state tests (require WASM or browser env) ──
-
 #[cfg(target_arch = "wasm32")]
 mod color_mode_state_tests {
 	use super::*;

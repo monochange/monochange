@@ -6,7 +6,6 @@ use std::collections::BTreeSet;
 use monochange_core::VersionStrategy;
 
 // --- sync_internal_dependency_versions tests ---
-
 #[test]
 fn sync_dart_detects_string_internal_deps() {
 	let pubspec = r"
@@ -28,6 +27,7 @@ dependencies:
 	assert_eq!(changes.len(), 1);
 	assert_eq!(changes[0].dependency_name, "my_package");
 	assert_eq!(changes[0].old_value, "^0.5.0");
+
 	assert_eq!(changes[0].new_value, "^0.7.0");
 	assert_eq!(changes[0].section, "dependencies");
 }
@@ -169,6 +169,7 @@ dependency_overrides:
 	assert_eq!(changes.len(), 2);
 	let sections: Vec<&str> = changes.iter().map(|c| c.section.as_str()).collect();
 	assert!(sections.contains(&"dev_dependencies"));
+
 	assert!(sections.contains(&"dependency_overrides"));
 }
 

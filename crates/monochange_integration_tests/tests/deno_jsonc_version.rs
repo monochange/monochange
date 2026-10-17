@@ -43,6 +43,7 @@ async fn init_supports_deno_jsonc_through_release_preparation() {
 		&["step", "prepare-release", "--dry-run", "--format", "json"],
 	)
 	.await;
+
 	let dry_run: Value = serde_json::from_str(&dry_run)
 		.unwrap_or_else(|error| panic!("parse dry-run release: {error}"));
 	insta::assert_json_snapshot!(dry_run["plan"]);

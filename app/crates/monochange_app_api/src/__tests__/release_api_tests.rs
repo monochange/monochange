@@ -186,7 +186,6 @@ async fn stale_release_commit_is_a_conflict() {
 }
 
 // ── POST /api/release-commits through the real router ──
-
 const API_TOKEN: &str = "test-only-api-token";
 
 fn test_private_key() -> &'static str {
@@ -322,6 +321,7 @@ async fn release_commit_endpoint_refreshes_an_existing_release_branch() {
 			"verification": { "verified": true, "reason": "valid" },
 		}));
 	});
+
 	let update = github.mock(|when, then| {
 		when.method(Method::PATCH)
 			.path("/repos/acme/actions/git/refs/heads/monochange/release/release")
