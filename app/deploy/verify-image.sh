@@ -19,19 +19,16 @@ docker run -d --name "$name" -p 127.0.0.1:3000:3000 \
 	--mount "type=bind,source=$token,target=/run/secrets/onepassword_service_account_token,readonly" \
 	-e MONOSECRET_PROFILE=production -e MONOSECRET_PROVIDER=env \
 	-e OP_SERVICE_ACCOUNT_TOKEN_FILE=/run/secrets/onepassword_service_account_token \
-	-e DATABASE_URL=sqlite:///data/monochange_app.sqlite3
-
--e JWT_SECRET=ci-docker-test-signing-key-not-a-secret \
+	-e DATABASE_URL=sqlite:///data/monochange_app.sqlite3 \
+	-e JWT_SECRET=ci-docker-test-signing-key-not-a-secret \
 	-e GITHUB_CLIENT_ID=ci-docker-client -e GITHUB_CLIENT_SECRET=ci-docker-client-secret "$image"
 curl --fail --silent --show-error --retry 20 --retry-all-errors --retry-delay 1 \
 	--retry-max-time 60 --max-time 5 http://127.0.0.1:3000/health | jq -e '.status == "ok" and .http == "up"'
 docker exec "$name" sh -c 'test "$(awk "/^Uid:/{print \$2}" /proc/1/status)" = 1000'
 docker exec "$name" sh -c 'test "$(awk "/^NoNewPrivs:/{print \$2}" /proc/1/status)" = 1'
-
 for path in / /changelog /book /book/guide/02-setup /book-assets/branding/logo-280.png /icons/github.svg /icons/rust.svg /pkg/monochange_app.js /pkg/monochange_app.wasm /pkg/monochange_app.css; do
 	curl --fail --silent --show-error "http://127.0.0.1:3000$path" -o /dev/null
 done
-
 if [ -n "$version" ]; then
 	curl --fail --silent --show-error "http://127.0.0.1:3000/releases/$version.json" |
 		jq -e --arg version "$version" '.title == $version'
