@@ -4,6 +4,8 @@
 )]
 #![forbid(clippy::indexing_slicing)]
 #![doc = include_str!("crate_docs.md")]
+use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 use std::env;
 use std::fmt::Write as _;
 use std::path::Path;
@@ -681,12 +683,26 @@ async fn enrich_changeset_context_with_client(
 				BTreeMap::new()
 			});
 
+	let candidate_issues = review_requests_by_sha
+		.values()
+		.flatten()
+		.flat_map(|review_request| review_request.issues.iter())
+		.filter_map(|issue| issue_number_from_id(&issue.id))
+		.collect::<BTreeSet<_>>();
+	let resolved_issues = resolve_issue_references_with_client(client, source, &candidate_issues)
+		.await
+		.map_err(|error| {
+			tracing::warn!(references = candidate_issues.len(), %error, "failed to resolve GitHub issue references; keeping only closing-keyword references");
+		})
+		.ok();
+
 	for changeset in changesets.iter_mut() {
 		let Some(context) = changeset.context.as_mut() else {
 			continue;
 		};
 
 		let mut issues_by_id = BTreeMap::<String, HostedIssueRef>::new();
+		let mut issues_attributed = false;
 
 		for revision in [&mut context.introduced, &mut context.last_updated] {
 			let Some(revision) = revision.as_mut() else {
@@ -701,8 +717,19 @@ async fn enrich_changeset_context_with_client(
 				.get(&commit.sha)
 				.and_then(Clone::clone)
 			{
-				for issue in related_review_request.issues {
-					issues_by_id.entry(issue.id.clone()).or_insert(issue);
+				// Related issues come from the review request that introduced the
+				// changeset. A later review request that only edited the file
+				// (a reformat, a revert, a mass edit) must not stamp its own
+				// references on every changeset it touched.
+				if !issues_attributed {
+					issues_attributed = true;
+					for issue in related_review_request.issues {
+						let Some(issue) = resolve_issue_reference(issue, resolved_issues.as_ref())
+						else {
+							continue;
+						};
+						issues_by_id.entry(issue.id.clone()).or_insert(issue);
+					}
 				}
 
 				revision.review_request = Some(related_review_request.review_request.clone());
@@ -720,6 +747,127 @@ async fn enrich_changeset_context_with_client(
 
 		context.related_issues = issues_by_id.into_values().collect();
 	}
+}
+
+/// An issue that GitHub confirmed exists in the release repository.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ResolvedIssue {
+	title: Option<String>,
+	url: Option<String>,
+}
+
+/// Keep `issue` only when GitHub resolved its number to an issue.
+///
+/// Issues and pull requests share one number space, so `#N` alone does not
+/// say which one it is. When resolution failed, only references the author
+/// claimed with a closing keyword are kept, without a title.
+fn resolve_issue_reference(
+	mut issue: HostedIssueRef,
+	resolved_issues: Option<&BTreeMap<u64, ResolvedIssue>>,
+) -> Option<HostedIssueRef> {
+	let Some(resolved_issues) = resolved_issues else {
+		return (issue.relationship == HostedIssueRelationshipKind::ClosedByReviewRequest)
+			.then_some(issue);
+	};
+	let resolved = resolved_issues.get(&issue_number_from_id(&issue.id)?)?;
+
+	issue.title.clone_from(&resolved.title);
+	if resolved.url.is_some() {
+		issue.url.clone_from(&resolved.url);
+	}
+
+	Some(issue)
+}
+
+fn issue_number_from_id(id: &str) -> Option<u64> {
+	id.strip_prefix('#')?.parse().ok()
+}
+
+/// Ask GitHub which of `numbers` are issues, as opposed to pull requests or
+/// numbers that do not exist in the repository.
+async fn resolve_issue_references_with_client(
+	client: &Octocrab,
+	source: &SourceConfiguration,
+	numbers: &BTreeSet<u64>,
+) -> MonochangeResult<BTreeMap<u64, ResolvedIssue>> {
+	let mut resolved = BTreeMap::new();
+	let numbers = numbers.iter().copied().collect::<Vec<_>>();
+
+	for chunk in numbers.chunks(ISSUE_RESOLUTION_BATCH_SIZE) {
+		let query = build_issue_resolution_query(&source.owner, &source.repo, chunk);
+		// Posted directly rather than through `Octocrab::graphql`, which turns
+		// the partial success GitHub returns for an unknown number (a `null`
+		// node plus an `errors` entry) into a failure for the whole batch.
+		let response = client
+			.post::<_, serde_json::Value>("/graphql", Some(&json!({ "query": query })))
+			.await
+			.map_err(|error| {
+				MonochangeError::Config(format!(
+					"failed to resolve {} GitHub issue reference(s): {error}",
+					chunk.len()
+				))
+			})?;
+		resolved.extend(parse_issue_resolution_response(&response, chunk)?);
+	}
+
+	Ok(resolved)
+}
+
+const ISSUE_RESOLUTION_BATCH_SIZE: usize = 100;
+
+fn build_issue_resolution_query(owner: &str, repo: &str, numbers: &[u64]) -> String {
+	let mut query = format!("query {{ repository(owner: \"{owner}\", name: \"{repo}\") {{");
+
+	for number in numbers {
+		let _ = write!(
+			query,
+			" issue_{number}: issueOrPullRequest(number: {number}) {{ __typename ... on Issue {{ title url }} }}"
+		);
+	}
+
+	query.push_str(" } }");
+	query
+}
+
+/// Read the issue nodes out of an issue-resolution response.
+///
+/// GitHub answers an unknown number with a `null` node and an entry in
+/// `errors`, so a missing node only drops that number.
+fn parse_issue_resolution_response(
+	response: &serde_json::Value,
+	numbers: &[u64],
+) -> MonochangeResult<BTreeMap<u64, ResolvedIssue>> {
+	let repository = response
+		.get("repository")
+		.or_else(|| response.get("data").and_then(|data| data.get("repository")))
+		.and_then(serde_json::Value::as_object)
+		.ok_or_else(|| {
+			MonochangeError::Config(
+				"GitHub issue-reference lookup returned no repository payload".to_string(),
+			)
+		})?;
+
+	Ok(numbers
+		.iter()
+		.filter_map(|number| {
+			let node = repository.get(&format!("issue_{number}"))?;
+			if node.get("__typename").and_then(serde_json::Value::as_str) != Some("Issue") {
+				return None;
+			}
+			let text = |field: &str| {
+				node.get(field)
+					.and_then(serde_json::Value::as_str)
+					.map(str::to_string)
+			};
+			Some((
+				*number,
+				ResolvedIssue {
+					title: text("title"),
+					url: text("url"),
+				},
+			))
+		})
+		.collect())
 }
 
 fn collect_review_request_lookup_shas(changesets: &[PreparedChangeset]) -> Vec<String> {
@@ -930,7 +1078,7 @@ fn parse_review_request_from_graphql(
 fn issue_reference_regex() -> &'static Regex {
 	static ISSUE_REFERENCE_RE: OnceLock<Regex> = OnceLock::new();
 	ISSUE_REFERENCE_RE.get_or_init(|| {
-		Regex::new(r"(?P<repo>[\w.-]+/[\w.-]+)?#(?P<number>\d+)")
+		Regex::new(r"(?P<repo>[\w.-]+(?:/[\w.-]+)?)?#(?P<number>\d+)\b")
 			.unwrap_or_else(|error| panic!("issue reference regex should compile: {error}"))
 	})
 }
@@ -943,13 +1091,10 @@ fn closing_issue_reference_regex() -> &'static Regex {
 	})
 }
 
-fn extract_closing_issue_numbers(
-	text: &str,
-	repository: Option<&str>,
-) -> std::collections::BTreeSet<u64> {
-	let mut issue_numbers = std::collections::BTreeSet::new();
+fn extract_closing_issue_numbers(text: &str, repository: Option<&str>) -> BTreeSet<u64> {
+	let mut issue_numbers = BTreeSet::new();
 
-	for captures in closing_issue_reference_regex().captures_iter(text) {
+	for captures in closing_issue_reference_regex().captures_iter(&strip_markdown_code(text)) {
 		let Some(references) = captures.name("refs") else {
 			continue;
 		};
@@ -959,15 +1104,49 @@ fn extract_closing_issue_numbers(
 	issue_numbers
 }
 
+/// Remove fenced code blocks and inline code spans, which hold logs, colours,
+/// and examples rather than references.
+fn strip_markdown_code(text: &str) -> String {
+	static INLINE_CODE_RE: OnceLock<Regex> = OnceLock::new();
+	let inline_code = INLINE_CODE_RE.get_or_init(|| {
+		Regex::new(r"`[^`\n]*`")
+			.unwrap_or_else(|error| panic!("inline code regex should compile: {error}"))
+	});
+	let mut fence: Option<&str> = None;
+	let mut prose = String::with_capacity(text.len());
+
+	for line in text.lines() {
+		let trimmed = line.trim_start();
+		let marker = ["```", "~~~"]
+			.into_iter()
+			.find(|marker| trimmed.starts_with(marker));
+
+		match (fence, marker) {
+			(None, Some(marker)) => fence = Some(marker),
+			(Some(open), Some(marker)) if open == marker => fence = None,
+			(None, None) => {
+				// A space keeps `foo`#1 from gluing `foo` onto the reference as a prefix.
+				prose.push_str(&inline_code.replace_all(line, " "));
+				prose.push('\n');
+			}
+			_ => {}
+		}
+	}
+
+	prose
+}
+
 /// Extract issue numbers from text, skipping cross-repository references.
 ///
 /// GitHub supports `owner/repo#123` shorthand for issues in other repositories.
 /// Only references without a repository prefix — or with a prefix that matches
 /// the configured repository — belong to the release repository, so prefixed
-/// references for other repositories are ignored.
-fn extract_issue_numbers(text: &str, repository: Option<&str>) -> std::collections::BTreeSet<u64> {
+/// references for other repositories are ignored. That includes the `repo#N`
+/// shorthand people write for a sibling repository, and anything inside
+/// fenced code blocks or inline code spans.
+fn extract_issue_numbers(text: &str, repository: Option<&str>) -> BTreeSet<u64> {
 	issue_reference_regex()
-		.captures_iter(text)
+		.captures_iter(&strip_markdown_code(text))
 		.filter(|captures| {
 			captures
 				.name("repo")
@@ -2268,7 +2447,6 @@ fn git_blob_mode(_metadata: &std::fs::Metadata) -> &'static str {
 	"100644"
 }
 
-use std::collections::BTreeMap;
 use std::fs;
 
 use monochange_core::TrustedPublishingSettings;

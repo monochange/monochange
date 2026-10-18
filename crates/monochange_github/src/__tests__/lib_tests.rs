@@ -2643,11 +2643,24 @@ fn git_commit_paths_treats_clean_worktrees_as_already_committed() {
 fn enrich_changeset_context_resolves_pull_requests_and_related_issues() {
 	let server = MockServer::start();
 	let lookup_review_requests = server.mock(|when, then| {
-		when.method(POST).path("/graphql");
+		when.method(POST)
+			.path("/graphql")
+			.body_includes("associatedPullRequests");
 		then.status(200)
 			.header("content-type", "application/json")
 			.body(
 				r#"{"data":{"repository":{"commit_0":{"associatedPullRequests":{"nodes":[{"number":42,"title":"Add release context","url":"https://example.com/pulls/42","body":"Closes #7\nRefs #8","author":{"login":"ifiokjr","url":"https://example.com/users/1"}}]}}}}}"#,
+			);
+	});
+	let resolve_issues = server.mock(|when, then| {
+		when.method(POST)
+			.path("/graphql")
+			.body_includes("issue_7: issueOrPullRequest(number: 7)")
+			.body_includes("issue_8: issueOrPullRequest(number: 8)");
+		then.status(200)
+			.header("content-type", "application/json")
+			.body(
+				r#"{"data":{"repository":{"issue_7":{"__typename":"Issue","title":"Release context is missing","url":"https://example.com/ifiokjr/monochange/issues/7"},"issue_8":{"__typename":"Issue","title":"Track release context"}}}}"#,
 			);
 	});
 	let github = SourceConfiguration {
@@ -2706,6 +2719,7 @@ fn enrich_changeset_context_resolves_pull_requests_and_related_issues() {
 	});
 
 	lookup_review_requests.assert();
+	resolve_issues.assert();
 	let context = changesets
 		.first()
 		.and_then(|changeset| changeset.context.as_ref())
@@ -2714,11 +2728,15 @@ fn enrich_changeset_context_resolves_pull_requests_and_related_issues() {
 	assert_eq!(context.host.as_deref(), Some("example.com"));
 	assert_eq!(context.related_issues.len(), 2);
 	assert!(context.related_issues.iter().any(|issue| {
-		issue.id == "#7" && issue.relationship == HostedIssueRelationshipKind::ClosedByReviewRequest
+		issue.id == "#7"
+			&& issue.relationship == HostedIssueRelationshipKind::ClosedByReviewRequest
+			&& issue.title.as_deref() == Some("Release context is missing")
 	}));
 	assert!(context.related_issues.iter().any(|issue| {
 		issue.id == "#8"
 			&& issue.relationship == HostedIssueRelationshipKind::ReferencedByReviewRequest
+			&& issue.title.as_deref() == Some("Track release context")
+			&& issue.url.as_deref() == Some("https://example.com/ifiokjr/monochange/issues/8")
 	}));
 	let introduced = context
 		.introduced
@@ -2745,6 +2763,273 @@ fn enrich_changeset_context_resolves_pull_requests_and_related_issues() {
 			.as_ref()
 			.and_then(|commit| commit.url.as_deref()),
 		Some("https://example.com/ifiokjr/monochange/commit/abc1234567890")
+	);
+}
+
+fn changeset_from_commits(introduced: &str, last_updated: Option<&str>) -> PreparedChangeset {
+	let revision = |sha: &str| {
+		ChangesetRevision {
+			actor: None,
+			commit: Some(HostedCommitRef {
+				provider: HostingProviderKind::GenericGit,
+				host: None,
+				sha: sha.to_string(),
+				short_sha: sha.chars().take(7).collect(),
+				url: None,
+				authored_at: None,
+				committed_at: None,
+				author_name: None,
+				author_email: None,
+			}),
+			review_request: None,
+		}
+	};
+	PreparedChangeset {
+		path: PathBuf::from(".changeset/feature.md"),
+		summary: Some("add release context".to_string()),
+		details: None,
+		targets: Vec::new(),
+		context: Some(ChangesetContext {
+			provider: HostingProviderKind::GenericGit,
+			host: None,
+			capabilities: HostingCapabilities::default(),
+			introduced: Some(revision(introduced)),
+			last_updated: last_updated.map(revision),
+			related_issues: Vec::new(),
+		}),
+	}
+}
+
+fn monochange_source() -> SourceConfiguration {
+	SourceConfiguration {
+		provider: SourceProvider::GitHub,
+		host: None,
+		api_url: None,
+		owner: "ifiokjr".to_string(),
+		repo: "monochange".to_string(),
+		releases: ProviderReleaseSettings::default(),
+		pull_requests: ProviderMergeRequestSettings::default(),
+	}
+}
+
+fn enrich_with_server(server: &MockServer, changesets: &mut [PreparedChangeset]) {
+	let source = monochange_source();
+	temp_env::with_var("GITHUB_SERVER_URL", Some("https://example.com"), || {
+		github_runtime()
+			.unwrap_or_else(|error| panic!("runtime: {error}"))
+			.block_on(async {
+				let client = build_test_client(server);
+				enrich_changeset_context_with_client(&client, &source, changesets).await;
+			});
+	});
+}
+
+fn related_issue_ids(changeset: &PreparedChangeset) -> Vec<String> {
+	changeset
+		.context
+		.as_ref()
+		.map(|context| {
+			context
+				.related_issues
+				.iter()
+				.map(|issue| issue.id.clone())
+				.collect()
+		})
+		.unwrap_or_default()
+}
+
+#[test]
+fn enrich_changeset_context_keeps_only_mentions_github_resolves_to_issues() {
+	let server = MockServer::start();
+	let body = "Closes #7\nRefs #8\nDrops the record (#569, #571).\nTracked as surfpool#802 and [pinapod#39](https://github.com/pina-rs/pinapod/pull/39).\nSee `#13` and #99.\n```text\nerror at step #14\n```";
+	let lookup = server.mock(|when, then| {
+		when.method(POST)
+			.path("/graphql")
+			.body_includes("associatedPullRequests");
+		then.status(200).json_body(serde_json::json!({
+			"data": { "repository": { "commit_0": { "associatedPullRequests": { "nodes": [{
+				"number": 568,
+				"title": "Drop pina_root",
+				"url": "https://example.com/pulls/568",
+				"body": body,
+				"author": { "login": "ifiokjr", "url": "https://example.com/users/1" }
+			}] } } } }
+		}));
+	});
+	let resolve = server.mock(|when, then| {
+		when.method(POST)
+			.path("/graphql")
+			.body_includes("issueOrPullRequest")
+			// Code, sibling-repository shorthand and link text are never looked up.
+			.body_excludes("number: 13)")
+			.body_excludes("number: 14)")
+			.body_excludes("number: 39)")
+			.body_excludes("number: 802)");
+		then.status(200).json_body(serde_json::json!({
+			"data": { "repository": {
+				"issue_7": { "__typename": "PullRequest" },
+				"issue_8": { "__typename": "Issue", "title": "Track context", "url": "https://example.com/ifiokjr/monochange/issues/8" },
+				"issue_99": null,
+				"issue_569": { "__typename": "PullRequest" },
+				"issue_571": { "__typename": "PullRequest" }
+			} },
+			"errors": [{ "type": "NOT_FOUND", "message": "Could not resolve to an issue or pull request with the number of 99." }]
+		}));
+	});
+	let mut changesets = vec![changeset_from_commits("abc1234567890", None)];
+
+	enrich_with_server(&server, &mut changesets);
+
+	lookup.assert();
+	resolve.assert();
+	assert_eq!(related_issue_ids(&changesets[0]), vec!["#8".to_string()]);
+}
+
+#[test]
+fn enrich_changeset_context_ignores_references_from_later_review_requests() {
+	let server = MockServer::start();
+	server.mock(|when, then| {
+		when.method(POST)
+			.path("/graphql")
+			.body_includes("associatedPullRequests");
+		then.status(200).json_body(serde_json::json!({
+			"data": { "repository": {
+				"commit_0": { "associatedPullRequests": { "nodes": [{
+					"number": 555, "title": "Add skill", "url": "https://example.com/pulls/555",
+					"body": "Refs #8", "author": null
+				}] } },
+				"commit_1": { "associatedPullRequests": { "nodes": [{
+					"number": 568, "title": "Reformat changesets", "url": "https://example.com/pulls/568",
+					"body": "Fixes #9", "author": null
+				}] } }
+			} }
+		}));
+	});
+	server.mock(|when, then| {
+		when.method(POST)
+			.path("/graphql")
+			.body_includes("issueOrPullRequest");
+		then.status(200).json_body(serde_json::json!({
+			"data": { "repository": {
+				"issue_8": { "__typename": "Issue", "title": "Track context", "url": null },
+				"issue_9": { "__typename": "Issue", "title": "Reformat", "url": null }
+			} }
+		}));
+	});
+	let mut changesets = vec![changeset_from_commits("aaa1111", Some("bbb2222"))];
+
+	enrich_with_server(&server, &mut changesets);
+
+	assert_eq!(related_issue_ids(&changesets[0]), vec!["#8".to_string()]);
+	let context = changesets[0]
+		.context
+		.as_ref()
+		.unwrap_or_else(|| panic!("expected context"));
+	assert_eq!(
+		context.related_issues[0].url.as_deref(),
+		Some("https://example.com/ifiokjr/monochange/issues/8")
+	);
+	assert_eq!(
+		context
+			.last_updated
+			.as_ref()
+			.and_then(|revision| revision.review_request.as_ref())
+			.map(|review_request| review_request.id.as_str()),
+		Some("#568")
+	);
+}
+
+#[test]
+fn enrich_changeset_context_keeps_closing_references_when_resolution_fails() {
+	let server = MockServer::start();
+	server.mock(|when, then| {
+		when.method(POST)
+			.path("/graphql")
+			.body_includes("associatedPullRequests");
+		then.status(200).json_body(serde_json::json!({
+			"data": { "repository": { "commit_0": { "associatedPullRequests": { "nodes": [{
+				"number": 42, "title": "Add release context", "url": "https://example.com/pulls/42",
+				"body": "Closes #7\nRefs #8", "author": null
+			}] } } } }
+		}));
+	});
+	let resolve = server.mock(|when, then| {
+		when.method(POST)
+			.path("/graphql")
+			.body_includes("issueOrPullRequest");
+		then.status(500);
+	});
+	let mut changesets = vec![changeset_from_commits("abc1234567890", None)];
+
+	enrich_with_server(&server, &mut changesets);
+
+	assert!(resolve.calls() >= 1);
+	assert_eq!(related_issue_ids(&changesets[0]), vec!["#7".to_string()]);
+}
+
+#[test]
+fn issue_resolution_response_requires_a_repository_payload() {
+	let error = parse_issue_resolution_response(&serde_json::json!({ "data": null }), &[7])
+		.expect_err("a response without a repository must fail");
+
+	assert!(error.to_string().contains("no repository payload"));
+	assert_eq!(
+		parse_issue_resolution_response(
+			&serde_json::json!({ "repository": { "issue_7": { "__typename": "Issue" } } }),
+			&[7],
+		)
+		.unwrap_or_else(|error| panic!("bare repository payload: {error}")),
+		BTreeMap::from([(
+			7,
+			ResolvedIssue {
+				title: None,
+				url: None,
+			}
+		)])
+	);
+}
+
+#[test]
+fn issue_resolution_query_aliases_each_number() {
+	let query = build_issue_resolution_query("ifiokjr", "monochange", &[7, 569]);
+
+	assert!(query.starts_with("query { repository(owner: \"ifiokjr\", name: \"monochange\") {"));
+	assert!(query.contains(
+		"issue_7: issueOrPullRequest(number: 7) { __typename ... on Issue { title url } }"
+	));
+	assert!(query.contains("issue_569: issueOrPullRequest(number: 569)"));
+}
+
+#[test]
+fn issue_reference_without_a_number_is_dropped() {
+	let issue = HostedIssueRef {
+		provider: HostingProviderKind::GitHub,
+		host: None,
+		id: "GH-7".to_string(),
+		title: None,
+		url: None,
+		relationship: HostedIssueRelationshipKind::ReferencedByReviewRequest,
+	};
+
+	assert_eq!(resolve_issue_reference(issue, Some(&BTreeMap::new())), None);
+}
+
+#[test]
+fn strip_markdown_code_removes_fences_and_inline_spans() {
+	let text = "Refs #1 and `#2`\n```rust\nlet x = \"#3\";\n~~~\n#4\n```\n~~~\n#5\n~~~\nafter #6";
+
+	assert_eq!(strip_markdown_code(text), "Refs #1 and  \nafter #6\n");
+}
+
+#[test]
+fn extract_issue_numbers_ignores_sibling_repository_shorthand_and_code() {
+	let body = "Tracked as surfpool#802, see [pinapod#39](https://github.com/pina-rs/pinapod/pull/39).\nColour `#000000`, issue #12, not #12abc, `code`#13.";
+
+	assert_eq!(
+		extract_issue_numbers(body, Some("pina-rs/pina"))
+			.into_iter()
+			.collect::<Vec<_>>(),
+		vec![12, 13]
 	);
 }
 
