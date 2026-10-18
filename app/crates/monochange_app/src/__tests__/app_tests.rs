@@ -420,6 +420,71 @@ async fn login_delivers_browser_state_before_github_authorization_link() {
 }
 
 #[tokio::test]
+async fn portal_sign_in_returns_to_the_portal_it_started_from() {
+	let server = MockServer::start_async().await;
+	server
+		.mock_async(|when, then| {
+			when.method(POST).path("/login/oauth/access_token");
+			then.json_body(serde_json::json!({"access_token":"test-only-access-token"}));
+		})
+		.await;
+	server
+		.mock_async(|when, then| {
+			when.method(GET).path("/user");
+			then.json_body(serde_json::json!({"id":303, "login":"carol", "avatar_url":null}));
+		})
+		.await;
+	let state = state(&server).await;
+	let app = router(state.clone());
+	let response = app
+		.clone()
+		.oneshot(
+			Request::builder()
+				.uri("/login?next=%2Fp%2Falice%2Fpocketbook%23roadmap")
+				.body(Body::empty())
+				.unwrap(),
+		)
+		.await
+		.unwrap();
+	let cookie =
+		Cookie::parse_encoded(response.headers()[SET_COOKIE].to_str().unwrap().to_string())
+			.unwrap()
+			.into_owned();
+	let body = html(response).await;
+	assert!(body.contains("Sign in to share feedback"), "{body}");
+	let nonce = body
+		.split("&amp;state=")
+		.nth(1)
+		.unwrap()
+		.split(['&', '"'])
+		.next()
+		.unwrap()
+		.to_owned();
+	let jar = axum_extra::extract::cookie::CookieJar::new().add(cookie.clone());
+	assert_eq!(
+		oauth::verify_login_state(&state.jwt_secret, &jar, &nonce)
+			.unwrap()
+			.return_to
+			.as_deref(),
+		Some("/p/alice/pocketbook#roadmap")
+	);
+
+	let response = app
+		.oneshot(
+			Request::builder()
+				.uri(format!("/auth/callback?code=test-only-code&state={nonce}"))
+				.header(ACCEPT, "text/html")
+				.header(COOKIE, cookie.to_string())
+				.body(Body::empty())
+				.unwrap(),
+		)
+		.await
+		.unwrap();
+	assert_eq!(response.status(), StatusCode::FOUND);
+	assert_eq!(response.headers()[LOCATION], "/p/alice/pocketbook#roadmap");
+}
+
+#[tokio::test]
 async fn invalid_session_dashboard_offers_sign_in_again_without_protected_data() {
 	let server = MockServer::start_async().await;
 	let response = router(state(&server).await)
@@ -1241,6 +1306,7 @@ async fn feedback_journey() {
 	let server = MockServer::start_async().await;
 	let state = state(&server).await;
 	seeded_feedback(&state).await;
+	sqlx::query("INSERT INTO users (id, github_id, github_login, github_access_token) VALUES (5, 505, 'erin', 'unused')").execute(&state.db).await.unwrap();
 	let token = monochange_app_api::create_token(&state.jwt_secret, 1, 101, "alice").unwrap();
 	let session = format!("{}={token}", oauth::SESSION_COOKIE_NAME);
 	let app = router(state.clone());
@@ -1295,18 +1361,46 @@ async fn feedback_journey() {
 		"v2.4.0",
 		"Release notes",
 		"class=\"redaction\"",
-		"Something's wrong",
-		"Discussion (",
-		"What you share appears here",
+		"Continue with GitHub",
+		"Sign in with GitHub to vote",
+		"Sign in to follow what you share",
 	] {
 		assert!(portal.contains(expected), "portal is missing {expected:?}");
 	}
+	assert!(!portal.contains("Send feedback"));
 	assert!(!portal.contains("/app/src/export.rs"));
 	assert!(!portal.contains("github.com/alice/api/issues/4"));
 	let site = page_html(&app, "/p/alice/site", "").await;
 	assert!(site.contains("Ships in the next release"));
 	assert!(site.contains("In progress"));
 	assert!(site.contains(">Issue<") && site.contains(">Pull request<"));
+
+	// Sharing needs an account, even from a hand-made form post.
+	let share = |cookie: &str| {
+		Request::builder()
+			.method("POST")
+			.uri(crate::server_fns::portal::ShareFeedback::PATH)
+			.header(ACCEPT, "text/html")
+			.header(COOKIE, cookie)
+			.header("content-type", "application/x-www-form-urlencoded")
+			.body(Body::from(
+				"organization=alice&project=pocketbook&kind=bug_report&description=Totals+are+wrong",
+			))
+			.unwrap()
+	};
+	let refused = app.clone().oneshot(share("")).await.unwrap();
+	assert_ne!(
+		refused
+			.headers()
+			.get(LOCATION)
+			.map(|value| value.to_str().unwrap().to_owned()),
+		Some("/p/alice/pocketbook?shared=fb-9#yours".to_owned())
+	);
+	let erin = format!(
+		"{}={}",
+		oauth::SESSION_COOKIE_NAME,
+		monochange_app_api::create_token(&state.jwt_secret, 5, 505, "erin").unwrap()
+	);
 
 	// Sharing without JavaScript redirects back with the new id.
 	let response = app
@@ -1316,7 +1410,7 @@ async fn feedback_journey() {
 				.method("POST")
 				.uri(crate::server_fns::portal::ShareFeedback::PATH)
 				.header(ACCEPT, "text/html")
-				.header(COOKIE, "__Host-monochange_viewer=visitor-1")
+				.header(COOKIE, &erin)
 				.header("content-type", "application/x-www-form-urlencoded")
 				.body(Body::from(
 					"organization=alice&project=pocketbook&kind=bug_report&description=Totals+are+wrong",
@@ -1330,12 +1424,7 @@ async fn feedback_journey() {
 		response.headers()[LOCATION],
 		"/p/alice/pocketbook?shared=fb-9#yours"
 	);
-	let mine = page_html(
-		&app,
-		"/p/alice/pocketbook?shared=fb-9",
-		"__Host-monochange_viewer=visitor-1",
-	)
-	.await;
+	let mine = page_html(&app, "/p/alice/pocketbook?shared=fb-9", &erin).await;
 	assert!(mine.contains("filed as fb-9"));
 	assert!(mine.contains("We have a question"));
 	assert!(mine.contains("Your answer"));
@@ -1355,12 +1444,7 @@ async fn feedback_journey() {
 		.await
 		.unwrap();
 	assert!(response.status().is_success(), "{}", response.status());
-	let updated = page_html(
-		&app,
-		"/p/alice/pocketbook#yours",
-		"__Host-monochange_viewer=visitor-1",
-	)
-	.await;
+	let updated = page_html(&app, "/p/alice/pocketbook#yours", &erin).await;
 	assert!(updated.contains("Accepted and planned"));
 	assert!(updated.contains("Updates"));
 

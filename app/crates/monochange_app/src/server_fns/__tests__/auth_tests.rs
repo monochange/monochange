@@ -142,7 +142,7 @@ async fn login_sets_the_cookie_needed_to_validate_the_returned_state() {
 	let state = state().await;
 	let (owner, response) = context(state.clone(), None);
 	let login_url = owner
-		.with(|| ScopedFuture::new(get_login_url()))
+		.with(|| ScopedFuture::new(get_login_url(None)))
 		.await
 		.unwrap();
 	let login_url = url::Url::parse(&login_url).unwrap();

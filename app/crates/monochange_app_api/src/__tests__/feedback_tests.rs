@@ -25,6 +25,7 @@ use super::FeedbackError;
 use super::PORTAL_APP;
 use super::ProjectRepository;
 use super::ProjectScope;
+use super::account_viewer_id;
 use super::create_issue;
 use super::load;
 use super::notifications_for;
@@ -429,6 +430,17 @@ fn viewer_ids_are_stable_per_project_and_unlinkable_across_projects() {
 	assert_ne!(first, viewer_id("secret", "browser-token", 2));
 	assert_ne!(first, viewer_id("other-secret", "browser-token", 1));
 	assert_ne!(first, viewer_id("secret", "another-browser", 1));
+}
+
+#[test]
+fn accounts_get_one_unlinkable_id_per_project() {
+	let alice = account_viewer_id("secret", "github", 101, 1);
+	assert_eq!(alice, account_viewer_id("secret", "github", 101, 1));
+	assert_eq!(alice, viewer_id("secret", "github:101", 1));
+	assert!(!alice.contains("101"));
+	assert_ne!(alice, account_viewer_id("secret", "github", 101, 2));
+	assert_ne!(alice, account_viewer_id("secret", "github", 202, 1));
+	assert_ne!(alice, account_viewer_id("secret", "gitlab", 101, 1));
 }
 
 #[tokio::test]

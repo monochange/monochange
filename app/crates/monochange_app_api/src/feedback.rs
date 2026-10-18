@@ -384,19 +384,31 @@ pub async fn observe_delivery(
 	Ok(advanced)
 }
 
-/// A visitor's pseudonymous id within one project, derived from their
-/// browser's random viewer token. Keyed by the server secret and the project,
-/// so ids can't be forged or linked across projects.
-pub fn viewer_id(secret: &str, viewer_token: &str, project_id: i32) -> String {
+/// A visitor's pseudonymous id within one project, derived from `subject`.
+/// Keyed by the server secret and the project, so ids can't be forged or
+/// linked across projects.
+pub fn viewer_id(secret: &str, subject: &str, project_id: i32) -> String {
 	use hmac::Hmac;
 	use hmac::Mac;
 	use sha2::Sha256;
 
 	let mut mac = <Hmac<Sha256> as Mac>::new_from_slice(secret.as_bytes())
 		.unwrap_or_else(|error| panic!("HMAC accepts keys of any length: {error}"));
-	mac.update(format!("{project_id}:{viewer_token}").as_bytes());
+	mac.update(format!("{project_id}:{subject}").as_bytes());
 	let digest = hex::encode(mac.finalize().into_bytes());
 	format!("v-{}", &digest[..20])
+}
+
+/// A signed-in account's pseudonymous id within one project. One account has
+/// one id per project, so it votes once, and the stored id never reveals
+/// which account it was.
+pub fn account_viewer_id(
+	secret: &str,
+	provider: &str,
+	external_id: i64,
+	project_id: i32,
+) -> String {
+	viewer_id(secret, &format!("{provider}:{external_id}"), project_id)
 }
 
 /// Notifications delivered to one subscriber, newest first.

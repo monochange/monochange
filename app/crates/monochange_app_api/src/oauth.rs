@@ -33,6 +33,9 @@ struct OAuthState {
 	nonce: String,
 	intent: OAuthIntent,
 	code_verifier: Option<String>,
+	/// Where sign-in returns to, already checked by [`return_path`].
+	#[serde(default)]
+	return_to: Option<String>,
 	exp: usize,
 }
 
@@ -48,22 +51,50 @@ pub struct PendingOAuth {
 pub struct VerifiedOAuth {
 	pub intent: OAuthIntent,
 	pub code_verifier: Option<String>,
+	/// The same-site path sign-in started from, if it named one.
+	pub return_to: Option<String>,
+}
+
+/// The longest path sign-in will return to.
+const MAX_RETURN_PATH: usize = 512;
+
+/// `next` when it is a path on this site, so sign-in can return to it
+/// without becoming an open redirect. Absolute and protocol-relative URLs,
+/// backslashes (which browsers read as slashes), and control characters are
+/// refused.
+#[must_use]
+pub fn return_path(next: &str) -> Option<String> {
+	let same_site = next.starts_with('/')
+		&& !next.starts_with("//")
+		&& next.len() <= MAX_RETURN_PATH
+		&& !next.chars().any(|c| c == '\\' || c.is_control());
+	same_site.then(|| next.to_owned())
 }
 
 /// Start one OAuth attempt, binding its unpredictable state to this browser.
 pub fn login_state(secret: &str) -> Result<PendingOAuth, jsonwebtoken::errors::Error> {
-	pending_oauth(secret, OAuthIntent::Login, true)
+	pending_oauth(secret, OAuthIntent::Login, true, None)
+}
+
+/// Start a sign-in that returns to `next` afterwards, when [`return_path`]
+/// accepts it.
+pub fn login_state_returning(
+	secret: &str,
+	next: &str,
+) -> Result<PendingOAuth, jsonwebtoken::errors::Error> {
+	pending_oauth(secret, OAuthIntent::Login, true, return_path(next))
 }
 
 /// Start a repository installation that GitHub will continue through OAuth.
 pub fn installation_state(secret: &str) -> Result<PendingOAuth, jsonwebtoken::errors::Error> {
-	pending_oauth(secret, OAuthIntent::Install, false)
+	pending_oauth(secret, OAuthIntent::Install, false, None)
 }
 
 fn pending_oauth(
 	secret: &str,
 	intent: OAuthIntent,
 	with_pkce: bool,
+	return_to: Option<String>,
 ) -> Result<PendingOAuth, jsonwebtoken::errors::Error> {
 	let nonce = uuid::Uuid::new_v4().to_string();
 	let code_verifier = with_pkce.then(|| {
@@ -80,6 +111,7 @@ fn pending_oauth(
 		nonce: nonce.clone(),
 		intent,
 		code_verifier,
+		return_to,
 		exp: (chrono::Utc::now() + chrono::Duration::minutes(10)).timestamp() as usize,
 	};
 	let token = encode(
@@ -121,6 +153,7 @@ pub fn verify_login_state(
 	Ok(VerifiedOAuth {
 		intent: claims.claims.intent,
 		code_verifier: claims.claims.code_verifier,
+		return_to: claims.claims.return_to.as_deref().and_then(return_path),
 	})
 }
 

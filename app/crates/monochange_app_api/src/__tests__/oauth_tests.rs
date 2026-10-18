@@ -100,6 +100,72 @@ fn installation_state_is_signed_without_a_pkce_verifier() {
 }
 
 #[test]
+fn sign_in_returns_only_to_paths_on_this_site() {
+	let pending = login_state_returning(SECRET, "/p/alice/pocketbook#roadmap").unwrap();
+	let jar = CookieJar::new().add(pending.cookie);
+	let verified = verify_login_state(SECRET, &jar, &pending.state).unwrap();
+	assert_eq!(verified.intent, OAuthIntent::Login);
+	assert!(verified.code_verifier.is_some());
+	assert_eq!(
+		verified.return_to.as_deref(),
+		Some("/p/alice/pocketbook#roadmap")
+	);
+
+	for next in [
+		"https://evil.example/p",
+		"//evil.example/p",
+		"/\\evil.example",
+		"p/alice",
+		"/p/alice\nSet-Cookie: x",
+		"",
+	] {
+		assert_eq!(return_path(next), None, "{next:?}");
+		let pending = login_state_returning(SECRET, next).unwrap();
+		let jar = CookieJar::new().add(pending.cookie);
+		assert_eq!(
+			verify_login_state(SECRET, &jar, &pending.state)
+				.unwrap()
+				.return_to,
+			None
+		);
+	}
+
+	assert_eq!(return_path(&format!("/{}", "a".repeat(600))), None);
+	let plain = login_state(SECRET).unwrap();
+	let jar = CookieJar::new().add(plain.cookie);
+	assert_eq!(
+		verify_login_state(SECRET, &jar, &plain.state)
+			.unwrap()
+			.return_to,
+		None
+	);
+}
+
+#[test]
+fn signed_state_cannot_smuggle_an_unsafe_return_path() {
+	let claims = serde_json::json!({
+		"nonce": "smuggled",
+		"intent": "Login",
+		"code_verifier": null,
+		"return_to": "//evil.example",
+		"exp": chrono::Utc::now().timestamp() + 60,
+	});
+	let token = encode(
+		&Header::default(),
+		&claims,
+		&EncodingKey::from_secret(SECRET.as_bytes()),
+	)
+	.unwrap();
+	let jar = CookieJar::new().add(Cookie::new(OAUTH_COOKIE_NAME, token));
+	assert_eq!(
+		verify_login_state(SECRET, &jar, "smuggled")
+			.unwrap()
+			.return_to,
+		None
+	);
+}
+
+#[test]
 fn session_cookie_and_logout_keep_the_same_security_attributes() {
 	let cookie = session_cookie("signed-session".to_string());
 	assert_eq!(cookie.name(), SESSION_COOKIE_NAME);

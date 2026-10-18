@@ -106,20 +106,32 @@ pub fn App() -> impl IntoView {
 // ── Login Page ──
 #[component]
 fn LoginPage() -> impl IntoView {
+	let query = leptos_router::hooks::use_query_map();
 	let login_url = Resource::new_blocking(
-		|| (),
-		|()| {
+		move || query.read().get("next"),
+		|next| {
 			async {
-				crate::server_fns::auth::get_login_url()
+				crate::server_fns::auth::get_login_url(next)
 					.await
 					.unwrap_or_default()
 			}
 		},
 	);
 
+	// Signing in from a feedback portal is about that project, not a workspace.
+	let for_portal = query
+		.read_untracked()
+		.get("next")
+		.is_some_and(|next| next.starts_with("/p/"));
+	let copy = if for_portal {
+		view! { <div class="login-copy"><h1>"Your voice," <br /> "counted once."</h1><p>"Sign in to share feedback, vote, and follow it until it ships. Your GitHub name isn't shown on the project's page."</p></div> }.into_any()
+	} else {
+		view! { <div class="login-copy"><h1>"Your workspace," <br /> "all together."</h1><p>"Sign in to see your connected repositories and manage your monochange workspace."</p><a href=BOOK_URL class="text-link">"Just looking for the CLI? Read the book."</a></div> }.into_any()
+	};
+
 	view! {
 		<section class="login-section site-width">
-			<div class="login-copy"><h1>"Your workspace," <br /> "all together."</h1><p>"Sign in to see your connected repositories and manage your monochange workspace."</p><a href=BOOK_URL class="text-link">"Just looking for the CLI? Read the book."</a></div>
+			{copy}
 			<div class="login-panel">
 				// Logo mark
 				<div class="login-mark">

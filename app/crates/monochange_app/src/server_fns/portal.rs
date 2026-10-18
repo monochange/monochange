@@ -1,9 +1,11 @@
 //! The public feedback portal for a project: share a bug or idea, vote, answer
 //! follow-up questions, and follow what happens.
 //!
-//! Visitors are pseudonymous. A random viewer token in a cookie becomes a
-//! per-project id ([`monochange_app_api::feedback::viewer_id`]), so votes are
-//! deduplicated without accounts and ids can't be linked across projects.
+//! Anyone can read a portal. Sharing, voting, and discussing need a GitHub
+//! sign-in, because votes decide what gets built and a browser cookie can be
+//! minted again by clearing it. The account becomes a per-project id
+//! ([`monochange_app_api::feedback::account_viewer_id`]), so stored feedback
+//! never names a GitHub login and ids can't be linked across projects.
 
 #[cfg(test)]
 #[path = "__tests__/portal_tests.rs"]
@@ -22,9 +24,6 @@ use monochange_app_feedback::StatusFeed;
 use serde::Deserialize;
 use serde::Serialize;
 
-/// The cookie that holds a visitor's random viewer token.
-pub const VIEWER_COOKIE: &str = "__Host-monochange_viewer";
-
 /// How many updates the "yours" section shows.
 #[cfg(not(target_arch = "wasm32"))]
 const UPDATE_LIMIT: u32 = 20;
@@ -39,6 +38,13 @@ pub struct OwnItem {
 	pub question: Option<String>,
 }
 
+/// The signed-in visitor, as only they see themselves on the portal.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PortalViewer {
+	pub login: String,
+	pub avatar_url: Option<String>,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PortalSnapshot {
 	pub organization: String,
@@ -47,6 +53,8 @@ pub struct PortalSnapshot {
 	pub description: String,
 	pub visibility: RepositoryVisibility,
 	pub feed: StatusFeed,
+	/// `None` until the visitor signs in with GitHub.
+	pub viewer: Option<PortalViewer>,
 	/// Items the visitor has voted for.
 	pub voted: Vec<String>,
 	/// Public discussion per listed item, redacted for the portal.
@@ -61,66 +69,85 @@ pub fn portal_path(organization: &str, project: &str) -> String {
 	format!("/p/{organization}/{project}")
 }
 
+/// Signs in with GitHub and comes back to the portal at `anchor`.
+pub fn portal_sign_in_path(organization: &str, project: &str, anchor: &str) -> String {
+	sign_in_returning(&format!("{}#{anchor}", portal_path(organization, project)))
+}
+
+/// The navigation's sign-in link from `path`: a portal visitor comes back to
+/// the portal, and everyone else goes on to the dashboard.
+pub fn navigation_sign_in_path(path: &str) -> String {
+	if path.starts_with("/p/") {
+		sign_in_returning(path)
+	} else {
+		"/login".to_owned()
+	}
+}
+
+fn sign_in_returning(next: &str) -> String {
+	format!(
+		"/login?next={}",
+		url::form_urlencoded::byte_serialize(next.as_bytes()).collect::<String>()
+	)
+}
+
 #[cfg(not(target_arch = "wasm32"))]
 type ServerResult<T> = Result<T, server_fn::ServerFnError>;
-
-/// The visitor's viewer token, minting one (and setting its cookie) on first
-/// visit.
-#[cfg(not(target_arch = "wasm32"))]
-async fn viewer_token() -> ServerResult<String> {
-	use axum_extra::extract::cookie::Cookie;
-	use axum_extra::extract::cookie::CookieJar;
-	use axum_extra::extract::cookie::SameSite;
-	use leptos_axum::ResponseOptions;
-	use leptos_axum::extract;
-
-	let jar: CookieJar = extract().await?;
-
-	if let Some(token) = jar
-		.get(VIEWER_COOKIE)
-		.map(|cookie| cookie.value().to_owned())
-		.filter(|token| !token.is_empty())
-	{
-		return Ok(token);
-	}
-	let token = uuid::Uuid::new_v4().to_string();
-	let cookie = Cookie::build((VIEWER_COOKIE, token.clone()))
-		.path("/")
-		.secure(true)
-		.http_only(true)
-		.same_site(SameSite::Lax)
-		.max_age(time::Duration::days(365))
-		.build();
-	let response: ResponseOptions = leptos::prelude::expect_context();
-	response.append_header(
-		axum::http::header::SET_COOKIE,
-		axum::http::HeaderValue::from_str(&cookie.encoded().to_string())
-			.map_err(|error| server_fn::ServerFnError::new(format!("Cookie: {error}")))?,
-	);
-
-	Ok(token)
-}
 
 #[cfg(not(target_arch = "wasm32"))]
 use super::feedback::feedback_error;
 
-/// The project, its scope, and the visitor's id in it.
+/// The signed-in GitHub account. A missing, expired, or forged session reads
+/// as signed out, so a stale cookie never hides a public portal.
+#[cfg(not(target_arch = "wasm32"))]
+async fn signed_in_visitor() -> Option<super::auth::SessionUser> {
+	super::auth::get_session().await.ok().flatten()
+}
+
+/// The project, and the visitor's account and id in it when signed in.
 #[cfg(not(target_arch = "wasm32"))]
 async fn visitor_context(
 	state: &monochange_app_api::AppState,
 	organization: &str,
 	project: &str,
-) -> ServerResult<Option<(monochange_app_api::feedback::PublicProject, String)>> {
+) -> ServerResult<
+	Option<(
+		monochange_app_api::feedback::PublicProject,
+		Option<(super::auth::SessionUser, String)>,
+	)>,
+> {
 	let Some(public) = monochange_app_api::feedback::public_project(state, organization, project)
 		.await
 		.map_err(feedback_error)?
 	else {
 		return Ok(None);
 	};
-	let token = viewer_token().await?;
-	let viewer =
-		monochange_app_api::feedback::viewer_id(&state.jwt_secret, &token, public.project.id);
-	Ok(Some((public, viewer)))
+	let visitor = signed_in_visitor().await.map(|user| {
+		let viewer = monochange_app_api::feedback::account_viewer_id(
+			&state.jwt_secret,
+			monochange_app_db::projects::GITHUB,
+			user.github_id,
+			public.project.id,
+		);
+		(user, viewer)
+	});
+	Ok(Some((public, visitor)))
+}
+
+/// The project and the signed-in visitor's id in it, for anything that writes.
+#[cfg(not(target_arch = "wasm32"))]
+async fn signed_in_context(
+	state: &monochange_app_api::AppState,
+	organization: &str,
+	project: &str,
+	doing: &str,
+) -> ServerResult<(monochange_app_api::feedback::PublicProject, String)> {
+	let (public, visitor) = visitor_context(state, organization, project)
+		.await?
+		.ok_or_else(not_found)?;
+	let (_, viewer) = visitor
+		.ok_or_else(|| server_fn::ServerFnError::new(format!("Sign in with GitHub to {doing}.")))?;
+	Ok((public, viewer))
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -150,9 +177,10 @@ pub async fn portal_view(
 	use monochange_app_feedback::roadmap;
 
 	let state: Arc<monochange_app_api::AppState> = leptos::prelude::expect_context();
-	let Some((public, viewer)) = visitor_context(&state, &organization, &project).await? else {
+	let Some((public, visitor)) = visitor_context(&state, &organization, &project).await? else {
 		return Ok(None);
 	};
+	let viewer = visitor.as_ref().map(|(_, viewer)| viewer.as_str());
 	let feedback = monochange_app_api::feedback::load(&state, &public.scope)
 		.await
 		.map_err(feedback_error)?;
@@ -162,7 +190,7 @@ pub async fn portal_view(
 	let mut own = Vec::new();
 
 	for item in service.items() {
-		let mine = item.submission.submitter.anonymous_id == viewer;
+		let mine = viewer == Some(item.submission.submitter.anonymous_id.as_str());
 
 		if roadmap::is_listed(item) || mine {
 			threads.insert(
@@ -173,7 +201,7 @@ pub async fn portal_view(
 			);
 		}
 
-		if item.votes.has_voted(&viewer) {
+		if viewer.is_some_and(|viewer| item.votes.has_voted(viewer)) {
 			voted.push(item.id.clone());
 		}
 
@@ -200,14 +228,19 @@ pub async fn portal_view(
 	}
 
 	own.reverse();
-	let updates = monochange_app_api::feedback::notifications_for(
-		&state,
-		&public.scope,
-		&viewer,
-		UPDATE_LIMIT,
-	)
-	.await
-	.map_err(feedback_error)?;
+	let updates = match viewer {
+		Some(viewer) => {
+			monochange_app_api::feedback::notifications_for(
+				&state,
+				&public.scope,
+				viewer,
+				UPDATE_LIMIT,
+			)
+			.await
+			.map_err(feedback_error)?
+		}
+		None => Vec::new(),
+	};
 	Ok(Some(PortalSnapshot {
 		organization: public.organization.clone(),
 		project_slug: public.project.slug.clone(),
@@ -215,6 +248,12 @@ pub async fn portal_view(
 		description: public.project.description.clone(),
 		visibility: service.policy().visibility,
 		feed: service.status_feed().feed,
+		viewer: visitor.map(|(user, _)| {
+			PortalViewer {
+				login: user.github_login,
+				avatar_url: user.github_avatar_url,
+			}
+		}),
 		voted,
 		threads,
 		own,
@@ -237,9 +276,7 @@ pub async fn share_feedback(
 	use monochange_app_feedback::SubmitterIdentity;
 
 	let state: Arc<monochange_app_api::AppState> = leptos::prelude::expect_context();
-	let (public, viewer) = visitor_context(&state, &organization, &project)
-		.await?
-		.ok_or_else(not_found)?;
+	let (public, viewer) = signed_in_context(&state, &organization, &project, "share").await?;
 
 	let kind = match kind.as_str() {
 		"bug_report" => FeedbackKind::BugReport,
@@ -278,9 +315,7 @@ pub async fn portal_vote(
 	use std::sync::Arc;
 
 	let state: Arc<monochange_app_api::AppState> = leptos::prelude::expect_context();
-	let (public, viewer) = visitor_context(&state, &organization, &project)
-		.await?
-		.ok_or_else(not_found)?;
+	let (public, viewer) = signed_in_context(&state, &organization, &project, "vote").await?;
 	monochange_app_api::feedback::update(&state, &public.scope, |service| {
 		if on {
 			service.vote(&item, &viewer)
@@ -308,9 +343,8 @@ pub async fn portal_reply(
 	use monochange_app_feedback::Actor;
 
 	let state: Arc<monochange_app_api::AppState> = leptos::prelude::expect_context();
-	let (public, viewer) = visitor_context(&state, &organization, &project)
-		.await?
-		.ok_or_else(not_found)?;
+	let (public, viewer) =
+		signed_in_context(&state, &organization, &project, "join the discussion").await?;
 	let author = Actor::User(viewer);
 	monochange_app_api::feedback::update(&state, &public.scope, |service| {
 		service.reply(&item, &author, &body, Vec::new()).map(|_| ())

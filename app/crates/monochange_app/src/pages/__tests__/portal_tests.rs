@@ -17,6 +17,7 @@ use monochange_app_feedback::StatusFeed;
 
 use super::*;
 use crate::server_fns::portal::OwnItem;
+use crate::server_fns::portal::PortalViewer;
 use crate::tests::feedback::context;
 use crate::tests::feedback::state;
 use crate::tests::feedback::submit;
@@ -52,6 +53,10 @@ fn snapshot(feed: StatusFeed) -> PortalSnapshot {
 		description: String::new(),
 		visibility: RepositoryVisibility::Private,
 		feed,
+		viewer: Some(PortalViewer {
+			login: "carol".to_owned(),
+			avatar_url: Some("https://avatars.example/carol".to_owned()),
+		}),
 		voted: Vec::new(),
 		threads: BTreeMap::new(),
 		own: Vec::new(),
@@ -174,10 +179,106 @@ async fn the_roadmap_shows_ship_windows_links_votes_and_every_voice() {
 		"We have a question",
 		"Updates",
 		"class=\"redaction\"",
+		"@carol",
+		"Your name stays private here",
+		"src=\"https://avatars.example/carol\"",
+		"Needs your answer",
+		"4 comments",
+		"aria-current=\"step\"",
+		"Send feedback",
 	] {
 		assert!(html.contains(expected), "missing {expected}: {html}");
 	}
 	assert!(!html.contains("Nothing on the roadmap yet"));
+	assert!(!html.contains("Continue with GitHub"));
+	assert!(!html.contains("/login?next="));
+}
+
+#[tokio::test]
+async fn signed_out_visitors_read_everything_and_are_invited_to_sign_in() {
+	let mut snapshot = snapshot(StatusFeed {
+		roadmap: vec![
+			entry("fb-1", PublicStatus::UnderReview, ShipWindow::Planned),
+			entry("fb-2", PublicStatus::InProgress, ShipWindow::Unscheduled),
+			entry("fb-3", PublicStatus::Declined, ShipWindow::Unscheduled),
+		],
+		shipped: Vec::new(),
+	});
+	snapshot.viewer = None;
+	snapshot.description = "Invoicing".to_owned();
+	let html = render_portal(snapshot, None).await;
+
+	for expected in [
+		"Invoicing",
+		"Continue with GitHub",
+		"Sign in with GitHub to vote (5)",
+		"Sign in with GitHub to join the discussion",
+		"Sign in to follow what you share",
+		"href=\"/login?next=%2Fp%2Falice%2Fpocketbook%23share\"",
+		"href=\"/login?next=%2Fp%2Falice%2Fpocketbook%23item-fb-1\"",
+		"href=\"/login?next=%2Fp%2Falice%2Fpocketbook%23yours\"",
+		"Start the discussion",
+		"<dt>Under review</dt><dd>1</dd>",
+		"<dt>In progress</dt><dd>1</dd>",
+		"<dt>Shipped</dt><dd>0</dd>",
+	] {
+		assert!(html.contains(expected), "missing {expected}: {html}");
+	}
+
+	// Nothing that writes is offered without an account, and a declined item
+	// can't be voted on even after signing in.
+	assert!(!html.contains("Send feedback"));
+	assert!(!html.contains("name=\"body\""));
+	assert_eq!(
+		html.matches("aria-label=\"Sign in with GitHub to vote")
+			.count(),
+		2
+	);
+	assert!(html.contains("aria-label=\"Vote (5)\""));
+}
+
+#[tokio::test]
+async fn the_tracker_follows_an_item_until_it_ships_or_stops() {
+	assert_eq!(tracker_step(Stage::Received), Some(0));
+	assert_eq!(tracker_step(Stage::Quarantined), Some(0));
+	assert_eq!(tracker_step(Stage::Triaging), Some(0));
+	assert_eq!(tracker_step(Stage::Discussing), Some(0));
+	assert_eq!(tracker_step(Stage::Voting), Some(1));
+	assert_eq!(tracker_step(Stage::Accepted), Some(2));
+	assert_eq!(tracker_step(Stage::Building), Some(3));
+	assert_eq!(tracker_step(Stage::InReview), Some(3));
+	assert_eq!(tracker_step(Stage::Merged), Some(3));
+	assert_eq!(tracker_step(Stage::Shipped), Some(4));
+	assert_eq!(tracker_step(Stage::Declined), None);
+	assert_eq!(tracker_step(Stage::Closed), None);
+
+	let building = render(|| tracker(Stage::InReview)).await;
+	assert_eq!(building.matches("data-state=\"done\"").count(), 3);
+	assert!(building.contains("data-state=\"current\" aria-current=\"step\"><span>Building"));
+	assert_eq!(building.matches("data-state=\"next\"").count(), 1);
+	let declined = render(|| tracker(Stage::Declined)).await;
+	assert!(declined.contains("portal-closed"), "{declined}");
+	assert!(declined.contains("Declined"));
+	assert!(!declined.contains("portal-tracker"));
+
+	for (status, class) in [
+		(PublicStatus::InProgress, "in-progress"),
+		(PublicStatus::Planned, "planned"),
+		(PublicStatus::UnderReview, "under-review"),
+		(PublicStatus::Shipped, "shipped"),
+		(PublicStatus::Declined, "declined"),
+	] {
+		assert_eq!(status_class(status), class);
+	}
+
+	for (author, class) in [
+		(PublicAuthor::Submitter, "submitter"),
+		(PublicAuthor::Community, "community"),
+		(PublicAuthor::Maintainer, "team"),
+		(PublicAuthor::Assistant, "assistant"),
+	] {
+		assert_eq!(author_class(author), class);
+	}
 }
 
 #[tokio::test]
@@ -198,7 +299,7 @@ async fn similar_requests_are_offered_for_long_drafts_only() {
 		"Dark mode for invoices",
 	)
 	.await;
-	let (owner, _) = context(&state, None, Some("token-a"));
+	let (owner, _) = context(&state, None);
 	let short = owner
 		.with(|| {
 			ScopedFuture::new(similar_to_draft(

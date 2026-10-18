@@ -98,7 +98,7 @@ async fn only_maintainers_see_the_console() {
 	let state = state().await;
 
 	for user in [None, Some(2)] {
-		let (owner, _) = context(&state, user, None);
+		let (owner, _) = context(&state, user);
 		assert!(
 			owner
 				.with(|| {
@@ -133,7 +133,7 @@ async fn only_maintainers_see_the_console() {
 
 	// Bob's installation isn't linked to an organisation yet, so it has no
 	// projects to collect feedback for.
-	let (bob, _) = context(&state, Some(2), None);
+	let (bob, _) = context(&state, Some(2));
 	assert!(
 		bob.with(|| ScopedFuture::new(feedback_console("bob".to_owned(), "app".to_owned())))
 			.await
@@ -219,7 +219,7 @@ async fn the_console_shows_items_newest_first_through_the_gate() {
 		"Dark mode for invoices please",
 	)
 	.await;
-	let (owner, _) = context(&state, Some(1), None);
+	let (owner, _) = context(&state, Some(1));
 	let view = owner
 		.with(|| {
 			ScopedFuture::new(feedback_console(
@@ -286,7 +286,7 @@ async fn maintainers_decide_through_every_action() {
 		"Make it purple",
 	)
 	.await;
-	let (owner, _) = context(&state, Some(1), None);
+	let (owner, _) = context(&state, Some(1));
 
 	act(&owner, Act::new(&first, "open_voting")).await.unwrap();
 	assert_eq!(stage(&state, &first).await, Stage::Voting);
@@ -410,7 +410,7 @@ async fn accepted_items_become_github_issues() {
 		.await;
 	let state = state().await;
 	let id = submit(&state, "v-1", FeedbackKind::BugReport, "Totals are wrong").await;
-	let (owner, _) = context(&state, Some(1), None);
+	let (owner, _) = context(&state, Some(1));
 	act(
 		&owner,
 		Act {
@@ -443,7 +443,7 @@ async fn accepted_items_become_github_issues() {
 	let mut configured = (*state).clone();
 	configured.github_app = Some(test_app(&server));
 	let configured = Arc::new(configured);
-	let (owner, _) = context(&configured, Some(1), None);
+	let (owner, _) = context(&configured, Some(1));
 	assert_eq!(
 		act(
 			&owner,
@@ -505,7 +505,7 @@ async fn maintainers_reply_in_the_discussion() {
 		"Dark mode for invoices",
 	)
 	.await;
-	let (owner, _) = context(&state, Some(1), None);
+	let (owner, _) = context(&state, Some(1));
 	owner
 		.with(|| {
 			ScopedFuture::new(maintainer_reply(
