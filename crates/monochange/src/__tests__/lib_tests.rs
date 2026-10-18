@@ -17842,3 +17842,20 @@ fn missing_configuration_warning_only_fires_for_release_commands_without_config(
 		.unwrap_or_else(|error| panic!("write config: {error}"));
 	assert_eq!(missing_configuration_warning(Some("check"), root), None);
 }
+
+#[test]
+fn release_commands_still_run_with_defaults_when_configuration_is_missing() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let output = run_cli(
+		tempdir.path(),
+		[
+			OsString::from("monochange"),
+			OsString::from("config"),
+			OsString::from("--format"),
+			OsString::from("json"),
+		],
+	)
+	.unwrap_or_else(|error| panic!("config without monochange.toml: {error}"));
+
+	assert!(output.trim_start().starts_with('{'), "{output}");
+}
