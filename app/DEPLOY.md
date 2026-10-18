@@ -59,7 +59,7 @@ https://monochange.dev/auth/callback
 - a 1Password service account scoped to the monochange production secrets;
 - the production values stored as fields of one 1Password item, laid out as described in [production secret layout](#production-secret-layout).
 
-Create a dedicated `monochange` vault and give the production service account read access to that vault only. Do not grant write access or reuse the shared development service account. Keep the service account token separately as a password item for recovery; it is the only credential copied to the server.
+Create a dedicated `monochange` vault and give the production service account read access to that vault only. Do not grant write access or reuse the shared development service account. Keep a recovery copy of the service account token as the `OP_SERVICE_ACCOUNT_TOKEN` field in the `deploy` section of the `monochange.dev` item; it is the only credential copied to the server.
 
 ### production secret layout
 
@@ -76,8 +76,13 @@ The `production` profile in `app/monosecret.toml` reads every credential from th
 | `release` | `MONOCHANGE_OIDC_AUDIENCE`  | text       | no       | Audience required in GitHub Actions OIDC tokens; the app uses `monochange.dev` when it is empty                           |
 | `release` | `MONOCHANGE_TOKEN`          | password   | no       | API token the hosted release endpoints accept from CI systems without GitHub Actions OIDC; leave it empty to require OIDC |
 | `ai`      | `OPENROUTER_API_KEY`        | password   | no       | OpenRouter API key                                                                                                        |
+| `deploy`  | `DIGITALOCEAN_ACCESS_TOKEN` | password   | no       | Scoped DigitalOcean API token that operators resolve through `app/deploy/digitalocean/monosecret.toml`                    |
+| `deploy`  | `WEBSITE_DEPLOY_SSH_KEY`    | password   | no       | Recovery copy of the forced-command deployment key held in the `website-production` Actions environment                   |
+| `deploy`  | `OP_SERVICE_ACCOUNT_TOKEN`  | password   | no       | Recovery copy of the production service account token stored on the server                                                |
 
 `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, and `GITHUB_APP_WEBHOOK_SECRET` enable repository connection and must be configured together. The app validates the PEM at startup and refuses to start with a partial set or a malformed key.
+
+The app never reads the `deploy` section. It keeps every monochange credential in one vault and one item, so operators manage a single place. Because the production service account reads the whole vault, deployed code can read the deployment credentials too; keep the DigitalOcean token scoped and short-lived as described in [CLI operations](deploy/digitalocean/OPERATIONS.md#api-credential).
 
 Two production values stay out of the item. Compose sets `DATABASE_URL=sqlite:///data/monochange_app.sqlite3` next to the volume it names, and the entrypoint exports `OP_SERVICE_ACCOUNT_TOKEN` from the Docker secret.
 
@@ -274,11 +279,11 @@ Expected downtime for this initial deploy shape is small, usually one app restar
 
 ## production cutover from SecretSpec to Monosecret
 
-Releases before the Monosecret migration read one 1Password item per secret, titled `secretspec/monochange_app/production/<KEY>`, each holding its value in a concealed field named `value`. The current image reads the single `monochange.dev` item instead. Moving the values is a one-time operator task. Do it by hand in the 1Password app, never through the production service account, which stays read-only.
+Releases before the Monosecret migration read one 1Password item per secret, titled `secretspec/monochange_app/production/<KEY>`, each holding its value in a concealed `password` field. The current image reads the single `monochange.dev` item instead. Moving the values is a one-time operator task. Do it by hand in the 1Password app, never through the production service account, which stays read-only.
 
 1. **Create the item.** In the `monochange` vault, create a Secure Note titled exactly `monochange.dev`. Add the sections `auth`, `github`, `release`, and `ai`.
-2. **Add the fields.** For each row in the [production secret layout](#production-secret-layout), add a field labelled with the secret name to its section, with the listed field type. Copy the value from the `value` field of the matching `secretspec/monochange_app/production/<KEY>` item. Skip optional fields that have no old item. Do not copy `secretspec/monochange_app/production/DATABASE_URL`; Compose now supplies it. Paste `GITHUB_APP_PRIVATE_KEY` as the complete PEM, including the `BEGIN` and `END` lines.
-3. **Check the item.** The item must hold exactly these fields: `JWT_SECRET` in `auth`; `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, and `GITHUB_APP_WEBHOOK_SECRET` in `github`; optional `MONOCHANGE_OIDC_AUDIENCE` and `MONOCHANGE_TOKEN` in `release`; and optional `OPENROUTER_API_KEY` in `ai`. The production service account keeps read access to the `monochange` vault, and the token file on the server does not change.
+2. **Add the fields.** For each row in the [production secret layout](#production-secret-layout), add a field labelled with the secret name to its section, with the listed field type. Copy the value from the `password` field of the matching `secretspec/monochange_app/production/<KEY>` item. Skip optional fields that have no old item. Do not copy `secretspec/monochange_app/production/DATABASE_URL`; Compose now supplies it. Paste `GITHUB_APP_PRIVATE_KEY` as the complete PEM, including the `BEGIN` and `END` lines.
+3. **Check the item.** The item must hold exactly these fields: `JWT_SECRET` in `auth`; `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, and `GITHUB_APP_WEBHOOK_SECRET` in `github`; optional `MONOCHANGE_OIDC_AUDIENCE` and `MONOCHANGE_TOKEN` in `release`; optional `OPENROUTER_API_KEY` in `ai`; and the operator-only fields in `deploy`. The production service account keeps read access to the `monochange` vault, and the token file on the server does not change.
 4. **Install the new Compose file before the image changes.** Monosecret still honours the old `SECRETSPEC_PROVIDER` variable as a provider override, so the new image started with the old Compose file would bypass the item and fail to start. Copy `app/deploy/digitalocean/docker-compose.yml` from the release revision to `/opt/monochange/` as described in [CLI operations](deploy/digitalocean/OPERATIONS.md). Replacing the file does not restart the running container.
 5. **Deploy.** Let the automated website deployment ship the release, or run the manual update from [CLI operations](deploy/digitalocean/OPERATIONS.md). The deploy helper waits for `/health`.
 6. **Verify.** Confirm `curl -fsS https://monochange.dev/health | jq` reports `"status": "ok"`. Check `docker compose logs --tail=100 app` for a clean start with no secret or GitHub App errors. Sign in on `https://monochange.dev`, open the dashboard, and confirm the repository connection link is offered. A missing required field stops the app at startup with an error naming the secret.
