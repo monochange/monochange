@@ -12,8 +12,7 @@ fn probe() -> TerminalProbe {
 		stderr_is_terminal: true,
 		ci: false,
 		github_actions: false,
-		term_is_dumb: false,
-		no_color: false,
+		color_environment: crate::output::color::ColorEnvironment::default(),
 		no_progress: false,
 	}
 }
@@ -55,6 +54,7 @@ fn terminal_capabilities_resolve_one_consistent_policy() {
 		format: ProgressFormat::Auto,
 		tracing_enabled: false,
 		verbose: false,
+		color: ColorChoice::Auto,
 	};
 	let interactive = TerminalCapabilities::resolve(settings, probe());
 	assert!(interactive.stdout_is_terminal);
@@ -91,6 +91,7 @@ fn terminal_capabilities_resolve_one_consistent_policy() {
 			format: ProgressFormat::Auto,
 			tracing_enabled: true,
 			verbose: false,
+			color: ColorChoice::Auto,
 		},
 		probe(),
 	);
@@ -125,6 +126,7 @@ fn github_actions_commands_are_only_used_by_the_human_renderer() {
 		format: ProgressFormat::Auto,
 		tracing_enabled: false,
 		verbose: false,
+		color: ColorChoice::Auto,
 	};
 	let probe = TerminalProbe {
 		stderr_is_terminal: false,
@@ -163,9 +165,54 @@ fn explicit_json_progress_never_uses_terminal_styling() {
 			format: ProgressFormat::Json,
 			tracing_enabled: false,
 			verbose: false,
+			color: ColorChoice::Always,
 		},
 		probe(),
 	);
+	assert!(!capabilities.color);
+	assert!(!capabilities.animate);
+}
+
+#[test]
+fn progress_color_follows_the_shared_color_policy() {
+	let settings = ProgressSettings::from_args(&[
+		OsString::from("monochange"),
+		OsString::from("--color=always"),
+	]);
+	assert_eq!(settings.color, ColorChoice::Always);
+	let redirected = TerminalProbe {
+		stderr_is_terminal: false,
+		..probe()
+	};
+	assert!(TerminalCapabilities::resolve(settings, redirected).color);
+
+	let never = ProgressSettings {
+		color: ColorChoice::Never,
+		..settings
+	};
+	assert!(!TerminalCapabilities::resolve(never, probe()).color);
+
+	let auto = ProgressSettings {
+		color: ColorChoice::Auto,
+		..settings
+	};
+	let forced = TerminalProbe {
+		color_environment: crate::output::color::ColorEnvironment {
+			clicolor_force: true,
+			..crate::output::color::ColorEnvironment::default()
+		},
+		..redirected
+	};
+	assert!(TerminalCapabilities::resolve(auto, forced).color);
+
+	let dumb = TerminalProbe {
+		color_environment: crate::output::color::ColorEnvironment {
+			term_is_dumb: true,
+			..crate::output::color::ColorEnvironment::default()
+		},
+		..probe()
+	};
+	let capabilities = TerminalCapabilities::resolve(auto, dumb);
 	assert!(!capabilities.color);
 	assert!(!capabilities.animate);
 }
@@ -201,15 +248,17 @@ fn shared_stderr_lines_erase_an_active_spinner_and_share_one_sequence() {
 	writer.write_line("plain");
 	assert!(!writer.take_line_cleared());
 
-	writer.set_spinner_active(true);
+	writer.set_spinner_active(true, true);
 	writer.clone().write_line("over spinner");
 	assert!(writer.take_line_cleared());
 	assert!(!writer.take_line_cleared());
-	writer.set_spinner_active(false);
+	writer.set_spinner_active(true, false);
+	writer.write_line("over plain spinner");
+	writer.set_spinner_active(false, false);
 
 	assert_eq!(
 		bytes.lock().unwrap().as_slice(),
-		b"plain\n\r\x1b[2K\x1b[0mover spinner\n"
+		b"plain\n\r\x1b[2K\x1b[0mover spinner\n\r\x1b[2Kover plain spinner\n"
 	);
 	assert_eq!(writer.next_sequence(), 0);
 	assert_eq!(writer.clone().next_sequence(), 1);

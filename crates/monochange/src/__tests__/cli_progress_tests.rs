@@ -197,7 +197,7 @@ fn format_duration_and_paint_text_cover_terminal_styles() {
 	);
 	assert_eq!(
 		paint_text("header", Style::Header, true),
-		"\u{1b}[37;1mheader\u{1b}[0m"
+		"\u{1b}[1mheader\u{1b}[0m"
 	);
 	assert_eq!(
 		paint_text("muted", Style::Muted, true),
@@ -353,7 +353,7 @@ fn spinner_tick_renders_full_line_only_when_content_changes() {
 	// erase so the message is always visible.
 	assert_eq!(
 		render_spinner_tick("\u{2B8B}", "running command `x`", false, true),
-		"\r\u{1b}[2K\u{1b}[0m\u{2B8B} running command `x`",
+		"\r\u{1b}[2K\u{2B8B} running command `x`",
 	);
 	// Unchanged content: only the frame is swapped in place, the message is
 	// not reprinted.

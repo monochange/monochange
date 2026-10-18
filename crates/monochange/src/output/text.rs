@@ -8,7 +8,6 @@
 //! output and CI logs stay plain.
 
 use std::future::Future;
-use std::io::IsTerminal;
 
 /// How a piece of result text is emphasized in a terminal.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -50,13 +49,10 @@ pub(crate) struct TextTheme {
 }
 
 impl TextTheme {
-	/// Colour only for an interactive stdout that has not opted out.
+	/// Colour stdout as the shared `--color` policy decides.
 	pub(crate) fn for_stdout() -> Self {
-		let interactive = std::io::stdout().is_terminal();
-		let no_color = std::env::var_os("NO_COLOR").is_some();
-		let term_supports_color = std::env::var("TERM").is_ok_and(|term| term != "dumb");
 		Self {
-			color: !cfg!(test) && interactive && !no_color && term_supports_color,
+			color: crate::output::color::stdout_color(),
 			verbose: verbose_output(),
 		}
 	}
