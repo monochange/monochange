@@ -1,6 +1,6 @@
 # End-to-end feedback flow
 
-**Status**: in progress. Step 1 is on `claude/end-to-end-managed-flow-vtqwkj`. **Related**: `docs/plans/active/monochange-platform-roadmap.md` (phases 3 and 4), `docs/plans/active/feedback-loop-poc.md`
+**Status**: in progress. Steps 1 and 2 are on `claude/end-to-end-managed-flow-vtqwkj`. **Related**: `docs/plans/active/monochange-platform-roadmap.md` (phases 3 and 4), `docs/plans/active/feedback-loop-poc.md`
 
 ## Goal
 
@@ -31,13 +31,14 @@ Portal visitors were pseudonymous: a random cookie became a per-project id. That
 
 Design: the portal is the first thing a project's users see, so it gets a full pass. Hero with live counts and the visitor's GitHub identity, a composer that invites sign-in instead of failing, tactile vote buttons, a roadmap board grouped by status, a progress tracker on the visitor's own items, and a shipped timeline. Every action is still a plain form that works before hydration.
 
-### 2. Agents build accepted items
+### 2. Agents build accepted items (this branch)
 
 - The console gains **Build with an agent** on accepted items that have an issue. That click is the owner's approval.
-- monochange sends a `repository_dispatch` (`monochange-feedback-build`) through the GitHub App with the item id, issue number, and branch. The brief itself lives on the issue, which a maintainer already reviewed, so the dispatch carries no user text.
-- A new `monochange/actions/agent` workflow runs the agent (for example the Claude Code GitHub Action) in the repository's own CI: private code never leaves the repository's runners, and the repository owns the model key and cost.
-- The agent works on `feat|fix/feedback-{id}` and opens a pull request with the `Feedback-Item:` trailer. The existing webhooks move the item to review, merged, and shipped. The pull request never merges itself.
-- The GitHub App needs `contents: write` for `repository_dispatch`; the workflow's own token needs only `contents: write` and `pull-requests: write`, never `workflows`.
+- monochange checks that the issue's repository has `.github/workflows/monochange-feedback-build.yml`, then sends a `repository_dispatch` (`monochange-feedback-build`) through the GitHub App with the item id, repository, issue number, and branch (`BuildRequest`). The brief itself lives on the issue, which a maintainer already reviewed, so the dispatch carries no user text. A missing workflow is an error, so an item never sits "in development" with nothing running.
+- The workflow, documented in `docs/src/guide/feedback-agent-builds.md`, runs the agent (the Claude Code action in the example) in the repository's own CI: private code never leaves the repository's runners, and the repository owns the model key and cost. The agent step holds no push credentials; a later step pushes and opens a draft pull request.
+- The agent works on `feat|fix/feedback-{id}` and the pull request carries the `Feedback-Item:` trailer. The existing webhooks move the item to review, merged, and shipped. The pull request never merges itself.
+- The GitHub App already needs `contents: write` for hosted releases, which covers `repository_dispatch`; the workflow's own token needs only `contents: write`, `issues: read`, and `pull-requests: write`, never `workflows`.
+- Later: a reusable `monochange/actions/agent` action can replace the copied workflow.
 
 ### 3. Polish and notifications
 

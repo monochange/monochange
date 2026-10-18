@@ -273,6 +273,10 @@ fn context_lines(item: &FeedbackItem, threshold: u32) -> Vec<String> {
 		));
 	}
 
+	if item.stage == Stage::Building {
+		lines.push("An agent is building this; its pull request moves it to review".to_owned());
+	}
+
 	lines
 }
 
@@ -322,6 +326,12 @@ fn ConsoleCard(
 	let accept_target = target(ConsoleAction::Accept);
 	let open_voting_target = target(ConsoleAction::OpenVoting);
 	let create_issue_target = target(ConsoleAction::CreateIssue);
+	let build_target = target(ConsoleAction::BuildWithAgent);
+	let build_repository = item
+		.issue
+		.as_ref()
+		.and_then(|issue| issue.repository.clone())
+		.unwrap_or_default();
 	let duplicate_target = target(ConsoleAction::Duplicate);
 	let edit_summary_target = target(ConsoleAction::EditSummary);
 	let decline_target = target(ConsoleAction::Decline);
@@ -420,6 +430,13 @@ fn ConsoleCard(
 									<select name="repository">{repositories.iter().map(|repository| view! { <option value=repository.clone()>{repository.clone()}</option> }).collect::<Vec<_>>()}</select>
 								</label>
 								<button type="submit" class="button button-brand">"Create GitHub issue"</button>
+							</ActionForm>
+						}.into_any())}
+						{has(ConsoleAction::BuildWithAgent).then(|| view! {
+							<ActionForm action=act attr:class="console-action">
+								{build_target}
+								<p>"Runs the agent workflow in " <code>{build_repository}</code> " from the issue. Its pull request comes back here for review and never merges on its own."</p>
+								<button type="submit" class="button button-brand">"Build with an agent"</button>
 							</ActionForm>
 						}.into_any())}
 						{(has(ConsoleAction::Duplicate) && !duplicate_targets.is_empty()).then(|| view! {

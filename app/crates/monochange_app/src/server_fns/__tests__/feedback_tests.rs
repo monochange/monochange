@@ -6,6 +6,7 @@
 use std::sync::Arc;
 use std::sync::OnceLock;
 
+use httpmock::Method::GET;
 use httpmock::Method::POST;
 use httpmock::MockServer;
 use leptos::prelude::*;
@@ -174,6 +175,23 @@ fn actions_follow_the_stage() {
 		actions(Stage::Accepted),
 		[
 			ConsoleAction::CreateIssue,
+			ConsoleAction::EditSummary,
+			ConsoleAction::Close,
+		]
+	);
+	item.issue = Some(monochange_app_feedback::IssueRef {
+		repository: Some("alice/web".to_owned()),
+		number: 9,
+		url: None,
+	});
+	let mut actions = |stage: Stage| {
+		item.stage = stage;
+		console_actions(&item)
+	};
+	assert_eq!(
+		actions(Stage::Accepted),
+		[
+			ConsoleAction::BuildWithAgent,
 			ConsoleAction::EditSummary,
 			ConsoleAction::Close,
 		]
@@ -491,8 +509,103 @@ async fn accepted_items_become_github_issues() {
 	assert_eq!(issue.number, 9);
 	assert_eq!(
 		view.items[0].actions,
-		[ConsoleAction::EditSummary, ConsoleAction::Close]
+		[
+			ConsoleAction::BuildWithAgent,
+			ConsoleAction::EditSummary,
+			ConsoleAction::Close,
+		]
 	);
+}
+
+#[tokio::test]
+async fn accepted_issues_are_built_by_the_repository_agent() {
+	let server = MockServer::start_async().await;
+	server
+		.mock_async(|when, then| {
+			when.method(POST)
+				.path("/app/installations/1001/access_tokens");
+			then.status(201)
+				.json_body(serde_json::json!({"token": "t"}));
+		})
+		.await;
+	server
+		.mock_async(|when, then| {
+			when.method(POST).path("/repos/alice/web/issues");
+			then.status(201).json_body(
+				serde_json::json!({"number": 9, "html_url": "https://github.com/alice/web/issues/9"}),
+			);
+		})
+		.await;
+	let workflow = server
+		.mock_async(|when, then| {
+			when.method(GET)
+				.path("/repos/alice/web/contents/.github/workflows/monochange-feedback-build.yml");
+			then.status(404);
+		})
+		.await;
+	let mut configured = (*state().await).clone();
+	configured.github_app = Some(test_app(&server));
+	let state = Arc::new(configured);
+	let id = submit(&state, "v-1", FeedbackKind::BugReport, "Totals are wrong").await;
+	let (owner, _) = context(&state, Some(1));
+	act(
+		&owner,
+		Act {
+			override_rationale: Some("Money bug"),
+			..Act::new(&id, "accept")
+		},
+	)
+	.await
+	.unwrap();
+	act(
+		&owner,
+		Act {
+			repository: Some("alice/web"),
+			..Act::new(&id, "create_issue")
+		},
+	)
+	.await
+	.unwrap();
+
+	assert_eq!(
+		act(&owner, Act::new(&id, "build_with_agent")).await,
+		Err(
+			"alice/web has no agent workflow yet. Add .github/workflows/monochange-feedback-build.yml there, then try again."
+				.to_owned()
+		)
+	);
+	assert_eq!(stage(&state, &id).await, Stage::Accepted);
+
+	workflow.delete_async().await;
+	server
+		.mock_async(|when, then| {
+			when.method(GET)
+				.path("/repos/alice/web/contents/.github/workflows/monochange-feedback-build.yml");
+			then.status(200).json_body(serde_json::json!({}));
+		})
+		.await;
+	let dispatch = server
+		.mock_async(|when, then| {
+			when.method(POST)
+				.path("/repos/alice/web/dispatches")
+				.json_body(serde_json::json!({
+					"event_type": "monochange-feedback-build",
+					"client_payload": {
+						"item": id,
+						"repository": "alice/web",
+						"issue_number": 9,
+						"branch": format!("fix/feedback-{id}"),
+					},
+				}));
+			then.status(204);
+		})
+		.await;
+	act(&owner, Act::new(&id, "build_with_agent"))
+		.await
+		.unwrap();
+
+	dispatch.assert_async().await;
+	assert_eq!(stage(&state, &id).await, Stage::Building);
 }
 
 #[tokio::test]

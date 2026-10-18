@@ -11,6 +11,7 @@ use httpmock::Method::POST;
 use httpmock::MockServer;
 use monochange_app_feedback::FeedbackKind;
 use monochange_app_feedback::FeedbackSubmission;
+use monochange_app_feedback::IssueRef;
 use monochange_app_feedback::MaintainerDecision;
 use monochange_app_feedback::RepositoryVisibility;
 use monochange_app_feedback::ServiceError;
@@ -21,6 +22,8 @@ use rsa::pkcs1::EncodeRsaPrivateKey;
 use rsa::pkcs1::LineEnding;
 use rsa::rand_core::OsRng;
 
+use super::AGENT_BUILD_EVENT;
+use super::AGENT_WORKFLOW;
 use super::FeedbackError;
 use super::PORTAL_APP;
 use super::ProjectRepository;
@@ -30,6 +33,7 @@ use super::create_issue;
 use super::load;
 use super::notifications_for;
 use super::public_project;
+use super::start_agent_build;
 use super::update;
 use super::viewer_id;
 use crate::AppSecrets;
@@ -403,11 +407,126 @@ async fn issue_creation_fails_cleanly_without_an_installation_token() {
 	assert!(matches!(error, FeedbackError::GitHub(_)));
 }
 
+fn issue_in(repository: &str) -> IssueRef {
+	IssueRef {
+		repository: Some(repository.to_owned()),
+		number: 12,
+		url: None,
+	}
+}
+
+#[tokio::test]
+async fn agent_builds_start_only_where_a_workflow_will_run_them() {
+	let server = MockServer::start_async().await;
+	server
+		.mock_async(|when, then| {
+			when.method(POST)
+				.path("/app/installations/1001/access_tokens");
+			then.status(201)
+				.json_body(serde_json::json!({"token": "t"}));
+		})
+		.await;
+	server
+		.mock_async(|when, then| {
+			when.method(GET)
+				.path(format!("/repos/acme/api/contents/{AGENT_WORKFLOW}"));
+			then.status(403)
+				.body("Resource not accessible by integration");
+		})
+		.await;
+	server
+		.mock_async(|when, then| {
+			when.method(GET)
+				.path(format!("/repos/acme/web/contents/{AGENT_WORKFLOW}"));
+			then.status(200).json_body(serde_json::json!({}));
+		})
+		.await;
+	let rejected = server
+		.mock_async(|when, then| {
+			when.method(POST)
+				.path("/repos/acme/web/dispatches")
+				.body_includes(AGENT_BUILD_EVENT);
+			then.status(422).body("No ref found");
+		})
+		.await;
+	let mut state = state().await;
+	let scope = scope(false);
+	accepted(&state, &scope).await;
+
+	assert!(matches!(
+		start_agent_build(&state, &scope, "fb-1").await,
+		Err(FeedbackError::GitHubAppMissing)
+	));
+	state.github_app = Some(app(&server));
+	// No issue yet, so there is no brief for an agent to read.
+	assert!(matches!(
+		start_agent_build(&state, &scope, "fb-1").await,
+		Err(FeedbackError::Service(_))
+	));
+	let link = |repository: &'static str| {
+		update(&state, &scope, move |service| {
+			service.link_issue("fb-1", issue_in(repository))
+		})
+	};
+	link("acme/other").await.unwrap();
+	assert_eq!(
+		start_agent_build(&state, &scope, "fb-1")
+			.await
+			.unwrap_err()
+			.to_string(),
+		"acme/other isn't one of this project's connected repositories"
+	);
+	link("acme/api").await.unwrap();
+	assert!(matches!(
+		start_agent_build(&state, &scope, "fb-1").await,
+		Err(FeedbackError::GitHub(_))
+	));
+	link("acme/web").await.unwrap();
+	assert!(matches!(
+		start_agent_build(&state, &scope, "fb-1").await,
+		Err(FeedbackError::GitHub(_))
+	));
+	rejected.assert_async().await;
+	// Nothing was recorded, so the maintainer can retry.
+	let progress = || {
+		async {
+			load(&state, &scope)
+				.await
+				.unwrap()
+				.service
+				.item("fb-1")
+				.unwrap()
+				.stage
+		}
+	};
+	assert_eq!(progress().await, Stage::Accepted);
+
+	rejected.delete_async().await;
+	server
+		.mock_async(|when, then| {
+			when.method(POST).path("/repos/acme/web/dispatches");
+			then.status(204);
+		})
+		.await;
+	let request = start_agent_build(&state, &scope, "fb-1").await.unwrap();
+	assert_eq!(request.branch, "fix/feedback-fb-1");
+	assert_eq!(request.issue_number, 12);
+	assert_eq!(progress().await, Stage::Building);
+	assert!(matches!(
+		start_agent_build(&state, &scope, "fb-1").await,
+		Err(FeedbackError::Service(_))
+	));
+}
+
 #[test]
 fn errors_explain_themselves() {
 	assert_eq!(
 		FeedbackError::Service(ServiceError::NotFound("fb-1".to_owned())).to_string(),
 		"feedback item fb-1 does not exist"
+	);
+	assert_eq!(
+		FeedbackError::AgentWorkflowMissing("acme/web".to_owned()).to_string(),
+		"acme/web has no agent workflow at .github/workflows/monochange-feedback-build.yml"
 	);
 	assert!(
 		FeedbackError::Corrupt(serde_json::from_str::<u8>("x").unwrap_err())

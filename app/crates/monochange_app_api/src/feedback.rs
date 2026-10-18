@@ -9,9 +9,12 @@
 //! Calls to `GitHub` happen between updates, never inside one. Creating an
 //! issue first records the decision, then calls `GitHub`, then links the
 //! issue, so a failed call leaves an accepted item that can be retried.
+//! Starting an agent build dispatches first and records the build after, for
+//! the same reason.
 
 use monochange_app_db::feedback::NotificationRecord;
 use monochange_app_db::feedback::SaveOutcome;
+use monochange_app_feedback::BuildRequest;
 use monochange_app_feedback::CadenceSnapshot;
 use monochange_app_feedback::DisclosurePolicy;
 use monochange_app_feedback::FeedbackService;
@@ -31,6 +34,15 @@ use crate::github_app::GitHubAppError;
 /// Slug of the app every project has: its own public portal.
 pub const PORTAL_APP: &str = "portal";
 
+/// The `repository_dispatch` event that asks a repository to build an
+/// accepted item with its agent.
+pub const AGENT_BUILD_EVENT: &str = "monochange-feedback-build";
+
+/// The workflow that answers [`AGENT_BUILD_EVENT`]. It must exist before a
+/// build starts, so a click never moves an item to "in development" with
+/// nothing running.
+pub const AGENT_WORKFLOW: &str = ".github/workflows/monochange-feedback-build.yml";
+
 /// How many times an update reruns after losing a race.
 const UPDATE_ATTEMPTS: usize = 3;
 
@@ -48,6 +60,8 @@ pub enum FeedbackError {
 	GitHubAppMissing,
 	#[error("{0} isn't one of this project's connected repositories")]
 	UnknownRepository(String),
+	#[error("{0} has no agent workflow at {AGENT_WORKFLOW}")]
+	AgentWorkflowMissing(String),
 	#[error(transparent)]
 	GitHub(#[from] GitHubAppError),
 }
@@ -237,6 +251,55 @@ pub async fn create_issue(
 	})
 	.await?;
 	Ok(issue)
+}
+
+/// Asks the repository that holds an accepted item's issue to build it with
+/// its agent, then records that the build started. Returns the request sent.
+///
+/// The build runs in the repository's own CI, so its code and model key stay
+/// there. The request carries ids only: the agent reads the brief from the
+/// issue, which a maintainer already reviewed. The pull request it opens
+/// moves the item to review through the usual webhooks.
+pub async fn start_agent_build(
+	state: &AppState,
+	scope: &ProjectScope,
+	item_id: &str,
+) -> Result<BuildRequest, FeedbackError> {
+	let app = state
+		.github_app
+		.as_ref()
+		.ok_or(FeedbackError::GitHubAppMissing)?;
+	let request = load(state, scope).await?.service.build_request(item_id)?;
+	let target = scope.repository(&request.repository)?;
+	let token = app
+		.installation_token(&state.http, target.github_installation_id)
+		.await?;
+
+	if !crate::github_app::repository_file_exists(
+		&state.http,
+		&app.api_url,
+		&token,
+		&target.full_name,
+		AGENT_WORKFLOW,
+	)
+	.await?
+	{
+		return Err(FeedbackError::AgentWorkflowMissing(
+			target.full_name.clone(),
+		));
+	}
+
+	crate::github_app::dispatch_repository_event(
+		&state.http,
+		&app.api_url,
+		&token,
+		&target.full_name,
+		AGENT_BUILD_EVENT,
+		&request,
+	)
+	.await?;
+	update(state, scope, |service| service.start_build(item_id)).await?;
+	Ok(request)
 }
 
 /// A project as anyone may see it, resolved without a session.

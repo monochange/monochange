@@ -5,11 +5,13 @@ use crate::disclosure::DisclosureError;
 use crate::disclosure::RepositoryVisibility;
 use crate::discussion::Actor;
 use crate::handoff::AgentBrief;
+use crate::handoff::BuildRequest;
 use crate::handoff::ChangesetDraft;
 use crate::handoff::ChangesetTarget;
 use crate::handoff::HandoffError;
 use crate::handoff::IssueDraft;
 use crate::handoff::agent_brief;
+use crate::handoff::build_request;
 use crate::handoff::changeset_draft;
 use crate::handoff::feedback_trailer;
 use crate::handoff::issue_draft;
@@ -279,6 +281,48 @@ fn feature_briefs_implement_without_reproduction() {
 	assert!(brief.reproduction.is_empty());
 	assert_eq!(brief.constraints.len(), 4);
 	assert_eq!(brief.pull_request_title, "feat: dark mode for reports");
+}
+
+#[test]
+fn build_requests_carry_ids_and_never_the_report() {
+	assert_eq!(
+		build_request(&accepted_bug()),
+		Err(HandoffError::IssueRequired)
+	);
+	// An issue linked before projects spanned repositories can't say where
+	// to build.
+	assert_eq!(
+		build_request(&with_issue(accepted_bug())),
+		Err(HandoffError::IssueRequired)
+	);
+
+	let mut item = accepted_bug();
+	item.apply(
+		Command::LinkIssue(IssueRef {
+			repository: Some("acme/invoices".to_owned()),
+			number: 42,
+			url: None,
+		}),
+		&Actor::System,
+	)
+	.unwrap();
+	let request = build_request(&item).unwrap();
+	assert_eq!(
+		request,
+		BuildRequest {
+			item: "fb-1".to_owned(),
+			repository: "acme/invoices".to_owned(),
+			issue_number: 42,
+			branch: "fix/feedback-fb-1".to_owned(),
+		}
+	);
+	assert!(!serde_json::to_string(&request).unwrap().contains("Export"));
+
+	item.apply(Command::StartBuild, &Actor::System).unwrap();
+	assert_eq!(
+		build_request(&item),
+		Err(HandoffError::NotAccepted(Stage::Building))
+	);
 }
 
 #[test]
