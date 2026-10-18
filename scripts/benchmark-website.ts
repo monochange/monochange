@@ -141,7 +141,9 @@ async function waitForHealth(baseUrl, timeoutMs) {
 }
 
 function startServer(options, port, databaseUrl) {
-	const serverBin = options.server_bin ?? join(repoRoot, "app/target/release/monochange_app");
+	// Resolve against the repository root so a relative --server-bin survives
+	// the app/ working directory the server needs for monosecret resolution.
+	const serverBin = resolve(repoRoot, options.server_bin ?? "app/target/release/monochange_app");
 	const child = spawn(serverBin, [], {
 		cwd: join(repoRoot, "app"),
 		env: {

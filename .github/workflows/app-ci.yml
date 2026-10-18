@@ -188,7 +188,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: comment benchmark results on PR
-        if: always() && github.event_name == 'pull_request' && steps.lighthouse.outcome != 'skipped'
+        if: github.event_name == 'pull_request' && steps.lighthouse.outcome == 'success'
         uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88 # v3.0.5
         with:
           header: website-benchmark
