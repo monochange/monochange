@@ -271,6 +271,9 @@ fn classify(error: &MonochangeError) -> (&'static str, String, Vec<String>) {
 				vec!["Fix the syntax error shown above, then rerun the command.".to_string()],
 			)
 		}
+		MonochangeError::Config(message) if is_usage_error(message) => {
+			("cli.usage", message.clone(), Vec::new())
+		}
 		MonochangeError::Config(message) => {
 			(
 				"config.invalid",
@@ -417,6 +420,14 @@ fn diagnostic_code(message: &str) -> &'static str {
 	} else {
 		"cli.diagnostic"
 	}
+}
+
+/// Command-line mistakes caught after parsing: a missing option, an unknown id,
+/// or an ambiguous selection. They exit with the usage status, like clap errors.
+fn is_usage_error(message: &str) -> bool {
+	message.starts_with("missing required option")
+		|| message.starts_with("unknown lint rule or preset")
+		|| message.contains("pass `--target <id>` with one of")
 }
 
 /// A generic next step, unless the message already says what to do.

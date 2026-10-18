@@ -35,9 +35,17 @@ pub(crate) async fn render_notes(
 		)));
 	};
 
-	if matches.next().is_some() {
+	if let Some(second) = matches.next() {
+		let targets = [changelog, second]
+			.into_iter()
+			.chain(matches)
+			.map(|changelog| changelog.owner_id.as_str())
+			.collect::<BTreeSet<_>>()
+			.into_iter()
+			.collect::<Vec<_>>()
+			.join(", ");
 		return Err(MonochangeError::Config(format!(
-			"changelog output `{output_id}` produced release notes for multiple targets; pass `--target <id>` to select one"
+			"changelog output `{output_id}` produced release notes for multiple targets; pass `--target <id>` with one of: {targets}"
 		)));
 	}
 

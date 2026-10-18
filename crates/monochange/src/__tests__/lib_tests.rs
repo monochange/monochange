@@ -1205,7 +1205,7 @@ async fn publish_subcommands_dispatch_to_their_built_in_steps() {
 
 	assert_eq!(
 		error.to_string(),
-		"config error: missing publish-readiness ref"
+		"config error: missing required option `--from <ref>`; pass the release commit or tag to check, for example `--from HEAD`"
 	);
 }
 
@@ -1376,7 +1376,7 @@ async fn comment_released_issues_help_documents_post_merge_options() {
 	.await
 	.unwrap_or_else(|error| panic!("comment-released-issues help: {error}"));
 
-	assert!(output.contains("Run the built-in comment-released-issues release workflow step"));
+	assert!(output.contains("Comment on linked issues shipped in a prepared release"));
 	assert!(output.contains("--from-ref <FROM-REF>"));
 	assert!(output.contains("--auto-close-issues"));
 }
@@ -1395,7 +1395,7 @@ async fn repair_release_help_describes_retargeting_workflow() {
 	.await
 	.unwrap_or_else(|error| panic!("repair-release help: {error}"));
 
-	assert!(output.contains("Run the built-in retarget-release release workflow step"));
+	assert!(output.contains("Repair a recent release by retargeting its release tags"));
 	assert!(output.contains("--from"));
 	assert!(output.contains("--sync-provider"));
 }
@@ -1536,7 +1536,9 @@ async fn versions_help_and_matches_document_dedicated_versions_command() {
 	)
 	.await
 	.unwrap_or_else(|error| panic!("versions help: {error}"));
-	assert!(versions_help.contains("Run the built-in display-versions release workflow step"));
+	assert!(versions_help.contains(
+		"Show the next version for each release group and package without writing files"
+	));
 	assert!(versions_help.contains("--format <FORMAT>"));
 
 	let matches = build_command_for_root("monochange", &fixture_root)
@@ -7829,7 +7831,7 @@ async fn execute_cli_command_builtin_release_steps_require_from_input() {
 				always_run: false,
 				inputs: BTreeMap::new(),
 			},
-			"missing publish-readiness ref",
+			"missing required option `--from <ref>`",
 		),
 		(
 			"tag-release",
@@ -15860,7 +15862,7 @@ async fn cli_help_subcommand_renders_detailed_command_help() {
 	.unwrap_or_else(|error| panic!("help step validate output: {error}"));
 
 	assert!(output.contains("validate"));
-	assert!(output.contains("Run the built-in validate release workflow step"));
+	assert!(output.contains("Validate configuration, changesets, and version groups"));
 	assert!(output.contains("Usage"));
 }
 

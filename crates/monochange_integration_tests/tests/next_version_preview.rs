@@ -139,7 +139,7 @@ fn next_reports_no_planned_versions_without_changesets() {
 
 	assert_eq!(
 		text.trim_end(),
-		"• No versions planned · add a changeset with `monochange change` to plan a release",
+		"• No versions planned · add a changeset with `monochange create` to plan a release",
 		"an empty changeset set should report nothing planned rather than fail"
 	);
 	assert_no_release_state(root);

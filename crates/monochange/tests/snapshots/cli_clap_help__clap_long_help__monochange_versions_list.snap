@@ -5,19 +5,19 @@ expression: render_help_snapshot(&path)
 Version: [current]
 Command: monochange versions list
 
-List current package and version-group versions as a flat mapping keyed by the exact monochange package or group id.
+List current package and group versions
 
 [1m[97mUsage:[0m [93mmonochange versions list[0m [95m[OPTIONS][0m
 
 [1m[96mOptions:[0m
-      [93m--format[0m[95m [0m[95m<format>[0m
-          Output format
+      [93m--format[0m[95m [0m[95m<FORMAT>[0m
+          Output format for the command result
 
           [default: text]
           [possible values: text, json, json-min]
 
   [93m-h[0m, [93m--help[0m
-          Print help (see a summary with '-h')
+          Print help
 
 [1m[96mGlobal Options:[0m
   [93m-q[0m, [93m--quiet[0m
@@ -41,3 +41,5 @@ List current package and version-group versions as a flat mapping keyed by the e
 
       [93m--snapshot[0m
           Print a normalized JSON snapshot for this command subtree
+
+Versions are keyed by the exact monochange package or group id.

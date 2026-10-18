@@ -12,17 +12,9 @@ info:
 success: true
 exit_code: 0
 ----- stdout -----
-Prepare a pull request release from discovered change files. It should only be run in a github action.
+Prepare a release pull request from pending changesets (run in GitHub Actions)
 
-Usage: monochange run release [--dry-run] [--diff] [--prepared-release <PATH>] [--format <FORMAT>] [--no-verify] [--commit] [--create-pr] [--write-empty-release-record]
-
-Options:
-  -h, --help  Print help
-
-Release Options:
-      --dry-run                  Run the command in dry-run mode when supported
-      --diff                     Show unified file diffs for prepared release changes
-      --prepared-release <PATH>  Read or write the prepared release artifact at a specific path
+Usage: monochange run release [OPTIONS]
 
 Options:
       --format <FORMAT>             [default: text] [possible values: text, json, json-min, markdown]
@@ -30,6 +22,12 @@ Options:
       --commit                      Whether to commit the changes
       --create-pr                   Whether to create the PR after the commit
       --write-empty-release-record  Whether to write release records when no packages are released
+  -h, --help                        Print help
+
+Release Options:
+      --dry-run                  Show what would change without writing files or contacting services
+      --diff                     Show unified file diffs for prepared release changes
+      --prepared-release <PATH>  Read or write the prepared release artifact at a specific path
 
 Global Options:
   -q, --quiet                     Suppress result, progress, and diagnostic output without changing execution

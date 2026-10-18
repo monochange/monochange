@@ -25,11 +25,11 @@ Generate repo-local monochange subagents and agent guidance files
       [93m--dry-run[0m
           Preview the generated files without writing them
 
-      [93m--format[0m[95m [0m[95m<format>[0m
-          Output format for the generated subagent plan
+      [93m--format[0m[95m [0m[95m<FORMAT>[0m
+          Output format for the command result
 
           [default: text]
-          [possible values: text, json, json-min, markdown, md]
+          [possible values: text, json, json-min, md]
 
       [93m--no-mcp[0m
           Skip repo-local MCP config files for supported targets
@@ -77,7 +77,6 @@ Targets:
 
 Generated agents are CLI-first. They should prefer:
   1. monochange
-  2. monochange
-  3. npx -y @monochange/cli
+  2. npx -y @monochange/cli
 
 Use `--no-mcp` to skip MCP config files for targets that support repo-local MCP config.

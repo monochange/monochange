@@ -1756,7 +1756,13 @@ async fn execute_publish_readiness_step(
 		.get("from")
 		.and_then(|values| values.first())
 		.cloned()
-		.ok_or_else(|| MonochangeError::Config("missing publish-readiness ref".to_string()))?;
+		.ok_or_else(|| {
+			MonochangeError::Config(
+				"missing required option `--from <ref>`; pass the release commit or tag to check, \
+				 for example `--from HEAD`"
+					.to_string(),
+			)
+		})?;
 	let selected_packages = selected_package_ids(state.step_inputs);
 	let output_path = optional_path_input(state.step_inputs, "output", "PublishReadiness")?;
 	let options = publish_readiness::PublishReadinessOptions {
@@ -4779,7 +4785,7 @@ fn render_release_version_summary_text(
 		report.headline(
 			Outcome::Neutral,
 			"No versions planned",
-			&["add a changeset with `monochange change` to plan a release".to_string()],
+			&["add a changeset with `monochange create` to plan a release".to_string()],
 		);
 
 		return report.render();

@@ -5,7 +5,7 @@ expression: render_help_snapshot(&path)
 Version: [current]
 Command: monochange skill install
 
-Write SKILL.md and every bundled reference into a directory the agent runtime reads as a skill. The directory is normally named `monochange` inside the runtime's skills folder. An existing skill is never replaced unless --force is passed.
+Write the bundled skill into an agent runtime's skill directory
 
 [1m[97mUsage:[0m [93mmonochange skill install[0m [95m[OPTIONS][0m
 
@@ -17,7 +17,7 @@ Write SKILL.md and every bundled reference into a directory the agent runtime re
           Replace an existing skill in the destination
 
   [93m-h[0m, [93m--help[0m
-          Print help (see a summary with '-h')
+          Print help
 
 [1m[96mGlobal Options:[0m
   [93m-q[0m, [93m--quiet[0m
@@ -41,3 +41,5 @@ Write SKILL.md and every bundled reference into a directory the agent runtime re
 
       [93m--snapshot[0m
           Print a normalized JSON snapshot for this command subtree
+
+Writes SKILL.md and every bundled reference. The directory is normally named `monochange` inside the runtime's skills folder. An existing skill is never replaced unless --force is passed.

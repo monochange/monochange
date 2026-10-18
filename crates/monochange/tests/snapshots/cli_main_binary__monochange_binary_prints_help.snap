@@ -26,7 +26,6 @@ Release Commands:
 
 Workspace Commands:
   init       Generate monochange.toml with detected packages and groups
-  populate   Check for default CLI workflow aliases (none are provided in this version)
   discover   Discover packages across supported ecosystems
   config     Render resolved monochange configuration and workspace metadata
   check      Validate configuration, changesets, and run manifest lint rules

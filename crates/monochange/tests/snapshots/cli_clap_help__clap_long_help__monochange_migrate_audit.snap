@@ -10,11 +10,11 @@ Report existing release tools, changelog providers, and CI migration work
 [1m[97mUsage:[0m [93mmonochange migrate audit[0m [95m[OPTIONS][0m
 
 [1m[96mOptions:[0m
-      [93m--format[0m[95m [0m[95m<format>[0m
-          Output format
+      [93m--format[0m[95m [0m[95m<FORMAT>[0m
+          Output format for the command result
 
           [default: text]
-          [possible values: text, json, json-min, markdown, md]
+          [possible values: text, json, json-min, md]
 
   [93m-h[0m, [93m--help[0m
           Print help

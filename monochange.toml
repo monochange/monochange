@@ -937,7 +937,7 @@ steps = [
 ]
 
 [cli.release]
-help_text = "Prepare a pull request release from discovered change files. It should only be run in a github action."
+help_text = "Prepare a release pull request from pending changesets (run in GitHub Actions)"
 inputs = [
 	{ name = "format", type = "choice", choices = ["text", "json", "json-min", "markdown"], default = "text" },
 	{ name = "no_verify", type = "boolean", default = true },

@@ -2,6 +2,9 @@
 source: crates/monochange_integration_tests/tests/hosted_release_commit.rs
 expression: "String::from_utf8_lossy(&output.stderr)"
 ---
+warning: could not load GitHub review requests; continuing with commit annotations only
+  commits: 1
+  error:   GitHub API POST `/graphql` failed: status 401; Bad credentials; documentation: https://docs.github.com/rest
 error[config.invalid]: invalid hosted auth `password`; expected `auto`, `oidc`, or `token`
   command: monochange run commit-invalid-auth
   step:    [2/2] commit release

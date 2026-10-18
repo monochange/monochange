@@ -474,7 +474,7 @@ pub(crate) fn render_lint_explanation(id: &str, format: OutputFormat) -> Monocha
 	}
 
 	Err(MonochangeError::Config(format!(
-		"unknown lint rule or preset `{id}`"
+		"unknown lint rule or preset `{id}`; run `monochange lint list` to see every rule and preset id"
 	)))
 }
 

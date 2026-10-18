@@ -14,6 +14,8 @@ Classify an explicit API diff
           Base ref; defaults to the remote default branch
 
       [93m--head[0m[95m [0m[95m<REF>[0m
+          Head ref to classify
+
           [default: HEAD]
 
       [93m--release[0m[95m [0m[95m<REF>[0m
@@ -38,10 +40,10 @@ Classify an explicit API diff
           Skip registered cli command-surface comparisons; MONOCHANGE_SKIP_CLI_SNAPSHOTS=1 also skips them
 
       [93m--format[0m[95m [0m[95m<FORMAT>[0m
-          Report format
+          Output format for the command result
 
           [default: text]
-          [possible values: markdown, md, json, json-min, text]
+          [possible values: text, json, json-min, md]
 
       [93m--output[0m[95m [0m[95m<PATH>[0m
           Also write the report to a file
@@ -77,3 +79,7 @@ Classify an explicit API diff
 
       [93m--snapshot[0m
           Print a normalized JSON snapshot for this command subtree
+
+Examples:
+  monochange api diff --package core
+  monochange api diff --base origin/main --head HEAD --format json

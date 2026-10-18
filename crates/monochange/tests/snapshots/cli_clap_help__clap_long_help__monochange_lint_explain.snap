@@ -14,11 +14,11 @@ Explain a lint rule or preset
           Lint rule id or preset id to explain
 
 [1m[96mOptions:[0m
-      [93m--format[0m[95m [0m[95m<format>[0m
-          Output format
+      [93m--format[0m[95m [0m[95m<FORMAT>[0m
+          Output format for the command result
 
           [default: text]
-          [possible values: text, json, json-min, markdown, md]
+          [possible values: text, json, json-min, md]
 
   [93m-h[0m, [93m--help[0m
           Print help
