@@ -22,6 +22,12 @@ This is especially valuable when:
 - `from-ref`: git ref that contains the release record to publish
 - `auto-close-issues`: close issues that the release review requests claim via closing keywords after adding the release comment
 
+## Which issues are linked
+
+monochange reads `#N` references from the body of the pull request that introduced each changeset, then asks GitHub what each number is. Only numbers that GitHub resolves to an issue in the release repository are linked, with the issue's title. Pull requests, numbers that do not exist, references to other repositories (`owner/repo#N`, or the `repo#N` shorthand), and anything inside code blocks or inline code are skipped. A later pull request that only edited the changeset file, such as a reformat or a revert, does not add its own references.
+
+If GitHub cannot answer the lookup, monochange keeps only the references made with a closing keyword and leaves out the rest.
+
 ## Issue closure
 
 With `auto-close-issues` enabled, only issues referenced through closing keywords (`Closes #7`, `Fixes #8`, …) in the release review request bodies are closed, and closure is attempted even when the issue is already closed, because hosted forges only auto-close the first issue of a comma-separated `Closes #7, #8` list. Issues that are merely mentioned without a closing keyword are never closed; add a closing keyword to the release pull request body when a mention should close with the release.
