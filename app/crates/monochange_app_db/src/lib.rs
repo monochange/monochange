@@ -4,14 +4,16 @@
 //! production use the same database engine.
 
 #[cfg(test)]
-#[path = "__tests.rs"]
+#[path = "__tests__/lib_tests.rs"]
 mod tests;
 
 use sqlx::sqlite::SqliteConnectOptions;
 use sqlx::sqlite::SqlitePoolOptions;
 use thiserror::Error;
 
+pub mod feedback;
 pub mod models;
+pub mod projects;
 
 pub type DbPool = sqlx::SqlitePool;
 pub type DbClient = welds_connections::sqlite::SqliteClient;
@@ -52,8 +54,13 @@ pub fn get_client(pool: &DbPool) -> Result<DbClient, DbError> {
 pub async fn run_migrations(pool: &DbPool) -> Result<(), DbError> {
 	let client = get_client(pool)?;
 
-	let migrations: &[welds::migrations::MigrationFn] =
-		&[create_users_tables, create_release_automation_tables];
+	let migrations: &[welds::migrations::MigrationFn] = &[
+		create_users_tables,
+		create_release_automation_tables,
+		add_github_user_token_refresh,
+		add_organizations_and_projects,
+		create_project_feedback,
+	];
 
 	welds::migrations::up(&client, migrations)
 		.await
@@ -63,7 +70,6 @@ pub async fn run_migrations(pool: &DbPool) -> Result<(), DbError> {
 }
 
 // ── Migration functions ──
-
 // The welds `MigrationFn` type alias requires the `Result` return type.
 #[allow(clippy::unnecessary_wraps)]
 fn create_users_tables(
@@ -86,8 +92,44 @@ fn create_release_automation_tables(
 	))
 }
 
+// The welds `MigrationFn` type alias requires the `Result` return type.
+#[allow(clippy::unnecessary_wraps)]
+fn add_github_user_token_refresh(
+	_state: &welds::migrations::TableState,
+) -> Result<welds::migrations::MigrationStep, welds::WeldsError> {
+	Ok(welds::migrations::MigrationStep::new(
+		"003_add_github_user_token_refresh",
+		AddGitHubUserTokenRefresh,
+	))
+}
+
+// The welds `MigrationFn` type alias requires the `Result` return type.
+#[allow(clippy::unnecessary_wraps)]
+fn add_organizations_and_projects(
+	_state: &welds::migrations::TableState,
+) -> Result<welds::migrations::MigrationStep, welds::WeldsError> {
+	Ok(welds::migrations::MigrationStep::new(
+		"004_add_organizations_and_projects",
+		AddOrganizationsAndProjects,
+	))
+}
+
+// The welds `MigrationFn` type alias requires the `Result` return type.
+#[allow(clippy::unnecessary_wraps)]
+fn create_project_feedback(
+	_state: &welds::migrations::TableState,
+) -> Result<welds::migrations::MigrationStep, welds::WeldsError> {
+	Ok(welds::migrations::MigrationStep::new(
+		"005_create_project_feedback",
+		CreateProjectFeedback,
+	))
+}
+
 pub(crate) struct CreateUsersTable;
 pub(crate) struct CreateReleaseAutomationTables;
+pub(crate) struct AddGitHubUserTokenRefresh;
+pub(crate) struct AddOrganizationsAndProjects;
+pub(crate) struct CreateProjectFeedback;
 
 fn sql_statements(sql: &str) -> Vec<String> {
 	sql.split(';')
@@ -227,6 +269,141 @@ impl welds::migrations::MigrationWriter for CreateReleaseAutomationTables {
 			r"
             DROP TABLE IF EXISTS release_jobs;
             DROP TABLE IF EXISTS release_schedules;
+        ",
+		)
+	}
+}
+
+impl welds::migrations::MigrationWriter for AddGitHubUserTokenRefresh {
+	fn up_sql(&self, _syntax: welds::Syntax) -> Vec<String> {
+		sql_statements(
+			r"
+            ALTER TABLE users ADD COLUMN github_refresh_token TEXT;
+            ALTER TABLE users ADD COLUMN github_access_token_expires_at INTEGER;
+            ALTER TABLE users ADD COLUMN github_refresh_token_expires_at INTEGER;
+        ",
+		)
+	}
+
+	fn down_sql(&self, _syntax: welds::Syntax) -> Vec<String> {
+		sql_statements(
+			r"
+            ALTER TABLE users DROP COLUMN github_refresh_token_expires_at;
+            ALTER TABLE users DROP COLUMN github_access_token_expires_at;
+            ALTER TABLE users DROP COLUMN github_refresh_token;
+        ",
+		)
+	}
+}
+
+/// Organisations become the dashboard's top level, and projects group an
+/// organisation's repositories.
+///
+/// Every account and repository row gains a `provider` so GitLab, Gitea, and
+/// Forgejo can be added as adapters later. `organizations.github_id` keeps its
+/// original single-column unique constraint until a non-GitHub provider
+/// arrives; the composite `(provider, github_id)` index is the key new code
+/// conflicts on.
+///
+/// Project repositories reference the provider's stable repository id rather
+/// than `repositories.id`, because uninstalling and reinstalling the app
+/// deletes and recreates repository rows. A project survives that round trip
+/// and simply shows its repositories as disconnected in between.
+impl welds::migrations::MigrationWriter for AddOrganizationsAndProjects {
+	fn up_sql(&self, _syntax: welds::Syntax) -> Vec<String> {
+		sql_statements(
+			r"
+            ALTER TABLE users ADD COLUMN provider TEXT NOT NULL DEFAULT 'github';
+            ALTER TABLE organizations ADD COLUMN provider TEXT NOT NULL DEFAULT 'github';
+            ALTER TABLE organizations ADD COLUMN account_type TEXT NOT NULL DEFAULT 'Organization';
+            ALTER TABLE installations ADD COLUMN provider TEXT NOT NULL DEFAULT 'github';
+            ALTER TABLE installations ADD COLUMN organization_id INTEGER REFERENCES organizations(id) ON DELETE SET NULL;
+            ALTER TABLE repositories ADD COLUMN provider TEXT NOT NULL DEFAULT 'github';
+
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_organizations_provider_account ON organizations(provider, github_id);
+            CREATE INDEX IF NOT EXISTS idx_installations_organization ON installations(organization_id);
+
+            CREATE TABLE IF NOT EXISTS projects (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+                slug TEXT NOT NULL,
+                name TEXT NOT NULL,
+                description TEXT NOT NULL DEFAULT '',
+                created_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+                updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+                UNIQUE(organization_id, slug)
+            );
+
+            CREATE TABLE IF NOT EXISTS project_repositories (
+                project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+                provider TEXT NOT NULL DEFAULT 'github',
+                repository_external_id INTEGER NOT NULL,
+                full_name TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+                PRIMARY KEY (project_id, provider, repository_external_id)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_project_repositories_repository ON project_repositories(provider, repository_external_id);
+        ",
+		)
+	}
+
+	// SQLite cannot drop a column that is a foreign key, so rolling back
+	// leaves `installations.organization_id` in place; nothing reads it once
+	// this migration is reverted.
+	fn down_sql(&self, _syntax: welds::Syntax) -> Vec<String> {
+		sql_statements(
+			r"
+            DROP INDEX IF EXISTS idx_project_repositories_repository;
+            DROP TABLE IF EXISTS project_repositories;
+            DROP TABLE IF EXISTS projects;
+            DROP INDEX IF EXISTS idx_installations_organization;
+            DROP INDEX IF EXISTS idx_organizations_provider_account;
+            ALTER TABLE repositories DROP COLUMN provider;
+            ALTER TABLE installations DROP COLUMN provider;
+            ALTER TABLE organizations DROP COLUMN account_type;
+            ALTER TABLE organizations DROP COLUMN provider;
+            ALTER TABLE users DROP COLUMN provider;
+        ",
+		)
+	}
+}
+
+/// Each project's feedback is one versioned document, saved with optimistic
+/// concurrency; notifications for its subscribers are rows written in the
+/// same transaction as the document that produced them.
+impl welds::migrations::MigrationWriter for CreateProjectFeedback {
+	fn up_sql(&self, _syntax: welds::Syntax) -> Vec<String> {
+		sql_statements(
+			r"
+            CREATE TABLE IF NOT EXISTS project_feedback (
+                project_id INTEGER PRIMARY KEY REFERENCES projects(id) ON DELETE CASCADE,
+                state_json TEXT NOT NULL,
+                version INTEGER NOT NULL,
+                updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+            );
+
+            CREATE TABLE IF NOT EXISTS feedback_notifications (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+                recipient TEXT NOT NULL,
+                item_id TEXT NOT NULL,
+                notification_json TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_feedback_notifications_recipient ON feedback_notifications(project_id, recipient, id);
+        ",
+		)
+	}
+
+	fn down_sql(&self, _syntax: welds::Syntax) -> Vec<String> {
+		sql_statements(
+			r"
+            DROP INDEX IF EXISTS idx_feedback_notifications_recipient;
+            DROP TABLE IF EXISTS feedback_notifications;
+            DROP TABLE IF EXISTS project_feedback;
         ",
 		)
 	}

@@ -8,6 +8,7 @@ fn target_profile_dir() -> PathBuf {
 		if file_name == "debug" || file_name == "release" {
 			break;
 		}
+
 		current_exe.pop();
 	}
 

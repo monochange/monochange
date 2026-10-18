@@ -21,6 +21,7 @@ pub(super) fn github_app_credentials(
 		.github_app_webhook_secret
 		.as_deref()
 		.filter(|value| !value.trim().is_empty());
+
 	match (app_id, private_key, webhook_secret) {
 		(None, None, None) => Ok(None),
 		(Some(app_id), Some(private_key), Some(webhook_secret)) => {

@@ -64,6 +64,7 @@ pub(crate) struct CommandInputDraft {
 	pub(crate) help_text: Option<String>,
 	#[serde(default)]
 	pub(crate) required: bool,
+
 	#[serde(default, deserialize_with = "deserialize_command_input_default")]
 	pub(crate) default: Option<String>,
 	#[serde(default)]
@@ -459,9 +460,11 @@ fn prompt_command_name(
 #[coverage(off)]
 fn prompt_help_text(initial: Option<&str>) -> MonochangeResult<Option<String>> {
 	let mut prompt = Text::new("Help text (blank to omit):");
+
 	if let Some(initial) = initial {
 		prompt = prompt.with_initial_value(initial);
 	}
+
 	let help_text = prompt.prompt().map_err(map_inquire_error)?;
 
 	Ok(normalize_optional_text(&help_text))
@@ -517,6 +520,7 @@ fn prompt_replacement_steps(
 			if steps.is_empty() {
 				return Err(config_error("a CLI command needs at least one step"));
 			}
+
 			return Ok(steps);
 		}
 
@@ -558,6 +562,7 @@ fn prompt_built_in_step(
 ) -> MonochangeResult<CommandStepDraft> {
 	let mut step = CommandStepDraft::built_in(kind);
 	let schemas = step_input_schemas_for_kind(kind);
+
 	if schemas.is_empty() {
 		return Ok(step);
 	}
@@ -573,8 +578,10 @@ fn prompt_built_in_step(
 	.with_default(true)
 	.prompt()
 	.map_err(map_inquire_error)?;
+
 	if add_default_inputs {
 		step = command_step_with_default_inputs(kind, command_inputs)?;
+
 		return Ok(step);
 	}
 
@@ -582,9 +589,11 @@ fn prompt_built_in_step(
 		.with_default(false)
 		.prompt()
 		.map_err(map_inquire_error)?;
+
 	if set_values {
 		step.inputs = prompt_step_input_values(&schemas)?;
 	}
+
 	Ok(step)
 }
 
@@ -593,6 +602,7 @@ fn prompt_step_input_values(
 	schemas: &[CliInputDefinition],
 ) -> MonochangeResult<BTreeMap<String, CliStepInputValue>> {
 	let mut inputs = BTreeMap::new();
+
 	for schema in schemas {
 		let value = Text::new(&format!(
 			"Value for `{}` ({}; blank to omit):",
@@ -610,10 +620,12 @@ fn prompt_step_input_values(
 		})
 		.prompt()
 		.map_err(map_inquire_error)?;
+
 		if let Some(value) = step_input_value_from_text(schema, &value)? {
 			inputs.insert(schema.name.clone(), value);
 		}
 	}
+
 	Ok(inputs)
 }
 
@@ -645,6 +657,7 @@ fn prompt_command_inputs(
 		.with_default(false)
 		.prompt()
 		.map_err(map_inquire_error)?;
+
 	if !add_inputs {
 		return Ok(Vec::new());
 	}
@@ -664,6 +677,7 @@ fn prompt_replacement_inputs() -> MonochangeResult<Vec<CommandInputDraft>> {
 			.with_default(false)
 			.prompt()
 			.map_err(map_inquire_error)?;
+
 		if !add_another {
 			return Ok(inputs);
 		}
@@ -759,9 +773,11 @@ fn prompt_command_input_short() -> MonochangeResult<Option<char>> {
 
 fn dashboard_actions(has_commands: bool) -> Vec<DashboardAction> {
 	let mut actions = vec![DashboardAction::AddCommand];
+
 	if has_commands {
 		actions.push(DashboardAction::EditCommand);
 	}
+
 	actions.push(DashboardAction::OpenEditor);
 	actions.push(DashboardAction::Quit);
 	actions
@@ -822,9 +838,11 @@ fn write_command_fields(command: &mut Table, update: &CommandUpdate) -> Monochan
 
 fn command_input_array(inputs: &[CommandInputDraft]) -> MonochangeResult<Array> {
 	let mut array = Array::new();
+
 	for input in inputs {
 		array.push(Value::InlineTable(command_input_inline_table(input)?));
 	}
+
 	Ok(array)
 }
 
@@ -837,15 +855,19 @@ fn command_input_inline_table(input: &CommandInputDraft) -> MonochangeResult<Inl
 	if let Some(help_text) = &input.help_text {
 		table.insert("help_text", Value::from(help_text.as_str()));
 	}
+
 	if input.required {
 		table.insert("required", Value::from(true));
 	}
+
 	if let Some(default) = &input.default {
 		table.insert("default", Value::from(default.as_str()));
 	}
+
 	if !input.choices.is_empty() {
 		table.insert("choices", Value::Array(string_array(&input.choices)));
 	}
+
 	if let Some(short) = input.short {
 		let short = short.to_string();
 		table.insert("short", Value::from(short.as_str()));
@@ -856,9 +878,11 @@ fn command_input_inline_table(input: &CommandInputDraft) -> MonochangeResult<Inl
 
 fn step_array(steps: &[CommandStepDraft]) -> MonochangeResult<Array> {
 	let mut array = Array::new();
+
 	for step in steps {
 		array.push(Value::InlineTable(step_inline_table(step)?));
 	}
+
 	Ok(array)
 }
 
@@ -874,6 +898,7 @@ fn step_inline_table(step: &CommandStepDraft) -> MonochangeResult<InlineTable> {
 	if let Some(command) = &step.command {
 		table.insert("command", Value::from(command.as_str()));
 	}
+
 	if !step.inputs.is_empty() {
 		table.insert("inputs", step_inputs_value(&step.inputs));
 	}
@@ -890,9 +915,11 @@ fn step_inputs_value(inputs: &BTreeMap<String, CliStepInputValue>) -> Value {
 	}
 
 	let mut table = InlineTable::new();
+
 	for (name, value) in inputs {
 		table.insert(name, step_input_value(name, value));
 	}
+
 	Value::InlineTable(table)
 }
 
@@ -910,6 +937,7 @@ fn step_choices() -> Vec<StepChoice> {
 		.into_iter()
 		.map(|step| StepChoice::new(step.kind_name()))
 		.collect::<Vec<_>>();
+
 	if !choices
 		.iter()
 		.any(|choice| choice.kind == STEP_KIND_SHELL_COMMAND)
@@ -928,11 +956,13 @@ fn step_choice_scorer(
 	_index: usize,
 ) -> Option<i64> {
 	let input = input.trim().to_lowercase();
+
 	if input.is_empty() {
 		return Some(STEP_SCORE_BASE - unfiltered_step_choice_rank(&option.kind) as i64);
 	}
 
 	let searchable = format!("{} {}", option.kind, option.description).to_lowercase();
+
 	if !searchable.contains(&input) {
 		return None;
 	}
@@ -974,9 +1004,11 @@ fn filtered_step_choice_rank(kind: &str) -> usize {
 		.into_iter()
 		.map(|step| step.kind_name().to_string())
 		.collect::<Vec<_>>();
+
 	if !labels.iter().any(|label| label == STEP_KIND_SHELL_COMMAND) {
 		labels.push(STEP_KIND_SHELL_COMMAND.to_string());
 	}
+
 	labels.push(SAVE_STEPS_LABEL.to_string());
 	labels.sort();
 	labels
@@ -1020,6 +1052,7 @@ fn step_label(step: &CommandStepDraft) -> String {
 
 fn validate_command_update(update: &CommandUpdate) -> MonochangeResult<()> {
 	validate_command_name(&update.name)?;
+
 	if let Some(original_name) = &update.original_name {
 		validate_command_name(original_name)?;
 	}
@@ -1052,38 +1085,48 @@ fn validate_command_name_for_prompt(
 ) -> Result<(), String> {
 	validate_command_name_message(name)?;
 	let name = name.trim();
+
 	if original_name != Some(name) && existing_names.iter().any(|existing| existing == name) {
 		return Err(format!("CLI command `{name}` already exists"));
 	}
+
 	Ok(())
 }
 
 fn validate_command_name_message(name: &str) -> Result<(), String> {
 	let trimmed = name.trim();
+
 	if trimmed.is_empty() {
 		return Err("command name cannot be empty".to_string());
 	}
+
 	if name != trimmed {
 		return Err("command name cannot include leading or trailing whitespace".to_string());
 	}
+
 	let name = trimmed;
+
 	if monochange_config::RESERVED_CLI_COMMAND_NAMES.contains(&name) {
 		return Err(format!(
 			"CLI command `{name}` collides with a reserved built-in command"
 		));
 	}
+
 	if name.starts_with("step ") {
 		return Err("command names cannot start with `step `".to_string());
 	}
+
 	if !trimmed
 		.bytes()
 		.all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-')
 	{
 		return Err("use lowercase letters, digits, and hyphens only, e.g. release-pr".to_string());
 	}
+
 	if name.starts_with('-') || name.ends_with('-') || name.contains("--") {
 		return Err("hyphens must separate words, e.g. release-pr".to_string());
 	}
+
 	Ok(())
 }
 
@@ -1093,12 +1136,14 @@ fn validate_command_inputs(inputs: &[CommandInputDraft]) -> MonochangeResult<()>
 
 	for input in inputs {
 		validate_command_input_draft(input)?;
+
 		if !names.insert(input.name.as_str()) {
 			return Err(config_error(format!(
 				"duplicate CLI input `{}`; input names must be unique",
 				input.name
 			)));
 		}
+
 		if let Some(short) = input.short
 			&& !shorts.insert(short)
 		{
@@ -1113,30 +1158,35 @@ fn validate_command_inputs(inputs: &[CommandInputDraft]) -> MonochangeResult<()>
 
 fn validate_command_input_draft(input: &CommandInputDraft) -> MonochangeResult<()> {
 	validate_command_input_name(&input.name)?;
+
 	if !command_input_kind_is_known(&input.kind) {
 		return Err(config_error(format!(
 			"unknown CLI input type `{}`",
 			input.kind
 		)));
 	}
+
 	if input.kind != "choice" && !input.choices.is_empty() {
 		return Err(config_error(format!(
 			"only `choice` inputs can define choices (input `{}`)",
 			input.name
 		)));
 	}
+
 	if input.kind == "choice" && input.choices.is_empty() {
 		return Err(config_error(format!(
 			"choice input `{}` needs at least one choice",
 			input.name
 		)));
 	}
+
 	if input.kind == "string_list" && input.default.is_some() {
 		return Err(config_error(format!(
 			"string_list input `{}` cannot define a scalar default",
 			input.name
 		)));
 	}
+
 	if let Some(short) = input.short
 		&& !short.is_ascii_alphanumeric()
 	{
@@ -1158,20 +1208,25 @@ fn validate_command_input_name_for_prompt(
 ) -> Result<(), String> {
 	validate_command_input_name_message(name)?;
 	let name = name.trim();
+
 	if existing_names.iter().any(|existing| existing == name) {
 		return Err(format!("CLI input `{name}` already exists"));
 	}
+
 	Ok(())
 }
 
 fn validate_command_input_name_message(name: &str) -> Result<(), String> {
 	let trimmed = name.trim();
+
 	if trimmed.is_empty() {
 		return Err("input name cannot be empty".to_string());
 	}
+
 	if name != trimmed {
 		return Err("input name cannot include leading or trailing whitespace".to_string());
 	}
+
 	if !trimmed
 		.bytes()
 		.all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-')
@@ -1180,9 +1235,11 @@ fn validate_command_input_name_message(name: &str) -> Result<(), String> {
 			"use lowercase letters, digits, and hyphens only, e.g. release-type".to_string(),
 		);
 	}
+
 	if trimmed.starts_with('-') || trimmed.ends_with('-') || trimmed.contains("--") {
 		return Err("hyphens must separate words, e.g. release-type".to_string());
 	}
+
 	Ok(())
 }
 
@@ -1259,9 +1316,11 @@ fn command_step_with_default_inputs(
 	command_inputs: &mut Vec<CommandInputDraft>,
 ) -> MonochangeResult<CommandStepDraft> {
 	let schemas = step_input_schemas_for_kind(kind);
+
 	if schemas.is_empty() && step_variant_for_kind(kind).is_none() {
 		return Err(config_error(format!("unknown CLI step type `{kind}`")));
 	}
+
 	add_missing_command_inputs_for_step(command_inputs, &schemas);
 	let mut step = CommandStepDraft::built_in(kind);
 	step.inputs = inherited_step_inputs(&schemas);
@@ -1273,9 +1332,11 @@ fn step_input_value_from_text(
 	value: &str,
 ) -> MonochangeResult<Option<CliStepInputValue>> {
 	let value = value.trim();
+
 	if value.is_empty() {
 		return Ok(None);
 	}
+
 	match schema.kind {
 		CliInputKind::Boolean => {
 			match value {
@@ -1324,12 +1385,15 @@ fn normalize_short_flag(input: &str) -> Result<Option<char>, String> {
 	let short = chars
 		.next()
 		.expect("normalize_optional_text returns non-empty strings");
+
 	if chars.next().is_some() {
 		return Err("short flag must be exactly one character".to_string());
 	}
+
 	if !short.is_ascii_alphanumeric() {
 		return Err("short flag must be an ASCII letter or digit".to_string());
 	}
+
 	Ok(Some(short))
 }
 
@@ -1340,9 +1404,11 @@ fn command_input_label(input: &CommandInputDraft) -> String {
 
 fn string_array(values: &[String]) -> Array {
 	let mut array = Array::new();
+
 	for value in values {
 		array.push(value.as_str());
 	}
+
 	array
 }
 
@@ -1353,8 +1419,10 @@ fn validate_step_draft(step: &CommandStepDraft) -> MonochangeResult<()> {
 			step.kind
 		)));
 	}
+
 	if step.kind == STEP_KIND_SHELL_COMMAND {
 		let command = step.command.as_deref().unwrap_or_default().trim();
+
 		if command.is_empty() {
 			return Err(config_error(
 				"Command steps need a non-empty `command` value",
@@ -1365,6 +1433,7 @@ fn validate_step_draft(step: &CommandStepDraft) -> MonochangeResult<()> {
 			"only `{STEP_KIND_SHELL_COMMAND}` steps can define `command`"
 		)));
 	}
+
 	validate_step_inputs(step)?;
 	Ok(())
 }
@@ -1373,6 +1442,7 @@ fn validate_step_inputs(step: &CommandStepDraft) -> MonochangeResult<()> {
 	let Some(step_variant) = step_variant_for_kind(&step.kind) else {
 		return Ok(());
 	};
+
 	for (name, value) in &step.inputs {
 		let Some(expected_kind) = step_variant.expected_input_kind(name) else {
 			return Err(config_error(format!(
@@ -1380,6 +1450,7 @@ fn validate_step_inputs(step: &CommandStepDraft) -> MonochangeResult<()> {
 				step.kind
 			)));
 		};
+
 		if !step_input_value_matches_kind(value, expected_kind) {
 			return Err(config_error(format!(
 				"step `{}` input `{name}` expects `{}` values",
@@ -1387,6 +1458,7 @@ fn validate_step_inputs(step: &CommandStepDraft) -> MonochangeResult<()> {
 				command_input_kind_name(expected_kind)
 			)));
 		}
+
 		if let CliStepInputValue::String(value) = value
 			&& let Some(choices) = step_variant.valid_input_choices(name)
 			&& !choices.contains(&value.as_str())
@@ -1398,6 +1470,7 @@ fn validate_step_inputs(step: &CommandStepDraft) -> MonochangeResult<()> {
 			)));
 		}
 	}
+
 	Ok(())
 }
 
@@ -1426,6 +1499,7 @@ fn ensure_cli_table(document: &mut DocumentMut) -> MonochangeResult<&mut Table> 
 	if !document.as_table().contains_key("cli") {
 		document["cli"] = Item::Table(Table::new());
 	}
+
 	document["cli"]
 		.as_table_mut()
 		.ok_or_else(|| config_error("[cli] must be a TOML table"))
@@ -1443,15 +1517,18 @@ fn parse_document(config_text: &str) -> MonochangeResult<DocumentMut> {
 
 fn render_document(document: &DocumentMut) -> String {
 	let mut rendered = document.to_string();
+
 	if !rendered.ends_with('\n') {
 		rendered.push('\n');
 	}
+
 	rendered
 }
 
 fn read_config_text(config_path: &Path) -> MonochangeResult<String> {
 	match fs::read_to_string(config_path) {
 		Ok(contents) => Ok(contents),
+
 		Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(String::new()),
 		Err(error) => {
 			Err(config_error(format!(
@@ -1499,6 +1576,7 @@ fn open_config_in_editor(config_path: &Path) -> MonochangeResult<()> {
 
 fn normalize_optional_text(value: &str) -> Option<String> {
 	let trimmed = value.trim();
+
 	if trimmed.is_empty() {
 		None
 	} else {

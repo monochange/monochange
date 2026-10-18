@@ -256,6 +256,7 @@ fn parse_manifest(
 	warnings: &mut Vec<String>,
 ) -> Option<Value> {
 	let contents = contents?;
+
 	match serde_json::from_str::<Value>(contents) {
 		Ok(value) => Some(value),
 		Err(error) => {
@@ -308,12 +309,14 @@ fn collect_export_entries(
 ) {
 	if let Value::Object(object) = value {
 		let has_subpath_keys = object.keys().any(|key| key.starts_with('.'));
+
 		if has_subpath_keys {
 			for (key, nested) in object {
 				if key.starts_with('.') {
 					collect_export_entries(key, nested, entries);
 				}
 			}
+
 			return;
 		}
 	}
@@ -413,6 +416,7 @@ fn compare_manifest_entries(
 					Some(after_entry.value.clone()),
 				));
 			}
+
 			Some(before_entry) if before_entry != after_entry => {
 				changes.push(build_manifest_change(
 					category,
@@ -424,6 +428,7 @@ fn compare_manifest_entries(
 					Some(after_entry.value.clone()),
 				));
 			}
+
 			Some(_) => {}
 		}
 	}

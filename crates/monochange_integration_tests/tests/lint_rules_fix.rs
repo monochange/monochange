@@ -40,6 +40,7 @@ fn run_check(root: &Path, args: &[&str]) -> String {
 		cli_args,
 		&canonical_root,
 	));
+
 	match result {
 		Ok(output) => output,
 		Err(error) => {
@@ -72,12 +73,15 @@ fn has_remaining_fixes(output: &str) -> bool {
 
 fn run_fix_to_fixpoint(root: &Path, max_iterations: usize) -> String {
 	let mut output = String::new();
+
 	for _ in 0..max_iterations {
 		output = run_check(root, &["--format", "text", "--fix"]);
+
 		if !has_remaining_fixes(&output) {
 			break;
 		}
 	}
+
 	output
 }
 
@@ -87,7 +91,6 @@ fn read_manifest(root: &Path, relative: &str) -> String {
 }
 
 // ── Cargo ────────────────────────────────────────────────────────────────────
-
 #[test]
 fn cargo_lint_reports_every_rule_without_fix() {
 	let fixture = setup_fixture("lint-rules", "cargo");
@@ -154,6 +157,7 @@ fn cargo_fix_converges_without_losing_content() {
 		core.contains("repository = \"https://github.com/acme/lint-rules/tree/main/crates/core\""),
 		"repository not fixed:\n{core}"
 	);
+
 	assert!(
 		core.contains("utils = { workspace = true }")
 			&& core.contains("private-dep = { workspace = true }"),
@@ -198,7 +202,6 @@ fn cargo_fix_converges_without_losing_content() {
 }
 
 // ── npm ──────────────────────────────────────────────────────────────────────
-
 #[test]
 fn npm_lint_reports_every_rule_without_fix() {
 	let fixture = setup_fixture("lint-rules", "npm");
@@ -305,7 +308,6 @@ fn npm_fix_converges_without_losing_content() {
 }
 
 // ── Dart ─────────────────────────────────────────────────────────────────────
-
 #[test]
 fn dart_lint_reports_every_rule_without_fix() {
 	let fixture = setup_fixture("lint-rules", "dart");
@@ -371,6 +373,7 @@ fn dart_fix_converges_without_losing_content() {
 		app.contains("sdk: '>=2.12.0 <4.0.0'") || app.contains("sdk: \">=2.12.0 <4.0.0\""),
 		"lost sdk constraint:\n{app}"
 	);
+
 	assert!(
 		app.contains("repository: https://github.com/acme/lint-rules/tree/main/packages/app"),
 		"repository not inserted:\n{app}"
@@ -415,7 +418,6 @@ fn dart_fix_converges_without_losing_content() {
 }
 
 // ── Changesets ───────────────────────────────────────────────────────────────
-
 #[test]
 fn changesets_lint_reports_every_rule_without_fix() {
 	let fixture = setup_fixture("lint-rules", "changesets");

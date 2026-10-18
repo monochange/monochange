@@ -77,6 +77,7 @@ fn copy_directory_filtered(source: &Path, destination: &Path, skipped: &dyn Fn(&
 		let entry = entry.unwrap_or_else(|error| panic!("dir entry: {error}"));
 
 		let source_path = entry.path();
+
 		if skipped(&source_path) {
 			continue;
 		}

@@ -27,6 +27,7 @@ fn setup_case(case: &str) -> TempDir {
 	git(root, &["config", "user.email", "test@example.com"]);
 	git(root, &["config", "commit.gpgsign", "false"]);
 	git(root, &["add", "."]);
+
 	let output = Command::new("git")
 		.current_dir(root)
 		.env("GIT_AUTHOR_DATE", "2026-04-05T00:00:00Z")

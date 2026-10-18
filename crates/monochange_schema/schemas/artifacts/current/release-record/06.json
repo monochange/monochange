@@ -18,7 +18,7 @@
 				"summary": [
 					"Release 6"
 				],
-				"title": "v0.9.6"
+				"title": "v0.10.6"
 			},
 			"output": "default",
 			"owner_id": "main",
@@ -69,8 +69,8 @@
 			"members": [],
 			"release": true,
 			"tag": true,
-			"tag_name": "v0.9.6",
-			"version": "0.9.6",
+			"tag_name": "v0.10.6",
+			"version": "0.10.6",
 			"version_format": "primary"
 		},
 		{
@@ -79,8 +79,8 @@
 			"members": [],
 			"release": true,
 			"tag": true,
-			"tag_name": "hail_1/v0.9.6",
-			"version": "0.9.6",
+			"tag_name": "hail_1/v0.10.6",
+			"version": "0.10.6",
 			"version_format": "namespaced"
 		}
 	],
@@ -90,15 +90,15 @@
 		"hail_2",
 		"hail_3"
 	],
-	"schema_version": "0.9",
+	"schema_version": "0.10",
 	"updated_changelogs": [
 		"fixtures/changelog-6.md"
 	],
-	"version": "0.9.6",
+	"version": "0.10.6",
 	"versions": {
-		"hail_0": "0.9.6",
-		"hail_1": "0.9.6",
-		"hail_2": "0.9.6",
-		"main": "0.9.6"
+		"hail_0": "0.10.6",
+		"hail_1": "0.10.6",
+		"hail_2": "0.10.6",
+		"main": "0.10.6"
 	}
 }

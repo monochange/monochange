@@ -1,0 +1,102 @@
+{
+	"changed_files": [
+		"crates/zuvuuep_0/src/lib.rs",
+		"crates/zuvuuep_1/src/lib.rs"
+	],
+	"changelogs": [
+		{
+			"format": "monochange",
+			"notes": {
+				"sections": [
+					{
+						"collapsed": false,
+						"entries": [
+							"fix: schema artifact 2"
+						],
+						"title": "Bug Fixes"
+					}
+				],
+				"summary": [
+					"Release 2"
+				],
+				"title": "v0.10.2"
+			},
+			"output": "default",
+			"owner_id": "main",
+			"owner_kind": "group",
+			"path": "fixtures/changelog-2.md",
+			"rendered": "## Bug Fixes\n- fix: schema artifact 2",
+			"stream": "default"
+		}
+	],
+	"changesets": [
+		{
+			"details": "Generated from deterministic proptest seed 17460654867111333396.",
+			"path": ".changeset/schema-artifact-2.md",
+			"summary": "Exercise schema artifact fixture 2",
+			"targets": [
+				{
+					"evidence_refs": [
+						"crates/zuvuuep_0/src/lib.rs"
+					],
+					"id": "zuvuuep_0",
+					"kind": "package",
+					"origin": ".changeset/schema-artifact-2.md"
+				}
+			]
+		}
+	],
+	"command": "monochange step release",
+	"created_at": "2026-01-02T00:00:00Z",
+	"deleted_changesets": [
+		".changeset/schema-artifact-2.md"
+	],
+	"kind": "monochange.releaseRecord",
+	"package_publications": [],
+	"provider": {
+		"host": null,
+		"kind": "gitea",
+		"owner": "zuvuuep",
+		"repo": "ijkuqa"
+	},
+	"release_targets": [
+		{
+			"id": "main",
+			"kind": "group",
+			"members": [],
+			"release": true,
+			"tag": true,
+			"tag_name": "v0.10.2",
+			"version": "0.10.2",
+			"version_format": "primary"
+		},
+		{
+			"id": "zuvuuep_1",
+			"kind": "package",
+			"members": [],
+			"release": true,
+			"tag": true,
+			"tag_name": "zuvuuep_1/v0.10.2",
+			"version": "0.10.2",
+			"version_format": "primary"
+		}
+	],
+	"released_packages": [
+		"zuvuuep_0",
+		"zuvuuep_1",
+		"zuvuuep_2",
+		"zuvuuep_3",
+		"zuvuuep_4"
+	],
+	"schema_version": "0.10",
+	"updated_changelogs": [
+		"fixtures/changelog-2.md"
+	],
+	"version": "0.10.2",
+	"versions": {
+		"main": "0.10.2",
+		"zuvuuep_0": "0.10.2",
+		"zuvuuep_1": "0.10.2",
+		"zuvuuep_2": "0.10.2"
+	}
+}

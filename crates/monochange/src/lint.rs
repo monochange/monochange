@@ -155,10 +155,12 @@ pub(crate) fn run_check_command_with_configuration(
 
 	let mut fixed_files: Vec<(PathBuf, String)> = Vec::new();
 	let mut fixed_file_count = 0usize;
+
 	if fix {
 		let fixes = linter.apply_fixes(&report);
 		fixed_file_count = fixes.len();
 		reporter.fix_started(fixed_file_count);
+
 		for (file_path, fixed_content) in fixes {
 			std::fs::write(&file_path, fixed_content).map_err(|error| {
 				MonochangeError::Io(format!(
@@ -176,6 +178,7 @@ pub(crate) fn run_check_command_with_configuration(
 			fixed_files.push((file_path.clone(), description.to_string()));
 			reporter.fix_applied(&file_path, description);
 		}
+
 		reporter.fix_finished(fixed_files.len());
 
 		if fixed_file_count > 0 {
@@ -221,8 +224,10 @@ pub(crate) fn run_check_command_with_configuration(
 						"s"
 					},
 				);
+
 				if validation_has_errors {
 					diagnostic.push_str("\nworkspace validation failed");
+
 					for error in &validation_errors {
 						let _ = write!(diagnostic, "\n{error}");
 					}
@@ -286,6 +291,7 @@ pub(crate) fn run_lint_step(root: &Path, fix: bool) -> MonochangeResult<(String,
 	if fix {
 		let fixes = linter.apply_fixes(&report);
 		fixed_file_count = fixes.len();
+
 		for (file_path, fixed_content) in fixes {
 			std::fs::write(&file_path, fixed_content).map_err(|error| {
 				MonochangeError::Io(format!(
@@ -328,6 +334,7 @@ pub(crate) fn run_lint_step(root: &Path, fix: bool) -> MonochangeResult<(String,
 pub(crate) fn render_lint_catalog(format: OutputFormat) -> MonochangeResult<String> {
 	let rules = available_lint_rules();
 	let presets = available_lint_presets();
+
 	match format {
 		OutputFormat::Json | OutputFormat::JsonMin => {
 			Ok(format
@@ -362,6 +369,7 @@ pub(crate) fn render_lint_catalog(format: OutputFormat) -> MonochangeResult<Stri
 					if rule.autofixable {
 						meta.push_str(" · fixable");
 					}
+
 					format!("{}  {meta}\n{}", rule.id, rule.description)
 				}),
 				usize::MAX,
@@ -424,6 +432,7 @@ pub(crate) fn render_lint_explanation(id: &str, format: OutputFormat) -> Monocha
 						usize::MAX,
 					);
 				}
+
 				Ok(text.render())
 			}
 		};
@@ -483,6 +492,7 @@ pub(crate) fn handle_lint_subcommand(
 			.map_or(Ok(OutputFormat::Text), |value| {
 				crate::parse_output_format(value)
 			})?;
+
 		return render_lint_catalog(format);
 	}
 
@@ -496,6 +506,7 @@ pub(crate) fn handle_lint_subcommand(
 			.get_one::<String>("id")
 			.expect("clap requires a lint id")
 			.as_str();
+
 		return render_lint_explanation(id, format);
 	}
 
@@ -510,6 +521,7 @@ pub(crate) fn scaffold_lint_rule(root: &Path, id: &str) -> MonochangeResult<Stri
 	let (suite, rule_name) = id.split_once('/').ok_or_else(|| {
 		MonochangeError::Config("lint ids must use the form <ecosystem>/<rule-name>".to_string())
 	})?;
+
 	let crate_name = match suite {
 		"cargo" => "monochange_cargo",
 		"npm" => "monochange_npm",
@@ -520,6 +532,7 @@ pub(crate) fn scaffold_lint_rule(root: &Path, id: &str) -> MonochangeResult<Stri
 			)));
 		}
 	};
+
 	let module_name = rule_name.replace('-', "_");
 	let struct_name = rule_name
 		.split('-')
@@ -541,6 +554,7 @@ pub(crate) fn scaffold_lint_rule(root: &Path, id: &str) -> MonochangeResult<Stri
 		))
 	})?;
 	let lint_file = lint_dir.join(format!("{module_name}.rs"));
+
 	if lint_file.exists() {
 		return Err(MonochangeError::Config(format!(
 			"lint file {} already exists",
@@ -639,30 +653,37 @@ fn format_check_report(input: &CheckReportInput<'_>, theme: TextTheme) -> String
 	let mut text = TextReport::new(theme);
 
 	let mut details = Vec::new();
+
 	if errors > 0 {
 		details.push(plural(errors, "error", "errors"));
 	}
+
 	if warnings > 0 {
 		details.push(plural(warnings, "warning", "warnings"));
 	}
+
 	if fixable > 0 {
 		details.push(format!("{fixable} fixable"));
 	}
+
 	if input.fixed_files > 0 {
 		details.push(format!(
 			"fixed {}",
 			plural(input.fixed_files, "file", "files")
 		));
 	}
+
 	let (outcome, headline) = match (errors, warnings) {
 		(0, 0) => (Outcome::Success, "Checks passed"),
 		(0, _) => (Outcome::Warning, "Checks passed with warnings"),
 		_ => (Outcome::Failure, "Checks failed"),
 	};
+
 	text.headline(outcome, headline, &details);
 
 	if !input.validation_errors.is_empty() {
 		text.section("Workspace validation", Some(input.validation_errors.len()));
+
 		for error in input.validation_errors {
 			text.raw_block(error);
 		}
@@ -673,6 +694,7 @@ fn format_check_report(input: &CheckReportInput<'_>, theme: TextTheme) -> String
 		.iter()
 		.chain(&report.warnings)
 		.collect::<Vec<_>>();
+
 	if !workspace_warnings.is_empty() {
 		text.section("Warnings", Some(workspace_warnings.len()));
 		text.list(
@@ -684,12 +706,14 @@ fn format_check_report(input: &CheckReportInput<'_>, theme: TextTheme) -> String
 	}
 
 	let mut by_file: BTreeMap<&Path, Vec<&monochange_core::lint::LintResult>> = BTreeMap::new();
+
 	for result in &report.results {
 		by_file
 			.entry(&result.location.file_path)
 			.or_default()
 			.push(result);
 	}
+
 	for (file, mut results) in by_file {
 		results.sort_by(|left, right| {
 			(left.location.line, left.location.column, &left.rule_id).cmp(&(
@@ -707,12 +731,14 @@ fn format_check_report(input: &CheckReportInput<'_>, theme: TextTheme) -> String
 			.map(|result| format!("{}:{}", result.location.line, result.location.column).len())
 			.max()
 			.unwrap_or_default();
+
 		for result in results {
 			let (icon, tone) = match result.severity {
 				LintSeverity::Error => ("✖", Tone::Error),
 				LintSeverity::Warning => ("▲", Tone::Warning),
 				LintSeverity::Off => ("·", Tone::Muted),
 			};
+
 			let location = format!("{}:{}", result.location.line, result.location.column);
 			let padding = " ".repeat(location_width - location.len());
 			text.indented(
@@ -725,19 +751,25 @@ fn format_check_report(input: &CheckReportInput<'_>, theme: TextTheme) -> String
 				Tone::Plain,
 			);
 			let mut rule = vec![result.rule_id.clone()];
+
 			if result.fix.is_some() {
 				rule.push("fixable".to_string());
 			}
+
 			let indent = " ".repeat(location_width + 4);
 			text.indented(&format!("{indent}{}", rule.join(" · ")), Tone::Muted);
+
 			if input.verbose {
 				let mut verbose = vec![format!("severity {}", result.severity)];
+
 				if let Some((start, end)) = result.location.span {
 					verbose.push(format!("span {start}..{end}"));
 				}
+
 				if let Some(fix) = result.fix.as_ref() {
 					verbose.push(format!("fix: {}", fix.description));
 				}
+
 				text.indented(&format!("{indent}{}", verbose.join(" · ")), Tone::Muted);
 			}
 		}
@@ -756,6 +788,7 @@ fn format_check_report(input: &CheckReportInput<'_>, theme: TextTheme) -> String
 				plural(fixable, "issue", "issues")
 			)
 		};
+
 		text.paragraph(&sentence, Tone::Plain);
 	}
 

@@ -75,11 +75,14 @@ fn github_api_response(method: &str, path: &str) -> String {
 	let Some(rest) = path.strip_prefix(&issue_comment_route) else {
 		return not_found_response();
 	};
+
 	let (number, tail) = match rest.split_once('/') {
 		Some((number, tail)) => (number, Some(tail)),
 		None => (rest, None),
 	};
+
 	let html_url = format!("https://github.com/{OWNER}/{REPO}/issues/{number}#comment-1");
+
 	match (method, tail) {
 		("GET", Some("comments")) => json_response(200, "[]"),
 		("POST", Some("comments")) => {
@@ -142,6 +145,7 @@ fn spawn_mock_github_server() -> MockGithubServer {
 				Some((method, path)) => (method.to_string(), path.to_string()),
 				None => (String::new(), String::new()),
 			};
+
 			let response = github_api_response(&method, &path);
 			captured
 				.lock()
@@ -151,6 +155,7 @@ fn spawn_mock_github_server() -> MockGithubServer {
 			let _ = stream.flush();
 		}
 	});
+
 	ready_rx
 		.recv()
 		.unwrap_or_else(|error| panic!("wait for mock GitHub server readiness: {error}"));
@@ -164,6 +169,7 @@ fn spawn_mock_github_server() -> MockGithubServer {
 fn read_until_header_end(stream: &mut std::net::TcpStream) -> String {
 	let mut head = Vec::new();
 	let mut buffer = [0_u8; 4096];
+
 	loop {
 		match stream.read(&mut buffer) {
 			Ok(0) | Err(_) => break,
@@ -175,6 +181,7 @@ fn read_until_header_end(stream: &mut std::net::TcpStream) -> String {
 			}
 		}
 	}
+
 	String::from_utf8_lossy(&head).into_owned()
 }
 
@@ -191,9 +198,11 @@ fn content_length(head: &str) -> usize {
 
 fn read_exact_bytes(stream: &mut std::net::TcpStream, length: usize) -> Vec<u8> {
 	let mut body = vec![0_u8; length];
+
 	if length > 0 {
 		let _ = stream.read_exact(&mut body);
 	}
+
 	body
 }
 
@@ -218,6 +227,7 @@ fn setup_workspace() -> TempDir {
 	);
 	git(root, &["add", "."]);
 	git(root, &["commit", "-m", "initial"]);
+
 	tempdir
 }
 
@@ -259,6 +269,7 @@ fn assert_comment_result_snapshot(name: &str, stdout: &[u8]) {
 		)
 	});
 	let mut bodies = Vec::new();
+
 	for comment in value["issue_comments"]
 		.as_array_mut()
 		.unwrap_or_else(|| panic!("issue_comments must be an array"))
@@ -266,9 +277,11 @@ fn assert_comment_result_snapshot(name: &str, stdout: &[u8]) {
 		if let Some(body) = comment["body"].as_str() {
 			bodies.push(body.to_string());
 		}
+
 		comment["body"] = serde_json::Value::String("[multiline text]".to_string());
 	}
 	bodies.dedup();
+
 	let [body] = bodies.as_slice() else {
 		panic!("every issue should receive the same release comment: {bodies:?}");
 	};
@@ -316,6 +329,7 @@ fn auto_close_closes_closing_keyword_issues_and_keeps_plain_mentions_open() {
 			"expected exactly one release comment on issue #{number}"
 		);
 	}
+
 	// Closing-keyword issues are closed — including the comma-list entry
 	// GitHub never auto-closed at merge time.
 	assert_eq!(

@@ -104,6 +104,7 @@ pub fn supported_versioned_file_kind(path: &Path) -> Option<CargoVersionedFileKi
 		.file_name()
 		.and_then(|name| name.to_str())
 		.unwrap_or_default();
+
 	if file_name == "Cargo.lock" {
 		Some(CargoVersionedFileKind::Lock)
 	} else if path.extension().and_then(|ext| ext.to_str()) == Some("toml") {
@@ -124,10 +125,12 @@ pub fn discover_lockfiles(package: &PackageRecord) -> Vec<PathBuf> {
 	} else {
 		package.workspace_root.clone()
 	};
+
 	let mut discovered = [scope.join("Cargo.lock")]
 		.into_iter()
 		.filter(|path| path.exists())
 		.collect::<Vec<_>>();
+
 	if discovered.is_empty() && scope != manifest_dir {
 		discovered.extend(
 			[manifest_dir.join("Cargo.lock")]
@@ -135,6 +138,7 @@ pub fn discover_lockfiles(package: &PackageRecord) -> Vec<PathBuf> {
 				.filter(|path| path.exists()),
 		);
 	}
+
 	discovered
 }
 
@@ -265,6 +269,7 @@ pub fn update_versioned_file(
 					let Some(package_name) = package.get("name").and_then(Item::as_str) else {
 						continue;
 					};
+
 					if let Some(version) = raw_versions.get(package_name) {
 						set_table_value(package, "version", version);
 					}
@@ -282,6 +287,7 @@ pub fn update_versioned_file(
 					versioned_deps,
 				);
 			}
+
 			update_manifest_workspace_version(document, shared_release_version);
 			if !fields_target_workspace_dependencies(fields) {
 				update_workspace_dependencies(document, versioned_deps);
@@ -303,6 +309,7 @@ pub fn update_versioned_file_text(
 	if kind == CargoVersionedFileKind::Lock {
 		return Ok(update_lockfile_text(contents, raw_versions));
 	}
+
 	let mut document = contents.parse::<DocumentMut>()?;
 	update_versioned_file(
 		&mut document,
@@ -322,17 +329,20 @@ fn update_lockfile_text(contents: &str, raw_versions: &BTreeMap<String, String>)
 		.map(ToString::to_string)
 		.collect::<Vec<_>>();
 	let mut line_index = 0;
+
 	while let Some(current_line) = lines.get(line_index) {
 		if current_line.trim() != "[[package]]" {
 			line_index += 1;
 			continue;
 		}
+
 		let section_start = line_index + 1;
 		let section_end = lines
 			.iter()
 			.skip(section_start)
 			.position(|line| line.trim() == "[[package]]")
 			.map_or(lines.len(), |offset| section_start + offset);
+
 		let package_name = lines
 			.iter()
 			.skip(section_start)
@@ -348,6 +358,7 @@ fn update_lockfile_text(contents: &str, raw_versions: &BTreeMap<String, String>)
 			line_index = section_end;
 			continue;
 		};
+
 		for section_line in lines
 			.iter_mut()
 			.skip(section_start)
@@ -361,8 +372,10 @@ fn update_lockfile_text(contents: &str, raw_versions: &BTreeMap<String, String>)
 			section_line.replace_range(value_start..value_end, version);
 			break;
 		}
+
 		line_index = section_end;
 	}
+
 	lines.concat()
 }
 
@@ -379,15 +392,19 @@ fn parse_toml_basic_string_assignment(line: &str, key: &str) -> Option<(usize, u
 	let equals_start = remainder
 		.char_indices()
 		.find_map(|(index, ch)| (!ch.is_whitespace()).then_some(index))?;
+
 	if remainder.get(equals_start..=equals_start)? != "=" {
 		return None;
 	}
+
 	let value_start_in_remainder = remainder[equals_start + 1..]
 		.char_indices()
 		.find_map(|(index, ch)| (!ch.is_whitespace()).then_some(equals_start + 1 + index))?;
+
 	if remainder.get(value_start_in_remainder..=value_start_in_remainder)? != "\"" {
 		return None;
 	}
+
 	let value_start = key_end + value_start_in_remainder + 1;
 	let value_end = trimmed_line
 		.get(value_start..)?
@@ -413,6 +430,7 @@ fn update_manifest_owner_version(document: &mut DocumentMut, owner_version: Opti
 	let uses_workspace_version = package_table
 		.get("version")
 		.is_some_and(uses_workspace_marker);
+
 	if !uses_workspace_version {
 		set_table_value(package_table, "version", owner_version);
 	}
@@ -448,6 +466,7 @@ fn update_workspace_dependencies(
 	else {
 		return;
 	};
+
 	for (dep_name, dep_version) in versioned_deps {
 		update_dependency_by_name(workspace_deps, dep_name, dep_version);
 	}
@@ -461,11 +480,13 @@ fn update_manifest_field(
 	versioned_deps: &BTreeMap<String, String>,
 ) {
 	let segments = normalized_manifest_field_segments(field);
+
 	match segments.as_slice() {
 		["package", "version"] => update_manifest_owner_version(document, owner_version),
 		["workspace", "package", "version"] => {
 			update_manifest_workspace_version(document, shared_release_version.or(owner_version));
 		}
+
 		[table] if is_dependency_table(table) => {
 			let Some(table) = document.get_mut(table).and_then(Item::as_table_like_mut) else {
 				return;
@@ -474,7 +495,9 @@ fn update_manifest_field(
 				update_dependency_by_name(table, dep_name, dep_version);
 			}
 		}
+
 		["workspace", "dependencies"] => update_workspace_dependencies(document, versioned_deps),
+
 		[table, dep_name] if is_dependency_table(table) => {
 			let Some(dep_version) = versioned_deps.get(*dep_name) else {
 				return;
@@ -484,6 +507,7 @@ fn update_manifest_field(
 			};
 			update_dependency_by_name(table, dep_name, dep_version);
 		}
+
 		[table, dep_name, "version"] if is_dependency_table(table) => {
 			let Some(dep_version) = versioned_deps.get(*dep_name) else {
 				return;
@@ -493,6 +517,7 @@ fn update_manifest_field(
 			};
 			update_dependency_version_by_name(table, dep_name, dep_version);
 		}
+
 		["workspace", "dependencies", dep_name] => {
 			let Some(dep_version) = versioned_deps.get(*dep_name) else {
 				return;
@@ -544,9 +569,11 @@ fn normalized_manifest_field_segments(field: &str) -> Vec<&str> {
 		.filter(|segment| !segment.is_empty())
 		.map(normalize_manifest_field_segment)
 		.collect::<Vec<_>>();
+
 	if matches!(segments.as_slice(), ["workspace", "version"]) {
 		segments = vec!["workspace", "package", "version"];
 	}
+
 	segments
 }
 
@@ -582,14 +609,17 @@ fn update_dependency_version_by_name(table: &mut dyn TableLike, dep_name: &str, 
 fn update_dependency_entry(entry: &mut Item, version: &str) {
 	if entry.is_str() {
 		set_item_string(entry, version);
+
 		return;
 	}
+
 	let Some(entry_table) = entry.as_table_like_mut() else {
 		return;
 	};
 	let uses_workspace = entry_table
 		.get("workspace")
 		.is_some_and(uses_workspace_marker);
+
 	if !uses_workspace {
 		set_table_value(entry_table, "version", version);
 	}
@@ -602,6 +632,7 @@ fn update_dependency_version_field(entry: &mut Item, version: &str) {
 	let uses_workspace = entry_table
 		.get("workspace")
 		.is_some_and(uses_workspace_marker);
+
 	if !uses_workspace {
 		set_table_value(entry_table, "version", version);
 	}
@@ -628,10 +659,13 @@ fn set_table_value_by_path(table: &mut dyn TableLike, path: &[&str], version: &s
 	let Some((head, tail)) = path.split_first() else {
 		return;
 	};
+
 	if tail.is_empty() {
 		set_table_value(table, head, version);
+
 		return;
 	}
+
 	let Some(item) = table.get_mut(head) else {
 		return;
 	};
@@ -695,6 +729,7 @@ pub fn discover_cargo_packages(root: &Path) -> MonochangeResult<AdapterDiscovery
 		let (workspace_packages, workspace_warnings) =
 			discover_workspace_packages(workspace_manifest)?;
 		warnings.extend(workspace_warnings);
+
 		for package in workspace_packages {
 			included_manifests.insert(package.manifest_path.clone());
 			packages.push(package);
@@ -743,49 +778,66 @@ pub fn load_configured_cargo_package(
 		} else {
 			package_path.join(CARGO_MANIFEST_FILE)
 		};
-	let workspace_manifest = find_nearest_workspace_manifest(root, &manifest_path);
-	let workspace_root = workspace_manifest
-		.as_ref()
-		.and_then(|path| path.parent())
-		.unwrap_or_else(|| manifest_path.parent().unwrap_or(root));
-	let workspace_version = match workspace_manifest.as_ref() {
-		Some(path) => workspace_package_version_from_manifest(path)?,
-		None => None,
-	};
-	parse_package_manifest(&manifest_path, workspace_root, workspace_version.as_ref())
+
+	// Read the configured manifest once: it doubles as the first workspace
+	// candidate and as the package manifest parsed below, so release planning
+	// pays one read and one parse per configured package instead of three.
+	let manifest = parse_manifest_value(&manifest_path)?;
+	let manifest_directory = manifest_path.parent().unwrap_or(root);
+
+	// The original nearest-workspace walk started at the manifest itself and
+	// stopped at the workspace root; splitting the self-check from the ancestor
+	// walk keeps that boundary while reusing the manifest parse.
+	let mut workspace_root: Option<PathBuf> = None;
+	let mut workspace_version = None;
+
+	if manifest.get("workspace").is_some() {
+		workspace_version = workspace_package_version(&manifest);
+	} else if manifest_directory != root {
+		let ancestor_start = manifest_directory.parent().unwrap_or(manifest_directory);
+
+		if let Some((directory, version)) = find_workspace_ancestor(root, ancestor_start) {
+			workspace_root = Some(directory);
+			workspace_version = version;
+		}
+	}
+
+	let workspace_root = workspace_root.as_deref().unwrap_or(manifest_directory);
+
+	parse_package_manifest_value(
+		&manifest_path,
+		workspace_root,
+		workspace_version.as_ref(),
+		&manifest,
+	)
 }
 
-fn find_nearest_workspace_manifest(root: &Path, manifest_path: &Path) -> Option<PathBuf> {
-	let mut current = manifest_path.parent();
+/// Find the closest ancestor directory of `start_dir` whose Cargo.toml declares
+/// a workspace, returning the directory and its `workspace.package.version`.
+///
+/// Candidate manifests that cannot be read or parsed are skipped rather than
+/// surfaced as errors, matching the discovery walk's behavior.
+fn find_workspace_ancestor(root: &Path, start_dir: &Path) -> Option<(PathBuf, Option<Version>)> {
+	let mut current = Some(start_dir);
+
 	while let Some(directory) = current {
 		let candidate = directory.join(CARGO_MANIFEST_FILE);
-		if candidate.exists() && has_workspace_section(&candidate).unwrap_or(false) {
-			return Some(candidate);
+
+		if candidate.exists()
+			&& let Ok(parsed) = parse_manifest_value(&candidate)
+			&& parsed.get("workspace").is_some()
+		{
+			return Some((directory.to_path_buf(), workspace_package_version(&parsed)));
 		}
+
 		if directory == root {
 			break;
 		}
+
 		current = directory.parent();
 	}
-	None
-}
 
-fn workspace_package_version_from_manifest(
-	workspace_manifest: &Path,
-) -> MonochangeResult<Option<Version>> {
-	let contents = fs::read_to_string(workspace_manifest).map_err(|error| {
-		MonochangeError::Io(format!(
-			"failed to read {}: {error}",
-			workspace_manifest.display()
-		))
-	})?;
-	let parsed = toml::from_str::<Value>(&contents).map_err(|error| {
-		MonochangeError::Discovery(format!(
-			"failed to parse {}: {error}",
-			workspace_manifest.display()
-		))
-	})?;
-	Ok(workspace_package_version(&parsed))
+	None
 }
 
 fn discover_workspace_packages(
@@ -867,6 +919,7 @@ fn expand_manifest_patterns(
 
 	for pattern in member_patterns {
 		let matches = workspace_manifest_pattern_paths(root, pattern);
+
 		if matches.is_empty() {
 			warnings.push(format!(
 				"cargo workspace pattern `{pattern}` under {} matched no packages",
@@ -900,23 +953,40 @@ fn workspace_manifest_pattern_paths(root: &Path, pattern: &str) -> Vec<PathBuf> 
 	monochange_core::workspace_glob_paths(root, pattern, true).unwrap_or_default()
 }
 
-fn parse_package_manifest(
-	manifest_path: &Path,
-	workspace_root: &Path,
-	workspace_version: Option<&Version>,
-) -> MonochangeResult<Option<PackageRecord>> {
+/// Read and parse one Cargo manifest, with the shared error messages used by
+/// discovery and configured-package loading.
+fn parse_manifest_value(manifest_path: &Path) -> MonochangeResult<Value> {
 	let contents = fs::read_to_string(manifest_path).map_err(|error| {
 		MonochangeError::Io(format!(
 			"failed to read {}: {error}",
 			manifest_path.display()
 		))
 	})?;
-	let parsed = toml::from_str::<Value>(&contents).map_err(|error| {
+	toml::from_str::<Value>(&contents).map_err(|error| {
 		MonochangeError::Discovery(format!(
 			"failed to parse {}: {error}",
 			manifest_path.display()
 		))
-	})?;
+	})
+}
+
+fn parse_package_manifest(
+	manifest_path: &Path,
+	workspace_root: &Path,
+	workspace_version: Option<&Version>,
+) -> MonochangeResult<Option<PackageRecord>> {
+	let parsed = parse_manifest_value(manifest_path)?;
+	parse_package_manifest_value(manifest_path, workspace_root, workspace_version, &parsed)
+}
+
+/// Build the package record from an already-parsed manifest so callers that
+/// parsed the manifest for workspace detection reuse it instead of re-reading.
+fn parse_package_manifest_value(
+	manifest_path: &Path,
+	workspace_root: &Path,
+	workspace_version: Option<&Version>,
+	parsed: &Value,
+) -> MonochangeResult<Option<PackageRecord>> {
 	let Some(package) = parsed.get("package").and_then(Value::as_table) else {
 		return Ok(None);
 	};
@@ -950,12 +1020,14 @@ fn parse_package_manifest(
 		.and_then(|table| table.get("workspace"))
 		.and_then(Value::as_bool)
 		.unwrap_or(false);
+
 	if uses_workspace_version {
 		package_record
 			.metadata
 			.insert("uses_workspace_version".to_string(), "true".to_string());
 	}
-	package_record.declared_dependencies = parse_dependencies(&parsed);
+
+	package_record.declared_dependencies = parse_dependencies(parsed);
 	Ok(Some(package_record))
 }
 
@@ -1037,19 +1109,9 @@ fn dependency_constraint(value: &Value) -> Option<String> {
 }
 
 fn has_workspace_section(manifest_path: &Path) -> MonochangeResult<bool> {
-	let contents = fs::read_to_string(manifest_path).map_err(|error| {
-		MonochangeError::Io(format!(
-			"failed to read {}: {error}",
-			manifest_path.display()
-		))
-	})?;
-	let parsed = toml::from_str::<Value>(&contents).map_err(|error| {
-		MonochangeError::Discovery(format!(
-			"failed to parse {}: {error}",
-			manifest_path.display()
-		))
-	})?;
-	Ok(parsed.get("workspace").is_some())
+	Ok(parse_manifest_value(manifest_path)?
+		.get("workspace")
+		.is_some())
 }
 
 fn find_all_manifests(root: &Path) -> Vec<PathBuf> {
@@ -1246,6 +1308,7 @@ pub fn write_cargo_placeholder_manifest(
 		.get("license-file")
 		.and_then(TomlValue::as_str)
 		.map(ToString::to_string);
+
 	if license.is_none() && license_file.is_none() {
 		return Err(MonochangeError::Config(format!(
 			"`{}` placeholder publishing requires `package.license` or `package.license-file`",
@@ -1273,9 +1336,11 @@ pub fn write_cargo_placeholder_manifest(
 		"[package]\nname = \"{}\"\nversion = \"{}\"\nedition = \"{}\"\ndescription = \"{}\"\nreadme = \"README.md\"\n",
 		request.package_name, request.version, edition, description
 	);
+
 	if let Some(license) = license {
 		let _ = writeln!(manifest, "license = \"{license}\"");
 	}
+
 	if let Some(license_file) = license_file {
 		manifest.push_str("license-file = \"LICENSE\"\n");
 		let source_root = if package_license_file.as_deref() == Some(license_file.as_str()) {
@@ -1283,12 +1348,14 @@ pub fn write_cargo_placeholder_manifest(
 		} else {
 			root
 		};
+
 		let source_path = source_root.join(&license_file);
 		let resolved_source = if source_path.is_absolute() {
 			source_path
 		} else {
 			root.join(source_path)
 		};
+
 		fs::copy(&resolved_source, dir.join("LICENSE")).map_err(|error| {
 			MonochangeError::Io(format!(
 				"failed to copy placeholder license file {}: {error}",
@@ -1296,9 +1363,11 @@ pub fn write_cargo_placeholder_manifest(
 			))
 		})?;
 	}
+
 	if let Some(repository) = repository {
 		let _ = writeln!(manifest, "repository = \"{repository}\"");
 	}
+
 	fs::create_dir_all(dir.join("src")).map_err(|error| {
 		MonochangeError::Io(format!(
 			"failed to create placeholder src directory: {error}"
@@ -1328,6 +1397,7 @@ pub fn resolve_cargo_placeholder_license_metadata(
 		.get("license-file")
 		.and_then(TomlValue::as_str)
 		.map(ToString::to_string);
+
 	if license.is_some() || license_file.is_some() {
 		return Ok((license, license_file));
 	}
@@ -1422,6 +1492,7 @@ pub fn validate_versioned_file(
 			for field in fields {
 				let writable = resolve_field(&doc, field)
 					.is_some_and(|value| value.is_str() || value.is_table() || value.is_array());
+
 				if !writable {
 					return Err(MonochangeError::Config(format!(
 						"versioned file `{display_path}` does not contain a `{field}` string field"
@@ -1440,9 +1511,11 @@ pub fn validate_versioned_file(
 /// section (`dependencies`), so this only reports whether the path resolves.
 fn resolve_field<'a>(doc: &'a Value, field: &str) -> Option<&'a Value> {
 	let mut current = doc;
+
 	for segment in field.split('.') {
 		current = current.get(segment)?;
 	}
+
 	Some(current)
 }
 
@@ -1483,6 +1556,7 @@ pub fn build_manifest_updates(
 				.map(|version| (package.name.clone(), version.clone()))
 		})
 		.collect::<BTreeMap<_, _>>();
+
 	if released_versions_by_name.is_empty() {
 		return Ok(Vec::new());
 	}
@@ -1542,15 +1616,18 @@ pub fn build_manifest_updates(
 			.filter_map(|package| released_versions.get(&package.id))
 			.cloned()
 			.collect::<BTreeSet<_>>();
+
 		if workspace_version.len() != 1 {
 			continue;
 		}
+
 		let shared_workspace_version = workspace_version
 			.first()
 			.cloned()
 			.expect("workspace version set contains exactly one version");
 
 		let workspace_manifest = workspace_root.join("Cargo.toml");
+
 		if !workspace_manifest.exists() {
 			continue;
 		}
@@ -1564,6 +1641,7 @@ pub fn build_manifest_updates(
 				))
 			})?
 		};
+
 		let updated = update_versioned_file_text(
 			&contents,
 			CargoVersionedFileKind::Manifest,
@@ -1579,6 +1657,7 @@ pub fn build_manifest_updates(
 				workspace_manifest.display()
 			))
 		})?;
+
 		updated_documents.insert(workspace_manifest, updated);
 	}
 

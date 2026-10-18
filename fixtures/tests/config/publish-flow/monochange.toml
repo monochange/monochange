@@ -1,0 +1,13 @@
+[ecosystems.npm.publish]
+flow = "staged"
+
+[package.web]
+path = "packages/web"
+type = "npm"
+
+[package.legacy]
+path = "packages/legacy"
+type = "npm"
+
+[package.legacy.publish]
+flow = "direct"

@@ -34,17 +34,17 @@
 		{
 			"ecosystem": "cargo",
 			"package": "etvegios_0",
-			"version": "0.9.8"
+			"version": "0.10.8"
 		},
 		{
 			"ecosystem": "cargo",
 			"package": "etvegios_1",
-			"version": "0.9.8"
+			"version": "0.10.8"
 		},
 		{
 			"ecosystem": "cargo",
 			"package": "etvegios_2",
-			"version": "0.9.8"
+			"version": "0.10.8"
 		}
 	],
 	"provider": {
@@ -60,8 +60,8 @@
 			"members": [],
 			"release": true,
 			"tag": true,
-			"tag_name": "v0.9.8",
-			"version": "0.9.8",
+			"tag_name": "v0.10.8",
+			"version": "0.10.8",
 			"version_format": "primary"
 		}
 	],
@@ -70,15 +70,15 @@
 		"etvegios_1",
 		"etvegios_2"
 	],
-	"schema_version": "0.9",
+	"schema_version": "0.10",
 	"updated_changelogs": [
 		"fixtures/changelog-8.md"
 	],
-	"version": "0.9.8",
+	"version": "0.10.8",
 	"versions": {
-		"etvegios_0": "0.9.8",
-		"etvegios_1": "0.9.8",
-		"etvegios_2": "0.9.8",
-		"main": "0.9.8"
+		"etvegios_0": "0.10.8",
+		"etvegios_1": "0.10.8",
+		"etvegios_2": "0.10.8",
+		"main": "0.10.8"
 	}
 }

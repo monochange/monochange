@@ -1,0 +1,19 @@
+# Fixture for Bun text lockfile (bun.lock) releases.
+#
+# Bun writes bun.lock as JSONC with trailing commas. Inter-workspace
+# references use the workspace: protocol and carry no version, so a release
+# only rewrites exact registry pins and package-map descriptors of released
+# packages and leaves everything else byte-for-byte identical.
+[defaults]
+parent_bump = "patch"
+
+[package."@acme/api"]
+path = "packages/api"
+type = "npm"
+
+[package."@acme/consumer"]
+path = "packages/consumer"
+type = "npm"
+
+[ecosystems.npm]
+enabled = true

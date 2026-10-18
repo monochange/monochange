@@ -1,8 +1,8 @@
 # Website authentication and repository flows
 
-Status: local repairs verified; ordinary PR and production rollout pending.
+Status: production 0.2.2 published; authenticated session verified live; public-page follow-up and GitHub App configuration pending.
 
-The user reports a successful GitHub sign-in followed by a signed-out dashboard. The previous live audit stopped at GitHub's login page and did not establish an authenticated session. Public production still uses an older image; the reviewed website release at https://github.com/monochange/monochange/pull/760 awaits human authorization.
+The original failure was a successful GitHub sign-in followed by a signed-out dashboard. An earlier live audit stopped at GitHub's login page and did not establish an authenticated session. The repaired app was released through https://github.com/monochange/monochange/pull/765 after direct human authorization; the previous release at https://github.com/monochange/monochange/pull/760 is closed.
 
 ## Acceptance checks
 
@@ -38,4 +38,24 @@ GitHub is the external boundary replaced in deterministic regression tests; cook
 - The local browser fixture replaces only external GitHub responses and uses generated test-only keys. Its frontend uses the documented temporary `disable-erase-components` setting to match the independently compiled native test server; that setting was removed afterward. This is a harness build alignment, not a production code change.
 - Read-only GitHub settings show no registered App in the monochange organization and only the unrelated kickjump-bot App in Ifiok's personal account. The secret-free registration checklist is prepared in `app/deploy/github-app-registration.md`. No live GitHub registration, permission grant, credential generation/provider access or repository mutation was performed.
 
-Local proof is retained under `.monochange/local/auth-*` and `repository-connection-*`. Local tests do not establish a completed production deployment or live repository installation. The generated release must refresh after this ordinary repair merges, be reviewed at its actual head, and receive the required concrete human authorization before rollout.
+Local proof is retained under `.monochange/local/auth-*` and `repository-connection-*`. Local tests did not establish a production deployment or live repository installation; the completed production checks and remaining limits are recorded below.
+
+## Live release follow-up, 8 October 2026
+
+- Automatic deployment from release merge `62d1504b931a4885dc4248d3ea1ef4a19ef61dac` passed, and public health reports 0.2.2. The public app GitHub release contains the reviewed website-stream notes. No manual app publication was needed.
+- Real Chrome GitHub OAuth using the existing grant reached the authenticated dashboard, survived reload and signed out correctly. The production dashboard reports that GitHub App configuration is unavailable; no new credentials, permissions or installations were created during verification.
+- All 55 book destinations, the `/docs` redirect and current/historical release JSON passed live checks. Homepage, book and expanded Cargo/Nix instructions fit desktop and phone widths in both themes.
+- Live verification exposed two remaining public-page defects: the installation setup-guide link still used a malformed standalone-book URL, and the changelog's mobile grid expanded to its longest command's intrinsic width. Correct the link to the shipped chapter and give the mobile grid a zero minimum track size; preserve scrolling inside command blocks.
+- The link regression must fail against the old rendered installation page and pass against the correction. Check the corrected link and changelog at 320/375/390/768/900/901/1024/1440 widths in the existing browser harness. Keep the production defect evidence separate from local correction evidence; these follow-up changes require a subsequent approved app release before they are live.
+- Follow-up local verification passed: the rendered-page link test failed before the correction, then all 163 native app workspace tests and app clippy passed. The changed executable line has 1/1 coverage. The corrected guide link reached the real chapter on desktop and phone widths; install and changelog passed 32 width/theme measurements without page overflow, while long commands retained internal scrolling. No application console errors were captured. The owned fixture server was stopped, and temporary frontend metadata and viewport overrides were restored. Proof is retained under `.monochange/local/website-polish-*`.
+- Sole-maintainer release PR authorship is repaired by https://github.com/monochange/monochange/pull/766. The release-finalization job reached its ten-minute deadline during cache cleanup after successful release operations; https://github.com/monochange/monochange/pull/767 increases that budget. The app deployment itself succeeded.
+
+## Additional flow regressions, 8 October 2026
+
+The maintainer authorized continuing until the reported issues are fixed and requested extensive tests. The next release must include the public link/mobile corrections from https://github.com/monochange/monochange/pull/769 and the named Changelog navigation and migration-guide link corrections from https://github.com/monochange/monochange/pull/770. Review the actual refreshed release record and every applicable check before normal queue merge; verify the resulting version and corrected pages live.
+
+Add two native journeys across the real SSR and API routers, shared SQLite state and browser session cookie. Replace only external GitHub responses. The personal-account journey begins with an empty workspace, delivers signed installation and repository-selection webhooks, reloads the dashboard after each change, and checks public/private repositories, additions after initial setup, removal, suspension, resumption, uninstall and account isolation. The verified connection link must remain available with both empty and populated lists. The organization journey reloads after ownership is revoked and after OAuth authorization expires; protected repository names must disappear and provider failure must not masquerade as an empty workspace.
+
+The existing callback/reload/logout, invalid session, app metadata failure, webhook signature/event validation and ownership tests remain part of the surrounding suite. These deterministic journeys do not substitute for real production installation. GitHub App registration and new credential entry still require the maintainer's browser handoff; keep live connection verification pending until the real App is configured.
+
+Local verification passed with 165 native app workspace tests, including both new journeys, and one existing manual browser fixture ignored. Root formatting/lint checks, app clippy, configuration validation and the read-only release preview passed. The test note appears only in the developer output. No production executable code changed. The generated lockfile's unrelated path-package version refreshes are preserved locally and excluded from this change.

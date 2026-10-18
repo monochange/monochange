@@ -25,7 +25,6 @@ fn fixture_path(relative: &str) -> PathBuf {
 }
 
 // -- adapter --
-
 #[test]
 fn adapter_reports_python_ecosystem() {
 	use monochange_core::EcosystemAdapter;
@@ -34,7 +33,6 @@ fn adapter_reports_python_ecosystem() {
 }
 
 // -- supported_versioned_file_kind --
-
 #[test]
 fn supported_versioned_file_kind_recognizes_manifest_and_lockfiles() {
 	use crate::supported_versioned_file_kind;
@@ -55,7 +53,6 @@ fn supported_versioned_file_kind_recognizes_manifest_and_lockfiles() {
 }
 
 // -- normalize_python_package_name --
-
 #[test]
 fn normalize_python_package_name_lowercases_and_replaces_separators() {
 	assert_eq!(normalize_python_package_name("My-Package"), "my-package");
@@ -68,7 +65,6 @@ fn normalize_python_package_name_lowercases_and_replaces_separators() {
 }
 
 // -- parse_dependency_name --
-
 #[test]
 fn parse_dependency_name_extracts_name_from_pep508_specifiers() {
 	assert_eq!(
@@ -96,7 +92,6 @@ fn parse_dependency_name_extracts_name_from_pep508_specifiers() {
 }
 
 // -- parse_pep440_as_semver --
-
 #[test]
 fn parse_pep440_as_semver_handles_standard_and_two_part_versions() {
 	assert_eq!(parse_pep440_as_semver("1.2.3"), Some(Version::new(1, 2, 3)));
@@ -108,7 +103,6 @@ fn parse_pep440_as_semver_handles_standard_and_two_part_versions() {
 }
 
 // -- update_dependency_specifier --
-
 #[test]
 fn update_dependency_specifier_replaces_matching_version_constraints() {
 	let deps = BTreeMap::from([("my-core".to_string(), ">=2.0.0".to_string())]);
@@ -138,7 +132,6 @@ fn update_dependency_specifier_preserves_extras() {
 }
 
 // -- discover_python_packages --
-
 #[test]
 fn discover_python_packages_finds_uv_workspace_members() {
 	let root = fixture_path("python/uv-workspace");
@@ -312,7 +305,6 @@ fn discover_python_packages_extracts_optional_dependency_edges() {
 }
 
 // -- discover_lockfiles --
-
 #[test]
 fn discover_lockfiles_returns_empty_when_no_lockfile_exists() {
 	let root = fixture_path("python/standalone");
@@ -329,7 +321,6 @@ fn discover_lockfiles_returns_empty_when_no_lockfile_exists() {
 }
 
 // -- default_lockfile_commands --
-
 #[test]
 fn default_lockfile_commands_return_empty_when_no_lockfile_exists() {
 	let root = fixture_path("python/standalone");
@@ -346,7 +337,6 @@ fn default_lockfile_commands_return_empty_when_no_lockfile_exists() {
 }
 
 // -- update_versioned_file_text --
-
 #[rstest::rstest]
 #[case::poetry("poetry-version-update/workspace", Some("3.1.1"), None, "3.1.1")]
 #[case::unchanged("poetry-version-update/workspace", None, None, "3.1.0")]
@@ -569,7 +559,6 @@ dependencies = []
 }
 
 // -- adapter trait dispatch --
-
 #[test]
 fn adapter_discover_delegates_to_discover_python_packages() {
 	use monochange_core::EcosystemAdapter;
@@ -582,7 +571,6 @@ fn adapter_discover_delegates_to_discover_python_packages() {
 }
 
 // -- load_configured_python_package --
-
 #[test]
 fn load_configured_python_package_loads_configured_uv_workspace_member() {
 	use monochange_core::EcosystemAdapter;
@@ -651,7 +639,6 @@ fn load_configured_python_package_returns_none_for_manifest_without_project() {
 }
 
 // -- discover_lockfiles with real lockfiles --
-
 #[test]
 fn discover_lockfiles_finds_uv_lock_at_workspace_root() {
 	let root = fixture_path("python/uv-workspace");
@@ -685,7 +672,6 @@ fn discover_lockfiles_finds_poetry_lock() {
 }
 
 // -- default_lockfile_commands with real lockfiles --
-
 #[test]
 fn default_lockfile_commands_infers_uv_lock_for_uv_workspace() {
 	let root = fixture_path("python/uv-workspace");
@@ -719,7 +705,6 @@ fn default_lockfile_commands_infers_poetry_lock_for_poetry_project() {
 }
 
 // -- extract_version_constraint --
-
 #[test]
 fn extract_version_constraint_handles_simple_and_complex_specifiers() {
 	assert_eq!(
@@ -738,7 +723,6 @@ fn extract_version_constraint_handles_simple_and_complex_specifiers() {
 }
 
 // -- update with missing dependencies array --
-
 #[test]
 fn update_versioned_file_text_handles_project_without_dependencies_key() {
 	let input = r#"[project]
@@ -757,7 +741,6 @@ version = "1.0.0"
 }
 
 // -- update_dependency_specifier edge cases --
-
 #[test]
 fn update_dependency_specifier_returns_none_for_empty_spec() {
 	let deps = BTreeMap::from([("pkg".to_string(), ">=1.0".to_string())]);
@@ -774,7 +757,6 @@ fn update_dependency_specifier_handles_name_only_spec() {
 }
 
 // -- discover_lockfiles fallback to manifest dir --
-
 #[test]
 fn discover_lockfiles_falls_back_to_manifest_directory() {
 	use std::fs;
@@ -821,7 +803,6 @@ fn discover_lockfiles_prefers_workspace_root_then_manifest_directory() {
 }
 
 // -- workspace pattern warnings --
-
 #[test]
 fn discover_python_packages_warns_on_empty_workspace_patterns() {
 	let root = fixture_path("python/uv-workspace-empty-pattern");
@@ -835,7 +816,6 @@ fn discover_python_packages_warns_on_empty_workspace_patterns() {
 }
 
 // -- parse error paths --
-
 #[test]
 fn discover_python_packages_warns_on_invalid_toml_in_standalone_scan() {
 	let root = fixture_path("python/invalid-toml");
@@ -853,7 +833,6 @@ fn discover_python_packages_warns_on_invalid_toml_in_standalone_scan() {
 }
 
 // -- Poetry complex dependency parsing --
-
 #[test]
 fn discover_python_packages_parses_complex_poetry_dependencies() {
 	let root = fixture_path("python/poetry-complex");
@@ -925,7 +904,6 @@ fn discover_python_packages_parses_complex_poetry_dependencies() {
 }
 
 // -- update with non-string items in dependency array --
-
 #[test]
 fn update_versioned_file_text_skips_non_string_dependency_items() {
 	let input = r#"[project]
@@ -943,7 +921,6 @@ dependencies = [
 }
 
 // -- extract_version_constraint extras --
-
 #[test]
 fn extract_version_constraint_handles_extras_in_specifier() {
 	assert_eq!(
@@ -961,7 +938,6 @@ fn extract_version_constraint_returns_none_for_no_constraint() {
 }
 
 // -- should_descend coverage --
-
 #[test]
 fn discover_python_packages_skips_venv_and_pycache_directories() {
 	use std::fs;
@@ -1011,7 +987,6 @@ fn discover_python_packages_skips_venv_and_pycache_directories() {
 }
 
 // -- IO error paths --
-
 #[test]
 fn discover_python_packages_reports_io_error_for_unreadable_workspace_root() {
 	let error = discover_python_packages(std::path::Path::new("/nonexistent/path/to/repo"));
@@ -1022,7 +997,6 @@ fn discover_python_packages_reports_io_error_for_unreadable_workspace_root() {
 }
 
 // -- workspace member expansion with direct pyproject.toml files --
-
 #[test]
 fn expand_workspace_members_handles_glob_matching_pyproject_files() {
 	use std::fs;
@@ -1130,6 +1104,7 @@ fn private_workspace_helpers_cover_error_and_match_branches() {
 		"[project]\nname = \"core\"\nversion = \"1.0.0\"\n",
 	)
 	.unwrap_or_else(|error| panic!("write core pyproject: {error}"));
+
 	fs::write(root.join("README.md"), "# docs\n")
 		.unwrap_or_else(|error| panic!("write readme: {error}"));
 
@@ -1256,7 +1231,6 @@ numbered = 1
 }
 
 // -- update_versioned_file with both version and deps --
-
 #[test]
 fn update_versioned_file_text_updates_version_and_deps_simultaneously() {
 	let input = r#"[project]
@@ -1285,7 +1259,6 @@ dependencies = [
 }
 
 // -- PEP 440 edge cases --
-
 #[test]
 fn parse_pep440_as_semver_handles_pre_release_and_invalid_formats() {
 	// Pre-release suffixes are not supported
@@ -1299,7 +1272,6 @@ fn parse_pep440_as_semver_handles_pre_release_and_invalid_formats() {
 }
 
 // -- normalize edge cases --
-
 #[test]
 fn normalize_python_package_name_handles_leading_and_trailing_separators() {
 	assert_eq!(normalize_python_package_name("-leading"), "leading");

@@ -4,11 +4,11 @@ use std::io::BufReader;
 use std::io::BufWriter;
 use std::io::IsTerminal;
 
-use monochange_core::git::git_current_branch;
 use similar::TextDiff;
 
 use super::*;
 use crate::cli_runtime::build_release_request_result;
+use crate::cli_runtime::string_step_input;
 use crate::git_support::git_stage_all;
 use crate::output::text::Outcome;
 use crate::output::text::TableCell;
@@ -45,18 +45,22 @@ fn load_dedup_index(root: &Path) -> std::collections::HashSet<String> {
 
 fn load_dedup_index_from_reader(reader: impl BufRead) -> Option<std::collections::HashSet<String>> {
 	let mut index = std::collections::HashSet::new();
+
 	for line in reader.lines() {
 		let Ok(line) = line else {
 			return None;
 		};
 		let line = line.trim();
+
 		if line.is_empty() {
 			continue;
 		}
+
 		if let Some(hash) = parse_dedup_index_hash(line) {
 			index.insert(hash.to_owned());
 		}
 	}
+
 	Some(index)
 }
 
@@ -90,14 +94,17 @@ fn save_dedup_index(
 	let file = fs::File::create(&temp)
 		.map_err(|error| MonochangeError::Io(format!("write dedup index: {error}")))?;
 	let mut writer = BufWriter::new(file);
+
 	for (position, hash) in hashes.iter().enumerate() {
 		if position > 0 {
 			std::io::Write::write_all(&mut writer, b"\n")
 				.map_err(|error| MonochangeError::Io(format!("write dedup index: {error}")))?;
 		}
+
 		std::io::Write::write_fmt(&mut writer, format_args!(r#"{{"hash":"{hash}"}}"#))
 			.map_err(|error| MonochangeError::Io(format!("write dedup index: {error}")))?;
 	}
+
 	std::io::Write::flush(&mut writer)
 		.map_err(|error| MonochangeError::Io(format!("write dedup index: {error}")))?;
 	fs::rename(&temp, &path)
@@ -155,6 +162,7 @@ pub(crate) async fn build_release_targets(
 			.map(|group| group.packages.len())
 			.sum(),
 	);
+
 	for group in &configuration.groups {
 		for package_id in &group.packages {
 			group_by_package_id
@@ -162,6 +170,7 @@ pub(crate) async fn build_release_targets(
 				.or_insert(group);
 		}
 	}
+
 	let planned_group_by_id = plan
 		.groups
 		.iter()
@@ -216,6 +225,7 @@ pub(crate) async fn build_release_targets(
 			})
 		})
 	}));
+
 	for decision in plan
 		.decisions
 		.iter()
@@ -236,6 +246,7 @@ pub(crate) async fn build_release_targets(
 		else {
 			continue;
 		};
+
 		let (
 			owner_id,
 			owner_kind,
@@ -265,6 +276,7 @@ pub(crate) async fn build_release_targets(
 				package_definition.floating_tags.clone(),
 			)
 		};
+
 		let vs = version.to_string();
 		let tag = render_tag_name(
 			owner_id,
@@ -356,6 +368,7 @@ pub(crate) fn build_package_publication_targets(
 				registry: package_definition.publish.registry.clone(),
 				version: version.to_string(),
 				mode: package_definition.publish.mode,
+				flow: package_definition.publish.flow,
 				trusted_publishing: package_definition.publish.trusted_publishing.clone(),
 				attestations: package_definition.publish.attestations.clone(),
 				timeout: package_definition.publish.timeout.clone(),
@@ -443,6 +456,7 @@ pub(crate) async fn load_sorted_tags(root: &Path) -> Vec<String> {
 	.await
 	{
 		Ok(output) if output.status.success() => output,
+
 		_ => return Vec::new(),
 	};
 	parse_sorted_tag_lines(&output.stdout)
@@ -583,10 +597,12 @@ impl TitleRenderContext {
 		let tag_url = source
 			.map(|s| tag_url_for_provider(s, tag_name))
 			.unwrap_or_default();
+
 		let compare_url = match (source, previous_tag) {
 			(Some(s), Some((prev, _))) => compare_url_for_provider(s, prev, tag_name),
 			_ => tag_url.clone(),
 		};
+
 		let previous_version = previous_tag
 			.map(|(_, version)| version.to_string())
 			.unwrap_or_default();
@@ -726,8 +742,10 @@ pub(crate) fn apply_file_updates(updates: &[FileUpdate]) -> MonochangeResult<()>
 				MonochangeError::Io(format!("failed to create {}: {error}", parent.display()))
 			})?;
 		}
+
 		atomic_write(&update.path, &update.content)?;
 	}
+
 	Ok(())
 }
 
@@ -755,6 +773,7 @@ fn atomic_write(path: &Path, content: &[u8]) -> MonochangeResult<()> {
 			))
 		})?;
 	}
+
 	Ok(())
 }
 
@@ -792,11 +811,13 @@ pub(crate) fn build_file_diff_previews(
 	updates: &[FileUpdate],
 ) -> MonochangeResult<Vec<PreparedFileDiff>> {
 	let colorize_diffs = diff_output_colors_enabled();
+
 	if FORCE_BUILD_FILE_DIFF_PREVIEWS_ERROR.with(Cell::get) {
 		return Err(MonochangeError::Io(
 			"forced build_file_diff_previews test error".to_string(),
 		));
 	}
+
 	let mut previews = updates
 		.iter()
 		.filter_map(|update| {
@@ -818,6 +839,7 @@ pub(crate) fn build_file_diff_previews(
 					))));
 				}
 			};
+
 			(before != update.content).then(|| {
 				let diff = render_unified_file_diff(&path, &before, &update.content);
 				Ok(PreparedFileDiff {
@@ -849,6 +871,7 @@ fn render_display_file_diff(diff: &str, colorize: bool) -> String {
 	if !colorize {
 		return diff.to_string();
 	}
+
 	colorize_diff_output(diff)
 }
 
@@ -860,29 +883,35 @@ pub(crate) fn diff_output_supports_color(stdout_is_terminal: bool) -> bool {
 	if std::env::var_os("NO_COLOR").is_some() {
 		return false;
 	}
+
 	if std::env::var("CLICOLOR_FORCE")
 		.ok()
 		.is_some_and(|value| value != "0")
 	{
 		return true;
 	}
+
 	if std::env::var("CLICOLOR")
 		.ok()
 		.is_some_and(|value| value == "0")
 	{
 		return false;
 	}
+
 	stdout_is_terminal
 }
 
 pub(crate) fn colorize_diff_output(diff: &str) -> String {
 	let mut output = String::with_capacity(diff.len());
+
 	for (index, line) in diff.lines().enumerate() {
 		if index > 0 {
 			output.push('\n');
 		}
+
 		push_colorized_diff_line(&mut output, line);
 	}
+
 	output
 }
 
@@ -917,6 +946,7 @@ pub(crate) fn shared_release_version(plan: &ReleasePlan) -> Option<String> {
 		.filter(|decision| decision.recommended_bump.is_release())
 		.filter_map(|decision| decision.planned_version.as_ref().map(ToString::to_string))
 		.collect::<BTreeSet<_>>();
+
 	if versions.len() == 1 {
 		versions.first().cloned()
 	} else {
@@ -931,6 +961,7 @@ pub(crate) fn shared_group_version(plan: &ReleasePlan) -> Option<String> {
 		.filter(|group| group.recommended_bump.is_release())
 		.filter_map(|group| group.planned_version.as_ref().map(ToString::to_string))
 		.collect::<BTreeSet<_>>();
+
 	if versions.len() == 1 {
 		versions.first().cloned()
 	} else {
@@ -1009,6 +1040,7 @@ pub(crate) fn build_release_manifest(
 		} else {
 			prepared_release.versioning.label_inputs.clone()
 		},
+
 		plan: ReleaseManifestPlan {
 			workspace_root: PathBuf::from("."),
 			decisions: prepared_release
@@ -1090,6 +1122,7 @@ pub(crate) fn build_release_manifest_from_record(record: &ReleaseRecord) -> Rele
 			.collect(),
 		released_packages: record.released_packages.clone(),
 		changed_files: record.changed_files.clone(),
+
 		changelogs: if record.changelogs.is_empty() {
 			record
 				.updated_changelogs
@@ -1114,6 +1147,7 @@ pub(crate) fn build_release_manifest_from_record(record: &ReleaseRecord) -> Rele
 		} else {
 			record.changelogs.clone()
 		},
+
 		package_publications: record.package_publications.clone(),
 		changesets: record.changesets.clone(),
 		deleted_changesets: record.deleted_changesets.clone(),
@@ -1139,6 +1173,7 @@ fn record_release_title(record: &ReleaseRecord, target: &ReleaseRecordTarget) ->
 	if !target.rendered_title.is_empty() {
 		return target.rendered_title.clone();
 	}
+
 	let created_at = chrono::DateTime::parse_from_rfc3339(&record.created_at)
 		.map_or_else(|_| resolve_release_datetime(), |parsed| parsed.naive_utc());
 	TitleRenderContext::with_datetime(
@@ -1235,6 +1270,7 @@ pub(crate) fn render_release_commit_body(
 	manifest: &ReleaseManifest,
 ) -> String {
 	let mut lines = vec!["Prepare release.".to_string()];
+
 	if !manifest.release_targets.is_empty() {
 		lines.push(String::new());
 		lines.push(format!(
@@ -1247,12 +1283,14 @@ pub(crate) fn render_release_commit_body(
 				.join(", ")
 		));
 	}
+
 	if !manifest.released_packages.is_empty() {
 		lines.push(format!(
 			"- released packages: {}",
 			manifest.released_packages.join(", ")
 		));
 	}
+
 	if !manifest.changelogs.is_empty() {
 		lines.push(format!(
 			"- updated changelogs: {}",
@@ -1264,6 +1302,7 @@ pub(crate) fn render_release_commit_body(
 				.join(", ")
 		));
 	}
+
 	if !manifest.deleted_changesets.is_empty() {
 		lines.push(format!(
 			"- deleted changesets: {}",
@@ -1275,6 +1314,7 @@ pub(crate) fn render_release_commit_body(
 				.join(", ")
 		));
 	}
+
 	lines.join("\n")
 }
 
@@ -1441,6 +1481,7 @@ pub(crate) fn render_release_cli_command_json(
 		if sections.commands.is_empty() {
 			return render_release_manifest_json(format, manifest);
 		}
+
 		// Keep the manifest shape and add `commands` beside its fields, so
 		// consumers reading manifest fields at the top level keep working.
 		let mut value = json!(manifest);
@@ -1448,6 +1489,7 @@ pub(crate) fn render_release_cli_command_json(
 			.as_object_mut()
 			.unwrap_or_else(|| panic!("release manifest json must stay object"))
 			.insert("commands".to_string(), json!(sections.commands));
+
 		return format.render_json_value(&value, "release manifest");
 	}
 	let mut value = json!({
@@ -1459,6 +1501,7 @@ pub(crate) fn render_release_cli_command_json(
 		"package_publish": sections.package_publish,
 		"publish_rate_limits": sections.publish_rate_limits,
 	});
+
 	if !sections.file_diffs.is_empty() {
 		value
 			.as_object_mut()
@@ -1468,12 +1511,14 @@ pub(crate) fn render_release_cli_command_json(
 				serde_json::to_value(sections.file_diffs).unwrap_or_default(),
 			);
 	}
+
 	if !sections.commands.is_empty() {
 		value
 			.as_object_mut()
 			.unwrap_or_else(|| panic!("release json wrapper must stay object"))
 			.insert("commands".to_string(), json!(sections.commands));
 	}
+
 	format.render_json_value(&value, "release command output")
 }
 
@@ -1489,6 +1534,7 @@ pub(crate) fn write_release_record_file(
 	// do not produce a dirty working tree.
 	if paths.absolute.is_file() {
 		add_to_dedup_index(root, &paths.hash).ok();
+
 		return Ok(paths.absolute);
 	}
 
@@ -1555,6 +1601,7 @@ pub(crate) fn validate_release_record_file(
 						.and_then(|v| v.as_array())
 				{
 					let manifest_targets = &manifest.release_targets;
+
 					if existing_targets.len() == manifest_targets.len() {
 						let all_match = manifest_targets.iter().all(|mt| {
 							existing_targets.iter().any(|et| {
@@ -1571,6 +1618,7 @@ pub(crate) fn validate_release_record_file(
 								mt.id == id && mt.kind.as_str() == kind && mt.version == version
 							})
 						});
+
 						if all_match {
 							// Targets match — no need to rebuild or rewrite.
 							add_to_dedup_index(root, &paths.hash).ok();
@@ -1593,9 +1641,11 @@ pub(crate) fn validate_release_record_file(
 		paths.absolute.parent().unwrap_or(root),
 	)?;
 	let json = serde_json::to_string_pretty(&record).unwrap_or_default();
+
 	if paths.absolute.is_file() {
 		let existing = fs::read_to_string(&paths.absolute)
 			.map_err(|error| MonochangeError::Io(format!("read release record: {error}")))?;
+
 		if !compare_json_strings(&existing, &json) {
 			if update_release_json {
 				fs::write(&paths.absolute, json).map_err(|error| {
@@ -1611,6 +1661,7 @@ pub(crate) fn validate_release_record_file(
 	} else if update_release_json {
 		fs::create_dir_all(paths.absolute.parent().unwrap_or(root))
 			.map_err(|error| MonochangeError::Io(format!("create release record dir: {error}")))?;
+
 		fs::write(&paths.absolute, json)
 			.map_err(|error| MonochangeError::Io(format!("write release record: {error}")))?;
 	} else {
@@ -1619,6 +1670,7 @@ pub(crate) fn validate_release_record_file(
 			paths.absolute.display()
 		)));
 	}
+
 	Ok(paths.absolute)
 }
 
@@ -1710,11 +1762,13 @@ fn release_targets_hash<T: ReleaseTargetIdentity>(release_targets: &[T]) -> Stri
 			.then_with(|| a.kind().as_str().cmp(b.kind().as_str()))
 			.then_with(|| a.version().cmp(b.version()))
 	});
+
 	for target in sorted {
 		hasher.write(target.id().as_bytes());
 		hasher.write(target.kind().as_str().as_bytes());
 		hasher.write(target.version().as_bytes());
 	}
+
 	format!("{:016x}", hasher.finish())
 }
 
@@ -1763,17 +1817,20 @@ fn deduplicate_overlapping_release_records(
 	let hash = release_targets_hash(release_targets);
 	let already_deduped = DEDUPLICATED_CACHE
 		.with(|cache| cache.borrow().contains(&(root.to_path_buf(), hash.clone())));
+
 	if already_deduped {
 		return Ok(());
 	}
 
 	let persistent_index = load_dedup_index(root);
+
 	if persistent_index.contains(&hash) {
 		DEDUPLICATED_CACHE.with(|cache| {
 			cache
 				.borrow_mut()
 				.insert((root.to_path_buf(), hash.clone()));
 		});
+
 		return Ok(());
 	}
 
@@ -1783,25 +1840,32 @@ fn deduplicate_overlapping_release_records(
 		.collect();
 
 	let releases_dir = root.join(".monochange/releases");
+
 	if !releases_dir.is_dir() {
 		return Ok(());
 	}
+
 	for entry in fs::read_dir(&releases_dir)
 		.map_err(|error| MonochangeError::Io(format!("read releases dir: {error}")))?
 	{
 		let entry =
 			entry.map_err(|error| MonochangeError::Io(format!("read dir entry: {error}")))?;
 		let path = entry.path();
+
 		if path == current_record_dir {
 			continue;
 		}
+
 		if !path.is_dir() {
 			continue;
 		}
+
 		let record_file = path.join("release.json");
+
 		if !record_file.is_file() {
 			continue;
 		}
+
 		let Ok(content) = fs::read_to_string(&record_file) else {
 			continue;
 		};
@@ -1812,6 +1876,7 @@ fn deduplicate_overlapping_release_records(
 			.release_targets
 			.iter()
 			.any(|t| new_tags.contains(&(t.id.as_str(), t.version.as_str())));
+
 		if has_overlap {
 			let hash_to_remove = release_targets_hash(&existing.release_targets);
 			fs::remove_dir_all(&path).map_err(|error| {
@@ -1841,6 +1906,7 @@ pub(crate) async fn commit_release(
 	stage_all: bool,
 ) -> MonochangeResult<CommitReleaseReport> {
 	let prepared = prepare_release_commit(root, context, source, manifest, update_release_json)?;
+
 	if !context.dry_run {
 		// patch-coverage:ignore-start -- exercised by end-to-end release PR flows; branch delegates to covered git helpers.
 		if stage_all {
@@ -1848,9 +1914,11 @@ pub(crate) async fn commit_release(
 		} else {
 			git_stage_paths(root, &prepared.tracked_paths).await?;
 		}
+
 		// patch-coverage:ignore-end
 		git_commit_paths(root, &prepared.message, no_verify).await?;
 	}
+
 	Ok(CommitReleaseReport {
 		subject: prepared.message.subject,
 		body: prepared.message.body.clone().unwrap_or_default(),
@@ -1859,9 +1927,10 @@ pub(crate) async fn commit_release(
 		} else {
 			Some(git_head_commit(root).await?)
 		},
+
+		verified: None,
 		tracked_paths: prepared.tracked_paths,
 		dry_run: context.dry_run,
-		verified: None,
 		status: if context.dry_run {
 			"dry_run".to_string()
 		} else {
@@ -1887,8 +1956,17 @@ fn prepare_release_commit(
 ) -> MonochangeResult<PreparedReleaseCommit> {
 	let tracked_paths = tracked_release_pull_request_paths(context, manifest);
 	let message = build_release_commit_message(source, manifest);
-	let release_record_path =
-		validate_release_record_file(root, source, manifest, update_release_json)?;
+	// Dry-run previews report the commit they would make. `PrepareRelease`
+	// skips writing the release record in dry-run mode, so requiring it here
+	// failed every `run <workflow> --dry-run` that chains the two steps.
+	// Report the expected record path instead; the real run still validates
+	// (or writes) the record.
+	let release_record_path = if context.dry_run {
+		release_record_paths(root, &manifest.release_targets).absolute
+	} else {
+		validate_release_record_file(root, source, manifest, update_release_json)?
+	};
+
 	let mut tracked_paths = tracked_paths;
 	tracked_paths.push(release_record_path);
 	Ok(PreparedReleaseCommit {
@@ -1910,21 +1988,67 @@ pub(crate) struct HostedCommitOptions {
 
 pub(crate) const DEFAULT_HOSTED_URL: &str = "https://monochange.dev";
 
-/// Resolve hosted commit options from step fields, falling back to defaults.
+/// Hosted backend settings configured on a `CommitRelease` or
+/// `OpenReleaseRequest` step in `monochange.toml`.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct ConfiguredHostedSettings<'a> {
+	pub(crate) auth: monochange_core::HostedCommitAuth,
+	pub(crate) url: Option<&'a str>,
+	pub(crate) oidc_audience: Option<&'a str>,
+}
+
+/// Resolve the hosted backend options for one step invocation.
+///
+/// Step inputs (command-line flags or workflow `inputs`) win over the
+/// environment, which wins over the step configuration. Only the URL has an
+/// environment override, `MONOCHANGE_HOSTED_URL`, so self-hosted monochange
+/// app deployments can redirect the backend without editing monochange.toml.
+/// Empty values are ignored so unset workflow inputs never shadow the
+/// configuration.
+///
+/// # Errors
+///
+/// Returns an error when the `hosted_auth` input is not a supported mode.
+pub(crate) fn hosted_commit_options_from_step(
+	step_inputs: &BTreeMap<String, Vec<String>>,
+	configured: ConfiguredHostedSettings<'_>,
+) -> MonochangeResult<HostedCommitOptions> {
+	let step_input =
+		|name: &str| string_step_input(step_inputs, name).filter(|value| !value.is_empty());
+
+	let auth = match step_input("hosted_auth") {
+		Some(value) => value.parse()?,
+		None => configured.auth,
+	};
+
+	let url = step_input("hosted_url")
+		.or_else(|| {
+			std::env::var("MONOCHANGE_HOSTED_URL")
+				.ok()
+				.filter(|value| !value.is_empty())
+		})
+		.or_else(|| configured.url.map(String::from));
+	let oidc_audience =
+		step_input("oidc_audience").or_else(|| configured.oidc_audience.map(String::from));
+	Ok(resolve_hosted_commit_options(
+		auth,
+		url.as_deref(),
+		oidc_audience.as_deref(),
+	))
+}
+
+/// Build hosted commit options from resolved values, falling back to the
+/// public app and an audience derived from its host.
 #[must_use]
 pub(crate) fn resolve_hosted_commit_options(
 	auth: monochange_core::HostedCommitAuth,
 	url: Option<&str>,
 	oidc_audience: Option<&str>,
 ) -> HostedCommitOptions {
-	// `MONOCHANGE_HOSTED_URL` overrides the configured URL so self-hosted
-	// monochange app deployments (and tests) can redirect the hosted backend
-	// without editing monochange.toml.
 	let url = url
-		.map(String::from)
-		.or_else(|| std::env::var("MONOCHANGE_HOSTED_URL").ok())
-		.unwrap_or_else(|| DEFAULT_HOSTED_URL.to_string());
-	let url = url.trim_end_matches('/').to_string();
+		.unwrap_or(DEFAULT_HOSTED_URL)
+		.trim_end_matches('/')
+		.to_string();
 	let oidc_audience =
 		oidc_audience.map_or_else(|| hosted_oidc_audience(&url), ToString::to_string);
 	HostedCommitOptions {
@@ -1959,7 +2083,8 @@ pub(crate) async fn hosted_commit_release(
 ) -> MonochangeResult<CommitReleaseReport> {
 	let prepared = prepare_release_commit(root, context, source, manifest, update_release_json)?;
 	let body = prepared.message.body.clone().unwrap_or_default();
-	let request = build_hosted_commit_request(root, &prepared, context.dry_run).await?;
+	let branches = hosted_commit_branches(source, &manifest.command);
+	let request = build_hosted_commit_request(root, &prepared, context.dry_run, &branches).await?;
 	let response = if context.dry_run {
 		HostedCommitResponse {
 			commit: None,
@@ -1971,29 +2096,55 @@ pub(crate) async fn hosted_commit_release(
 		let token = hosted_commit_bearer_token(options).await?;
 		send_hosted_commit_request(&request, options, &token).await?
 	};
+
 	Ok(CommitReleaseReport {
 		subject: prepared.message.subject,
 		body,
 		commit: response.commit,
+		verified: (!context.dry_run).then_some(response.verified),
 		tracked_paths: prepared.tracked_paths,
 		dry_run: context.dry_run,
-		verified: if context.dry_run {
-			None
-		} else {
-			Some(response.verified)
-		},
 		status: response.status.unwrap_or_else(|| "completed".to_string()),
 	})
 }
 
-/// Build the provider-neutral request the monochange app commits on our behalf.
+/// The branches a hosted release commit is written to and prepared from.
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub(crate) struct HostedCommitBranches {
+	/// Release branch the commit lands on; the release request's head branch.
+	pub(crate) release: String,
+	/// Branch the release was prepared from; the release request's base branch.
+	pub(crate) base: String,
+}
+
+/// Resolve the hosted commit branches from the `[source.pull_requests]`
+/// settings, so the commit lands on the branch `OpenReleaseRequest` opens.
 ///
-/// Testable with an explicit repository/branch so CI environments do not need
-/// GitHub Actions environment variables.
+/// The branch a workflow was triggered from is never the target: committing
+/// there would put the release commit on `main` instead of the release
+/// pull request.
+#[must_use]
+pub(crate) fn hosted_commit_branches(
+	source: Option<&SourceConfiguration>,
+	command: &str,
+) -> HostedCommitBranches {
+	let defaults = monochange_core::ProviderMergeRequestSettings::default();
+	let pull_requests = source.map_or(&defaults, |source| &source.pull_requests);
+	HostedCommitBranches {
+		release: monochange_hosting::release_pull_request_branch(
+			&pull_requests.branch_prefix,
+			command,
+		),
+		base: pull_requests.base.clone(),
+	}
+}
+
+/// Build the provider-neutral request the monochange app commits on our behalf.
 async fn build_hosted_commit_request(
 	root: &Path,
 	prepared: &PreparedReleaseCommit,
 	dry_run: bool,
+	branches: &HostedCommitBranches,
 ) -> MonochangeResult<HostedCommitRequest> {
 	let repository = std::env::var("GITHUB_REPOSITORY").map_err(|_| {
 		MonochangeError::Config(
@@ -2001,42 +2152,21 @@ async fn build_hosted_commit_request(
 				.to_string(),
 		)
 	})?;
-	let head_ref = std::env::var("GITHUB_HEAD_REF").ok();
-	let ref_name = std::env::var("GITHUB_REF_NAME").ok();
-	build_hosted_commit_request_for_github(
-		root,
-		prepared,
-		dry_run,
-		&repository,
-		head_ref.as_deref(),
-		ref_name.as_deref(),
-	)
-	.await
+	build_hosted_commit_request_for_github(root, prepared, dry_run, &repository, branches).await
 }
 
+/// Build the hosted commit request for an explicit repository, so tests do
+/// not need GitHub Actions environment variables.
 async fn build_hosted_commit_request_for_github(
 	root: &Path,
 	prepared: &PreparedReleaseCommit,
 	dry_run: bool,
 	repository: &str,
-	head_ref: Option<&str>,
-	ref_name: Option<&str>,
+	branches: &HostedCommitBranches,
 ) -> MonochangeResult<HostedCommitRequest> {
 	let (owner, repository) = repository.split_once('/').ok_or_else(|| {
 		MonochangeError::Config("GITHUB_REPOSITORY must use `owner/repo` format".to_string())
 	})?;
-	let branch = match head_ref
-		.filter(|value| !value.is_empty())
-		.or(ref_name)
-		.filter(|value| !value.is_empty())
-	{
-		Some(branch) => branch.to_string(),
-		None => {
-			git_current_branch(root)
-				.await
-				.unwrap_or_else(|_| "HEAD".to_string())
-		}
-	};
 	let files = prepared
 		.tracked_paths
 		.iter()
@@ -2046,7 +2176,8 @@ async fn build_hosted_commit_request_for_github(
 		provider: "github".to_string(),
 		owner: owner.to_string(),
 		repository: repository.to_string(),
-		branch,
+		branch: branches.release.clone(),
+		base_branch: Some(branches.base.clone()),
 		base_commit: git_head_commit(root).await?,
 		subject: prepared.message.subject.clone(),
 		body: prepared.message.body.clone().unwrap_or_default(),
@@ -2069,7 +2200,12 @@ fn hosted_commit_idempotency_key() -> Option<String> {
 
 /// Read one release-managed file; missing content deletes the path, which is
 /// how consumed changeset files are removed from the release commit.
+///
+/// Tracked paths are usually workspace-relative, but the release record is
+/// tracked by its absolute path; the app only accepts repository-relative
+/// paths, so absolute paths are made relative to `root`.
 fn hosted_commit_file(root: &Path, path: &Path) -> MonochangeResult<HostedCommitFile> {
+	let path = path.strip_prefix(root).unwrap_or(path);
 	let full_path = root.join(path);
 	let content = if full_path.exists() {
 		Some(fs::read_to_string(&full_path).map_err(|error| {
@@ -2081,6 +2217,7 @@ fn hosted_commit_file(root: &Path, path: &Path) -> MonochangeResult<HostedCommit
 	} else {
 		None
 	};
+
 	Ok(HostedCommitFile {
 		path: path.to_string_lossy().replace('\\', "/"),
 		content,
@@ -2117,6 +2254,7 @@ async fn send_hosted_commit_request(
 			"hosted CommitRelease failed with HTTP {status}: {text}"
 		)));
 	}
+
 	serde_json::from_str(&text).map_err(|error| {
 		MonochangeError::Config(format!(
 			"hosted CommitRelease response was invalid JSON: {error}"
@@ -2139,6 +2277,7 @@ pub(crate) async fn hosted_release_request_result(
 	if dry_run {
 		return build_release_request_result(dry_run, request, || unreachable!());
 	}
+
 	let token = hosted_commit_bearer_token(options).await?;
 	let payload = HostedReleaseRequest {
 		request: request.clone(),
@@ -2172,6 +2311,7 @@ pub(crate) async fn hosted_release_request_result(
 			"hosted OpenReleaseRequest failed with HTTP {status}: {text}"
 		)));
 	}
+
 	let outcome: HostedReleaseResponse = serde_json::from_str(&text).map_err(|error| {
 		MonochangeError::Config(format!(
 			"hosted OpenReleaseRequest response was invalid JSON: {error}"
@@ -2244,12 +2384,14 @@ async fn hosted_github_actions_oidc_token(
 				"hosted CommitRelease OIDC token request failed: {error}"
 			))
 		})?;
+
 	if !response.status().is_success() {
 		return Err(MonochangeError::Config(format!(
 			"hosted CommitRelease OIDC token request failed with status {}",
 			response.status()
 		)));
 	}
+
 	response
 		.json::<GithubActionsOidcResponse>()
 		.await
@@ -2267,9 +2409,11 @@ pub(crate) fn tracked_release_pull_request_paths(
 ) -> Vec<PathBuf> {
 	let mut tracked_paths = manifest.changed_files.clone();
 	tracked_paths.extend(manifest.deleted_changesets.clone());
+
 	if let Some(path) = &context.release_manifest_path {
 		tracked_paths.push(path.clone());
 	}
+
 	tracked_paths.sort();
 	tracked_paths.dedup();
 	tracked_paths
@@ -2311,9 +2455,11 @@ pub(crate) fn json_discovery_report(report: &DiscoveryReport) -> serde_json::Val
 
 pub(crate) fn text_discovery_report(report: &DiscoveryReport) -> String {
 	let mut counts = BTreeMap::<Ecosystem, usize>::new();
+
 	for package in &report.packages {
 		*counts.entry(package.ecosystem).or_default() += 1;
 	}
+
 	let mut counts = counts.into_iter().collect::<Vec<_>>();
 	counts.sort_by(|left, right| right.1.cmp(&left.1).then(left.0.cmp(&right.0)));
 
@@ -2323,6 +2469,7 @@ pub(crate) fn text_discovery_report(report: &DiscoveryReport) -> String {
 	} else {
 		Outcome::Success
 	};
+
 	text.headline(
 		outcome,
 		&format!(
@@ -2350,6 +2497,7 @@ pub(crate) fn text_discovery_report(report: &DiscoveryReport) -> String {
 				.collect::<Vec<_>>(),
 		);
 	}
+
 	if !report.version_groups.is_empty() {
 		text.section("Version groups", None);
 		text.table(
@@ -2368,8 +2516,10 @@ pub(crate) fn text_discovery_report(report: &DiscoveryReport) -> String {
 				.collect::<Vec<_>>(),
 		);
 	}
+
 	if !report.warnings.is_empty() {
 		let root_prefix = format!("{}/", report.workspace_root.display());
+
 		text.section("Warnings", Some(report.warnings.len()));
 		text.list(
 			report
@@ -2379,6 +2529,7 @@ pub(crate) fn text_discovery_report(report: &DiscoveryReport) -> String {
 			usize::MAX,
 		);
 	}
+
 	text.render()
 }
 

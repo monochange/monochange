@@ -33,6 +33,7 @@ fn setup_next_version_preview_repo() -> TempDir {
 	);
 	git(root, &["add", "."]);
 	git(root, &["commit", "-m", "initial"]);
+
 	tempdir
 }
 

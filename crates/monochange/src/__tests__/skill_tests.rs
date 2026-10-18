@@ -42,6 +42,7 @@ fn every_reference_is_bundled_with_substantive_content() {
 
 	let mut names = std::collections::BTreeSet::new();
 	let mut files = std::collections::BTreeSet::new();
+
 	for topic in topics {
 		assert!(
 			names.insert(topic.name),
@@ -64,6 +65,7 @@ fn every_reference_is_bundled_with_substantive_content() {
 			"`{}` must end with a newline so read output stays verbatim Markdown",
 			topic.file
 		);
+
 		if topic.name != "monochange" {
 			assert!(
 				topic.content.starts_with("# "),
@@ -119,6 +121,7 @@ fn read_rejects_an_unknown_topic_with_the_available_names() {
 	.unwrap_or_else(|| panic!("unknown topic must fail"));
 	let message = error.to_string();
 	assert!(message.contains("unknown skill topic `anchor`"));
+
 	for topic in topics() {
 		assert!(
 			message.contains(topic.name),
@@ -137,12 +140,14 @@ fn listing_lists_every_topic_with_its_install_path() {
 	};
 	assert!(listing.contains("monochange skill read <topic>"));
 	assert!(listing.contains("monochange skill install --dir <dir>"));
+
 	for topic in topics() {
 		assert!(
 			listing.contains(topic.name),
 			"the listing must name `{}`",
 			topic.name
 		);
+
 		assert!(
 			listing.contains(topic.file),
 			"the listing must show the install path `{}`",
@@ -196,8 +201,10 @@ fn install_writes_every_document_into_the_target_tree() {
 	};
 	assert_eq!(reported, destination);
 	assert_eq!(files, topics().len());
+
 	for topic in topics() {
 		let path = destination.join(topic.file);
+
 		let written =
 			fs::read(&path).unwrap_or_else(|error| panic!("read {}: {error}", path.display()));
 		assert_eq!(
@@ -309,6 +316,7 @@ fn install_rejects_directory_symlinks_without_modifying_any_files(#[case] linked
 	} else {
 		destination.join(linked_directory)
 	};
+
 	fs::create_dir_all(&external).expect("create external directory");
 	fs::copy(fixture.join("external.md"), external.join("external.md"))
 		.expect("copy external document");
@@ -335,6 +343,7 @@ fn install_rejects_directory_symlinks_without_modifying_any_files(#[case] linked
 		fs::read(external.join("external.md")).expect("read external"),
 		fs::read(fixture.join("external.md")).expect("read fixture")
 	);
+
 	assert!(
 		fs::symlink_metadata(&linked_path)
 			.expect("link metadata")
@@ -463,10 +472,13 @@ fn install_reports_write_failures() {
 #[test]
 fn suggested_destinations_are_named_monochange_under_known_runtimes() {
 	let suggested = suggest_destinations();
+
 	if suggested.is_empty() {
 		return; // no HOME in this environment
 	}
+
 	assert_eq!(suggested.len(), 3);
+
 	for path in suggested {
 		assert_eq!(
 			path.file_name().and_then(|name| name.to_str()),

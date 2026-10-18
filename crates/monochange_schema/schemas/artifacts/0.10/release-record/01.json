@@ -1,0 +1,97 @@
+{
+	"changed_files": [
+		"crates/fuolxbhry_0/src/lib.rs"
+	],
+	"changelogs": [],
+	"changesets": [
+		{
+			"details": "Generated from deterministic proptest seed 7324496556026249077.",
+			"path": ".changeset/schema-artifact-1.md",
+			"summary": "Exercise schema artifact fixture 1",
+			"targets": [
+				{
+					"bump": "major",
+					"caused_by": [
+						"fuolxbhry-schema-compat"
+					],
+					"evidence_refs": [
+						"crates/fuolxbhry_0/src/lib.rs"
+					],
+					"id": "fuolxbhry_0",
+					"kind": "package",
+					"origin": ".changeset/schema-artifact-1.md"
+				}
+			]
+		}
+	],
+	"command": "monochange release --dry-run",
+	"created_at": "2026-01-01T00:00:00Z",
+	"deleted_changesets": [
+		".changeset/schema-artifact-1.md"
+	],
+	"kind": "monochange.releaseRecord",
+	"package_publications": [
+		{
+			"ecosystem": "cargo",
+			"package": "fuolxbhry_0",
+			"version": "0.10.1"
+		},
+		{
+			"ecosystem": "cargo",
+			"package": "fuolxbhry_1",
+			"version": "0.10.1"
+		}
+	],
+	"provider": {
+		"host": null,
+		"kind": "gitea",
+		"owner": "fuolxbhry",
+		"repo": "mbh"
+	},
+	"release_targets": [
+		{
+			"id": "main",
+			"kind": "group",
+			"members": [],
+			"release": true,
+			"tag": true,
+			"tag_name": "v0.10.1",
+			"version": "0.10.1",
+			"version_format": "primary"
+		},
+		{
+			"id": "fuolxbhry_1",
+			"kind": "package",
+			"members": [],
+			"release": true,
+			"tag": true,
+			"tag_name": "fuolxbhry_1/v0.10.1",
+			"version": "0.10.1",
+			"version_format": "namespaced"
+		},
+		{
+			"id": "fuolxbhry_2",
+			"kind": "package",
+			"members": [],
+			"release": true,
+			"tag": true,
+			"tag_name": "fuolxbhry_2/v0.10.1",
+			"version": "0.10.1",
+			"version_format": "namespaced"
+		}
+	],
+	"released_packages": [
+		"fuolxbhry_0",
+		"fuolxbhry_1"
+	],
+	"schema_version": "0.10",
+	"updated_changelogs": [
+		"fixtures/changelog-1.md"
+	],
+	"version": "0.10.1",
+	"versions": {
+		"fuolxbhry_0": "0.10.1",
+		"fuolxbhry_1": "0.10.1",
+		"main": "0.10.1"
+	}
+}

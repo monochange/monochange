@@ -14,5 +14,6 @@ fn main() {
 	} else {
 		format!("{major}.{minor}")
 	};
+
 	println!("cargo:rustc-env=MONOCHANGE_SNAPSHOT_SCHEMA_VERSION={schema_version}");
 }

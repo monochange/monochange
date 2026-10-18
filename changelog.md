@@ -4,6 +4,91 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)
+
+Grouped release for `main`.
+
+### 💥 Breaking Change
+
+#### Breaking publish API additions for the staged publish flow
+
+_Packages:_ 🔴 _monochange_core_, 🔴 _monochange_publish_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #764](https://github.com/monochange/monochange/pull/764)
+
+> Constructing the affected structs or matching on the affected enums outside this workspace now requires updates. `PublishRequest`, `PublishSettings`, and `PackagePublicationTarget` gained a `flow` field, `PackagePublishStatus` gained a `Staged` variant, `PackagePublishSummary` gained a `staged` counter, and `PublishProgressEvent::RunFinished` gained a `staged` field.
+
+Add `flow: PublishFlow::Direct` (or the desired flow) to every `PublishRequest`, `PublishSettings`, and `PackagePublicationTarget` struct literal:
+
+```rust
+// Before
+PublishRequest { package_id, /* … */ mode, version, /* … */ }
+
+// After
+PublishRequest { package_id, /* … */ mode, flow: PublishFlow::Direct, version, /* … */ }
+```
+
+Handle the new `PackagePublishStatus::Staged` variant in every exhaustive match; a staged outcome means the upload succeeded but the version is not installable until a maintainer approves it with 2FA. `PackagePublishSummary::staged` defaults to `0` during deserialization, and `PublishProgressEvent::RunFinished { staged, .. }` can be ignored when only totals matter.
+
+The serialized forms stay backward compatible: JSON reports and release records without the new fields deserialize with `flow = "direct"` and `staged = 0`.
+
+### 🚀 Feature
+
+#### Add npm staged publishing with `publish.flow`
+
+_Packages:_ 🟢 _@monochange/skill_, 🟠 _monochange_, 🟠 _monochange_config_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #764](https://github.com/monochange/monochange/pull/764)
+
+npm packages can now defer the moment a release goes live. Set `flow = "staged"` and release publishes run `npm stage publish` instead of `npm publish`, so a version waits in the npm staging queue until a maintainer approves it with 2FA (`npm stage approve <stage-id>` or the Staged Packages tab on npmjs.com). Staging needs no 2FA, so CI stays unattended while every release gains a human approval gate.
+
+```toml
+# Before: every release publish goes live immediately.
+[ecosystems.npm.publish]
+trusted_publishing = true
+
+# After: CI stages token-free; a maintainer approves each release with 2FA.
+[ecosystems.npm.publish]
+trusted_publishing = true
+flow = "staged"
+
+# Opt a single package back into immediate publishes.
+[package.legacy.publish]
+flow = "direct"
+```
+
+Details:
+
+- `flow` accepts `"direct"` (default, current behavior) or `"staged"` on `[ecosystems.npm.publish]` and `[package.<id>.publish]`; package values override ecosystem defaults like every other publish option. Other ecosystems reject `"staged"` at config load.
+- Staged publishing composes with trusted publishing: the trusted-publisher workflow stages through OIDC and approval requires interactive 2FA that CI cannot supply. This survives a compromised CI context, which a direct trusted publish does not.
+- Successful staged publishes report a `staged` status (not `published`) with a `staged` summary count, and publish resume treats them as complete. Staged versions are invisible to the registry version probe, so re-running before approval stages again instead of skipping.
+- Placeholder publishing always stays direct, matching the existing rule that placeholder publishing ignores publish modes; a placeholder must register the package immediately.
+- Requires npm CLI 11.15+ and Node 22.14+; pnpm workspaces stage through `pnpm stage publish` (pnpm 11.3+).
+- Release records now carry `flow` on each package publication target, so the release decision stays auditable. Older release records without the field parse as `direct`. The release-record and config schema contracts advance to schema version `0.10` with a no-op migration edge from `0.9` (the optional field defaults to `direct`); the published `v0.9` schema assets stay frozen.
+
+### 🐛 Fixed
+
+#### Choose release-note streams by audience for every package type
+
+_Packages:_ 🟢 _@monochange/skill_, 🟢 _monochange_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #762](https://github.com/monochange/monochange/pull/762)
+
+Generated release-agent instructions and the bundled skill now require agents to read configured stream and type descriptions and inspect output destinations before writing changesets. Application packages can use developer types for deployment or CI changes and product types for visible behavior. Agents create separate notes for the same package only when both audiences need them, then preview and render each output for review.
+
+Use `monochange subagents <target> --force` to refresh an existing generated agent definition. Review local edits before replacing it. Inspect each audience with `monochange notes --output <id> --target <package>`; notes with a selected stream still need human or agent review of their prose.
+
+The website now retains operational notes in `app/developer-changelog.md` instead of putting them in its public feed. Its implicit default changelog remains disabled. A named default-stream output retains those entries alongside the existing website outputs:
+
+```toml
+[changelog.outputs.website_developer]
+stream = "default"
+targets = ["monochange_app"]
+path = "app/developer-changelog.md"
+format = "keep_a_changelog"
+mode = "append"
+```
+
 ## [0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)
 
 Grouped release for `main`.

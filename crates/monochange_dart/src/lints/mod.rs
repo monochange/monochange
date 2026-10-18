@@ -1,7 +1,6 @@
 #![forbid(clippy::indexing_slicing)]
 
 //! Dart and Flutter manifest lint suite.
-
 use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
@@ -371,15 +370,19 @@ fn sdk_constraint_value(mapping: &Mapping) -> Option<&str> {
 
 fn parse_constraint_version(value: &str) -> Option<Version> {
 	let trimmed = value.trim().trim_matches('"').trim_matches('\'');
+
 	if trimmed.is_empty() {
 		return None;
 	}
+
 	let mut parts = trimmed.split('.').collect::<Vec<_>>();
+
 	if parts.len() == 1 {
 		parts.extend(["0", "0"]);
 	} else if parts.len() == 2 {
 		parts.push("0");
 	}
+
 	Version::parse(&parts.join(".")).ok()
 }
 
@@ -391,6 +394,7 @@ struct ParsedSdkConstraint {
 
 fn parse_sdk_constraint(value: &str) -> ParsedSdkConstraint {
 	let trimmed = value.trim();
+
 	if let Some(caret) = trimmed.strip_prefix('^') {
 		return ParsedSdkConstraint {
 			lower_bound: parse_constraint_version(caret),
@@ -399,12 +403,14 @@ fn parse_sdk_constraint(value: &str) -> ParsedSdkConstraint {
 	}
 
 	let mut parsed = ParsedSdkConstraint::default();
+
 	for token in trimmed.split_whitespace() {
 		if let Some(version) = token.strip_prefix(">=").or_else(|| token.strip_prefix('>'))
 			&& parsed.lower_bound.is_none()
 		{
 			parsed.lower_bound = parse_constraint_version(version);
 		}
+
 		if token.starts_with('<') {
 			parsed.has_upper_bound = true;
 		}
@@ -442,6 +448,7 @@ fn sort_manifest_section(mapping: &mut Mapping, section: &str) {
 		.collect::<Vec<_>>();
 	entries.sort_by(|left, right| left.0.cmp(&right.0));
 	section_mapping.clear();
+
 	for (_, key, value) in entries {
 		section_mapping.insert(key, value);
 	}
@@ -450,15 +457,18 @@ fn sort_manifest_section(mapping: &mut Mapping, section: &str) {
 fn yaml_line_ranges(contents: &str) -> Vec<(usize, usize)> {
 	let mut ranges = Vec::new();
 	let mut start = 0usize;
+
 	for (index, ch) in contents.char_indices() {
 		if ch == '\n' {
 			ranges.push((start, index));
 			start = index + 1;
 		}
 	}
+
 	if start <= contents.len() {
 		ranges.push((start, contents.len()));
 	}
+
 	ranges
 }
 
@@ -483,6 +493,7 @@ fn unquote_yaml_key(key: &str) -> Cow<'_, str> {
 	else {
 		return Cow::Borrowed(key);
 	};
+
 	if key.len() < 2 || !key.ends_with(quote) {
 		return Cow::Borrowed(key);
 	}
@@ -493,15 +504,19 @@ fn unquote_yaml_key(key: &str) -> Cow<'_, str> {
 fn parse_yaml_line(contents: &str, range: (usize, usize)) -> Option<ParsedYamlLine<'_>> {
 	let line = &contents[range.0..range.1];
 	let trimmed = line.trim_start_matches([' ', '\t']);
+
 	if trimmed.is_empty() || trimmed.starts_with('#') || trimmed.starts_with('-') {
 		return None;
 	}
+
 	let indent = line.len() - trimmed.len();
 	let colon = trimmed.find(':')?;
 	let key = unquote_yaml_key(trimmed[..colon].trim());
+
 	if key.is_empty() {
 		return None;
 	}
+
 	Some(ParsedYamlLine { indent, key })
 }
 
@@ -523,19 +538,25 @@ fn source_key_order(contents: &str, section: &str) -> Option<Vec<String>> {
 	let section_line = parse_yaml_line(contents, *line_ranges.get(section_index)?)?;
 	let mut keys = Vec::new();
 	let mut index = section_index + 1;
+
 	while let Some(range) = line_ranges.get(index) {
 		let Some(line) = parse_yaml_line(contents, *range) else {
 			index += 1;
+
 			continue;
 		};
+
 		if line.indent <= section_line.indent {
 			break;
 		}
+
 		if line.indent == section_line.indent + 2 {
 			keys.push(line.key.to_string());
 		}
+
 		index += 1;
 	}
+
 	Some(keys)
 }
 
@@ -560,6 +581,7 @@ fn dependency_declares_flutter_sdk(value: &Value) -> bool {
 	matches!(
 		value,
 		Value::Mapping(mapping)
+
 			if mapping
 				.get(yaml_key("sdk"))
 				.and_then(Value::as_str)
@@ -573,10 +595,12 @@ fn first_constraint_version(value: &str) -> Option<Version> {
 			.trim()
 			.trim_end_matches(',')
 			.trim_start_matches(['^', '~', '>', '<', '=']);
+
 		if let Some(version) = parse_constraint_version(trimmed) {
 			return Some(version);
 		}
 	}
+
 	None
 }
 
@@ -616,9 +640,11 @@ fn sort_flutter_assets_and_fonts(mapping: &mut Mapping) {
 	let Some(flutter) = flutter_section_mut(mapping) else {
 		return;
 	};
+
 	if let Some(assets) = yaml_sequence_mut(flutter, "assets") {
 		sort_string_sequence(assets);
 	}
+
 	if let Some(fonts) = yaml_sequence_mut(flutter, "fonts") {
 		fonts.sort_by_key(|entry| {
 			entry
@@ -628,10 +654,12 @@ fn sort_flutter_assets_and_fonts(mapping: &mut Mapping) {
 				.unwrap_or_default()
 				.to_string()
 		});
+
 		for entry in fonts {
 			let Some(font_entry) = entry.as_mapping_mut() else {
 				continue;
 			};
+
 			if let Some(font_assets) = yaml_sequence_mut(font_entry, "fonts") {
 				font_assets.sort_by_key(|asset| {
 					asset
@@ -685,14 +713,17 @@ impl LintRuleRunner for AssetsSortedRule {
 		};
 
 		let mut messages = Vec::new();
+
 		if let Some(assets) = yaml_sequence(flutter, "assets") {
 			let current = sequence_order(assets);
 			let mut sorted = current.clone();
 			sorted.sort();
+
 			if current != sorted {
 				messages.push("flutter.assets is not sorted alphabetically".to_string());
 			}
 		}
+
 		if let Some(fonts) = yaml_sequence(flutter, "fonts") {
 			let current_families = fonts
 				.iter()
@@ -707,9 +738,11 @@ impl LintRuleRunner for AssetsSortedRule {
 				.collect::<Vec<_>>();
 			let mut sorted_families = current_families.clone();
 			sorted_families.sort();
+
 			if current_families != sorted_families {
 				messages.push("flutter.fonts families are not sorted alphabetically".to_string());
 			}
+
 			for entry in fonts {
 				let Some(mapping) = entry.as_mapping() else {
 					continue;
@@ -734,6 +767,7 @@ impl LintRuleRunner for AssetsSortedRule {
 					.collect::<Vec<_>>();
 				let mut sorted_assets = current_assets.clone();
 				sorted_assets.sort();
+
 				if current_assets != sorted_assets {
 					messages.push(format!(
 						"flutter.fonts family `{family}` assets are not sorted alphabetically"
@@ -767,9 +801,11 @@ impl LintRuleRunner for AssetsSortedRule {
 					message,
 					config.severity(),
 				);
+
 				if let Some(fix) = fix.clone() {
 					result = result.with_fix(fix);
 				}
+
 				result
 			})
 			.collect()
@@ -829,6 +865,7 @@ impl LintRuleRunner for DependencySortedRule {
 					.map(ToString::to_string)
 					.collect::<Vec<_>>()
 			});
+
 			if source_order == sorted_keys {
 				continue;
 			}
@@ -839,11 +876,14 @@ impl LintRuleRunner for DependencySortedRule {
 				format!("dependencies in `{section}` are not sorted alphabetically"),
 				config.severity(),
 			);
+
 			if config.bool_option("fix", true) {
 				let mut rewritten = file.manifest.clone();
+
 				for sortable in dependency_sections() {
 					sort_manifest_section(&mut rewritten, sortable);
 				}
+
 				result = result.with_fix(LintFix::document(
 					"sort dependency sections alphabetically",
 					render_manifest(&rewritten, ctx.contents),
@@ -887,12 +927,15 @@ impl LintRuleRunner for FlutterPackageMetadataConsistentRule {
 		let Some(file) = dart_file(ctx) else {
 			return Vec::new();
 		};
+
 		if flutter_section(&file.manifest).is_none() {
 			return Vec::new();
 		}
+
 		let has_flutter_dependency = yaml_mapping(&file.manifest, "dependencies")
 			.and_then(|dependencies| dependencies.get(yaml_key("flutter")))
 			.is_some_and(dependency_declares_flutter_sdk);
+
 		if has_flutter_dependency {
 			return Vec::new();
 		}
@@ -951,13 +994,16 @@ impl LintRuleRunner for InternalPathDependencyPolicyRule {
 			let Some(dependencies) = yaml_mapping(&file.manifest, section) else {
 				continue;
 			};
+
 			for (dependency_name, value) in dependencies {
 				let Some(dependency_name) = dependency_name.as_str() else {
 					continue;
 				};
+
 				if !file.workspace_package_names.contains(dependency_name) {
 					continue;
 				}
+
 				let uses_path = dependency_uses_path(value);
 
 				// With resolution: workspace, internal deps must use version
@@ -971,9 +1017,11 @@ impl LintRuleRunner for InternalPathDependencyPolicyRule {
 				} else {
 					!uses_path
 				};
+
 				if valid {
 					continue;
 				}
+
 				let expectation = if workspace_resolution {
 					"use version constraints (not `path:`) when resolution is workspace"
 				} else if require_path {
@@ -981,6 +1029,7 @@ impl LintRuleRunner for InternalPathDependencyPolicyRule {
 				} else {
 					"use hosted version references"
 				};
+
 				results.push(LintResult::new(
 					self.rule.id.clone(),
 					location(ctx),
@@ -1030,6 +1079,7 @@ impl LintRuleRunner for NoGitDependenciesInPublishedPackagesRule {
 		let Some(file) = dart_file(ctx) else {
 			return Vec::new();
 		};
+
 		if manifest_declares_private(&file.manifest) {
 			return Vec::new();
 		}
@@ -1050,13 +1100,17 @@ impl LintRuleRunner for NoGitDependenciesInPublishedPackagesRule {
 				let Some(dependency_name) = dependency_name.as_str() else {
 					continue;
 				};
+
 				if allowed.contains(dependency_name) {
 					continue;
 				}
+
 				let uses_git = matches!(
 					value,
+
 					Value::Mapping(mapping) if mapping.contains_key(yaml_key("git"))
 				);
+
 				if !uses_git {
 					continue;
 				}
@@ -1120,9 +1174,11 @@ impl LintRuleRunner for NoUnexpectedDependencyOverridesRule {
 		let Some(overrides) = yaml_mapping(&file.manifest, "dependency_overrides") else {
 			return Vec::new();
 		};
+
 		if overrides.is_empty() {
 			return Vec::new();
 		}
+
 		if ctx.metadata.private == Some(true) && config.bool_option("allow_for_private", true) {
 			return Vec::new();
 		}
@@ -1133,6 +1189,7 @@ impl LintRuleRunner for NoUnexpectedDependencyOverridesRule {
 			.into_iter()
 			.collect::<BTreeSet<_>>();
 		let package_name = ctx.metadata.package_name.as_deref().unwrap_or_default();
+
 		if allowed_packages.contains(package_name) {
 			return Vec::new();
 		}
@@ -1182,6 +1239,7 @@ impl LintRuleRunner for RequiredPackageFieldsRule {
 		let Some(file) = dart_file(ctx) else {
 			return Vec::new();
 		};
+
 		if !ctx.metadata.managed || manifest_declares_private(&file.manifest) {
 			return Vec::new();
 		}
@@ -1260,12 +1318,15 @@ impl LintRuleRunner for SdkConstraintModernRule {
 			Some(ref lower_bound) if lower_bound < &minimum => {
 				reasons.push(format!("lower bound must be at least {minimum}"));
 			}
+
 			None => reasons.push("lower bound could not be determined".to_string()),
 			_ => {}
 		}
+
 		if require_upper_bound && !parsed.has_upper_bound {
 			reasons.push("constraint should include an upper bound".to_string());
 		}
+
 		if reasons.is_empty() {
 			return Vec::new();
 		}
@@ -1311,6 +1372,7 @@ impl LintRuleRunner for SdkConstraintPresentRule {
 		let Some(file) = dart_file(ctx) else {
 			return Vec::new();
 		};
+
 		if sdk_constraint_value(&file.manifest).is_some() {
 			return Vec::new();
 		}
@@ -1358,6 +1420,7 @@ impl LintRuleRunner for UnlistedPackagePrivateRule {
 		let Some(file) = dart_file(ctx) else {
 			return Vec::new();
 		};
+
 		if ctx.metadata.managed || manifest_declares_private(&file.manifest) {
 			return Vec::new();
 		}
@@ -1368,6 +1431,7 @@ impl LintRuleRunner for UnlistedPackagePrivateRule {
 			"unmanaged Dart packages must set publish_to: none or be declared in monochange.toml",
 			config.severity(),
 		);
+
 		if config.bool_option("fix", true) {
 			result = result.with_fix(LintFix::document(
 				"insert publish_to: none",
@@ -1415,6 +1479,7 @@ impl LintRuleRunner for WorkspaceInternalVersionConsistencyRule {
 			let Some(dependencies) = yaml_mapping(&file.manifest, section) else {
 				continue;
 			};
+
 			for (dependency_name, value) in dependencies {
 				let Some(dependency_name) = dependency_name.as_str() else {
 					continue;
@@ -1429,9 +1494,11 @@ impl LintRuleRunner for WorkspaceInternalVersionConsistencyRule {
 				let Some(referenced_version) = first_constraint_version(&version_text) else {
 					continue;
 				};
+
 				if referenced_version == *expected_version {
 					continue;
 				}
+
 				results.push(LintResult::new(
 					self.rule.id.clone(),
 					location(ctx),
@@ -1524,6 +1591,7 @@ impl LintRuleRunner for ManifestRepositoryRule {
 				if current == expected {
 					return Vec::new();
 				}
+
 				let loc = location(ctx);
 				let mut manifest = file.manifest.clone();
 				manifest.insert(yaml_key("repository"), Value::String(expected.clone()));

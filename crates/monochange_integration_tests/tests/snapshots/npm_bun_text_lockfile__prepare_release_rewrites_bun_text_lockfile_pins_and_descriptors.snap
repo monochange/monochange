@@ -1,0 +1,21 @@
+---
+source: crates/monochange_integration_tests/tests/npm_bun_text_lockfile.rs
+expression: prepare_summary(root)
+---
+{
+  "changed_files": [
+    "bun.lock",
+    "packages/api/package.json",
+    "packages/consumer/package.json"
+  ],
+  "targets": [
+    {
+      "id": "@acme/api",
+      "version": "2.4.0"
+    },
+    {
+      "id": "@acme/consumer",
+      "version": "1.0.1"
+    }
+  ]
+}

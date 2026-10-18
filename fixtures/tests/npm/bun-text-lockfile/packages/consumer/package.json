@@ -1,0 +1,8 @@
+{
+  "name": "@acme/consumer",
+  "version": "1.0.0",
+  "license": "MIT",
+  "dependencies": {
+    "@acme/api": "^2.3.1"
+  }
+}

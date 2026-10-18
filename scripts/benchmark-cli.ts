@@ -45,6 +45,7 @@ const SCENARIOS = [
 ];
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const phaseBudgetsFile = join(scriptDir, "benchmark-phase-budgets.json");
+
 const hyperfineBin = process.env.MONOCHANGE_HYPERFINE_BIN ?? "hyperfine";
 
 function die(message) {
@@ -63,23 +64,29 @@ function run(
 		cwd: options.cwd,
 		env: options.env ?? process.env,
 	});
+
 	if (result.status !== 0) {
 		const detail = result.stderr || result.stdout || `exit code ${result.status ?? "unknown"}`;
 		throw new Error(`${command} ${args.join(" ")} failed: ${detail}`);
 	}
+
 	return result;
 }
 
 function parseOptions(args, names) {
 	const options: Record<string, string> = {};
+
 	for (let index = 0; index < args.length; index += 1) {
 		const key = args[index];
+
 		if (!names.includes(key)) die(`unknown argument: ${key}`);
 		const value = args[index + 1];
+
 		if (value === undefined) die(`missing value for ${key}`);
 		options[key.slice(2).replaceAll("-", "_")] = value;
 		index += 1;
 	}
+
 	return options;
 }
 
@@ -93,6 +100,7 @@ function tempPath(suffix) {
 function tempDir() {
 	const path = tempPath("");
 	mkdirSync(path, { recursive: true });
+
 	return path;
 }
 
@@ -106,31 +114,39 @@ function readText(path) {
 
 function parsePhaseStatus(path) {
 	const counts = { improved: 0, regressed: 0, flat: 0, "over budget": 0 };
+
 	for (const line of readText(path).split(/\r?\n/)) {
 		if (line.includes("| regressed |")) counts.regressed += 1;
 		else if (line.includes("| improved |")) counts.improved += 1;
 		else if (line.includes("| flat |")) counts.flat += 1;
 		else if (line.includes("| over budget |")) counts["over budget"] += 1;
 	}
+
 	return counts;
 }
 
 function parseHyperfineTable(path) {
 	const results = [];
 	let hasRelative = false;
+
 	for (const raw of readText(path).split(/\r?\n/)) {
 		const line = raw.trim();
+
 		if (!line.startsWith("|") || line.startsWith("|:")) continue;
 		const cols = line
 			.split("|")
 			.map((col) => col.trim())
 			.filter(Boolean);
+
 		if (cols.length === 0) continue;
+
 		if (cols.some((col) => col.toLowerCase() === "relative")) {
 			hasRelative = true;
 			continue;
 		}
+
 		const label = cols[0].replace(/^`|`$/g, "").trim();
+
 		if (!label || !hasRelative || cols.length < 5) continue;
 		const relativeText =
 			cols
@@ -138,6 +154,7 @@ function parseHyperfineTable(path) {
 				?.replace(/\\u00b1.*|±.*|\u00b1.*/u, "")
 				.trim() ?? "";
 		const relative = Number.parseFloat(relativeText);
+
 		if (Number.isNaN(relative) || label.startsWith("main")) continue;
 		results.push({
 			label,
@@ -145,23 +162,29 @@ function parseHyperfineTable(path) {
 			relative,
 		});
 	}
+
 	return { results, hasRelative };
 }
 
 function parseHyperfineMeans(path) {
 	const means = new Map();
+
 	for (const raw of readText(path).split(/\r?\n/)) {
 		const line = raw.trim();
+
 		if (!line.startsWith("|") || line.startsWith("|:") || line.startsWith("| Command")) continue;
 		const cols = line
 			.split("|")
 			.map((col) => col.trim())
 			.filter(Boolean);
+
 		if (cols.length < 2) continue;
 		const label = cols[0].replace(/^`|`$/g, "").trim();
 		const mean = Number.parseFloat(cols[1]);
+
 		if (label && !Number.isNaN(mean)) means.set(label, mean);
 	}
+
 	return means;
 }
 
@@ -186,14 +209,17 @@ function summarizeScenarioStatus(tablePath, phaseTablePath) {
 		return "";
 
 	const parts = [];
+
 	for (const result of hyperfine.results) {
 		let short = result.label;
+
 		for (const [full, abbr] of shortNames) {
 			if (result.label.includes(full)) {
 				short = abbr;
 				break;
 			}
 		}
+
 		parts.push(
 			`${result.status === "improved" ? improved : result.status === "regressed" ? regressed : flat} ${short}`,
 		);
@@ -203,6 +229,7 @@ function summarizeScenarioStatus(tablePath, phaseTablePath) {
 		for (const { label } of COMMANDS) {
 			const main = means.get(`main · ${label}`);
 			const pr = means.get(`pr · ${label}`);
+
 			if (main == null || pr == null || main === 0) continue;
 			const ratio = pr / main;
 			const status = ratio < 0.98 ? improved : ratio > 1.02 ? regressed : flat;
@@ -212,8 +239,11 @@ function summarizeScenarioStatus(tablePath, phaseTablePath) {
 	}
 
 	if (phases.improved > 0 && parts.length === 0) parts.push(`${improved} phases improved`);
+
 	if (phases.regressed > 0 && parts.length === 0) parts.push(`${regressed} phases regressed`);
+
 	if (phases["over budget"] > 0) parts.push("🚨 over budget");
+
 	return parts.join(" ");
 }
 
@@ -225,7 +255,9 @@ function renderComment(outputPath, scenarios) {
 		"",
 		"Commands:",
 	];
+
 	for (const command of COMMANDS) lines.push(`- \`${command.label}\``);
+
 	for (const scenario of scenarios) {
 		const status = summarizeScenarioStatus(scenario.tablePath, scenario.phaseTablePath);
 		lines.push("", "<details>");
@@ -236,14 +268,17 @@ function renderComment(outputPath, scenarios) {
 		);
 		lines.push("", readText(scenario.tablePath).trimEnd());
 		const phaseText = readText(scenario.phaseTablePath).trimEnd();
+
 		if (phaseText) lines.push("", phaseText);
 		lines.push("", "</details>");
 	}
+
 	writeFileSync(outputPath, `${lines.join("\n")}\n`);
 }
 
 function supportsArgs(bin, args) {
 	const result = spawnSync(bin, [...args, "--help"], { encoding: "utf8" });
+
 	return result.status === 0;
 }
 
@@ -254,6 +289,7 @@ function commandArgsFor(bin, command) {
 
 function supportsJsonProgress(bin) {
 	const result = spawnSync(bin, ["--help"], { encoding: "utf8" });
+
 	return `${result.stdout ?? ""}${result.stderr ?? ""}`.includes("--progress-format");
 }
 
@@ -265,6 +301,7 @@ function runPhaseCapture(bin, fixtureDir, commandArgs, eventsPath) {
 		encoding: "utf8",
 	});
 	writeFileSync(eventsPath, result.stderr ?? "");
+
 	if (result.status !== 0)
 		throw new Error(`${bin} ${commandArgs.join(" ")} failed: ${result.stderr || result.stdout}`);
 }
@@ -272,11 +309,14 @@ function runPhaseCapture(bin, fixtureDir, commandArgs, eventsPath) {
 function summarizeProgressEvents(eventsPath, outputPath) {
 	const phaseTotals = new Map();
 	let stepTotalMs = 0;
+
 	for (const line of readText(eventsPath).split(/\r?\n/)) {
 		if (!line.trim()) continue;
 		const event = JSON.parse(line);
+
 		if (event.event !== "step_finished" || event.stepKind !== "PrepareRelease") continue;
 		stepTotalMs += Number.parseInt(event.durationMs || 0, 10);
+
 		for (const phase of event.phaseTimings ?? []) {
 			if (!phase.label) continue;
 			phaseTotals.set(
@@ -285,6 +325,7 @@ function summarizeProgressEvents(eventsPath, outputPath) {
 			);
 		}
 	}
+
 	const phases = [...phaseTotals]
 		.toSorted((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
 		.map(([label, durationMs]) => ({ label, durationMs }));
@@ -308,9 +349,13 @@ function phaseMap(summary) {
 
 function statusLabel(mainMs, prMs, budgetMs) {
 	if (prMs == null) return "unavailable";
+
 	if (budgetMs != null && prMs > budgetMs) return "over budget";
+
 	if (mainMs == null) return budgetMs != null ? "budget only" : "pr only";
+
 	if (prMs > mainMs) return "regressed";
+
 	if (prMs < mainMs) return "improved";
 	return "flat";
 }
@@ -322,6 +367,7 @@ function formatMs(value) {
 function delta(prMs, mainMs) {
 	if (prMs == null || mainMs == null) return "n/a";
 	const value = prMs - mainMs;
+
 	return `${value >= 0 ? "+" : ""}${value}`;
 }
 
@@ -347,10 +393,12 @@ function renderPhaseMarkdown(
 	};
 	const sections = ["#### Phase timings", ""];
 	let violations = 0;
+
 	for (const commandLabel of PHASE_COMMAND_LABELS) {
 		const commandBudget = budgets[commandLabel] ?? {};
 		const phaseBudget = commandBudget.phases ?? {};
 		const main = summaries[commandLabel].main;
+
 		const pr = summaries[commandLabel].pr;
 		const mainPhases = phaseMap(main);
 		const prPhases = phaseMap(pr);
@@ -367,9 +415,11 @@ function renderPhaseMarkdown(
 				Math.max(prPhases.get(b) ?? 0, mainPhases.get(b) ?? 0) -
 					Math.max(prPhases.get(a) ?? 0, mainPhases.get(a) ?? 0) || a.localeCompare(b),
 		);
+
 		for (const label of labels)
 			rows.push([label, phaseBudget[label], mainPhases.get(label) ?? 0, prPhases.get(label) ?? 0]);
 		sections.push(`##### \`${commandLabel}\``, "");
+
 		if (main.available === false)
 			sections.push(
 				"_`main` does not support `--progress-format json`; phase timings are shown for the PR binary against the configured budgets only._",
@@ -379,14 +429,17 @@ function renderPhaseMarkdown(
 			"| Phase | Budget [ms] | main [ms] | pr [ms] | Δ pr-main [ms] | Status |",
 			"|:---|---:|---:|---:|---:|:---|",
 		);
+
 		for (const [label, budgetMs, mainMs, prMs] of rows) {
 			if (budgetMs != null && prMs != null && prMs > budgetMs) violations += 1;
 			sections.push(
 				`| \`${label}\` | ${formatMs(budgetMs)} | ${formatMs(mainMs)} | ${formatMs(prMs)} | ${delta(prMs, mainMs)} | ${statusLabel(mainMs, prMs, budgetMs)} |`,
 			);
 		}
+
 		sections.push("");
 	}
+
 	writeFileSync(violationsPath, String(violations));
 	writeFileSync(outputPath, `${sections.join("\n").trimEnd()}\n`);
 }
@@ -395,6 +448,7 @@ function collectPhaseMarkdown(scenarioId, fixtureDir, mainBin, prBin, phasePath,
 	const paths = ["dry-main", "dry-pr", "release-main", "release-pr"].map((name) =>
 		tempPath(`-${name}.json`),
 	) as [string, string, string, string];
+
 	if (supportsJsonProgress(mainBin)) {
 		const dry = tempPath("-dry-main.jsonl");
 		const release = tempPath("-release-main.jsonl");
@@ -406,6 +460,7 @@ function collectPhaseMarkdown(scenarioId, fixtureDir, mainBin, prBin, phasePath,
 		unavailableSummary(paths[0]);
 		unavailableSummary(paths[2]);
 	}
+
 	if (supportsJsonProgress(prBin)) {
 		const dry = tempPath("-dry-pr.jsonl");
 		const release = tempPath("-release-pr.jsonl");
@@ -417,6 +472,7 @@ function collectPhaseMarkdown(scenarioId, fixtureDir, mainBin, prBin, phasePath,
 		unavailableSummary(paths[1]);
 		unavailableSummary(paths[3]);
 	}
+
 	renderPhaseMarkdown(scenarioId, phasePath, violationsPath, ...paths);
 }
 
@@ -444,6 +500,7 @@ function generateFixture(root, packages, changesets, commits) {
 		`[workspace]\nmembers = [\n${Array.from({ length: packages }, (_, i) => `  "crates/pkg-${i}",`).join("\n")}\n]\nresolver = "2"\n`,
 	);
 	let config = '[defaults]\npackage_type = "cargo"\n\n';
+
 	for (let i = 0; i < packages; i += 1) {
 		config += `[package.pkg-${i}]\npath = "crates/pkg-${i}"\n\n`;
 		mkdirSync(join(root, `crates/pkg-${i}`), { recursive: true });
@@ -452,15 +509,18 @@ function generateFixture(root, packages, changesets, commits) {
 			`[package]\nname = "pkg-${i}"\nversion = "1.0.0"\nedition = "2021"\ndescription = "Benchmark fixture package ${i}"\nlicense = "MIT"\nrepository = "https://github.com/monochange/monochange"\n`,
 		);
 	}
+
 	config +=
 		'[ecosystems.cargo]\nenabled = true\n\n[cli.discover]\ninputs = [{ name = "format", type = "choice", choices = ["text", "json"], default = "text" }]\nsteps = [{ type = "Discover" }]\n\n[cli.release]\nsteps = [{ type = "PrepareRelease" }]\n';
 	writeFileSync(join(root, "monochange.toml"), config);
 	run("git", ["-C", root, "init", "-b", "main"]);
 	run("git", ["-C", root, "add", "."]);
 	gitCommit(root, "initial");
+
 	for (let commit = 0; commit < commits; commit += 1) {
 		const pkg = commit % packages;
 		writeFileSync(join(root, `crates/pkg-${pkg}/src.rs`), `// commit ${commit}\n`);
+
 		if (commit < changesets)
 			writeFileSync(
 				join(root, `.changeset/change-${String(commit).padStart(4, "0")}.md`),
@@ -469,6 +529,7 @@ function generateFixture(root, packages, changesets, commits) {
 		run("git", ["-C", root, "add", "."]);
 		gitCommit(root, `change ${commit}`);
 	}
+
 	for (let i = commits; i < changesets; i += 1) {
 		const pkg = i % packages;
 		writeFileSync(
@@ -495,6 +556,7 @@ function runScenario(mainBin, prBin, fixtureDir, tablePath) {
 		"--export-markdown",
 		tablePath,
 	];
+
 	for (const command of COMMANDS) {
 		args.push(
 			"--command-name",
@@ -507,6 +569,7 @@ function runScenario(mainBin, prBin, fixtureDir, tablePath) {
 			`${prBin} ${commandArgsFor(prBin, command).join(" ")}`,
 		);
 	}
+
 	run(hyperfineBin, args, { cwd: fixtureDir, stdio: "inherit" });
 }
 
@@ -538,6 +601,7 @@ function runFixtureMode(args) {
 	const phasePath = tempPath("-phases.md");
 	const violationsPath = tempPath("-violations.txt");
 	runScenario(o.main_bin, o.pr_bin, o.fixture_dir, tablePath);
+
 	collectPhaseMarkdown(
 		o.scenario_id,
 		o.fixture_dir,
@@ -554,18 +618,22 @@ function runFixtureMode(args) {
 			phaseTablePath: phasePath,
 		},
 	]);
+
 	if (o.violations_output) writeFileSync(o.violations_output, readText(violationsPath));
 }
 
 function runMode(args) {
 	const o = parseOptions(args, ["--main-bin", "--pr-bin", "--output", "--violations-output"]);
+
 	for (const key of ["main_bin", "pr_bin", "output"])
 		if (!o[key]) die("run requires --main-bin, --pr-bin, and --output");
 	const renderArgs = [];
 	let totalViolations = 0;
+
 	for (const scenario of SCENARIOS) {
 		const tablePath = tempPath("-table.md");
 		const phasePath = tempPath("-phases.md");
+
 		const violationsPath = tempPath("-violations.txt");
 		const fixtureDir = tempDir();
 		generateFixture(fixtureDir, scenario.packages, scenario.changesets, scenario.commits);
@@ -580,12 +648,15 @@ function runMode(args) {
 			phaseTablePath: phasePath,
 		});
 	}
+
 	renderComment(o.output, renderArgs);
+
 	if (o.violations_output) writeFileSync(o.violations_output, `${totalViolations}\n`);
 }
 
 function renderFixtureMode(args) {
 	const o = parseOptions(args, ["--fixture-dir", "--output"]);
+
 	if (!o.fixture_dir || !o.output) die("render-fixture requires --fixture-dir and --output");
 	renderComment(o.output, [
 		{
@@ -611,5 +682,6 @@ try {
 	else die(`usage: ${process.argv[1]} <run|run-fixture|render-fixture> [args...]`);
 } catch (error) {
 	console.error(error instanceof Error ? error.message : String(error));
+
 	process.exit(1);
 }

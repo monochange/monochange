@@ -10,6 +10,7 @@
 use std::sync::OnceLock;
 
 use httpmock::Method;
+use httpmock::Mock;
 use httpmock::MockServer;
 use monochange_core::HostedCommitFile;
 use monochange_core::HostedCommitRequest;
@@ -144,32 +145,73 @@ async fn invalid_signing_key_fails_before_requesting_github() {
 	metadata.assert_calls(0);
 }
 
-// ── Hosted release-commit creation tests ──
+#[tokio::test]
+async fn installation_account_recovers_the_stable_account_identity() {
+	let server = MockServer::start();
+	let lookup = server.mock(|when, then| {
+		when.method(Method::GET)
+			.path("/app/installations/1001")
+			.header_exists("authorization");
+		then.status(200).json_body(serde_json::json!({
+			"id": 1001,
+			"account": {"id": 5001, "login": "acme", "type": "Organization", "avatar_url": "https://avatars/acme.png"}
+		}));
+	});
+	let account = auth(&server)
+		.installation_account(&reqwest::Client::new(), 1001)
+		.await
+		.unwrap();
+	lookup.assert();
+	assert_eq!(account.external_id, 5001);
+	assert_eq!(account.login, "acme");
+	assert_eq!(account.account_type, "Organization");
+	assert_eq!(
+		account.avatar_url.as_deref(),
+		Some("https://avatars/acme.png")
+	);
 
-const OWNER: &str = "monochange";
-const REPO: &str = "monochange";
-const BRANCH: &str = "monochange/release/main";
-const BASE: &str = "1111111111111111111111111111111111111111";
-const BLOB: &str = "2222222222222222222222222222222222222222";
-const TREE: &str = "3333333333333333333333333333333333333333";
-const COMMIT: &str = "4444444444444444444444444444444444444444";
+	assert_eq!(account.provider, "github");
+}
 
-fn request() -> HostedCommitRequest {
+#[tokio::test]
+async fn installation_account_failures_keep_github_status() {
+	let server = MockServer::start();
+	server.mock(|when, then| {
+		when.method(Method::GET).path("/app/installations/404");
+		then.status(404).body("Not Found");
+	});
+	let error = auth(&server)
+		.installation_account(&reqwest::Client::new(), 404)
+		.await
+		.unwrap_err();
+	assert!(matches!(
+		error,
+		GitHubAppError::Status("read installation", status, _) if status == reqwest::StatusCode::NOT_FOUND
+	));
+}
+
+// ── Hosted release commits ──
+const RELEASE_BRANCH: &str = "monochange/release/release";
+const BASE_COMMIT: &str = "base-sha";
+const RELEASE_COMMIT: &str = "release-sha";
+
+fn release_commit_request(branch: &str, base_branch: Option<&str>) -> HostedCommitRequest {
 	HostedCommitRequest {
 		provider: "github".to_string(),
-		owner: OWNER.to_string(),
-		repository: REPO.to_string(),
-		branch: BRANCH.to_string(),
-		base_commit: BASE.to_string(),
+		owner: "acme".to_string(),
+		repository: "actions".to_string(),
+		branch: branch.to_string(),
+		base_branch: base_branch.map(String::from),
+		base_commit: BASE_COMMIT.to_string(),
 		subject: "chore(release): prepare release".to_string(),
-		body: "body".to_string(),
+		body: String::new(),
 		files: vec![
 			HostedCommitFile {
-				path: "crates/monochange/Cargo.toml".to_string(),
-				content: Some("version = \"1.2.3\"".to_string()),
+				path: ".monochange/releases/abc123/release.json".to_string(),
+				content: Some("{}".to_string()),
 			},
 			HostedCommitFile {
-				path: ".changeset/consumed.md".to_string(),
+				path: ".changeset/feature.md".to_string(),
 				content: None,
 			},
 		],
@@ -178,213 +220,418 @@ fn request() -> HostedCommitRequest {
 	}
 }
 
-fn mock_blob(server: &MockServer) -> httpmock::Mock<'_> {
+/// Serve a branch ref at `sha`, or a 404 when the branch does not exist.
+fn mock_branch<'a>(server: &'a MockServer, branch: &str, sha: Option<&str>) -> Mock<'a> {
+	let path = format!("/repos/acme/actions/git/ref/heads/{branch}");
 	server.mock(|when, then| {
-		when.method(Method::POST)
-			.path(format!("/repos/{OWNER}/{REPO}/git/blobs"));
-		then.status(201)
-			.json_body(serde_json::json!({ "sha": BLOB }));
+		when.method(Method::GET).path(path);
+
+		match sha {
+			Some(sha) => {
+				then.status(200)
+					.json_body(serde_json::json!({ "object": { "sha": sha } }));
+			}
+			None => {
+				then.status(404);
+			}
+		}
 	})
 }
 
-fn mock_ref_at_base(server: &MockServer) -> httpmock::Mock<'_> {
+/// Serve the repository metadata with `default_branch`.
+fn mock_repository<'a>(server: &'a MockServer, default_branch: &str) -> Mock<'a> {
 	server.mock(|when, then| {
-		when.method(Method::GET)
-			.path(format!("/repos/{OWNER}/{REPO}/git/ref/heads/{BRANCH}"));
+		when.method(Method::GET).path("/repos/acme/actions");
 		then.status(200)
-			.json_body(serde_json::json!({ "object": { "sha": BASE } }));
+			.json_body(serde_json::json!({ "default_branch": default_branch }));
 	})
 }
 
-fn mock_tree(server: &MockServer) -> httpmock::Mock<'_> {
-	server.mock(|when, then| {
-		when.method(Method::POST)
-			.path(format!("/repos/{OWNER}/{REPO}/git/trees"));
-		then.status(201)
-			.json_body(serde_json::json!({ "sha": TREE }));
-	})
+/// The Git Database writes that create the release commit.
+struct CommitWrites<'a> {
+	blob: Mock<'a>,
+	tree: Mock<'a>,
+	commit: Mock<'a>,
 }
 
-fn mock_commit(server: &MockServer, verification: serde_json::Value) -> httpmock::Mock<'_> {
-	server.mock(move |when, then| {
-		when.method(Method::POST)
-			.path(format!("/repos/{OWNER}/{REPO}/git/commits"));
-		then.status(201).json_body(serde_json::json!({
-			"sha": COMMIT,
-			"verification": verification,
-		}));
-	})
+fn mock_commit_writes(server: &MockServer) -> CommitWrites<'_> {
+	mock_commit_writes_with(
+		server,
+		&serde_json::json!({ "sha": RELEASE_COMMIT, "verification": { "verified": true, "reason": "valid" } }),
+	)
 }
 
-fn mock_update_ref(server: &MockServer) -> httpmock::Mock<'_> {
+/// The Git Database writes, with GitHub answering the commit with `commit`.
+fn mock_commit_writes_with<'a>(
+	server: &'a MockServer,
+	commit: &serde_json::Value,
+) -> CommitWrites<'a> {
+	CommitWrites {
+		blob: server.mock(|when, then| {
+			when.method(Method::POST)
+				.path("/repos/acme/actions/git/blobs");
+			then.status(201)
+				.json_body(serde_json::json!({ "sha": "blob-sha" }));
+		}),
+		tree: server.mock(|when, then| {
+			when.method(Method::POST)
+				.path("/repos/acme/actions/git/trees")
+				.json_body_includes(r#"{ "base_tree": "base-sha" }"#);
+			then.status(201)
+				.json_body(serde_json::json!({ "sha": "tree-sha" }));
+		}),
+		commit: server.mock(|when, then| {
+			when.method(Method::POST)
+				.path("/repos/acme/actions/git/commits")
+				.json_body_includes(r#"{ "tree": "tree-sha", "parents": ["base-sha"] }"#);
+			then.status(201).json_body(commit.clone());
+		}),
+	}
+}
+
+/// Accept a ref update that moves `branch` to the release commit.
+fn mock_branch_update<'a>(server: &'a MockServer, branch: &str, force: bool) -> Mock<'a> {
+	let path = format!("/repos/acme/actions/git/refs/heads/{branch}");
 	server.mock(|when, then| {
 		when.method(Method::PATCH)
-			.path(format!("/repos/{OWNER}/{REPO}/git/refs/heads/{BRANCH}"));
+			.path(path)
+			.json_body(serde_json::json!({ "sha": RELEASE_COMMIT, "force": force }));
 		then.status(200)
-			.json_body(serde_json::json!({ "object": { "sha": COMMIT } }));
+			.json_body(serde_json::json!({ "object": { "sha": RELEASE_COMMIT } }));
 	})
+}
+
+async fn create_commit(
+	server: &MockServer,
+	request: &HostedCommitRequest,
+) -> Result<(String, bool, Option<String>), GitHubAppError> {
+	create_release_commit(
+		&reqwest::Client::new(),
+		&server.base_url(),
+		"installation-token",
+		request,
+	)
+	.await
 }
 
 #[tokio::test]
-async fn creates_branch_and_reports_verified_commit() {
-	let server = MockServer::start_async().await;
-	mock_blob(&server);
-	mock_tree(&server);
-	mock_commit(
-		&server,
-		serde_json::json!({ "verified": true, "reason": "valid" }),
-	);
-	let head_missing = server.mock(|when, then| {
-		when.method(Method::GET)
-			.path(format!("/repos/{OWNER}/{REPO}/git/ref/heads/{BRANCH}"));
-		then.status(404);
-	});
-	let create_ref = server.mock(|when, then| {
+async fn first_release_commit_creates_the_release_branch() {
+	let server = MockServer::start();
+	mock_branch(&server, RELEASE_BRANCH, None);
+	let writes = mock_commit_writes(&server);
+	let create = server.mock(|when, then| {
 		when.method(Method::POST)
-			.path(format!("/repos/{OWNER}/{REPO}/git/refs"));
+			.path("/repos/acme/actions/git/refs")
+			.json_body(serde_json::json!({
+				"ref": "refs/heads/monochange/release/release",
+				"sha": RELEASE_COMMIT,
+			}));
 		then.status(201);
 	});
-	let update_ref = server.mock(|when, then| {
-		when.method(Method::PATCH)
-			.path(format!("/repos/{OWNER}/{REPO}/git/refs/heads/{BRANCH}"));
-		then.status(200);
-	});
 
-	let (sha, verified, reason) = create_release_commit(
-		&reqwest::Client::new(),
-		&server.base_url(),
-		"token",
-		&request(),
+	let result = create_commit(
+		&server,
+		&release_commit_request(RELEASE_BRANCH, Some("main")),
 	)
 	.await
-	.unwrap_or_else(|error| panic!("hosted commit should succeed: {error}"));
+	.unwrap();
 
-	assert_eq!(sha, COMMIT);
-	assert!(verified);
-	assert_eq!(reason.as_deref(), Some("valid"));
-	head_missing.assert_async().await;
-	create_ref.assert_async().await;
-	update_ref.assert_calls_async(0).await;
+	assert_eq!(
+		result,
+		(RELEASE_COMMIT.to_string(), true, Some("valid".to_string()))
+	);
+	writes.blob.assert_calls(1);
+	writes.tree.assert();
+	writes.commit.assert();
+	create.assert();
 }
 
+#[rstest]
+#[case::unsigned(
+	serde_json::json!({ "sha": RELEASE_COMMIT, "verification": { "verified": false, "reason": "unsigned" } }),
+	"unsigned"
+)]
+#[case::verification_missing(serde_json::json!({ "sha": RELEASE_COMMIT }), "unknown")]
 #[tokio::test]
-async fn moves_existing_branch_and_reports_verified_commit() {
-	let server = MockServer::start_async().await;
-	mock_blob(&server);
-	mock_ref_at_base(&server);
-	mock_tree(&server);
-	mock_commit(
-		&server,
-		serde_json::json!({ "verified": true, "reason": "valid" }),
-	);
-	let update_ref = mock_update_ref(&server);
+async fn unverified_release_commit_fails_without_moving_the_branch(
+	#[case] commit: serde_json::Value,
+	#[case] reason: &str,
+) {
+	let server = MockServer::start();
+	mock_branch(&server, RELEASE_BRANCH, Some(BASE_COMMIT));
+	let writes = mock_commit_writes_with(&server, &commit);
+	let update = mock_branch_update(&server, RELEASE_BRANCH, false);
 
-	let (sha, verified, _) = create_release_commit(
-		&reqwest::Client::new(),
-		&server.base_url(),
-		"token",
-		&request(),
+	let error = create_commit(
+		&server,
+		&release_commit_request(RELEASE_BRANCH, Some("main")),
 	)
 	.await
-	.unwrap_or_else(|error| panic!("hosted commit should succeed: {error}"));
+	.unwrap_err();
 
-	assert_eq!(sha, COMMIT);
-	assert!(verified);
-	update_ref.assert_async().await;
-}
-
-#[tokio::test]
-async fn fails_without_moving_branch_when_github_does_not_verify() {
-	let server = MockServer::start_async().await;
-	mock_blob(&server);
-	mock_ref_at_base(&server);
-	mock_tree(&server);
-	mock_commit(
-		&server,
-		serde_json::json!({ "verified": false, "reason": "unsigned" }),
-	);
-	let update_ref = server.mock(|when, then| {
-		when.method(Method::PATCH)
-			.path(format!("/repos/{OWNER}/{REPO}/git/refs/heads/{BRANCH}"));
-		then.status(200);
-	});
-
-	let error = create_release_commit(
-		&reqwest::Client::new(),
-		&server.base_url(),
-		"token",
-		&request(),
-	)
-	.await
-	.expect_err("an unverified commit must fail");
-
-	assert!(matches!(error, GitHubAppError::UnverifiedCommit(..)));
-	let message = error.to_string();
 	assert!(
-		message.contains(COMMIT),
-		"message should name the commit: {message}"
+		matches!(
+			&error,
+			GitHubAppError::UnverifiedCommit(sha, actual) if sha == RELEASE_COMMIT && actual == reason
+		),
+		"{error}"
 	);
 	assert!(
-		message.contains("unsigned"),
-		"message should include the reason: {message}"
+		error
+			.to_string()
+			.contains("the release branch was not moved")
 	);
-	update_ref.assert_calls_async(0).await;
+	writes.commit.assert();
+	update.assert_calls(0);
 }
 
 #[tokio::test]
-async fn fails_when_verification_is_absent_from_commit_response() {
-	let server = MockServer::start_async().await;
-	mock_blob(&server);
-	mock_ref_at_base(&server);
-	mock_tree(&server);
-	let no_verification = server.mock(|when, then| {
-		when.method(Method::POST)
-			.path(format!("/repos/{OWNER}/{REPO}/git/commits"));
-		then.status(201)
-			.json_body(serde_json::json!({ "sha": COMMIT }));
-	});
+async fn release_branch_at_the_base_commit_is_fast_forwarded() {
+	let server = MockServer::start();
+	mock_branch(&server, RELEASE_BRANCH, Some(BASE_COMMIT));
+	mock_commit_writes(&server);
+	let update = mock_branch_update(&server, RELEASE_BRANCH, false);
 
-	let error = create_release_commit(
-		&reqwest::Client::new(),
-		&server.base_url(),
-		"token",
-		&request(),
+	create_commit(
+		&server,
+		&release_commit_request(RELEASE_BRANCH, Some("main")),
 	)
 	.await
-	.expect_err("a commit with no verification object must fail");
+	.unwrap();
 
-	assert!(matches!(error, GitHubAppError::UnverifiedCommit(..)));
-	assert!(error.to_string().contains("unknown"));
-	no_verification.assert_async().await;
+	update.assert();
 }
 
 #[tokio::test]
-async fn rejects_a_branch_that_moved_since_preparation() {
-	let server = MockServer::start_async().await;
-	mock_blob(&server);
+async fn existing_release_branch_is_regenerated_from_the_current_base() {
+	// Every push to the base branch prepares the release again; the previous
+	// release commit is replaced, not built upon.
+	let server = MockServer::start();
+	mock_branch(&server, RELEASE_BRANCH, Some("previous-release-sha"));
+	let base = mock_branch(&server, "main", Some(BASE_COMMIT));
+	let repository = mock_repository(&server, "main");
+	mock_commit_writes(&server);
+	let update = mock_branch_update(&server, RELEASE_BRANCH, true);
+
+	let (commit, verified, _) = create_commit(
+		&server,
+		&release_commit_request(RELEASE_BRANCH, Some("main")),
+	)
+	.await
+	.unwrap();
+
+	assert_eq!(commit, RELEASE_COMMIT);
+	assert!(verified);
+	base.assert();
+	repository.assert();
+	update.assert();
+}
+
+#[tokio::test]
+async fn stale_run_cannot_replace_the_release_branch() {
+	// A newer push moved the base branch, so a newer run owns the release.
+	let server = MockServer::start();
+	mock_branch(&server, RELEASE_BRANCH, Some("newer-release-sha"));
+	mock_branch(&server, "main", Some("newer-base-sha"));
+	let writes = mock_commit_writes(&server);
+	let update = mock_branch_update(&server, RELEASE_BRANCH, true);
+
+	let error = create_commit(
+		&server,
+		&release_commit_request(RELEASE_BRANCH, Some("main")),
+	)
+	.await
+	.unwrap_err();
+
+	assert!(
+		matches!(
+			&error,
+			GitHubAppError::BaseMoved(branch, actual, expected)
+
+				if branch == "main" && actual == "newer-base-sha" && expected == BASE_COMMIT
+		),
+		"{error}"
+	);
+	writes.blob.assert_calls(0);
+	writes.tree.assert_calls(0);
+	writes.commit.assert_calls(0);
+	update.assert_calls(0);
+}
+
+#[tokio::test]
+async fn missing_base_branch_cannot_replace_the_release_branch() {
+	let server = MockServer::start();
+	mock_branch(&server, RELEASE_BRANCH, Some("previous-release-sha"));
+	mock_branch(&server, "main", None);
+	let update = mock_branch_update(&server, RELEASE_BRANCH, true);
+
+	let error = create_commit(
+		&server,
+		&release_commit_request(RELEASE_BRANCH, Some("main")),
+	)
+	.await
+	.unwrap_err();
+
+	assert!(
+		matches!(
+			&error,
+			GitHubAppError::Status("read base branch ref", status, _)
+
+				if *status == reqwest::StatusCode::NOT_FOUND
+		),
+		"{error}"
+	);
+	update.assert_calls(0);
+}
+
+#[rstest]
+#[case::client_without_base_branch(RELEASE_BRANCH, None)]
+#[case::base_branch_as_release_branch("main", Some("main"))]
+#[tokio::test]
+async fn release_branch_that_moved_is_never_force_updated(
+	#[case] branch: &str,
+	#[case] base_branch: Option<&str>,
+) {
+	let server = MockServer::start();
+	mock_branch(&server, branch, Some("other-sha"));
+	let update = mock_branch_update(&server, branch, true);
+
+	let error = create_commit(&server, &release_commit_request(branch, base_branch))
+		.await
+		.unwrap_err();
+
+	assert!(
+		matches!(
+			&error,
+			GitHubAppError::BranchMoved(moved, actual, expected)
+
+				if moved == branch && actual == "other-sha" && expected == BASE_COMMIT
+		),
+		"{error}"
+	);
+	update.assert_calls(0);
+}
+
+#[tokio::test]
+async fn unreadable_release_branch_fails_before_writing() {
+	let server = MockServer::start();
 	server.mock(|when, then| {
 		when.method(Method::GET)
-			.path(format!("/repos/{OWNER}/{REPO}/git/ref/heads/{BRANCH}"));
-		then.status(200).json_body(
-			serde_json::json!({ "object": { "sha": "9999999999999999999999999999999999999999" } }),
-		);
+			.path("/repos/acme/actions/git/ref/heads/monochange/release/release");
+		then.status(500).body("unavailable");
 	});
-	let tree = server.mock(|when, then| {
-		when.method(Method::POST)
-			.path(format!("/repos/{OWNER}/{REPO}/git/trees"));
-		then.status(201)
-			.json_body(serde_json::json!({ "sha": TREE }));
-	});
+	let writes = mock_commit_writes(&server);
 
-	let error = create_release_commit(
-		&reqwest::Client::new(),
-		&server.base_url(),
-		"token",
-		&request(),
+	let error = create_commit(
+		&server,
+		&release_commit_request(RELEASE_BRANCH, Some("main")),
 	)
 	.await
-	.expect_err("a moved branch must fail before any write");
+	.unwrap_err();
 
-	assert!(matches!(error, GitHubAppError::BranchMoved(..)));
-	tree.assert_calls_async(0).await;
+	assert!(
+		matches!(
+			&error,
+			GitHubAppError::Status("read release branch ref", status, body)
+
+				if *status == reqwest::StatusCode::INTERNAL_SERVER_ERROR && body == "unavailable"
+		),
+		"{error}"
+	);
+	writes.blob.assert_calls(0);
+}
+
+#[tokio::test]
+async fn rejected_fast_forward_reports_the_ref_update() {
+	// GitHub refuses a non-forced update when the branch moved after the check.
+	let server = MockServer::start();
+	mock_branch(&server, RELEASE_BRANCH, Some(BASE_COMMIT));
+	mock_commit_writes(&server);
+	server.mock(|when, then| {
+		when.method(Method::PATCH)
+			.path("/repos/acme/actions/git/refs/heads/monochange/release/release");
+		then.status(422).body("Update is not a fast forward");
+	});
+
+	let error = create_commit(
+		&server,
+		&release_commit_request(RELEASE_BRANCH, Some("main")),
+	)
+	.await
+	.unwrap_err();
+
+	assert!(
+		matches!(
+			&error,
+			GitHubAppError::Status("update release branch ref", status, _)
+
+				if *status == reqwest::StatusCode::UNPROCESSABLE_ENTITY
+		),
+		"{error}"
+	);
+}
+
+#[rstest]
+#[case::not_a_release_branch("feature/work", "main")]
+#[case::bare_release_name("release", "main")]
+#[case::release_branch_is_the_default_branch(RELEASE_BRANCH, RELEASE_BRANCH)]
+#[tokio::test]
+async fn only_release_branches_that_are_not_the_default_branch_are_forced(
+	#[case] branch: &str,
+	#[case] default_branch: &str,
+) {
+	// A caller must not be able to name `main` (or any non-release branch)
+	// and have it forced onto another branch's commit.
+	let server = MockServer::start();
+	mock_branch(&server, branch, Some("other-sha"));
+	mock_branch(&server, "main", Some(BASE_COMMIT));
+	mock_repository(&server, default_branch);
+	let writes = mock_commit_writes(&server);
+	let update = mock_branch_update(&server, branch, true);
+
+	let error = create_commit(&server, &release_commit_request(branch, Some("main")))
+		.await
+		.unwrap_err();
+
+	assert!(
+		matches!(
+			&error,
+			GitHubAppError::BranchMoved(moved, actual, expected)
+
+				if moved == branch && actual == "other-sha" && expected == BASE_COMMIT
+		),
+		"{error}"
+	);
+	writes.blob.assert_calls(0);
+	update.assert_calls(0);
+}
+
+#[tokio::test]
+async fn unreadable_repository_metadata_refuses_to_force() {
+	let server = MockServer::start();
+	mock_branch(&server, RELEASE_BRANCH, Some("previous-release-sha"));
+	mock_branch(&server, "main", Some(BASE_COMMIT));
+	server.mock(|when, then| {
+		when.method(Method::GET).path("/repos/acme/actions");
+		then.status(403).body("forbidden");
+	});
+	let update = mock_branch_update(&server, RELEASE_BRANCH, true);
+
+	let error = create_commit(
+		&server,
+		&release_commit_request(RELEASE_BRANCH, Some("main")),
+	)
+	.await
+	.unwrap_err();
+
+	assert!(
+		matches!(
+			&error,
+			GitHubAppError::Status("read repository", status, _)
+
+				if *status == reqwest::StatusCode::FORBIDDEN
+		),
+		"{error}"
+	);
+	update.assert_calls(0);
 }

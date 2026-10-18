@@ -36,9 +36,11 @@ fn sample_snapshot(schema_version: &str) -> CommandSnapshot {
 
 fn write_snapshot_file(root: &Path, relative: &str, schema_version: &str) -> PathBuf {
 	let path = root.join(relative);
+
 	if let Some(parent) = path.parent() {
 		fs::create_dir_all(parent).unwrap_or_else(|error| panic!("create dir: {error}"));
 	}
+
 	let snapshot = sample_snapshot(schema_version);
 	fs::write(
 		&path,

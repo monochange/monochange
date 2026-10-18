@@ -39,7 +39,7 @@ pub fn NavBar() -> impl IntoView {
 				<div class="desktop-links">
 					<a href="/install" aria-current=move || (location.pathname.get() == "/install").then_some("page")>"Install"</a>
 					<a href=BOOK_URL aria-current=move || location.pathname.get().starts_with(BOOK_URL).then_some("page")>"Docs"</a>
-					<a href="/changelog" aria-current=move || (location.pathname.get() == "/changelog").then_some("page")>"What's new"</a>
+					<a href="/changelog" aria-current=move || (location.pathname.get() == "/changelog").then_some("page")>"Changelog"</a>
 					<a href="/pricing" aria-current=move || (location.pathname.get() == "/pricing").then_some("page")>"Pricing"</a>
 				</div>
 				<div class="nav-actions">
@@ -58,7 +58,7 @@ pub fn NavBar() -> impl IntoView {
 					</button>
 				</div>
 				<div id="mobile-navigation" class="mobile-links" hidden=move || !mobile_open.get()>
-					<a href="/install">"Install"</a><a href=BOOK_URL>"Docs"</a><a href="/changelog">"What's new"</a><a href="/pricing">"Pricing"</a><SessionLinks session=session sign_out=sign_out />
+					<a href="/install">"Install"</a><a href=BOOK_URL>"Docs"</a><a href="/changelog">"Changelog"</a><a href="/pricing">"Pricing"</a><SessionLinks session=session sign_out=sign_out />
 				</div>
 			</nav>
 		</header>
@@ -82,6 +82,7 @@ fn SessionLinks(
 				Ok(None) => view! { <a href="/login" class="button button-brand nav-sign-in">"Sign in"</a> }.into_any(),
 				Err(_) => view! { <a href="/login" class="button button-brand nav-sign-in">"Sign in again"</a> }.into_any(),
 			})}
+
 		</Suspense>
 	}
 }

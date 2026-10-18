@@ -150,6 +150,7 @@ pub fn gitea_host_name(source: &SourceConfiguration) -> Option<String> {
 		.next()
 		.unwrap_or_default()
 		.trim();
+
 	if host.is_empty() {
 		None
 	} else {
@@ -224,6 +225,7 @@ pub fn validate_source_configuration(source: &SourceConfiguration) -> Monochange
 			"[source].host must be set for `provider = \"gitea\"`".to_string(),
 		));
 	}
+
 	if source.releases.generate_notes
 		|| matches!(
 			source.releases.source,
@@ -234,12 +236,14 @@ pub fn validate_source_configuration(source: &SourceConfiguration) -> Monochange
 				.to_string(),
 		));
 	}
+
 	if source.pull_requests.auto_merge {
 		return Err(MonochangeError::Config(
 			"[source.pull_requests].auto_merge is not supported for `provider = \"gitea\"`"
 				.to_string(),
 		));
 	}
+
 	Ok(())
 }
 
@@ -364,6 +368,7 @@ pub fn build_release_requests(
 				} else {
 					target.rendered_title.clone()
 				},
+
 				body: release_body(source, manifest, target),
 				draft: source.releases.draft,
 				prerelease: source.releases.prerelease,
@@ -415,10 +420,12 @@ pub async fn publish_release_requests(
 	let headers = auth_headers(&token)?;
 	let api_base = gitea_api_base(source)?;
 	let mut outcomes = Vec::new();
+
 	for request in requests {
 		outcomes
 			.push(publish_release_request(&client, &headers, &api_base, source, request).await?);
 	}
+
 	Ok(outcomes)
 }
 
@@ -467,6 +474,7 @@ pub async fn publish_release_pull_request(
 		.as_ref()
 		.and_then(|pull_request| pull_request.head.sha.as_deref())
 		== Some(head_commit.as_str());
+
 	if !head_matches_existing {
 		git_push_branch(
 			root,
@@ -550,6 +558,7 @@ async fn publish_release_request(
 		)
 		.await?
 	};
+
 	Ok(SourceReleaseOutcome {
 		provider: SourceProvider::Gitea,
 		repository: request.repository.clone(),
@@ -559,6 +568,7 @@ async fn publish_release_request(
 		} else {
 			SourceReleaseOperation::Created
 		},
+
 		url: response.html_url,
 	})
 }
@@ -598,6 +608,7 @@ async fn publish_pull_request_with_existing(
 	});
 	let head_matches_existing =
 		existing.and_then(|pull_request| pull_request.head.sha.as_deref()) == Some(head_commit);
+
 	let response: GiteaPullRequestResponse = match existing {
 		Some(existing_pr) if content_matches => {
 			GiteaPullRequestResponse {
@@ -605,6 +616,7 @@ async fn publish_pull_request_with_existing(
 				html_url: existing_pr.html_url.clone(),
 			}
 		}
+
 		Some(existing_pr) => {
 			let update_url = format!(
 				"{api_base}/repos/{}/{}/pulls/{}",
@@ -630,6 +642,7 @@ async fn publish_pull_request_with_existing(
 			post_json(client, headers, &create_url, &payload, "Gitea").await?
 		}
 	};
+
 	if !request.labels.is_empty() && !labels_match {
 		let labels_url = format!(
 			"{api_base}/repos/{}/{}/issues/{}/labels",
@@ -646,6 +659,7 @@ async fn publish_pull_request_with_existing(
 		)
 		.await?;
 	}
+
 	Ok(SourceChangeRequestOutcome {
 		provider: SourceProvider::Gitea,
 		repository: request.repository.clone(),
@@ -656,8 +670,10 @@ async fn publish_pull_request_with_existing(
 			Some(_) if content_matches && labels_match && head_matches_existing => {
 				SourceChangeRequestOperation::Skipped
 			}
+
 			Some(_) => SourceChangeRequestOperation::Updated,
 		},
+
 		url: response.html_url,
 	})
 }
@@ -702,6 +718,7 @@ fn gitea_api_base(source: &SourceConfiguration) -> MonochangeResult<String> {
 	if let Some(api_url) = &source.api_url {
 		return Ok(api_url.trim_end_matches('/').to_string());
 	}
+
 	let host = source.host.as_deref().ok_or_else(|| {
 		MonochangeError::Config("[source].host must be set for `provider = \"gitea\"`".to_string())
 	})?;

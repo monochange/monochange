@@ -395,6 +395,7 @@ fn manifest_repository_missing() {
 	let results = rule.run(&ctx, &config);
 	assert_eq!(results.len(), 1);
 	assert_eq!(results[0].severity, LintSeverity::Error);
+
 	assert!(results[0].fix.is_some());
 }
 
@@ -510,6 +511,7 @@ fn manifest_repository_workspace_inherited_resolves_correct_value() {
 		parsed: target.parsed.as_ref(),
 	};
 	let config = config();
+
 	let results = rule.run(&ctx, &config);
 	assert!(
 		results.is_empty(),
@@ -532,6 +534,7 @@ fn manifest_repository_workspace_inherited_resolves_wrong_value() {
 		"[package]\nname = \"hello\"\nversion = \"0.1.0\"\nrepository = { workspace = true }\n",
 	)
 	.unwrap_or_else(|error| panic!("write manifest: {error}"));
+
 	let contents =
 		fs::read_to_string(&manifest_path).unwrap_or_else(|error| panic!("read manifest: {error}"));
 	let target = LintTarget::new(
@@ -602,6 +605,7 @@ fn manifest_repository_workspace_inherited_opt_out() {
 		"[package]\nname = \"hello\"\nversion = \"0.1.0\"\nrepository = { workspace = true }\n",
 	)
 	.unwrap_or_else(|error| panic!("write manifest: {error}"));
+
 	let contents =
 		fs::read_to_string(&manifest_path).unwrap_or_else(|error| panic!("read manifest: {error}"));
 	let target = LintTarget::new(
@@ -667,6 +671,7 @@ fn manifest_repository_workspace_inherited_falls_back_to_package_repository() {
 		parsed: target.parsed.as_ref(),
 	};
 	let config = config();
+
 	let results = rule.run(&ctx, &config);
 	assert!(
 		results.is_empty(),
@@ -695,6 +700,7 @@ fn manifest_repository_wrong_value_with_fix() {
 	let results = rule.run(&ctx, &config);
 	assert_eq!(results.len(), 1);
 	assert!(results[0].fix.is_some());
+
 	let fix = results[0].fix.as_ref().unwrap();
 	assert_eq!(fix.edits.len(), 1);
 	assert!(
@@ -739,7 +745,6 @@ fn manifest_repository_no_package_table() {
 // on relative manifest paths, which would resolve against the crate's own
 // sources.
 // ---------------------------------------------------------------------------
-
 use std::path::PathBuf;
 
 use monochange_core::lint::LintReport;
@@ -774,6 +779,7 @@ fn run_rule_and_apply_fixes(
 	managed: bool,
 ) -> FixApplication {
 	let workspace = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+
 	if let Some(root_manifest) = root_manifest {
 		fs::write(workspace.path().join("Cargo.toml"), root_manifest)
 			.unwrap_or_else(|error| panic!("write root manifest: {error}"));
@@ -786,6 +792,7 @@ fn run_rule_and_apply_fixes(
 		fs::create_dir_all(&dir).unwrap_or_else(|error| panic!("create {dir:?}: {error}"));
 		dir
 	};
+
 	let manifest_path = manifest_dir.join("Cargo.toml");
 	fs::write(&manifest_path, contents).unwrap_or_else(|error| panic!("write manifest: {error}"));
 
@@ -794,6 +801,7 @@ fn run_rule_and_apply_fixes(
 	} else {
 		Path::new(relative_manifest_dir).join("Cargo.toml")
 	};
+
 	let target = LintTarget::new(
 		workspace.path().to_path_buf(),
 		manifest_path.clone(),
@@ -832,9 +840,11 @@ fn run_rule_and_apply_fixes(
 		WorkspaceLintSettings::default(),
 	);
 	let mut report = LintReport::new();
+
 	for result in results.iter().cloned() {
 		report.add(result);
 	}
+
 	let fixed = linter.apply_fixes(&report).get(&manifest_path).cloned();
 
 	FixApplication {
@@ -856,6 +866,7 @@ fn assert_fix_preserves_document(original: &str, fixed: &str) {
 		.unwrap_or_else(|error| panic!("fixed manifest must parse as TOML: {error}\n{fixed}"));
 	let original_root = original_doc.as_table();
 	let fixed_root = fixed_doc.as_table();
+
 	for key in original_root.iter().map(|(key, _)| key) {
 		assert!(
 			fixed_root.get(key).is_some(),
@@ -1181,13 +1192,16 @@ fn non_autofixable_cargo_rules_never_emit_fixes() {
 	let publishable = PublishableDependencyRule::new();
 	let contents = "[package]\nname = \"example\"\n\n[dependencies]\ninternal_dep = \"0.1.0\"\n";
 	let application = run_rule_and_apply_fixes(&required, contents, &config(), "", None, true);
+
 	for result in &application.results {
 		assert!(
 			result.fix.is_none(),
 			"required-package-fields emitted a fix"
 		);
 	}
+
 	let application = run_rule_and_apply_fixes(&publishable, contents, &config(), "", None, true);
+
 	for result in &application.results {
 		assert!(
 			result.fix.is_none(),
@@ -1272,6 +1286,7 @@ version = "0.1.0"
 			&configuration,
 			&monochange_core::lint::NoopLintProgressReporter,
 		);
+
 		if report.autofixable().is_empty() {
 			break;
 		}
@@ -1334,6 +1349,7 @@ version = "0.1.0"
 	let core_features_pos = core_dev_section
 		.find("features")
 		.unwrap_or_else(|| panic!("core features field lost: {fixed_core}"));
+
 	assert!(
 		core_workspace_pos < core_features_pos,
 		"core fields not reordered: {fixed_core}"
@@ -1379,12 +1395,14 @@ fn cargo_rules_without_fix_option_emit_results_without_fixes() {
 		true,
 	);
 	assert!(!field_order.results.is_empty());
+
 	for result in &field_order.results {
 		assert!(
 			result.fix.is_none(),
 			"field-order emitted a fix with fix = false"
 		);
 	}
+
 	assert!(field_order.fixed.is_none());
 
 	let internal_dep = run_rule_and_apply_fixes(
@@ -1396,12 +1414,14 @@ fn cargo_rules_without_fix_option_emit_results_without_fixes() {
 		true,
 	);
 	assert!(!internal_dep.results.is_empty());
+
 	for result in &internal_dep.results {
 		assert!(
 			result.fix.is_none(),
 			"internal-dependency-workspace emitted a fix with fix = false"
 		);
 	}
+
 	assert!(internal_dep.fixed.is_none());
 
 	let sorted = run_rule_and_apply_fixes(
@@ -1413,11 +1433,13 @@ fn cargo_rules_without_fix_option_emit_results_without_fixes() {
 		true,
 	);
 	assert!(!sorted.results.is_empty());
+
 	for result in &sorted.results {
 		assert!(
 			result.fix.is_none(),
 			"sorted-dependencies emitted a fix with fix = false"
 		);
 	}
+
 	assert!(sorted.fixed.is_none());
 }

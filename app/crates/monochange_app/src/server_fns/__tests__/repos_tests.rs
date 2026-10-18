@@ -27,20 +27,26 @@ async fn state() -> Arc<AppState> {
 	sqlx::query("INSERT INTO users (id, github_id, github_login, github_access_token) VALUES (1, 101, 'alice', 'test-only-token'), (2, 202, 'bob', 'test-only-token')").execute(&db).await.unwrap();
 	sqlx::query("INSERT INTO installations (id, user_id, github_installation_id, github_account_login, github_account_type) VALUES (1, 1, 1001, 'alice', 'User'), (2, 2, 1002, 'bob', 'User')").execute(&db).await.unwrap();
 	sqlx::query("INSERT INTO repositories (installation_id, github_repo_id, github_full_name, github_private) VALUES (1, 11, 'alice/public', 0), (1, 12, 'alice/private', 1), (2, 21, 'bob/private', 1)").execute(&db).await.unwrap();
-	let secrets: AppSecrets =
-		serde_json::from_value(serde_json::json!({"jwt_secret":"repository-test-signing-key"}))
-			.unwrap();
+	let secrets: AppSecrets = serde_json::from_value(serde_json::json!({
+		"database_url": "sqlite::memory:",
+		"jwt_secret": "repository-test-signing-key",
+		"github_client_id": "",
+		"github_client_secret": "",
+	}))
+	.unwrap();
 	Arc::new(AppState::new(db, secrets).unwrap())
 }
 
 fn context(state: Arc<AppState>, cookie: Option<String>) -> Owner {
 	let owner = Owner::new();
 	let mut request = Request::new(());
+
 	if let Some(cookie) = cookie {
 		request
 			.headers_mut()
 			.insert(COOKIE, cookie.parse().unwrap());
 	}
+
 	let (parts, ()) = request.into_parts();
 	owner.with(|| {
 		provide_context(state);
@@ -67,6 +73,7 @@ async fn signed_in_user_sees_own_public_and_private_repositories() {
 	assert_eq!(repos.len(), 2);
 	assert_eq!(repos[0].github_full_name, "alice/private");
 	assert!(repos[0].github_private);
+
 	assert_eq!(repos[1].github_full_name, "alice/public");
 	assert!(!repos[1].github_private);
 }
@@ -180,7 +187,58 @@ async fn organization_repositories_require_current_active_owner_membership() {
 			.count(),
 		2
 	);
+
 	membership.assert_calls_async(1).await;
+}
+
+#[tokio::test]
+async fn one_user_token_checks_repositories_from_multiple_organizations() {
+	let server = MockServer::start_async().await;
+	let team_membership = server
+		.mock_async(|when, then| {
+			when.method(GET).path("/user/memberships/orgs/team");
+			then.json_body(serde_json::json!({"state":"active","role":"admin"}));
+		})
+		.await;
+	let second_membership = server
+		.mock_async(|when, then| {
+			when.method(GET).path("/user/memberships/orgs/second-team");
+			then.json_body(serde_json::json!({"state":"active","role":"admin"}));
+		})
+		.await;
+	let state = organization_state(&server).await;
+	sqlx::query(
+		"INSERT INTO installations (
+			id, user_id, github_installation_id, github_account_login, github_account_type
+		 ) VALUES (4, 1, 1004, 'second-team', 'Organization')",
+	)
+	.execute(&state.db)
+	.await
+	.unwrap();
+	sqlx::query(
+		"INSERT INTO repositories (
+			installation_id, github_repo_id, github_full_name, github_private
+		 ) VALUES (4, 41, 'second-team/private', 1)",
+	)
+	.execute(&state.db)
+	.await
+	.unwrap();
+	let cookie = session(&state, 1);
+	let owner = context(state, Some(cookie));
+
+	let repositories = owner
+		.with(|| ScopedFuture::new(list_repos()))
+		.await
+		.unwrap();
+
+	assert_eq!(repositories.len(), 5);
+	assert!(
+		repositories
+			.iter()
+			.any(|repository| repository.github_full_name == "second-team/private")
+	);
+	team_membership.assert_calls_async(1).await;
+	second_membership.assert_calls_async(1).await;
 }
 
 #[tokio::test]
@@ -243,6 +301,7 @@ async fn removed_organization_member_cannot_read_organization_repositories() {
 			.iter()
 			.all(|repository| repository.installation_login == "alice")
 	);
+
 	membership.assert_calls_async(1).await;
 }
 
@@ -288,6 +347,7 @@ async fn provider_failure_is_a_repository_error_instead_of_an_empty_workspace() 
 				.to_string()
 				.contains("organization access could not be verified")
 		);
+
 		membership.assert_calls_async(1).await;
 	}
 }
@@ -337,6 +397,7 @@ async fn missing_oauth_token_requires_sign_in_without_a_provider_request() {
 		.await
 		.unwrap_err();
 	assert!(error.to_string().contains("sign in again"));
+
 	outbound.assert_calls_async(0).await;
 }
 
@@ -408,6 +469,7 @@ async fn personal_repositories_do_not_need_a_provider_membership_request() {
 	state.github_api_origin = server.base_url();
 	let state = Arc::new(state);
 	let cookie = session(&state, 1);
+
 	let owner = context(state, Some(cookie));
 	assert_eq!(
 		owner
@@ -459,6 +521,7 @@ async fn database_failure_cannot_be_reported_as_an_empty_workspace() {
 	let closed_pool = state().await;
 	let cookie = session(&closed_pool, 1);
 	closed_pool.db.close().await;
+
 	let owner = context(closed_pool, Some(cookie));
 	assert!(
 		owner

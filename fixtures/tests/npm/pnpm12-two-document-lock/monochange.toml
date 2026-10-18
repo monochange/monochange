@@ -1,0 +1,19 @@
+# Fixture for pnpm 12 lockfiles, which pnpm writes as two YAML documents.
+#
+# The first document is the env lockfile holding config and package-manager
+# dependencies; the second holds the project graph. A release must parse both
+# documents, update pinned versions in the project document, and leave the
+# env document, the leading `---`, and all formatting untouched.
+[defaults]
+parent_bump = "patch"
+
+[package."@acme/api"]
+path = "packages/api"
+type = "npm"
+
+[package."@acme/consumer"]
+path = "packages/consumer"
+type = "npm"
+
+[ecosystems.npm]
+enabled = true

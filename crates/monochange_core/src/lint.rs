@@ -5,7 +5,6 @@
 //! This module provides the shared types and contracts for monochange's
 //! manifest-linting system. The runtime engine stays ecosystem-agnostic while
 //! ecosystem crates provide suites, targets, and rule implementations.
-
 use std::any::Any;
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -654,6 +653,7 @@ impl LintReport {
 			LintSeverity::Warning => self.warning_count += 1,
 			LintSeverity::Off => {}
 		}
+
 		self.results.push(result);
 	}
 

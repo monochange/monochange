@@ -7,10 +7,11 @@
 //! - Hosted release commit and release request endpoints
 
 #[cfg(test)]
-#[path = "__tests__.rs"]
+#[path = "__tests__/lib_tests.rs"]
 mod tests;
 
 mod config;
+pub mod feedback;
 pub mod github_app;
 pub mod oauth;
 pub mod oidc;
@@ -33,19 +34,32 @@ use jsonwebtoken::encode;
 use serde::Deserialize;
 use serde::Serialize;
 
-// The `declare_secrets!` macro derives `serde::Deserialize` on generated types
-// whose accessors use unsafe; the lint must be allowed at module scope because
-// attributes on macro invocations are ignored.
-#[allow(clippy::unsafe_derive_deserialize)]
+/// Typed secrets generated from `app/monosecret.toml` at compile time.
 pub mod secrets {
-	secretspec_derive::declare_secrets!("../../secretspec.toml");
+	// patch-coverage:ignore-start -- macro-generated loaders and setters are attributed to this line; `load_app_secrets` tests exercise the typed `load()` path the app uses.
+	monosecret_derive::declare_secrets!("../../monosecret.toml");
+	// patch-coverage:ignore-end
 }
 
-pub use secrets::SecretSpec as AppSecrets;
+pub use secrets::Monosecret as AppSecrets;
 
-/// Load application secrets through the `SecretSpec` SDK.
-pub fn load_app_secrets() -> Result<secretspec::Resolved<AppSecrets>, secretspec::SecretSpecError> {
-	secrets::SecretSpec::builder().load()
+/// The access reason recorded in Monosecret's audit log, and the one that
+/// satisfies the manifest's `require_reason` policy.
+const APP_SECRETS_REASON: &str = "start the monochange.dev server";
+
+/// Load application secrets through the Monosecret SDK, recording the server
+/// start as the access reason.
+///
+/// Pass `AppSecrets::builder()` to resolve the profile the environment selects:
+/// Monosecret finds `monosecret.toml` by walking up from the working directory
+/// and reads the profile from `MONOSECRET_PROFILE`. Each profile routes its own
+/// secrets, so production reads the shared 1Password item while development
+/// and CI stay on local sources. Tests pin a profile and a local store on the
+/// builder instead.
+pub fn load_app_secrets(
+	builder: secrets::MonosecretBuilder,
+) -> Result<monosecret::Resolved<AppSecrets>, monosecret::MonosecretError> {
+	builder.with_reason(APP_SECRETS_REASON).load()
 }
 
 /// The machine-to-machine API routes served by the app.
@@ -127,14 +141,21 @@ pub struct AppState {
 	pub github_client_secret: String,
 	/// GitHub's OAuth web origin, separated from the API origin.
 	pub github_oauth_origin: String,
+	/// Exact callback registered for GitHub App user authorization.
+	pub github_callback_url: String,
 	/// GitHub API origin used for authenticated user requests.
 	pub github_api_origin: String,
 	/// GitHub App credentials for the monochange bot; `None` in development.
 	pub github_app: Option<github_app::GitHubAppAuth>,
 	/// OIDC audience required in GitHub Actions tokens.
 	pub oidc_audience: String,
+	/// `MONOCHANGE_TOKEN` accepted by the hosted release endpoints; `None`
+	/// requires GitHub Actions OIDC.
+	pub api_token: Option<String>,
 	/// Shared HTTP client for GitHub API calls.
 	pub http: reqwest::Client,
+	/// Serialize refresh-token rotation so one browser session cannot invalidate another request.
+	pub github_token_refresh_lock: Arc<tokio::sync::Mutex<()>>,
 }
 
 impl AppState {
@@ -143,9 +164,13 @@ impl AppState {
 		db: monochange_app_db::DbPool,
 		secrets: AppSecrets,
 	) -> Result<Self, github_app::GitHubAppError> {
-		let jwt_secret = secrets.jwt_secret.clone().unwrap_or_default();
-		let github_client_id = secrets.github_client_id.clone().unwrap_or_default();
-		let github_client_secret = secrets.github_client_secret.clone().unwrap_or_default();
+		let jwt_secret = secrets.jwt_secret.clone();
+		let github_client_id = secrets.github_client_id.clone();
+		let github_client_secret = secrets.github_client_secret.clone();
+		let github_callback_url = std::env::var("MONOCHANGE_GITHUB_CALLBACK_URL")
+			.ok()
+			.filter(|url| !url.is_empty())
+			.unwrap_or_else(|| "https://monochange.dev/auth/callback".to_string());
 		let github_app = config::github_app_credentials(&secrets)?;
 		let oidc_audience = std::env::var("MONOCHANGE_OIDC_AUDIENCE")
 			.ok()
@@ -157,6 +182,10 @@ impl AppState {
 					.filter(|audience| !audience.is_empty())
 			})
 			.unwrap_or_else(|| "monochange.dev".to_string());
+		let api_token = secrets
+			.monochange_token
+			.clone()
+			.filter(|token| !token.is_empty());
 		let http = reqwest::Client::builder()
 			.connect_timeout(std::time::Duration::from_secs(10))
 			.timeout(std::time::Duration::from_secs(30))
@@ -169,10 +198,13 @@ impl AppState {
 			github_client_id,
 			github_client_secret,
 			github_oauth_origin: "https://github.com".to_string(),
+			github_callback_url,
 			github_api_origin: "https://api.github.com".to_string(),
 			github_app,
 			oidc_audience,
+			api_token,
 			http,
+			github_token_refresh_lock: Arc::new(tokio::sync::Mutex::new(())),
 		})
 	}
 }

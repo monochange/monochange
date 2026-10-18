@@ -94,6 +94,7 @@ fn target_has_declaration(target: &str, snapshot: &PackageSnapshot) -> bool {
 	let Some(extension) = path.extension().and_then(OsStr::to_str) else {
 		return false;
 	};
+
 	if !matches!(extension, "js" | "jsx" | "mjs" | "cjs") {
 		return false;
 	}
@@ -191,6 +192,7 @@ fn analyze_typescript_with(
 			"the npm package root is outside the analyzed repository".to_string(),
 		);
 	};
+
 	if (!package_root.as_os_str().is_empty() && !is_safe_relative_path(package_root))
 		|| !snapshot_paths_are_safe(before)
 		|| !snapshot_paths_are_safe(after)
@@ -217,6 +219,7 @@ fn analyze_typescript_with(
 				response.fallback_reason.unwrap_or(response.coverage),
 			)
 		}
+
 		Ok(response) => response_analysis(response, syntax_changes),
 		Err(reason) => fallback_analysis(syntax_changes, None, reason),
 	}
@@ -250,11 +253,13 @@ fn run_typescript_process(
 ) -> Result<TypeScriptResponse, String> {
 	let request_body = serde_json::to_vec(request)
 		.map_err(|error| format!("failed to serialize TypeScript analyzer input: {error}"))?;
+
 	if request_body.len() > max_request_bytes {
 		return Err(format!(
 			"TypeScript analyzer input exceeded its {max_request_bytes} byte limit"
 		));
 	}
+
 	let temp_dir = tempfile::Builder::new()
 		.prefix("monochange-typescript-")
 		.tempdir()
@@ -275,6 +280,7 @@ fn run_typescript_process(
 	let stdout_reader = std::thread::spawn(move || read_bounded(stdout, max_output_bytes));
 	let stderr_reader = std::thread::spawn(move || read_bounded(stderr, max_output_bytes));
 	let mut stdin = child.stdin.take().expect("stdin was configured as piped");
+
 	if let Err(error) = stdin.write_all(&request_body) {
 		let _ = child.kill();
 		let _ = child.wait();
@@ -283,6 +289,7 @@ fn run_typescript_process(
 
 		return Err(format!("failed to send TypeScript analyzer input: {error}"));
 	}
+
 	drop(stdin);
 
 	// patch-coverage:ignore-start -- wait_timeout only errors when the OS wait primitive fails;
@@ -391,6 +398,7 @@ fn response_analysis(
 	if let Some(reason) = response.fallback_reason {
 		warnings.push(reason);
 	}
+
 	warnings.sort();
 	warnings.dedup();
 

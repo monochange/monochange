@@ -94,6 +94,7 @@ fn sample_publish_request(root: &Path) -> PublishRequest {
 		package_manager: None,
 		package_metadata: BTreeMap::new(),
 		mode: PublishMode::Builtin,
+		flow: monochange_core::PublishFlow::Direct,
 		version: "0.0.0".to_string(),
 		placeholder: true,
 		trusted_publishing: TrustedPublishingSettings::default(),
@@ -421,6 +422,7 @@ fn yaml_helper_functions_cover_missing_and_inline_paths() {
 	assert!(crate::yaml_value_span("version: # comment", 0, 8).is_none());
 	assert_eq!(crate::find_yaml_quote_end("\"1.0.0\"", '"'), Some(6));
 	assert_eq!(crate::find_yaml_quote_end("\"1.0.0", '"'), None);
+
 	assert_eq!(crate::render_yaml_scalar("\"1.0.0\"", "2.0.0"), "\"2.0.0\"");
 	assert_eq!(crate::render_yaml_scalar("'1.0.0'", "2.0.0"), "'2.0.0'");
 	assert_eq!(crate::render_yaml_scalar("1.0.0", "2.0.0"), "2.0.0");

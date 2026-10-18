@@ -34,6 +34,7 @@ fn setup_cache_invalidation_repo() -> TempDir {
 	git(root, &["config", "user.email", "monochange@example.com"]);
 	git(root, &["config", "commit.gpgsign", "false"]);
 	git(root, &["add", "."]);
+
 	git(
 		root,
 		&["-c", "commit.gpgsign=false", "commit", "-m", "initial"],
@@ -104,6 +105,7 @@ fn planned_version(json: &Value, target_id: &str) -> String {
 /// set, the changed-file set, and the rendered changelog entries.
 fn preview_summary(json: &Value) -> Value {
 	let mut release_targets = Map::new();
+
 	for target in json["release_targets"]
 		.as_array()
 		.unwrap_or_else(|| panic!("release_targets was not an array: {json:#?}"))

@@ -25,9 +25,11 @@ rm -rf "${target}"
 mkdir -p "${target}/skills" "${target}/examples"
 
 git -C "${repo}" show "${ref}:${source_dir}/SKILL.md" >"${target}/SKILL.md"
+
 for path in $(git -C "${repo}" ls-tree --name-only "${ref}" "${source_dir}/skills/"); do
 	git -C "${repo}" show "${ref}:${path}" >"${target}/skills/$(basename "${path}")"
 done
+
 for path in $(git -C "${repo}" ls-tree --name-only "${ref}" "${source_dir}/examples/"); do
 	git -C "${repo}" show "${ref}:${path}" >"${target}/examples/$(basename "${path}")"
 done

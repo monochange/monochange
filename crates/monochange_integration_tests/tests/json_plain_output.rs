@@ -60,6 +60,7 @@ fn mc(root: &Path, args: &[&str]) -> Command {
 	command.env("MONOCHANGE_NO_PROGRESS", "1");
 	command.env("MONOCHANGE_RELEASE_DATE", "2026-04-06");
 	command.args(args);
+
 	command
 }
 
@@ -190,6 +191,7 @@ fn step_config_json_min_output_is_minified_without_styling() {
 	let normalized_project_root = normalize_root(tempdir.path(), &json["project_root"].to_string());
 	let normalized_config_path = normalize_root(tempdir.path(), &json["config_path"].to_string());
 	assert_eq!(normalized_project_root, "\"[ROOT]\"");
+
 	assert_eq!(normalized_config_path, "\"[ROOT]/monochange.toml\"");
 	assert_json_snapshot!(config_paths);
 }

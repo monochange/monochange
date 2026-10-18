@@ -222,6 +222,7 @@ fn validate_changeset_content(
 		let mentions_detected_item = mentioned_refs
 			.iter()
 			.any(|reference| item_refs.contains(reference));
+
 		if !mentioned_refs.is_empty() && mentions_detected_item {
 			continue;
 		}
@@ -276,29 +277,36 @@ fn find_package_analysis<'a>(
 fn render_changeset_text(changeset: &monochange_config::LoadedChangesetFile) -> String {
 	let mut text = String::new();
 	let mut wrote_part = false;
+
 	if let Some(summary) = &changeset.summary {
 		text.push_str(summary);
 		wrote_part = true;
 	}
+
 	if let Some(details) = &changeset.details {
 		if wrote_part {
 			text.push_str("\n\n");
 		}
+
 		text.push_str(details);
 	}
+
 	text
 }
 
 fn render_semantic_item_examples<'a>(items: impl IntoIterator<Item = &'a String>) -> String {
 	let mut rendered = String::new();
+
 	for (index, item) in items.into_iter().take(3).enumerate() {
 		if index > 0 {
 			rendered.push_str(", ");
 		}
+
 		rendered.push('`');
 		rendered.push_str(item);
 		rendered.push('`');
 	}
+
 	rendered
 }
 
@@ -312,6 +320,7 @@ fn extract_backticked_refs(text: &str) -> BTreeSet<String> {
 			if inside && !current.trim().is_empty() {
 				refs.insert(current.trim().to_string());
 			}
+
 			inside = !inside;
 			current.clear();
 			continue;
@@ -329,12 +338,15 @@ fn semantic_item_refs(
 	package_analysis: &monochange_analysis::PackageChangeAnalysis,
 ) -> BTreeSet<String> {
 	let mut refs = BTreeSet::new();
+
 	for change in &package_analysis.semantic_changes {
 		refs.insert(change.item_path.clone());
+
 		if let Some(last_segment) = change.item_path.rsplit("::").next() {
 			refs.insert(last_segment.to_string());
 		}
 	}
+
 	refs
 }
 
@@ -847,6 +859,7 @@ impl MonochangeMcpServer {
 		Parameters(params): Parameters<ClassifyChangesParam>,
 	) -> Result<CallToolResult, McpError> {
 		let root = resolve_root(params.path.as_deref());
+
 		let detection_level = match params.detection_level.as_deref() {
 			None | Some("signature") => monochange_core::DetectionLevel::Signature,
 			Some("basic") => monochange_core::DetectionLevel::Basic,
@@ -862,6 +875,7 @@ impl MonochangeMcpServer {
 				})));
 			}
 		};
+
 		let dependency_propagation = match params.dependency_propagation.as_deref() {
 			None | Some("none") => monochange_classification::DependencyPropagation::None,
 			Some("public") => monochange_classification::DependencyPropagation::Public,
@@ -876,6 +890,7 @@ impl MonochangeMcpServer {
 				})));
 			}
 		};
+
 		let options = monochange_classification::ClassifyOptions {
 			base: params.base,
 			head: params.head.unwrap_or_else(|| "HEAD".to_string()),
@@ -890,6 +905,7 @@ impl MonochangeMcpServer {
 			labels: Vec::new(),
 			dependency_propagation,
 		};
+
 		let output = match monochange_classification::render_change_classification(&root, &options)
 		{
 			Ok(output) => output,

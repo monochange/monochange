@@ -50,10 +50,12 @@ pub fn read_cli_snapshot_baseline(root: &Path, name: &str) -> CliSnapshotBaselin
 	let Ok(contents) = fs::read_to_string(&path) else {
 		return CliSnapshotBaseline::Missing;
 	};
+
 	let snapshot: CommandSnapshot = match serde_json::from_str(&contents) {
 		Ok(snapshot) => snapshot,
 		Err(error) => return CliSnapshotBaseline::Invalid(error.to_string()),
 	};
+
 	if snapshot.schema_version == SNAPSHOT_SCHEMA_VERSION {
 		CliSnapshotBaseline::Current(snapshot)
 	} else {
@@ -71,6 +73,7 @@ pub fn save_cli_snapshot_baseline(
 	snapshot: &CommandSnapshot,
 ) -> MonochangeResult<PathBuf> {
 	let path = root.join(cli_snapshot_baseline_path(name));
+
 	if let Some(parent) = path.parent()
 		&& let Err(error) = fs::create_dir_all(parent)
 	{
@@ -121,6 +124,7 @@ pub fn capture_cli_snapshot(
 			.current_dir(&cwd)
 			.output()
 	};
+
 	let output = output.map_err(|error| {
 		MonochangeError::Io(format!(
 			"failed to run cli snapshot command `{}` for package `{package_id}`: {error}",
@@ -144,6 +148,7 @@ pub fn capture_cli_snapshot(
 			definition.command
 		))
 	})?;
+
 	if snapshot.schema_version != SNAPSHOT_SCHEMA_VERSION {
 		return Err(MonochangeError::Config(format!(
 			"cli snapshot for `{}` was captured with schema version `{}` but this monochange expects `{SNAPSHOT_SCHEMA_VERSION}`; regenerate the snapshot with a compatible tool",
@@ -164,6 +169,7 @@ fn resolve_snapshot_cwd(root: &Path, definition: &CliSnapshotCommandDefinition) 
 fn stderr_excerpt(stderr: &[u8]) -> String {
 	let lossy = String::from_utf8_lossy(stderr);
 	let stderr = lossy.trim();
+
 	if stderr.is_empty() {
 		String::new()
 	} else {
@@ -209,6 +215,7 @@ pub fn run_package_snapshot(
 		))
 	})?;
 	let captured = capture_cli_snapshot(root, package_id, cli)?;
+
 	if save {
 		let path = save_cli_snapshot_baseline(root, &cli.name, &captured.snapshot)?;
 		return Ok(format!(
@@ -217,6 +224,7 @@ pub fn run_package_snapshot(
 			root_relative(root, &path).display()
 		));
 	}
+
 	captured
 		.snapshot
 		.view(view)
@@ -229,11 +237,13 @@ pub fn run_package_snapshot(
 pub fn list_registered_clis(root: &Path) -> MonochangeResult<String> {
 	let configuration = monochange_config::load_workspace_configuration(root)?;
 	let mut lines = Vec::new();
+
 	for definition in &configuration.packages {
 		let Some(cli) = definition.cli.as_ref() else {
 			continue;
 		};
 		let baseline = read_cli_snapshot_baseline(root, &cli.name);
+
 		let status = match &baseline {
 			CliSnapshotBaseline::Current(_) => "baseline current",
 			CliSnapshotBaseline::Missing => "baseline missing",
@@ -241,17 +251,20 @@ pub fn list_registered_clis(root: &Path) -> MonochangeResult<String> {
 				"baseline stale or invalid"
 			}
 		};
+
 		lines.push(format!(
 			"{}\t{}\t{}\t{}",
 			cli.name, definition.id, cli.snapshot.command, status
 		));
 	}
+
 	if lines.is_empty() {
 		return Ok(
 			"No packages register a cli. Add `[package.<id>].cli = { name = \"<binary>\", snapshot = \"<command>\" }` to monochange.toml."
 				.to_string(),
 		);
 	}
+
 	lines.insert(0, "name\tpackage\tsnapshot command\tbaseline".to_string());
 	Ok(lines.join("\n"))
 }

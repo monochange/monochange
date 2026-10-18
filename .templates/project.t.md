@@ -4,7 +4,7 @@
 
 It discovers packages, normalizes dependency data, applies group rules, turns explicit change files into release plans, and can run config-defined release preparation from those same inputs.
 
-Use it when your repository has outgrown one-ecosystem release tooling and you want one model for Cargo, npm/pnpm/Bun, Deno, Dart/Flutter, Python, and Go.
+Use it when your repository has outgrown one-ecosystem release tooling and you want one model for Cargo, npm/pnpm/Yarn/Bun, Deno, Dart/Flutter, Python, and Go.
 
 <!-- {/projectReadmeOverview} -->
 
@@ -36,7 +36,7 @@ Use it when your repository has outgrown one-ecosystem release tooling and you w
 | `monochange_semver`     | [![Crates.io](https://img.shields.io/badge/crates.io-monochange__semver-orange?logo=rust)](https://crates.io/crates/monochange_semver) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__semver-1f425f?logo=docs.rs)](https://docs.rs/monochange_semver/)                 | merges requested bumps with compatibility-provider evidence.                                    |
 | `monochange_telemetry`  | [![Crates.io](https://img.shields.io/badge/crates.io-monochange__telemetry-orange?logo=rust)](https://crates.io/crates/monochange_telemetry) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__telemetry-1f425f?logo=docs.rs)](https://docs.rs/monochange_telemetry/)     | local-only telemetry event sink and privacy-preserving event schema helpers.                    |
 | `monochange_cargo`      | [![Crates.io](https://img.shields.io/badge/crates.io-monochange__cargo-orange?logo=rust)](https://crates.io/crates/monochange_cargo) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__cargo-1f425f?logo=docs.rs)](https://docs.rs/monochange_cargo/)                     | Cargo discovery plus Rust semver evidence integration.                                          |
-| `monochange_npm`        | [![Crates.io](https://img.shields.io/badge/crates.io-monochange__npm-orange?logo=rust)](https://crates.io/crates/monochange_npm) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__npm-1f425f?logo=docs.rs)](https://docs.rs/monochange_npm/)                             | npm, pnpm, and Bun workspace discovery.                                                         |
+| `monochange_npm`        | [![Crates.io](https://img.shields.io/badge/crates.io-monochange__npm-orange?logo=rust)](https://crates.io/crates/monochange_npm) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__npm-1f425f?logo=docs.rs)](https://docs.rs/monochange_npm/)                             | npm, pnpm, Yarn, and Bun workspace discovery.                                                   |
 | `monochange_deno`       | [![Crates.io](https://img.shields.io/badge/crates.io-monochange__deno-orange?logo=rust)](https://crates.io/crates/monochange_deno) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__deno-1f425f?logo=docs.rs)](https://docs.rs/monochange_deno/)                         | Deno workspace and package discovery.                                                           |
 | `monochange_dart`       | [![Crates.io](https://img.shields.io/badge/crates.io-monochange__dart-orange?logo=rust)](https://crates.io/crates/monochange_dart) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__dart-1f425f?logo=docs.rs)](https://docs.rs/monochange_dart/)                         | Dart and Flutter workspace discovery.                                                           |
 | `monochange_python`     | [![Crates.io](https://img.shields.io/badge/crates.io-monochange__python-orange?logo=rust)](https://crates.io/crates/monochange_python) [![Docs.rs](https://img.shields.io/badge/docs.rs-monochange__python-1f425f?logo=docs.rs)](https://docs.rs/monochange_python/)                 | Python uv workspace, Poetry, and pyproject.toml discovery.                                      |
@@ -52,7 +52,7 @@ Use it when your repository has outgrown one-ecosystem release tooling and you w
 
 <!-- {@projectMilestoneCapabilities} -->
 
-- discover Cargo, npm/pnpm/Bun, Deno, Dart, Flutter, Python, and Go packages
+- discover Cargo, npm/pnpm/Yarn/Bun, Deno, Dart, Flutter, Python, and Go packages
 - normalize dependency edges across ecosystems
 - coordinate shared package groups from `monochange.toml`
 - compute release plans from explicit change input
@@ -166,7 +166,7 @@ These are common commands for repositories using monochange. Optional `[cli.*]` 
 
 | Capability                                                                     | Current status                                                                                                                        |
 | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
-| Multi-ecosystem discovery                                                      | Cargo, npm/pnpm/Bun, Deno, Dart, Flutter, Python, Go                                                                                  |
+| Multi-ecosystem discovery                                                      | Cargo, npm/pnpm/Yarn/Bun, Deno, Dart, Flutter, Python, Go                                                                             |
 | Package release planning                                                       | Built in                                                                                                                              |
 | Grouped/shared versioning                                                      | Built in                                                                                                                              |
 | Internal dependency version synchronization                                    | All supported ecosystems via `monochange versions`; release planning also updates supported ecosystems during releases                |

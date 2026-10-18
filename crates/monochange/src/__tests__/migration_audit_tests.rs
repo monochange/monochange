@@ -4,9 +4,11 @@ use super::*;
 
 fn write_file(root: &std::path::Path, relative_path: &str, contents: &str) {
 	let path = root.join(relative_path);
+
 	if let Some(parent) = path.parent() {
 		fs::create_dir_all(parent).unwrap_or_else(|error| panic!("create parent: {error}"));
 	}
+
 	fs::write(&path, contents).unwrap_or_else(|error| panic!("write {}: {error}", path.display()));
 }
 

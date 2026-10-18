@@ -200,6 +200,7 @@ fn parser_backed_symbol_collection_handles_type_reexports_and_ts_declarations() 
 			symbol.item_kind == "default_export" && symbol.item_path == "default"
 		}));
 		assert!(!symbols.iter().any(|symbol| symbol.item_path == "hidden"));
+
 		assert!(!symbols.iter().any(|symbol| symbol.item_path == "Legacy"));
 	}
 }
@@ -395,6 +396,7 @@ fn snapshot_and_symbol_helpers_cover_additional_ecmascript_branches() {
 				.any(|((_, item_path), _)| item_path == expected)
 		);
 	}
+
 	for expected in ["previous", "cli::run", "cli::Runner", "cli::build"] {
 		assert!(
 			deno_symbols
@@ -417,6 +419,7 @@ fn snapshot_and_symbol_helpers_cover_additional_ecmascript_branches() {
 		module_prefix_for_file(Path::new("mod.ts"), &DENO_CONFIG),
 		Vec::<String>::new()
 	);
+
 	assert_eq!(
 		module_prefix_for_file(Path::new("src/mod.ts"), &DENO_CONFIG),
 		Vec::<String>::new()
@@ -445,6 +448,7 @@ fn snapshot_and_symbol_helpers_cover_additional_ecmascript_branches() {
 	);
 	assert!(parse_declaration_export("export declare function run() {}", &DENO_CONFIG).is_none());
 	assert!(parse_declaration_export("export namespace Toolkit {}", &DENO_CONFIG).is_none());
+
 	assert_eq!(
 		extract_quoted_text("from './toolkit'"),
 		Some("./toolkit".to_string())

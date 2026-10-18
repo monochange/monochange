@@ -84,12 +84,14 @@ export function resolveMonochangeCli(override = process.env["MONOCHANGE_EVAL_CLI
 	}
 
 	const candidate = join(REPO_ROOT, "target", "debug", "monochange");
+
 	if (!existsSync(candidate)) {
 		throw new Error(
 			`No monochange CLI found. Expected:\n  ${candidate}\n` +
 				`Build it from the repository root with: devenv shell -- cargo build -p monochange`,
 		);
 	}
+
 	return resolve(candidate);
 }
 
@@ -104,10 +106,12 @@ export function resolveSkillVariant(variant: string): string {
 		if (!existsSync(variant)) {
 			throw new Error(`Skill variant not found: ${variant}`);
 		}
+
 		return variant;
 	}
 
 	const frozen = join(SKILL_VARIANT_DIR, variant);
+
 	if (existsSync(frozen)) {
 		return frozen;
 	}
@@ -175,26 +179,32 @@ export function copyForGrading(workdir: string, destination: string): void {
 	const links: { path: string; target: string }[] = [];
 	function insideSource(path: string): boolean {
 		const offset = relative(source, path);
+
 		return offset !== ".." && !offset.startsWith(`..${sep}`) && !isAbsolute(offset);
 	}
 	function inspect(directory: string): void {
 		for (const entry of readdirSync(directory, { withFileTypes: true })) {
 			const path = join(directory, entry.name);
+
 			if (entry.isDirectory()) inspect(path);
 			else if (entry.isSymbolicLink()) {
 				// Resolve chains and OS aliases such as /tmp -> /private/tmp, then
 				// remap only a target inside the saved workspace. Broken links fail.
 				const target = realpathSync(resolve(dirname(path), readlinkSync(path)));
+
 				if (!insideSource(target)) {
 					throw new Error(`grading symlink escapes saved workspace: ${path}`);
 				}
+
 				links.push({ path: relative(source, path), target: relative(source, target) });
 			}
 		}
 	}
+
 	inspect(source);
 	resetDir(destination);
 	cpSync(source, destination, { recursive: true, verbatimSymlinks: true });
+
 	for (const link of links) {
 		const path = join(destination, link.path);
 		unlinkSync(path);
@@ -215,9 +225,11 @@ export function resetDir(path: string): void {
 /// an absolute path would break for every other checkout.
 export function copyFixture(fixtureName: string, destination: string): void {
 	const source = join(FIXTURE_DIR, fixtureName);
+
 	if (!existsSync(source)) {
 		throw new Error(`Fixture not found: ${source}`);
 	}
+
 	resetDir(destination);
 	cpSync(source, destination, { recursive: true });
 	substitutePlaceholders(destination);
@@ -229,15 +241,18 @@ function substitutePlaceholders(root: string): void {
 		if (file.includes(`${sep}target${sep}`) || file.includes(`${sep}.git${sep}`)) {
 			continue;
 		}
+
 		let contents: string;
 		try {
 			contents = readFileSync(file, "utf8");
 		} catch {
 			continue;
 		}
+
 		if (!contents.includes("${MONOCHANGE_ROOT}")) {
 			continue;
 		}
+
 		writeFileSync(file, contents.replaceAll("${MONOCHANGE_ROOT}", REPO_ROOT));
 	}
 }
@@ -245,14 +260,17 @@ function substitutePlaceholders(root: string): void {
 /// Recursively list files under `root`.
 function walk(root: string): string[] {
 	const found: string[] = [];
+
 	for (const entry of readdirSync(root, { withFileTypes: true })) {
 		const path = join(root, entry.name);
+
 		if (entry.isDirectory()) {
 			found.push(...walk(path));
 		} else if (entry.isFile()) {
 			found.push(path);
 		}
 	}
+
 	return found;
 }
 

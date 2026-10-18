@@ -1,0 +1,89 @@
+{
+	"changed_files": [
+		"crates/kogkellsnvmp_0/src/lib.rs",
+		"crates/kogkellsnvmp_1/src/lib.rs",
+		"crates/kogkellsnvmp_2/src/lib.rs",
+		"crates/kogkellsnvmp_3/src/lib.rs",
+		"crates/kogkellsnvmp_4/src/lib.rs"
+	],
+	"changelogs": [],
+	"changesets": [
+		{
+			"details": "Generated from deterministic proptest seed 5009813865008077492.",
+			"path": ".changeset/schema-artifact-5.md",
+			"summary": "Exercise schema artifact fixture 5",
+			"targets": [
+				{
+					"bump": "none",
+					"caused_by": [
+						"kogkellsnvmp-schema-compat"
+					],
+					"change_type": "refactor",
+					"evidence_refs": [
+						"crates/kogkellsnvmp_0/src/lib.rs"
+					],
+					"id": "kogkellsnvmp_0",
+					"kind": "package",
+					"origin": ".changeset/schema-artifact-5.md"
+				}
+			]
+		}
+	],
+	"command": "monochange release --dry-run",
+	"created_at": "2026-01-05T00:00:00Z",
+	"deleted_changesets": [
+		".changeset/schema-artifact-5.md"
+	],
+	"kind": "monochange.releaseRecord",
+	"package_publications": [
+		{
+			"ecosystem": "cargo",
+			"package": "kogkellsnvmp_0",
+			"version": "0.10.5"
+		},
+		{
+			"ecosystem": "cargo",
+			"package": "kogkellsnvmp_1",
+			"version": "0.10.5"
+		},
+		{
+			"ecosystem": "cargo",
+			"package": "kogkellsnvmp_2",
+			"version": "0.10.5"
+		}
+	],
+	"provider": {
+		"host": null,
+		"kind": "gitea",
+		"owner": "kogkellsnvmp",
+		"repo": "juthg"
+	},
+	"release_targets": [
+		{
+			"id": "main",
+			"kind": "group",
+			"members": [],
+			"release": true,
+			"tag": true,
+			"tag_name": "v0.10.5",
+			"version": "0.10.5",
+			"version_format": "primary"
+		}
+	],
+	"released_packages": [
+		"kogkellsnvmp_0",
+		"kogkellsnvmp_1",
+		"kogkellsnvmp_2"
+	],
+	"schema_version": "0.10",
+	"updated_changelogs": [
+		"fixtures/changelog-5.md"
+	],
+	"version": "0.10.5",
+	"versions": {
+		"kogkellsnvmp_0": "0.10.5",
+		"kogkellsnvmp_1": "0.10.5",
+		"kogkellsnvmp_2": "0.10.5",
+		"main": "0.10.5"
+	}
+}

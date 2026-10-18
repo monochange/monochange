@@ -16,11 +16,13 @@ in
 {
   packages =
     with pkgs;
+
     [
       cargo-binstall
       cargo-run-bin
       cacert
       custom.mdt
+      custom.monostyle
       doctl
       dprint
       gh
@@ -330,8 +332,17 @@ in
         fix:format
         fix:js
         fix:workflows
+        fix:monostyle
       '';
       description = "Fix all autofixable problems, including shared-doc synchronization via `mdt update`.";
+      binary = "bash";
+    };
+    "fix:monostyle" = {
+      exec = ''
+        set -euo pipefail
+        monostyle fix .
+      '';
+      description = "Apply monostyle's autofixable readability fixes.";
       binary = "bash";
     };
     "fix:format" = {
@@ -400,6 +411,14 @@ in
       description = "Scan GitHub Actions workflows for security vulnerabilities with zizmor.";
       binary = "bash";
     };
+    "lint:devenv-env" = {
+      exec = ''
+        set -euo pipefail
+        pnpm node scripts/check-devenv-env-allowlist.ts
+      '';
+      description = "Check devenv shell workflow steps keep their env variables through devenv.yaml clean.keep.";
+      binary = "bash";
+    };
     "deny:check" = {
       exec = ''
         set -euo pipefail
@@ -429,6 +448,7 @@ in
         run_step "lint:js" ${currentDir}/.devenv/profile/bin/lint:js
         run_step "lint:js:types" ${currentDir}/.devenv/profile/bin/lint:js:types
         run_step "lint:workflows" ${currentDir}/.devenv/profile/bin/lint:workflows
+        run_step "lint:devenv-env" ${currentDir}/.devenv/profile/bin/lint:devenv-env
         run_step "deny:check" ${currentDir}/.devenv/profile/bin/deny:check
         run_step "docs:check" ${currentDir}/.devenv/profile/bin/docs:check
         run_step "lint:monochange" ${currentDir}/.devenv/profile/bin/lint:monochange
@@ -456,11 +476,21 @@ in
         run_step "lint:js" lint:js
         run_step "lint:js:types" lint:js:types
         run_step "lint:workflows" lint:workflows
+        run_step "lint:devenv-env" lint:devenv-env
         run_step "deny:check" deny:check
         run_step "docs:check" docs:check
         run_step "lint:monochange" lint:monochange
+        run_step "lint:monostyle" lint:monostyle
       '';
       description = "Run all checks.";
+      binary = "bash";
+    };
+    "lint:monostyle" = {
+      exec = ''
+        set -euo pipefail
+        monostyle check . --fail-under 75
+      '';
+      description = "Check code readability and complexity with monostyle.";
       binary = "bash";
     };
     "lint:format" = {

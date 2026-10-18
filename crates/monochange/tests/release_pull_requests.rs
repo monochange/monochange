@@ -48,6 +48,7 @@ fn release_pull_request_body_is_capped_at_the_configured_limit() {
 		.get("body")
 		.and_then(serde_json::Value::as_str)
 		.unwrap_or_else(|| panic!("expected a rendered body"));
+
 	assert!(body.chars().count() <= 500);
 	assert!(body.contains("## Prepared release"));
 	assert!(body.contains("## Full release notes"));

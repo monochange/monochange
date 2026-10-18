@@ -398,6 +398,7 @@ require_registry_provenance = true
 
 [package.web.publish]
 mode = "builtin"
+flow = "staged"
 
 [package.web.publish.placeholder]
 readme_file = "docs/web-placeholder.md"
@@ -411,6 +412,7 @@ Supported fields:
 - `enabled` - include this package in managed publishing
 - `mode` - `builtin` or `external`. When `builtin` (the default), monochange's built-in publisher handles release publishing. When `external`, monochange skips the package during release publishing (`PublishPackages`): your own CI or scripts handle release publishing instead. The `mode` setting does **not** affect placeholder publishing (`PlaceholderPublish`), which processes all packages with `publish.enabled = true`.
 - `registry` - public registry override for the package ecosystem
+- `flow` - npm-only release flow: `direct` (the default) runs `npm publish` so the version is installable immediately, or `staged` runs `npm stage publish` so the version waits in the npm staging queue until a maintainer approves it with 2FA. Requires npm CLI 11.15+ (pnpm workspaces stage through `pnpm stage publish`). Placeholder publishing always stays direct, and other ecosystems reject the override. See [Trusted publishing](07-trusted-publishing.md) for how staged publishing composes with trusted publishing.
 - `trusted_publishing` - `true`/`false` or a table with `enabled`, `repository`, `workflow`, and `environment`
 - `attestations.require_registry_provenance` - require registry-native package provenance when the selected registry/provider capability supports it
 - `rate_limits.enforce` - block built-in publish runs when the selected package set exceeds a known single registry window

@@ -44,6 +44,7 @@ const CHANGESET_DIR_NAME: &str = ".changeset";
 const CHANGESET_EXTENSION: &str = "md";
 const PRERELEASE_STATE_PATH: &str = ".monochange/prerelease-state.json";
 const RELEASE_RECORDS_DIR_NAME: &str = ".monochange/releases";
+
 const RELEASE_RECORD_FILE_NAME: &str = "release.json";
 const FNV_OFFSET_BASIS: u64 = 14_695_981_039_346_656_037;
 const FNV_PRIME: u64 = 1_099_511_628_211;
@@ -119,6 +120,7 @@ impl Serialize for PreparedFileDiffsRef<'_> {
 		S: serde::Serializer,
 	{
 		let mut sequence = serializer.serialize_seq(Some(self.0.len()))?;
+
 		for file_diff in self.0 {
 			sequence.serialize_element(&PreparedFileDiffRef {
 				path: file_diff.path.as_path(),
@@ -126,6 +128,7 @@ impl Serialize for PreparedFileDiffsRef<'_> {
 				display_diff: file_diff.display_diff.as_str(),
 			})?;
 		}
+
 		sequence.end()
 	}
 }
@@ -227,10 +230,12 @@ pub(crate) async fn maybe_load_prepared_release_execution(
 	{
 		Ok(Some(loaded)) => Ok(Some(loaded)),
 		Ok(None) => Ok(None),
+
 		Err(error) if explicit_path.is_none() => {
 			tracing::debug!(%error, "ignoring stale prepared release artifact");
 			Ok(None)
 		}
+
 		Err(error) => Err(error),
 	}
 }
@@ -244,6 +249,7 @@ pub(crate) async fn save_prepared_release_execution(
 ) -> MonochangeResult<()> {
 	let artifact_path = resolve_prepared_release_artifact_path(root, explicit_path);
 	ensure_monochange_artifact_ignored(root, &artifact_path).await?;
+
 	if let Some(parent) = artifact_path.parent() {
 		fs::create_dir_all(parent).map_err(|error| {
 			MonochangeError::Io(format!(
@@ -357,6 +363,7 @@ async fn validate_prepared_release_artifact(
 	}
 
 	let current_head = git_head_commit(root).await?;
+
 	if current_head != artifact.head_commit {
 		return Err(stale_artifact_error(
 			artifact_path,
@@ -368,6 +375,7 @@ async fn validate_prepared_release_artifact(
 	}
 
 	let current_status = git_status_snapshot(root, Some(artifact_path)).await?;
+
 	if current_status != artifact.worktree_status {
 		return Err(stale_artifact_error(
 			artifact_path,
@@ -376,6 +384,7 @@ async fn validate_prepared_release_artifact(
 	}
 
 	let current_tracked_paths = tracked_path_snapshots(root, &artifact.prepared_release).await?;
+
 	if current_tracked_paths != artifact.tracked_paths {
 		return Err(stale_artifact_error(
 			artifact_path,
@@ -420,6 +429,7 @@ fn validate_prepared_release_input_fingerprint(
 	};
 
 	let current = prepared_release_input_fingerprint(root, configuration)?;
+
 	if saved == current {
 		return Ok(());
 	}
@@ -434,10 +444,19 @@ fn validate_prepared_release_input_fingerprint(
 ///
 /// The plan reads the pending changeset bytes, the changeset set, package
 /// manifests (including workspace-level manifests that supply inherited
-/// versions), the workspace configuration, prerelease state, and release
-/// records. Git status is not a substitute: an untracked or already-dirty file
-/// keeps the same status line when its bytes change, so a severity or body edit
-/// would otherwise be served from a stale plan.
+/// versions), the workspace configuration, prerelease state, release records,
+/// and the detected change frame. Git status is not a substitute: an untracked
+/// or already-dirty file keeps the same status line when its bytes change, so a
+/// severity or body edit would otherwise be served from a stale plan.
+///
+/// # Why the change frame is part of the fingerprint
+///
+/// Semantic `SemVer` evidence is computed from the change frame, which differs by
+/// branch: a feature branch compares against the default branch while the
+/// default branch itself analyzes the working directory. After a fast-forward
+/// merge the commits, changesets, and HEAD are identical on both branches, so
+/// without the frame in the fingerprint the default branch would silently reuse
+/// the feature branch's evidence-raised plan.
 ///
 /// Paths are workspace-relative so the fingerprint does not depend on where the
 /// checkout lives, and each record is length-delimited so adjacent files cannot
@@ -454,10 +473,17 @@ fn prepared_release_input_fingerprint(
 	for package in &configuration.packages {
 		insert_package_manifest_inputs(&mut inputs, root, package);
 	}
+
 	insert_release_record_inputs(&mut inputs, root);
 
+	let frame = monochange_analysis::ChangeFrame::detect(root)
+		.map_or_else(|_| "unknown".to_string(), |frame| frame.revision_range());
 	let mut hash = FNV_OFFSET_BASIS;
 	hash = update_input_fingerprint_hash(hash, INPUT_FINGERPRINT_DOMAIN);
+	hash = update_input_fingerprint_hash(hash, b"\0");
+	hash = update_input_fingerprint_hash(hash, b"change-frame");
+	hash = update_input_fingerprint_hash(hash, b"\0");
+	hash = update_input_fingerprint_hash(hash, frame.as_bytes());
 	hash = update_input_fingerprint_hash(hash, b"\0");
 
 	for path in &inputs {
@@ -491,6 +517,7 @@ fn insert_changeset_inputs(inputs: &mut BTreeSet<PathBuf>, root: &Path) {
 
 	for entry in entries.flatten() {
 		let path = entry.path();
+
 		if path.extension().and_then(|value| value.to_str()) == Some(CHANGESET_EXTENSION) {
 			inputs.insert(path);
 		}
@@ -509,16 +536,20 @@ fn insert_package_manifest_inputs(
 	// workspace manifests carry inherited versions and dependency constraints
 	// that release planning reads through the package record.
 	let mut directory = Some(package_root.as_path());
+
 	while let Some(current) = directory {
 		if !current.starts_with(root) {
 			break;
 		}
+
 		for manifest_name in &manifest_names {
 			insert_existing_file(inputs, current.join(manifest_name));
 		}
+
 		if current == root {
 			break;
 		}
+
 		directory = current.parent();
 	}
 }
@@ -558,6 +589,7 @@ fn update_input_fingerprint_hash(mut hash: u64, bytes: &[u8]) -> u64 {
 		hash ^= u64::from(*byte);
 		hash = hash.wrapping_mul(FNV_PRIME);
 	}
+
 	hash
 }
 
@@ -579,6 +611,7 @@ async fn git_status_snapshot(
 	)
 	.await
 	.map_err(|error| MonochangeError::Io(format!("failed to read git status: {error}")))?;
+
 	if !output.status.success() {
 		return Err(MonochangeError::Config(format!(
 			"failed to read git status: {}",
@@ -607,6 +640,7 @@ fn status_line_path(line: &str) -> Option<&str> {
 	if line.len() < 4 {
 		return None;
 	}
+
 	Some(line[3..].trim())
 }
 
@@ -626,8 +660,10 @@ async fn tracked_path_snapshots(
 	let mut snapshots = Vec::with_capacity(tracked_paths.len());
 	let mut file_paths = Vec::with_capacity(tracked_paths.len());
 	let mut file_snapshot_indices = Vec::with_capacity(tracked_paths.len());
+
 	for path in tracked_paths {
 		let absolute_path = resolve_config_path(root, path);
+
 		if absolute_path.exists() {
 			let relative_path = root_relative(root, &absolute_path);
 			let relative = relative_path.to_string_lossy().into_owned();
@@ -648,6 +684,7 @@ async fn tracked_path_snapshots(
 	}
 
 	let hashes = hash_files_at_paths(root, &file_paths).await?;
+
 	for (snapshot_index, hash) in file_snapshot_indices.into_iter().zip(hashes) {
 		if let Some(snapshot) = snapshots.get_mut(snapshot_index) {
 			snapshot.hash = Some(hash);
@@ -670,6 +707,7 @@ async fn hash_files_at_paths(root: &Path, paths: &[String]) -> MonochangeResult<
 	let output = git_command_output(root, &args)
 		.await
 		.map_err(|error| MonochangeError::Io(format!("failed to hash files: {error}")))?;
+
 	if !output.status.success() {
 		return Err(MonochangeError::Config(format!(
 			"failed to hash files: {}",
@@ -687,6 +725,7 @@ fn parse_hash_object_output(stdout: &[u8], expected_count: usize) -> MonochangeR
 		.filter(|hash| !hash.is_empty())
 		.map(str::to_string)
 		.collect::<Vec<_>>();
+
 	if hashes.len() != expected_count {
 		return Err(MonochangeError::Config(format!(
 			"failed to hash files: expected {expected_count} hashes, got {}",
@@ -702,6 +741,7 @@ pub(crate) async fn ensure_monochange_artifact_ignored(
 	artifact_path: &Path,
 ) -> MonochangeResult<()> {
 	let monochange_dir = root.join(".monochange");
+
 	if !artifact_path.starts_with(&monochange_dir) {
 		return Ok(());
 	}
@@ -711,6 +751,7 @@ pub(crate) async fn ensure_monochange_artifact_ignored(
 		.map_err(|error| {
 			MonochangeError::Io(format!("failed to resolve git exclude path: {error}"))
 		})?;
+
 	if !output.status.success() {
 		// Non-git workspaces can still use the artifact; the ignore rule is only
 		// needed to keep git status clean when a repository exists.
@@ -725,6 +766,7 @@ pub(crate) async fn ensure_monochange_artifact_ignored(
 			root.join(raw_path)
 		}
 	};
+
 	if let Some(parent) = exclude_path.parent() {
 		fs::create_dir_all(parent).map_err(|error| {
 			MonochangeError::Io(format!(
@@ -733,7 +775,9 @@ pub(crate) async fn ensure_monochange_artifact_ignored(
 			))
 		})?;
 	}
+
 	let existing = fs::read_to_string(&exclude_path).unwrap_or_default();
+
 	if existing
 		.lines()
 		.any(|line| line.trim() == ".monochange/local/")
@@ -742,9 +786,11 @@ pub(crate) async fn ensure_monochange_artifact_ignored(
 	}
 
 	let mut updated = existing;
+
 	if !updated.is_empty() && !updated.ends_with('\n') {
 		updated.push('\n');
 	}
+
 	updated.push_str(".monochange/local/\n");
 	fs::write(&exclude_path, updated).map_err(|error| {
 		MonochangeError::Io(format!(

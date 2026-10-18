@@ -99,15 +99,19 @@ export const platforms = [
 
 export function parseArgs(argv) {
 	const args: Record<string, string> = {};
+
 	for (let index = 0; index < argv.length; index += 1) {
 		const key = argv[index];
 		const value = argv[index + 1];
+
 		if (!key.startsWith("--") || value === undefined) {
 			continue;
 		}
+
 		args[key.slice(2)] = value;
 		index += 1;
 	}
+
 	return args;
 }
 
@@ -121,26 +125,32 @@ export function run(command, args, options: { stdio?: "pipe" | "inherit"; cwd?: 
 		stdio: options.stdio ?? "pipe",
 		cwd: options.cwd,
 	});
+
 	if (result.status !== 0) {
 		const detail = result.stderr || result.stdout || `exit code ${result.status ?? "unknown"}`;
 		throw new Error(`${command} ${args.join(" ")} failed: ${detail}`);
 	}
+
 	return result;
 }
 
 export function findArchive(assetsDir, target, releaseTag, archiveExt) {
 	const archiveName = `monochange-${target}-${releaseTag}.${archiveExt}`;
 	const archivePath = join(assetsDir, archiveName);
+
 	if (!existsSync(archivePath)) {
 		throw new Error(`missing release asset: ${archiveName}`);
 	}
+
 	return archivePath;
 }
 
 export function* walk(dir) {
 	const entries = readdirSync(dir, { withFileTypes: true });
+
 	for (const entry of entries) {
 		const entryPath = join(dir, entry.name);
+
 		if (entry.isDirectory()) {
 			yield* walk(entryPath);
 		} else {
@@ -151,14 +161,19 @@ export function* walk(dir) {
 
 export function extractArchive(archivePath, destinationDir) {
 	ensureDirectory(destinationDir);
+
 	if (archivePath.endsWith(".zip")) {
 		run("unzip", ["-q", archivePath, "-d", destinationDir]);
+
 		return;
 	}
+
 	if (archivePath.endsWith(".tar.gz")) {
 		run("tar", ["-xzf", archivePath, "-C", destinationDir]);
+
 		return;
 	}
+
 	throw new Error(`unsupported archive: ${basename(archivePath)}`);
 }
 
@@ -168,6 +183,7 @@ export function findBinary(extractedDir, binaryName) {
 			return filePath;
 		}
 	}
+
 	throw new Error(`could not find ${binaryName} in ${extractedDir}`);
 }
 
@@ -186,6 +202,7 @@ export function populatePlatformPackage({ packagesDir, spec, releaseTag, assetsD
 
 	ensureDirectory(binDir);
 	copyFileSync(binaryPath, join(binDir, spec.binaryName));
+
 	if (spec.binaryName === "monochange") {
 		chmodSync(join(binDir, spec.binaryName), 0o755);
 	}

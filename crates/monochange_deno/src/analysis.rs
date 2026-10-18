@@ -196,6 +196,7 @@ fn parse_manifest(
 	warnings: &mut Vec<String>,
 ) -> Option<Value> {
 	let contents = contents?;
+
 	match crate::parse_manifest_contents(contents) {
 		Ok(value) => Some(value),
 		Err(error) => {
@@ -228,6 +229,7 @@ fn collect_export_entries(
 				collect_export_entries(key, nested, entries);
 			}
 		}
+
 		return;
 	}
 
@@ -332,6 +334,7 @@ fn compare_manifest_entries(
 					Some(after_entry.value.clone()),
 				));
 			}
+
 			Some(before_entry) if before_entry != after_entry => {
 				changes.push(build_manifest_change(
 					category,
@@ -343,6 +346,7 @@ fn compare_manifest_entries(
 					Some(after_entry.value.clone()),
 				));
 			}
+
 			Some(_) => {}
 		}
 	}

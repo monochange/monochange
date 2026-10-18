@@ -27,6 +27,7 @@ fn run_check(root: &Path, args: &[&str]) -> String {
 		cli_args,
 		root,
 	));
+
 	let output = match result {
 		Ok(output) => output,
 		Err(error) => {
@@ -35,6 +36,7 @@ fn run_check(root: &Path, args: &[&str]) -> String {
 				.map_or_else(|| error.to_string(), ToOwned::to_owned)
 		}
 	};
+
 	normalize_workspace_paths(root, output)
 }
 
@@ -231,6 +233,7 @@ version = "0.1.0"
 		contents.contains("description = \"Example package\""),
 		"lost description:\n{contents}"
 	);
+
 	assert!(
 		contents.contains("serde = { version = \"1.0\", features = [\"derive\"] }"),
 		"lost dependencies:\n{contents}"

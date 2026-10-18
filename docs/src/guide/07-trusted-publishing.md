@@ -121,6 +121,37 @@ environment = "publisher"
 
 `preferred` fits repositories that publish from CI with OIDC trusted publishing but also let maintainers run `monochange run publish` locally with their own registry credentials. The mode only relaxes the identity requirement. It never disables the CI context verification, and `enabled = false` remains the explicit opt-out from trusted publishing entirely.
 
+## Staged publishing on npm
+
+Trusted publishing and staged publishing answer different questions, and npm packages can use both at once:
+
+- **Trusted publishing** authenticates _who_ is publishing. The registry exchanges a short-lived OIDC token from a specific repository/workflow/environment for publish credentials, so there is no stored token to steal. On its own it says nothing about _when_ a version goes live: a direct `npm publish` from a verified workflow is installable immediately.
+- **Staged publishing** controls _when_ a version goes live. `npm stage publish` uploads the version to a staging queue; it becomes installable only after a maintainer approves it with 2FA (`npm stage approve <stage-id>` in the CLI, or the Staged Packages tab on npmjs.com). The staging step needs no 2FA, so CI can run unattended.
+- **Direct publishing** (`npm publish`) is the default: the version is installable the moment the command succeeds, authenticated by a login session, a token, or a trusted-publishing OIDC exchange.
+
+The strongest posture combines them: a trusted-publishing workflow stages token-free, and a human authorizes release with 2FA. Approval always requires an interactive 2FA challenge — it cannot be automated with OIDC or CI tokens — which is exactly why it survives a compromised CI context. A hijacked workflow can stage a malicious version, but it cannot approve it. New npm trusted-publisher connections created after September 2026 default to allowing only `npm stage publish`, and npm removes direct publishing with 2FA-bypass tokens in January 2027, so staged publishing is also the migration path for token-based automation.
+
+Configure the release flow per ecosystem or package with `publish.flow`:
+
+```toml
+[ecosystems.npm.publish]
+trusted_publishing = true
+flow = "staged"
+
+[package.legacy.publish]
+# Keep immediate releases for this one package.
+flow = "direct"
+```
+
+Behavior details:
+
+- Release publishes run `npm stage publish --access public` (pnpm workspaces run `pnpm stage publish`); `--provenance` is still passed when attestations require it.
+- A successful staged publish reports a `staged` status, not `published`. The version is **not** installable yet, so approve it before announcing the release or pointing consumers at the new version.
+- Approve staged versions with `npm stage list`, then `npm stage approve <stage-id>` (or the Staged Packages tab on npmjs.com). monochange deliberately does not automate approval because it requires interactive 2FA.
+- Placeholder publishing always stays direct: a placeholder's purpose is to register the package immediately so trusted publishing can be configured.
+- The registry version probe cannot see staged-but-unapproved versions. A publish re-run before approval stages again rather than skipping, and publish resume treats staged outcomes as complete for the packages that already staged successfully.
+- Staged publishing requires npm CLI 11.15+ and Node 22.14+ (pnpm 11.3+ for pnpm workspaces). With token-based automation, prefer a stage-only granular access token, which can stage and move dist-tags but can never publish directly.
+
 ## Attestation and provenance policy
 
 Trusted publishing and attestations answer different questions:

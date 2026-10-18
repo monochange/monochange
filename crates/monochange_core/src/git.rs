@@ -55,6 +55,7 @@ fn git_executable_name() -> &'static str {
 pub fn git_command(root: &Path) -> Command {
 	let mut command = Command::new("git");
 	command.current_dir(root);
+
 	if let Some(path) = stable_process_path() {
 		command.env("PATH", path);
 	}
@@ -86,9 +87,11 @@ pub fn git_checkout_branch_command(root: &Path, branch: &str) -> Command {
 pub fn git_stage_paths_command(root: &Path, tracked_paths: &[PathBuf]) -> Command {
 	let mut command = git_command(root);
 	command.arg("add").arg("-A").arg("-f").arg("--");
+
 	for path in tracked_paths {
 		command.arg(path);
 	}
+
 	command
 }
 
@@ -114,13 +117,17 @@ pub fn git_commit_message_text(message: &CommitMessage) -> String {
 pub fn git_commit_paths_command(root: &Path, message: &CommitMessage, no_verify: bool) -> Command {
 	let mut command = git_command(root);
 	command.arg("commit");
+
 	if no_verify {
 		command.arg("--no-verify");
 	}
+
 	command.arg("--message").arg(&message.subject);
+
 	if let Some(body) = &message.body {
 		command.arg("--message").arg(body);
 	}
+
 	command
 }
 
@@ -129,9 +136,11 @@ pub fn git_commit_paths_command(root: &Path, message: &CommitMessage, no_verify:
 pub fn git_commit_paths_stdin_command(root: &Path, no_verify: bool) -> Command {
 	let mut command = git_command(root);
 	command.arg("commit");
+
 	if no_verify {
 		command.arg("--no-verify");
 	}
+
 	command.arg("--file").arg("-").stdin(Stdio::piped());
 	command
 }
@@ -141,9 +150,11 @@ pub fn git_commit_paths_stdin_command(root: &Path, no_verify: bool) -> Command {
 pub fn git_commit_file_command(root: &Path, message_file: &Path, no_verify: bool) -> Command {
 	let mut command = git_command(root);
 	command.arg("commit");
+
 	if no_verify {
 		command.arg("--no-verify");
 	}
+
 	command.arg("--file").arg(message_file);
 	command
 }
@@ -153,9 +164,11 @@ pub fn git_commit_file_command(root: &Path, message_file: &Path, no_verify: bool
 pub fn git_push_branch_command(root: &Path, branch: &str, no_verify: bool) -> Command {
 	let mut command = git_command(root);
 	command.arg("push");
+
 	if no_verify {
 		command.arg("--no-verify");
 	}
+
 	command
 		.arg("--force-with-lease")
 		.arg("origin")
@@ -225,6 +238,7 @@ pub fn git_stderr_trimmed(output: &Output) -> String {
 pub fn git_error_detail(output: &Output) -> String {
 	let stdout = git_stdout_trimmed(output);
 	let stderr = git_stderr_trimmed(output);
+
 	if stderr.is_empty() { stdout } else { stderr }
 }
 
@@ -312,6 +326,7 @@ where
 			error,
 		)
 	})?;
+
 	flush_message(&mut message_file).map_err(|error| {
 		git_commit_flush_temp_file_error(
 			root,
@@ -486,11 +501,13 @@ fn git_commit_message_diagnostics(
 	let _ = writeln!(diagnostics, "  body bytes: {}", body.len());
 	let _ = writeln!(diagnostics, "  full message bytes: {}", message_text.len());
 	let _ = writeln!(diagnostics, "  subject: {}", message.subject);
+
 	if message.body.is_some() {
 		let _ = writeln!(diagnostics, "  body preview: {}", preview_text(body));
 	} else {
 		let _ = writeln!(diagnostics, "  body preview: <none>");
 	}
+
 	let _ = writeln!(
 		diagnostics,
 		"  full message preview: {}",
@@ -516,6 +533,7 @@ fn preview_text(text: &str) -> String {
 	const PREVIEW_CHARS: usize = 240;
 	let mut chars = text.chars();
 	let preview = chars.by_ref().take(PREVIEW_CHARS).collect::<String>();
+
 	if chars.next().is_some() {
 		format!("{}…", preview.replace('\n', "\\n"))
 	} else {

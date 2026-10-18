@@ -1,0 +1,18 @@
+# Fixture for Yarn Classic (v1) yarn.lock releases.
+#
+# Classic lockfiles pin entries with `version "2.3.1"` under quoted or bare
+# specifier keys. A release must rewrite the version line and leave resolved
+# URLs, integrity hashes, nested dependency ranges, and comments untouched.
+[defaults]
+parent_bump = "patch"
+
+[package."@acme/api"]
+path = "packages/api"
+type = "npm"
+
+[package."@acme/consumer"]
+path = "packages/consumer"
+type = "npm"
+
+[ecosystems.npm]
+enabled = true

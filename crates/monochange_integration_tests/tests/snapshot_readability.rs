@@ -36,6 +36,7 @@ fn collect_unreadable_snapshots(
 			if should_skip_directory(&path) {
 				continue;
 			}
+
 			collect_unreadable_snapshots(root, &path, unreadable_snapshots);
 			continue;
 		}

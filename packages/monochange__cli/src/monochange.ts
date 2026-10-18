@@ -30,6 +30,7 @@ function resolveBinary(pkgName) {
 		const packageDir = path.dirname(packageJsonPath);
 		const binaryName = process.platform === "win32" ? "monochange.exe" : "monochange";
 		const binaryPath = path.join(packageDir, "bin", binaryName);
+
 		if (fs.existsSync(binaryPath)) {
 			return binaryPath;
 		}
@@ -50,6 +51,7 @@ function shouldTryNextPackage(result) {
 	}
 
 	const stderr = result.stderr ?? "";
+
 	return /not found|no such file or directory|exec format error/i.test(stderr);
 }
 
@@ -57,6 +59,7 @@ function forwardOutput(result) {
 	if (result.stdout) {
 		process.stdout.write(result.stdout);
 	}
+
 	if (result.stderr) {
 		process.stderr.write(result.stderr);
 	}
@@ -64,6 +67,7 @@ function forwardOutput(result) {
 
 function main() {
 	const candidates = getCandidatePackages();
+
 	if (candidates.length === 0) {
 		console.error(
 			`monochange does not currently publish npm binaries for ${process.platform}/${process.arch}. ` +
@@ -73,8 +77,10 @@ function main() {
 	}
 
 	const failures = [];
+
 	for (const pkgName of candidates) {
 		const binaryPath = resolveBinary(pkgName);
+
 		if (!binaryPath) {
 			continue;
 		}
@@ -97,9 +103,11 @@ function main() {
 
 	console.error("Unable to find a compatible monochange binary in the installed npm packages.");
 	console.error(`Tried: ${candidates.join(", ")}`);
+
 	if (failures.length > 0) {
 		console.error(failures.join("\n"));
 	}
+
 	console.error(
 		"Reinstall with `npm install -g @monochange/cli`, download a binary from GitHub releases, or use `cargo install monochange`.",
 	);

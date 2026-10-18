@@ -27,6 +27,7 @@ use super::build_prepared_changesets;
 use super::build_release_plan_from_signals;
 use super::diagnose_changesets;
 use super::discover_changeset_paths;
+use super::enforce_classification_policy;
 use super::has_semantic_guardrail_candidate;
 use super::parse_batch_git_log_bytes;
 use super::parse_batch_git_log_output;
@@ -408,6 +409,7 @@ fn build_prepared_changesets_moves_loaded_fields_into_prepared_changesets() {
 	assert_eq!(prepared[0].targets[0].id, "core");
 	assert_eq!(prepared[0].targets[0].origin, "manual");
 	assert_eq!(prepared[0].targets[0].evidence_refs, vec!["src/lib.rs"]);
+
 	assert_eq!(prepared[0].targets[0].change_type.as_deref(), Some("fix"));
 	assert_eq!(prepared[0].targets[0].caused_by, vec!["core"]);
 	let context = prepared[0]
@@ -498,6 +500,7 @@ fn semantic_guardrail_skips_changeset_only_updates_without_warning() {
 		.unwrap_or_else(|error| panic!("write initial changeset: {error}"));
 	run_git_test_command(tempdir.path(), &["add", "."]);
 	run_git_test_command(tempdir.path(), &["commit", "-m", "initial fixture"]);
+
 	fs::write(tempdir.path().join(".changeset/core.md"), "updated")
 		.unwrap_or_else(|error| panic!("write updated changeset: {error}"));
 	let signal = make_test_change_signal("core", BumpSeverity::Patch);
@@ -506,6 +509,89 @@ fn semantic_guardrail_skips_changeset_only_updates_without_warning() {
 
 	assert!(evidence.is_empty());
 	assert!(warnings.is_empty());
+}
+
+fn advisory_configuration(
+	classification_enforced: bool,
+) -> monochange_core::WorkspaceConfiguration {
+	let tempdir = tempfile::TempDir::new().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	fs::write(
+		tempdir.path().join("package.json"),
+		"{ \"name\": \"app\", \"version\": \"1.0.0\" }\n",
+	)
+	.unwrap_or_else(|error| panic!("write manifest: {error}"));
+	fs::write(
+		tempdir.path().join("monochange.toml"),
+		format!(
+			"[package.app]\npath = \".\"\ntype = \"npm\"\nclassification_enforced = {classification_enforced}\n"
+		),
+	)
+	.unwrap_or_else(|error| panic!("write config: {error}"));
+	monochange_config::load_workspace_configuration(tempdir.path())
+		.unwrap_or_else(|error| panic!("load configuration: {error}"))
+}
+
+fn major_assessment(
+	package_id: &str,
+	severity: BumpSeverity,
+) -> monochange_core::CompatibilityAssessment {
+	monochange_core::CompatibilityAssessment {
+		package_id: package_id.to_string(),
+		provider_id: "test-provider".to_string(),
+		severity,
+		confidence: "high".to_string(),
+		summary: "test assessment".to_string(),
+		evidence_location: None,
+	}
+}
+
+#[test]
+fn enforce_classification_policy_keeps_evidence_for_enforced_packages() {
+	let configuration = advisory_configuration(true);
+	let signal = make_test_change_signal("app", BumpSeverity::Patch);
+	let evidence = vec![major_assessment("app", BumpSeverity::Major)];
+
+	let (kept, warnings) =
+		enforce_classification_policy(&configuration, &[signal], evidence.clone());
+
+	assert_eq!(kept, evidence);
+	assert!(warnings.is_empty());
+}
+
+#[test]
+fn enforce_classification_policy_warns_when_advisory_evidence_would_raise_the_bump() {
+	let configuration = advisory_configuration(false);
+	let signal = make_test_change_signal("app", BumpSeverity::Patch);
+	let evidence = vec![major_assessment("app", BumpSeverity::Major)];
+
+	let (kept, warnings) = enforce_classification_policy(&configuration, &[signal], evidence);
+
+	assert!(
+		kept.is_empty(),
+		"advisory evidence must not reach the planner"
+	);
+	assert_eq!(warnings.len(), 1);
+	assert!(warnings[0].contains("major"), "{}", warnings[0]);
+	assert!(
+		warnings[0].contains("classification is advisory"),
+		"{}",
+		warnings[0]
+	);
+}
+
+#[test]
+fn enforce_classification_policy_stays_quiet_when_evidence_matches_the_changeset() {
+	let configuration = advisory_configuration(false);
+	let signal = make_test_change_signal("app", BumpSeverity::Patch);
+	let evidence = vec![major_assessment("app", BumpSeverity::Patch)];
+
+	let (kept, warnings) = enforce_classification_policy(&configuration, &[signal], evidence);
+
+	assert!(kept.is_empty());
+	assert!(
+		warnings.is_empty(),
+		"evidence that agrees with the changeset needs no warning"
+	);
 }
 
 #[test]
@@ -563,9 +649,11 @@ fn release_plan_propagates_graph_errors_after_semantic_guardrail_collection() {
 fn run_git_test_command(root: &Path, args: &[&str]) {
 	let mut command = std::process::Command::new("git");
 	command.arg("-C").arg(root);
+
 	if args.first() == Some(&"commit") {
 		command.arg("-c").arg("commit.gpgsign=false");
 	}
+
 	let status = command
 		.args(args)
 		.status()
@@ -578,10 +666,13 @@ fn replace_workspace_contents(destination: &Path, source: &Path) {
 		fs::read_dir(destination).unwrap_or_else(|error| panic!("read temp workspace: {error}"))
 	{
 		let entry = entry.unwrap_or_else(|error| panic!("read temp entry: {error}"));
+
 		if entry.file_name() == ".git" {
 			continue;
 		}
+
 		let path = entry.path();
+
 		if path.is_dir() {
 			fs::remove_dir_all(&path)
 				.unwrap_or_else(|error| panic!("remove dir {}: {error}", path.display()));
@@ -611,6 +702,7 @@ fn setup_semantic_guardrail_git_fixture(relative: &str) -> tempfile::TempDir {
 		&["config", "user.email", "test@example.com"],
 	);
 	run_git_test_command(tempdir.path(), &["add", "."]);
+
 	run_git_test_command(tempdir.path(), &["commit", "-m", "initial fixture"]);
 	replace_workspace_contents(tempdir.path(), &after);
 	tempdir
@@ -651,6 +743,7 @@ fn semantic_guardrail_warns_when_semantic_analysis_fails() {
 		"packages = [invalid",
 	)
 	.unwrap_or_else(|error| panic!("write invalid changed config: {error}"));
+
 	let signal = make_test_change_signal("core", BumpSeverity::Patch);
 
 	let (evidence, warnings) = semantic_compatibility_evidence(tempdir.path(), &[], &[signal]);

@@ -17,7 +17,18 @@ use crate::AppSecrets;
 use crate::config::github_app_credentials;
 use crate::github_app::GitHubAppError;
 
-fn secrets(values: serde_json::Value) -> AppSecrets {
+/// Resolved secrets with every required field set and the given optional
+/// GitHub App fields layered on top.
+fn secrets(optional: serde_json::Value) -> AppSecrets {
+	let mut values = serde_json::json!({
+		"database_url": "sqlite::memory:",
+		"jwt_secret": "config-test-signing-key",
+		"github_client_id": "",
+		"github_client_secret": "",
+	});
+	let optional: serde_json::Map<String, serde_json::Value> =
+		serde_json::from_value(optional).unwrap();
+	values.as_object_mut().unwrap().extend(optional);
 	serde_json::from_value(values).unwrap()
 }
 
@@ -77,6 +88,7 @@ async fn uses_resolved_pem_and_webhook_secret_without_environment_export() {
 	assert!(auth.webhook_configured());
 	let payload = b"installation-test";
 	let mut signature = Hmac::<Sha256>::new_from_slice(b"a-secret").unwrap();
+
 	signature.update(payload);
 	let signature = format!("sha256={}", hex::encode(signature.finalize().into_bytes()));
 	assert!(auth.verify_webhook_signature(payload, &signature).is_ok());

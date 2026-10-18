@@ -8,3 +8,10 @@ type = "npm"
 
 [package.strict.publish]
 fail_on_duplicate = true
+
+[package.staged]
+path = "packages/staged"
+type = "npm"
+
+[package.staged.publish]
+flow = "staged"

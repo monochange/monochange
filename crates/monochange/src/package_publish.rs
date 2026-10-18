@@ -92,9 +92,11 @@ pub(crate) async fn try_run_placeholder_publish_with_progress(
 					},
 				)
 			})?;
+
 	if let Some(otp) = npm_otp.filter(|otp| !otp.is_empty()) {
 		set_npm_publish_otp_for_requests(&mut requests, otp);
 	}
+
 	try_execute_publish_requests_with_process_and_progress(
 		root,
 		configuration.source.as_ref(),
@@ -239,6 +241,7 @@ pub(crate) async fn try_run_publish_packages_with_resume_and_progress(
 				)
 			})?
 	};
+
 	let selected_targets = select_release_publication_targets(
 		&configuration.groups,
 		&publication_targets,
@@ -503,6 +506,7 @@ fn offset_publish_progress_event(
 			mode,
 			total,
 			published,
+			staged,
 			skipped,
 			failed,
 		} => {
@@ -510,6 +514,7 @@ fn offset_publish_progress_event(
 				mode,
 				total: total + resumed.total(),
 				published: published + resumed.published,
+				staged: staged + resumed.staged,
 				skipped: skipped
 					+ resumed.planned
 					+ resumed.already_exists
@@ -526,6 +531,7 @@ fn enable_publish_stream_output(requests: &mut [PublishRequest], stream_output: 
 	if !stream_output {
 		return;
 	}
+
 	for request in requests {
 		request
 			.package_metadata
@@ -540,6 +546,7 @@ pub(crate) async fn release_record_package_publications_from_prepared_or_head(
 	if let Some(prepared_release) = prepared_release {
 		return Ok(prepared_release.package_publications.clone());
 	}
+
 	Ok(discover_release_record(root, "HEAD")
 		.await?
 		.record
@@ -606,6 +613,7 @@ fn enforce_release_trust_prerequisites(
 	}
 
 	let capability = provider_registry_trust_capability(&registry, identity.provider());
+
 	if !capability.trusted_publishing || !capability.ci_identity_verifiable {
 		if preferred {
 			return Ok(());
@@ -796,6 +804,7 @@ fn manual_trust_outcome(
 	env_map: &BTreeMap<String, String>,
 ) -> TrustedPublishingOutcome {
 	let setup_url = manual_setup_url(request);
+
 	match resolve_github_trust_context(root, source, &request.trusted_publishing, env_map) {
 		Ok(context) => {
 			let message = if request.registry == RegistryKind::Npm {
@@ -814,6 +823,7 @@ fn manual_trust_outcome(
 					format_manual_trust_context(&context),
 				)
 			};
+
 			TrustedPublishingOutcome {
 				status: TrustedPublishingStatus::ManualActionRequired,
 				repository: Some(context.repository),

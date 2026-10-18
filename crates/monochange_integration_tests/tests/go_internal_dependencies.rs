@@ -162,6 +162,7 @@ fn versions_sync_reports_pending_change_for_nested_go_module_path() {
 		.unwrap_or_else(|error| panic!("canonicalize root: {error}"))
 		.to_string_lossy()
 		.to_string();
+
 	for file in &mut result.changes {
 		file.path = file.path.replace(canonical.as_str(), "[workspace]");
 	}
@@ -305,6 +306,7 @@ fn versions_sync_leaves_unrelated_modules_sharing_a_last_segment_untouched() {
 		.unwrap_or_else(|error| panic!("canonicalize root: {error}"))
 		.to_string_lossy()
 		.to_string();
+
 	for file in &mut result.changes {
 		file.path = file.path.replace(canonical.as_str(), "[workspace]");
 	}

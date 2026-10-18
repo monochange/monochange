@@ -95,10 +95,12 @@ function prepareSkill(workdir: string, skillVariant: string, source: "installed"
 		const skillsDir = join(workdir, ".claude", "skills");
 		rmSync(skillsDir, { recursive: true, force: true });
 		mkdirSync(skillsDir, { recursive: true });
+
 		return;
 	}
 
 	const variantPath = resolveSkillVariant(skillVariant);
+
 	if (!existsSync(variantPath)) {
 		throw new Error(`Skill variant not found: ${variantPath}`);
 	}
@@ -166,6 +168,7 @@ export function parseAgentTranscript(
 		if (record["type"] === "system" && record["subtype"] === "init") {
 			if (typeof record["claude_code_version"] === "string")
 				runtimeVersion = record["claude_code_version"];
+
 			if (typeof record["model"] === "string") effectiveModel = record["model"];
 		}
 
@@ -224,7 +227,9 @@ export function parseAgentTranscript(
 			}
 
 			if (typeof record["result"] === "string") finalMessage = record["result"];
+
 			if (typeof record["total_cost_usd"] === "number") usage.costUsd = record["total_cost_usd"];
+
 			if (typeof record["num_turns"] === "number") usage.turns = record["num_turns"];
 
 			if (record["subtype"] !== "success" || record["is_error"] !== false) {
@@ -309,6 +314,7 @@ export async function runAgent(options: AgentRunOptions): Promise<AgentRunResult
 		"--allowedTools",
 		...options.allowedTools,
 	];
+
 	if (options.appendSystemPrompt) {
 		args.push("--append-system-prompt", options.appendSystemPrompt);
 	}
@@ -405,5 +411,6 @@ export function runWorkdir(identity: string): string {
 	const path = join(WORK_DIR, "runs", identity);
 	rmSync(path, { recursive: true, force: true });
 	mkdirSync(path, { recursive: true });
+
 	return path;
 }

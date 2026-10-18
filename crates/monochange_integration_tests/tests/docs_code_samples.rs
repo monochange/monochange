@@ -23,13 +23,16 @@ fn guide_toml_samples_parse_through_the_real_loader() -> Result<(), Box<dyn Erro
 
 	for doc_dir in DOC_DIRS {
 		let dir = workspace_root.join(doc_dir);
+
 		for entry in markdown_files(&dir)? {
 			let text = std::fs::read_to_string(&entry)?;
+
 			for sample in extract_toml_samples(&text) {
 				if !looks_like_workspace_config(&sample.body) {
 					skipped.push(format!("{}#{}", doc_dir, sample.index));
 					continue;
 				}
+
 				write_sample_and_load(&sample.body)?;
 				checked += 1;
 			}
@@ -68,7 +71,9 @@ fn write_sample_and_load(sample: &str) -> Result<(), Box<dyn Error>> {
 	} else {
 		sample.to_string()
 	};
+
 	std::fs::write(tempdir.path().join("monochange.toml"), &sample)?;
+
 	for capture in package_path_regex().captures_iter(&sample) {
 		let relative = capture
 			.get(1)
@@ -78,13 +83,16 @@ fn write_sample_and_load(sample: &str) -> Result<(), Box<dyn Error>> {
 		// manifests its possible ecosystems expect so validation passes.
 		let package_dir = tempdir.path().join(relative);
 		std::fs::create_dir_all(&package_dir)?;
+
 		for manifest in minimal_manifests() {
 			let target = package_dir.join(manifest.0);
+
 			if !target.exists() {
 				std::fs::write(target, manifest.1)?;
 			}
 		}
 	}
+
 	load_workspace_configuration(tempdir.path())
 		.map(|_| ())
 		.map_err(|error| {
@@ -137,12 +145,15 @@ fn looks_like_workspace_config(sample: &str) -> bool {
 		Ok(value) => value,
 		Err(_) => return false,
 	};
+
 	let Some(packages) = parsed.get("package").and_then(toml::Value::as_table) else {
 		return false;
 	};
+
 	if packages.is_empty() {
 		return false;
 	}
+
 	let all_packages_declared = packages.values().all(|package| {
 		package
 			.get("path")
@@ -181,21 +192,29 @@ fn extract_toml_samples(text: &str) -> Vec<TomlSample> {
 	let mut samples = Vec::new();
 	let mut lines = text.lines().peekable();
 	let mut index = 0usize;
+
 	while let Some(line) = lines.next() {
 		index += 1;
+
 		if line.trim() != "```toml" {
 			continue;
 		}
+
 		let mut body = Vec::new();
+
 		let mut closed = false;
+
 		for fence_line in lines.by_ref() {
 			index += 1;
+
 			if fence_line.trim() == "```" {
 				closed = true;
 				break;
 			}
+
 			body.push(fence_line);
 		}
+
 		if closed {
 			samples.push(TomlSample {
 				body: body.join("\n"),
@@ -203,22 +222,27 @@ fn extract_toml_samples(text: &str) -> Vec<TomlSample> {
 			});
 		}
 	}
+
 	samples
 }
 
 fn markdown_files(dir: &Path) -> Result<Vec<PathBuf>, Box<dyn Error>> {
 	let mut files = Vec::new();
 	let mut stack = vec![dir.to_path_buf()];
+
 	while let Some(current) = stack.pop() {
 		if current.is_file() {
 			files.push(current);
 			continue;
 		}
+
 		if !current.exists() {
 			continue;
 		}
+
 		for entry in std::fs::read_dir(&current)? {
 			let entry_path = entry?.path();
+
 			if entry_path.is_dir() {
 				stack.push(entry_path);
 			} else if entry_path.extension().is_some_and(|ext| ext == "md") {
@@ -226,6 +250,7 @@ fn markdown_files(dir: &Path) -> Result<Vec<PathBuf>, Box<dyn Error>> {
 			}
 		}
 	}
+
 	files.sort();
 	Ok(files)
 }

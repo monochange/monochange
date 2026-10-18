@@ -131,6 +131,7 @@ impl TelemetrySink {
 		let Self::LocalJsonl { path } = self else {
 			return;
 		};
+
 		if let Err(error) = write_event(path, name, attributes) {
 			tracing::debug!(?error, path = %path.display(), "failed to write local telemetry event");
 		}
@@ -226,6 +227,7 @@ fn default_telemetry_file() -> PathBuf {
 			.join("monochange")
 			.join("telemetry.jsonl");
 	}
+
 	if let Some(home) = env::var_os("HOME") {
 		return PathBuf::from(home)
 			.join(".local")
@@ -233,6 +235,7 @@ fn default_telemetry_file() -> PathBuf {
 			.join("monochange")
 			.join("telemetry.jsonl");
 	}
+
 	PathBuf::from(".monochange").join("telemetry.jsonl")
 }
 

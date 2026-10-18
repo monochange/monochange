@@ -1,0 +1,84 @@
+{
+	"changed_files": [
+		"crates/etvegios_0/src/lib.rs",
+		"crates/etvegios_1/src/lib.rs",
+		"crates/etvegios_2/src/lib.rs"
+	],
+	"changelogs": [],
+	"changesets": [
+		{
+			"details": "Generated from deterministic proptest seed 4223947513850232377.",
+			"path": ".changeset/schema-artifact-8.md",
+			"summary": "Exercise schema artifact fixture 8",
+			"targets": [
+				{
+					"bump": "patch",
+					"change_type": "refactor",
+					"evidence_refs": [
+						"crates/etvegios_0/src/lib.rs"
+					],
+					"id": "etvegios_0",
+					"kind": "package",
+					"origin": ".changeset/schema-artifact-8.md"
+				}
+			]
+		}
+	],
+	"command": "monochange release --commit",
+	"created_at": "2026-01-08T00:00:00Z",
+	"deleted_changesets": [
+		".changeset/schema-artifact-8.md"
+	],
+	"kind": "monochange.releaseRecord",
+	"package_publications": [
+		{
+			"ecosystem": "cargo",
+			"package": "etvegios_0",
+			"version": "0.10.8"
+		},
+		{
+			"ecosystem": "cargo",
+			"package": "etvegios_1",
+			"version": "0.10.8"
+		},
+		{
+			"ecosystem": "cargo",
+			"package": "etvegios_2",
+			"version": "0.10.8"
+		}
+	],
+	"provider": {
+		"host": null,
+		"kind": "gitea",
+		"owner": "etvegios",
+		"repo": "bpagq"
+	},
+	"release_targets": [
+		{
+			"id": "main",
+			"kind": "group",
+			"members": [],
+			"release": true,
+			"tag": true,
+			"tag_name": "v0.10.8",
+			"version": "0.10.8",
+			"version_format": "primary"
+		}
+	],
+	"released_packages": [
+		"etvegios_0",
+		"etvegios_1",
+		"etvegios_2"
+	],
+	"schema_version": "0.10",
+	"updated_changelogs": [
+		"fixtures/changelog-8.md"
+	],
+	"version": "0.10.8",
+	"versions": {
+		"etvegios_0": "0.10.8",
+		"etvegios_1": "0.10.8",
+		"etvegios_2": "0.10.8",
+		"main": "0.10.8"
+	}
+}

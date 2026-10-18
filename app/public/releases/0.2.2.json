@@ -1,0 +1,94 @@
+{
+	"title": "0.2.2",
+	"summary": [],
+	"sections": [
+		{
+			"title": "New",
+			"collapsed": false,
+			"entries": [
+				{
+					"summary": "Document npm staged publishing in the guide",
+					"details_markdown": "The documentation now explains the difference between direct publishing, trusted publishing, and npm's staged publishing, and when to combine them. The configuration guide covers the new `publish.flow` option for npm packages, so you can read how to hold each release for maintainer approval with 2FA before it becomes installable.",
+					"change_type": "website_feature",
+					"bump": "minor",
+					"stream": "website",
+					"style": "compact",
+					"provenance": {
+						"source_path": ".changeset/npm-staged-publishing-docs.md",
+						"changeset_path": ".changeset/npm-staged-publishing-docs.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #764",
+							"url": "https://github.com/monochange/monochange/pull/764"
+						},
+						"introduced_commit": {
+							"label": "0969e9a",
+							"url": "https://github.com/monochange/monochange/commit/0969e9a3fa10fed20dd651f1ac34cb09f1319948"
+						}
+					}
+				},
+				{
+					"summary": "Connect repositories from your workspace",
+					"details_markdown": "When repository connection is available, open its GitHub installation page from your dashboard. Choose all repositories or selected repositories on GitHub, then return to the dashboard. If connection is unavailable, the workspace explains that setup is still needed instead of implying that signing in connected your repositories.\n\nFirst-time connections now appear even when you connect on GitHub before signing in to the website. Your workspace follows repository selection changes, paused connections and removals for each connected account. Connecting repositories does not enable hosted release automation.",
+					"change_type": "website_feature",
+					"bump": "minor",
+					"stream": "website",
+					"style": "expanded",
+					"provenance": {
+						"source_path": ".changeset/website-repository-connection.md",
+						"changeset_path": ".changeset/website-repository-connection.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #761",
+							"url": "https://github.com/monochange/monochange/pull/761"
+						},
+						"introduced_commit": {
+							"label": "4200be9",
+							"url": "https://github.com/monochange/monochange/commit/4200be9369851004264b7a13597f9516b241c45a"
+						},
+						"last_updated_commit": {
+							"label": "a2215e9",
+							"url": "https://github.com/monochange/monochange/commit/a2215e91bd078a67318dc8c5a57bc5e6b2220319"
+						}
+					}
+				}
+			]
+		},
+		{
+			"title": "Improved",
+			"collapsed": false,
+			"entries": [
+				{
+					"summary": "Keep your workspace signed in after GitHub login",
+					"details_markdown": "The dashboard and navigation now recognize a completed GitHub sign-in, including after a reload. Signing out clears the browser session and returns you to the public website. Failed or expired sign-ins ask you to try again without creating a session.\n\nConnected public and private repositories are limited to your account. Organization repositories are shown to the installer only while GitHub confirms they remain an active organization owner.",
+					"change_type": "website_fix",
+					"bump": "patch",
+					"stream": "website",
+					"style": "expanded",
+					"provenance": {
+						"source_path": ".changeset/website-session-persistence.md",
+						"changeset_path": ".changeset/website-session-persistence.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #761",
+							"url": "https://github.com/monochange/monochange/pull/761"
+						},
+						"introduced_commit": {
+							"label": "4200be9",
+							"url": "https://github.com/monochange/monochange/commit/4200be9369851004264b7a13597f9516b241c45a"
+						}
+					}
+				}
+			]
+		}
+	]
+}

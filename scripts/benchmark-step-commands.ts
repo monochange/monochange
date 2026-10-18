@@ -115,23 +115,29 @@ function run(
 		cwd: options.cwd,
 		env: options.env ?? process.env,
 	});
+
 	if (result.status !== 0) {
 		const detail = result.stderr || result.stdout || `exit code ${result.status ?? "unknown"}`;
 		throw new Error(`${command} ${args.join(" ")} failed: ${detail}`);
 	}
+
 	return result;
 }
 
 function parseOptions(args, names) {
 	const options: Record<string, string> = {};
+
 	for (let index = 0; index < args.length; index += 1) {
 		const key = args[index];
+
 		if (!names.includes(key)) die(`unknown argument: ${key}`);
 		const value = args[index + 1];
+
 		if (value === undefined) die(`missing value for ${key}`);
 		options[key.slice(2).replaceAll("-", "_")] = value;
 		index += 1;
 	}
+
 	return options;
 }
 
@@ -145,6 +151,7 @@ function tempPath(suffix) {
 function tempDir() {
 	const path = tempPath("");
 	mkdirSync(path, { recursive: true });
+
 	return path;
 }
 
@@ -167,18 +174,24 @@ function commandString(bin, args) {
 function parseHyperfineMeans(path) {
 	const lines = readText(path).split(/\r?\n/);
 	const means = new Map();
+
 	for (const raw of lines) {
 		const line = raw.trim();
+
 		if (!line.startsWith("|") || line.startsWith("|:") || line.startsWith("| Com")) continue;
 		const cols = line
 			.split("|")
 			.map((col) => col.trim())
 			.filter(Boolean);
+
 		if (cols.length < 2) continue;
 		const label = cols[0].replace(/^`|`$/g, "").trim();
+
 		const mean = Number.parseFloat(cols[1]);
+
 		if (label && !Number.isNaN(mean)) means.set(label, mean);
 	}
+
 	return means;
 }
 
@@ -220,11 +233,13 @@ function renderPairwiseSummary(tablePath) {
 		"| Command | main [ms] | pr [ms] | Δ pr-main [ms] | pr/main | Status |",
 		"|:---|---:|---:|---:|---:|:---|",
 	];
+
 	for (const result of pairwiseResults(tablePath)) {
 		rows.push(
 			`| \`${result.command}\` | ${formatNumber(result.main)} | ${formatNumber(result.pr)} | ${formatDelta(result.delta)} | ${formatRatio(result.ratio)} | ${result.status} |`,
 		);
 	}
+
 	return rows.join("\n");
 }
 
@@ -236,6 +251,7 @@ function renderComment(outputPath, tablePath, fixtureDescription, runs, warmup) 
 		"",
 		"Runnable built-in step commands:",
 	];
+
 	for (const command of RUNNABLE_STEP_COMMANDS) rows.push(`- \`${command.label}\``);
 	rows.push(
 		"",
@@ -249,6 +265,7 @@ function renderComment(outputPath, tablePath, fixtureDescription, runs, warmup) 
 		"",
 	);
 	rows.push("| Command | Reason |", "|:---|:---|");
+
 	for (const command of SKIPPED_STEP_COMMANDS)
 		rows.push(`| \`${command.command}\` | ${command.reason} |`);
 	writeFileSync(outputPath, `${rows.join("\n").trimEnd()}\n`);
@@ -285,6 +302,7 @@ function generateFixture(root, packages, changesets, commits) {
 		`[workspace]\nmembers = [\n${Array.from({ length: packages }, (_, i) => `  "crates/pkg-${i}",`).join("\n")}\n]\nresolver = "2"\n`,
 	);
 	let config = '[defaults]\npackage_type = "cargo"\n\n';
+
 	for (let i = 0; i < packages; i += 1) {
 		config += `[package.pkg-${i}]\npath = "crates/pkg-${i}"\n\n`;
 		mkdirSync(join(root, `crates/pkg-${i}`), { recursive: true });
@@ -293,15 +311,18 @@ function generateFixture(root, packages, changesets, commits) {
 			`[package]\nname = "pkg-${i}"\nversion = "1.0.0"\nedition = "2021"\ndescription = "Benchmark fixture package ${i}"\nlicense = "MIT"\nrepository = "https://github.com/monochange/monochange"\n`,
 		);
 	}
+
 	config +=
 		'[ecosystems.cargo]\nenabled = true\n\n[cli.discover]\ninputs = [{ name = "format", type = "choice", choices = ["text", "json"], default = "text" }]\nsteps = [{ type = "Discover" }]\n\n[cli.release]\nsteps = [{ type = "PrepareRelease" }]\n';
 	writeFileSync(join(root, "monochange.toml"), config);
 	run("git", ["-C", root, "init", "-b", "main"]);
 	run("git", ["-C", root, "add", "."]);
 	gitCommit(root, "initial");
+
 	for (let commit = 0; commit < commits; commit += 1) {
 		const pkg = commit % packages;
 		writeFileSync(join(root, `crates/pkg-${pkg}/src.rs`), `// commit ${commit}\n`);
+
 		if (commit < changesets)
 			writeFileSync(
 				join(root, `.changeset/change-${String(commit).padStart(4, "0")}.md`),
@@ -310,6 +331,7 @@ function generateFixture(root, packages, changesets, commits) {
 		run("git", ["-C", root, "add", "."]);
 		gitCommit(root, `change ${commit}`);
 	}
+
 	for (let i = commits; i < changesets; i += 1) {
 		const pkg = i % packages;
 		writeFileSync(
@@ -336,10 +358,12 @@ function runBenchmarks(mainBin, prBin, fixtureDir, tablePath, runs, warmup) {
 		"--export-markdown",
 		tablePath,
 	];
+
 	for (const command of RUNNABLE_STEP_COMMANDS) {
 		args.push("--command-name", `main · ${command.label}`, commandString(mainBin, command.args));
 		args.push("--command-name", `pr · ${command.label}`, commandString(prBin, command.args));
 	}
+
 	run(hyperfineBin, args, { cwd: fixtureDir, stdio: "inherit" });
 }
 
@@ -356,6 +380,7 @@ function runMode(args) {
 		"--runs",
 		"--warmup",
 	]);
+
 	for (const key of ["main_bin", "pr_bin", "output"])
 		if (!o[key]) die("run requires --main-bin, --pr-bin, and --output");
 
@@ -367,6 +392,7 @@ function runMode(args) {
 	const generatedFixture = !o.fixture_dir;
 	const fixtureDir = o.fixture_dir ?? tempDir();
 	const tablePath = tempPath("-steps.md");
+
 	const description = generatedFixture
 		? `${packages} packages, ${changesets} changesets, ${commits} commits`
 		: `fixture \`${fixtureDir}\``;
@@ -375,6 +401,7 @@ function runMode(args) {
 	try {
 		runBenchmarks(o.main_bin, o.pr_bin, fixtureDir, tablePath, runs, warmup);
 		renderComment(o.output, tablePath, description, runs, warmup);
+
 		if (o.violations_output) renderViolations(o.violations_output, tablePath);
 	} finally {
 		if (generatedFixture) rmSync(fixtureDir, { recursive: true, force: true });

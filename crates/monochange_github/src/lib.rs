@@ -434,6 +434,7 @@ pub fn github_host() -> Option<String> {
 		.trim_start_matches("https://")
 		.trim_start_matches("http://");
 	let host = without_scheme.split('/').next().unwrap_or_default().trim();
+
 	if host.is_empty() {
 		None
 	} else {
@@ -509,6 +510,7 @@ fn apply_github_changeset_annotations(
 ) {
 	let host = github_host();
 	let capabilities = github_hosting_capabilities();
+
 	for changeset in changesets.iter_mut() {
 		let Some(context) = changeset.context.as_mut() else {
 			continue;
@@ -516,15 +518,18 @@ fn apply_github_changeset_annotations(
 		context.provider = HostingProviderKind::GitHub;
 		context.host.clone_from(&host);
 		context.capabilities = capabilities.clone();
+
 		for revision in [&mut context.introduced, &mut context.last_updated] {
 			let Some(revision) = revision.as_mut() else {
 				continue;
 			};
+
 			if let Some(commit) = revision.commit.as_mut() {
 				commit.provider = HostingProviderKind::GitHub;
 				commit.host.clone_from(&host);
 				commit.url = Some(github_commit_url(source, &commit.sha));
 			}
+
 			if let Some(actor) = revision.actor.as_mut() {
 				actor.provider = HostingProviderKind::GitHub;
 				actor.host.clone_from(&host);
@@ -559,6 +564,7 @@ pub async fn enrich_changeset_context(
 
 	let Ok(token) = env::var("GITHUB_TOKEN").or_else(|_| env::var("GH_TOKEN")) else {
 		tracing::debug!("skipping GitHub enrichment: no GITHUB_TOKEN or GH_TOKEN found");
+
 		return;
 	};
 	let api_base_url = env::var("GITHUB_API_URL").ok();
@@ -592,6 +598,7 @@ pub fn build_release_requests(
 				} else {
 					target.rendered_title.clone()
 				},
+
 				body: release_body(source, manifest, target),
 				draft: source.releases.draft,
 				prerelease: source.releases.prerelease,
@@ -638,6 +645,7 @@ async fn enrich_changeset_context_with_client(
 ) {
 	let host = github_host();
 	let capabilities = github_hosting_capabilities();
+
 	for changeset in changesets.iter_mut() {
 		let Some(context) = changeset.context.as_mut() else {
 			continue;
@@ -645,21 +653,25 @@ async fn enrich_changeset_context_with_client(
 		context.provider = HostingProviderKind::GitHub;
 		context.host.clone_from(&host);
 		context.capabilities = capabilities.clone();
+
 		for revision in [&mut context.introduced, &mut context.last_updated] {
 			let Some(revision) = revision.as_mut() else {
 				continue;
 			};
+
 			if let Some(commit) = revision.commit.as_mut() {
 				commit.provider = HostingProviderKind::GitHub;
 				commit.host.clone_from(&host);
 				commit.url = Some(github_commit_url(source, &commit.sha));
 			}
+
 			if let Some(actor) = revision.actor.as_mut() {
 				actor.provider = HostingProviderKind::GitHub;
 				actor.host.clone_from(&host);
 			}
 		}
 	}
+
 	let review_request_lookup_shas = collect_review_request_lookup_shas(changesets);
 	let review_requests_by_sha =
 		load_review_requests_for_commits_with_client(client, source, &review_request_lookup_shas)
@@ -692,7 +704,9 @@ async fn enrich_changeset_context_with_client(
 				for issue in related_review_request.issues {
 					issues_by_id.entry(issue.id.clone()).or_insert(issue);
 				}
+
 				revision.review_request = Some(related_review_request.review_request.clone());
+
 				if let Some(author) = related_review_request.review_request.author.clone() {
 					revision.actor = Some(author);
 				}
@@ -757,7 +771,6 @@ async fn load_review_requests_for_commits_with_client(
 	Ok(review_requests_by_sha)
 }
 // patch-coverage:ignore-end
-
 async fn load_review_request_batch_with_client(
 	client: &Octocrab,
 	source: &SourceConfiguration,
@@ -807,6 +820,7 @@ async fn load_review_request_batch_with_client(
 
 fn build_review_request_batch_query(owner: &str, repo: &str, shas: &[String]) -> String {
 	let mut query = format!("query {{ repository(owner: \"{owner}\", name: \"{repo}\") {{");
+
 	for (index, sha) in shas.iter().enumerate() {
 		let alias = format!("commit_{index}");
 		let _ = write!(
@@ -814,6 +828,7 @@ fn build_review_request_batch_query(owner: &str, repo: &str, shas: &[String]) ->
 			" {alias}: object(expression: \"{sha}\") {{ ... on Commit {{ associatedPullRequests(first: 1) {{ nodes {{ number title url body author {{ login url }} }} }} }} }}"
 		);
 	}
+
 	query.push_str(" } }");
 	query
 }
@@ -869,6 +884,7 @@ fn parse_review_request_from_graphql(
 	};
 	let repository = format!("{}/{}", source.owner, source.repo);
 	let mut issues_by_id = BTreeMap::<String, HostedIssueRef>::new();
+
 	for issue_number in body
 		.as_deref()
 		.map(|text| extract_closing_issue_numbers(text, Some(&repository)))
@@ -886,6 +902,7 @@ fn parse_review_request_from_graphql(
 			},
 		);
 	}
+
 	for issue_number in body
 		.as_deref()
 		.map(|text| extract_issue_numbers(text, Some(&repository)))
@@ -931,12 +948,14 @@ fn extract_closing_issue_numbers(
 	repository: Option<&str>,
 ) -> std::collections::BTreeSet<u64> {
 	let mut issue_numbers = std::collections::BTreeSet::new();
+
 	for captures in closing_issue_reference_regex().captures_iter(text) {
 		let Some(references) = captures.name("refs") else {
 			continue;
 		};
 		issue_numbers.extend(extract_issue_numbers(references.as_str(), repository));
 	}
+
 	issue_numbers
 }
 
@@ -977,12 +996,15 @@ pub fn plan_released_issue_comments(
 		.filter(|target| target.release)
 		.map(|target| target.tag_name.clone())
 		.collect::<Vec<_>>();
+
 	if release_tags.is_empty() {
 		return Vec::new();
 	}
+
 	let marker = release_comment_marker(&release_tags);
 	let body = release_issue_comment_body(&release_tags, &marker);
 	let mut plans_by_issue = BTreeMap::<String, GitHubIssueCommentPlan>::new();
+
 	for issue in manifest
 		.changesets
 		.iter()
@@ -1011,9 +1033,11 @@ pub async fn comment_released_issues(
 	manifest: &ReleaseManifest,
 ) -> MonochangeResult<Vec<GitHubIssueCommentOutcome>> {
 	let plans = plan_released_issue_comments(source, manifest);
+
 	if plans.is_empty() {
 		return Ok(Vec::new());
 	}
+
 	comment_released_issues_with_plans(source, &plans).await
 }
 
@@ -1029,6 +1053,7 @@ pub async fn comment_released_issues_with_plans(
 	if plans.is_empty() {
 		return Ok(Vec::new());
 	}
+
 	let client = github_client_from_env(source).await?;
 	comment_released_issues_with_client(&client, source, plans).await
 }
@@ -1039,6 +1064,7 @@ async fn comment_released_issues_with_client(
 	plans: &[GitHubIssueCommentPlan],
 ) -> MonochangeResult<Vec<GitHubIssueCommentOutcome>> {
 	let mut outcomes = Vec::with_capacity(plans.len());
+
 	for plan in plans {
 		let issue_number = plan
 			.issue_id
@@ -1079,20 +1105,25 @@ async fn comment_released_issues_with_client(
 				operation: GitHubIssueCommentOperation::SkippedExisting,
 				url: plan.issue_url.clone(),
 			});
+
 			if plan.close {
 				close_issue(client, source, issue_number).await?;
 			}
+
 			continue;
 		}
+
 		let response = post_json::<_, GitHubIssueCommentResponse>(
 			client,
 			&path,
 			&json!({ "body": plan.body }),
 		)
 		.await?;
+
 		if plan.close {
 			close_issue(client, source, issue_number).await?;
 		}
+
 		outcomes.push(GitHubIssueCommentOutcome {
 			repository: plan.repository.clone(),
 			issue_id: plan.issue_id.clone(),
@@ -1101,9 +1132,11 @@ async fn comment_released_issues_with_client(
 			} else {
 				GitHubIssueCommentOperation::Created
 			},
+
 			url: response.html_url.or_else(|| plan.issue_url.clone()),
 		});
 	}
+
 	Ok(outcomes)
 }
 
@@ -1176,6 +1209,7 @@ pub async fn publish_release_pull_request(
 		.as_ref()
 		.and_then(|pull_request| pull_request.head.sha.as_deref())
 		== Some(head_commit.as_str());
+
 	if !head_matches_existing {
 		git_push_branch(root, &request.head_branch, no_verify).await?;
 		// Commits created through GitHub's Git Database API from GitHub Actions can be
@@ -1239,9 +1273,11 @@ fn github_actions_release_commit_verification_enabled(source: &SourceConfigurati
 	if !source.pull_requests.verified_commits {
 		return false;
 	}
+
 	if env::var("GITHUB_ACTIONS").as_deref() != Ok("true") {
 		return false;
 	}
+
 	let repository = format!("{}/{}", source.owner, source.repo);
 	env::var("GITHUB_REPOSITORY").is_ok_and(|value| value.eq_ignore_ascii_case(&repository))
 }
@@ -1277,6 +1313,7 @@ async fn create_verified_github_commit_for_release_pull_request(
 	};
 
 	let mut tree_entries = Vec::with_capacity(tracked_paths.len());
+
 	for path in tracked_paths {
 		let absolute_path = root.join(path);
 		let relative_path = path.to_string_lossy().to_string();
@@ -1361,6 +1398,7 @@ async fn create_verified_github_commit_for_release_pull_request(
 			reason = ?commit.verification.reason,
 			"created verified GitHub release pull request commit"
 		);
+
 		return Ok(commit.sha);
 	}
 
@@ -1384,12 +1422,14 @@ async fn update_github_branch_ref_to_verified_commit(
 	let current: GitHubGitRefResponse = get_json(client, &get_ref_path)
 		.await
 		.map_err(|error| error.to_string())?;
+
 	if current.object.sha != fallback_commit {
 		return Err(format!(
 			"release branch {} moved from {} to {}; refusing to replace it with verified commit {}",
 			request.head_branch, fallback_commit, current.object.sha, verified_commit
 		));
 	}
+
 	let payload = GitHubUpdateRefPayload {
 		sha: verified_commit,
 		force: true,
@@ -1398,12 +1438,14 @@ async fn update_github_branch_ref_to_verified_commit(
 	let updated: GitHubGitRefResponse = patch_json(client, &update_ref_path, &payload)
 		.await
 		.map_err(|error| error.to_string())?;
+
 	if updated.object.sha != verified_commit {
 		return Err(format!(
 			"GitHub returned {} after updating {}, expected {}",
 			updated.object.sha, request.head_branch, verified_commit
 		));
 	}
+
 	Ok(updated.object.sha)
 }
 
@@ -1439,9 +1481,11 @@ async fn publish_release_requests_with_client(
 	requests: &[GitHubReleaseRequest],
 ) -> MonochangeResult<Vec<GitHubReleaseOutcome>> {
 	let mut outcomes = Vec::with_capacity(requests.len());
+
 	for request in requests {
 		outcomes.push(publish_release_request_with_client(client, request).await?);
 	}
+
 	Ok(outcomes)
 }
 
@@ -1459,6 +1503,7 @@ async fn publish_release_request_with_client(
 		generate_release_notes: request.generate_release_notes,
 	};
 	let existing = lookup_existing_release_with_client(client, request).await?;
+
 	let (operation, response) = match existing {
 		Some(existing) => {
 			(
@@ -1486,6 +1531,7 @@ async fn publish_release_request_with_client(
 			)
 		}
 	};
+
 	Ok(GitHubReleaseOutcome {
 		provider: SourceProvider::GitHub,
 		repository: request.repository.clone(),
@@ -1526,6 +1572,7 @@ async fn publish_release_pull_request_with_existing_pull_request(
 	});
 	let head_matches_existing =
 		existing.and_then(|pull_request| pull_request.head.sha.as_deref()) == Some(head_commit);
+
 	let (operation, pull_request) = match existing {
 		Some(existing_pull_request) if content_matches => {
 			(
@@ -1541,6 +1588,7 @@ async fn publish_release_pull_request_with_existing_pull_request(
 				},
 			)
 		}
+
 		Some(existing_pull_request) => {
 			(
 				GitHubPullRequestOperation::Updated,
@@ -1565,6 +1613,7 @@ async fn publish_release_pull_request_with_existing_pull_request(
 			)
 		}
 	};
+
 	if !request.labels.is_empty() && !labels_match {
 		let _: serde_json::Value = post_json(
 			client,
@@ -1578,9 +1627,11 @@ async fn publish_release_pull_request_with_existing_pull_request(
 		)
 		.await?;
 	}
+
 	if request.auto_merge {
 		enable_pull_request_auto_merge_with_client(client, &pull_request.node_id).await?;
 	}
+
 	Ok(GitHubPullRequestOutcome {
 		provider: SourceProvider::GitHub,
 		repository: request.repository.clone(),
@@ -1598,6 +1649,7 @@ async fn sync_retargeted_releases_with_client(
 	dry_run: bool,
 ) -> MonochangeResult<Vec<RetargetProviderResult>> {
 	let mut results = Vec::with_capacity(tag_updates.len());
+
 	for update in tag_updates {
 		if dry_run {
 			results.push(RetargetProviderResult {
@@ -1610,6 +1662,7 @@ async fn sync_retargeted_releases_with_client(
 			});
 			continue;
 		}
+
 		let path = format!(
 			"/repos/{}/{}/releases/tags/{}",
 			source.owner, source.repo, update.tag_name
@@ -1621,6 +1674,7 @@ async fn sync_retargeted_releases_with_client(
 				update.tag_name
 			)));
 		};
+
 		if existing.target_commitish.as_deref() == Some(update.to_commit.as_str())
 			|| update.operation == RetargetOperation::AlreadyUpToDate
 		{
@@ -1654,6 +1708,7 @@ async fn sync_retargeted_releases_with_client(
 			message: None,
 		});
 	}
+
 	Ok(results)
 }
 
@@ -1735,6 +1790,7 @@ async fn enable_pull_request_auto_merge_with_client(
 				"failed to enable GitHub pull request auto merge: {error}"
 			))
 		})?;
+
 	if response
 		.enable_pull_request_auto_merge
 		.and_then(|payload| payload.pull_request)
@@ -1755,9 +1811,11 @@ async fn resolve_github_token() -> Result<String, String> {
 	if let Ok(token) = env::var("GITHUB_TOKEN") {
 		return Ok(token);
 	}
+
 	if let Ok(token) = env::var("GH_TOKEN") {
 		return Ok(token);
 	}
+
 	github_cli_token().await
 }
 
@@ -1770,6 +1828,7 @@ async fn github_cli_token() -> Result<String, String> {
 		.output()
 		.await
 		.map_err(|error| format!("failed to run `gh auth token`: {error}"))?;
+
 	if !output.status.success() {
 		let stderr = String::from_utf8_lossy(&output.stderr);
 		let stderr = stderr.trim();
@@ -1778,16 +1837,20 @@ async fn github_cli_token() -> Result<String, String> {
 		} else {
 			format!(": {stderr}")
 		};
+
 		return Err(format!(
 			"`gh auth token` exited with status {}{}",
 			output.status.code().unwrap_or(-1),
 			suffix,
 		));
 	}
+
 	let token = String::from_utf8_lossy(&output.stdout).trim().to_string();
+
 	if token.is_empty() {
 		return Err("`gh auth token` returned an empty token".to_string());
 	}
+
 	Ok(token)
 }
 
@@ -1831,6 +1894,7 @@ fn build_github_client(token: &str, base_uri: Option<&str>) -> MonochangeResult<
 	} else {
 		builder
 	};
+
 	builder.build().map_err(|error| {
 		MonochangeError::Config(format!("failed to build GitHub API client: {error}"))
 	})
@@ -1846,6 +1910,7 @@ fn format_github_api_error(method: &str, path: &str, error: &octocrab::Error) ->
 			if let Some(documentation_url) = &source.documentation_url {
 				parts.push(format!("documentation: {documentation_url}"));
 			}
+
 			let mut rejects_long_body = false;
 			if let Some(errors) = &source.errors
 				&& !errors.is_empty()
@@ -1860,6 +1925,7 @@ fn format_github_api_error(method: &str, path: &str, error: &octocrab::Error) ->
 			if rejects_long_body {
 				return format!("{message}{}", github_body_limit_hint());
 			}
+
 			message
 		}
 		_ => format!("GitHub API {method} `{path}` failed: {error}"),
@@ -1884,9 +1950,11 @@ where
 {
 	match client.get::<T, _, _>(path, None::<&()>).await {
 		Ok(value) => Ok(Some(value)),
+
 		Err(octocrab::Error::GitHub { source, .. }) if source.status_code.as_u16() == 404 => {
 			Ok(None)
 		}
+
 		Err(error) => {
 			Err(MonochangeError::Config(format_github_api_error(
 				"GET", path, &error,
@@ -1951,6 +2019,7 @@ async fn git_checkout_branch(root: &Path, branch: &str) -> MonochangeResult<()> 
 	if matches!(git_current_branch(root).await.as_deref(), Ok(current) if current == branch) {
 		return Ok(());
 	}
+
 	run_command(
 		git_checkout_branch_command(root, branch),
 		"prepare release pull request branch",
@@ -1964,6 +2033,7 @@ async fn git_stage_paths(
 	stage_all: bool,
 ) -> MonochangeResult<()> {
 	let stageable_paths = resolve_stageable_release_paths(root, tracked_paths).await?;
+
 	if stageable_paths.is_empty() {
 		return Ok(());
 	}
@@ -1972,6 +2042,7 @@ async fn git_stage_paths(
 	} else {
 		git_stage_paths_command(root, &stageable_paths)
 	};
+
 	run_command(command, "stage release pull request files").await
 }
 
@@ -1981,11 +2052,13 @@ async fn resolve_stageable_release_paths(
 ) -> MonochangeResult<Vec<PathBuf>> {
 	let mut stageable_paths = Vec::with_capacity(tracked_paths.len());
 	let path_filter = DiscoveryPathFilter::new(root);
+
 	for path in tracked_paths {
 		if release_path_requires_staging(root, path, &path_filter).await? {
 			stageable_paths.push(path.clone());
 		}
 	}
+
 	Ok(stageable_paths)
 }
 
@@ -1995,6 +2068,7 @@ async fn release_path_requires_staging(
 	path_filter: &DiscoveryPathFilter,
 ) -> MonochangeResult<bool> {
 	let relative = root_relative_path(root, path);
+
 	if !relative.starts_with(".monochange/releases")
 		&& release_path_is_ignored_by_filter(root, relative, path_filter)
 	{
@@ -2002,12 +2076,15 @@ async fn release_path_requires_staging(
 	}
 
 	let absolute_path = root.join(path);
+
 	if absolute_path.exists() {
 		if git_path_is_tracked(root, path).await? {
 			return Ok(true);
 		}
+
 		return Ok(!git_path_is_ignored(root, path).await?);
 	}
+
 	git_path_is_tracked(root, path).await
 }
 
@@ -2037,6 +2114,7 @@ async fn git_path_is_tracked(root: &Path, path: &Path) -> MonochangeResult<bool>
 				path.display()
 			))
 		})?;
+
 	match output.status.code() {
 		Some(0) => Ok(true),
 		Some(1) => Ok(false),
@@ -2060,6 +2138,7 @@ async fn git_path_is_ignored(root: &Path, path: &Path) -> MonochangeResult<bool>
 				path.display()
 			))
 		})?;
+
 	match output.status.code() {
 		Some(0) => Ok(true),
 		Some(1) => Ok(false),
@@ -2127,19 +2206,24 @@ fn monochange_release_body(
 		Some(changelog) if changelog_has_release_notes(changelog) => {
 			provider_body_from_changelog_rendered(&changelog.rendered)
 		}
+
 		_ => minimal_release_body(manifest, target),
 	}
 }
 
 fn provider_body_from_changelog_rendered(rendered: &str) -> String {
 	let mut lines = rendered.lines().collect::<Vec<_>>();
+
 	if lines.first().is_some_and(|first| first.starts_with("## ")) {
 		lines.remove(0);
+
 		while lines.first().is_some_and(|line| line.trim().is_empty()) {
 			lines.remove(0);
 		}
 	}
+
 	let mut promoted = Vec::with_capacity(lines.len());
+
 	for line in lines {
 		if let Some(rest) = line.strip_prefix("#### ") {
 			promoted.push(format!("### {rest}"));
@@ -2149,6 +2233,7 @@ fn provider_body_from_changelog_rendered(rendered: &str) -> String {
 			promoted.push(line.to_string());
 		}
 	}
+
 	promoted.join("\n")
 }
 
@@ -2216,6 +2301,7 @@ pub fn verify_github_trust_context(
 			"GitHub Actions did not expose `GITHUB_REPOSITORY`".to_string(),
 		)
 	})?;
+
 	if actual_repository != expected.repository {
 		return Err(trusted_publishing_identity_error(
 			request,
@@ -2233,6 +2319,7 @@ pub fn verify_github_trust_context(
 				.to_string(),
 		)
 	})?;
+
 	if actual_workflow != expected.workflow {
 		return Err(trusted_publishing_identity_error(
 			request,
@@ -2247,6 +2334,7 @@ pub fn verify_github_trust_context(
 		let resolved_environment = actual_environment
 			.map(ToString::to_string)
 			.or_else(|| resolve_github_job_environment(root, actual_workflow, env_map));
+
 		if resolved_environment.as_deref() != Some(expected_environment) {
 			return Err(trusted_publishing_identity_error(
 				request,
@@ -2347,6 +2435,7 @@ pub fn resolve_github_job_environment(
 	let parsed = serde_yaml_ng::from_str::<YamlValue>(&contents).ok()?;
 	let jobs = parsed.get("jobs")?;
 	let job = jobs.get(job_id.as_str())?;
+
 	match job.get("environment") {
 		Some(YamlValue::String(environment)) => Some(environment.clone()),
 		Some(YamlValue::Mapping(mapping)) => {
@@ -2362,9 +2451,11 @@ pub fn resolve_github_job_environment(
 pub fn trust_list_contains_context(output: &str, context: &GitHubTrustContext) -> bool {
 	if let Ok(json) = serde_json::from_str::<JsonValue>(output) {
 		let mut required = vec![context.repository.as_str(), context.workflow.as_str()];
+
 		if let Some(environment) = &context.environment {
 			required.push(environment.as_str());
 		}
+
 		return required
 			.into_iter()
 			.all(|needle| json_value_contains(&json, needle));
@@ -2392,9 +2483,11 @@ pub fn format_manual_trust_context(context: &GitHubTrustContext) -> String {
 		format!("repository `{}`", context.repository),
 		format!("workflow `{}`", context.workflow),
 	];
+
 	if let Some(environment) = &context.environment {
 		parts.push(format!("environment `{environment}`"));
 	}
+
 	parts.join(", ")
 }
 

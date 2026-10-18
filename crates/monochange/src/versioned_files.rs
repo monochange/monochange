@@ -129,6 +129,7 @@ impl VersionedFilePathCache {
 			.into_iter()
 			.filter(|pattern| !self.paths_by_pattern.contains_key(*pattern))
 			.collect::<BTreeSet<_>>();
+
 		if pending_patterns.is_empty() {
 			return Ok(());
 		}
@@ -189,8 +190,10 @@ fn seed_cached_text_updates(
 		} else {
 			root.join(&update.path)
 		};
+
 		updates.insert(path, CachedDocument::Text(contents));
 	}
+
 	Ok(())
 }
 
@@ -512,26 +515,32 @@ fn inferred_lockfile_ecosystem_type(
 		Ecosystem::Cargo if configuration.cargo.lockfile_commands.is_empty() => {
 			Some(monochange_core::EcosystemType::Cargo)
 		}
+
 		#[cfg(feature = "npm")]
 		Ecosystem::Npm if configuration.npm.lockfile_commands.is_empty() => {
 			Some(monochange_core::EcosystemType::Npm)
 		}
+
 		#[cfg(feature = "deno")]
 		Ecosystem::Deno if configuration.deno.lockfile_commands.is_empty() => {
 			Some(monochange_core::EcosystemType::Deno)
 		}
+
 		#[cfg(feature = "dart")]
 		Ecosystem::Dart if configuration.dart.lockfile_commands.is_empty() => {
 			Some(monochange_core::EcosystemType::Dart)
 		}
+
 		#[cfg(feature = "python")]
 		Ecosystem::Python if configuration.python.lockfile_commands.is_empty() => {
 			Some(monochange_core::EcosystemType::Python)
 		}
+
 		#[cfg(feature = "go")]
 		Ecosystem::Go if configuration.go.lockfile_commands.is_empty() => {
 			Some(monochange_core::EcosystemType::Go)
 		}
+
 		_ => None,
 	}
 }
@@ -606,6 +615,7 @@ pub(crate) fn read_cached_text_document(
 	if let Some(cached) = take_cached_document(updates, path) {
 		return render_cached_document_text(path, cached);
 	}
+
 	let contents = fs::read(path).map_err(|error| {
 		MonochangeError::Io(format!("failed to read {}: {error}", path.display()))
 	})?;
@@ -714,6 +724,16 @@ pub(crate) fn read_cached_document(
 					MonochangeError::Config(format!("failed to parse {}: {error}", path.display()))
 				})?;
 			Ok(CachedDocument::Yaml(mapping))
+		}
+		#[cfg(feature = "npm")]
+		VersionedFileKind::Npm(monochange_npm::NpmVersionedFileKind::YarnLock) => {
+			let Some(contents) = text_contents else {
+				return Err(MonochangeError::Config(format!(
+					"failed to parse {} as text",
+					path.display()
+				)));
+			};
+			Ok(CachedDocument::Text(contents))
 		}
 		#[cfg(feature = "npm")]
 		VersionedFileKind::Npm(monochange_npm::NpmVersionedFileKind::BunLock) => {
@@ -848,9 +868,11 @@ pub(crate) fn resolve_versioned_prefix(
 	if let Some(prefix) = &definition.prefix {
 		return prefix.clone();
 	}
+
 	let ecosystem_type = definition
 		.ecosystem_type
 		.expect("typed versioned_files should always have an ecosystem type");
+
 	let ecosystem_prefix = match ecosystem_type {
 		monochange_core::EcosystemType::Cargo => {
 			context
@@ -880,6 +902,7 @@ pub(crate) fn resolve_versioned_prefix(
 		}
 		_ => None,
 	};
+
 	ecosystem_prefix.unwrap_or_else(|| {
 		match ecosystem_type {
 			monochange_core::EcosystemType::Cargo => {
@@ -905,7 +928,6 @@ pub(crate) fn resolve_versioned_prefix(
 	})
 }
 // patch-coverage:ignore-end
-
 // patch-coverage:ignore-start -- fallback fields mirror ecosystem defaults covered in ecosystem crates.
 pub(crate) fn expand_versioned_file_fields<N: AsRef<str>>(
 	definition: &VersionedFileDefinition,
@@ -933,6 +955,7 @@ pub(crate) fn expand_versioned_file_fields<N: AsRef<str>>(
 				monochange_core::EcosystemType::Go => monochange_go::default_dependency_fields(),
 				_ => &[],
 			};
+
 			default_fields
 				.iter()
 				.map(ToString::to_string)
@@ -941,6 +964,7 @@ pub(crate) fn expand_versioned_file_fields<N: AsRef<str>>(
 		Clone::clone,
 	);
 	let mut fields = Vec::new();
+
 	for field_template in field_templates {
 		if field_template.contains("{{ name }}") {
 			fields.extend(
@@ -950,6 +974,7 @@ pub(crate) fn expand_versioned_file_fields<N: AsRef<str>>(
 			);
 			continue;
 		}
+
 		if field_template.contains("{{name}}") {
 			fields.extend(
 				dep_names
@@ -958,12 +983,13 @@ pub(crate) fn expand_versioned_file_fields<N: AsRef<str>>(
 			);
 			continue;
 		}
+
 		fields.push(field_template);
 	}
+
 	fields
 }
 // patch-coverage:ignore-end
-
 fn update_json_field_path(
 	value: &mut serde_json::Value,
 	path: &str,
@@ -975,6 +1001,7 @@ fn update_json_field_path(
 		.expect("validated field paths contain at least one segment");
 	let leaf = *leaf;
 	let mut cursor = value;
+
 	for segment in parent_segments {
 		let object = cursor.as_object_mut().ok_or_else(|| {
 			MonochangeError::Config(format!(
@@ -993,11 +1020,13 @@ fn update_json_field_path(
 			"versioned_files field `{path}` cannot set `{leaf}` on a non-object value"
 		))
 	})?;
+
 	if !object.contains_key(leaf) {
 		return Err(MonochangeError::Config(format!(
 			"versioned_files field `{path}` is missing leaf `{leaf}`"
 		)));
 	}
+
 	object.insert(
 		leaf.to_string(),
 		serde_json::Value::String(version.to_string()),
@@ -1050,6 +1079,7 @@ fn update_toml_field_path(
 		.expect("validated field paths contain at least one segment");
 	let leaf = *leaf;
 	let mut table: &mut dyn toml_edit::TableLike = document.as_table_mut();
+
 	for segment in parent_segments {
 		let item = table.get_mut(segment).ok_or_else(|| {
 			MonochangeError::Config(format!(
@@ -1068,6 +1098,7 @@ fn update_toml_field_path(
 			"versioned_files field `{path}` is missing leaf `{leaf}`"
 		)));
 	}
+
 	table.insert(leaf, toml_edit::value(version));
 	Ok(())
 }
@@ -1087,6 +1118,7 @@ fn add_toml_field_path(
 		if !table.contains_key(segment) {
 			table.insert(segment, toml_edit::Item::Table(toml_edit::Table::new()));
 		}
+
 		// patch-coverage:ignore-start -- contains_key/insert above guarantees the segment exists before lookup.
 		let item = table.get_mut(segment).ok_or_else(|| {
 			MonochangeError::Config(format!(
@@ -1116,6 +1148,7 @@ fn update_yaml_field_path(
 		.expect("validated field paths contain at least one segment");
 	let leaf = *leaf;
 	let mut cursor = value;
+
 	for segment in parent_segments {
 		let mapping = cursor.as_mapping_mut().ok_or_else(|| {
 			MonochangeError::Config(format!(
@@ -1136,11 +1169,13 @@ fn update_yaml_field_path(
 		))
 	})?;
 	let key = serde_yaml_ng::Value::String(leaf.to_string());
+
 	if !mapping.contains_key(&key) {
 		return Err(MonochangeError::Config(format!(
 			"versioned_files field `{path}` is missing leaf `{leaf}`"
 		)));
 	}
+
 	mapping.insert(key, serde_yaml_ng::Value::String(version.to_string()));
 	Ok(())
 }
@@ -1182,11 +1217,13 @@ fn add_yaml_field_path(
 
 fn field_path_segments(path: &str) -> MonochangeResult<Vec<&str>> {
 	let segments = path.split('.').map(str::trim).collect::<Vec<_>>();
+
 	if segments.is_empty() || segments.iter().any(|segment| segment.is_empty()) {
 		return Err(MonochangeError::Config(format!(
 			"versioned_files field path `{path}` must contain non-empty dot-separated segments"
 		)));
 	}
+
 	Ok(segments)
 }
 
@@ -1201,6 +1238,7 @@ fn render_versioned_template(template: &str, name: Option<&str>, version: &str) 
 fn update_env_key(contents: &str, key: &str, version: &str) -> MonochangeResult<String> {
 	let mut found = false;
 	let mut output = String::with_capacity(contents.len());
+
 	for line in contents.split_inclusive('\n') {
 		let (body, ending) = line
 			.strip_suffix('\n')
@@ -1225,12 +1263,15 @@ fn update_env_key(contents: &str, key: &str, version: &str) -> MonochangeResult<
 		found = true;
 		let leading_len = body.len() - trimmed_start.len();
 		output.push_str(&body[..leading_len]);
+
 		if trimmed_start.starts_with(export_prefix) {
 			output.push_str(export_prefix);
 		}
+
 		output.push_str(candidate);
 		output.push('=');
 		output.push_str(version);
+
 		output.push_str(ending);
 	}
 
@@ -1239,19 +1280,23 @@ fn update_env_key(contents: &str, key: &str, version: &str) -> MonochangeResult<
 			"versioned_files env field `{key}` was not found"
 		)));
 	}
+
 	Ok(output)
 }
 
 fn add_env_key(contents: &str, key: &str, version: &str) -> String {
 	let mut output = String::with_capacity(contents.len() + key.len() + version.len() + 2);
 	output.push_str(contents);
+
 	if !output.is_empty() && !output.ends_with('\n') {
 		output.push('\n');
 	}
+
 	output.push_str(key);
 	output.push('=');
 	output.push_str(version);
 	output.push('\n');
+
 	output
 }
 
@@ -1296,14 +1341,17 @@ fn update_format_versioned_file_text(
 				})?;
 			for field in fields {
 				let rendered_field = render_versioned_template(field, name, version);
+
 				if let Err(error) = update_json_field_path(&mut value, &rendered_field, version) {
 					let should_add =
 						update_format_error_action(&rendered_field, error, missing_field_behavior)?;
+
 					if should_add {
 						add_json_field_path(&mut value, &rendered_field, version)?;
 					}
 				}
 			}
+
 			let mut output = serde_json::to_string_pretty(&value).unwrap_or_else(|error| {
 				// patch-coverage:ignore-start -- serde_json::Value serialization is infallible for supported values.
 				panic!("serializing serde_json::Value should not fail: {error}")
@@ -1320,15 +1368,18 @@ fn update_format_versioned_file_text(
 				})?;
 			for field in fields {
 				let rendered_field = render_versioned_template(field, name, version);
+
 				if let Err(error) = update_toml_field_path(&mut document, &rendered_field, version)
 				{
 					let should_add =
 						update_format_error_action(&rendered_field, error, missing_field_behavior)?;
+
 					if should_add {
 						add_toml_field_path(&mut document, &rendered_field, version)?;
 					}
 				}
 			}
+
 			Ok(document.to_string())
 		}
 		monochange_core::VersionedFileFormat::Yaml | monochange_core::VersionedFileFormat::Yml => {
@@ -1338,14 +1389,17 @@ fn update_format_versioned_file_text(
 				})?;
 			for field in fields {
 				let rendered_field = render_versioned_template(field, name, version);
+
 				if let Err(error) = update_yaml_field_path(&mut value, &rendered_field, version) {
 					let should_add =
 						update_format_error_action(&rendered_field, error, missing_field_behavior)?;
+
 					if should_add {
 						add_yaml_field_path(&mut value, &rendered_field, version)?;
 					}
 				}
 			}
+
 			Ok(serde_yaml_ng::to_string(&value).unwrap_or_else(|error| {
 				// patch-coverage:ignore-start -- serde_yaml_ng::Value serialization is infallible for supported values.
 				panic!("serializing serde_yaml_ng::Value should not fail: {error}")
@@ -1356,6 +1410,7 @@ fn update_format_versioned_file_text(
 			let mut output = contents.to_string();
 			for field in fields {
 				let key = render_versioned_template(field, name, version);
+
 				match update_env_key(&output, &key, version) {
 					Ok(updated) => output = updated,
 					Err(error) => {
@@ -1365,6 +1420,7 @@ fn update_format_versioned_file_text(
 					}
 				}
 			}
+
 			Ok(output)
 		}
 	}
@@ -1435,6 +1491,7 @@ fn render_versioned_file_value(
 	// The template was validated against the declared ids, so an unresolved
 	// variable here means the rendering context is missing a value.
 	let rendered = monochange_core::versioning::render_version_template(template, &variables);
+
 	if let Some(variable) = monochange_core::versioning::template_variables_used(&rendered).first()
 	{
 		return Err(MonochangeError::Config(format!(
@@ -1462,6 +1519,7 @@ fn ecosystem_type_str(ecosystem: monochange_core::EcosystemType) -> String {
 /// Split a version string into its identity core and prerelease parts.
 fn split_identity(version: &str) -> (&str, &str) {
 	let (without_build, _) = version.split_once('+').unwrap_or((version, ""));
+
 	match without_build.split_once('-') {
 		Some((core, prerelease)) => (core, prerelease),
 		None => (without_build, ""),
@@ -1476,12 +1534,14 @@ fn replace_versioned_file_version(contents: &str, value: &str) -> MonochangeResu
 	use regex::Regex;
 	let pattern = Regex::new(r"\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?")
 		.map_err(|error| MonochangeError::Config(format!("invalid version pattern: {error}")))?;
+
 	if !pattern.is_match(contents) {
 		return Err(MonochangeError::Config(
 			"versioned file value template could not find a SemVer version to replace; add an explicit `regex` or `fields` entry instead"
 				.to_string(),
 		));
 	}
+
 	Ok(pattern.replacen(contents, 1, value).to_string())
 }
 
@@ -1512,6 +1572,7 @@ pub(crate) fn apply_versioned_file_definition_to_paths<N: AsRef<str>>(
 					definition.path
 				))
 			})?;
+
 			for resolved_path in resolved_paths {
 				let resolved_path = resolved_path.clone();
 				let contents = read_cached_text_document(updates, &resolved_path)?;
@@ -1530,10 +1591,13 @@ pub(crate) fn apply_versioned_file_definition_to_paths<N: AsRef<str>>(
 					name,
 					definition.missing_field_behavior,
 				)?;
+
 				updates.insert(resolved_path, CachedDocument::Text(changed_text));
 			}
+
 			return Ok(());
 		}
+
 		for resolved_path in resolved_paths {
 			let resolved_path = resolved_path.clone();
 			let contents = read_cached_text_document(updates, &resolved_path)?;
@@ -1549,6 +1613,7 @@ pub(crate) fn apply_versioned_file_definition_to_paths<N: AsRef<str>>(
 				CachedDocument::Text(replace_versioned_file_version(&contents, &value)?),
 			);
 		}
+
 		return Ok(());
 	}
 
@@ -1565,6 +1630,7 @@ pub(crate) fn apply_versioned_file_definition_to_paths<N: AsRef<str>>(
 				)?),
 			);
 		}
+
 		return Ok(());
 	}
 
@@ -1576,6 +1642,7 @@ pub(crate) fn apply_versioned_file_definition_to_paths<N: AsRef<str>>(
 			))
 		})?;
 		let name = dep_names.first().map(AsRef::as_ref);
+
 		for resolved_path in resolved_paths {
 			let resolved_path = resolved_path.clone();
 			let contents = read_cached_text_document(updates, &resolved_path)?;
@@ -1589,6 +1656,7 @@ pub(crate) fn apply_versioned_file_definition_to_paths<N: AsRef<str>>(
 			)?;
 			updates.insert(resolved_path, CachedDocument::Text(changed_text));
 		}
+
 		return Ok(());
 	}
 
@@ -1615,6 +1683,7 @@ pub(crate) fn apply_versioned_file_definition_to_paths<N: AsRef<str>>(
 	} else {
 		None
 	};
+
 	let versioned_deps: BTreeMap<String, String> = dep_names
 		.iter()
 		.filter_map(|name| {
@@ -1635,6 +1704,7 @@ pub(crate) fn apply_versioned_file_definition_to_paths<N: AsRef<str>>(
 				.map(|version| (name.to_string(), version.clone()))
 		})
 		.collect();
+
 	if versioned_deps.is_empty() && raw_versions.is_empty() {
 		return Ok(());
 	}
@@ -1657,6 +1727,7 @@ pub(crate) fn apply_versioned_file_definition_to_paths<N: AsRef<str>>(
 				},
 			)));
 		};
+
 		let package_paths_by_name = dep_names
 			.iter()
 			.filter_map(|name| {
@@ -1683,6 +1754,7 @@ pub(crate) fn apply_versioned_file_definition_to_paths<N: AsRef<str>>(
 			})
 			.collect::<BTreeMap<_, _>>();
 		let mut document = read_cached_document(updates, &resolved_path, ecosystem_type)?;
+
 		match (&mut document, kind) {
 			#[cfg(feature = "cargo")]
 			(CachedDocument::Text(contents), VersionedFileKind::Cargo(kind)) => {
@@ -1719,6 +1791,8 @@ pub(crate) fn apply_versioned_file_definition_to_paths<N: AsRef<str>>(
 					})?;
 				} else if kind == monochange_npm::NpmVersionedFileKind::BunLock {
 					*contents = monochange_npm::update_bun_lock(contents, &raw_versions);
+				} else if kind == monochange_npm::NpmVersionedFileKind::YarnLock {
+					*contents = monochange_npm::update_yarn_lock(contents, &raw_versions);
 				} else if kind == monochange_npm::NpmVersionedFileKind::PnpmLock {
 					*contents = monochange_npm::update_pnpm_lock_text(contents, &raw_versions)
 						.map_err(|error| {
@@ -1828,8 +1902,10 @@ pub(crate) fn apply_versioned_file_definition_to_paths<N: AsRef<str>>(
 			}
 			_ => {}
 		}
+
 		updates.insert(resolved_path, document);
 	}
+
 	Ok(())
 }
 
@@ -1850,6 +1926,7 @@ pub(crate) fn released_versions_by_record_id(plan: &ReleasePlan) -> BTreeMap<Str
 		let Some(version) = group.planned_version.as_ref() else {
 			continue;
 		};
+
 		for member in &group.members {
 			released_versions.insert(member.clone(), version.to_string());
 		}

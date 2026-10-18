@@ -38,6 +38,7 @@ fn setup_workspace(name: &str) -> TempDir {
 	);
 	git(tempdir.path(), &["config", "commit.gpgsign", "false"]);
 	git(tempdir.path(), &["add", "."]);
+
 	git(tempdir.path(), &["commit", "-m", "initial"]);
 	tempdir
 }
@@ -421,15 +422,18 @@ fn release_record_freezes_values_for_re_rendering() {
 fn find_release_record(root: &Path) -> PathBuf {
 	let releases = root.join(".monochange/releases");
 	let mut records = Vec::new();
+
 	for entry in fs::read_dir(&releases)
 		.unwrap_or_else(|error| panic!("read {}: {error}", releases.display()))
 	{
 		let entry = entry.unwrap_or_else(|error| panic!("release entry: {error}"));
 		let candidate = entry.path().join("release.json");
+
 		if candidate.is_file() {
 			records.push(candidate);
 		}
 	}
+
 	assert_eq!(records.len(), 1, "expected exactly one release record");
 	records.remove(0)
 }

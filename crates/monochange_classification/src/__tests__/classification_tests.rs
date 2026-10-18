@@ -30,6 +30,7 @@ fn init_classification_repo() -> tempfile::TempDir {
 	git(tempdir.path(), &["add", "."]);
 	git(tempdir.path(), &["commit", "-m", "base"]);
 	git(tempdir.path(), &["branch", "-M", "main"]);
+
 	tempdir
 }
 
@@ -45,6 +46,7 @@ fn classify_options_defaults_are_safe_for_agent_use() {
 	assert!(!options.include_unchanged);
 	assert!(!options.strict);
 	assert_eq!(options.format, ClassificationFormat::Text);
+
 	assert_eq!(options.output, None);
 	assert!(options.labels.is_empty());
 	assert_eq!(options.dependency_propagation, DependencyPropagation::None);
@@ -164,6 +166,7 @@ fn selection_release_and_render_helpers_cover_every_supported_variant() {
 		comparison_status_name(ComparisonStatus::Conflicted),
 		"conflicted"
 	);
+
 	assert_eq!(
 		compatibility_impact_name(CompatibilityImpact::Unmodeled),
 		"unmodeled"
@@ -516,6 +519,7 @@ fn default_branch_findings_do_not_propose_a_bump_for_an_untouched_package() {
 	);
 	assert_eq!(decision.completeness, AnalysisCompleteness::Complete);
 	assert!(!decision.review_required);
+
 	assert!(decision.finding_ids.is_empty());
 }
 
@@ -724,6 +728,7 @@ fn public_dependency_propagation_skips_non_public_or_already_reported_edges() {
 	app.declared_dependencies
 		.push(dependency_on("@acme/utils", DependencyKind::Runtime));
 	let mut docs = npm_package("@acme/docs", "/repo/packages/docs/package.json");
+
 	docs.declared_dependencies
 		.push(dependency_on("@acme/core", DependencyKind::Development));
 	let analysis = ChangeAnalysis {
@@ -823,6 +828,7 @@ fn public_dependency_propagation_preserves_an_existing_package_report() {
 		status: ComparisonStatus::Analyzed,
 		note: None,
 	};
+
 	let mut packages = vec![PackageClassification {
 		cli: None,
 		package_id: app_id.clone(),
@@ -854,6 +860,7 @@ fn public_dependency_propagation_preserves_an_existing_package_report() {
 	assert_eq!(package.existing_changesets, vec![existing_changeset]);
 	assert_eq!(package.recommendation, BumpSeverity::Patch);
 	assert_eq!(package.action, ChangesetAction::Keep);
+
 	assert_eq!(package.findings.len(), 1);
 	assert_eq!(
 		package
@@ -887,6 +894,7 @@ fn changeset_action_reviews_unmatched_intent_and_keeps_matching_intent() {
 	assert_eq!(changeset_action(&patch, &[]), ChangesetAction::Create);
 	let mut major = patch;
 	major.proposed_changeset_bump = BumpSeverity::Major;
+
 	assert_eq!(changeset_action(&major, &existing), ChangesetAction::Update);
 }
 
@@ -1291,6 +1299,7 @@ fn semantic_finding_uses_explicit_analyzer_assessment() {
 		finding.coverage.note,
 		"all explicit typed exports were checked"
 	);
+
 	assert_eq!(finding.coverage.fallback_reason, None);
 	let mut current = finding;
 	current.comparisons.insert(ComparisonKind::PullRequest);
@@ -1334,6 +1343,7 @@ fn semantic_assessment_mapping_covers_every_current_evidence_variant() {
 		analysis_completeness_name(AnalysisCompleteness::Complete),
 		"complete"
 	);
+
 	assert_eq!(
 		analysis_completeness_name(AnalysisCompleteness::Unsupported),
 		"unsupported"
@@ -1513,6 +1523,7 @@ fn package_lifecycle_findings_are_complete_and_enforceable() {
 	let mut finding = finding;
 	finding.comparisons.insert(ComparisonKind::PullRequest);
 	let decision = build_recommendation(&[finding.clone()], true, false, None, true);
+
 	assert_eq!(decision.enforceable_minimum, BumpSeverity::Major);
 	assert_eq!(decision.completeness, AnalysisCompleteness::Complete);
 	assert!(!decision.review_required);
@@ -1691,6 +1702,7 @@ fn snapshot_change_kind_names_are_kebab_case_rule_ids() {
 		snapshot_change_kind_name(&SnapshotChangeKind::OptionValueNarrowed),
 		"option-value-narrowed"
 	);
+
 	assert_eq!(
 		snapshot_change_kind_name(&SnapshotChangeKind::PositionalAdded),
 		"positional-added"
@@ -1746,16 +1758,19 @@ fn cli_surface_findings_use_unique_ids_with_complete_coverage() {
 		findings[2].id,
 		"monochange/cli-surface/command-added/migrate/audit"
 	);
+
 	for finding in &findings {
 		assert_eq!(finding.surface, "cli");
 		assert_eq!(finding.analyzer.id, "monochange/cli-surface");
 		assert_eq!(finding.confidence, ClassificationConfidence::High);
+
 		assert_eq!(
 			finding.coverage.completeness,
 			AnalysisCompleteness::Complete
 		);
 		assert!(finding.comparisons.contains(&ComparisonKind::PullRequest));
 	}
+
 	assert_eq!(findings[0].impact, CompatibilityImpact::Breaking);
 	assert_eq!(findings[0].bump, BumpSeverity::Major);
 	assert_eq!(findings[2].impact, CompatibilityImpact::Additive);

@@ -203,6 +203,7 @@ fn format_duration_and_paint_text_cover_terminal_styles() {
 		paint_text("muted", Style::Muted, true),
 		"\u{1b}[2mmuted\u{1b}[0m"
 	);
+
 	assert_eq!(format_duration(Duration::from_secs(3_720)), "1h 02m");
 	assert_eq!(format_duration(Duration::from_secs(456)), "7m 36s");
 	assert_eq!(format_duration(Duration::from_millis(58_750)), "58.8s");
@@ -460,6 +461,7 @@ fn github_actions_folds_command_output_and_annotates_warnings_and_failures() {
 	reporter.log_command_output(1, &step, CommandStream::Stdout, "::set-output name=x::y\n");
 	reporter.log_command_output(1, &step, CommandStream::Stdout, "formatted 3 files\n");
 	reporter.warning("100% of files changed\nsecond line");
+
 	reporter.step_failed(
 		1,
 		&step,
@@ -505,6 +507,7 @@ fn multi_step_commands_frame_their_steps_with_a_banner_and_summary() {
 			},
 		],
 	);
+
 	reporter.step_started(1, format);
 	reporter.step_command(1, format, "dprint fmt");
 	reporter.step_skipped(1, format, None, Some("dry-run; the command was not run"));
@@ -545,6 +548,7 @@ fn heartbeats_follow_a_slow_schedule_in_captured_output() {
 		recorded_reporter_with(2, capabilities(false, false), ProgressFormat::Unicode);
 	let step = named_command_step("compile workspace");
 	reporter.step_started(0, &step);
+
 	for seconds in [5, 29, 30, 35, 59, 61, 119, 125] {
 		reporter.step_heartbeat(0, &step, Duration::from_secs(seconds));
 	}
@@ -764,6 +768,7 @@ fn nested_workflow_and_publish_events_share_complete_lines() {
 			duration: Duration::from_millis(8),
 		}],
 	);
+
 	reporter.command_finished(Duration::from_millis(12));
 
 	let output = String::from_utf8(bytes.lock().unwrap().clone()).unwrap();
@@ -827,6 +832,7 @@ fn json_view_sequences_lint_and_publish_events_from_the_same_reporter() {
 		lint.get("event"),
 		Some(&serde_json::json!("lint_planning_started"))
 	);
+
 	assert_eq!(publish.get("sequence"), Some(&serde_json::json!(1)));
 	assert_eq!(
 		publish.get("event"),
@@ -937,6 +943,7 @@ fn human_progress_covers_lint_counts_fixes_and_summary_wording() {
 	LintProgressReporter::suite_started(&reporter, "cargo", 1, 1);
 	LintProgressReporter::suite_started(&reporter, "changeset", 2, 3);
 	LintProgressReporter::suite_finished(&reporter, "cargo", 1, 0);
+
 	LintProgressReporter::suite_finished(&reporter, "changeset", 2, 1);
 	LintProgressReporter::fix_started(&reporter, 1);
 	LintProgressReporter::fix_started(&reporter, 2);
@@ -972,6 +979,7 @@ fn publish_rendering_and_json_cover_every_event_variant() {
 		},
 		PublishProgressEvent::PackagePlanned(package.clone()),
 		PublishProgressEvent::PackagePublished(package.clone()),
+		PublishProgressEvent::PackageStaged(package.clone()),
 		PublishProgressEvent::PackageFailed {
 			package,
 			message: "registry rejected package".to_string(),
@@ -980,6 +988,7 @@ fn publish_rendering_and_json_cover_every_event_variant() {
 			mode: PackagePublishRunMode::Release,
 			total: 2,
 			published: 1,
+			staged: 0,
 			skipped: 0,
 			failed: 1,
 		},
@@ -996,13 +1005,17 @@ fn publish_rendering_and_json_cover_every_event_variant() {
 	);
 	assert!(rendered[3].contains("already exists"));
 	assert!(rendered[5].contains("published 1.2.3"));
-	assert_eq!(rendered[7], "✖ Publish complete: 1 published, 1 failed");
+	assert!(rendered[6].contains("staged 1.2.3"));
+	assert!(rendered[6].contains("awaiting approval"));
+	assert_eq!(rendered[8], "✖ Publish complete: 1 published, 1 failed");
+
 	assert_eq!(
 		render_publish_event(
 			&PublishProgressEvent::RunFinished {
 				mode: PackagePublishRunMode::Release,
 				total: 5,
 				published: 1,
+				staged: 0,
 				skipped: 0,
 				failed: 0,
 			},
@@ -1012,6 +1025,24 @@ fn publish_rendering_and_json_cover_every_event_variant() {
 		),
 		"+ Publish complete: 1 published, 4 not attempted"
 	);
+	// Staged packages finished their run without going live; the summary
+	// keeps them visible next to the published count.
+	assert_eq!(
+		render_publish_event(
+			&PublishProgressEvent::RunFinished {
+				mode: PackagePublishRunMode::Release,
+				total: 2,
+				published: 1,
+				staged: 1,
+				skipped: 0,
+				failed: 0,
+			},
+			&ASCII_SYMBOLS,
+			false,
+			false,
+		),
+		"+ Publish complete: 1 published, 1 staged awaiting approval"
+	);
 	// Nothing published is a neutral outcome, not a success or a failure.
 	assert_eq!(
 		render_publish_event(
@@ -1019,6 +1050,7 @@ fn publish_rendering_and_json_cover_every_event_variant() {
 				mode: PackagePublishRunMode::Release,
 				total: 3,
 				published: 0,
+				staged: 0,
 				skipped: 3,
 				failed: 0,
 			},
@@ -1060,9 +1092,11 @@ fn publish_rendering_and_json_cover_every_event_variant() {
 	);
 
 	let (reporter, bytes) = recorded_reporter(ProgressFormat::Json);
+
 	for event in events {
 		PublishProgressReporter::report(&reporter, event);
 	}
+
 	let output = String::from_utf8(bytes.lock().unwrap().clone()).unwrap();
 	let names = output
 		.lines()
@@ -1078,6 +1112,7 @@ fn publish_rendering_and_json_cover_every_event_variant() {
 			"publish_package_skipped",
 			"publish_package_planned",
 			"publish_package_published",
+			"publish_package_staged",
 			"publish_package_failed",
 			"publish_run_finished",
 		]
@@ -1094,6 +1129,7 @@ fn progress_disabled_quiet_colored_and_animated_edges_are_safe() {
 	LintProgressReporter::suite_started(&disabled, "cargo", 1, 1);
 	LintProgressReporter::suite_finished(&disabled, "cargo", 0, 0);
 	LintProgressReporter::fix_started(&disabled, 1);
+
 	LintProgressReporter::fix_applied(&disabled, std::path::Path::new("file"), "fix");
 	LintProgressReporter::fix_finished(&disabled, 1);
 	LintProgressReporter::summary(&disabled, 1, 0, 0, false);

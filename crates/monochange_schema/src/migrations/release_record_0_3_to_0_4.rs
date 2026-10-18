@@ -31,15 +31,18 @@ fn normalize_object_keys(value: &mut Value) {
 
 fn camel_to_snake(value: &str) -> String {
 	let mut output = String::with_capacity(value.len());
+
 	for character in value.chars() {
 		if character.is_ascii_uppercase() {
 			if !output.is_empty() {
 				output.push('_');
 			}
+
 			output.push(character.to_ascii_lowercase());
 		} else {
 			output.push(character);
 		}
 	}
+
 	output
 }

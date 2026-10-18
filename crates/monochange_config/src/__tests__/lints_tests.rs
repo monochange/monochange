@@ -262,6 +262,7 @@ fn collect_targets_filters_and_parses_changeset_files() {
 		.downcast_ref::<ChangesetLintFile>()
 		.expect("changeset lint file");
 	assert_eq!(parsed.body, "# Add target");
+
 	assert!(
 		parsed
 			.changes
@@ -661,6 +662,7 @@ fn bump_scope_rule_reports_all_constraints_for_matching_changes() {
 	options.insert("forbidden_headings".to_string(), json!(["Forbidden"]));
 	options.insert("min_body_chars".to_string(), json!(200));
 	options.insert("max_body_chars".to_string(), json!(10));
+
 	options.insert("require_code_block".to_string(), json!(true));
 
 	let results = run_rule(&rule, &file, &detailed(options));
@@ -709,6 +711,7 @@ fn bump_scope_rule_ignores_non_matching_changes_and_accepts_valid_body() {
 	options.insert("forbidden_headings".to_string(), json!(["Forbidden"]));
 	options.insert("min_body_chars".to_string(), json!(1));
 	options.insert("max_body_chars".to_string(), json!(200));
+
 	options.insert("require_code_block".to_string(), json!(true));
 	assert!(run_rule(&rule, &file, &detailed(options)).is_empty());
 	assert!(run_rule(&rule, &file, &severity(LintSeverity::Off)).is_empty());
@@ -731,6 +734,7 @@ fn type_scope_rule_reports_all_constraints_for_matching_changes() {
 	options.insert("forbidden_headings".to_string(), json!(["Forbidden"]));
 	options.insert("min_body_chars".to_string(), json!(200));
 	options.insert("max_body_chars".to_string(), json!(10));
+
 	options.insert("require_code_block".to_string(), json!(true));
 
 	let results = run_rule(&rule, &file, &detailed(options));
@@ -791,6 +795,7 @@ fn type_scope_rule_ignores_non_matching_changes_and_accepts_valid_body() {
 	options.insert("required_sections".to_string(), json!(["User impact"]));
 	options.insert("forbidden_headings".to_string(), json!(["Forbidden"]));
 	options.insert("min_body_chars".to_string(), json!(1));
+
 	options.insert("max_body_chars".to_string(), json!(200));
 	options.insert("require_code_block".to_string(), json!(true));
 	let config = detailed(options);
@@ -823,7 +828,6 @@ fn lint_rule_config_extension_reads_bool_and_string_list_options() {
 }
 
 // ── Prefer inline rule ─────────────────────────────────────────────────────
-
 /// Run the prefer-inline rule against a full changeset file.
 fn run_prefer_inline(
 	contents: &str,
@@ -869,6 +873,7 @@ fn prefer_inline_rule_reports_block_bump_and_type_redundancy() {
 	assert_eq!(result.location.line, 1);
 	assert_eq!(result.location.column, 1);
 	assert_eq!(result.location.span, Some((9, 36)));
+
 	assert_eq!(
 		apply_single_fix(contents, &results),
 		"---\ncore: feat\n---\n\n#### Summary\n"
@@ -982,6 +987,7 @@ fn prefer_inline_rule_keeps_meaningful_object_entries() {
 		)
 		.is_empty()
 	);
+
 	// Unknown fields are invalid changesets; leave them alone.
 	let unknown_field = "---\ncore:\n  type: feat\n  extra: true\n---\n\n#### Summary\n";
 	assert!(
@@ -1233,7 +1239,6 @@ fn normalize_change_bumps_resolves_implied_bumps_for_configured_types() {
 
 // The following tests exercise `frontmatter_entry_spans` directly so the raw
 // scanner behavior is covered independently of the serde frontmatter parse.
-
 fn spans_of(contents: &str) -> Option<Vec<(String, (usize, usize))>> {
 	frontmatter_entry_spans(contents).map(|entries| {
 		entries

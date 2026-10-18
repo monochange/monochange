@@ -23,6 +23,7 @@ use monochange_core::MonochangeResult;
 use monochange_core::PackagePublicationTarget;
 use monochange_core::PackageRecord;
 use monochange_core::PublishAttestationSettings;
+use monochange_core::PublishFlow;
 use monochange_core::PublishMode;
 use monochange_core::PublishRegistry;
 use monochange_core::PublishState;
@@ -127,6 +128,7 @@ pub enum PublishProgressEvent {
 	},
 	PackagePlanned(PublishProgressPackage),
 	PackagePublished(PublishProgressPackage),
+	PackageStaged(PublishProgressPackage),
 	PackageFailed {
 		package: PublishProgressPackage,
 		message: String,
@@ -135,6 +137,7 @@ pub enum PublishProgressEvent {
 		mode: PackagePublishRunMode,
 		total: usize,
 		published: usize,
+		staged: usize,
 		skipped: usize,
 		failed: usize,
 	},
@@ -169,11 +172,13 @@ pub fn select_release_publication_targets(
 	selected_ecosystems: &BTreeSet<Ecosystem>,
 ) -> SelectedReleasePublicationTargets {
 	let mut publication_targets = publication_targets.to_vec();
+
 	if !selected_ecosystems.is_empty() {
 		publication_targets.retain(|target| selected_ecosystems.contains(&target.ecosystem));
 	}
 
 	let mut selected_packages = selected_packages.clone();
+
 	for group_id in selected_groups {
 		if let Some(group) = groups.iter().find(|group| group.id == *group_id) {
 			selected_packages.extend(group.packages.iter().cloned());
@@ -198,6 +203,9 @@ pub enum PackagePublishRunMode {
 pub enum PackagePublishStatus {
 	Planned,
 	Published,
+	/// The version was uploaded to the registry's staging queue and is not
+	/// installable until a maintainer approves it (npm staged publishing).
+	Staged,
 	SkippedExisting,
 	SkippedExternal,
 	Blocked,
@@ -309,6 +317,8 @@ pub type PackagePublishExecutionResult = Result<PackagePublishReport, PackagePub
 pub struct PackagePublishSummary {
 	pub planned: usize,
 	pub published: usize,
+	#[serde(default)]
+	pub staged: usize,
 	pub already_exists: usize,
 	pub blocked: usize,
 	pub failed: usize,
@@ -320,6 +330,7 @@ impl PackagePublishSummary {
 	pub const fn total(self) -> usize {
 		self.planned
 			+ self.published
+			+ self.staged
 			+ self.already_exists
 			+ self.blocked
 			+ self.failed
@@ -333,6 +344,7 @@ impl PackagePublishReport {
 		let mut summary = PackagePublishSummary {
 			planned: 0,
 			published: 0,
+			staged: 0,
 			already_exists: 0,
 			blocked: 0,
 			failed: 0,
@@ -343,6 +355,7 @@ impl PackagePublishReport {
 			match outcome.status {
 				PackagePublishStatus::Planned => summary.planned += 1,
 				PackagePublishStatus::Published => summary.published += 1,
+				PackagePublishStatus::Staged => summary.staged += 1,
 				PackagePublishStatus::SkippedExisting => summary.already_exists += 1,
 				PackagePublishStatus::SkippedExternal => summary.not_attempted += 1,
 				PackagePublishStatus::Blocked => summary.blocked += 1,
@@ -481,10 +494,17 @@ pub fn planned_publish_message(mode: PackagePublishRunMode, request: &PublishReq
 			)
 		}
 		PackagePublishRunMode::Release => {
-			format!(
-				"would publish {} {} to {}",
-				request.package_name, request.version, request.registry
-			)
+			if request.flow == PublishFlow::Staged {
+				format!(
+					"would stage {} {} on {}; the version stays non-installable until a maintainer approves it with 2FA",
+					request.package_name, request.version, request.registry
+				)
+			} else {
+				format!(
+					"would publish {} {} to {}",
+					request.package_name, request.version, request.registry
+				)
+			}
 		}
 	}
 }
@@ -499,6 +519,7 @@ pub fn reject_npm_token_environment(
 	env_map: &BTreeMap<String, String>,
 ) -> MonochangeResult<()> {
 	let token_keys = forbidden_npm_token_env_keys(env_map);
+
 	if token_keys.is_empty() {
 		return Ok(());
 	}
@@ -549,6 +570,7 @@ pub fn enforce_release_attestation_prerequisites(
 	let registry = PublishRegistry::Builtin(request.registry);
 	let identity = detect_trusted_publishing_identity(env_map);
 	let capability_message = trusted_publishing_capability_message(&registry, &identity);
+
 	if !identity.is_verifiable_by_env() {
 		return Err(MonochangeError::Config(format!(
 			"`{}` requires registry-native package provenance from a verifiable CI/OIDC identity, but the current publishing context is local or unverifiable. {capability_message} Run `monochange step publish-packages` from the configured CI workflow or set `publish.attestations.require_registry_provenance = false` to opt out.",
@@ -557,6 +579,7 @@ pub fn enforce_release_attestation_prerequisites(
 	}
 
 	let capability = provider_registry_trust_capability(&registry, identity.provider());
+
 	if !capability.registry_native_provenance {
 		return Err(MonochangeError::Config(format!(
 			"`{}` cannot require registry-native package provenance for {} from {}. {capability_message} This registry/provider combination does not expose provenance monochange can require; set `publish.attestations.require_registry_provenance = false` to opt out or use an external publisher that enforces its own attestation policy.",
@@ -565,6 +588,7 @@ pub fn enforce_release_attestation_prerequisites(
 			identity.provider().label(),
 		)));
 	}
+
 	if !command_builder
 		.adapter_for_registry(request.registry)
 		.is_some_and(PublishAdapter::supports_provenance)
@@ -612,6 +636,7 @@ pub struct PublishRequest {
 	pub package_manager: Option<String>,
 	pub package_metadata: BTreeMap<String, String>,
 	pub mode: PublishMode,
+	pub flow: PublishFlow,
 	pub version: String,
 	pub placeholder: bool,
 	pub trusted_publishing: TrustedPublishingSettings,
@@ -657,6 +682,7 @@ pub fn set_fail_on_duplicate_for_requests(
 	if !fail_on_duplicate {
 		return;
 	}
+
 	for request in requests {
 		request.fail_on_duplicate = true;
 	}
@@ -664,9 +690,11 @@ pub fn set_fail_on_duplicate_for_requests(
 
 fn npm_publish_env(request: &PublishRequest) -> BTreeMap<String, String> {
 	let mut env = BTreeMap::new();
+
 	if let Some(otp) = request.package_metadata.get(NPM_PUBLISH_OTP_METADATA_KEY) {
 		env.insert("NPM_CONFIG_OTP".to_string(), otp.clone());
 	}
+
 	env
 }
 
@@ -768,6 +796,7 @@ impl PublishReadinessRegistry {
 				return Ok(Some(message));
 			}
 		}
+
 		for (_, checker) in self
 			.env_checkers
 			.iter()
@@ -1123,6 +1152,7 @@ pub async fn try_execute_publish_requests_with_progress(
 						},
 					)
 				})?;
+
 			if let Some(message) = blocked {
 				return Err(PackagePublishFailure::new(
 					MonochangeError::Config(message),
@@ -1197,6 +1227,7 @@ pub async fn try_execute_publish_requests_with_progress(
 		progress.report(PublishProgressEvent::RegistryCheckStarted(
 			publish_progress_package(request),
 		));
+
 		let version_exists = match registry_version_exists(client, endpoints, request).await {
 			Ok(version_exists) => version_exists,
 			Err(error) => {
@@ -1213,6 +1244,7 @@ pub async fn try_execute_publish_requests_with_progress(
 				break;
 			}
 		};
+
 		if version_exists {
 			info!(
 				package_name = request.package_name,
@@ -1224,6 +1256,7 @@ pub async fn try_execute_publish_requests_with_progress(
 				"{} {} already exists on {}",
 				request.package_name, request.version, request.registry
 			);
+
 			if request.fail_on_duplicate && mode == PackagePublishRunMode::Release {
 				info!(
 					package_name = request.package_name,
@@ -1234,6 +1267,7 @@ pub async fn try_execute_publish_requests_with_progress(
 				let duplicate_message = format!(
 					"{message} and `publish.fail_on_duplicate` rejects duplicate version publications"
 				);
+
 				primary_error = Some(MonochangeError::Config(duplicate_message.clone()));
 				append_publish_failure_outcomes(
 					&mut outcomes,
@@ -1245,6 +1279,7 @@ pub async fn try_execute_publish_requests_with_progress(
 				);
 				break;
 			}
+
 			progress.report(PublishProgressEvent::PackageSkipped {
 				package: publish_progress_package(request),
 				message: message.clone(),
@@ -1290,6 +1325,7 @@ pub async fn try_execute_publish_requests_with_progress(
 		} else {
 			None
 		};
+
 		if let Some(message) = blocked_message {
 			if dry_run {
 				progress.report(PublishProgressEvent::PackageSkipped {
@@ -1310,6 +1346,7 @@ pub async fn try_execute_publish_requests_with_progress(
 					stdout: None,
 					stderr: None,
 				});
+
 				continue;
 			}
 
@@ -1345,6 +1382,7 @@ pub async fn try_execute_publish_requests_with_progress(
 		} else {
 			None
 		};
+
 		let mut publish_command = command_builder.build_publish_command(
 			request,
 			mode,
@@ -1357,6 +1395,7 @@ pub async fn try_execute_publish_requests_with_progress(
 			progress.report(PublishProgressEvent::PackagePlanned(
 				publish_progress_package(request),
 			));
+
 			if mode == PackagePublishRunMode::Placeholder {
 				outcomes.push(PackagePublishOutcome {
 					package: request.package_id.clone(),
@@ -1390,6 +1429,7 @@ pub async fn try_execute_publish_requests_with_progress(
 				.and_then(|()| {
 					enforce_release_attestation_prerequisites(request, env_map, command_builder)
 				});
+
 			if let Err(error) = prerequisites {
 				let message = error.render();
 				primary_error = Some(error);
@@ -1409,6 +1449,7 @@ pub async fn try_execute_publish_requests_with_progress(
 			progress.report(PublishProgressEvent::PackageStarted(
 				publish_progress_package(request),
 			));
+
 			if let Some(blocker) = pub_dev_trusted_publishing_ref_error(request, env_map) {
 				tracing::error!(
 					package_name = request.package_name,
@@ -1427,6 +1468,7 @@ pub async fn try_execute_publish_requests_with_progress(
 				);
 				break;
 			}
+
 			if request.registry == RegistryKind::PubDev
 				&& request.trusted_publishing.enabled
 				&& let Err(error) = refresh_pub_dev_trusted_publishing_token(
@@ -1458,6 +1500,7 @@ pub async fn try_execute_publish_requests_with_progress(
 				break;
 			}
 		}
+
 		let output = match run_publish_command_with_retries(executor, &publish_command, request) {
 			Ok(output) => output,
 			Err(error) => {
@@ -1480,6 +1523,7 @@ pub async fn try_execute_publish_requests_with_progress(
 				break;
 			}
 		};
+
 		if !output.success {
 			tracing::error!(
 				package_name = request.package_name,
@@ -1487,6 +1531,7 @@ pub async fn try_execute_publish_requests_with_progress(
 				registry = %request.registry,
 				"publish command returned non-zero exit"
 			);
+
 			if dry_run {
 				outcomes.push(PackagePublishOutcome {
 					package: request.package_id.clone(),
@@ -1545,6 +1590,14 @@ pub async fn try_execute_publish_requests_with_progress(
 				PackagePublishStatus::Planned,
 				planned_publish_message(mode, request),
 			)
+		} else if request.flow == PublishFlow::Staged {
+			progress.report(PublishProgressEvent::PackageStaged(
+				publish_progress_package(request),
+			));
+			(
+				PackagePublishStatus::Staged,
+				staged_publish_message(request),
+			)
 		} else {
 			progress.report(PublishProgressEvent::PackagePublished(
 				publish_progress_package(request),
@@ -1557,6 +1610,7 @@ pub async fn try_execute_publish_requests_with_progress(
 				),
 			)
 		};
+
 		info!(
 			package_name = request.package_name,
 			version = %request.version,
@@ -1589,12 +1643,15 @@ pub async fn try_execute_publish_requests_with_progress(
 		mode,
 		total: summary.total(),
 		published: summary.published,
+		staged: summary.staged,
 		skipped: summary.planned + summary.already_exists + summary.blocked + summary.not_attempted,
 		failed: summary.failed,
 	});
+
 	if let Some(error) = primary_error {
 		return Err(PackagePublishFailure::new(error, report));
 	}
+
 	Ok(report)
 }
 
@@ -1635,6 +1692,9 @@ pub fn build_placeholder_requests(
 				package_manager: package.metadata.get("manager").cloned(),
 				package_metadata: package.metadata.clone(),
 				mode: package_definition.publish.mode,
+				// Placeholders register the package immediately; staged
+				// publishing would leave the name unclaimed until approval.
+				flow: PublishFlow::Direct,
 				version: PLACEHOLDER_VERSION.to_string(),
 				placeholder: true,
 				trusted_publishing: package_definition.publish.trusted_publishing.clone(),
@@ -1678,6 +1738,7 @@ pub fn configured_package_publication_targets(
 				registry: package_definition.publish.registry.clone(),
 				version,
 				mode: package_definition.publish.mode,
+				flow: package_definition.publish.flow,
 				trusted_publishing: package_definition.publish.trusted_publishing.clone(),
 				attestations: package_definition.publish.attestations.clone(),
 				timeout: package_definition.publish.timeout.clone(),
@@ -1748,6 +1809,7 @@ pub fn build_release_requests(
 			package_manager: package.metadata.get("manager").cloned(),
 			package_metadata: package.metadata.clone(),
 			mode: publication.mode,
+			flow: publication.flow,
 			version: publication.version.clone(),
 			placeholder: false,
 			trusted_publishing: publication.trusted_publishing.clone(),
@@ -1795,6 +1857,7 @@ pub fn resolve_placeholder_readme(
 	if let Some(inline) = inline {
 		return Ok(inline.to_string());
 	}
+
 	if let Some(file) = file {
 		let path = root.join(file);
 		return fs::read_to_string(&path).map_err(|error| {
@@ -1804,6 +1867,7 @@ pub fn resolve_placeholder_readme(
 			))
 		});
 	}
+
 	Ok(default_placeholder_readme(package_name))
 }
 
@@ -1878,6 +1942,7 @@ impl PublishCommandBuilder {
 		let adapter = self
 			.adapter_for_registry(request.registry)
 			.expect("unsupported built-in publish registry");
+
 		let mut command = match mode {
 			PackagePublishRunMode::Placeholder => {
 				let path = placeholder_dir.expect("placeholder directory must exist");
@@ -1886,9 +1951,11 @@ impl PublishCommandBuilder {
 			PackagePublishRunMode::Release => adapter.build_release_command(request),
 		}
 		.expect("unsupported publish mode for this registry");
+
 		if dry_run {
 			adapter.append_dry_run_args(&mut command.args);
 		}
+
 		if request
 			.package_metadata
 			.get(PUBLISH_STREAM_OUTPUT_METADATA_KEY)
@@ -1932,9 +1999,11 @@ impl CommandExecutor for ProcessCommandExecutor {
 				.env
 				.get(PUBLISH_STREAM_OUTPUT_ENV_KEY)
 				.is_some_and(|value| value == "true");
+
 		if stream_output {
 			return run_streaming_process_command(spec);
 		}
+
 		run_captured_process_command(spec)
 	}
 }
@@ -1968,6 +2037,7 @@ fn run_captured_process_command(spec: &CommandSpec) -> MonochangeResult<CommandO
 	let stdout_thread = std::thread::spawn(move || read_child_output(stdout));
 	let stderr_thread = std::thread::spawn(move || read_child_output(stderr));
 	let status = wait_child_with_timeout(&mut child, spec)?;
+
 	let stdout = join_child_output(stdout_thread, spec, "stdout")?;
 	let stderr = join_child_output(stderr_thread, spec, "stderr")?;
 
@@ -2024,6 +2094,7 @@ fn wait_child_with_timeout(
 			.map_err(|error| process_command_error(spec, "wait for", &error));
 	};
 	let deadline = std::time::Instant::now() + timeout;
+
 	loop {
 		match child.try_wait() {
 			Ok(Some(status)) => return Ok(status),
@@ -2033,6 +2104,7 @@ fn wait_child_with_timeout(
 					let _ = child.wait();
 					return Err(publish_timeout_error(spec, timeout));
 				}
+
 				std::thread::sleep(Duration::from_millis(100));
 			}
 			// patch-coverage:ignore-start -- `try_wait` errors require an invalid child handle that cannot be produced by a successful spawn
@@ -2079,6 +2151,7 @@ fn run_publish_command_with_retries(
 ) -> Result<CommandOutput, MonochangeError> {
 	let max_attempts = 1usize + request.timeout.retries as usize;
 	let mut last_error = None;
+
 	for attempt in 1..=max_attempts {
 		match executor.run(publish_command) {
 			Ok(output) => return Ok(output),
@@ -2101,6 +2174,7 @@ fn run_publish_command_with_retries(
 			}
 		}
 	}
+
 	Err(last_error.expect("retry loop runs at least once"))
 }
 
@@ -2113,12 +2187,15 @@ fn publish_command_failure_message(request: &PublishRequest, error: &MonochangeE
 			request.timeout.retries + 1,
 			error.render()
 		);
+
 		if request.registry == RegistryKind::PubDev {
 			message.push_str("\n\n");
 			message.push_str(dart_protected_publishing_guidance());
 		}
+
 		return message;
 	}
+
 	error.render()
 }
 
@@ -2146,6 +2223,7 @@ pub fn pub_dev_trusted_publishing_ref_error(
 	if request.registry != RegistryKind::PubDev || !request.trusted_publishing.enabled {
 		return None;
 	}
+
 	if env_map
 		.get("GITHUB_ACTIONS")
 		.is_none_or(|value| value != "true")
@@ -2153,14 +2231,17 @@ pub fn pub_dev_trusted_publishing_ref_error(
 		return None;
 	}
 	let github_ref = env_map.get("GITHUB_REF").map(String::as_str)?;
+
 	if github_ref.starts_with("refs/tags/") {
 		return None;
 	}
+
 	if env_map.contains_key(PUB_TOKEN_ENV_VAR) {
 		// A real registry credential bypasses trusted publishing entirely, so
 		// the tag-ref policy does not apply.
 		return None;
 	}
+
 	Some(format!(
 		"`{}` uses pub.dev trusted publishing, but this GitHub Actions run ref is `{github_ref}`, not a tag. {}",
 		request.package_name,
@@ -2237,6 +2318,7 @@ pub async fn refresh_pub_dev_trusted_publishing_token(
 		.env
 		.insert(PUB_TOKEN_ENV_VAR.to_string(), token);
 	let output = executor.run(&token_add_command)?;
+
 	if !output.success {
 		return Err(MonochangeError::Io(format!(
 			"`{}` in {} failed: {}. monochange registers the fresh pub.dev OIDC token before every trusted publish, so the pub token store must be writable for the publishing user.",
@@ -2245,6 +2327,7 @@ pub async fn refresh_pub_dev_trusted_publishing_token(
 			render_command_error(&output),
 		)));
 	}
+
 	Ok(())
 }
 
@@ -2266,16 +2349,20 @@ fn tee_child_output(
 ) -> std::io::Result<Vec<u8>> {
 	let mut captured = Vec::new();
 	let mut buffer = [0; 8192];
+
 	loop {
 		let read = reader.read(&mut buffer)?;
+
 		if read == 0 {
 			break;
 		}
+
 		let (chunk, _) = buffer.split_at(read);
 		writer.write_all(chunk)?;
 		writer.flush()?;
 		captured.extend_from_slice(chunk);
 	}
+
 	Ok(captured)
 }
 
@@ -2324,9 +2411,11 @@ fn render_publish_command_error(
 	mode: PackagePublishRunMode,
 ) -> String {
 	let message = render_command_error(output);
+
 	if is_npm_otp_error(output, request) {
 		return format!("{message}\n\n{}", npm_otp_recovery_message(mode));
 	}
+
 	if is_pub_dev_auth_error(output, request) {
 		return format!(
 			"{message}\n\n{}",
@@ -2356,10 +2445,18 @@ fn npm_otp_recovery_message(mode: PackagePublishRunMode) -> &'static str {
 	}
 }
 
+fn staged_publish_message(request: &PublishRequest) -> String {
+	format!(
+		"staged {} {} on {}; it stays non-installable until a maintainer approves it with 2FA. Run `npm stage list` then `npm stage approve <stage-id>`, or use the Staged Packages tab on npmjs.com",
+		request.package_name, request.version, request.registry
+	)
+}
+
 fn is_pub_dev_auth_error(output: &CommandOutput, request: &PublishRequest) -> bool {
 	if request.registry != RegistryKind::PubDev {
 		return false;
 	}
+
 	let combined = format!("{}\n{}", output.stdout, output.stderr).to_ascii_lowercase();
 	[
 		"authentication",
@@ -2655,6 +2752,7 @@ pub fn append_publish_dry_run_args(args: &mut Vec<String>, registry: RegistryKin
 	if registry == RegistryKind::PubDev {
 		args.retain(|arg| arg != "--force");
 		args.push("--dry-run".to_string());
+
 		return;
 	}
 
@@ -2680,14 +2778,22 @@ pub fn build_npm_placeholder_publish_command(
 }
 
 pub fn build_npm_release_publish_command(request: &PublishRequest) -> CommandSpec {
-	let mut args = vec![
-		"publish".to_string(),
-		"--access".to_string(),
-		"public".to_string(),
-	];
+	let mut args = Vec::new();
+
+	if request.flow == PublishFlow::Staged {
+		// `npm stage publish` and `pnpm stage publish` share the same
+		// subcommand shape and accept the same publish arguments.
+		args.push("stage".to_string());
+	}
+
+	args.push("publish".to_string());
+	args.push("--access".to_string());
+	args.push("public".to_string());
+
 	if request.attestations.require_registry_provenance {
 		args.push("--provenance".to_string());
 	}
+
 	CommandSpec {
 		program: npm_publish_program(request).to_string(),
 		args,
@@ -2785,6 +2891,7 @@ fn build_python_publish_command(request: &PublishRequest, cwd: &Path) -> Command
 	} else {
 		"never"
 	};
+
 	let script = format!(
 		"uv build --out-dir dist && uv publish --trusted-publishing {trusted_publishing} dist/*"
 	);
@@ -2815,9 +2922,11 @@ fn go_module_tag_name(request: &PublishRequest) -> String {
 		.cloned()
 		.unwrap_or_else(|| fallback_go_tag_prefix(request));
 	let root = root.trim_matches('/');
+
 	if root.is_empty() || root == "." {
 		return version;
 	}
+
 	format!("{root}/{version}")
 }
 
@@ -2853,6 +2962,7 @@ pub fn go_proxy_version(version: &str) -> String {
 
 pub fn go_proxy_module_path(module: &str) -> String {
 	let mut escaped = String::with_capacity(module.len());
+
 	for character in module.chars() {
 		if character.is_ascii_uppercase() {
 			escaped.push('!');
@@ -2861,6 +2971,7 @@ pub fn go_proxy_module_path(module: &str) -> String {
 			escaped.push(character);
 		}
 	}
+
 	escaped
 }
 
@@ -3099,10 +3210,12 @@ pub fn provider_registry_trust_capability(
 	let supported = registry_capabilities
 		.supported_providers
 		.contains(&provider);
+
 	let builtin = match registry {
 		PublishRegistry::Builtin(registry) => Some(*registry),
 		PublishRegistry::Custom(_) => None,
 	};
+
 	let registry_setup_verifiable = supported
 		&& builtin == Some(RegistryKind::Npm)
 		&& provider == CiProviderKind::GitHubActions;
@@ -3274,13 +3387,16 @@ pub fn publish_order_dependency_edges(
 			.iter()
 			.filter_map(|dependency| dependency.source_field.as_deref())
 			.collect::<BTreeSet<_>>();
+
 		for field in publish_order_dependency_fields(configuration, package.ecosystem) {
 			if declared_fields.contains(field.as_str()) {
 				continue;
 			}
+
 			let Some(JsonValue::Object(dependencies)) = root.get(&field) else {
 				continue;
 			};
+
 			for (dependency_name, constraint) in dependencies {
 				let Some(target) = packages_by_name.get(dependency_name.as_str()) else {
 					continue;
@@ -3453,11 +3569,13 @@ pub fn validate_resume_report(report: &PackagePublishReport) -> MonochangeResult
 				.to_string(),
 		));
 	}
+
 	if report.dry_run {
 		return Err(MonochangeError::Config(
 			"package publish resume artifact must come from a real publish run".to_string(),
 		));
 	}
+
 	Ok(())
 }
 
@@ -3481,6 +3599,7 @@ pub fn package_publish_status_is_resumable_complete(status: PackagePublishStatus
 	matches!(
 		status,
 		PackagePublishStatus::Published
+			| PackagePublishStatus::Staged
 			| PackagePublishStatus::SkippedExisting
 			| PackagePublishStatus::SkippedExternal
 	)
@@ -3517,6 +3636,7 @@ pub fn order_release_requests_by_publish_dependencies(
 	});
 
 	let mut requests_by_package = BTreeMap::<String, Vec<PublishRequest>>::new();
+
 	for request in requests {
 		requests_by_package
 			.entry(request.package_id.clone())
@@ -3537,6 +3657,7 @@ pub fn order_release_requests_by_publish_dependencies(
 			.iter()
 			.find(|package| package.id == edge.from_package_id)
 			.expect("publish-order edges originate from discovered packages");
+
 		if !publish_order_dependency_fields(configuration, from_package.ecosystem)
 			.contains(edge.source_field.as_deref().unwrap_or_default())
 		{
@@ -3548,6 +3669,7 @@ pub fn order_release_requests_by_publish_dependencies(
 		let Some(to_package_id) = config_ids_by_record_id.get(&edge.to_package_id) else {
 			continue;
 		};
+
 		if !request_ids.contains(from_package_id) || !request_ids.contains(to_package_id) {
 			continue;
 		}
@@ -3577,6 +3699,7 @@ pub fn order_release_requests_by_publish_dependencies(
 		let Some(dependents) = dependents_by_package.get(&package_id).cloned() else {
 			continue;
 		};
+
 		for dependent_package_id in dependents {
 			let dependencies = dependencies_by_package
 				.get_mut(&dependent_package_id)
@@ -3584,6 +3707,7 @@ pub fn order_release_requests_by_publish_dependencies(
 					"dependent package must remain pending until its dependencies are published",
 				);
 			dependencies.remove(&package_id);
+
 			if dependencies.is_empty() {
 				ready.insert(dependent_package_id);
 			}
@@ -3598,6 +3722,7 @@ pub fn order_release_requests_by_publish_dependencies(
 	}
 
 	let mut ordered_requests = Vec::new();
+
 	for package_id in ordered_package_ids {
 		let mut package_requests = requests_by_package
 			.remove(&package_id)
@@ -3720,9 +3845,11 @@ pub async fn filter_pending_publish_requests_with_transport(
 		if request.mode == PublishMode::External {
 			continue;
 		}
+
 		if registry_version_exists(client, endpoints, request).await? {
 			continue;
 		}
+
 		pending_requests.push(request.clone());
 	}
 
@@ -3751,9 +3878,11 @@ pub async fn registry_package_exists_with_transport(
 			.send()
 			.await
 			.map_err(http_error("npm registry lookup"))?;
+
 		if response.status() == StatusCode::NOT_FOUND {
 			return Ok(Some(false));
 		}
+
 		let response = response
 			.error_for_status()
 			.map_err(http_error("npm registry lookup"))?;
@@ -3765,6 +3894,7 @@ pub async fn registry_package_exists_with_transport(
 			.get("versions")
 			.and_then(JsonValue::as_object)
 			.is_some_and(|versions| !versions.is_empty());
+
 		return Ok(Some(exists));
 	}
 
@@ -3779,9 +3909,11 @@ pub async fn registry_package_exists_with_transport(
 			.send()
 			.await
 			.map_err(http_error("crates.io lookup"))?;
+
 		if response.status() == StatusCode::NOT_FOUND {
 			return Ok(Some(false));
 		}
+
 		let response = response
 			.error_for_status()
 			.map_err(http_error("crates.io lookup"))?;
@@ -3790,6 +3922,7 @@ pub async fn registry_package_exists_with_transport(
 			.await
 			.map_err(http_error("crates.io decode"))?;
 		let exists = json.get("crate").is_some();
+
 		return Ok(Some(exists));
 	}
 
@@ -3804,9 +3937,11 @@ pub async fn registry_package_exists_with_transport(
 			.send()
 			.await
 			.map_err(http_error("pub.dev lookup"))?;
+
 		if response.status() == StatusCode::NOT_FOUND {
 			return Ok(Some(false));
 		}
+
 		let response = response
 			.error_for_status()
 			.map_err(http_error("pub.dev lookup"))?;
@@ -3818,6 +3953,7 @@ pub async fn registry_package_exists_with_transport(
 			.get("versions")
 			.and_then(JsonValue::as_array)
 			.is_some_and(|versions| !versions.is_empty());
+
 		return Ok(Some(exists));
 	}
 
@@ -3839,6 +3975,7 @@ pub async fn registry_version_exists(
 			.send()
 			.await
 			.map_err(http_error("npm registry lookup"))?;
+
 		if response.status() == StatusCode::NOT_FOUND {
 			return Ok(false);
 		}
@@ -3857,6 +3994,7 @@ pub async fn registry_version_exists(
 				request.placeholder && !versions.is_empty()
 					|| versions.contains_key(&request.version)
 			});
+
 		return Ok(exists);
 	}
 
@@ -3875,6 +4013,7 @@ pub async fn registry_version_exists(
 			.send()
 			.await
 			.map_err(http_error("pub.dev lookup"))?;
+
 		if response.status() == StatusCode::NOT_FOUND {
 			return Ok(false);
 		}
@@ -3896,6 +4035,7 @@ pub async fn registry_version_exists(
 							== Some(request.version.as_str())
 					})
 			});
+
 		return Ok(exists);
 	}
 
@@ -3910,9 +4050,11 @@ pub async fn registry_version_exists(
 			.send()
 			.await
 			.map_err(http_error("PyPI lookup"))?;
+
 		if response.status() == StatusCode::NOT_FOUND {
 			return Ok(false);
 		}
+
 		let response = response
 			.error_for_status()
 			.map_err(http_error("PyPI lookup"))?;
@@ -3927,6 +4069,7 @@ pub async fn registry_version_exists(
 				request.placeholder && !releases.is_empty()
 					|| releases.contains_key(&request.version)
 			});
+
 		return Ok(exists);
 	}
 
@@ -3942,12 +4085,15 @@ pub async fn registry_version_exists(
 			.send()
 			.await
 			.map_err(http_error("Go proxy version lookup"))?;
+
 		if response.status() == StatusCode::NOT_FOUND || response.status() == StatusCode::GONE {
 			return Ok(false);
 		}
+
 		response
 			.error_for_status()
 			.map_err(http_error("Go proxy version lookup"))?;
+
 		return Ok(true);
 	}
 
@@ -3961,6 +4107,7 @@ pub async fn registry_version_exists(
 		.send()
 		.await
 		.map_err(http_error("jsr lookup"))?;
+
 	if response.status() == StatusCode::NOT_FOUND {
 		return Ok(false);
 	}
@@ -4016,6 +4163,7 @@ pub async fn crates_io_version_exists(
 							== Some(request.version.as_str())
 					})
 			});
+
 		return Ok(exists);
 	}
 
@@ -4072,6 +4220,7 @@ pub async fn crates_io_index_version_exists(
 }
 pub fn crates_io_index_entry_path(package_name: &str) -> String {
 	let normalized = package_name.to_ascii_lowercase();
+
 	match normalized.len() {
 		0 => String::new(),
 		1 => format!("1/{normalized}"),

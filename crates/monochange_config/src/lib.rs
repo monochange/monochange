@@ -4,6 +4,7 @@
 )]
 #![forbid(clippy::indexing_slicing)]
 #![doc = include_str!("crate_docs.md")]
+use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::collections::HashMap;
@@ -59,6 +60,7 @@ use monochange_core::ProviderMergeRequestSettings;
 use monochange_core::ProviderReleaseNotesSource;
 use monochange_core::ProviderReleaseSettings;
 use monochange_core::PublishAttestationSettings;
+use monochange_core::PublishFlow;
 use monochange_core::PublishMode;
 use monochange_core::PublishOrderSettings;
 use monochange_core::PublishRegistry;
@@ -82,6 +84,7 @@ use monochange_core::lint::ChangesetScopedLintSettings;
 use monochange_core::lint::ChangesetSummaryLintSettings;
 use monochange_core::lint::LintRuleConfig;
 use monochange_core::lint::WorkspaceLintSettings;
+use monochange_core::normalize_path;
 use monochange_core::relative_to_root;
 use monochange_core::versioning::validate_template_variables;
 use monochange_core::versioning::validate_value_definition;
@@ -547,6 +550,8 @@ pub(crate) struct RawPublishSettings {
 	#[serde(default)]
 	registry: Option<PublishRegistry>,
 	#[serde(default)]
+	flow: Option<PublishFlow>,
+	#[serde(default)]
 	trusted_publishing: Option<RawTrustedPublishingSettings>,
 	#[serde(default)]
 	attestations: RawPublishAttestationSettings,
@@ -786,9 +791,11 @@ impl RawChangelogConfig {
 			Self::Legacy(RawChangelogDefinition::Path(path_pattern)) => {
 				ChangelogDefinition::PathPattern(path_pattern.clone())
 			}
+
 			Self::Detailed(table) if matches!(table.enabled, Some(false)) => {
 				ChangelogDefinition::Disabled
 			}
+
 			Self::Detailed(table) => {
 				table.path.clone().map_or(
 					ChangelogDefinition::PackageDefault,
@@ -851,6 +858,7 @@ impl RawChangelogConfig {
 					treat_string_as_pattern,
 				))
 			}
+
 			Self::Detailed(table) if matches!(table.enabled, Some(false)) => None,
 			Self::Detailed(table) => {
 				Some(table.path.as_deref().map_or_else(
@@ -865,6 +873,7 @@ impl RawChangelogConfig {
 		match self {
 			Self::Legacy(RawChangelogDefinition::Enabled(false | true)) => None,
 			Self::Legacy(RawChangelogDefinition::Path(path)) => Some(PathBuf::from(path)),
+
 			Self::Detailed(table) if matches!(table.enabled, Some(false)) => None,
 			Self::Detailed(table) => table.path.as_ref().map(PathBuf::from),
 		}
@@ -892,6 +901,7 @@ fn parse_group_changelog_include(
 	let Some(include) = include else {
 		return Ok(GroupChangelogInclude::All);
 	};
+
 	match include {
 		RawGroupChangelogInclude::Mode(mode) => match mode.as_str() {
 			"all" => Ok(GroupChangelogInclude::All),
@@ -914,6 +924,7 @@ fn parse_group_changelog_include(
 				),
 			)),
 		},
+
 		RawGroupChangelogInclude::Packages(package_ids) => {
 			let mut selected = BTreeSet::new();
 			for package_id in package_ids {
@@ -936,6 +947,7 @@ fn parse_group_changelog_include(
 						),
 					));
 				}
+
 				if !group_packages.iter().any(|member| member == package_id) {
 					return Err(config_diagnostic(
 						config_contents,
@@ -955,6 +967,7 @@ fn parse_group_changelog_include(
 						),
 					));
 				}
+
 				selected.insert(package_id.clone());
 			}
 			if selected.is_empty() {
@@ -1045,6 +1058,7 @@ fn normalize_versioned_files(
 					value_template: None,
 				})
 			}
+
 			RawVersionedFileDefinition::Path(_) => Err(config_diagnostic(
 				contents,
 				format!(
@@ -1073,6 +1087,7 @@ fn normalize_ecosystem_settings(
 	raw: RawEcosystemSettings,
 ) -> MonochangeResult<EcosystemSettings> {
 	validate_semver_checks_settings(contents, owner_id, &raw.semver_checks)?;
+
 	if owner_id != "cargo" && raw.semver_checks != CargoSemverChecksSettings::default() {
 		return Err(config_diagnostic(
 			contents,
@@ -1086,6 +1101,7 @@ fn normalize_ecosystem_settings(
 			Some("move this table to `[ecosystems.cargo.semver_checks]`".to_string()),
 		));
 	}
+
 	let publish = normalize_publish_settings(
 		contents,
 		None,
@@ -1129,6 +1145,7 @@ fn validate_semver_checks_settings(
 			"`timeout_seconds` must be between 1 and 1800",
 		));
 	}
+
 	if settings.matrix.is_empty() {
 		return Err(semver_checks_config_error(
 			contents,
@@ -1136,6 +1153,7 @@ fn validate_semver_checks_settings(
 			"`matrix` must contain at least one feature and target combination",
 		));
 	}
+
 	if settings.matrix.len() > 16 {
 		return Err(semver_checks_config_error(
 			contents,
@@ -1145,9 +1163,11 @@ fn validate_semver_checks_settings(
 	}
 
 	let mut names = BTreeSet::new();
+
 	for cell in &settings.matrix {
 		validate_semver_matrix_cell(contents, owner_id, cell, &mut names)?;
 	}
+
 	Ok(())
 }
 
@@ -1158,6 +1178,7 @@ fn validate_semver_matrix_cell(
 	names: &mut BTreeSet<String>,
 ) -> MonochangeResult<()> {
 	let name = cell.name.trim();
+
 	if name.is_empty() {
 		return Err(semver_checks_config_error(
 			contents,
@@ -1165,6 +1186,7 @@ fn validate_semver_matrix_cell(
 			"every matrix cell must have a non-empty `name`",
 		));
 	}
+
 	if !names.insert(name.to_string()) {
 		return Err(semver_checks_config_error(
 			contents,
@@ -1172,6 +1194,7 @@ fn validate_semver_matrix_cell(
 			&format!("matrix cell name `{name}` is duplicated"),
 		));
 	}
+
 	if cell
 		.target
 		.as_deref()
@@ -1183,6 +1206,7 @@ fn validate_semver_matrix_cell(
 			&format!("matrix cell `{name}` has an empty `target`"),
 		));
 	}
+
 	for feature in cell
 		.features
 		.iter()
@@ -1247,7 +1271,6 @@ fn normalize_auto_discover_settings(
 	})
 }
 // patch-coverage:ignore-end
-
 /// Return the manifest filename for each ecosystem type.
 #[must_use]
 pub(crate) fn manifest_file_for_ecosystem(
@@ -1284,32 +1307,41 @@ fn extract_manifest_name(contents: &str, ecosystem_type: EcosystemType) -> Optio
 fn extract_toml_table_field(contents: &str, section: &str, field: &str) -> Option<String> {
 	let section_header = format!("[{section}]");
 	let mut in_section = false;
+
 	for line in contents.lines() {
 		let trimmed = line.trim();
+
 		if trimmed.starts_with('#') {
 			continue;
 		}
+
 		if trimmed.starts_with('[') {
 			in_section = trimmed == section_header;
+
 			continue;
 		}
+
 		if in_section && let Some(value) = parse_toml_field(trimmed, field) {
 			return Some(value);
 		}
 	}
+
 	None
 }
 
 /// Parse a `field = "value"` line from TOML, returning the quoted value.
 fn parse_toml_field(line: &str, field: &str) -> Option<String> {
 	let prefix = format!("{field} = \"");
+
 	if line.starts_with(&prefix) {
 		let value_start = field.len() + 4;
 		let rest = &line[value_start..];
+
 		if let Some(end) = rest.find('"') {
 			return Some(rest[..end].to_string());
 		}
 	}
+
 	None
 }
 
@@ -1317,12 +1349,14 @@ fn parse_toml_field(line: &str, field: &str) -> Option<String> {
 fn extract_json_name_field(contents: &str) -> Option<String> {
 	for line in contents.lines() {
 		let trimmed = line.trim();
+
 		if trimmed.starts_with("\"name\"")
 			&& let Some(value) = extract_json_string_value(trimmed)
 		{
 			return Some(value);
 		}
 	}
+
 	None
 }
 
@@ -1330,6 +1364,7 @@ fn extract_json_name_field(contents: &str) -> Option<String> {
 fn extract_json_string_value(line: &str) -> Option<String> {
 	let colon_pos = line.find(':')?;
 	let after_colon = line[colon_pos + 1..].trim();
+
 	if let Some(inner) = after_colon.strip_prefix('"')
 		&& let Some(end) = inner.find('"')
 	{
@@ -1342,24 +1377,30 @@ fn extract_json_string_value(line: &str) -> Option<String> {
 fn extract_yaml_name_field(contents: &str) -> Option<String> {
 	for line in contents.lines() {
 		let trimmed = line.trim();
+
 		if trimmed.starts_with('#') || trimmed.is_empty() {
 			continue;
 		}
+
 		// patch-coverage:ignore-start -- simple YAML extraction keeps parser dependency-free.
 		if trimmed.starts_with("name:") || trimmed.starts_with("name :") {
 			let rest = trimmed
 				.strip_prefix("name:")
 				.or_else(|| trimmed.strip_prefix("name :"))?;
 			let value = rest.trim().trim_matches('"').trim_matches('\'');
+
 			if !value.is_empty() {
 				return Some(value.to_string());
 			}
 		}
+
 		if !trimmed.starts_with("name") && !trimmed.starts_with('{') {
 			break;
 		}
+
 		// patch-coverage:ignore-end
 	}
+
 	None
 }
 
@@ -1426,13 +1467,17 @@ fn ecosystem_name(ecosystem_type: EcosystemType) -> &'static str {
 
 fn literal_auto_discover_walk_root(pattern: &str) -> PathBuf {
 	let mut prefix = PathBuf::new();
+
 	for component in Path::new(pattern).components() {
 		let text = component.as_os_str().to_string_lossy();
+
 		if text.contains('*') || text.contains('?') || text.contains('[') {
 			break;
 		}
+
 		prefix.push(component.as_os_str());
 	}
+
 	prefix
 }
 
@@ -1451,8 +1496,8 @@ pub(crate) fn discover_packages_from_ecosystem(
 	if manifest_filenames.is_empty() {
 		return Ok(Vec::new());
 	}
-	// patch-coverage:ignore-end
 
+	// patch-coverage:ignore-end
 	let include_patterns: Vec<Pattern> = auto_discover
 		.include
 		.iter()
@@ -1493,6 +1538,7 @@ pub(crate) fn discover_packages_from_ecosystem(
 		} else {
 			root.join(&literal_walk_root)
 		};
+
 		if !search_root.exists() {
 			continue;
 		}
@@ -1506,6 +1552,7 @@ pub(crate) fn discover_packages_from_ecosystem(
 
 		for entry in walker.filter_map(Result::ok) {
 			let path = entry.path();
+
 			if !path.is_dir() {
 				continue;
 			}
@@ -1525,6 +1572,7 @@ pub(crate) fn discover_packages_from_ecosystem(
 
 			for manifest_name in manifest_filenames {
 				let manifest_path = path.join(manifest_name);
+
 				if !manifest_path.is_file() {
 					continue;
 				}
@@ -1622,9 +1670,11 @@ fn normalize_publish_attestation_settings(
 	raw: &RawPublishAttestationSettings,
 ) -> PublishAttestationSettings {
 	let mut settings = base.cloned().unwrap_or_default();
+
 	if let Some(require_registry_provenance) = raw.require_registry_provenance {
 		settings.require_registry_provenance = require_registry_provenance;
 	}
+
 	settings
 }
 
@@ -1646,12 +1696,19 @@ fn normalize_publish_settings(
 	if let Some(enabled) = raw.enabled {
 		settings.enabled = enabled;
 	}
+
 	if let Some(mode) = raw.mode {
 		settings.mode = mode;
 	}
+
 	if let Some(registry) = raw.registry {
 		settings.registry = Some(registry);
 	}
+
+	if let Some(flow) = raw.flow {
+		settings.flow = flow;
+	}
+
 	settings.trusted_publishing = normalize_trusted_publishing_settings(
 		base.map(|settings| &settings.trusted_publishing),
 		raw.trusted_publishing,
@@ -1660,22 +1717,28 @@ fn normalize_publish_settings(
 		base.map(|settings| &settings.attestations),
 		&raw.attestations,
 	);
+
 	if let Some(enforce) = raw.rate_limits.enforce {
 		settings.rate_limits.enforce = enforce;
 	}
+
 	if let Some(timeout_seconds) = raw.timeout.timeout_seconds {
 		settings.timeout.timeout_seconds = timeout_seconds;
 	}
+
 	if let Some(retries) = raw.timeout.retries {
 		settings.timeout.retries = retries;
 	}
+
 	if let Some(fail_on_duplicate) = raw.fail_on_duplicate {
 		settings.fail_on_duplicate = fail_on_duplicate;
 	}
+
 	if raw.placeholder.readme.is_some() {
 		settings.placeholder.readme_file = None;
 		settings.placeholder.readme = raw.placeholder.readme;
 	}
+
 	if raw.placeholder.readme_file.is_some() {
 		settings.placeholder.readme = None;
 		settings.placeholder.readme_file = raw.placeholder.readme_file;
@@ -1698,6 +1761,7 @@ fn normalize_publish_settings(
 	}
 
 	let default_registry = default_publish_registry_for_ecosystem(inferred_ecosystem_type);
+
 	if settings.mode == PublishMode::Builtin && settings.registry != default_registry {
 		return Err(config_diagnostic(
 			contents,
@@ -1712,6 +1776,24 @@ fn normalize_publish_settings(
 			)],
 			Some(
 				"remove the registry override to use the default public registry for that ecosystem, or set `mode = \"external\"` for custom/private registries".to_string(),
+			),
+		));
+	}
+
+	if settings.flow != PublishFlow::Direct && inferred_ecosystem_type != EcosystemType::Npm {
+		return Err(config_diagnostic(
+			contents,
+			format!(
+				"{owner_kind} `{owner_id}` uses staged publishing for an ecosystem without staged publish support"
+			),
+			vec![config_section_label(
+				contents,
+				owner_kind,
+				owner_id,
+				"unsupported staged publish flow",
+			)],
+			Some(
+				"remove `flow = \"staged\"`; only `[ecosystems.npm.publish]` and npm packages support staged publishing".to_string(),
 			),
 		));
 	}
@@ -1735,6 +1817,7 @@ fn load_raw_configuration(root: &Path) -> MonochangeResult<(String, RawWorkspace
 	} else {
 		RawWorkspaceConfiguration::default()
 	};
+
 	Ok((contents, raw))
 }
 
@@ -1780,8 +1863,10 @@ fn resolve_bump_propagation(
 				),
 			));
 		}
+
 		return Ok(None);
 	};
+
 	if mode != BumpPropagationMode::Inherit && max.is_some() {
 		return Err(config_diagnostic(
 			contents,
@@ -1801,6 +1886,7 @@ fn resolve_bump_propagation(
 		));
 		// patch-coverage:ignore-end
 	}
+
 	Ok(Some(BumpPropagation { mode, max }))
 }
 
@@ -1848,6 +1934,7 @@ fn build_package_definitions(
 			} else {
 				package.floating_tags.clone()
 			};
+
 			let tag = package.tag.or(preset.tag).unwrap_or(false);
 			let release = package.release.or(preset.release).unwrap_or(false);
 			// An explicit `changelog = false` on the package must win over
@@ -1875,6 +1962,7 @@ fn build_package_definitions(
 					})
 				}),
 			};
+
 			let inferred_ecosystem_type = package_type_to_ecosystem_type(package_type);
 			let inherited_versioned_files = if package.ignore_ecosystem_versioned_files {
 				Vec::new()
@@ -1889,8 +1977,10 @@ fn build_package_definitions(
 					_ => Vec::new(),
 				}
 			};
+
 			let mut versioned_files = default_versioned_files.to_vec();
 			versioned_files.extend(inherited_versioned_files);
+
 			if package_type == PackageType::GitHubActions && !package.ignore_ecosystem_versioned_files
 			{
 				// Sync the version field of a sibling package.json so the
@@ -1928,11 +2018,13 @@ fn build_package_definitions(
 					EcosystemType::Go => &go_ecosystem.publish,
 					_ => &cargo_ecosystem.publish,
 				}),
+
 				package.publish,
 				"package",
 				&id,
 				inferred_ecosystem_type,
 			)?;
+
 			if package_publish_enabled.is_none()
 				&& let Some(publish_enabled) = preset.publish_enabled
 			{
@@ -1982,6 +2074,7 @@ fn build_package_definitions(
 /// string form into a detailed snapshot command definition.
 fn normalize_package_cli(cli: Option<RawPackageCliDefinition>) -> Option<PackageCliDefinition> {
 	let cli = cli?;
+
 	let snapshot = match cli.snapshot {
 		RawCliSnapshotCommand::Command(command) => {
 			CliSnapshotCommandDefinition {
@@ -1998,6 +2091,7 @@ fn normalize_package_cli(cli: Option<RawPackageCliDefinition>) -> Option<Package
 			}
 		}
 	};
+
 	Some(PackageCliDefinition {
 		name: cli.name,
 		snapshot,
@@ -2009,6 +2103,7 @@ fn normalize_group_packages(
 ) -> (Vec<String>, BTreeMap<String, BumpSeverity>) {
 	let mut package_ids = Vec::with_capacity(packages.len());
 	let mut package_max_bumps = BTreeMap::new();
+
 	for package in packages {
 		match package {
 			RawGroupPackage::Name(name) => package_ids.push(name),
@@ -2016,10 +2111,12 @@ fn normalize_group_packages(
 				if package.max_bump != BumpSeverity::Major {
 					package_max_bumps.insert(package.name.clone(), package.max_bump);
 				}
+
 				package_ids.push(package.name);
 			}
 		}
 	}
+
 	(package_ids, package_max_bumps)
 }
 
@@ -2033,8 +2130,10 @@ fn build_group_definitions(
 		.into_iter()
 		.map(|(id, group)| {
 			let (package_ids, package_max_bumps) = normalize_group_packages(group.packages);
+
 			let changelog = match group.changelog.as_ref() {
 				None => None,
+
 				Some(definition) => match definition.resolve_for_group() {
 					Some(path) => Some(ChangelogTarget {
 						path,
@@ -2043,6 +2142,7 @@ fn build_group_definitions(
 							.initial_header()
 							.or_else(|| default_changelog_initial_header.map(str::to_string)),
 					}),
+
 					None if definition.is_disabled() => None,
 					None => {
 						return Err(config_diagnostic(
@@ -2064,6 +2164,7 @@ fn build_group_definitions(
 					}
 				},
 			};
+
 			let changelog_include = parse_group_changelog_include(
 				contents,
 				&id,
@@ -2271,6 +2372,7 @@ pub fn load_workspace_configuration(root: &Path) -> MonochangeResult<WorkspaceCo
 		normalize_ecosystem_settings(&contents, "cargo", EcosystemType::Cargo, ecosystems.cargo)?;
 	let npm_ecosystem =
 		normalize_ecosystem_settings(&contents, "npm", EcosystemType::Npm, ecosystems.npm)?;
+
 	let deno_ecosystem =
 		normalize_ecosystem_settings(&contents, "deno", EcosystemType::Deno, ecosystems.deno)?;
 	let dart_ecosystem =
@@ -2284,6 +2386,7 @@ pub fn load_workspace_configuration(root: &Path) -> MonochangeResult<WorkspaceCo
 	)?;
 	let go_ecosystem =
 		normalize_ecosystem_settings(&contents, "go", EcosystemType::Go, ecosystems.go)?;
+
 	let defaults_changelog_policy = defaults
 		.changelog
 		.as_ref()
@@ -2337,16 +2440,17 @@ pub fn load_workspace_configuration(root: &Path) -> MonochangeResult<WorkspaceCo
 		&go_ecosystem,
 	)?;
 	// patch-coverage:ignore-end
-
 	// Merge explicitly defined packages with auto-discovered ones.
 	// Explicit packages take priority: any auto-discovered package whose id
 	// clashes with an explicit package is silently dropped.
 	let explicit_ids: BTreeSet<String> = packages.iter().map(|p| p.id.clone()).collect();
 	let mut packages = packages;
+
 	for discovered in auto_discovered_packages {
 		if explicit_ids.contains(&discovered.id) {
 			continue;
 		}
+
 		packages.push(discovered);
 	}
 
@@ -2366,6 +2470,7 @@ pub fn load_workspace_configuration(root: &Path) -> MonochangeResult<WorkspaceCo
 	let changeset_lints = changeset_lint_settings_from_rules(&lints.rules)?;
 	validate_changeset_lint_settings(&changeset_lints, &changelog)?;
 	validate_source_configuration(source.as_ref())?;
+
 	validate_source_changelog_output(source.as_ref(), &changelog)?;
 	let declared_packages = packages
 		.iter()
@@ -2470,9 +2575,9 @@ pub fn load_workspace_configuration(root: &Path) -> MonochangeResult<WorkspaceCo
 }
 
 #[derive(Debug)]
-struct ChangeTypeLookup {
-	valid_types: Vec<String>,
-	default_bumps: HashMap<String, BumpSeverity>,
+struct ChangeTypeLookup<'a> {
+	valid_types: Vec<&'a str>,
+	default_bumps: HashMap<&'a str, BumpSeverity>,
 }
 
 #[derive(Debug)]
@@ -2482,7 +2587,7 @@ pub struct ChangesetLoadContext<'a> {
 	groups_by_id: HashMap<&'a str, &'a GroupDefinition>,
 	package_reference_matches: HashMap<String, Vec<&'a str>>,
 	package_versions: HashMap<&'a str, &'a Version>,
-	change_types_by_target: HashMap<&'a str, ChangeTypeLookup>,
+	change_types_by_target: HashMap<&'a str, ChangeTypeLookup<'a>>,
 }
 
 /// Build reusable lookup tables for loading many `.changeset/*.md` files.
@@ -2523,27 +2628,35 @@ pub fn build_changeset_load_context<'a>(
 		})
 		.collect::<HashMap<_, _>>();
 	let mut package_reference_matches = HashMap::<String, Vec<&'a str>>::new();
+	// Canonicalize the workspace root once instead of re-resolving it for every
+	// package reference below; discovery usually runs this per changeset file.
+	let normalized_root = normalize_path(configuration.root_path.as_path());
+
 	for package in packages {
-		for reference in changeset_package_references(configuration.root_path.as_path(), package) {
+		for reference in changeset_package_references(&normalized_root, package) {
 			package_reference_matches
 				.entry(reference)
 				.or_default()
 				.push(package.id.as_str());
 		}
 	}
+
 	let mut change_types_by_target = HashMap::new();
+
 	for package in &configuration.packages {
 		change_types_by_target.insert(
 			package.id.as_str(),
 			build_change_type_lookup(&configuration.changelog, &package.excluded_changelog_types),
 		);
 	}
+
 	for group in &configuration.groups {
 		change_types_by_target.insert(
 			group.id.as_str(),
 			build_change_type_lookup(&configuration.changelog, &group.excluded_changelog_types),
 		);
 	}
+
 	ChangesetLoadContext {
 		configuration,
 		package_ids,
@@ -2554,23 +2667,23 @@ pub fn build_changeset_load_context<'a>(
 	}
 }
 
-fn build_change_type_lookup(
-	changelog: &ChangelogSettings,
+fn build_change_type_lookup<'a>(
+	changelog: &'a ChangelogSettings,
 	excluded_types: &[String],
-) -> ChangeTypeLookup {
+) -> ChangeTypeLookup<'a> {
 	let excluded: BTreeSet<&str> = excluded_types.iter().map(String::as_str).collect();
 	let mut valid_types = changelog
 		.types
 		.keys()
 		.filter(|key| !excluded.contains(key.as_str()))
-		.map(ToString::to_string)
+		.map(String::as_str)
 		.collect::<Vec<_>>();
-	valid_types.sort();
+	valid_types.sort_unstable();
 	let default_bumps = changelog
 		.types
 		.iter()
 		.filter(|(key, _)| !excluded.contains(key.as_str()))
-		.map(|(change_type, typ)| (change_type.clone(), typ.bump))
+		.map(|(change_type, typ)| (change_type.as_str(), typ.bump))
 		.collect::<HashMap<_, _>>();
 	ChangeTypeLookup {
 		valid_types,
@@ -2578,20 +2691,26 @@ fn build_change_type_lookup(
 	}
 }
 
-fn changeset_package_references(root: &Path, package: &PackageRecord) -> Vec<String> {
+fn changeset_package_references(normalized_root: &Path, package: &PackageRecord) -> Vec<String> {
 	let mut references = vec![package.name.clone(), package.id.clone()];
+
 	if let Some(config_id) = package.metadata.get("config_id") {
 		references.push(config_id.clone());
 	}
-	if let Some(manifest_path) = relative_to_root(root, &package.manifest_path)
+
+	let manifest_relative =
+		path_relative_to_normalized_root(normalized_root, &package.manifest_path);
+
+	if let Some(manifest_path) = manifest_relative
+		.as_deref()
 		.and_then(|path| path.to_str().map(ToString::to_string))
 	{
 		references.push(manifest_path);
 	}
-	if let Some(directory_path) = package
-		.manifest_path
-		.parent()
-		.and_then(|path| relative_to_root(root, path))
+
+	if let Some(directory_path) = manifest_relative
+		.as_deref()
+		.and_then(Path::parent)
 		.and_then(|path| path.to_str().map(ToString::to_string))
 	{
 		references.push(directory_path);
@@ -2599,6 +2718,27 @@ fn changeset_package_references(root: &Path, package: &PackageRecord) -> Vec<Str
 	references.sort();
 	references.dedup();
 	references
+}
+
+/// Resolve `path` against an already-normalized workspace root.
+///
+/// Equivalent to [`relative_to_root`] with the root's canonicalization hoisted
+/// to the caller, so batch passes resolve many paths without re-statting the
+/// root for each one. Paths that are already canonical — every
+/// `PackageRecord::new` normalizes its manifest path — resolve through a plain
+/// component-wise `strip_prefix`, and only paths outside the root's prefix fall
+/// back to canonicalization, which keeps records built without `PackageRecord::new`
+/// resolving exactly as before.
+fn path_relative_to_normalized_root(normalized_root: &Path, path: &Path) -> Option<PathBuf> {
+	if let Ok(relative) = path.strip_prefix(normalized_root) {
+		return Some(relative.to_path_buf());
+	}
+
+	let normalized_path = normalize_path(path);
+	normalized_path
+		.strip_prefix(normalized_root)
+		.ok()
+		.map(Path::to_path_buf)
 }
 
 #[must_use = "the change signals result must be checked"]
@@ -2714,11 +2854,13 @@ pub fn load_changeset_contents_with_context(
 	let mut seen_package_ids = HashSet::new();
 	let mut signals = Vec::new();
 	let mut targets = Vec::new();
+
 	for change in raw.changes {
 		if let Some(group) = context.groups_by_id.get(change.package.as_str()) {
 			let explicit_version = change.version.clone();
 			let caused_by = change.caused_by.clone();
 			let change_type = change.change_type.clone();
+
 			if let Some(change_type) = change_type.as_deref() {
 				validate_configured_change_type_with_context(
 					context,
@@ -2727,6 +2869,7 @@ pub fn load_changeset_contents_with_context(
 					change_type,
 				)?;
 			}
+
 			let type_default_bump = change_type.as_deref().and_then(|change_type| {
 				configured_change_type_default_bump_with_context(
 					context,
@@ -2734,6 +2877,7 @@ pub fn load_changeset_contents_with_context(
 					change_type,
 				)
 			});
+
 			let inferred_bump = match change.bump {
 				Some(bump) => Some(bump),
 				None => {
@@ -2749,6 +2893,7 @@ pub fn load_changeset_contents_with_context(
 					}
 				}
 			};
+
 			targets.push(LoadedChangesetTarget {
 				id: change.package.clone(),
 				kind: ChangesetTargetKind::Group,
@@ -2759,11 +2904,14 @@ pub fn load_changeset_contents_with_context(
 				change_type: change_type.clone(),
 				caused_by: caused_by.clone(),
 			});
+
 			for member_id in &group.packages {
 				if referenced_packages.contains(member_id.as_str()) {
 					continue;
 				}
+
 				let package_id = resolve_package_reference_with_context(member_id, context)?;
+
 				if !seen_package_ids.insert(package_id.clone()) {
 					return Err(changeset_diagnostic(
 						contents,
@@ -2780,6 +2928,7 @@ pub fn load_changeset_contents_with_context(
 						Some("keep one change entry per effective package target".to_string()),
 					));
 				}
+
 				signals.push(ChangeSignal {
 					package_id,
 					requested_bump: inferred_bump,
@@ -2798,6 +2947,7 @@ pub fn load_changeset_contents_with_context(
 			let explicit_version = change.version;
 			let caused_by = change.caused_by;
 			let change_type = change.change_type;
+
 			if let Some(change_type) = change_type.as_deref() {
 				validate_configured_change_type_with_context(
 					context,
@@ -2806,6 +2956,7 @@ pub fn load_changeset_contents_with_context(
 					change_type,
 				)?;
 			}
+
 			let type_default_bump = change_type.as_deref().and_then(|change_type| {
 				configured_change_type_default_bump_with_context(
 					context,
@@ -2830,6 +2981,7 @@ pub fn load_changeset_contents_with_context(
 				change_type: change_type.clone(),
 				caused_by: caused_by.clone(),
 			});
+
 			if !seen_package_ids.insert(package_id.clone()) {
 				return Err(changeset_diagnostic(
 					contents,
@@ -2846,6 +2998,7 @@ pub fn load_changeset_contents_with_context(
 					Some("keep one change entry per effective package target".to_string()),
 				));
 			}
+
 			signals.push(ChangeSignal {
 				package_id,
 				requested_bump: inferred_bump,
@@ -2860,6 +3013,7 @@ pub fn load_changeset_contents_with_context(
 			});
 		}
 	}
+
 	let streams = targets
 		.iter()
 		.map(|target| {
@@ -2869,12 +3023,14 @@ pub fn load_changeset_contents_with_context(
 				.stream_for_type(target.change_type.as_deref())
 		})
 		.collect::<BTreeSet<_>>();
+
 	if streams.len() > 1 {
 		return Err(MonochangeError::Config(format!(
 			"changeset targets resolve to multiple changelog streams: {}; split the changes into one file per stream",
 			streams.into_iter().collect::<Vec<_>>().join(", ")
 		)));
 	}
+
 	Ok(LoadedChangesetFile {
 		path: changes_path.to_path_buf(),
 		summary,
@@ -2905,8 +3061,10 @@ fn infer_group_bump_from_explicit_version_with_context(
 		return Ok(None);
 	};
 	let mut max_version: Option<&Version> = None;
+
 	for member_id in &group.packages {
 		let package_id = resolve_package_reference_with_context(member_id, context)?;
+
 		if let Some(current_version) = context.package_versions.get(package_id.as_str()) {
 			max_version = Some(match max_version {
 				Some(current_max) if *current_version > current_max => current_version,
@@ -2915,6 +3073,7 @@ fn infer_group_bump_from_explicit_version_with_context(
 			});
 		}
 	}
+
 	Ok(max_version
 		.map(|current_version| infer_bump_from_versions(current_version, explicit_version)))
 }
@@ -2957,10 +3116,10 @@ fn configured_change_type_default_bump_with_context(
 		.copied()
 }
 
-fn configured_change_types_with_context(
-	context: &ChangesetLoadContext<'_>,
+fn configured_change_types_with_context<'a>(
+	context: &'a ChangesetLoadContext<'_>,
 	target: &str,
-) -> Vec<String> {
+) -> Vec<&'a str> {
 	context
 		.change_types_by_target
 		.get(target)
@@ -2968,12 +3127,24 @@ fn configured_change_types_with_context(
 		.unwrap_or_default()
 }
 
+/// Normalize CRLF and bare-CR line endings to LF without copying LF-only text.
+///
+/// Changeset files are tiny and parsed in bulk, so the common Unix case borrows
+/// the input instead of allocating two full copies per file.
+fn normalize_changeset_line_endings(contents: &str) -> Cow<'_, str> {
+	if contents.contains('\r') {
+		Cow::Owned(contents.replace("\r\n", "\n").replace('\r', "\n"))
+	} else {
+		Cow::Borrowed(contents)
+	}
+}
+
 fn parse_markdown_change_file_with_context(
 	contents: &str,
 	changes_path: &Path,
 	context: &ChangesetLoadContext<'_>,
 ) -> MonochangeResult<RawChangeFile> {
-	let contents = &contents.replace("\r\n", "\n").replace('\r', "\n");
+	let contents = normalize_changeset_line_endings(contents);
 	let Some(without_opening) = contents.strip_prefix("---") else {
 		return Err(MonochangeError::Config(format!(
 			"failed to parse {}: missing markdown frontmatter",
@@ -2987,7 +3158,7 @@ fn parse_markdown_change_file_with_context(
 		)));
 	};
 	let body = body_with_separator.trim();
-	let mapping = parse_changeset_frontmatter(contents, frontmatter, changes_path)?;
+	let mapping = parse_changeset_frontmatter(&contents, frontmatter, changes_path)?;
 	let (reason, details) = markdown_change_text(body);
 	let mut changes = Vec::new();
 
@@ -3039,6 +3210,7 @@ fn parse_markdown_change_target_with_context(
 				Vec::new(),
 			));
 		}
+
 		if context.package_ids.contains(package) || context.groups_by_id.contains_key(package) {
 			let valid_types = configured_change_types_with_context(context, package);
 			let valid_types_help = if valid_types.is_empty() {
@@ -3051,6 +3223,7 @@ fn parse_markdown_change_target_with_context(
 				changes_path.display()
 			)));
 		}
+
 		return Ok((None, None, Some(token.to_string()), Vec::new()));
 	}
 
@@ -3067,6 +3240,7 @@ fn parse_markdown_change_target_with_context(
 		.filter_map(serde_yaml_ng::Value::as_str)
 		.filter(|key| !allowed_keys.contains(key))
 		.collect::<Vec<_>>();
+
 	if !unknown_keys.is_empty() {
 		return Err(MonochangeError::Config(format!(
 			"failed to parse {}: target `{package}` uses unsupported field(s): {}",
@@ -3105,9 +3279,11 @@ fn parse_markdown_change_target_with_context(
 		.map(str::trim)
 		.filter(|value| !value.is_empty())
 		.map(ToString::to_string);
+
 	if let Some(change_type) = change_type.as_deref() {
 		validate_configured_change_type_with_context(context, changes_path, package, change_type)?;
 	}
+
 	let caused_by_value = mapping.get(serde_yaml_ng::Value::String("caused_by".to_string()));
 	let caused_by = parse_caused_by_refs(caused_by_value, changes_path, package, |reference| {
 		context.package_ids.contains(reference) || context.groups_by_id.contains_key(reference)
@@ -3117,12 +3293,14 @@ fn parse_markdown_change_target_with_context(
 			configured_change_type_default_bump_with_context(context, package, change_type)
 		})
 	});
+
 	if requested_bump.is_none() && explicit_version.is_none() && change_type.is_none() {
 		return Err(MonochangeError::Config(format!(
 			"failed to parse {}: target `{package}` must declare `bump`, `version`, `type`, or a valid scalar shorthand",
 			changes_path.display()
 		)));
 	}
+
 	if requested_bump == Some(BumpSeverity::None)
 		&& explicit_version.is_none()
 		&& change_type.is_none()
@@ -3155,6 +3333,7 @@ fn parse_caused_by_refs(
 					changes_path.display()
 				)));
 			}
+
 			vec![reference.to_string()]
 		}
 		serde_yaml_ng::Value::Sequence(sequence) => {
@@ -3164,6 +3343,7 @@ fn parse_caused_by_refs(
 					changes_path.display()
 				)));
 			}
+
 			let mut references = Vec::with_capacity(sequence.len());
 			for item in sequence {
 				let Some(reference) = item
@@ -3178,6 +3358,7 @@ fn parse_caused_by_refs(
 				};
 				references.push(reference.to_string());
 			}
+
 			references
 		}
 		_ => {
@@ -3209,8 +3390,10 @@ fn validate_configured_change_type_with_context(
 	if !context.package_ids.contains(target) && !context.groups_by_id.contains_key(target) {
 		return Ok(());
 	}
+
 	let valid_types = configured_change_types_with_context(context, target);
-	if valid_types.iter().any(|candidate| candidate == change_type) {
+
+	if valid_types.contains(&change_type) {
 		return Ok(());
 	}
 	let valid_types_help = if valid_types.is_empty() {
@@ -3218,6 +3401,7 @@ fn validate_configured_change_type_with_context(
 	} else {
 		format!("valid types: {}", valid_types.join(", "))
 	};
+
 	Err(MonochangeError::Config(format!(
 		"failed to parse {}: target `{target}` has invalid type `{change_type}`; {valid_types_help}",
 		changes_path.display()
@@ -3250,6 +3434,7 @@ pub fn resolve_package_reference(
 	packages: &[PackageRecord],
 ) -> MonochangeResult<String> {
 	let matching_package_ids = find_matching_package_ids(reference, workspace_root, packages);
+
 	match matching_package_ids.as_slice() {
 		[] => {
 			Err(MonochangeError::Config(format!(
@@ -3277,7 +3462,7 @@ fn parse_markdown_change_file(
 ) -> MonochangeResult<RawChangeFile> {
 	// Normalize all line ending styles to LF: CRLF (Windows), bare CR
 	// (classic Mac), and mixed endings.
-	let contents = &contents.replace("\r\n", "\n").replace('\r', "\n");
+	let contents = normalize_changeset_line_endings(contents);
 	let Some(without_opening) = contents.strip_prefix("---") else {
 		return Err(MonochangeError::Config(format!(
 			"failed to parse {}: missing markdown frontmatter",
@@ -3291,7 +3476,7 @@ fn parse_markdown_change_file(
 		)));
 	};
 	let body = body_with_separator.trim();
-	let mapping = parse_changeset_frontmatter(contents, frontmatter, changes_path)?;
+	let mapping = parse_changeset_frontmatter(&contents, frontmatter, changes_path)?;
 	let (reason, details) = markdown_change_text(body);
 	let mut changes = Vec::new();
 
@@ -3354,10 +3539,13 @@ pub(crate) fn markdown_heading_level(line: &str) -> Option<usize> {
 		.chars()
 		.take_while(|character| *character == '#')
 		.count();
+
 	if !(1..=6).contains(&level) {
 		return None;
 	}
+
 	let remainder = &trimmed[level..];
+
 	if remainder.is_empty() || remainder.starts_with(char::is_whitespace) {
 		Some(level)
 	} else {
@@ -3376,13 +3564,17 @@ fn normalize_markdown_heading_levels(
 		.lines()
 		.map(|line| {
 			let trimmed = line.trim_start();
+
 			if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
 				in_fenced_code_block = !in_fenced_code_block;
+
 				return line.to_string();
 			}
+
 			if in_fenced_code_block {
 				return line.to_string();
 			}
+
 			let Some(authored_level) = markdown_heading_level(line) else {
 				return line.to_string();
 			};
@@ -3393,6 +3585,7 @@ fn normalize_markdown_heading_levels(
 				let baseline = *first_detail_heading_level.get_or_insert(authored_level);
 				(summary_render_level + 1) as isize + authored_level as isize - baseline as isize
 			};
+
 			let normalized_level = summary_context_level.clamp(1, 6) as usize;
 			let text = trimmed.trim_start_matches('#').trim();
 			format!("{} {text}", "#".repeat(normalized_level))
@@ -3403,12 +3596,15 @@ fn normalize_markdown_heading_levels(
 
 fn markdown_change_text(body: &str) -> (Option<String>, Option<String>) {
 	let trimmed = body.trim();
+
 	if trimmed.is_empty() {
 		return (None, None);
 	}
+
 	let lines = trimmed.lines().collect::<Vec<_>>();
 	let Some((summary_index, summary_line)) = lines.iter().enumerate().find_map(|(index, line)| {
 		let candidate = line.trim();
+
 		if candidate.is_empty() {
 			None
 		} else {
@@ -3428,6 +3624,7 @@ fn markdown_change_text(body: &str) -> (Option<String>, Option<String>) {
 		.copied()
 		.collect::<Vec<_>>()
 		.join("\n");
+
 	let normalized_details = normalize_markdown_heading_levels(&details, summary_heading_level, 4)
 		.trim()
 		.to_string();
@@ -3445,10 +3642,12 @@ fn changeset_lint_settings_from_rules(
 	rules: &BTreeMap<String, LintRuleConfig>,
 ) -> MonochangeResult<ChangesetLintSettings> {
 	let mut settings = ChangesetLintSettings::default();
+
 	for (rule_id, config) in rules {
 		if !rule_id.starts_with("changesets/") || !config.severity().is_enabled() {
 			continue;
 		}
+
 		match rule_id.as_str() {
 			"changesets/duplicate" | "changesets/prefer-inline" => {}
 			"changesets/no_section_headings" => settings.no_section_headings = true,
@@ -3473,6 +3672,7 @@ fn changeset_lint_settings_from_rules(
 								.to_string(),
 						));
 					}
+
 					settings.types.insert(
 						change_type.to_string(),
 						changeset_scoped_lint_settings_from_rule(rule_id, config)?,
@@ -3481,6 +3681,7 @@ fn changeset_lint_settings_from_rules(
 			}
 		}
 	}
+
 	Ok(settings)
 }
 
@@ -3565,6 +3766,7 @@ fn lint_string_list_option(
 		)));
 	};
 	let mut strings = Vec::new();
+
 	for value in values {
 		let Some(value) = value.as_str() else {
 			return Err(MonochangeError::Config(format!(
@@ -3573,6 +3775,7 @@ fn lint_string_list_option(
 		};
 		strings.push(value.to_string());
 	}
+
 	Ok(Some(strings))
 }
 
@@ -3615,6 +3818,7 @@ fn lint_markdown_changeset(
 		{
 			lint_markdown_scope(body, change, scoped, changes_path)?;
 		}
+
 		if let Some(change_type) = &change.change_type
 			&& let Some(scoped) = changeset_type_lint_settings(settings, change_type)
 		{
@@ -3635,6 +3839,7 @@ fn lint_markdown_no_section_headings(
 		.iter()
 		.filter_map(|change| change.change_type.as_deref())
 		.collect::<BTreeSet<_>>();
+
 	for change_type in change_types {
 		if markdown_has_heading(body, change_type) {
 			return Err(changeset_lint_error(
@@ -3643,6 +3848,7 @@ fn lint_markdown_no_section_headings(
 			));
 		}
 	}
+
 	Ok(())
 }
 
@@ -3674,16 +3880,19 @@ fn lint_markdown_summary(
 				"changeset body must start with a summary heading",
 			));
 		}
+
 		return Ok(());
 	};
 
 	let heading_level = markdown_heading_level(first_line);
+
 	if summary_settings.required && heading_level.is_none() {
 		return Err(changeset_lint_error(
 			changes_path,
 			"changeset body must start with a summary heading",
 		));
 	}
+
 	if let (Some(required_level), Some(actual_level)) =
 		(summary_settings.heading_level, heading_level)
 		&& actual_level != required_level
@@ -3698,6 +3907,7 @@ fn lint_markdown_summary(
 
 	let summary =
 		markdown_heading_text(first_line).unwrap_or_else(|| first_line.trim().to_string());
+
 	if let Some(min_length) = summary_settings.min_length
 		&& summary.chars().count() < min_length
 	{
@@ -3714,6 +3924,7 @@ fn lint_markdown_summary(
 	} else {
 		summary_settings.max_length
 	};
+
 	if let Some(max) = effective_max_length
 		&& summary.chars().count() > max
 	{
@@ -3727,12 +3938,14 @@ fn lint_markdown_summary(
 			format!("{subject} must be at most {max} characters"),
 		));
 	}
+
 	if summary_settings.forbid_trailing_period && summary.ends_with('.') {
 		return Err(changeset_lint_error(
 			changes_path,
 			"changeset summary must not end with a period",
 		));
 	}
+
 	if summary_settings.forbid_conventional_commit_prefix
 		&& has_conventional_commit_prefix(&summary)
 	{
@@ -3775,6 +3988,7 @@ fn lint_markdown_scope(
 			));
 		}
 	}
+
 	for heading in &settings.forbidden_headings {
 		if markdown_has_heading(body, heading) {
 			return Err(changeset_lint_error(
@@ -3783,6 +3997,7 @@ fn lint_markdown_scope(
 			));
 		}
 	}
+
 	if let Some(min_body_chars) = settings.min_body_chars
 		&& body.trim().chars().count() < min_body_chars
 	{
@@ -3791,6 +4006,7 @@ fn lint_markdown_scope(
 			format!("changeset body must be at least {min_body_chars} characters"),
 		));
 	}
+
 	if let Some(max_body_chars) = settings.max_body_chars
 		&& body.trim().chars().count() > max_body_chars
 	{
@@ -3799,6 +4015,7 @@ fn lint_markdown_scope(
 			format!("changeset body must be at most {max_body_chars} characters"),
 		));
 	}
+
 	if settings.require_code_block && !markdown_has_code_block(body) {
 		return Err(changeset_lint_error(
 			changes_path,
@@ -3877,9 +4094,11 @@ fn configured_change_type_default_bump(
 	change_type: &str,
 ) -> Option<BumpSeverity> {
 	let excluded = configured_excluded_types(configuration, target);
+
 	if excluded.contains(&change_type) {
 		return None;
 	}
+
 	configured_change_sections(configuration, target)
 		.types
 		.get(change_type)
@@ -3909,6 +4128,7 @@ fn configured_excluded_types<'a>(
 			.map(String::as_str)
 			.collect();
 	}
+
 	if let Some(group) = configuration.group_by_id(target) {
 		return group
 			.excluded_changelog_types
@@ -3916,6 +4136,7 @@ fn configured_excluded_types<'a>(
 			.map(String::as_str)
 			.collect();
 	}
+
 	Vec::new()
 }
 
@@ -3930,6 +4151,7 @@ fn validate_configured_change_type(
 		return Ok(());
 	}
 	let valid_types = configured_change_types(configuration, target);
+
 	if valid_types.iter().any(|candidate| candidate == change_type) {
 		return Ok(());
 	}
@@ -3938,6 +4160,7 @@ fn validate_configured_change_type(
 	} else {
 		format!("valid types: {}", valid_types.join(", "))
 	};
+
 	Err(MonochangeError::Config(format!(
 		"failed to parse {}: target `{target}` has invalid type `{change_type}`; {valid_types_help}",
 		changes_path.display()
@@ -3968,6 +4191,7 @@ fn parse_markdown_change_target(
 				Vec::new(),
 			));
 		}
+
 		if configuration.package_by_id(package).is_some()
 			|| configuration.group_by_id(package).is_some()
 		{
@@ -3982,6 +4206,7 @@ fn parse_markdown_change_target(
 				changes_path.display()
 			)));
 		}
+
 		return Ok((None, None, Some(token.to_string()), Vec::new()));
 	}
 
@@ -3998,6 +4223,7 @@ fn parse_markdown_change_target(
 		.filter_map(serde_yaml_ng::Value::as_str)
 		.filter(|key| !allowed_keys.contains(key))
 		.collect::<Vec<_>>();
+
 	if !unknown_keys.is_empty() {
 		return Err(MonochangeError::Config(format!(
 			"failed to parse {}: target `{package}` uses unsupported field(s): {}",
@@ -4093,6 +4319,7 @@ fn validate_package_and_group_definitions_with_cache(
 	let mut package_paths = BTreeMap::<PathBuf, String>::new();
 	let mut primary_owner = Option::<String>::None;
 	let mut rendered_version_format_tags = BTreeMap::<String, String>::new();
+
 	for package in packages {
 		if !ids.insert(package.id.clone()) {
 			return Err(config_diagnostic(
@@ -4107,7 +4334,9 @@ fn validate_package_and_group_definitions_with_cache(
 				Some("rename the package id so every [package.<id>] entry is unique".to_string()),
 			));
 		}
+
 		let resolved_path = root.join(&package.path);
+
 		if !resolved_path.exists() {
 			return Err(config_diagnostic(
 				config_contents,
@@ -4129,6 +4358,7 @@ fn validate_package_and_group_definitions_with_cache(
 				),
 			));
 		}
+
 		if let Some(existing_id) = package_paths.insert(package.path.clone(), package.id.clone()) {
 			return Err(config_diagnostic(
 				config_contents,
@@ -4153,6 +4383,7 @@ fn validate_package_and_group_definitions_with_cache(
 				Some("declare each package path exactly once".to_string()),
 			));
 		}
+
 		let manifest_names = expected_manifest_names(package.package_type);
 
 		if let Some(manifest_name) = manifest_names.first() {
@@ -4183,9 +4414,11 @@ fn validate_package_and_group_definitions_with_cache(
 				));
 			}
 		}
+
 		if package.version_format.is_primary() {
 			assign_primary_release_owner(config_contents, &mut primary_owner, &package.id)?;
 		}
+
 		validate_release_owner_version_format(
 			config_contents,
 			&mut rendered_version_format_tags,
@@ -4213,7 +4446,9 @@ fn validate_package_and_group_definitions_with_cache(
 			versioned_file_cache,
 		)?;
 	}
+
 	let mut assigned_packages = BTreeMap::<String, String>::new();
+
 	for group in groups {
 		validate_versioned_files_with_cache(
 			root,
@@ -4225,6 +4460,7 @@ fn validate_package_and_group_definitions_with_cache(
 			versioned_file_cache,
 		)?;
 		validate_floating_tag_templates(config_contents, "group", &group.id, &group.floating_tags)?;
+
 		if !ids.insert(group.id.clone()) {
 			return Err(config_diagnostic(
 				config_contents,
@@ -4241,9 +4477,11 @@ fn validate_package_and_group_definitions_with_cache(
 				Some("package and group ids share one namespace; rename one of them".to_string()),
 			));
 		}
+
 		if group.version_format.is_primary() {
 			assign_primary_release_owner(config_contents, &mut primary_owner, &group.id)?;
 		}
+
 		// patch-coverage:ignore-start -- group custom format validation is covered by fixture loading; llvm-cov attributes the `?` line inconsistently.
 		validate_release_owner_version_format(
 			config_contents,
@@ -4253,6 +4491,7 @@ fn validate_package_and_group_definitions_with_cache(
 			"group",
 			&group.version_format,
 		)?;
+
 		// patch-coverage:ignore-end
 		for package_id in &group.packages {
 			if !declared_packages.contains(package_id.as_str()) {
@@ -4268,6 +4507,7 @@ fn validate_package_and_group_definitions_with_cache(
 					Some("declare the package first under [package.<id>] before referencing it from a group".to_string()),
 				));
 			}
+
 			if let Some(existing_group) =
 				assigned_packages.insert(package_id.clone(), group.id.clone())
 			{
@@ -4347,6 +4587,7 @@ fn validate_command_step_definition(
 ) -> MonochangeResult<()> {
 	if let Some(step_id) = step_id {
 		let trimmed = step_id.trim();
+
 		if trimmed.is_empty() {
 			return Err(MonochangeError::Config(format!(
 				"CLI command `{}` has a command step with an empty id",
@@ -4406,6 +4647,7 @@ impl VersionedFileValidationCache {
 		} else {
 			normalize_relative_glob(glob_path)
 		};
+
 		let pattern = Pattern::new(pattern_text).map_err(|error| {
 			MonochangeError::Config(format!("invalid glob pattern `{glob_path}`: {error}"))
 		})?;
@@ -4444,9 +4686,11 @@ impl VersionedFileValidationCache {
 
 fn normalize_relative_glob(path: &str) -> &str {
 	let mut normalized = path;
+
 	while let Some(stripped) = normalized.strip_prefix("./") {
 		normalized = stripped;
 	}
+
 	normalized
 }
 
@@ -4463,10 +4707,12 @@ fn collect_workspace_files(root: &Path) -> MonochangeResult<Vec<PathBuf>> {
 		.filter_entry(move |entry| entry.depth() == 0 || path_filter.should_descend(entry.path()));
 
 	let mut files = Vec::new();
+
 	for entry in builder.build() {
 		let entry = entry.map_err(|error| {
 			MonochangeError::Io(format!("failed to walk {}: {error}", root.display()))
 		})?;
+
 		if entry
 			.file_type()
 			.is_some_and(|file_type| file_type.is_file())
@@ -4475,6 +4721,7 @@ fn collect_workspace_files(root: &Path) -> MonochangeResult<Vec<PathBuf>> {
 			files.push(relative_path.to_path_buf());
 		}
 	}
+
 	Ok(files)
 }
 
@@ -4483,6 +4730,7 @@ fn path_is_supported_for_ecosystem(path: &Path, ecosystem_type: EcosystemType) -
 		.file_name()
 		.and_then(|name| name.to_str())
 		.unwrap_or_default();
+
 	match ecosystem_type {
 		EcosystemType::Cargo => {
 			path.extension()
@@ -4492,7 +4740,10 @@ fn path_is_supported_for_ecosystem(path: &Path, ecosystem_type: EcosystemType) -
 		}
 		EcosystemType::Npm => {
 			path.extension().and_then(|extension| extension.to_str()) == Some("json")
-				|| matches!(file_name, "pnpm-lock.yaml" | "bun.lock" | "bun.lockb")
+				|| matches!(
+					file_name,
+					"pnpm-lock.yaml" | "yarn.lock" | "bun.lock" | "bun.lockb"
+				)
 		}
 		EcosystemType::Deno => matches!(file_name, "deno.json" | "deno.jsonc" | "deno.lock"),
 		EcosystemType::Dart => matches!(file_name, "pubspec.yaml" | "pubspec.yml" | "pubspec.lock"),
@@ -4596,15 +4847,18 @@ fn validate_versioned_files_with_cache(
 					Some("reference a declared package id from `versioned_files` or remove the name entry".to_string()),
 				));
 		}
+
 		if path_uses_glob(&versioned_file.path) {
 			let pattern = root
 				.join(&versioned_file.path)
 				.to_string_lossy()
 				.to_string();
 			let ecosystem_name = Ecosystem::from(ecosystem_type).as_str();
+
 			if !cache.insert_checked_glob(pattern, ecosystem_name) {
 				continue;
 			}
+
 			if let Some(unsupported_path) =
 				cache.unsupported_glob_match(root, &versioned_file.path, ecosystem_type)?
 			{
@@ -4642,6 +4896,7 @@ fn validate_lockfile_commands(
 				"ecosystem `{ecosystem_id}` lockfile_commands must provide a non-empty command"
 			)));
 		}
+
 		let Some(cwd) = &lockfile_command.cwd else {
 			continue;
 		};
@@ -4672,6 +4927,7 @@ fn validate_lockfile_commands(
 			)));
 		}
 	}
+
 	Ok(())
 }
 
@@ -4683,10 +4939,12 @@ fn validate_package_cli_definitions(
 	packages: &[PackageDefinition],
 ) -> MonochangeResult<()> {
 	let mut names = BTreeMap::<&str, &str>::new();
+
 	for package in packages {
 		let Some(cli) = &package.cli else {
 			continue;
 		};
+
 		if cli.name.trim().is_empty() {
 			return Err(config_diagnostic(
 				config_contents,
@@ -4707,6 +4965,7 @@ fn validate_package_cli_definitions(
 				),
 			));
 		}
+
 		if cli.snapshot.command.trim().is_empty() {
 			return Err(config_diagnostic(
 				config_contents,
@@ -4727,6 +4986,7 @@ fn validate_package_cli_definitions(
 				),
 			));
 		}
+
 		if let Some(existing_id) = names.insert(cli.name.as_str(), package.id.as_str()) {
 			return Err(config_diagnostic(
 				config_contents,
@@ -4776,26 +5036,33 @@ fn resolve_version_schemes(
 	raw: BTreeMap<String, RawVersionSchemeDefinition>,
 ) -> MonochangeResult<BTreeMap<String, monochange_core::versioning::VersionSchemeDefinition>> {
 	let mut schemes = BTreeMap::new();
+
 	for (id, scheme) in raw {
 		if let Err(error) = validate_identifier_key(contents, "version_scheme", &id) {
 			let message = format!("invalid version scheme id `{id}`: {error}");
 			let help = "use a lowercase identifier such as `calver`".to_string();
 			let label = config_section_label(contents, "version_scheme", &id, "invalid scheme id");
 			let labels = vec![label];
+
 			return Err(config_diagnostic(contents, message, labels, Some(help)));
 		}
+
 		if scheme.template.trim().is_empty() {
 			let message = format!("version scheme `{id}` has an empty template");
+
 			let help = "set `template` to a value such as `{{ year }}.{{ month }}`".to_string();
 			let label = config_section_label(contents, "version_scheme", &id, "empty template");
 			let labels = vec![label];
+
 			return Err(config_diagnostic(contents, message, labels, Some(help)));
 		}
+
 		let definition = monochange_core::versioning::VersionSchemeDefinition {
 			template: scheme.template,
 		};
 		schemes.insert(id, definition);
 	}
+
 	Ok(schemes)
 	// patch-coverage:ignore-start -- closing brace, blank, doc, and signature lines carry no statements; llvm-cov still emits zero-count records for them.
 }
@@ -4825,6 +5092,7 @@ fn validate_version_values(
 					None,
 				));
 			}
+
 			if let Err(error) = validate_value_definition(value_id, definition) {
 				return Err(config_diagnostic(
 					contents,
@@ -4842,8 +5110,10 @@ fn validate_version_values(
 				));
 			}
 		}
+
 		// Declared values are available to display schemes and versioned files.
 		let available = available_template_variables(package);
+
 		if let Some(scheme_id) = package.display_version.as_deref() {
 			let Some(scheme) = schemes.get(scheme_id) else {
 				let declared = if schemes.is_empty() {
@@ -4897,6 +5167,7 @@ fn validate_version_values(
 					.to_string()
 			})
 			.collect::<Vec<_>>();
+
 		for versioned_file in &package.versioned_files {
 			let Some(template) = versioned_file.value_template.as_deref() else {
 				continue;
@@ -4906,6 +5177,7 @@ fn validate_version_values(
 				package.id, versioned_file.path
 			);
 			validate_template_variables(template, &available, &surface)?;
+
 			// The identity-bearing manifest must stay a bare pre-release-aware
 			// SemVer: calendar, ordinal, and counter values are not valid there.
 			if manifest_paths.contains(&versioned_file.path) {
@@ -4913,6 +5185,7 @@ fn validate_version_values(
 			}
 		}
 	}
+
 	Ok(())
 }
 
@@ -4971,9 +5244,11 @@ fn validate_manifest_value_template(
 		let Some(definition) = package.values.get(&variable) else {
 			continue;
 		};
+
 		if definition.renders_numeric() {
 			continue;
 		}
+
 		let label = config_section_label(
 			contents,
 			"package",
@@ -4998,9 +5273,11 @@ fn validate_manifest_value_template(
 	// plausible value so the check reasons about shape rather than content.
 	// patch-coverage:ignore-end
 	let probe = probe_render_variables(template, &variables);
+
 	if Version::parse(&probe).is_ok() {
 		return Ok(());
 	}
+
 	let label = config_section_label(
 		contents,
 		"package",
@@ -5020,6 +5297,7 @@ fn validate_manifest_value_template(
 /// Substitute template variables with representative values for a shape check.
 fn probe_render_variables(template: &str, available: &BTreeMap<String, String>) -> String {
 	let mut probe = template.to_string();
+
 	for variable in monochange_core::versioning::template_variables_used(template) {
 		// `SemVer` positions need a full core, so identity-bearing variables
 		// probe with one; everything else probes as a single number.
@@ -5028,6 +5306,7 @@ fn probe_render_variables(template: &str, available: &BTreeMap<String, String>) 
 		} else {
 			"1"
 		};
+
 		let _ = available;
 		for pattern in [
 			format!("{{{{ {variable} }}}}"),
@@ -5036,6 +5315,7 @@ fn probe_render_variables(template: &str, available: &BTreeMap<String, String>) 
 			probe = probe.replace(&pattern, replacement);
 		}
 	}
+
 	probe
 }
 
@@ -5066,9 +5346,11 @@ fn available_template_variables(package: &PackageDefinition) -> BTreeMap<String,
 	] {
 		available.insert(variable.to_string(), variable.to_string());
 	}
+
 	for value_id in package.values.keys() {
 		available.insert(value_id.clone(), value_id.clone());
 	}
+
 	available
 }
 
@@ -5136,15 +5418,19 @@ fn build_changelog_settings(raw: RawChangelogSettings) -> ChangelogSettings {
 		} else {
 			templates
 		},
+
 		sections,
 		section_thresholds,
+
 		types: if types.is_empty() {
 			defaults.types
 		} else {
 			let mut merged = defaults.types;
 			merged.extend(types);
+
 			merged
 		},
+
 		streams,
 		type_streams,
 		outputs,
@@ -5165,10 +5451,12 @@ fn validate_changelog_configuration(
 				"[changelog].templates must not include empty templates".to_string(),
 			));
 		}
+
 		let unsupported_variables = change_template_variables(template)
 			.into_iter()
 			.filter(|variable| !SUPPORTED_CHANGE_TEMPLATE_VARIABLES.contains(&variable.as_str()))
 			.collect::<BTreeSet<_>>();
+
 		if !unsupported_variables.is_empty() {
 			return Err(MonochangeError::Config(format!(
 				"[changelog].templates uses unsupported variables: {}",
@@ -5179,10 +5467,12 @@ fn validate_changelog_configuration(
 			)));
 		}
 	}
+
 	validate_changelog_keys(contents, "section", &changelog.sections)?;
 	validate_changelog_keys(contents, "type", &changelog.types)?;
 	validate_changelog_keys(contents, "stream", &changelog.streams)?;
 	validate_changelog_keys(contents, "output", &changelog.outputs)?;
+
 	if changelog.section_thresholds.ignored < changelog.section_thresholds.collapse {
 		return Err(MonochangeError::Config(
 			"[changelog].section_thresholds.ignored must be greater than or equal to [changelog].section_thresholds.collapse".to_string(),
@@ -5195,6 +5485,7 @@ fn validate_changelog_configuration(
 			MonochangeError::Config(format!("failed to parse monochange.toml: {error}"))
 		})?)
 	};
+
 	// Types and sections inherit the built-in set, so a declared type may name
 	// either a section it declares itself or a built-in one.
 	let built_in_sections = ChangelogSettings::defaults().sections;
@@ -5209,6 +5500,7 @@ fn validate_changelog_configuration(
 				"[changelog].types.{type_key} must declare a `bump` default (`none`, `patch`, `minor`, or `major`)"
 			)));
 		}
+
 		if !changelog.sections.contains_key(&typ.section)
 			&& !built_in_sections.contains_key(&typ.section)
 		{
@@ -5217,6 +5509,7 @@ fn validate_changelog_configuration(
 				typ.section
 			)));
 		}
+
 		if typ.stream != monochange_core::DEFAULT_CHANGELOG_STREAM
 			&& !changelog.streams.contains_key(&typ.stream)
 		{
@@ -5226,11 +5519,13 @@ fn validate_changelog_configuration(
 			)));
 		}
 	}
+
 	let configured_targets = packages
 		.iter()
 		.map(|package| package.id.as_str())
 		.chain(groups.iter().map(|group| group.id.as_str()))
 		.collect::<BTreeSet<_>>();
+
 	for (output_key, output) in &changelog.outputs {
 		if output_key == monochange_core::DEFAULT_CHANGELOG_OUTPUT {
 			return Err(MonochangeError::Config(
@@ -5238,6 +5533,7 @@ fn validate_changelog_configuration(
 					.to_string(),
 			));
 		}
+
 		if output.stream != monochange_core::DEFAULT_CHANGELOG_STREAM
 			&& !changelog.streams.contains_key(&output.stream)
 		{
@@ -5246,39 +5542,47 @@ fn validate_changelog_configuration(
 				output.stream
 			)));
 		}
+
 		if output.path.trim().is_empty() {
 			return Err(MonochangeError::Config(format!(
 				"[changelog].outputs.{output_key}.path must not be empty"
 			)));
 		}
+
 		let unsupported_variables = change_template_variables(&output.path)
 			.into_iter()
 			.filter(|variable| !matches!(variable.as_str(), "path" | "id" | "version"))
 			.collect::<Vec<_>>();
+
 		if !unsupported_variables.is_empty() {
 			return Err(MonochangeError::Config(format!(
 				"[changelog].outputs.{output_key}.path uses unsupported variables: {}",
 				unsupported_variables.join(", ")
 			)));
 		}
+
 		if output.targets.is_empty() {
 			return Err(MonochangeError::Config(format!(
 				"[changelog].outputs.{output_key}.targets must include at least one package or group id"
 			)));
 		}
+
 		let mut seen_targets = BTreeSet::new();
+
 		for target in &output.targets {
 			if !seen_targets.insert(target) {
 				return Err(MonochangeError::Config(format!(
 					"[changelog].outputs.{output_key}.targets contains duplicate target `{target}`"
 				)));
 			}
+
 			if !configured_targets.contains(target.as_str()) {
 				return Err(MonochangeError::Config(format!(
 					"[changelog].outputs.{output_key} references unknown package or group `{target}`"
 				)));
 			}
 		}
+
 		if output.mode == monochange_core::ChangelogOutputMode::Append
 			&& matches!(output.format, ChangelogFormat::Json | ChangelogFormat::Text)
 		{
@@ -5291,6 +5595,7 @@ fn validate_changelog_configuration(
 				"[changelog].outputs.{output_key} must use `mode = \"release\"` with format `{format}`"
 			)));
 		}
+
 		if output.mode == monochange_core::ChangelogOutputMode::Release
 			&& output.initial_header.is_some()
 		{
@@ -5299,6 +5604,7 @@ fn validate_changelog_configuration(
 			)));
 		}
 	}
+
 	// Validate excluded_changelog_types reference existing type keys. The
 	// vocabulary a target may exclude from is the merged set, so a built-in type
 	// stays excludable even when the repository never restates it.
@@ -5307,6 +5613,7 @@ fn validate_changelog_configuration(
 			&format!("package `{}`", package.id),
 			package.changelog.as_ref(),
 		)?;
+
 		for excluded in &package.excluded_changelog_types {
 			if !changelog.types.contains_key(excluded) && !built_in_types.contains_key(excluded) {
 				return Err(MonochangeError::Config(format!(
@@ -5316,11 +5623,13 @@ fn validate_changelog_configuration(
 			}
 		}
 	}
+
 	for group in groups {
 		validate_append_changelog_format(
 			&format!("group `{}`", group.id),
 			group.changelog.as_ref(),
 		)?;
+
 		for excluded in &group.excluded_changelog_types {
 			if !changelog.types.contains_key(excluded) && !built_in_types.contains_key(excluded) {
 				return Err(MonochangeError::Config(format!(
@@ -5330,6 +5639,7 @@ fn validate_changelog_configuration(
 			}
 		}
 	}
+
 	Ok(())
 }
 
@@ -5351,6 +5661,7 @@ fn validate_append_changelog_format(
 	} else {
 		"text"
 	};
+
 	Err(MonochangeError::Config(format!(
 		"{scope} changelog uses standalone format `{format}`; configure JSON or text under [changelog.outputs] with `mode = \"release\"`"
 	)))
@@ -5377,6 +5688,7 @@ where
 		let key_str = key.as_ref();
 		validate_identifier_key(contents, key_kind, key_str)?;
 	}
+
 	Ok(())
 }
 
@@ -5387,8 +5699,10 @@ fn validate_identifier_key(_contents: &str, key_kind: &str, key: &str) -> Monoch
 			"[changelog].{key_kind}s key must not be empty"
 		)));
 	}
+
 	// Must start with a letter
 	let first = key.chars().next().unwrap();
+
 	if !first.is_ascii_lowercase() {
 		if first.is_ascii_uppercase() {
 			return Err(MonochangeError::Config(format!(
@@ -5400,6 +5714,7 @@ fn validate_identifier_key(_contents: &str, key_kind: &str, key: &str) -> Monoch
 			"[changelog].{key_kind}s key `{key}` must start with a letter (a-z)"
 		)));
 	}
+
 	// Must be all lowercase alphanumeric or underscore
 	for ch in key.chars() {
 		if !ch.is_ascii_lowercase() && !ch.is_ascii_digit() && ch != '_' {
@@ -5414,19 +5729,23 @@ fn validate_identifier_key(_contents: &str, key_kind: &str, key: &str) -> Monoch
 			)));
 		}
 	}
+
 	// At most one underscore
 	let underscore_count = key.chars().filter(|c| *c == '_').count();
+
 	if underscore_count > 1 {
 		return Err(MonochangeError::Config(format!(
 			"[changelog].{key_kind}s key `{key}` must contain at most one underscore; use a single word or `word_word` format"
 		)));
 	}
+
 	Ok(())
 }
 
 fn change_template_variables(template: &str) -> Vec<String> {
 	let mut variables = BTreeSet::new();
 	let mut remaining = template;
+
 	while let Some(start) = remaining.find("{{") {
 		let after_open = &remaining[start + 2..];
 		let Some(end) = after_open.find("}}") else {
@@ -5438,11 +5757,14 @@ fn change_template_variables(template: &str) -> Vec<String> {
 			.chars()
 			.take_while(|character| character.is_ascii_alphanumeric() || *character == '_')
 			.collect();
+
 		if !variable.is_empty() {
 			variables.insert(variable);
 		}
+
 		remaining = &after_open[end + 2..];
 	}
+
 	variables.into_iter().collect()
 }
 
@@ -5450,36 +5772,43 @@ fn validate_source_configuration(source: Option<&SourceConfiguration>) -> Monoch
 	let Some(source) = source else {
 		return Ok(());
 	};
+
 	if source.owner.trim().is_empty() {
 		return Err(MonochangeError::Config(
 			"[source].owner must not be empty".to_string(),
 		));
 	}
+
 	if source.repo.trim().is_empty() {
 		return Err(MonochangeError::Config(
 			"[source].repo must not be empty".to_string(),
 		));
 	}
+
 	if source.pull_requests.branch_prefix.trim().is_empty() {
 		return Err(MonochangeError::Config(
 			"[source.pull_requests].branch_prefix must not be empty".to_string(),
 		));
 	}
+
 	if source.pull_requests.base.trim().is_empty() {
 		return Err(MonochangeError::Config(
 			"[source.pull_requests].base must not be empty".to_string(),
 		));
 	}
+
 	if source.pull_requests.title.trim().is_empty() {
 		return Err(MonochangeError::Config(
 			"[source.pull_requests].title must not be empty".to_string(),
 		));
 	}
+
 	if source.releases.branches.is_empty() {
 		return Err(MonochangeError::Config(
 			"[source.releases].branches must contain at least one branch pattern".to_string(),
 		));
 	}
+
 	if source
 		.releases
 		.branches
@@ -5490,12 +5819,14 @@ fn validate_source_configuration(source: Option<&SourceConfiguration>) -> Monoch
 			"[source.releases].branches must not include empty values".to_string(),
 		));
 	}
+
 	if source.releases.changeset_context_timeout_seconds == 0 {
 		return Err(MonochangeError::Config(
 			"[source.releases].changeset_context_timeout_seconds must be greater than 0"
 				.to_string(),
 		));
 	}
+
 	if source
 		.releases
 		.attestations
@@ -5507,6 +5838,7 @@ fn validate_source_configuration(source: Option<&SourceConfiguration>) -> Monoch
 				.to_string(),
 		));
 	}
+
 	if source
 		.pull_requests
 		.labels
@@ -5517,17 +5849,21 @@ fn validate_source_configuration(source: Option<&SourceConfiguration>) -> Monoch
 			"[source.pull_requests].labels must not include empty values".to_string(),
 		));
 	}
+
 	if source.pull_requests.max_body_chars == Some(0) {
 		return Err(MonochangeError::Config(
 			"[source.pull_requests].max_body_chars must be greater than 0".to_string(),
 		));
 	}
+
 	if let Some(api_url) = &source.api_url {
 		validate_api_url_host(api_url, source.provider)?;
 	}
+
 	if let Some(host) = &source.host {
 		validate_api_url_host(host, source.provider)?;
 	}
+
 	validate_source_provider_capabilities(source)
 }
 
@@ -5539,6 +5875,7 @@ fn validate_source_changelog_output(
 		return Ok(());
 	};
 	let output = source.releases.changelog_output.as_str();
+
 	if output == monochange_core::DEFAULT_CHANGELOG_OUTPUT || changelog.outputs.contains_key(output)
 	{
 		return Ok(());
@@ -5550,30 +5887,35 @@ fn validate_source_changelog_output(
 
 fn validate_source_provider_capabilities(source: &SourceConfiguration) -> MonochangeResult<()> {
 	let capabilities = source_capabilities(source.provider);
+
 	if capabilities.requires_host && source.host.as_deref().is_none_or(str::is_empty) {
 		return Err(MonochangeError::Config(format!(
 			"[source].host must be set for `provider = \"{}\"`",
 			source.provider
 		)));
 	}
+
 	if source.releases.draft && !capabilities.draft_releases {
 		return Err(MonochangeError::Config(format!(
 			"[source.releases].draft is not supported for `provider = \"{}\"`",
 			source.provider
 		)));
 	}
+
 	if source.releases.prerelease && !capabilities.prereleases {
 		return Err(MonochangeError::Config(format!(
 			"[source.releases].prerelease is not supported for `provider = \"{}\"`",
 			source.provider
 		)));
 	}
+
 	if source.releases.generate_notes && !capabilities.generated_release_notes {
 		return Err(MonochangeError::Config(format!(
 			"provider-generated release notes are not supported for `provider = \"{}\"`; use `source = \"monochange\"`",
 			source.provider
 		)));
 	}
+
 	if source.releases.generate_notes
 		&& matches!(
 			source.releases.source,
@@ -5584,12 +5926,14 @@ fn validate_source_provider_capabilities(source: &SourceConfiguration) -> Monoch
 				.to_string(),
 		));
 	}
+
 	if source.pull_requests.auto_merge && !capabilities.auto_merge_change_requests {
 		return Err(MonochangeError::Config(format!(
 			"[source.pull_requests].auto_merge is not supported for `provider = \"{}\"`",
 			source.provider
 		)));
 	}
+
 	Ok(())
 }
 
@@ -5598,12 +5942,14 @@ fn validate_source_provider_capabilities(source: &SourceConfiguration) -> Monoch
 /// in cleartext.
 fn validate_api_url_host(url: &str, provider: SourceProvider) -> MonochangeResult<()> {
 	let lower = url.to_lowercase();
+
 	if lower.starts_with("http://") {
 		return Err(MonochangeError::Config(format!(
 			"[source] url `{url}` uses an insecure scheme (http://); \
 			 API tokens would be transmitted in cleartext — use https:// instead"
 		)));
 	}
+
 	// Warn about non-standard hosts for GitHub — GitLab and Gitea are commonly
 	// self-hosted, so custom hosts are expected for those providers.
 	if provider == SourceProvider::GitHub && lower.starts_with("https://") {
@@ -5612,6 +5958,7 @@ fn validate_api_url_host(url: &str, provider: SourceProvider) -> MonochangeResul
 		let is_standard = host_part == "api.github.com"
 			|| host_part.ends_with(".github.com")
 			|| host_part.ends_with(".githubusercontent.com");
+
 		if !is_standard {
 			tracing::warn!(
 				"[source] url points to non-standard GitHub host `{url}`; \
@@ -5619,6 +5966,7 @@ fn validate_api_url_host(url: &str, provider: SourceProvider) -> MonochangeResul
 			);
 		}
 	}
+
 	Ok(())
 }
 
@@ -5636,6 +5984,7 @@ fn validate_changesets_configuration(
 			"[changesets.affected].skip_labels must not include empty values".to_string(),
 		));
 	}
+
 	if changesets
 		.classification
 		.skip_labels
@@ -5662,6 +6011,7 @@ fn validate_changesets_configuration(
 					"{field} must not include empty values"
 				)));
 			}
+
 			Pattern::new(pattern).map_err(|error| {
 				MonochangeError::Config(format!(
 					"{field} contains invalid glob pattern `{pattern}`: {error}"
@@ -5669,6 +6019,7 @@ fn validate_changesets_configuration(
 			})?;
 		}
 	}
+
 	for package in packages {
 		for (field, patterns) in [
 			("ignored_paths", &package.ignored_paths),
@@ -5681,6 +6032,7 @@ fn validate_changesets_configuration(
 						package.id
 					)));
 				}
+
 				Pattern::new(pattern).map_err(|error| {
 					MonochangeError::Config(format!(
 						"[package.{}].{field} contains invalid glob pattern `{pattern}`: {error}",
@@ -5690,6 +6042,7 @@ fn validate_changesets_configuration(
 			}
 		}
 	}
+
 	Ok(())
 }
 
@@ -5699,11 +6052,13 @@ fn validate_prerelease_configuration(prerelease: &PrereleaseConfiguration) -> Mo
 			"[prerelease].channel must not be empty".to_string(),
 		));
 	}
+
 	Version::parse(&format!("0.0.0-{}.0", prerelease.channel)).map_err(|error| {
 		MonochangeError::Config(format!(
 			"[prerelease].channel must be a valid SemVer prerelease identifier: {error}"
 		))
 	})?;
+
 	if prerelease
 		.branches
 		.iter()
@@ -5713,15 +6068,18 @@ fn validate_prerelease_configuration(prerelease: &PrereleaseConfiguration) -> Mo
 			"[prerelease].branches must not contain empty branch patterns".to_string(),
 		));
 	}
+
 	match (prerelease.base, prerelease.base_version.as_ref()) {
 		(PrereleaseBase::Fixed, None) => Err(MonochangeError::Config(
 			"[prerelease].base_version is required when base is `fixed`".to_string(),
 		)),
+
 		(PrereleaseBase::Fixed, Some(version)) if !version.pre.is_empty() || !version.build.is_empty() => {
 			Err(MonochangeError::Config(
 				"[prerelease].base_version must be a stable SemVer version without prerelease or build metadata".to_string(),
 			))
 		}
+
 		(PrereleaseBase::Planned | PrereleaseBase::CurrentStable, Some(_)) => {
 			Err(MonochangeError::Config(
 				"[prerelease].base_version is only valid when base is `fixed`".to_string(),
@@ -5742,6 +6100,7 @@ fn validate_changeset_lint_settings(
 			"[lints.rules].changesets/summary.heading_level must be between 1 and 6".to_string(),
 		));
 	}
+
 	if let (Some(min_length), Some(max_length)) =
 		(settings.summary.min_length, settings.summary.max_length)
 		&& min_length > max_length
@@ -5760,12 +6119,14 @@ fn validate_changeset_lint_settings(
 				.to_string(),
 		));
 	}
+
 	for (bump, scoped) in &settings.bump {
 		validate_changeset_scoped_lint_settings(
 			scoped,
 			&format!("[lints.rules].changesets/bump/{bump}"),
 		)?;
 	}
+
 	for (change_type, scoped) in &settings.types {
 		if !changelog
 			.types
@@ -5781,6 +6142,7 @@ fn validate_changeset_lint_settings(
 			&format!("[lints.rules].changesets/types/{change_type}"),
 		)?;
 	}
+
 	Ok(())
 }
 
@@ -5796,6 +6158,7 @@ fn validate_changeset_scoped_lint_settings(
 			"{path}.min_body_chars must not exceed max_body_chars"
 		)));
 	}
+
 	if settings
 		.required_sections
 		.iter()
@@ -5805,6 +6168,7 @@ fn validate_changeset_scoped_lint_settings(
 			"{path}.required_sections must not include empty values"
 		)));
 	}
+
 	if settings
 		.forbidden_headings
 		.iter()
@@ -5969,12 +6333,14 @@ fn validate_cli(cli: &[CliCommandDefinition]) -> MonochangeResult<()> {
 				cli_command.name
 			)));
 		}
+
 		if RESERVED_CLI_COMMAND_NAMES.contains(&cli_command.name.as_str()) {
 			return Err(MonochangeError::Config(format!(
 				"CLI command `{}` collides with a reserved built-in command",
 				cli_command.name
 			)));
 		}
+
 		if cli_command.steps.is_empty() {
 			return Err(MonochangeError::Config(format!(
 				"CLI command `{}` must define at least one step",
@@ -5983,6 +6349,7 @@ fn validate_cli(cli: &[CliCommandDefinition]) -> MonochangeResult<()> {
 		}
 
 		let mut seen_inputs = BTreeSet::new();
+
 		for input in &cli_command.inputs {
 			if input.name.trim().is_empty() {
 				return Err(MonochangeError::Config(format!(
@@ -5990,24 +6357,28 @@ fn validate_cli(cli: &[CliCommandDefinition]) -> MonochangeResult<()> {
 					cli_command.name
 				)));
 			}
+
 			if !seen_inputs.insert(input.name.clone()) {
 				return Err(MonochangeError::Config(format!(
 					"CLI command `{}` defines duplicate input `{}`",
 					cli_command.name, input.name
 				)));
 			}
+
 			if matches!(input.name.as_str(), "help" | "dry-run") {
 				return Err(MonochangeError::Config(format!(
 					"CLI command `{}` input `{}` collides with an implicit command flag",
 					cli_command.name, input.name
 				)));
 			}
+
 			if matches!(input.kind, CliInputKind::Choice) && input.choices.is_empty() {
 				return Err(MonochangeError::Config(format!(
 					"CLI command `{}` input `{}` must define at least one choice",
 					cli_command.name, input.name
 				)));
 			}
+
 			if let Some(default) = &input.default {
 				validate_cli_input_default(cli_command, input, default)?;
 			}
@@ -6015,6 +6386,7 @@ fn validate_cli(cli: &[CliCommandDefinition]) -> MonochangeResult<()> {
 
 		let mut seen_step_ids: BTreeSet<String> = BTreeSet::new();
 		let mut seen_step_names: BTreeSet<String> = BTreeSet::new();
+
 		for step in &cli_command.steps {
 			if let Some(condition) = step.when()
 				&& condition.trim().is_empty()
@@ -6025,8 +6397,10 @@ fn validate_cli(cli: &[CliCommandDefinition]) -> MonochangeResult<()> {
 					step.kind_name()
 				)));
 			}
+
 			if let Some(name) = step.name() {
 				let trimmed = name.trim();
+
 				if trimmed.is_empty() {
 					return Err(MonochangeError::Config(format!(
 						"CLI command `{}` step `{}` has an empty `name`",
@@ -6034,6 +6408,7 @@ fn validate_cli(cli: &[CliCommandDefinition]) -> MonochangeResult<()> {
 						step.kind_name()
 					)));
 				}
+
 				if !seen_step_names.insert(trimmed.to_string()) {
 					return Err(MonochangeError::Config(format!(
 						"CLI command `{}` has duplicate step name `{trimmed}`",
@@ -6041,6 +6416,7 @@ fn validate_cli(cli: &[CliCommandDefinition]) -> MonochangeResult<()> {
 					)));
 				}
 			}
+
 			for input_name in step.inputs().keys() {
 				if input_name.trim().is_empty() {
 					return Err(MonochangeError::Config(format!(
@@ -6050,6 +6426,7 @@ fn validate_cli(cli: &[CliCommandDefinition]) -> MonochangeResult<()> {
 					)));
 				}
 			}
+
 			if let CliStepDefinition::Command {
 				command,
 				dry_run_command,
@@ -6088,6 +6465,7 @@ fn validate_cli_runtime_requirements(
 					cli_command.name
 				))
 			})?;
+
 			if !source.releases.enabled {
 				return Err(MonochangeError::Config(format!(
 					"CLI command `{}` uses `PublishRelease` but `[source.releases].enabled` is false",
@@ -6095,6 +6473,7 @@ fn validate_cli_runtime_requirements(
 				)));
 			}
 		}
+
 		if cli_command
 			.steps
 			.iter()
@@ -6106,6 +6485,7 @@ fn validate_cli_runtime_requirements(
 					cli_command.name
 				))
 			})?;
+
 			if !source.pull_requests.enabled {
 				return Err(MonochangeError::Config(format!(
 					"CLI command `{}` uses `OpenReleaseRequest` but `[source.pull_requests].enabled` is false",
@@ -6113,6 +6493,7 @@ fn validate_cli_runtime_requirements(
 				)));
 			}
 		}
+
 		if cli_command
 			.steps
 			.iter()
@@ -6124,6 +6505,7 @@ fn validate_cli_runtime_requirements(
 					cli_command.name
 				))
 			})?;
+
 			if !source_capabilities(source.provider).released_issue_comments {
 				return Err(MonochangeError::Config(format!(
 					"CLI command `{}` uses `CommentReleasedIssues` but `[source].provider = \"{}\"` does not support released-issue comments",
@@ -6131,19 +6513,23 @@ fn validate_cli_runtime_requirements(
 				)));
 			}
 		}
+
 		for step in &cli_command.steps {
 			validate_step_input_overrides(cli_command, step)?;
+
 			if let CliStepDefinition::AffectedPackages { inputs, .. } = step {
 				validate_affected_packages_step_enabled(cli_command, changesets.affected.enabled)?;
 
 				let has_changed_paths = inputs.contains_key("changed_paths");
 				let has_from = inputs.contains_key("from");
+
 				if !has_changed_paths && !has_from {
 					return Err(MonochangeError::Config(format!(
 						"CLI command `{}` uses `AffectedPackages` but declares neither a `changed_paths` nor a `from` input and does not override either on the step",
 						cli_command.name
 					)));
 				}
+
 				validate_step_override_kind(
 					cli_command,
 					step,
@@ -6202,9 +6588,11 @@ fn validate_step_override_kind(
 				CliStepInputValue::String(_) | CliStepInputValue::List(_)
 			)
 		};
+
 	if valid {
 		return Ok(());
 	}
+
 	Err(MonochangeError::Config(format!(
 		"CLI command `{}` step `{}` override `{}` must use a {} value",
 		cli_command.name,
@@ -6237,6 +6625,7 @@ fn validate_step_input_overrides(
 	step: &CliStepDefinition,
 ) -> MonochangeResult<()> {
 	let overrides = step.inputs();
+
 	if overrides.is_empty() {
 		return Ok(());
 	}
@@ -6258,6 +6647,7 @@ fn validate_step_input_overrides(
 					.iter()
 					.map(|input| input.name.as_str())
 					.collect::<Vec<_>>();
+
 				if command_inputs.is_empty() {
 					"this step accepts no inputs".to_string()
 				} else {
@@ -6285,6 +6675,7 @@ fn validate_step_input_overrides(
 					name,
 				)));
 			};
+
 			if let Some(expected_kind) = step.expected_input_kind(name)
 				&& !cli_input_kind_matches_step_input(command_input.kind, expected_kind)
 			{
@@ -6318,6 +6709,7 @@ fn validate_step_input_overrides(
 					matches!(value, CliStepInputValue::String(_))
 				}
 			};
+
 			if !type_ok {
 				return Err(MonochangeError::Config(format!(
 					"CLI command `{}` step `{}` override `{}` must use a {} value",
@@ -6441,6 +6833,7 @@ fn validate_release_owner_version_format(
 				),
 			)
 		})?;
+
 	if let Some(existing_owner) = rendered_tags.insert(rendered_tag.clone(), owner_id.to_string()) {
 		return Err(config_diagnostic(
 			config_contents,
@@ -6463,6 +6856,7 @@ fn validate_release_owner_version_format(
 			),
 		));
 	}
+
 	Ok(())
 }
 
@@ -6521,6 +6915,7 @@ fn validate_floating_tag_templates(
 			));
 		}
 	}
+
 	Ok(())
 }
 
@@ -6540,17 +6935,21 @@ fn render_source_diagnostic(
 	];
 
 	let snippets = render_source_snippets(source_name, source_contents, &sorted_labels);
+
 	if !snippets.is_empty() {
 		lines.push(String::new());
 		lines.extend(snippets);
 	}
+
 	if let Some(help) = help {
 		lines.push(String::new());
 		lines.push(format!("  = help: {help}"));
 	}
+
 	for note in render_diagnostic_notes(&sorted_labels) {
 		lines.push(format!("  = note: {note}"));
 	}
+
 	lines.join("\n")
 }
 
@@ -6577,10 +6976,12 @@ fn render_source_snippets(
 	labels: &[LabeledSpan],
 ) -> Vec<String> {
 	let mut snippets = Vec::new();
+
 	for (index, label) in labels.iter().enumerate() {
 		if index > 0 {
 			snippets.push(String::new());
 		}
+
 		snippets.extend(render_source_snippet(
 			source_name,
 			source_contents,
@@ -6588,6 +6989,7 @@ fn render_source_snippets(
 			index == 0,
 		));
 	}
+
 	snippets
 }
 
@@ -6606,9 +7008,11 @@ fn render_source_snippet(
 	let caret_padding = column_number.saturating_sub(1);
 	let label_text = label.label().unwrap_or("here");
 	let mut lines = Vec::new();
+
 	if !is_primary {
 		lines.push(format!("  ::: {source_name}:{line_number}:{column_number}"));
 	}
+
 	lines.push(format!(
 		"{space:>width$} |",
 		space = "",
@@ -6662,17 +7066,22 @@ fn frontmatter_span_for_line_column(
 	column_number: usize,
 ) -> Range<usize> {
 	let mut line_start = 0usize;
+
 	for (current_line, line) in (1usize..).zip(source_contents.split_inclusive('\n')) {
 		let line_end = line_start + line.len();
+
 		if current_line == line_number {
 			let line_contents = line.strip_suffix('\n').unwrap_or(line);
 			let offset = column_number.saturating_sub(1).min(line_contents.len());
 			let start = line_start + offset;
 			let end = start.saturating_add(1).min(source_contents.len());
+
 			return start..end;
 		}
+
 		line_start = line_end;
 	}
+
 	let start = line_start.min(source_contents.len());
 	start..start
 }
@@ -6743,6 +7152,7 @@ fn section_patterns(kind: &str, id: &str) -> [String; 2] {
 	if id.is_empty() {
 		return [format!("[{kind}]"), format!("[{kind}]")];
 	}
+
 	[format!("[{kind}.{id}]"), format!("[{kind}.\"{id}\"]")]
 }
 
@@ -6804,6 +7214,7 @@ pub fn package_bump_propagations(
 		let Some(declared) = group.bump_propagation else {
 			continue;
 		};
+
 		for member in &group.packages {
 			let Some(member_definition) = configuration.package_by_id(member) else {
 				continue;
@@ -6862,6 +7273,7 @@ pub fn apply_version_groups(
 		.iter()
 		.map(|package| (package.id.as_str(), package))
 		.collect::<BTreeMap<_, _>>();
+
 	for package_definition in &configuration.packages {
 		for package_index in find_matching_package_indices_for_definition(
 			packages,
@@ -6918,9 +7330,11 @@ pub fn apply_version_groups(
 
 				assigned.insert(package.id.clone(), group_id.clone());
 				package.version_group_id = Some(group_id.clone());
+
 				if let Some(max_bump) = group.package_max_bumps.get(member) {
 					member_max_bumps.insert(package.id.clone(), *max_bump);
 				}
+
 				members.push(package.id.clone());
 
 				if let Some(version) = &package.current_version {
@@ -6930,6 +7344,7 @@ pub fn apply_version_groups(
 		}
 
 		let mismatch_detected = versions.len() > 1;
+
 		if mismatch_detected && configuration.defaults.warn_on_group_mismatch {
 			warnings.push(format!(
 				"version group `{group_id}` contains packages with mismatched versions"
@@ -7072,6 +7487,7 @@ pub fn validate_workspace_with_config(
 	// patch-coverage:ignore-start -- stale prerelease state rejection is covered by config and CLI integration tests; the closing branch marker is compiler-generated.
 	if !configuration.prerelease.enabled {
 		let prerelease_state_path = root.join(".monochange/prerelease-state.json");
+
 		if prerelease_state_path.exists() {
 			return Err(MonochangeError::Diagnostic(format!(
 				"prerelease state exists at {} but prerelease mode is disabled; remove the state file or enable `[prerelease]`",
@@ -7079,8 +7495,10 @@ pub fn validate_workspace_with_config(
 			)));
 		}
 	}
+
 	// patch-coverage:ignore-end
 	let changeset_dir = root.join(".changeset");
+
 	if !changeset_dir.exists() {
 		return Ok(());
 	}
@@ -7097,9 +7515,37 @@ pub fn validate_workspace_with_config(
 		.filter(|path| path.extension().and_then(|value| value.to_str()) == Some("md"))
 		.collect::<Vec<_>>();
 	let mut errors = Vec::new();
+
+	// Build the package/group target lookup once instead of rebuilding the same
+	// sets for every changeset file.
+	let package_ids = configuration
+		.packages
+		.iter()
+		.map(|package| package.id.as_str())
+		.collect::<BTreeSet<_>>();
+	let group_members = configuration
+		.groups
+		.iter()
+		.map(|group| {
+			(
+				group.id.as_str(),
+				group
+					.packages
+					.iter()
+					.map(String::as_str)
+					.collect::<BTreeSet<_>>(),
+			)
+		})
+		.collect::<BTreeMap<_, _>>();
+
 	for changeset_path in changeset_paths {
 		#[allow(clippy::needless_borrow)]
-		if let Err(error) = validate_changeset_targets(&configuration, &changeset_path) {
+		if let Err(error) = validate_changeset_targets(
+			&configuration,
+			&changeset_path,
+			&package_ids,
+			&group_members,
+		) {
 			errors.push(error.render());
 		}
 	}
@@ -7150,6 +7596,7 @@ pub fn validate_versioned_files_content_with_config(
 	for package in &configuration.packages {
 		sources.push(("package", package.id.clone(), &package.versioned_files));
 	}
+
 	for group in &configuration.groups {
 		sources.push(("group", group.id.clone(), &group.versioned_files));
 	}
@@ -7161,6 +7608,7 @@ pub fn validate_versioned_files_content_with_config(
 		("dart", &configuration.dart),
 		("python", &configuration.python),
 	];
+
 	for &(eco_name, settings) in ecosystem_entries {
 		if !settings.versioned_files.is_empty() {
 			sources.push(("ecosystem", eco_name.to_string(), &settings.versioned_files));
@@ -7179,12 +7627,15 @@ pub fn validate_versioned_files_content_with_config(
 	// and exact duplicates are silent because the writer already collapses
 	// them.
 	let mut warned_owner_paths: Vec<(&str, &str)> = Vec::new();
+
 	for (owner_kind, owner_id, definitions) in &sources {
 		let mut seen_definitions: Vec<(&str, &VersionedFileDefinition)> = Vec::new();
+
 		for definition in *definitions {
 			if path_uses_glob(&definition.path) {
 				continue;
 			}
+
 			if seen_definitions
 				.iter()
 				.any(|(path, previous)| *path == definition.path && **previous == *definition)
@@ -7194,6 +7645,7 @@ pub fn validate_versioned_files_content_with_config(
 			let path_already_declared = seen_definitions
 				.iter()
 				.any(|(path, _)| *path == definition.path);
+
 			if path_already_declared
 				&& !warned_owner_paths
 					.iter()
@@ -7210,12 +7662,14 @@ pub fn validate_versioned_files_content_with_config(
 	}
 
 	let mut errors = Vec::new();
+
 	for (owner_kind, owner_id, definitions) in &sources {
 		for definition in *definitions {
 			if path_uses_glob(&definition.path) {
 				if seen_globs.contains(&definition.path) {
 					continue;
 				}
+
 				seen_globs.push(definition.path.clone());
 			}
 			if let Err(error) = validate_single_versioned_file_content(
@@ -7254,18 +7708,21 @@ fn validate_single_versioned_file_content(
 	if path_uses_glob(&definition.path) {
 		// Glob path: warn if zero files match.
 		let matches = monochange_core::workspace_glob_files(root, &definition.path)?;
+
 		if matches.is_empty() {
 			warnings.push(format!(
 				"{owner_kind} `{owner_id}` versioned file glob `{}` matches no files",
 				definition.path
 			));
 		}
+
 		// For globs we skip per-file content validation since the set of
 		// matched files may change between validation and release time.
 		return Ok(());
 	}
 
 	let full_path = root.join(&definition.path);
+
 	if !full_path.exists() {
 		return Err(MonochangeError::Config(format!(
 			"{owner_kind} `{owner_id}` versioned file `{}` does not exist",
@@ -7283,12 +7740,14 @@ fn validate_single_versioned_file_content(
 				"{owner_kind} `{owner_id}` regex `{regex_pattern}` is invalid: {error}"
 			))
 		})?;
+
 		if !compiled.is_match(&contents) {
 			return Err(MonochangeError::Config(format!(
 				"{owner_kind} `{owner_id}` versioned file `{}` regex `{regex_pattern}` does not match any content in the file",
 				definition.path
 			)));
 		}
+
 		return Ok(());
 	}
 
@@ -7322,6 +7781,7 @@ fn validate_ecosystem_version_readable(
 			"{owner_kind} `{owner_id}` versioned file `{display_path}` is not supported for ecosystem `{ecosystem_type:?}`"
 		)));
 	}
+
 	let validated =
 		ecosystems.validate_versioned_file(full_path, display_path, ecosystem_type.into(), fields);
 	validated.map_err(|error| {
@@ -7331,6 +7791,7 @@ fn validate_ecosystem_version_readable(
 			other => other.to_string(),
 			// patch-coverage:ignore-end
 		};
+
 		MonochangeError::Config(format!("{owner_kind} `{owner_id}` {detail}"))
 	})
 }
@@ -7338,6 +7799,8 @@ fn validate_ecosystem_version_readable(
 fn validate_changeset_targets(
 	configuration: &WorkspaceConfiguration,
 	changeset_path: &Path,
+	package_ids: &BTreeSet<&str>,
+	group_members: &BTreeMap<&str, BTreeSet<&str>>,
 ) -> MonochangeResult<()> {
 	let contents = fs::read_to_string(changeset_path).map_err(|error| {
 		MonochangeError::Io(format!(
@@ -7350,27 +7813,9 @@ fn validate_changeset_targets(
 	} else {
 		return Ok(());
 	};
-	let package_ids = configuration
-		.packages
-		.iter()
-		.map(|package| package.id.as_str())
-		.collect::<BTreeSet<_>>();
-	let group_members = configuration
-		.groups
-		.iter()
-		.map(|group| {
-			(
-				group.id.as_str(),
-				group
-					.packages
-					.iter()
-					.map(String::as_str)
-					.collect::<BTreeSet<_>>(),
-			)
-		})
-		.collect::<BTreeMap<_, _>>();
 
 	let mut errors = Vec::new();
+
 	for change in &raw.changes {
 		if !package_ids.contains(change.package.as_str())
 			&& !group_members.contains_key(change.package.as_str())

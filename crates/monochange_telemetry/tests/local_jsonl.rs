@@ -75,6 +75,7 @@ fn public_api_writes_sanitized_command_and_step_jsonl_events() {
 			.and_then(Value::as_bool),
 		Some(true)
 	);
+
 	assert_eq!(
 		command_event
 			.pointer("/attributes/progress_format")

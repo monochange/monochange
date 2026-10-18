@@ -44,6 +44,7 @@ use crate::PackageType;
 use crate::PrereleaseConfiguration;
 use crate::ProviderMergeRequestSettings;
 use crate::ProviderReleaseSettings;
+use crate::PublishFlow;
 use crate::PublishMode;
 use crate::PublishOrderSettings;
 use crate::PublishSettings;
@@ -329,9 +330,11 @@ fn init_git_repository(root: &Path) {
 		.args(["init", "-b", "main"])
 		.output()
 		.unwrap_or_else(|error| panic!("git init: {error}"));
+
 	if init.status.success() {
 		return;
 	}
+
 	let fallback = git_command(root)
 		.arg("init")
 		.output()
@@ -358,6 +361,13 @@ fn publish_mode_and_registry_kind_display_canonical_names() {
 	assert_eq!(PublishMode::External.as_str(), "external");
 	assert_eq!(PublishMode::Builtin.to_string(), "builtin");
 	assert_eq!(PublishMode::External.to_string(), "external");
+
+	assert_eq!(PublishFlow::Direct.as_str(), "direct");
+	assert_eq!(PublishFlow::Staged.as_str(), "staged");
+	assert_eq!(PublishFlow::Direct.to_string(), "direct");
+	assert_eq!(PublishFlow::Staged.to_string(), "staged");
+	assert!(PublishFlow::Direct.is_default());
+	assert!(!PublishFlow::Staged.is_default());
 
 	assert_eq!(RegistryKind::CratesIo.as_str(), "crates_io");
 	assert_eq!(RegistryKind::Npm.as_str(), "npm");
@@ -700,6 +710,7 @@ fn git_head_commit_reports_current_commit_sha() {
 		fs::write(root.join("README.md"), "hello\n"),
 		"write README.md",
 	);
+
 	for args in [&["add", "README.md"][..], &["commit", "-m", "initial"][..]] {
 		let output = git_command(root)
 			.args(args)
@@ -995,6 +1006,27 @@ fn discovery_path_filter_handles_paths_prefixed_by_relative_input_root() {
 }
 
 #[test]
+fn discovery_path_filter_ignores_only_components_below_the_workspace_root() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path().join(".claude/worktrees/app");
+	fs::create_dir_all(root.join("packages/web"))
+		.unwrap_or_else(|error| panic!("create worktree packages: {error}"));
+	fs::write(root.join("packages/web/package.json"), "{}\n")
+		.unwrap_or_else(|error| panic!("write manifest: {error}"));
+
+	let filter = crate::DiscoveryPathFilter::new(&root);
+
+	// The workspace root itself and its manifests stay discoverable even
+	// though ancestor directories outside the workspace are ignored names.
+	assert!(filter.should_descend(&root));
+	assert!(filter.should_descend(&root.join("packages")));
+	assert!(filter.allows(&root.join("packages/web/package.json")));
+	// Ignored directory names below the workspace root still filter paths.
+	assert!(!filter.should_descend(&root.join("node_modules")));
+	assert!(!filter.allows(&root.join("node_modules/pkg/package.json")));
+}
+
+#[test]
 fn discovery_path_filter_skips_nested_git_worktrees() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
@@ -1151,6 +1183,7 @@ fn workspace_glob_files_many_matches_multiple_patterns_with_shared_walk_semantic
 fn workspace_glob_paths_many_preserves_literal_separator_matching() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
+
 	for directory in ["packages/app", "packages/core", "packages/core/nested"] {
 		fs::create_dir_all(root.join(directory))
 			.unwrap_or_else(|error| panic!("create {directory}: {error}"));
@@ -1297,6 +1330,7 @@ fn workspace_code_does_not_call_raw_glob_expansion() {
 fn collect_raw_glob_offenders(path: &Path, banned_patterns: &[&str], offenders: &mut Vec<String>) {
 	let entries =
 		fs::read_dir(path).unwrap_or_else(|error| panic!("read {}: {error}", path.display()));
+
 	for entry in entries {
 		let entry = entry.unwrap_or_else(|error| panic!("read directory entry: {error}"));
 		let path = entry.path();
@@ -1304,18 +1338,23 @@ fn collect_raw_glob_offenders(path: &Path, banned_patterns: &[&str], offenders: 
 			.file_name()
 			.and_then(|name| name.to_str())
 			.unwrap_or_default();
+
 		if file_name == "target" || file_name.starts_with('.') {
 			continue;
 		}
+
 		if path.is_dir() {
 			collect_raw_glob_offenders(&path, banned_patterns, offenders);
 			continue;
 		}
+
 		if path.extension().and_then(|extension| extension.to_str()) != Some("rs") {
 			continue;
 		}
+
 		let contents = fs::read_to_string(&path)
 			.unwrap_or_else(|error| panic!("read {}: {error}", path.display()));
+
 		for banned_pattern in banned_patterns {
 			if contents.contains(banned_pattern) {
 				offenders.push(path.display().to_string());
@@ -1504,6 +1543,7 @@ fn materialize_dependency_edges_scopes_adapter_aliases_to_the_consumer_ecosystem
 		source_field: None,
 	});
 	let edges = materialize_dependency_edges(&[consumer.clone(), cargo.clone(), python.clone()]);
+
 	assert_eq!(edges.len(), 1);
 	assert_eq!(
 		edges.first().map(|edge| edge.to_package_id.as_str()),
@@ -1741,6 +1781,7 @@ fn cli_step_definition_kind_name_covers_all_variants() {
 			"Command",
 		),
 	];
+
 	for (step, expected) in cases {
 		assert_eq!(step.kind_name(), expected);
 	}
@@ -1895,6 +1936,7 @@ fn cli_step_name_returns_explicit_names_for_all_variants() {
 			inputs: BTreeMap::new(),
 		},
 	];
+
 	for step in steps {
 		assert_eq!(step.name(), Some(expected));
 	}
@@ -1950,6 +1992,7 @@ fn valid_input_names_returns_no_verify_and_update_release_json_for_commit_releas
 	assert!(names.contains(&"commit_backend"));
 	assert!(names.contains(&"hosted_auth"));
 	assert!(names.contains(&"hosted_url"));
+
 	assert!(names.contains(&"oidc_audience"));
 }
 
@@ -1991,6 +2034,7 @@ fn valid_input_names_returns_expected_names_for_retarget_release() {
 		inputs: BTreeMap::new(),
 	};
 	let names = step.valid_input_names().unwrap();
+
 	for expected in ["from", "target", "force", "sync_provider"] {
 		assert!(names.contains(&expected), "missing: {expected}");
 	}
@@ -2052,6 +2096,7 @@ fn valid_input_names_returns_expected_names_for_display_and_publish_steps() {
 		inputs: BTreeMap::new(),
 	};
 	let names = plan.valid_input_names().unwrap();
+
 	for expected in ["format", "mode", "package", "ci", "readiness"] {
 		assert!(names.contains(&expected), "missing: {expected}");
 	}
@@ -2271,6 +2316,7 @@ fn step_inputs_schema_assigns_short_flag_to_interactive_input() {
 		.find(|input| input.name == "interactive")
 		.expect("create change file should accept interactive");
 	assert_eq!(interactive.short, Some('i'));
+
 	for input in schema.iter().filter(|input| input.name != "interactive") {
 		assert_eq!(input.short, None, "unexpected short flag on {}", input.name);
 	}
@@ -2290,6 +2336,55 @@ fn every_builtin_step_input_has_useful_help_text() {
 				input.name,
 			);
 		}
+	}
+}
+
+#[test]
+fn every_builtin_choice_input_declares_its_choices() {
+	// A choice input without choices rejects every value on the command line,
+	// which made `step open-release-request --hosted-auth oidc` unusable.
+	for step in all_step_variants() {
+		for input in step.step_inputs_schema() {
+			if input.kind == CliInputKind::Choice {
+				assert!(
+					!input.choices.is_empty(),
+					"{} input `{}` is a choice without choices",
+					step.kind_name(),
+					input.name,
+				);
+			}
+		}
+	}
+}
+
+#[test]
+fn hosted_release_steps_accept_the_same_hosted_inputs() {
+	for step in all_step_variants() {
+		let kind = step.kind_name();
+
+		if kind != "CommitRelease" && kind != "OpenReleaseRequest" {
+			continue;
+		}
+
+		let names = step
+			.valid_input_names()
+			.unwrap_or_else(|| panic!("{kind} declares its inputs"));
+
+		for name in ["hosted_auth", "hosted_url", "oidc_audience"] {
+			assert!(names.contains(&name), "{kind} is missing `{name}`");
+		}
+
+		assert_eq!(
+			step.valid_input_choices("hosted_auth"),
+			Some(["auto", "oidc", "token"].as_slice()),
+			"{kind} hosted_auth choices"
+		);
+
+		assert_eq!(
+			step.expected_input_kind("oidc_audience"),
+			Some(CliInputKind::String),
+			"{kind} oidc_audience kind"
+		);
 	}
 }
 
@@ -2348,7 +2443,7 @@ fn expected_input_kind_returns_none_for_command_steps() {
 }
 
 #[test]
-fn expected_input_kind_returns_none_for_commit_release() {
+fn commit_release_accepts_an_output_format() {
 	let step = CliStepDefinition::CommitRelease {
 		name: None,
 		when: None,
@@ -2362,7 +2457,15 @@ fn expected_input_kind_returns_none_for_commit_release() {
 		oidc_audience: None,
 		inputs: BTreeMap::new(),
 	};
-	assert_eq!(step.expected_input_kind("format"), None);
+	assert_eq!(
+		step.expected_input_kind("format"),
+		Some(CliInputKind::Choice)
+	);
+	assert_eq!(
+		step.valid_input_choices("format"),
+		Some(["text", "json", "json-min", "md"].as_slice())
+	);
+	assert_eq!(step.expected_input_kind("unknown"), None);
 }
 
 #[test]
@@ -2647,6 +2750,7 @@ fn hosted_issue_relationship_kind_as_str_and_display() {
 		(HostedIssueRelationshipKind::Mentioned, "mentioned"),
 		(HostedIssueRelationshipKind::Manual, "manual"),
 	];
+
 	for (kind, expected) in cases {
 		assert_eq!(kind.as_str(), expected);
 		assert_eq!(kind.to_string(), expected);
@@ -2990,6 +3094,7 @@ fn split_release_note_summary_extracts_only_the_lead_sentence() {
 		("Costs 3.13 dollars", "Costs 3.13 dollars", ""),
 		("Path a.b continues", "Path a.b continues", ""),
 	];
+
 	for (summary, lead, rest) in cases {
 		assert_eq!(
 			crate::split_release_note_summary(summary),
@@ -3268,6 +3373,7 @@ fn structured_release_notes_cover_layout_and_metadata_variants() {
 			..ChangelogStyle::default()
 		},
 	);
+
 	assert!(!no_separator.contains("\n---\n"));
 
 	let legacy = document.to_legacy_markdown(&blockquote_style);
@@ -3441,6 +3547,7 @@ fn changelog_style_rules_describe_each_configurable_variant() {
 
 	for (style, expected_rules) in cases {
 		let rules = style.rules();
+
 		for expected_rule in expected_rules {
 			assert!(
 				rules.contains(expected_rule),
@@ -3477,6 +3584,7 @@ fn release_notes_style_overrides_only_replace_configured_fields() {
 	assert_eq!(resolved.section_separator, SectionSeparator::ThematicBreak);
 	assert_eq!(resolved.package_label_style, PackageLabelStyle::Inline);
 	assert_eq!(resolved.metadata_style, MetadataStyle::Omit);
+
 	assert_eq!(
 		resolved.collapsed_section_style,
 		CollapsedSectionStyle::Plain
@@ -3537,6 +3645,7 @@ fn render_release_notes_applies_separator_and_plain_collapsed_styles() {
 		collapsed_section_style: CollapsedSectionStyle::Details,
 		package_bump_symbols: true,
 	};
+
 	for compact_format in [ChangelogFormat::Monochange, ChangelogFormat::KeepAChangelog] {
 		let compact = render_release_notes(compact_format, &document, &compact_style);
 		assert!(
@@ -3639,6 +3748,7 @@ fn workspace_configuration_uses_package_release_identity_when_not_grouped() {
 	assert_eq!(identity.version_format, VersionFormat::Namespaced);
 	assert_eq!(identity.members, vec!["monochange_graph"]);
 	assert_eq!(identity.bump_ceiling, None);
+
 	assert!(identity.classification_enforced);
 }
 
@@ -3858,6 +3968,7 @@ fn cli_step_command_with_id_deserializes() {
 	let json_str = r#"{"type":"Command","command":"echo hello","id":"greet","shell":"bash"}"#;
 	let step: CliStepDefinition =
 		serde_json::from_str(json_str).unwrap_or_else(|error| panic!("deserialize: {error}"));
+
 	match &step {
 		CliStepDefinition::Command {
 			command, id, shell, ..
@@ -3875,6 +3986,7 @@ fn cli_step_command_without_id_has_none() {
 	let json_str = r#"{"type":"Command","command":"echo hello","shell":true}"#;
 	let step: CliStepDefinition =
 		serde_json::from_str(json_str).unwrap_or_else(|error| panic!("deserialize: {error}"));
+
 	match &step {
 		CliStepDefinition::Command { id, shell, .. } => {
 			assert!(id.is_none());
@@ -4424,6 +4536,7 @@ fn release_record_schema_errors_map_to_core_errors() {
 			source: monochange_schema::SchemaVersionParseError::MissingSeparator,
 		},
 	);
+
 	assert!(matches!(fallback, ReleaseRecordError::Schema(message) if message.contains("bad")));
 }
 
@@ -4494,6 +4607,7 @@ fn release_record_discovery_serializes_with_snake_case_keys() {
 		.get("record_commit")
 		.unwrap_or_else(|| panic!("expected record_commit"));
 	assert_eq!(record_commit, "abc1234567890");
+
 	let distance = value
 		.get("distance")
 		.unwrap_or_else(|| panic!("expected distance"));
@@ -5083,6 +5197,7 @@ fn json_helper_functions_cover_error_paths() {
 	assert!(crate::skip_json_object("{\"a\":1", 0).is_err());
 	assert!(crate::skip_json_object("{", 0).is_err());
 	assert!(crate::skip_json_object("{1}", 0).is_err());
+
 	assert!(crate::skip_json_object("{\"a\" 1}", 0).is_err());
 	assert!(crate::parse_json_string_span("abc", 0).is_err());
 	assert!(crate::parse_json_string_span("\"abc", 0).is_err());
@@ -5178,6 +5293,7 @@ fn json_helper_functions_cover_success_paths() {
 			.unwrap_or_else(|error| panic!("skip object with comma: {error}")),
 		13
 	);
+
 	assert_eq!(
 		crate::skip_json_array("[]", 0).unwrap_or_else(|error| panic!("skip empty array: {error}")),
 		2
@@ -5324,6 +5440,7 @@ fn generated_release_step_metadata_exposes_expected_inputs() {
 		Some(CliInputKind::Path)
 	);
 	assert_eq!(publish_readiness.expected_input_kind("unknown"), None);
+
 	assert_eq!(publish_readiness.step_inputs_schema().len(), 4);
 
 	let tag_release = CliStepDefinition::TagRelease {
@@ -5515,6 +5632,7 @@ fn version_format_methods_cover_builtin_and_custom_formats() {
 	assert!(namespaced.contains_unique_name_variable());
 	assert!(!primary.contains_unique_name_variable());
 	assert!(custom.contains_unique_name_variable());
+
 	assert!(!ecosystem_custom.contains_unique_name_variable());
 	assert_eq!(
 		namespaced

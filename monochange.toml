@@ -313,6 +313,15 @@ mode = "release"
 #                             ecosystem: "crates_io", "npm", "jsr", or
 #                             "pub_dev". Custom/private registries must use
 #                             mode = "external".
+#     flow                  — npm-only release flow: "direct" (default) runs
+#                             `npm publish` so the version is installable
+#                             immediately, or "staged" runs `npm stage publish`
+#                             so the version waits in the npm staging queue
+#                             until a maintainer approves it with 2FA
+#                             (`npm stage approve <stage-id>` or the Staged
+#                             Packages tab on npmjs.com). Requires npm CLI
+#                             11.15+; placeholder publishes always stay
+#                             direct, and other ecosystems reject the override.
 #     trusted_publishing    — whether this package should use registry
 #                             trusted/OIDC publishing flows when available.
 #                             Set `trusted_publishing = true` for defaults, or
@@ -344,7 +353,9 @@ cli = { name = "monochange", snapshot = "monochange snapshot --view index" }
 
 [package.monochange_app]
 path = "app/crates/monochange_app"
-additional_paths = ["app/**", "docs/src/**", "Dockerfile", ".github/workflows/ci.yml"]
+# Workflow files stay out of the affected paths: CI and deployment changes
+# are repository plumbing and never require a monochange_app changeset.
+additional_paths = ["app/**", "docs/src/**", "Dockerfile"]
 publish = { enabled = false }
 changelog = false
 tag = true
@@ -412,12 +423,18 @@ path = "crates/monochange_graph"
 
 [package.monochange_schema]
 path = "crates/monochange_schema"
+# The schema contract is standalone: its GitHub release carries the notes for
+# each schema version. publish.yml publishes this draft alongside the main
+# release once the registry publish succeeds.
 release = true
 tag = true
 
 [package.monochange_classification]
 path = "crates/monochange_classification"
-release = true
+# Keep the tag for history, but skip the provider release: this crate moves
+# alongside its consumers and its notes already live in its committed
+# changelog.
+release = false
 tag = true
 
 [package.monochange_semver]
@@ -628,11 +645,12 @@ enabled = true
 # Default: true
 required = true
 
-# Pull-request labels that skip verification entirely. Keep this limited to
-# automated release PRs so regular pull requests still prove package changes
-# are covered by attached changesets.
+# Pull-request labels that skip verification entirely. `release` covers
+# automated release PRs. `no-changeset-required` is a maintainer-only
+# decision for repository-plumbing pull requests whose changed paths would
+# otherwise demand a package changeset.
 # Default: []
-skip_labels = ["release"]
+skip_labels = ["release", "no-changeset-required"]
 
 # Whether to render a failure comment body in the evaluation output for
 # CI integrations to post back to the pull request.
@@ -749,6 +767,10 @@ rules = { "npm/workspace-protocol" = "off" }
 #     registry       — default public registry for this ecosystem. Built-in
 #                      publishing only supports the ecosystem's canonical public
 #                      registry.
+#     flow           — npm-only release flow (default: "direct"); "staged" makes
+#                      matching npm packages publish through `npm stage publish`
+#                      so versions await maintainer approval with 2FA before
+#                      they become installable
 #     trusted_publishing — whether packages in this ecosystem should default to
 #                      trusted/OIDC publishing. Set `trusted_publishing = true`
 #                      for defaults, or use a table with

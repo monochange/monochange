@@ -19,6 +19,7 @@ function makeSandbox() {
 	const base = join(process.cwd(), ".tmp-test-populate-packages");
 	const sandbox = join(base, `test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 	mkdirSync(sandbox, { recursive: true });
+
 	return sandbox;
 }
 

@@ -297,6 +297,7 @@ fn detect_raw_pr_environment() -> Option<PrEnvironment> {
 	// Azure Pipelines
 	if env::var("TF_BUILD").is_ok() {
 		let reason = env::var("BUILD_REASON").ok()?;
+
 		if reason == "PullRequest" {
 			return Some(PrEnvironment {
 				source_branch: env::var("SYSTEM_PULLREQUEST_SOURCEBRANCH")

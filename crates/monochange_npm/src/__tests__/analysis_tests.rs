@@ -63,6 +63,7 @@ fn semantic_analysis_classifies_advanced_typescript_contracts() {
 	assert_eq!(outcome("Locked"), Some(SemanticAnalysisOutcome::Additive));
 	assert_eq!(outcome("Scalar"), Some(SemanticAnalysisOutcome::Breaking));
 	assert_eq!(outcome("Mode"), Some(SemanticAnalysisOutcome::Breaking));
+
 	assert_eq!(outcome("Client"), Some(SemanticAnalysisOutcome::Breaking));
 	assert_eq!(outcome("Box"), Some(SemanticAnalysisOutcome::Inconclusive));
 	assert_eq!(outcome("format"), Some(SemanticAnalysisOutcome::Breaking));

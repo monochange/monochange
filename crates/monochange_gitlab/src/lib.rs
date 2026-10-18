@@ -150,6 +150,7 @@ pub fn gitlab_host_name(source: &SourceConfiguration) -> Option<String> {
 		.next()
 		.unwrap_or_default()
 		.trim();
+
 	if host.is_empty() {
 		None
 	} else {
@@ -224,11 +225,13 @@ pub fn validate_source_configuration(source: &SourceConfiguration) -> Monochange
 			"[source.releases].draft is not supported for `provider = \"gitlab\"`".to_string(),
 		));
 	}
+
 	if source.releases.prerelease {
 		return Err(MonochangeError::Config(
 			"[source.releases].prerelease is not supported for `provider = \"gitlab\"`".to_string(),
 		));
 	}
+
 	if source.releases.generate_notes
 		|| matches!(
 			source.releases.source,
@@ -239,12 +242,14 @@ pub fn validate_source_configuration(source: &SourceConfiguration) -> Monochange
 				.to_string(),
 		));
 	}
+
 	if source.pull_requests.auto_merge {
 		return Err(MonochangeError::Config(
 			"[source.pull_requests].auto_merge is not supported for `provider = \"gitlab\"`"
 				.to_string(),
 		));
 	}
+
 	Ok(())
 }
 
@@ -355,6 +360,7 @@ pub fn build_release_requests(
 				} else {
 					target.rendered_title.clone()
 				},
+
 				body: release_body(source, manifest, target),
 				draft: source.releases.draft,
 				prerelease: source.releases.prerelease,
@@ -406,10 +412,12 @@ pub async fn publish_release_requests(
 	let headers = auth_headers(&token)?;
 	let api_base = gitlab_api_base(source)?;
 	let mut outcomes = Vec::with_capacity(requests.len());
+
 	for request in requests {
 		outcomes
 			.push(publish_release_request(&client, &headers, &api_base, source, request).await?);
 	}
+
 	Ok(outcomes)
 }
 
@@ -456,6 +464,7 @@ pub async fn publish_release_pull_request(
 	let existing = join_existing_merge_request_lookup(existing_merge_request).await?;
 	let head_matches_existing =
 		existing.as_ref().and_then(|mr| mr.sha.as_deref()) == Some(head_commit.as_str());
+
 	if !head_matches_existing {
 		git_push_branch(
 			root,
@@ -527,6 +536,7 @@ async fn publish_release_request(
 		)
 		.await?
 	};
+
 	Ok(SourceReleaseOutcome {
 		provider: SourceProvider::GitLab,
 		repository: request.repository.clone(),
@@ -536,6 +546,7 @@ async fn publish_release_request(
 		} else {
 			SourceReleaseOperation::Created
 		},
+
 		url: response.web_url,
 	})
 }
@@ -579,6 +590,7 @@ async fn publish_merge_request_with_existing(
 		existing.and_then(|merge_request| merge_request.sha.as_deref()) == Some(head_commit);
 	let project_id = encode(&format!("{}/{}", request.owner, request.repo)).into_owned();
 	let create_url = format!("{api_base}/projects/{project_id}/merge_requests");
+
 	let response: GitLabMergeRequestResponse = match existing {
 		Some(existing_mr) if content_matches && labels_match => {
 			GitLabMergeRequestResponse {
@@ -586,6 +598,7 @@ async fn publish_merge_request_with_existing(
 				web_url: existing_mr.web_url.clone(),
 			}
 		}
+
 		Some(existing_mr) => {
 			let update_url = format!(
 				"{api_base}/projects/{project_id}/merge_requests/{}",
@@ -612,18 +625,23 @@ async fn publish_merge_request_with_existing(
 			post_json(client, headers, &create_url, &payload, "GitLab").await?
 		}
 	};
+
 	let outcome = SourceChangeRequestOutcome {
 		provider: SourceProvider::GitLab,
 		repository: request.repository.clone(),
 		number: response.iid,
 		head_branch: request.head_branch.clone(),
+
 		operation: match existing {
 			None => SourceChangeRequestOperation::Created,
+
 			Some(_) if content_matches && labels_match && head_matches_existing => {
 				SourceChangeRequestOperation::Skipped
 			}
+
 			Some(_) => SourceChangeRequestOperation::Updated,
 		},
+
 		url: response.web_url,
 	};
 
@@ -673,6 +691,7 @@ fn gitlab_api_base(source: &SourceConfiguration) -> MonochangeResult<String> {
 	if let Some(api_url) = &source.api_url {
 		return Ok(api_url.trim_end_matches('/').to_string());
 	}
+
 	let host = source
 		.host
 		.as_deref()

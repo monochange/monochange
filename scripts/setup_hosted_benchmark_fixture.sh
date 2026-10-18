@@ -9,6 +9,7 @@ LOCAL_ONLY=false
 VISIBILITY="public"
 OUTPUT_DIR=""
 OWNER="fixture"
+
 REPO="monochange-release-benchmark-fixture"
 
 usage() {
@@ -88,6 +89,7 @@ create_workspace() {
 		echo '[workspace]'
 		echo 'members = ['
 		local package_index
+
 		for package_index in $(seq 0 $((PACKAGE_COUNT - 1))); do
 			echo "  \"crates/pkg-${package_index}\","
 		done
@@ -105,6 +107,7 @@ create_workspace() {
 		echo "repo = \"${repo}\""
 		echo
 		local package_index
+
 		for package_index in $(seq 0 $((PACKAGE_COUNT - 1))); do
 			echo "[package.pkg-${package_index}]"
 			echo "path = \"crates/pkg-${package_index}\""
@@ -157,6 +160,7 @@ EOF
 seed_filler_history() {
 	local root="$1"
 	local commit_index
+
 	for commit_index in $(seq 1 "$FILLER_COMMITS"); do
 		local package_index=$(((commit_index - 1) % PACKAGE_COUNT))
 		append_package_change "$root" "$package_index" "history_commit_${commit_index}"
@@ -208,6 +212,7 @@ seed_release_prs() {
 	local owner="$2"
 	local repo="$3"
 	local pr_index
+
 	for pr_index in $(seq 1 "$RELEASE_PRS"); do
 		local branch_name
 		branch_name="fixture/release-pr-${pr_index}"
@@ -215,6 +220,7 @@ seed_release_prs() {
 		run_git "$root" checkout -b "$branch_name" main >/dev/null
 
 		local commit_index
+
 		for commit_index in $(seq 1 "$COMMITS_PER_PR"); do
 			append_package_change "$root" "$package_index" "release_pr_${pr_index}_commit_${commit_index}"
 			run_git "$root" add .
@@ -333,6 +339,7 @@ main() {
 
 	printf 'fixture directory: %s\n' "$OUTPUT_DIR"
 	printf 'commit count: %s\n' "$(run_git "$OUTPUT_DIR" rev-list --count HEAD)"
+
 	if [ "$LOCAL_ONLY" = false ]; then
 		printf 'repository url: https://github.com/%s/%s\n' "$OWNER" "$REPO"
 	fi

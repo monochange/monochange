@@ -3,6 +3,7 @@ set -eu
 
 if [ -n "${OP_SERVICE_ACCOUNT_TOKEN_FILE:-}" ]; then
 	OP_SERVICE_ACCOUNT_TOKEN="$(cat "${OP_SERVICE_ACCOUNT_TOKEN_FILE}")"
+
 	if [ -z "${OP_SERVICE_ACCOUNT_TOKEN}" ]; then
 		echo "1Password service account token file is empty" >&2
 		exit 1

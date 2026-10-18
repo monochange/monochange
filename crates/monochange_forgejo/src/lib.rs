@@ -147,6 +147,7 @@ pub fn forgejo_host_name(source: &SourceConfiguration) -> Option<String> {
 		.next()
 		.unwrap_or_default()
 		.trim();
+
 	if host.is_empty() {
 		None
 	} else {
@@ -221,6 +222,7 @@ pub fn validate_source_configuration(source: &SourceConfiguration) -> Monochange
 			"[source].host must be set for `provider = \"forgejo\"`".to_string(),
 		));
 	}
+
 	if source.releases.generate_notes
 		|| matches!(
 			source.releases.source,
@@ -231,12 +233,14 @@ pub fn validate_source_configuration(source: &SourceConfiguration) -> Monochange
 				.to_string(),
 		));
 	}
+
 	if source.pull_requests.auto_merge {
 		return Err(MonochangeError::Config(
 			"[source.pull_requests].auto_merge is not supported for `provider = \"forgejo\"`"
 				.to_string(),
 		));
 	}
+
 	Ok(())
 }
 
@@ -361,6 +365,7 @@ pub fn build_release_requests(
 				} else {
 					target.rendered_title.clone()
 				},
+
 				body: release_body(source, manifest, target),
 				draft: source.releases.draft,
 				prerelease: source.releases.prerelease,
@@ -416,10 +421,12 @@ pub async fn publish_release_requests(
 	let headers = auth_headers(&token)?;
 	let api_base = forgejo_api_base(source)?;
 	let mut outcomes = Vec::with_capacity(requests.len());
+
 	for request in requests {
 		outcomes
 			.push(publish_release_request(&client, &headers, &api_base, source, request).await?);
 	}
+
 	Ok(outcomes)
 }
 
@@ -472,6 +479,7 @@ pub async fn publish_release_pull_request(
 		.as_ref()
 		.and_then(|pull_request| pull_request.head.sha.as_deref())
 		== Some(head_commit.as_str());
+
 	if !head_matches_existing {
 		git_push_branch(
 			root,
@@ -559,6 +567,7 @@ async fn publish_release_request(
 		)
 		.await?
 	};
+
 	Ok(SourceReleaseOutcome {
 		provider: SourceProvider::Forgejo,
 		repository: request.repository.clone(),
@@ -568,6 +577,7 @@ async fn publish_release_request(
 		} else {
 			SourceReleaseOperation::Created
 		},
+
 		url: response.html_url,
 	})
 }
@@ -607,6 +617,7 @@ async fn publish_pull_request_with_existing(
 	});
 	let head_matches_existing =
 		existing.and_then(|pull_request| pull_request.head.sha.as_deref()) == Some(head_commit);
+
 	let response: ForgejoPullRequestResponse = match existing {
 		Some(existing_pr) if content_matches => {
 			ForgejoPullRequestResponse {
@@ -614,6 +625,7 @@ async fn publish_pull_request_with_existing(
 				html_url: existing_pr.html_url.clone(),
 			}
 		}
+
 		Some(existing_pr) => {
 			let update_url = format!(
 				"{api_base}/repos/{}/{}/pulls/{}",
@@ -639,6 +651,7 @@ async fn publish_pull_request_with_existing(
 			post_json(client, headers, &create_url, &payload, "Forgejo").await?
 		}
 	};
+
 	if !request.labels.is_empty() && !labels_match {
 		let labels_url = format!(
 			"{api_base}/repos/{}/{}/issues/{}/labels",
@@ -655,6 +668,7 @@ async fn publish_pull_request_with_existing(
 		)
 		.await?;
 	}
+
 	Ok(SourceChangeRequestOutcome {
 		provider: SourceProvider::Forgejo,
 		repository: request.repository.clone(),
@@ -665,8 +679,10 @@ async fn publish_pull_request_with_existing(
 			Some(_) if content_matches && labels_match && head_matches_existing => {
 				SourceChangeRequestOperation::Skipped
 			}
+
 			Some(_) => SourceChangeRequestOperation::Updated,
 		},
+
 		url: response.html_url,
 	})
 }
@@ -719,14 +735,17 @@ where
 			MonochangeError::Config(format!("{provider} API GET `{url}` failed: {error}"))
 		})?;
 	let status = response.status();
+
 	if status == StatusCode::NOT_FOUND {
 		return Ok(None);
 	}
+
 	if !status.is_success() {
 		return Err(MonochangeError::Config(format!(
 			"{provider} API GET `{url}` failed with status {status}"
 		)));
 	}
+
 	response.json::<T>().await.map(Some).map_err(|error| {
 		MonochangeError::Config(format!("{provider} API GET `{url}` failed: {error}"))
 	})
@@ -749,11 +768,13 @@ where
 			MonochangeError::Config(format!("{provider} API GET `{url}` failed: {error}"))
 		})?;
 	let status = response.status();
+
 	if !status.is_success() {
 		return Err(MonochangeError::Config(format!(
 			"{provider} API GET `{url}` failed with status {status}"
 		)));
 	}
+
 	response.json::<T>().await.map_err(|error| {
 		MonochangeError::Config(format!("{provider} API GET `{url}` failed: {error}"))
 	})
@@ -780,11 +801,13 @@ where
 			MonochangeError::Config(format!("{provider} API POST `{url}` failed: {error}"))
 		})?;
 	let status = response.status();
+
 	if !status.is_success() {
 		return Err(MonochangeError::Config(format!(
 			"{provider} API POST `{url}` failed with status {status}"
 		)));
 	}
+
 	response.json::<JsonResponse>().await.map_err(|error| {
 		MonochangeError::Config(format!("{provider} API POST `{url}` failed: {error}"))
 	})
@@ -811,11 +834,13 @@ where
 			MonochangeError::Config(format!("{provider} API PATCH `{url}` failed: {error}"))
 		})?;
 	let status = response.status();
+
 	if !status.is_success() {
 		return Err(MonochangeError::Config(format!(
 			"{provider} API PATCH `{url}` failed with status {status}"
 		)));
 	}
+
 	response.json::<JsonResponse>().await.map_err(|error| {
 		MonochangeError::Config(format!("{provider} API PATCH `{url}` failed: {error}"))
 	})
@@ -831,6 +856,7 @@ fn forgejo_api_base(source: &SourceConfiguration) -> MonochangeResult<String> {
 	if let Some(api_url) = &source.api_url {
 		return Ok(api_url.trim_end_matches('/').to_string());
 	}
+
 	let host = source.host.as_deref().ok_or_else(|| {
 		MonochangeError::Config(
 			"[source].host must be set for `provider = \"forgejo\"`".to_string(),

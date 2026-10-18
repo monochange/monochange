@@ -43,7 +43,6 @@ fn edge(from: &str, to: &str) -> DependencyEdge {
 }
 
 // -- Kill mutant: contains() always returns true/false --
-
 #[test]
 fn normalized_graph_contains_distinguishes_present_and_absent() {
 	let packages = [
@@ -59,7 +58,6 @@ fn normalized_graph_contains_distinguishes_present_and_absent() {
 }
 
 // -- Kill mutant: > replaced with >= in distinct_versions.len() check --
-
 #[test]
 fn build_release_plan_has_no_warning_for_single_explicit_version() {
 	let packages = vec![package("cargo:core", Version::new(1, 0, 0))];
@@ -95,7 +93,6 @@ fn build_release_plan_has_no_warning_for_single_explicit_version() {
 }
 
 // -- Kill mutant: && replaced with || in planned_version.is_none() check --
-
 #[test]
 fn build_release_plan_leaves_unreleased_package_without_planned_version() {
 	let packages = vec![

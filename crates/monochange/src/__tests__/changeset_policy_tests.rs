@@ -572,7 +572,7 @@ async fn affected_packages_skips_release_pull_request_branches_on_detached_head(
 
 	let _env_lock = TEST_ENV_LOCK
 		.lock()
-		.unwrap_or_else(|error| panic!("test env lock poisoned: {error}"));
+		.unwrap_or_else(std::sync::PoisonError::into_inner);
 	let evaluation = crate::tests::block_on_in_context(temp_env::async_with_vars(
 		[("GITHUB_HEAD_REF", Some("monochange/release/affected"))],
 		async {
@@ -610,7 +610,7 @@ async fn affected_packages_treats_deleted_changesets_as_consumed_without_release
 
 	let _env_lock = TEST_ENV_LOCK
 		.lock()
-		.unwrap_or_else(|error| panic!("test env lock poisoned: {error}"));
+		.unwrap_or_else(std::sync::PoisonError::into_inner);
 	let evaluation = crate::tests::block_on_in_context(temp_env::async_with_vars(
 		[("GITHUB_HEAD_REF", None::<&str>)],
 		async {
@@ -652,7 +652,7 @@ async fn affected_packages_ignores_non_release_head_branch_on_detached_head() {
 
 	let _env_lock = TEST_ENV_LOCK
 		.lock()
-		.unwrap_or_else(|error| panic!("test env lock poisoned: {error}"));
+		.unwrap_or_else(std::sync::PoisonError::into_inner);
 	let evaluation = crate::tests::block_on_in_context(temp_env::async_with_vars(
 		[("GITHUB_HEAD_REF", Some("feature/not-a-release"))],
 		async {
@@ -719,6 +719,7 @@ fn compute_changed_paths_since_reports_git_failures_and_includes_untracked_files
 		.unwrap_or_else(|error| panic!("write tracked file: {error}"));
 	git(repo.path(), &["add", "tracked.txt"]);
 	git(repo.path(), &["commit", "-m", "initial"]);
+
 	fs::write(repo.path().join("tracked.txt"), "two\n")
 		.unwrap_or_else(|error| panic!("update tracked file: {error}"));
 	fs::write(repo.path().join("new.txt"), "new\n")
@@ -810,6 +811,7 @@ fn path_helpers_cover_normalization_matching_and_comment_rendering() {
 	assert!(comment.contains("Attached changeset files:"));
 	assert!(comment.contains("Errors:"));
 	assert!(comment.contains("Allowed skip labels:"));
+
 	assert!(comment.contains("How to fix:"));
 }
 

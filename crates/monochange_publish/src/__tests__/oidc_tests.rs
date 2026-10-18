@@ -108,11 +108,13 @@ fn spawn_oidc_server(
 				if read == 0 {
 					break;
 				}
+
 				request.extend_from_slice(&buffer[..read]);
 				if String::from_utf8_lossy(&request).contains("\r\n\r\n") {
 					break;
 				}
 			}
+
 			captured_clone
 				.lock()
 				.unwrap()

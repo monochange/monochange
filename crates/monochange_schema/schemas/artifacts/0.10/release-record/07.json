@@ -1,0 +1,126 @@
+{
+	"changed_files": [
+		"crates/trsrzwekwunm_0/src/lib.rs",
+		"crates/trsrzwekwunm_1/src/lib.rs",
+		"crates/trsrzwekwunm_2/src/lib.rs",
+		"crates/trsrzwekwunm_3/src/lib.rs"
+	],
+	"changelogs": [
+		{
+			"format": "monochange",
+			"notes": {
+				"sections": [
+					{
+						"collapsed": false,
+						"entries": [
+							"fix: schema artifact 7"
+						],
+						"title": "Bug Fixes"
+					}
+				],
+				"summary": [
+					"Release 7"
+				],
+				"title": "v0.10.7"
+			},
+			"output": "default",
+			"owner_id": "main",
+			"owner_kind": "group",
+			"path": "fixtures/changelog-7.md",
+			"rendered": "## Bug Fixes\n- fix: schema artifact 7",
+			"stream": "default"
+		}
+	],
+	"changesets": [
+		{
+			"context": {
+				"host": "gitea.example.com",
+				"provider": "gitea"
+			},
+			"details": "Generated from deterministic proptest seed 9231595614672416574.",
+			"path": ".changeset/schema-artifact-7.md",
+			"summary": "Exercise schema artifact fixture 7",
+			"targets": [
+				{
+					"caused_by": [
+						"trsrzwekwunm-schema-compat"
+					],
+					"change_type": "feature",
+					"evidence_refs": [
+						"crates/trsrzwekwunm_0/src/lib.rs"
+					],
+					"id": "trsrzwekwunm_0",
+					"kind": "package",
+					"origin": ".changeset/schema-artifact-7.md"
+				}
+			]
+		}
+	],
+	"command": "monochange release --dry-run",
+	"created_at": "2026-01-07T00:00:00Z",
+	"deleted_changesets": [
+		".changeset/schema-artifact-7.md"
+	],
+	"kind": "monochange.releaseRecord",
+	"package_publications": [
+		{
+			"ecosystem": "cargo",
+			"package": "trsrzwekwunm_0",
+			"version": "0.10.7"
+		},
+		{
+			"ecosystem": "cargo",
+			"package": "trsrzwekwunm_1",
+			"version": "0.10.7"
+		},
+		{
+			"ecosystem": "cargo",
+			"package": "trsrzwekwunm_2",
+			"version": "0.10.7"
+		}
+	],
+	"provider": {
+		"host": null,
+		"kind": "gitea",
+		"owner": "trsrzwekwunm",
+		"repo": "qvoldgmcq"
+	},
+	"release_targets": [
+		{
+			"id": "main",
+			"kind": "group",
+			"members": [],
+			"release": true,
+			"tag": true,
+			"tag_name": "v0.10.7",
+			"version": "0.10.7",
+			"version_format": "primary"
+		},
+		{
+			"id": "trsrzwekwunm_1",
+			"kind": "package",
+			"members": [],
+			"release": true,
+			"tag": true,
+			"tag_name": "trsrzwekwunm_1/v0.10.7",
+			"version": "0.10.7",
+			"version_format": "namespaced"
+		}
+	],
+	"released_packages": [
+		"trsrzwekwunm_0",
+		"trsrzwekwunm_1",
+		"trsrzwekwunm_2"
+	],
+	"schema_version": "0.10",
+	"updated_changelogs": [
+		"fixtures/changelog-7.md"
+	],
+	"version": "0.10.7",
+	"versions": {
+		"main": "0.10.7",
+		"trsrzwekwunm_0": "0.10.7",
+		"trsrzwekwunm_1": "0.10.7",
+		"trsrzwekwunm_2": "0.10.7"
+	}
+}

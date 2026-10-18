@@ -1,0 +1,11 @@
+{
+  "name": "@acme/api",
+  "version": "2.3.1",
+  "description": "Typed HTTP client primitives shared by Acme front ends",
+  "license": "MIT",
+  "type": "module",
+  "main": "./src/index.ts",
+  "files": [
+    "src"
+  ]
+}

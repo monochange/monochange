@@ -191,6 +191,7 @@ impl GitHubAppPermissions {
 				if !self.satisfies(requirement) && !missing.contains(&requirement) {
 					missing.push(requirement);
 				}
+
 				missing
 			})
 	}

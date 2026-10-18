@@ -4,7 +4,6 @@
 )]
 
 //! Durable JSON schema versions and migration pipelines for monochange artifacts.
-
 use std::fmt;
 use std::str::FromStr;
 
@@ -54,6 +53,7 @@ impl SchemaVersion {
 		let (minor, patch) = remainder
 			.split_once('.')
 			.ok_or(SchemaVersionParseError::MissingPatch)?;
+
 		if patch.is_empty()
 			|| patch.contains('.')
 			|| !patch.chars().all(|character| character.is_ascii_digit())
@@ -79,9 +79,11 @@ impl FromStr for SchemaVersion {
 		let (major, minor) = value
 			.split_once('.')
 			.ok_or(SchemaVersionParseError::MissingSeparator)?;
+
 		if minor.contains('.') {
 			return Err(SchemaVersionParseError::TooManyComponents);
 		}
+
 		let major = parse_component(major, SchemaVersionParseError::InvalidMajor)?;
 		let minor = parse_component(minor, SchemaVersionParseError::InvalidMinor)?;
 		Ok(Self { major, minor })
@@ -227,12 +229,14 @@ fn validate_kind(
 		.get("kind")
 		.and_then(Value::as_str)
 		.ok_or(SchemaError::MissingKind)?;
+
 	if actual != expected {
 		return Err(SchemaError::UnsupportedKind {
 			actual: actual.to_string(),
 			expected,
 		});
 	}
+
 	Ok(())
 }
 
@@ -387,12 +391,14 @@ pub mod release_record {
 			.ok_or(SchemaError::MissingVersion)?;
 		let version = parse_current_version(version_value)?;
 		let current = current_version()?;
+
 		if version > current {
 			return Err(SchemaError::UnsupportedVersion {
 				actual: version.to_string(),
 				current,
 			});
 		}
+
 		migrations::apply_release_record_edges(&mut value, version, current)?;
 		migrations::normalize_release_record_shape(&mut value)?;
 

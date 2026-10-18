@@ -42,6 +42,7 @@ pub(crate) async fn render_release_record_discovery(
 	format: OutputFormat,
 ) -> MonochangeResult<String> {
 	let discovery = discover_release_record(root, from).await?;
+
 	match format {
 		OutputFormat::Json | OutputFormat::JsonMin => {
 			format.render_json_value(&discovery, "release record discovery")
@@ -64,6 +65,7 @@ pub async fn discover_release_record(
 	from: &str,
 ) -> MonochangeResult<ReleaseRecordDiscovery> {
 	let resolved_commit = resolve_git_commit_ref(root, from).await?;
+
 	for (distance, commit) in first_parent_commits(root, &resolved_commit)
 		.await?
 		.into_iter()
@@ -75,11 +77,14 @@ pub async fn discover_release_record(
 			"scanning for release record files"
 		);
 		let files = find_release_record_files_at_commit(root, &commit).await?;
+
 		if files.is_empty() {
 			continue;
 		}
+
 		let record_path = files.into_iter().next().unwrap_or_default();
 		let json_text = read_git_file_at_commit(root, &commit, &record_path).await?;
+
 		match parse_release_record_json(&json_text) {
 			Ok(record) => {
 				return Ok(ReleaseRecordDiscovery {
@@ -129,6 +134,7 @@ pub async fn plan_release_retarget(
 	validate_retarget_provider(discovery, source)?;
 
 	let mut git_tag_updates = Vec::new();
+
 	for tag_name in release_record_tag_names(&discovery.record) {
 		let from_commit = resolve_git_tag_commit(root, &tag_name).await?;
 		git_tag_updates.push(RetargetTagResult {
@@ -138,11 +144,13 @@ pub async fn plan_release_retarget(
 			} else {
 				RetargetOperation::Planned
 			},
+
 			from_commit,
 			to_commit: target_commit.clone(),
 			message: None,
 		});
 	}
+
 	let provider = source.map(|configured| configured.provider).or_else(|| {
 		discovery
 			.record
@@ -202,6 +210,7 @@ pub async fn execute_release_retarget(
 				update.operation = RetargetOperation::AlreadyUpToDate;
 				continue;
 			}
+
 			move_git_tag(root, &update.tag_name, &update.to_commit).await?;
 			update.operation = RetargetOperation::Moved;
 		}
@@ -402,6 +411,7 @@ pub(crate) async fn create_release_tags(
 	tag_targets.sort_by(|left, right| left.tag_name.cmp(&right.tag_name));
 
 	let mut tag_results = Vec::new();
+
 	for target in &tag_targets {
 		let existing_commit = resolve_git_tag_commit(root, &target.tag_name).await.ok();
 		let operation = if existing_commit.as_deref() == Some(discovery.record_commit.as_str()) {
@@ -411,6 +421,7 @@ pub(crate) async fn create_release_tags(
 		};
 
 		let mut floating_results = Vec::new();
+
 		if !target.floating_tags.is_empty() {
 			let Ok(parsed_version) = semver::Version::parse(&target.version) else {
 				return Err(MonochangeError::Config(format!(
@@ -422,6 +433,7 @@ pub(crate) async fn create_release_tags(
 			// newest stable release, so a prerelease never repoints them.
 			if parsed_version.pre.is_empty() {
 				let ecosystem = target.kind.as_str();
+
 				for floating_tag in &target.floating_tags {
 					let Ok(rendered) = monochange_core::render_floating_tag(
 						&floating_tag.0,
@@ -434,9 +446,11 @@ pub(crate) async fn create_release_tags(
 							target.id, floating_tag.0,
 						)));
 					};
+
 					if rendered == target.tag_name {
 						continue;
 					}
+
 					let previous_commit = resolve_git_tag_commit(root, &rendered).await.ok();
 					floating_results.push(ReleaseFloatingTagResult {
 						tag_name: rendered,
@@ -481,6 +495,7 @@ pub(crate) async fn create_release_tags(
 			if tag_result.operation == ReleaseTagOperation::AlreadyUpToDate {
 				continue;
 			}
+
 			for floating_result in &tag_result.floating_results {
 				move_git_tag(root, &floating_result.tag_name, &tag_result.target_commit).await?;
 			}
@@ -496,6 +511,7 @@ pub(crate) async fn create_release_tags(
 			if !tags_to_push.is_empty() {
 				push_git_tags_without_force(root, &tags_to_push).await?;
 			}
+
 			let floating_tags_to_push = tag_results
 				.iter()
 				.flat_map(|tag_result| {
@@ -505,6 +521,7 @@ pub(crate) async fn create_release_tags(
 						.map(|floating| floating.tag_name.as_str())
 				})
 				.collect::<Vec<_>>();
+
 			if !floating_tags_to_push.is_empty() {
 				push_git_tags(root, &floating_tags_to_push).await?;
 			}
@@ -563,6 +580,7 @@ pub(crate) fn text_release_tag_report(report: &ReleaseTagReport) -> String {
 	} else {
 		"push disabled"
 	};
+
 	let (outcome, headline) = match report.status.as_str() {
 		"dry_run" => {
 			(
@@ -603,10 +621,13 @@ pub(crate) fn text_release_tag_report(report: &ReleaseTagReport) -> String {
 			)
 		}
 	};
+
 	let mut details = vec![push.to_string()];
+
 	if report.dry_run {
 		details.push("dry-run".to_string());
 	}
+
 	text.headline(outcome, &headline, &details);
 	text.fields(&[
 		(
@@ -630,17 +651,21 @@ pub(crate) fn text_release_tag_report(report: &ReleaseTagReport) -> String {
 	if !report.tag_results.is_empty() {
 		text.section("Tags", Some(report.tag_results.len()));
 		let mut rows = Vec::new();
+
 		for tag_result in &report.tag_results {
 			let (label, tone) = match tag_result.operation {
 				ReleaseTagOperation::Planned => ("planned", Tone::Accent),
 				ReleaseTagOperation::Created => ("created", Tone::Success),
 				ReleaseTagOperation::AlreadyUpToDate => ("up to date", Tone::Muted),
 			};
+
 			let existing = match &tag_result.existing_commit {
 				None => "new tag".to_string(),
+
 				Some(commit) if *commit == tag_result.target_commit => "unchanged".to_string(),
 				Some(commit) => format!("was {}", crate::short_commit_sha(commit)),
 			};
+
 			rows.push(vec![
 				TableCell::new(&tag_result.tag_name, Tone::Heading),
 				TableCell::new(label, tone),
@@ -650,6 +675,7 @@ pub(crate) fn text_release_tag_report(report: &ReleaseTagReport) -> String {
 				),
 				TableCell::new(existing, Tone::Muted),
 			]);
+
 			for floating in &tag_result.floating_results {
 				let previous = floating.previous_commit.as_ref().map_or_else(
 					|| "new alias".to_string(),
@@ -666,8 +692,10 @@ pub(crate) fn text_release_tag_report(report: &ReleaseTagReport) -> String {
 				]);
 			}
 		}
+
 		text.table(&rows);
 	}
+
 	text.render()
 }
 
@@ -675,9 +703,11 @@ pub(crate) fn text_release_record_discovery(discovery: &ReleaseRecordDiscovery) 
 	let record = &discovery.record;
 	let mut text = TextReport::new(TextTheme::for_stdout());
 	let mut details = Vec::new();
+
 	if let Some(version) = &record.version {
 		details.push(version.clone());
 	}
+
 	details.push(plural(
 		record.release_targets.len(),
 		"release target",
@@ -702,12 +732,14 @@ pub(crate) fn text_release_record_discovery(discovery: &ReleaseRecordDiscovery) 
 			),
 		),
 	];
+
 	if let Some(provider) = &record.provider {
 		fields.push((
 			"Provider",
 			format!("{} {}/{}", provider.kind, provider.owner, provider.repo),
 		));
 	}
+
 	text.fields(&fields);
 
 	if !record.release_targets.is_empty() {
@@ -733,6 +765,7 @@ pub(crate) fn text_release_record_discovery(discovery: &ReleaseRecordDiscovery) 
 			.collect::<Vec<_>>();
 		text.table(&rows);
 	}
+
 	if !record.versions.is_empty() {
 		text.section("Versions", Some(record.versions.len()));
 		let rows = record
@@ -742,10 +775,12 @@ pub(crate) fn text_release_record_discovery(discovery: &ReleaseRecordDiscovery) 
 			.collect::<Vec<_>>();
 		text.table(&rows);
 	}
+
 	if !record.released_packages.is_empty() {
 		text.section("Released packages", Some(record.released_packages.len()));
 		text.list(record.released_packages.iter().cloned(), usize::MAX);
 	}
+
 	text.render()
 }
 

@@ -18,9 +18,13 @@ use crate::links::SOURCE_URL;
 use crate::pages::book::BookPageView;
 use crate::pages::changelog::ChangelogPage;
 use crate::pages::dashboard::DashboardPage;
+use crate::pages::feedback_console::FeedbackConsolePage;
 use crate::pages::home::HomePage;
 use crate::pages::install::InstallPage;
+use crate::pages::organization::OrganizationPage;
+use crate::pages::portal::PortalPage;
 use crate::pages::pricing::PricingPage;
+use crate::pages::project::ProjectPage;
 
 // Leptos strips literal comments. The inert template below preserves this
 // contract in server output and occupies the same node during hydration.
@@ -81,6 +85,9 @@ pub fn App() -> impl IntoView {
 				}>
 					<Route path=path!("/") view=HomePage />
 					<Route path=path!("/dashboard") view=DashboardPage />
+					<Route path=path!("/dashboard/:organization") view=OrganizationPage />
+					<Route path=path!("/dashboard/:organization/projects/:project") view=ProjectPage />
+					<Route path=path!("/dashboard/:organization/projects/:project/feedback") view=FeedbackConsolePage />
 					<Route path=path!("/install") view=InstallPage />
 					<Route path=path!("/login") view=LoginPage />
 					<Route path=path!("/pricing") view=PricingPage />
@@ -88,6 +95,7 @@ pub fn App() -> impl IntoView {
 					<Route path=path!("/book") view=BookPageView />
 					<Route path=path!("/book/*chapter") view=BookPageView />
 					<Route path=path!("/auth/callback") view=AuthCallbackPage />
+					<Route path=path!("/p/:organization/:project") view=PortalPage />
 				</Routes>
 			</main>
 			<Footer />
@@ -96,7 +104,6 @@ pub fn App() -> impl IntoView {
 }
 
 // ── Login Page ──
-
 #[component]
 fn LoginPage() -> impl IntoView {
 	let login_url = Resource::new_blocking(
@@ -170,7 +177,6 @@ fn LoginPage() -> impl IntoView {
 }
 
 // ── Auth Callback Page ──
-
 #[component]
 fn AuthCallbackPage() -> impl IntoView {
 	let params = leptos_router::hooks::use_query_map();
@@ -185,6 +191,7 @@ fn AuthCallbackPage() -> impl IntoView {
 				if code.is_empty() {
 					return Err("No authorization code received".to_string());
 				}
+
 				crate::server_fns::auth::exchange_code(code, state)
 					.await
 					.map_err(|e| e.to_string())
@@ -235,6 +242,7 @@ fn AuthCallbackPage() -> impl IntoView {
 						</div>
 					}.into_any(),
 				})}
+
 			</Suspense>
 		</div>
 	}
@@ -247,7 +255,7 @@ fn Footer() -> impl IntoView {
 		<footer class="site-footer">
 			<div class="site-width footer-layout">
 				<div><a href="/" class="brand-link" aria-label="monochange home"><img src="/branding/mark.svg" width="36" height="36" alt="" /><img src="/branding/wordmark.svg" width="154" height="29" alt="" class="brand-wordmark brand-wordmark-light" /><img src="/branding/wordmark-dark.svg" width="154" height="29" alt="" class="brand-wordmark brand-wordmark-dark" /></a><p>"Many packages. One release plan."</p></div>
-				<nav aria-label="Footer navigation"><a href="/install">"Install"</a><a href=BOOK_URL>"Read the book"</a><a href="/changelog">"What's new"</a><a href="/pricing">"It's free"</a><a href=SOURCE_URL class="footer-github"><BrandIcon name="github" />"GitHub"</a></nav>
+				<nav aria-label="Footer navigation"><a href="/install">"Install"</a><a href=BOOK_URL>"Read the book"</a><a href="/changelog">"Changelog"</a><a href="/pricing">"It's free"</a><a href=SOURCE_URL class="footer-github"><BrandIcon name="github" />"GitHub"</a></nav>
 				<p class="footer-credit">"Free and open source."<br />"Made by "<a href="https://github.com/ifiokjr">"Ifiok Jr."</a><br /><a href="/changelog">{format!("Website v{}", env!("CARGO_PKG_VERSION"))}</a></p>
 			</div>
 		</footer>

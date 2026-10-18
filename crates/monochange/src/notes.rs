@@ -34,6 +34,7 @@ pub(crate) async fn render_notes(
 			output_id, target_id,
 		)));
 	};
+
 	if matches.next().is_some() {
 		return Err(MonochangeError::Config(format!(
 			"changelog output `{output_id}` produced release notes for multiple targets; pass `--target <id>` to select one"
@@ -95,11 +96,13 @@ fn write_or_render(
 	let Some(file) = file else {
 		return Ok(changelog.rendered.clone());
 	};
+
 	if file == Path::new("-") {
 		return Ok(changelog.rendered.clone());
 	}
 
 	let path = absolute_output_path(root, file);
+
 	if let Some(parent) = path.parent() {
 		fs::create_dir_all(parent).map_err(|error| {
 			MonochangeError::Io(format!(
@@ -108,6 +111,7 @@ fn write_or_render(
 			))
 		})?;
 	}
+
 	let contents = format!("{}\n", changelog.rendered);
 	fs::write(&path, contents).map_err(|error| {
 		MonochangeError::Io(format!(
@@ -123,5 +127,6 @@ fn absolute_output_path(root: &Path, file: &Path) -> PathBuf {
 	if file.is_absolute() {
 		return file.to_path_buf();
 	}
+
 	root.join(file)
 }

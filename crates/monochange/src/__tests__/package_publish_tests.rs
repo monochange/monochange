@@ -14,6 +14,7 @@ use monochange_cargo::write_cargo_placeholder_manifest;
 use monochange_core::DependencyKind;
 use monochange_core::PackageRecord;
 use monochange_core::PublishAttestationSettings;
+use monochange_core::PublishFlow;
 use monochange_core::PublishMode;
 use monochange_core::PublishRegistry;
 use monochange_core::PublishState;
@@ -193,11 +194,13 @@ impl CommandExecutor for FakeExecutor {
 fn sample_request(registry: RegistryKind) -> PublishRequest {
 	PublishRequest {
 		package_id: "pkg".to_string(),
+
 		package_name: if registry == RegistryKind::Jsr {
 			"@scope/pkg".to_string()
 		} else {
 			"pkg".to_string()
 		},
+
 		ecosystem: if registry == RegistryKind::CratesIo {
 			Ecosystem::Cargo
 		} else if registry == RegistryKind::Npm {
@@ -211,12 +214,14 @@ fn sample_request(registry: RegistryKind) -> PublishRequest {
 		} else {
 			Ecosystem::Deno
 		},
+
 		manifest_path: PathBuf::from("/workspace/pkg/manifest"),
 		package_root: PathBuf::from("/workspace/pkg"),
 		registry,
 		package_manager: (registry == RegistryKind::Npm).then(|| "npm".to_string()),
 		package_metadata: BTreeMap::new(),
 		mode: PublishMode::Builtin,
+		flow: PublishFlow::Direct,
 		version: "1.2.3".to_string(),
 		placeholder: false,
 		trusted_publishing: TrustedPublishingSettings {
@@ -361,7 +366,7 @@ fn sample_endpoints(base_url: &str) -> RegistryEndpoints {
 fn with_locked_env_vars<T>(action: impl FnOnce() -> T) -> T {
 	let _env_lock = TEST_ENV_LOCK
 		.lock()
-		.unwrap_or_else(|error| panic!("test env lock poisoned: {error}"));
+		.unwrap_or_else(std::sync::PoisonError::into_inner);
 	action()
 }
 
@@ -389,6 +394,7 @@ fn configure_npm_trusted_publishing(
 	let context = resolve_github_trust_context(root, source, &request.trusted_publishing, env_map)?;
 	let list_command = build_npm_trust_list_command(request);
 	let list_output = executor.run(&list_command)?;
+
 	if trust_list_contains_context(&list_output.stdout, &context) {
 		return Ok(TrustedPublishingOutcome {
 			status: TrustedPublishingStatus::Configured,
@@ -403,6 +409,7 @@ fn configure_npm_trusted_publishing(
 
 	let trust_command = build_npm_trust_command(request, &context);
 	let trust_output = executor.run(&trust_command)?;
+
 	if !trust_output.success {
 		return Err(MonochangeError::Discovery(format!(
 			"`{}` failed: {}",
@@ -412,6 +419,7 @@ fn configure_npm_trusted_publishing(
 	}
 
 	let verify_output = executor.run(&list_command)?;
+
 	if !trust_list_contains_context(&verify_output.stdout, &context) {
 		return Err(MonochangeError::Discovery(format!(
 			"npm trusted publishing could not be verified for `{}` after running `{}`",
@@ -543,6 +551,7 @@ fn commit_release_record(root: &Path, publications: Vec<PackagePublicationTarget
 			hasher.write(target.id.as_bytes());
 			hasher.write(target.version.as_bytes());
 		}
+
 		format!("{:016x}", hasher.finish())
 	};
 	let dir = root.join(".monochange/releases").join(&hash);
@@ -939,6 +948,7 @@ fn build_publish_command_covers_all_supported_registries() {
 		false,
 	);
 	assert_eq!(pnpm_placeholder.program, "pnpm");
+
 	let pnpm = build_publish_command(&pnpm_request, PackagePublishRunMode::Release, None, false);
 	assert_eq!(pnpm.program, "pnpm");
 	let trusted_pnpm_request = PublishRequest {
@@ -1247,6 +1257,7 @@ fn manual_setup_url_matches_each_registry() {
 		"https://pkg.go.dev/github.com/example/pkg".to_string()
 	);
 	assert_eq!(trust_docs_url(RegistryKind::Npm), NPM_TRUST_DOCS_URL);
+
 	assert_eq!(
 		trust_docs_url(RegistryKind::CratesIo),
 		CRATES_TRUST_DOCS_URL
@@ -1337,6 +1348,7 @@ async fn registry_version_exists_parses_all_supported_registry_shapes() {
 		}));
 	});
 	install_rustls_ring_provider();
+
 	let client = Client::builder().build().expect("http client:");
 	let endpoints = RegistryEndpoints {
 		npm_registry: server.base_url(),
@@ -1424,6 +1436,7 @@ async fn registry_version_exists_treats_any_existing_version_as_placeholder_boot
 	});
 	install_rustls_ring_provider();
 	let client = Client::builder().build().expect("http client:");
+
 	let endpoints = sample_endpoints(&server.base_url());
 	let placeholder = |registry| {
 		PublishRequest {
@@ -1641,6 +1654,7 @@ async fn registry_version_exists_returns_false_for_missing_packages() {
 		package_name: "missing".to_string(),
 		..request
 	};
+
 	assert!(
 		!registry_version_exists(&client, &endpoints, &request)
 			.await
@@ -1784,6 +1798,7 @@ fn write_cargo_placeholder_manifest_requires_license_metadata() {
 		Some(&sample_source()),
 	)
 	.expect_err("expected cargo placeholder error");
+
 	let text = error.to_string();
 	assert!(text.contains("license"), "{text}");
 }
@@ -2120,6 +2135,7 @@ fn sample_npm_publication(package: &str) -> PackagePublicationTarget {
 		registry: Some(PublishRegistry::Builtin(RegistryKind::Npm)),
 		version: "1.2.3".to_string(),
 		mode: PublishMode::Builtin,
+		flow: monochange_core::PublishFlow::default(),
 		trusted_publishing: TrustedPublishingSettings::default(),
 		attestations: PublishAttestationSettings::default(),
 		timeout: PublishTimeoutSettings::default(),
@@ -2321,6 +2337,7 @@ fn build_release_requests_skips_unknown_publication_targets() {
 			registry: Some(PublishRegistry::Builtin(RegistryKind::Npm)),
 			version: "1.0.0".to_string(),
 			mode: PublishMode::Builtin,
+			flow: monochange_core::PublishFlow::default(),
 			trusted_publishing: TrustedPublishingSettings::default(),
 			attestations: PublishAttestationSettings::default(),
 			timeout: PublishTimeoutSettings::default(),
@@ -2332,6 +2349,7 @@ fn build_release_requests_skips_unknown_publication_targets() {
 			registry: Some(PublishRegistry::Builtin(RegistryKind::Npm)),
 			version: "1.2.3".to_string(),
 			mode: PublishMode::Builtin,
+			flow: monochange_core::PublishFlow::default(),
 			trusted_publishing: TrustedPublishingSettings::default(),
 			attestations: PublishAttestationSettings::default(),
 			timeout: PublishTimeoutSettings::default(),
@@ -2371,6 +2389,7 @@ fn build_release_requests_skips_publication_targets_missing_from_discovery() {
 		registry: Some(PublishRegistry::Builtin(RegistryKind::Npm)),
 		version: "1.2.3".to_string(),
 		mode: PublishMode::Builtin,
+		flow: monochange_core::PublishFlow::default(),
 		trusted_publishing: TrustedPublishingSettings::default(),
 		attestations: PublishAttestationSettings::default(),
 		timeout: PublishTimeoutSettings::default(),
@@ -2435,6 +2454,7 @@ fn build_release_requests_skips_disabled_and_private_packages() {
 			registry: Some(PublishRegistry::Builtin(RegistryKind::Npm)),
 			version: "1.0.1".to_string(),
 			mode: PublishMode::Builtin,
+			flow: monochange_core::PublishFlow::default(),
 			trusted_publishing: TrustedPublishingSettings::default(),
 			attestations: PublishAttestationSettings::default(),
 			timeout: PublishTimeoutSettings::default(),
@@ -2446,6 +2466,7 @@ fn build_release_requests_skips_disabled_and_private_packages() {
 			registry: Some(PublishRegistry::Builtin(RegistryKind::Npm)),
 			version: "1.0.1".to_string(),
 			mode: PublishMode::Builtin,
+			flow: monochange_core::PublishFlow::default(),
 			trusted_publishing: TrustedPublishingSettings::default(),
 			attestations: PublishAttestationSettings::default(),
 			timeout: PublishTimeoutSettings::default(),
@@ -2457,6 +2478,7 @@ fn build_release_requests_skips_disabled_and_private_packages() {
 			registry: Some(PublishRegistry::Builtin(RegistryKind::CratesIo)),
 			version: "1.0.1".to_string(),
 			mode: PublishMode::Builtin,
+			flow: monochange_core::PublishFlow::default(),
 			trusted_publishing: TrustedPublishingSettings::default(),
 			attestations: PublishAttestationSettings::default(),
 			timeout: PublishTimeoutSettings::default(),
@@ -3923,10 +3945,12 @@ async fn execute_publish_requests_skips_external_and_existing_versions() {
 	};
 	let request = PublishRequest {
 		mode: PublishMode::External,
+		flow: monochange_core::PublishFlow::Direct,
 		..sample_request(RegistryKind::Npm)
 	};
 	let existing = sample_request(RegistryKind::Npm);
 	let mut executor = FakeExecutor::new(Vec::new());
+
 	let report = execute_publish_requests(
 		Path::new("."),
 		Some(&sample_source()),
@@ -3965,6 +3989,7 @@ async fn filter_pending_publish_requests_skips_external_and_existing_versions() 
 	let endpoints = sample_endpoints(&server.base_url());
 	let request = PublishRequest {
 		mode: PublishMode::External,
+		flow: monochange_core::PublishFlow::Direct,
 		..sample_request(RegistryKind::Npm)
 	};
 	let existing = sample_request(RegistryKind::Npm);
@@ -3973,6 +3998,7 @@ async fn filter_pending_publish_requests_skips_external_and_existing_versions() 
 		package_name: "pkg-next".to_string(),
 		..sample_request(RegistryKind::Npm)
 	};
+
 	server.mock(|when, then| {
 		when.method(GET).path("/pkg-next");
 		then.status(404);
@@ -4057,6 +4083,59 @@ async fn execute_publish_requests_publishes_release_with_trust_outcome() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+async fn execute_publish_requests_reports_staged_outcome_for_staged_flow() {
+	let server = MockServer::start();
+	server.mock(|when, then| {
+		when.method(GET).path("/pkg");
+		then.status(404);
+	});
+	install_rustls_ring_provider();
+	let client = Client::builder().build().expect("http client:");
+	let endpoints = sample_endpoints(&server.base_url());
+	let root = workflow_root();
+	let mut request = sample_request(RegistryKind::Npm);
+	request.flow = PublishFlow::Staged;
+
+	let mut executor = FakeExecutor::new(vec![CommandOutput {
+		success: true,
+		stdout: String::new(),
+		stderr: String::new(),
+	}]);
+
+	let report = execute_publish_requests(
+		root.path(),
+		Some(&sample_source()),
+		PackagePublishRunMode::Release,
+		false,
+		&[request],
+		&client,
+		&endpoints,
+		&BTreeMap::new(),
+		&mut executor,
+	)
+	.await
+	.expect("report:");
+
+	assert_eq!(report.packages.len(), 1);
+	assert_eq!(report.packages[0].status, PackagePublishStatus::Staged);
+	assert!(
+		report.packages[0]
+			.message
+			.contains("npm stage approve <stage-id>")
+	);
+	assert_eq!(
+		executor.commands[0]
+			.args
+			.iter()
+			.map(String::as_str)
+			.collect::<Vec<_>>(),
+		vec!["stage", "publish", "--access", "public"]
+	);
+	assert_eq!(report.summary().staged, 1);
+	assert_eq!(report.summary().published, 0);
+}
+
+#[tokio::test(flavor = "multi_thread")]
 async fn release_dry_run_orders_cargo_dev_and_build_dependencies_before_dependents() {
 	let expected_order = vec![
 		"zephyr-build",
@@ -4095,6 +4174,7 @@ async fn release_dry_run_orders_cargo_dev_and_build_dependencies_before_dependen
 		("zephyr-build", None),
 	];
 	let server = MockServer::start();
+
 	for (package, _) in packages {
 		server.mock(|when, then| {
 			when.method(GET).path(format!("/crates/{package}"));
@@ -4157,6 +4237,7 @@ async fn release_dry_run_orders_cargo_dev_and_build_dependencies_before_dependen
 				registry: Some(PublishRegistry::Builtin(RegistryKind::CratesIo)),
 				version: "1.0.0".to_string(),
 				mode: PublishMode::Builtin,
+				flow: monochange_core::PublishFlow::default(),
 				trusted_publishing: TrustedPublishingSettings::default(),
 				attestations: PublishAttestationSettings::default(),
 				timeout: PublishTimeoutSettings::default(),
@@ -4496,6 +4577,7 @@ async fn run_publish_packages_uses_prepared_release_publications() {
 			registry: Some(PublishRegistry::Builtin(RegistryKind::Npm)),
 			version: "1.2.3".to_string(),
 			mode: PublishMode::Builtin,
+			flow: monochange_core::PublishFlow::default(),
 			trusted_publishing: TrustedPublishingSettings::default(),
 			attestations: PublishAttestationSettings::default(),
 			timeout: PublishTimeoutSettings::default(),
@@ -4549,6 +4631,7 @@ async fn run_publish_packages_discovers_release_record_publications_from_head() 
 	.expect("manifest:");
 	fs::write(root.path().join("tracked.txt"), "initial\n").expect("tracked:");
 	git(root.path(), &["init"]);
+
 	git(root.path(), &["config", "user.name", "monochange Tests"]);
 	git(
 		root.path(),
@@ -4565,6 +4648,7 @@ async fn run_publish_packages_discovers_release_record_publications_from_head() 
 			registry: Some(PublishRegistry::Builtin(RegistryKind::Npm)),
 			version: "1.2.3".to_string(),
 			mode: PublishMode::Builtin,
+			flow: monochange_core::PublishFlow::default(),
 			trusted_publishing: TrustedPublishingSettings::default(),
 			attestations: PublishAttestationSettings::default(),
 			timeout: PublishTimeoutSettings::default(),
@@ -4664,6 +4748,7 @@ fn resumed_publish_progress_offsets_run_totals_and_leaves_package_events_unchang
 	let resumed = monochange_publish::PackagePublishSummary {
 		planned: 0,
 		published: 10,
+		staged: 0,
 		already_exists: 2,
 		blocked: 0,
 		failed: 0,
@@ -4694,6 +4779,7 @@ fn resumed_publish_progress_offsets_run_totals_and_leaves_package_events_unchang
 			mode: PackagePublishRunMode::Release,
 			total: 33,
 			published: 2,
+			staged: 0,
 			skipped: 30,
 			failed: 1,
 		},
@@ -4954,6 +5040,7 @@ async fn try_run_publish_packages_with_publications_maps_build_request_errors() 
 		registry: Some(PublishRegistry::Custom("internal".to_string())),
 		version: "1.0.0".to_string(),
 		mode: PublishMode::Builtin,
+		flow: monochange_core::PublishFlow::default(),
 		trusted_publishing: TrustedPublishingSettings::default(),
 		attestations: PublishAttestationSettings::default(),
 		timeout: PublishTimeoutSettings::default(),
@@ -5069,6 +5156,7 @@ async fn try_run_publish_packages_with_publications_maps_publish_execution_failu
 		registry: None,
 		version: "1.0.0".to_string(),
 		mode: PublishMode::Builtin,
+		flow: monochange_core::PublishFlow::default(),
 		// Trusted publishing stays disabled: this test exercises registry
 		// failure reporting, and the preflight would otherwise block on the
 		// missing CI workflow file in this fixture when run under a GitHub
@@ -5235,6 +5323,7 @@ fn write_cargo_placeholder_manifest_reads_workspace_license_file_from_root() {
 		..sample_request(RegistryKind::CratesIo)
 	};
 	let placeholder_dir = tempfile::tempdir().expect("tempdir");
+
 	write_cargo_placeholder_manifest(placeholder_dir.path(), &request, root.path(), None)
 		.expect("cargo placeholder");
 	let placeholder_manifest = fs::read_to_string(placeholder_dir.path().join("Cargo.toml"))
@@ -5345,6 +5434,7 @@ fn build_release_requests_uses_publication_targets_and_package_metadata() {
 		registry: Some(PublishRegistry::Builtin(RegistryKind::Npm)),
 		version: "1.2.3".to_string(),
 		mode: PublishMode::Builtin,
+		flow: monochange_core::PublishFlow::default(),
 		trusted_publishing: TrustedPublishingSettings::default(),
 		attestations: PublishAttestationSettings::default(),
 		timeout: PublishTimeoutSettings::default(),
@@ -5357,6 +5447,7 @@ fn build_release_requests_uses_publication_targets_and_package_metadata() {
 	assert_eq!(requests.len(), 1);
 	let request = requests.first().expect("request");
 	assert_eq!(request.version, "1.2.3");
+
 	assert_eq!(request.package_name, "pkg");
 	assert_eq!(request.package_manager.as_deref(), Some("pnpm"));
 	assert_eq!(
@@ -5394,6 +5485,7 @@ async fn run_publish_packages_with_resume_filters_by_group_and_ecosystem() {
 			registry: Some(PublishRegistry::Builtin(RegistryKind::Npm)),
 			version: "1.2.3".to_string(),
 			mode: PublishMode::Builtin,
+			flow: monochange_core::PublishFlow::default(),
 			trusted_publishing: TrustedPublishingSettings::default(),
 			attestations: PublishAttestationSettings::default(),
 			timeout: PublishTimeoutSettings::default(),
@@ -5497,6 +5589,7 @@ fn build_release_requests_carry_fail_on_duplicate_from_publications() {
 		registry: None,
 		version: "1.0.0".to_string(),
 		mode: PublishMode::Builtin,
+		flow: monochange_core::PublishFlow::default(),
 		trusted_publishing: TrustedPublishingSettings::default(),
 		attestations: PublishAttestationSettings::default(),
 		timeout: PublishTimeoutSettings::default(),
@@ -5581,6 +5674,7 @@ fn separate_workspace_publication_target(package: &str, version: &str) -> Packag
 		registry: None,
 		version: version.to_string(),
 		mode: PublishMode::Builtin,
+		flow: monochange_core::PublishFlow::default(),
 		trusted_publishing: TrustedPublishingSettings::default(),
 		attestations: PublishAttestationSettings::default(),
 		timeout: PublishTimeoutSettings::default(),

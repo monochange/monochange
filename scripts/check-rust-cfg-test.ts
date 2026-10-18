@@ -14,6 +14,7 @@ function rustFiles(directory: string): string[] {
 			if (!ignoredDirectories.has(entry.name)) {
 				files.push(...rustFiles(join(directory, entry.name)));
 			}
+
 			continue;
 		}
 
@@ -31,6 +32,7 @@ function nextMeaningfulLine(
 ): { line: string; index: number } | undefined {
 	for (let current = index + 1; current < lines.length; current += 1) {
 		const line = lines[current]?.trim() ?? "";
+
 		if (line.length > 0) {
 			return { line, index: current };
 		}
@@ -63,6 +65,7 @@ function validateFile(path: string): void {
 
 	for (const index of indexes) {
 		let next = nextMeaningfulLine(lines, index);
+
 		while (next?.line.startsWith("#")) {
 			next = nextMeaningfulLine(lines, next.index);
 		}
@@ -85,8 +88,10 @@ for (const file of rustFiles(root)) {
 
 if (violations.length > 0) {
 	console.error("Invalid Rust #[cfg(test)] layout:\n");
+
 	for (const violation of violations) {
 		console.error(`- ${violation}`);
 	}
+
 	process.exit(1);
 }

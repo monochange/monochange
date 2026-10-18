@@ -108,6 +108,7 @@ async fn git_checkout_branch_creates_release_branch_from_detached_head() -> Resu
 		.map_err(|error| format!("write readme: {error}"))?;
 	monochange_test_helpers::git(root, &["add", "README.md"]);
 	monochange_test_helpers::git(root, &["commit", "-m", "initial commit"]);
+
 	let head = monochange_test_helpers::git_output_trimmed(root, &["rev-parse", "HEAD"]);
 	monochange_test_helpers::git(root, &["checkout", "--detach", &head]);
 
@@ -116,6 +117,7 @@ async fn git_checkout_branch_creates_release_branch_from_detached_head() -> Resu
 		.map_err(|error| format!("checkout release branch: {error}"))?;
 
 	let branch = monochange_test_helpers::git_output_trimmed(root, &["branch", "--show-current"]);
+
 	if branch != "monochange/release" {
 		return Err(format!("checked out branch: {branch}"));
 	}
@@ -139,6 +141,7 @@ async fn git_stage_paths_with_stage_all_stages_incidental_changes() -> Result<()
 	.map_err(|error| format!("write release file: {error}"))?;
 	monochange_test_helpers::git(root, &["add", "release.txt"]);
 	monochange_test_helpers::git(root, &["commit", "-m", "initial"]);
+
 	std::fs::write(
 		root.join("release.txt"),
 		"release update
@@ -253,6 +256,19 @@ fn release_pull_request_branch_falls_back_for_empty_command() {
 		release_pull_request_branch("release/", "!!!"),
 		"release/release"
 	);
+}
+
+#[test]
+fn release_pull_request_branch_uses_default_name_for_builtin_step_commands() {
+	// Built-in step commands are not release workflows; every step invocation
+	// must land on the same release branch instead of one per step name.
+	for command in ["step open-release-request", "step commit-release"] {
+		assert_eq!(
+			release_pull_request_branch("monochange/release", command),
+			"monochange/release/release",
+			"{command}"
+		);
+	}
 }
 
 #[test]
@@ -522,6 +538,7 @@ fn render_release_pull_request_body_bounds_an_oversized_body() {
 	// The header, the target list, and the changelog pointer always survive.
 	assert!(bounded.body.contains("## Prepared release"));
 	assert!(bounded.body.contains("core"));
+
 	assert!(bounded.body.contains("abi"));
 	assert!(bounded.body.contains("crates/core/CHANGELOG.md"));
 	assert!(bounded.body.contains("crates/abi/CHANGELOG.md"));
@@ -642,6 +659,7 @@ fn release_pull_request_body_for_source_uses_the_config_limit() {
 	let truncation = bounded
 		.truncation
 		.unwrap_or_else(|| panic!("expected the configured limit to apply"));
+
 	assert_eq!(truncation.max_chars, limit);
 	assert!(bounded.body.chars().count() <= limit);
 }
@@ -1040,6 +1058,7 @@ fn release_body_uses_group_changelog_without_member_rollup_when_group_has_notes(
 	assert!(!body.contains("Member package changelogs"), "body:\n{body}");
 	assert!(!body.contains("`core`"), "body:\n{body}");
 	assert!(!body.contains("Core package summary"), "body:\n{body}");
+
 	assert!(!body.contains("- core feature"), "body:\n{body}");
 }
 
@@ -1065,6 +1084,7 @@ fn release_body_selects_the_configured_changelog_output() {
 		"faster previews",
 	);
 	user.output = "user".to_string();
+
 	user.stream = "user".to_string();
 	manifest.changelogs = vec![developer, user];
 

@@ -1,0 +1,93 @@
+{
+	"changed_files": [
+		"crates/ybmo_0/src/lib.rs"
+	],
+	"changelogs": [],
+	"changesets": [
+		{
+			"context": {
+				"host": "gitea.example.com",
+				"provider": "gitea"
+			},
+			"details": "Generated from deterministic proptest seed 13623607009219070259.",
+			"path": ".changeset/schema-artifact-3.md",
+			"summary": "Exercise schema artifact fixture 3",
+			"targets": [
+				{
+					"caused_by": [
+						"ybmo-schema-compat"
+					],
+					"change_type": "feature",
+					"evidence_refs": [
+						"crates/ybmo_0/src/lib.rs"
+					],
+					"id": "ybmo_0",
+					"kind": "package",
+					"origin": ".changeset/schema-artifact-3.md"
+				}
+			]
+		}
+	],
+	"command": "monochange release --commit",
+	"created_at": "2026-01-03T00:00:00Z",
+	"deleted_changesets": [
+		".changeset/schema-artifact-3.md"
+	],
+	"kind": "monochange.releaseRecord",
+	"package_publications": [],
+	"provider": {
+		"host": null,
+		"kind": "gitea",
+		"owner": "ybmo",
+		"repo": "vjcz"
+	},
+	"release_targets": [
+		{
+			"id": "main",
+			"kind": "group",
+			"members": [],
+			"release": true,
+			"tag": true,
+			"tag_name": "v0.10.3",
+			"version": "0.10.3",
+			"version_format": "primary"
+		},
+		{
+			"id": "ybmo_1",
+			"kind": "package",
+			"members": [],
+			"release": true,
+			"tag": true,
+			"tag_name": "ybmo_1/v0.10.3",
+			"version": "0.10.3",
+			"version_format": "namespaced"
+		},
+		{
+			"id": "ybmo_2",
+			"kind": "package",
+			"members": [],
+			"release": true,
+			"tag": true,
+			"tag_name": "ybmo_2/v0.10.3",
+			"version": "0.10.3",
+			"version_format": "namespaced"
+		}
+	],
+	"released_packages": [
+		"ybmo_0",
+		"ybmo_1",
+		"ybmo_2",
+		"ybmo_3"
+	],
+	"schema_version": "0.10",
+	"updated_changelogs": [
+		"fixtures/changelog-3.md"
+	],
+	"version": "0.10.3",
+	"versions": {
+		"main": "0.10.3",
+		"ybmo_0": "0.10.3",
+		"ybmo_1": "0.10.3",
+		"ybmo_2": "0.10.3"
+	}
+}

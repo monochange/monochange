@@ -63,7 +63,6 @@
 
 //! `ReleaseNotesDocument` defaults to legacy string entries for source compatibility. New integrations can use `ReleaseNotesDocument<ReleaseNotesEntry>` with `render_structured_release_notes` to render Markdown, plain text, or JSON from structured data. Use `to_legacy_markdown` when migrating a caller that still accepts string entries.
 //! <!-- {/monochangeCoreCrateDocs} -->
-
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::env;
@@ -243,6 +242,7 @@ impl BumpSeverity {
 		};
 
 		let mut next = version.clone();
+
 		match effective {
 			Self::None => next,
 			Self::Patch => {
@@ -591,6 +591,7 @@ pub fn normalize_path(path: &Path) -> PathBuf {
 	} else {
 		env::current_dir().map_or_else(|_| path.to_path_buf(), |cwd| cwd.join(path))
 	};
+
 	fs::canonicalize(&absolute).unwrap_or(absolute)
 }
 
@@ -611,6 +612,7 @@ pub fn relative_to_root(root: &Path, path: &Path) -> Option<PathBuf> {
 #[must_use]
 pub fn root_relative(root: &Path, path: &Path) -> PathBuf {
 	let relative = relative_to_root(root, path).unwrap_or_else(|| path.to_path_buf());
+
 	if relative.as_os_str().is_empty() {
 		PathBuf::from(".")
 	} else {
@@ -632,11 +634,13 @@ impl DiscoveryPathFilter {
 		let input_root = root.to_path_buf();
 		let root = normalize_path(root);
 		let mut builder = GitignoreBuilder::new(&root);
+
 		for path in [root.join(".gitignore"), root.join(".git/info/exclude")] {
 			if path.is_file() {
 				let _ = builder.add(path);
 			}
 		}
+
 		let gitignore = builder.build().unwrap_or_else(|_| Gitignore::empty());
 
 		Self {
@@ -659,13 +663,32 @@ impl DiscoveryPathFilter {
 	}
 
 	fn is_ignored(&self, path: &Path, is_dir: bool) -> bool {
-		if ignored_discovery_dir_name(path) || self.has_nested_git_worktree_ancestor(path, is_dir) {
+		if self.has_ignored_discovery_component(path)
+			|| self.has_nested_git_worktree_ancestor(path, is_dir)
+		{
 			return true;
 		}
 
 		self.matches_gitignore(path, is_dir)
 	}
 
+	/// Return `true` when a path component below the workspace root names a
+	/// directory that discovery skips.
+	///
+	/// # Why only components below the workspace root count
+	///
+	/// The same repository must discover the same packages wherever it is
+	/// checked out, but editors and agents nest worktrees inside ignored
+	/// directories (Claude Code checks out under `.claude/worktrees/`). Testing
+	/// the absolute path would ignore every manifest in such a workspace, so
+	/// only the components the walker can actually descend into are checked.
+	fn has_ignored_discovery_component(&self, path: &Path) -> bool {
+		let relative = self.relative_path(path).unwrap_or_default();
+		ignored_discovery_dir_name(&relative)
+	}
+
+	// patch-coverage:ignore-start -- llvm-cov attributes the function-exit region to the blank line after the return.
+	// patch-coverage:ignore-end
 	fn matches_gitignore(&self, path: &Path, is_dir: bool) -> bool {
 		self.relative_path(path).is_some_and(|relative| {
 			self.gitignore
@@ -676,6 +699,7 @@ impl DiscoveryPathFilter {
 
 	fn has_nested_git_worktree_ancestor(&self, path: &Path, is_dir: bool) -> bool {
 		let mut current = self.absolute_path(path);
+
 		if !is_dir {
 			current = current.parent().unwrap_or(&current).to_path_buf();
 		}
@@ -684,6 +708,7 @@ impl DiscoveryPathFilter {
 			if current.join(".git").exists() {
 				return true;
 			}
+
 			let Some(parent) = current.parent() else {
 				break;
 			};
@@ -701,6 +726,7 @@ impl DiscoveryPathFilter {
 				.ok()
 				.map(Path::to_path_buf);
 		}
+
 		path.strip_prefix(&self.input_root).map_or_else(
 			|_| Some(path.to_path_buf()),
 			|relative| Some(relative.to_path_buf()),
@@ -713,6 +739,7 @@ impl DiscoveryPathFilter {
 				.strip_prefix(&self.input_root)
 				.map_or_else(|_| path.to_path_buf(), |relative| self.root.join(relative));
 		}
+
 		let relative = path.strip_prefix(&self.input_root).unwrap_or(path);
 		self.root.join(relative)
 	}
@@ -777,6 +804,7 @@ where
 		})?;
 		let search_root = workspace_glob_search_root(root, &pattern_text);
 		matched_paths_by_pattern.insert(pattern.to_string(), Vec::new());
+
 		if search_root.exists() {
 			glob_requests_by_search_root
 				.entry(search_root)
@@ -789,6 +817,7 @@ where
 	}
 
 	let match_options = workspace_glob_match_options();
+
 	for (search_root, requests) in glob_requests_by_search_root {
 		let path_filter = DiscoveryPathFilter::new(root);
 		let mut builder = WalkBuilder::new(&search_root);
@@ -815,7 +844,9 @@ where
 			if !(file_type.is_file() || include_directories && file_type.is_dir()) {
 				continue;
 			}
+
 			let relative_path = entry.path().strip_prefix(root).unwrap_or(entry.path());
+
 			for request in &requests {
 				if request
 					.matcher
@@ -872,6 +903,7 @@ pub fn workspace_glob_has_magic(path: &str) -> bool {
 
 fn resolve_workspace_glob_literal(root: &Path, path: &str) -> PathBuf {
 	let path = Path::new(path);
+
 	if path.is_absolute() {
 		path.to_path_buf()
 	} else {
@@ -881,6 +913,7 @@ fn resolve_workspace_glob_literal(root: &Path, path: &str) -> PathBuf {
 
 fn root_relative_workspace_glob_pattern(root: &Path, path: &str) -> String {
 	let path = Path::new(path);
+
 	if path.is_absolute()
 		&& let Ok(relative) = path.strip_prefix(root)
 	{
@@ -892,6 +925,7 @@ fn root_relative_workspace_glob_pattern(root: &Path, path: &str) -> String {
 
 fn workspace_glob_search_root(root: &Path, pattern: &str) -> PathBuf {
 	let literal_walk_root = literal_workspace_glob_walk_root(pattern);
+
 	if literal_walk_root.as_os_str().is_empty() {
 		root.to_path_buf()
 	} else {
@@ -901,11 +935,14 @@ fn workspace_glob_search_root(root: &Path, pattern: &str) -> PathBuf {
 
 fn literal_workspace_glob_walk_root(pattern: &str) -> PathBuf {
 	let mut root = PathBuf::new();
+
 	for component in Path::new(pattern).components() {
 		let component_text = component.as_os_str().to_string_lossy();
+
 		if workspace_glob_has_magic(&component_text) {
 			break;
 		}
+
 		root.push(component.as_os_str());
 	}
 
@@ -1093,6 +1130,7 @@ impl<'de> Deserialize<'de> for VersionFormat {
 		D: serde::Deserializer<'de>,
 	{
 		let value = String::deserialize(deserializer)?;
+
 		match value.as_str() {
 			"namespaced" => Ok(Self::Namespaced),
 			"primary" => Ok(Self::Primary),
@@ -1125,33 +1163,41 @@ pub fn validate_version_format_template(template: &str) -> MonochangeResult<()> 
 			"version_format must not be empty".to_string(),
 		));
 	}
+
 	if !template.contains("{{ version }}") && !template.contains("{{version}}") {
 		return Err(MonochangeError::Config(
 			"custom version_format must include the `{{ version }}` variable".to_string(),
 		));
 	}
+
 	validate_floating_tag_template_variables(template, "custom version_format")?;
 	let mut rest = template;
+
 	while let Some(start) = rest.find("{{") {
 		let after_start = &rest[start + 2..];
+
 		let Some(end) = after_start.find("}}") else {
 			return Err(MonochangeError::Config(
 				"custom version_format has an unterminated template variable".to_string(),
 			));
 		};
 		let variable = after_start[..end].trim();
+
 		if !matches!(variable, "name" | "version" | "ecosystem") {
 			return Err(MonochangeError::Config(format!(
 				"custom version_format uses unsupported variable `{{{{ {variable} }}}}`; supported variables are `{{{{ name }}}}`, `{{{{ version }}}}`, and `{{{{ ecosystem }}}}`"
 			)));
 		}
+
 		rest = &after_start[end + 2..];
 	}
+
 	if rest.contains("}}") {
 		return Err(MonochangeError::Config(
 			"custom version_format has an unopened template variable".to_string(),
 		));
 	}
+
 	Ok(())
 }
 
@@ -1186,11 +1232,13 @@ pub fn validate_version_format_tag(tag: &str) -> MonochangeResult<()> {
 	} else {
 		None
 	};
+
 	if let Some(reason) = invalid_reason {
 		return Err(MonochangeError::Config(format!(
 			"invalid version_format tag `{tag}`: {reason}"
 		)));
 	}
+
 	Ok(())
 }
 
@@ -1204,6 +1252,7 @@ pub fn validate_floating_tag_template_variables(
 	label: &str,
 ) -> MonochangeResult<()> {
 	let mut rest = template;
+
 	while let Some(start) = rest.find("{{") {
 		let after_start = &rest[start + 2..];
 		let Some(end) = after_start.find("}}") else {
@@ -1222,6 +1271,7 @@ pub fn validate_floating_tag_template_variables(
 		}
 		rest = &after_start[end + 2..];
 	}
+
 	Ok(())
 }
 
@@ -1255,11 +1305,13 @@ pub fn render_floating_tag(
 		.replace("{{ecosystem}}", ecosystem);
 	validate_version_format_tag(&rendered)?;
 	let full_version_tags = [version_string.clone(), format!("v{version_string}")];
+
 	if full_version_tags.contains(&rendered) {
 		return Err(MonochangeError::Config(format!(
 			"floating tag template `{template}` renders the full version `{version_string}`; floating tags must move independently of release tags"
 		)));
 	}
+
 	Ok(rendered)
 }
 
@@ -1330,47 +1382,62 @@ pub fn strip_json_comments(contents: &str) -> String {
 	let bytes = contents.as_bytes();
 	let mut output = String::with_capacity(contents.len());
 	let mut cursor = 0usize;
+
 	while let Some(&byte) = bytes.get(cursor) {
 		if byte == b'"' {
 			let start = cursor;
 			cursor += 1;
+
 			while let Some(&string_byte) = bytes.get(cursor) {
 				cursor += 1;
+
 				if string_byte == b'\\' {
 					cursor += usize::from(bytes.get(cursor).is_some());
 					continue;
 				}
+
 				if string_byte == b'"' {
 					break;
 				}
 			}
+
 			output.push_str(&contents[start..cursor]);
 			continue;
 		}
+
 		if byte == b'/' && bytes.get(cursor + 1) == Some(&b'/') {
 			cursor += 2;
+
 			while let Some(&line_byte) = bytes.get(cursor) {
 				if line_byte == b'\n' {
 					break;
 				}
+
 				cursor += 1;
 			}
+
 			continue;
 		}
+
 		if byte == b'/' && bytes.get(cursor + 1) == Some(&b'*') {
 			cursor += 2;
+
 			while bytes.get(cursor).is_some() {
 				if bytes.get(cursor) == Some(&b'*') && bytes.get(cursor + 1) == Some(&b'/') {
 					cursor += 2;
 					break;
 				}
+
 				cursor += 1;
 			}
+
 			continue;
 		}
+
 		output.push(char::from(byte));
 		cursor += 1;
 	}
+
 	output
 }
 
@@ -1426,6 +1493,7 @@ fn update_json_manifest_fields_text(
 ) -> MonochangeResult<String> {
 	let root_start = json_root_object_start(contents)?;
 	let mut replacements = Vec::<(JsonSpan, String)>::new();
+
 	if update_root_version
 		&& let Some(owner_version) = owner_version
 		&& let Some(span) = find_json_object_field_value_span(contents, root_start, "version")?
@@ -1433,10 +1501,12 @@ fn update_json_manifest_fields_text(
 	{
 		replacements.push((span, render_json_string(owner_version)?));
 	}
+
 	for field in fields {
 		let Some(field_span) = find_json_path_value_span(contents, root_start, field)? else {
 			continue;
 		};
+
 		if json_span_is_object(contents, field_span) {
 			for (dep_name, dep_version) in versioned_deps {
 				let Some(dep_span) =
@@ -1447,8 +1517,10 @@ fn update_json_manifest_fields_text(
 				};
 				replacements.push((dep_span, render_json_string(dep_version)?));
 			}
+
 			continue;
 		}
+
 		let dependency_version = field
 			.rsplit_once('.')
 			.and_then(|(_, name)| versioned_deps.get(name))
@@ -1460,6 +1532,7 @@ fn update_json_manifest_fields_text(
 			replacements.push((field_span, render_json_string(version)?));
 		}
 	}
+
 	apply_json_replacements(contents, replacements)
 }
 
@@ -1483,19 +1556,23 @@ fn apply_json_replacements(
 	}
 
 	let mut updated = contents.to_string();
+
 	for (span, replacement) in replacements {
 		if span.start > span.end || span.end > updated.len() {
 			return Err(MonochangeError::Config(
 				"json edit range was out of bounds".to_string(),
 			));
 		}
+
 		updated.replace_range(span.start..span.end, &replacement);
 	}
+
 	Ok(updated)
 }
 
 fn json_root_object_start(contents: &str) -> MonochangeResult<usize> {
 	let start = skip_json_ws_and_comments(contents, 0);
+
 	if contents.as_bytes().get(start) == Some(&b'{') {
 		Ok(start)
 	} else {
@@ -1517,16 +1594,19 @@ fn find_json_path_value_span(
 	let Some(mut span) = find_json_object_field_value_span(contents, root_start, first)? else {
 		return Ok(None);
 	};
+
 	for segment in segments {
 		if !json_span_is_object(contents, span) {
 			return Ok(None);
 		}
+
 		let Some(next_span) = find_json_object_field_value_span(contents, span.start, segment)?
 		else {
 			return Ok(None);
 		};
 		span = next_span;
 	}
+
 	Ok(Some(span))
 }
 
@@ -1536,14 +1616,18 @@ fn find_json_object_field_value_span(
 	key: &str,
 ) -> MonochangeResult<Option<JsonSpan>> {
 	let bytes = contents.as_bytes();
+
 	if bytes.get(object_start) != Some(&b'{') {
 		return Err(MonochangeError::Config(
 			"expected JSON object when locating field".to_string(),
 		));
 	}
+
 	let mut cursor = object_start + 1;
+
 	loop {
 		cursor = skip_json_ws_and_comments(contents, cursor);
+
 		match bytes.get(cursor) {
 			Some(b'}') => return Ok(None),
 			Some(b'"') => {}
@@ -1558,24 +1642,30 @@ fn find_json_object_field_value_span(
 				));
 			}
 		}
+
 		let (key_span, next) = parse_json_string_span(contents, cursor)?;
 		let key_text = &contents[key_span.start..key_span.end];
 		cursor = skip_json_ws_and_comments(contents, next);
+
 		if bytes.get(cursor) != Some(&b':') {
 			return Err(MonochangeError::Config(
 				"expected `:` after JSON object key".to_string(),
 			));
 		}
+
 		cursor = skip_json_ws_and_comments(contents, cursor + 1);
 		let value_start = cursor;
 		let value_end = skip_json_value(contents, value_start)?;
+
 		if key_text == key {
 			return Ok(Some(JsonSpan {
 				start: value_start,
 				end: value_end,
 			}));
 		}
+
 		cursor = skip_json_ws_and_comments(contents, value_end);
+
 		match bytes.get(cursor) {
 			Some(b',') => {
 				cursor += 1;
@@ -1598,6 +1688,7 @@ fn find_json_object_field_value_span(
 fn skip_json_value(contents: &str, start: usize) -> MonochangeResult<usize> {
 	let bytes = contents.as_bytes();
 	let cursor = skip_json_ws_and_comments(contents, start);
+
 	match bytes.get(cursor) {
 		Some(b'"') => parse_json_string_span(contents, cursor).map(|(_, next)| next),
 		Some(b'{') => skip_json_object(contents, cursor),
@@ -1614,8 +1705,10 @@ fn skip_json_value(contents: &str, start: usize) -> MonochangeResult<usize> {
 fn skip_json_object(contents: &str, object_start: usize) -> MonochangeResult<usize> {
 	let bytes = contents.as_bytes();
 	let mut cursor = object_start + 1;
+
 	loop {
 		cursor = skip_json_ws_and_comments(contents, cursor);
+
 		match bytes.get(cursor) {
 			Some(b'}') => return Ok(cursor + 1),
 			Some(b'"') => {}
@@ -1630,15 +1723,19 @@ fn skip_json_object(contents: &str, object_start: usize) -> MonochangeResult<usi
 				));
 			}
 		}
+
 		let (_, next) = parse_json_string_span(contents, cursor)?;
 		cursor = skip_json_ws_and_comments(contents, next);
+
 		if bytes.get(cursor) != Some(&b':') {
 			return Err(MonochangeError::Config(
 				"expected `:` after JSON object key".to_string(),
 			));
 		}
+
 		cursor = skip_json_value(contents, cursor + 1)?;
 		cursor = skip_json_ws_and_comments(contents, cursor);
+
 		match bytes.get(cursor) {
 			Some(b',') => {
 				cursor += 1;
@@ -1661,8 +1758,10 @@ fn skip_json_object(contents: &str, object_start: usize) -> MonochangeResult<usi
 fn skip_json_array(contents: &str, array_start: usize) -> MonochangeResult<usize> {
 	let bytes = contents.as_bytes();
 	let mut cursor = array_start + 1;
+
 	loop {
 		cursor = skip_json_ws_and_comments(contents, cursor);
+
 		match bytes.get(cursor) {
 			Some(b']') => return Ok(cursor + 1),
 			Some(_) => {
@@ -1697,24 +1796,31 @@ fn skip_json_array(contents: &str, array_start: usize) -> MonochangeResult<usize
 fn skip_json_primitive(contents: &str, start: usize) -> usize {
 	let bytes = contents.as_bytes();
 	let mut cursor = start;
+
 	while let Some(&byte) = bytes.get(cursor) {
 		if matches!(byte, b',' | b'}' | b']') || byte.is_ascii_whitespace() {
 			break;
 		}
+
 		if byte == b'/' && matches!(bytes.get(cursor + 1), Some(b'/' | b'*')) {
 			break;
 		}
+
 		cursor += 1;
 	}
+
 	cursor
 }
 
 fn parse_json_string_span(contents: &str, start: usize) -> MonochangeResult<(JsonSpan, usize)> {
 	let bytes = contents.as_bytes();
+
 	if bytes.get(start) != Some(&b'"') {
 		return Err(MonochangeError::Config("expected JSON string".to_string()));
 	}
+
 	let mut cursor = start + 1;
+
 	while let Some(&byte) = bytes.get(cursor) {
 		if byte == b'\\' {
 			// Escape sequence: verify there is a character after the backslash.
@@ -1723,6 +1829,7 @@ fn parse_json_string_span(contents: &str, start: usize) -> MonochangeResult<(Jso
 					"unterminated escape sequence in JSON string".to_string(),
 				));
 			};
+
 			if escape_char == b'u' {
 				// Unicode escape \uXXXX requires exactly 4 hex digits.
 				for offset in 2..6 {
@@ -1741,12 +1848,15 @@ fn parse_json_string_span(contents: &str, start: usize) -> MonochangeResult<(Jso
 						}
 					}
 				}
+
 				cursor += 6;
 			} else {
 				cursor += 2;
 			}
+
 			continue;
 		}
+
 		if byte == b'"' {
 			return Ok((
 				JsonSpan {
@@ -1756,8 +1866,10 @@ fn parse_json_string_span(contents: &str, start: usize) -> MonochangeResult<(Jso
 				cursor + 1,
 			));
 		}
+
 		cursor += 1;
 	}
+
 	Err(MonochangeError::Config(
 		"unterminated JSON string".to_string(),
 	))
@@ -1766,36 +1878,48 @@ fn parse_json_string_span(contents: &str, start: usize) -> MonochangeResult<(Jso
 fn skip_json_ws_and_comments(contents: &str, start: usize) -> usize {
 	let bytes = contents.as_bytes();
 	let mut cursor = start;
+
 	loop {
 		while let Some(&byte) = bytes.get(cursor) {
 			if !byte.is_ascii_whitespace() {
 				break;
 			}
+
 			cursor += 1;
 		}
+
 		if bytes.get(cursor) == Some(&b'/') && bytes.get(cursor + 1) == Some(&b'/') {
 			cursor += 2;
+
 			while let Some(&byte) = bytes.get(cursor) {
 				if byte == b'\n' {
 					break;
 				}
+
 				cursor += 1;
 			}
+
 			continue;
 		}
+
 		if bytes.get(cursor) == Some(&b'/') && bytes.get(cursor + 1) == Some(&b'*') {
 			cursor += 2;
+
 			while bytes.get(cursor).is_some() {
 				if bytes.get(cursor) == Some(&b'*') && bytes.get(cursor + 1) == Some(&b'/') {
 					cursor += 2;
 					break;
 				}
+
 				cursor += 1;
 			}
+
 			continue;
 		}
+
 		break;
 	}
+
 	cursor
 }
 
@@ -2308,6 +2432,7 @@ impl ChangelogStyle {
 			SectionSeparator::ThematicBreak => "Separate sections with a thematic break (---).",
 			SectionSeparator::None => "Do not add any separator between sections.",
 		};
+
 		let label_rule = match self.package_label_style {
 			PackageLabelStyle::Badge => {
 				"Render affected packages as a `_Packages:_` metadata line above the owner line, with emphasized package names."
@@ -2317,6 +2442,7 @@ impl ChangelogStyle {
 			}
 			PackageLabelStyle::Omit => "Omit package labels from changelog entries.",
 		};
+
 		let metadata_rule = match self.metadata_style {
 			MetadataStyle::Blockquote => {
 				"Render metadata lines (owner, review link, commit links, issues) as block-quote lines prefixed with >."
@@ -2329,6 +2455,7 @@ impl ChangelogStyle {
 			}
 			MetadataStyle::Omit => "Omit metadata lines entirely from changelog entries.",
 		};
+
 		let collapsed_rule = match self.collapsed_section_style {
 			CollapsedSectionStyle::Details => {
 				"Render collapsed (low-priority) sections inside HTML <details>/<summary> elements."
@@ -2342,6 +2469,7 @@ impl ChangelogStyle {
 		} else {
 			"Render package labels without a bump severity symbol."
 		};
+
 		format!(
 			"Changelog style rules:\n\
 			 - {separator_rule}\n\
@@ -2507,6 +2635,7 @@ impl ChangelogSettings {
 				priority: 40,
 			},
 		);
+
 		sections.insert(
 			"security".to_string(),
 			ChangelogSectionDef {
@@ -2589,6 +2718,7 @@ impl ChangelogSettings {
 				description: Some("Patch version bump".to_string()),
 			},
 		);
+
 		types.insert(
 			"refactor".to_string(),
 			ChangelogType {
@@ -2699,6 +2829,50 @@ impl PublishMode {
 }
 
 impl fmt::Display for PublishMode {
+	fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+		formatter.write_str(self.as_str())
+	}
+}
+
+/// How a release publish reaches its registry.
+///
+/// npm supports two publish flows:
+/// - `Direct` – the publish command makes the version installable immediately.
+/// - `Staged` – `npm stage publish` uploads the version to a staging queue and
+///   a maintainer must approve it with 2FA before it becomes installable.
+///
+/// Staged publishing is currently npm-only; other ecosystems reject the
+/// override at configuration load time. Placeholder publishing is never
+/// staged because placeholders must register the package immediately.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum PublishFlow {
+	#[default]
+	/// The publish command makes the version installable immediately.
+	Direct,
+	/// The version waits in the registry's staging queue for maintainer
+	/// approval (npm staged publishing).
+	Staged,
+}
+
+impl PublishFlow {
+	/// Return the canonical serialized name for the publish flow.
+	#[must_use]
+	pub fn as_str(self) -> &'static str {
+		match self {
+			Self::Direct => "direct",
+			Self::Staged => "staged",
+		}
+	}
+
+	#[must_use]
+	pub fn is_default(&self) -> bool {
+		*self == Self::default()
+	}
+}
+
+impl fmt::Display for PublishFlow {
 	fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
 		formatter.write_str(self.as_str())
 	}
@@ -2880,6 +3054,8 @@ pub struct PublishSettings {
 	pub mode: PublishMode,
 	#[serde(default)]
 	pub registry: Option<PublishRegistry>,
+	#[serde(default, skip_serializing_if = "PublishFlow::is_default")]
+	pub flow: PublishFlow,
 	#[serde(default)]
 	pub trusted_publishing: TrustedPublishingSettings,
 	#[serde(
@@ -2903,6 +3079,7 @@ impl Default for PublishSettings {
 			enabled: true,
 			mode: PublishMode::default(),
 			registry: None,
+			flow: PublishFlow::default(),
 			trusted_publishing: TrustedPublishingSettings::default(),
 			attestations: PublishAttestationSettings::default(),
 			rate_limits: PublishRateLimitSettings::default(),
@@ -3224,6 +3401,7 @@ pub struct CliInputDefinition {
 	pub help_text: Option<String>,
 	#[serde(default)]
 	pub required: bool,
+
 	#[serde(default, deserialize_with = "deserialize_cli_input_default")]
 	#[cfg_attr(feature = "schema", schemars(with = "Option<CliInputDefault>"))]
 	pub default: Option<String>,
@@ -3326,6 +3504,7 @@ where
 					SerializableCliStepInputValue::List(value.clone())
 				}
 			};
+
 			(name, value)
 		})
 		.collect::<BTreeMap<_, _>>();
@@ -3458,6 +3637,7 @@ impl<'de> Deserialize<'de> for ShellConfig {
 						&"a non-empty shell name",
 					));
 				}
+
 				Ok(ShellConfig::Custom(value.to_string()))
 			}
 
@@ -3935,6 +4115,7 @@ impl CliStepDefinition {
 			.into_iter()
 			.map(|input| (input.name, CliStepInputValue::Inherited))
 			.collect();
+
 		match &mut self {
 			Self::Config { inputs, .. }
 			| Self::Validate { inputs, .. }
@@ -3958,6 +4139,7 @@ impl CliStepDefinition {
 			| Self::RetargetRelease { inputs, .. }
 			| Self::Command { inputs, .. } => *inputs = inherited,
 		}
+
 		self
 	}
 
@@ -4102,6 +4284,7 @@ impl CliStepDefinition {
 			Self::Validate { .. } => Some(&[]),
 			Self::CommitRelease { .. } => {
 				Some(&[
+					"format",
 					"no_verify",
 					"update_release_json",
 					"stage_all",
@@ -4130,6 +4313,7 @@ impl CliStepDefinition {
 					"backend",
 					"hosted_auth",
 					"hosted_url",
+					"oidc_audience",
 				])
 			}
 			Self::PlaceholderPublish { .. } => Some(&["format", "package", "show-all", "otp"]),
@@ -4212,6 +4396,7 @@ impl CliStepDefinition {
 			}
 			Self::CommitRelease { .. } => {
 				match name {
+					"format" => Some(&["text", "json", "json-min", "md"]),
 					"commit_backend" => Some(&["local", "hosted"]),
 					"hosted_auth" => Some(&["auto", "oidc", "token"]),
 					_ => None,
@@ -4221,6 +4406,7 @@ impl CliStepDefinition {
 				match name {
 					"format" => Some(&["text", "json", "json-min", "md"]),
 					"backend" => Some(&["local", "hosted"]),
+					"hosted_auth" => Some(&["auto", "oidc", "token"]),
 					_ => None,
 				}
 			}
@@ -4239,7 +4425,7 @@ impl CliStepDefinition {
 					"no_verify" | "update_release_json" | "stage_all" => {
 						Some(CliInputKind::Boolean)
 					}
-					"commit_backend" | "hosted_auth" => Some(CliInputKind::Choice),
+					"format" | "commit_backend" | "hosted_auth" => Some(CliInputKind::Choice),
 					"hosted_url" | "oidc_audience" => Some(CliInputKind::String),
 					_ => None,
 				}
@@ -4281,7 +4467,7 @@ impl CliStepDefinition {
 				match name {
 					"format" | "backend" | "hosted_auth" => Some(CliInputKind::Choice),
 					"no_verify" | "stage_all" => Some(CliInputKind::Boolean),
-					"hosted_url" => Some(CliInputKind::String),
+					"hosted_url" | "oidc_audience" => Some(CliInputKind::String),
 					_ => None,
 				}
 			}
@@ -4379,18 +4565,22 @@ impl CliStepDefinition {
 		let name = self.kind_name();
 		let mut result = String::new();
 		let mut prev_upper = false;
+
 		for ch in name.chars() {
 			if ch.is_uppercase() {
 				if !result.is_empty() && !prev_upper {
 					result.push('-');
 				}
+
 				result.push(ch.to_ascii_lowercase());
+
 				prev_upper = true;
 			} else {
 				result.push(ch);
 				prev_upper = false;
 			}
 		}
+
 		result
 	}
 
@@ -4418,6 +4608,7 @@ impl CliStepDefinition {
 				} else {
 					None
 				};
+
 				CliInputDefinition {
 					name: name.to_string(),
 					kind,
@@ -4425,6 +4616,7 @@ impl CliStepDefinition {
 					required: false,
 					default,
 					choices,
+
 					short: match *name {
 						"interactive" => Some('i'),
 						_ => None,
@@ -4451,7 +4643,7 @@ fn step_input_help_text(name: &str) -> &'static str {
 			"Authentication the hosted backend uses: GitHub Actions OIDC or a monochange token"
 		}
 		"hosted_url" => "Base URL of the hosted monochange app",
-		"oidc_audience" => "Audience required in the GitHub Actions OIDC token for hosted commits",
+		"oidc_audience" => "Audience required in the GitHub Actions OIDC token for the hosted app",
 		"from" => "Git ref to use as the release, comparison, or verification source",
 		"write_empty_release_record" => "Write a release record even when no packages change",
 		"release_json" => "Write the prepared release record as JSON",
@@ -4581,25 +4773,32 @@ fn render_structured_markdown_release_notes(
 	render_entry: impl Fn(&ReleaseNotesEntry, &ChangelogStyle) -> String,
 ) -> String {
 	let mut lines = vec![format!("## {}", document.title), String::new()];
+
 	for (index, paragraph) in document.summary.iter().enumerate() {
 		if index > 0 {
 			lines.push(String::new());
 		}
+
 		lines.push(paragraph.clone());
 	}
+
 	let mut first_non_empty = true;
+
 	for section in &document.sections {
 		if section.entries.is_empty() {
 			continue;
 		}
+
 		if first_non_empty {
 			first_non_empty = false;
+
 			if !document.summary.is_empty() {
 				lines.push(String::new());
 			}
 		} else {
 			push_release_note_section_separator(&mut lines, style.section_separator);
 		}
+
 		if section.collapsed && style.collapsed_section_style == CollapsedSectionStyle::Details {
 			lines.push("<details>".to_string());
 			lines.push(format!(
@@ -4611,10 +4810,12 @@ fn render_structured_markdown_release_notes(
 			lines.push("</details>".to_string());
 			continue;
 		}
+
 		lines.push(format!("### {}", section.title));
 		lines.push(String::new());
 		push_structured_markdown_entries(&mut lines, &section.entries, style, &render_entry);
 	}
+
 	lines.join("\n")
 }
 
@@ -4643,6 +4844,7 @@ fn push_structured_markdown_entries(
 				.lines()
 				.map(ToString::to_string),
 		);
+
 		if entry.style == ReleaseNoteEntryStyle::Expanded && index + 1 < entries.len() {
 			lines.push(String::new());
 		}
@@ -4654,21 +4856,27 @@ fn render_structured_text_release_notes(
 	style: &ChangelogStyle,
 ) -> String {
 	let mut lines = vec![plain_markdown(&document.title)];
+
 	for paragraph in &document.summary {
 		lines.push(String::new());
 		lines.push(plain_markdown(paragraph));
 	}
+
 	for section in &document.sections {
 		if section.entries.is_empty() {
 			continue;
 		}
+
 		lines.push(String::new());
 		lines.push(plain_markdown(&section.title));
+
 		for entry in &section.entries {
 			lines.push(String::new());
+
 			lines.push(render_release_note_entry_text(entry, style));
 		}
 	}
+
 	lines.join("\n")
 }
 
@@ -4730,6 +4938,7 @@ pub fn render_release_note_entry_markdown(
 			if !summary_rest.is_empty() {
 				parts.push(summary_rest.to_string());
 			}
+
 			// Packages open the provenance block directly beneath the heading, so a
 			// reader learns what the change affects before reading its details.
 			parts.extend(
@@ -4740,6 +4949,7 @@ pub fn render_release_note_entry_markdown(
 			if let Some(details) = details {
 				parts.push(details.to_string());
 			}
+
 			parts.join("\n\n")
 		}
 	}
@@ -4749,12 +4959,14 @@ fn render_release_note_entry_text(entry: &ReleaseNotesEntry, style: &ChangelogSt
 	let mut lines = vec![plain_markdown(&sentence_case_release_note_summary(
 		&entry.summary,
 	))];
+
 	if !entry.packages.is_empty() {
 		lines.push(format!(
 			"  Packages: {}",
 			render_release_note_packages_text(&entry.packages, style.package_bump_symbols)
 		));
 	}
+
 	if let Some(details) = entry
 		.details_markdown
 		.as_deref()
@@ -4767,14 +4979,17 @@ fn render_release_note_entry_text(entry: &ReleaseNotesEntry, style: &ChangelogSt
 				.map(|line| format!("  {line}")),
 		);
 	}
+
 	for metadata in text_release_note_metadata(&entry.provenance) {
 		lines.push(format!("  {metadata}"));
 	}
+
 	lines.join("\n")
 }
 
 fn sentence_case_release_note_summary(summary: &str) -> String {
 	let summary = summary.trim();
+
 	if summary.is_empty() || summary.ends_with(['.', '!', '?']) {
 		summary.to_string()
 	} else {
@@ -4802,13 +5017,16 @@ const RELEASE_NOTE_SENTENCE_ABBREVIATIONS: [&str; 21] = [
 fn split_release_note_summary(summary: &str) -> (&str, &str) {
 	let mut in_code_span = false;
 	let mut word_start = 0;
+
 	for (index, character) in summary.char_indices() {
 		if character == '`' {
 			in_code_span = !in_code_span;
 			continue;
 		}
+
 		if matches!(character, '.' | '!' | '?') && !in_code_span {
 			let end = release_note_sentence_end(summary, index + character.len_utf8());
+
 			if release_note_starts_new_sentence(&summary[end..])
 				&& !is_release_note_abbreviation(&summary[word_start..index])
 			{
@@ -4816,10 +5034,12 @@ fn split_release_note_summary(summary: &str) -> (&str, &str) {
 			}
 			continue;
 		}
+
 		if !character.is_alphanumeric() {
 			word_start = index + character.len_utf8();
 		}
 	}
+
 	(summary, "")
 }
 
@@ -4829,8 +5049,10 @@ fn release_note_sentence_end(summary: &str, mut end: usize) -> usize {
 		if !RELEASE_NOTE_SENTENCE_CLOSERS.contains(&closer) {
 			break;
 		}
+
 		end += closer.len_utf8();
 	}
+
 	end
 }
 
@@ -4893,6 +5115,7 @@ fn markdown_package_label(
 	if entry.packages.is_empty() || style == PackageLabelStyle::Omit {
 		return String::new();
 	}
+
 	let packages = entry
 		.packages
 		.iter()
@@ -4911,6 +5134,7 @@ fn markdown_package_name(
 		PackageLabelStyle::Badge => format!("*{}*", package.name),
 		PackageLabelStyle::Inline | PackageLabelStyle::Omit => format!("_{}_", package.name),
 	};
+
 	if symbols {
 		format!("{} {name}", package.symbol())
 	} else {
@@ -4923,31 +5147,37 @@ fn markdown_release_note_metadata(
 	style: MetadataStyle,
 ) -> String {
 	let mut items = Vec::new();
+
 	if let Some(owner) = &provenance.change_owner {
 		items.push(format!("_Owner:_ {}", markdown_reference(owner)));
 	}
+
 	if let Some(review) = &provenance.review_request {
 		items.push(format!("_Review:_ {}", markdown_reference(review)));
 	} else {
 		if let Some(commit) = &provenance.introduced_commit {
 			items.push(format!("_Introduced in:_ {}", markdown_reference(commit)));
 		}
+
 		if let Some(commit) = &provenance.last_updated_commit {
 			items.push(format!("_Last updated in:_ {}", markdown_reference(commit)));
 		}
 	}
+
 	if !provenance.closed_issues.is_empty() {
 		items.push(format!(
 			"_Closed issues:_ {}",
 			markdown_references(&provenance.closed_issues)
 		));
 	}
+
 	if !provenance.related_issues.is_empty() {
 		items.push(format!(
 			"_Related issues:_ {}",
 			markdown_references(&provenance.related_issues)
 		));
 	}
+
 	match style {
 		MetadataStyle::Inline => items.join(" · "),
 		MetadataStyle::Blockquote => {
@@ -4964,31 +5194,37 @@ fn markdown_release_note_metadata(
 
 fn text_release_note_metadata(provenance: &ReleaseNoteProvenance) -> Vec<String> {
 	let mut items = Vec::new();
+
 	if let Some(owner) = &provenance.change_owner {
 		items.push(format!("Owner: {}", owner.label));
 	}
+
 	if let Some(review) = &provenance.review_request {
 		items.push(format!("Review: {}", review.label));
 	} else {
 		if let Some(commit) = &provenance.introduced_commit {
 			items.push(format!("Introduced in: {}", commit.label));
 		}
+
 		if let Some(commit) = &provenance.last_updated_commit {
 			items.push(format!("Last updated in: {}", commit.label));
 		}
 	}
+
 	if !provenance.closed_issues.is_empty() {
 		items.push(format!(
 			"Closed issues: {}",
 			plain_references(&provenance.closed_issues)
 		));
 	}
+
 	if !provenance.related_issues.is_empty() {
 		items.push(format!(
 			"Related issues: {}",
 			plain_references(&provenance.related_issues)
 		));
 	}
+
 	items
 }
 
@@ -5034,12 +5270,14 @@ fn plain_markdown(markdown: &str) -> String {
 fn plain_markdown_inline(markdown: &str) -> String {
 	let mut plain = String::with_capacity(markdown.len());
 	let mut remaining = markdown;
+
 	while let Some(open) = remaining.find('[') {
 		plain.push_str(&remaining[..open]);
 		let after_open = &remaining[open + 1..];
 		let Some(close) = after_open.find("](") else {
 			plain.push_str(&remaining[open..]);
 			remaining = "";
+
 			break;
 		};
 		let after_url = &after_open[close + 2..];
@@ -5051,6 +5289,7 @@ fn plain_markdown_inline(markdown: &str) -> String {
 		plain.push_str(&after_open[..close]);
 		remaining = &after_url[end + 1..];
 	}
+
 	plain.push_str(remaining);
 	let plain = plain.replace(['*', '`'], "");
 	strip_underscore_emphasis(&plain)
@@ -5059,6 +5298,7 @@ fn plain_markdown_inline(markdown: &str) -> String {
 fn strip_underscore_emphasis(value: &str) -> String {
 	let mut rendered = String::with_capacity(value.len());
 	let mut characters = value.char_indices().peekable();
+
 	while let Some((index, character)) = characters.next() {
 		if character != '_'
 			|| index > 0
@@ -5075,30 +5315,37 @@ fn strip_underscore_emphasis(value: &str) -> String {
 		let remainder = value
 			.get(index + character.len_utf8()..)
 			.unwrap_or_default();
+
 		let Some(relative_end) = remainder.find('_') else {
 			rendered.push(character);
 			continue;
 		};
 		let end = index + character.len_utf8() + relative_end;
 		let after_end = value.get(end + 1..).unwrap_or_default();
+
 		if after_end.chars().next().is_some_and(char::is_alphanumeric) {
 			rendered.push(character);
 			continue;
 		}
+
 		rendered.push_str(value.get(index + 1..end).unwrap_or_default());
+
 		while characters.peek().is_some_and(|(next, _)| *next <= end) {
 			let _ = characters.next();
 		}
 	}
+
 	rendered
 }
 
 fn render_text_release_notes(document: &ReleaseNotesDocument) -> String {
 	let mut lines = vec![document.title.clone()];
+
 	for paragraph in &document.summary {
 		lines.push(String::new());
 		lines.push(plain_text_release_note_entry(paragraph));
 	}
+
 	for section in &document.sections {
 		if section.entries.is_empty() {
 			continue;
@@ -5106,11 +5353,13 @@ fn render_text_release_notes(document: &ReleaseNotesDocument) -> String {
 
 		lines.push(String::new());
 		lines.push(section.title.clone());
+
 		for entry in &section.entries {
 			lines.push(String::new());
 			lines.push(plain_text_release_note_entry(entry));
 		}
 	}
+
 	lines.join("\n")
 }
 
@@ -5130,19 +5379,25 @@ fn render_monochange_release_notes(
 	style: &ChangelogStyle,
 ) -> String {
 	let mut lines = vec![format!("## {}", document.title), String::new()];
+
 	for (index, paragraph) in document.summary.iter().enumerate() {
 		if index > 0 {
 			lines.push(String::new());
 		}
+
 		lines.push(paragraph.clone());
 	}
+
 	let mut first_non_empty = true;
+
 	for section in &document.sections {
 		if section.entries.is_empty() {
 			continue;
 		}
+
 		if first_non_empty {
 			first_non_empty = false;
+
 			if !document.summary.is_empty() {
 				lines.push(String::new());
 			}
@@ -5157,14 +5412,17 @@ fn render_monochange_release_notes(
 				SectionSeparator::None => {}
 			}
 		}
+
 		if section.collapsed {
 			push_collapsed_release_note_section(&mut lines, section, style);
 			continue;
 		}
+
 		lines.push(format!("### {}", section.title));
 		lines.push(String::new());
 		push_release_note_entries(&mut lines, &section.entries);
 	}
+
 	lines.join("\n")
 }
 
@@ -5173,19 +5431,25 @@ fn render_keep_a_changelog_release_notes(
 	style: &ChangelogStyle,
 ) -> String {
 	let mut lines = vec![format!("## {}", document.title), String::new()];
+
 	for (index, paragraph) in document.summary.iter().enumerate() {
 		if index > 0 {
 			lines.push(String::new());
 		}
+
 		lines.push(paragraph.clone());
 	}
+
 	let mut first_non_empty = true;
+
 	for section in &document.sections {
 		if section.entries.is_empty() {
 			continue;
 		}
+
 		if first_non_empty {
 			first_non_empty = false;
+
 			if !document.summary.is_empty() {
 				lines.push(String::new());
 			}
@@ -5200,14 +5464,17 @@ fn render_keep_a_changelog_release_notes(
 				SectionSeparator::None => {}
 			}
 		}
+
 		if section.collapsed {
 			push_collapsed_release_note_section(&mut lines, section, style);
 			continue;
 		}
+
 		lines.push(format!("### {}", section.title));
 		lines.push(String::new());
 		push_release_note_entries(&mut lines, &section.entries);
 	}
+
 	lines.join("\n")
 }
 
@@ -5238,13 +5505,17 @@ fn push_collapsed_release_note_section(
 fn push_release_note_entries(lines: &mut Vec<String>, entries: &[String]) {
 	for (index, entry) in entries.iter().enumerate() {
 		let trimmed = entry.trim();
+
 		if trimmed.contains('\n') {
 			lines.extend(trimmed.lines().map(ToString::to_string));
+
 			if index + 1 < entries.len() {
 				lines.push(String::new());
 			}
+
 			continue;
 		}
+
 		if trimmed.starts_with("- ") || trimmed.starts_with("* ") || trimmed.starts_with('#') {
 			lines.push(trimmed.to_string());
 		} else {
@@ -5327,6 +5598,8 @@ pub struct PackagePublicationTarget {
 	pub version: String,
 	#[serde(default)]
 	pub mode: PublishMode,
+	#[serde(default, skip_serializing_if = "PublishFlow::is_default")]
+	pub flow: PublishFlow,
 	#[serde(default)]
 	pub trusted_publishing: TrustedPublishingSettings,
 	#[serde(
@@ -5838,6 +6111,7 @@ fn normalize_legacy_schema_version(raw: &mut serde_json::Value) {
 			.get(*key)
 			.is_some_and(|version| version.is_u64() && version.as_u64() == Some(1))
 	});
+
 	if let Some(key) = integer_schema_version_key {
 		object.remove(key);
 		object.insert(
@@ -5845,6 +6119,7 @@ fn normalize_legacy_schema_version(raw: &mut serde_json::Value) {
 			serde_json::Value::String(RELEASE_RECORD_SCHEMA_VERSION.to_string()),
 		);
 	}
+
 	if !object.contains_key("schema_version")
 		&& !object.contains_key("schemaVersion")
 		&& object.contains_key("v")
@@ -6095,11 +6370,13 @@ pub fn render_release_record_block(record: &ReleaseRecord) -> ReleaseRecordResul
 	if record.kind != RELEASE_RECORD_KIND {
 		return Err(ReleaseRecordError::UnsupportedKind(record.kind.clone()));
 	}
+
 	if record.schema_version != RELEASE_RECORD_SCHEMA_VERSION {
 		return Err(ReleaseRecordError::UnsupportedSchemaVersionValue(
 			record.schema_version.clone(),
 		));
 	}
+
 	let raw = serde_json::to_value(record)?;
 	let current = monochange_schema::release_record::render_current_value(raw)
 		.map_err(release_record_schema_error_to_error)?;
@@ -6121,9 +6398,11 @@ pub fn migrate_release_record_json_value(
 		.get("kind")
 		.and_then(serde_json::Value::as_str)
 		.ok_or(ReleaseRecordError::MissingKind)?;
+
 	if kind != RELEASE_RECORD_KIND {
 		return Err(ReleaseRecordError::UnsupportedKind(kind.to_string()));
 	}
+
 	monochange_schema::release_record::migrate_value(raw)
 		.map_err(release_record_schema_error_to_error)
 }
@@ -6139,18 +6418,23 @@ pub fn parse_release_record_block(commit_message: &str) -> ReleaseRecordResult<R
 	let start_matches = commit_message
 		.match_indices(RELEASE_RECORD_START_MARKER)
 		.collect::<Vec<_>>();
+
 	if start_matches.is_empty() {
 		return Err(ReleaseRecordError::NotFound);
 	}
+
 	let end_matches = commit_message
 		.match_indices(RELEASE_RECORD_END_MARKER)
 		.collect::<Vec<_>>();
+
 	if end_matches.is_empty() {
 		return Err(ReleaseRecordError::MissingEndMarker);
 	}
+
 	if start_matches.len() > 1 || end_matches.len() > 1 {
 		return Err(ReleaseRecordError::MultipleBlocks);
 	}
+
 	let (start_index, _) = start_matches
 		.first()
 		.copied()
@@ -6159,9 +6443,11 @@ pub fn parse_release_record_block(commit_message: &str) -> ReleaseRecordResult<R
 		.first()
 		.copied()
 		.unwrap_or_else(|| unreachable!("end marker count was validated"));
+
 	if end_index <= start_index {
 		return Err(ReleaseRecordError::MissingEndMarker);
 	}
+
 	let block_contents =
 		&commit_message[start_index + RELEASE_RECORD_START_MARKER.len()..end_index];
 	let json_text = extract_release_record_json(block_contents)?;
@@ -6171,9 +6457,11 @@ pub fn parse_release_record_block(commit_message: &str) -> ReleaseRecordResult<R
 		.get("kind")
 		.and_then(serde_json::Value::as_str)
 		.ok_or(ReleaseRecordError::MissingKind)?;
+
 	if kind != RELEASE_RECORD_KIND {
 		return Err(ReleaseRecordError::UnsupportedKind(kind.to_string()));
 	}
+
 	let current = monochange_schema::release_record::migrate_value(raw)
 		.map_err(release_record_schema_error_to_error)?;
 	serde_json::from_value(current).map_err(ReleaseRecordError::InvalidJson)
@@ -6181,9 +6469,11 @@ pub fn parse_release_record_block(commit_message: &str) -> ReleaseRecordResult<R
 
 fn extract_release_record_json(block_contents: &str) -> ReleaseRecordResult<String> {
 	let lines = block_contents.trim().lines().collect::<Vec<_>>();
+
 	if lines.first().map(|line| line.trim_end()) != Some("```json") {
 		return Err(ReleaseRecordError::MissingJsonBlock);
 	}
+
 	let Some(closing_index) = lines
 		.iter()
 		.enumerate()
@@ -6192,6 +6482,7 @@ fn extract_release_record_json(block_contents: &str) -> ReleaseRecordResult<Stri
 	else {
 		return Err(ReleaseRecordError::MissingJsonBlock);
 	};
+
 	if lines
 		.iter()
 		.skip(closing_index + 1)
@@ -6206,9 +6497,11 @@ fn extract_release_record_json(block_contents: &str) -> ReleaseRecordResult<Stri
 		.copied()
 		.collect::<Vec<_>>()
 		.join("\n");
+
 	if json.trim().is_empty() {
 		return Err(ReleaseRecordError::MissingJsonBlock);
 	}
+
 	Ok(json)
 }
 
@@ -6731,9 +7024,11 @@ pub trait HostedSourceAdapter: Sync {
 		manifest: &ReleaseManifest,
 	) -> MonochangeResult<Vec<HostedIssueCommentOutcome>> {
 		let plans = self.plan_released_issue_comments(source, manifest);
+
 		if plans.is_empty() {
 			return Ok(Vec::new());
 		}
+
 		self.comment_released_issues_with_plans(source, &plans)
 			.await
 	}
@@ -6765,11 +7060,13 @@ pub trait HostedSourceAdapter: Sync {
 					provider,
 					tag_name: update.tag_name.clone(),
 					target_commit: update.to_commit.clone(),
+
 					operation: if supports_sync {
 						RetargetProviderOperation::Planned
 					} else {
 						RetargetProviderOperation::Unsupported
 					},
+
 					url: None,
 					message: (!supports_sync).then_some(format!(
 						"provider sync is not yet supported for {provider} release retargeting"
@@ -6788,6 +7085,7 @@ pub trait HostedSourceAdapter: Sync {
 		if dry_run {
 			return Ok(self.plan_retargeted_releases(tag_results));
 		}
+
 		Err(MonochangeError::Config(format!(
 			"provider sync is not yet supported for {} release retargeting",
 			source.provider
@@ -6969,10 +7267,17 @@ pub struct HostedCommitRequest {
 	pub owner: String,
 	/// Repository name, e.g. `monochange`.
 	pub repository: String,
-	/// Branch the commit must land on, e.g. `monochange/release/release`.
+	/// Release branch the commit must land on, e.g. `monochange/release/release`.
 	pub branch: String,
-	/// Commit SHA the files were prepared from. The server rejects the request
-	/// when the branch has moved so a rerun never overwrites newer work.
+	/// Branch the release was prepared from, e.g. `main`.
+	///
+	/// The server only replaces an existing release branch while `base_commit`
+	/// is still the head of this branch, so a stale run never overwrites the
+	/// release prepared by a newer one. Older clients omit it and can only
+	/// create the release branch or fast-forward it from `base_commit`.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub base_branch: Option<String>,
+	/// Commit SHA the files were prepared from and the release commit's parent.
 	pub base_commit: String,
 	/// Release commit subject, e.g. `chore(release): prepare release`.
 	pub subject: String,
@@ -7224,6 +7529,7 @@ impl WorkspaceConfiguration {
 	#[must_use]
 	pub fn effective_release_identity(&self, package_id: &str) -> Option<EffectiveReleaseIdentity> {
 		let package = self.package_by_id(package_id)?;
+
 		if let Some(group) = self.group_for_package(package_id) {
 			return Some(EffectiveReleaseIdentity {
 				owner_id: group.id.clone(),
@@ -7604,6 +7910,7 @@ impl EcosystemRegistry {
 
 		let mut packages = Vec::new();
 		let mut warnings = Vec::new();
+
 		for (ecosystem, result) in results {
 			match result {
 				Ok(mut discovery) => {
@@ -7615,6 +7922,7 @@ impl EcosystemRegistry {
 				}
 			}
 		}
+
 		Ok(AdapterDiscovery { packages, warnings })
 	}
 
@@ -7676,6 +7984,7 @@ pub fn default_publish_order_dependency_fields(ecosystem: Ecosystem) -> &'static
 
 pub fn materialize_dependency_edges(packages: &[PackageRecord]) -> Vec<DependencyEdge> {
 	let mut package_ids_by_name = BTreeMap::<String, Vec<(String, Option<Ecosystem>)>>::new();
+
 	for package in packages {
 		let names = std::iter::once((&package.name, None)).chain(
 			package
@@ -7695,6 +8004,7 @@ pub fn materialize_dependency_edges(packages: &[PackageRecord]) -> Vec<Dependenc
 	}
 
 	let mut edges = Vec::new();
+
 	for package in packages {
 		for dependency in &package.declared_dependencies {
 			if let Some(target_package_ids) = package_ids_by_name.get(&dependency.name) {

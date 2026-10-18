@@ -17,6 +17,7 @@ flock -n 9 || {
 if [ -f /opt/monochange/.website-version ]; then
 	current="$(cat /opt/monochange/.website-version)"
 	newest="$(printf '%s\n%s\n' "$current" "$version" | sort -V | tail -1)"
+
 	if [ "$newest" != "$version" ]; then
 		echo 'refusing to replace a newer website release' >&2
 		exit 1

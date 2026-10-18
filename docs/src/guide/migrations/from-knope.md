@@ -413,7 +413,7 @@ versioned_files = [
 ]
 ```
 
-Regex entries accept glob `path` patterns and work on packages, groups, and ecosystem-level `versioned_files`. See [Regex versioned files](./04-configuration.md#regex-versioned-files) for the full rule set.
+Regex entries accept glob `path` patterns and work on packages, groups, and ecosystem-level `versioned_files`. See [Regex versioned files](../04-configuration.md#regex-versioned-files) for the full rule set.
 
 ## Step 8: Migrate GitHub Actions workflows
 
@@ -449,7 +449,7 @@ For PR-based release flows with monochange, add a changeset policy workflow:
       --changed-paths file2.rs
 ```
 
-See [GitHub automation](./08-github-automation.md) for a complete workflow example.
+See [GitHub automation](../08-github-automation.md) for a complete workflow example.
 
 ## Complete migration example
 

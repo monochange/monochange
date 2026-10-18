@@ -1,12 +1,12 @@
 ---
-"monochange": "minor"
+"monochange": patch
 ---
 
-# Report hosted release commit verification in the release-commit result
+# Show hosted release commit verification in text and Markdown reports
 
-`CommitRelease` now surfaces whether GitHub marked the hosted release commit as verified in the command's JSON and human-readable reports. The hosted backend previously discarded the app's verification decision, so a repository that required signed commits would only discover an unverified commit when the release branch protection rejected the merge.
+The `CommitRelease` step already records GitHub's verification result in the `verified` field of its JSON report. The text and Markdown summaries now show it too, so a run that used the hosted backend says whether GitHub verified the release commit without reading the JSON.
 
-The `verified` field appears in `CommitReleaseReport` (the JSON output of the `CommitRelease` step) and in the text and Markdown summaries as **Verified: yes** / **not verified** / **no verification requested**. A hosted commit with `verified: false` will still be created, but the report no longer pretends it was verified by GitHub.
+Local commits and dry runs leave `verified` unset and render as before.
 
 **Before (text output):**
 
@@ -24,16 +24,4 @@ Release commit
   2 tracked paths · already-exists · verified
 ```
 
-```json
-{
-	"releaseCommit": {
-		"subject": "chore(release): publish",
-		"body": "body",
-		"commit": "1234567890abcdef",
-		"trackedPaths": ["Cargo.toml", "CHANGELOG.md"],
-		"dryRun": false,
-		"status": "already_exists",
-		"verified": true
-	}
-}
-```
+The Markdown summary adds a `- **Verified:** yes` or `- **Verified:** no` line. When GitHub does not verify a hosted commit, the hosted backend now fails the step and leaves the release branch where it was.

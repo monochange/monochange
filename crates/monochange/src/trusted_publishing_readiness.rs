@@ -70,6 +70,7 @@ pub(crate) async fn check_trusted_publishing_readiness(
 	}
 
 	let identity = detect_trusted_publishing_identity(env_map);
+
 	match project_side_outcome(root, source, request, env_map, &identity) {
 		ProjectSideOutcome::Blocked(blocker) => return blocker,
 		// Outside a supported CI provider the OIDC identity cannot be
@@ -109,6 +110,7 @@ async fn registry_probe(
 			);
 		}
 	};
+
 	// patch-coverage:ignore-end
 	let endpoints = RegistryEndpoints::from_env();
 	registry_side_readiness(request, &client, &endpoints).await
@@ -137,7 +139,9 @@ pub(crate) fn trusted_publishing_project_blocker_message(
 	if !request.trusted_publishing.enabled {
 		return None;
 	}
+
 	let identity = detect_trusted_publishing_identity(env_map);
+
 	match project_side_outcome(root, source, request, env_map, &identity) {
 		ProjectSideOutcome::Blocked(blocker) => Some(blocker.message),
 		ProjectSideOutcome::LocalRun | ProjectSideOutcome::Verified => None,
@@ -207,6 +211,7 @@ fn project_side_outcome(
 					),
 				));
 			}
+
 			ProjectSideOutcome::Verified
 		}
 		Err(error) => {
@@ -234,6 +239,7 @@ pub(crate) async fn registry_side_readiness(
 	endpoints: &RegistryEndpoints,
 ) -> TrustedPublishingReadiness {
 	let setup_url = manual_setup_url(request);
+
 	match registry_package_exists_with_transport(request, client, endpoints).await {
 		Ok(Some(true)) => {
 			TrustedPublishingReadiness {

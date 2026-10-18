@@ -1547,6 +1547,16 @@ fn render_publish_event(
 				package.registry,
 			);
 		}
+		PublishProgressEvent::PackageStaged(package) => {
+			let _ = write!(
+				output,
+				"{} {} staged {} on {} (awaiting approval)",
+				paint_text(symbols.step_success, Style::Success, color),
+				package_prefix(package, symbols.ecosystem_emoji, color),
+				package.version,
+				package.registry,
+			);
+		}
 		PublishProgressEvent::PackageFailed { package, message } => {
 			let _ = write!(
 				output,
@@ -1559,24 +1569,28 @@ fn render_publish_event(
 		PublishProgressEvent::RunFinished {
 			total,
 			published,
+			staged,
 			skipped,
 			failed,
 			..
 		} => {
 			let mut counts = format!("{published} published");
+			if *staged > 0 {
+				let _ = write!(counts, ", {staged} staged awaiting approval");
+			}
 			if *failed > 0 {
 				let _ = write!(counts, ", {failed} failed");
 			}
 			if *skipped > 0 {
 				let _ = write!(counts, ", {skipped} skipped");
 			}
-			let not_attempted = total.saturating_sub(published + failed + skipped);
+			let not_attempted = total.saturating_sub(published + staged + failed + skipped);
 			if not_attempted > 0 {
 				let _ = write!(counts, ", {not_attempted} not attempted");
 			}
 			let (symbol, style) = if *failed > 0 {
 				(symbols.step_failure, Style::Error)
-			} else if *published == 0 {
+			} else if *published == 0 && *staged == 0 {
 				(symbols.bullet, Style::Muted)
 			} else {
 				(symbols.command_success, Style::Success)
@@ -1644,6 +1658,12 @@ fn publish_event_json(
 				serde_json::json!({ "package": publish_package_json(package) }),
 			)
 		}
+		PublishProgressEvent::PackageStaged(package) => {
+			(
+				"publish_package_staged",
+				serde_json::json!({ "package": publish_package_json(package) }),
+			)
+		}
 		PublishProgressEvent::PackageFailed { package, message } => {
 			(
 				"publish_package_failed",
@@ -1657,6 +1677,7 @@ fn publish_event_json(
 			mode,
 			total,
 			published,
+			staged,
 			skipped,
 			failed,
 		} => {
@@ -1666,6 +1687,7 @@ fn publish_event_json(
 					"mode": mode,
 					"total": total,
 					"published": published,
+					"staged": staged,
 					"skipped": skipped,
 					"failed": failed,
 				}),

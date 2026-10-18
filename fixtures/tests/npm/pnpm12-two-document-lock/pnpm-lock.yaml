@@ -1,0 +1,45 @@
+---
+lockfileVersion: '9.0'
+
+importers:
+  .:
+    configDependencies: {}
+    packageManagerDependencies:
+      pnpm:
+        specifier: 12.3.4
+        version: 12.3.4
+
+packages:
+  '@pnpm/logger@5.2.0':
+    resolution: {integrity: sha512-L0hfq1fn5DceU86Fh4JjFz6m9WZxzI0C8lt6bTYWFoeoCR7JKXYc+rEku69inKjqPnqHj8Q== }
+
+snapshots:
+  '@pnpm/logger@5.2.0':
+    dependencies:
+      bole: 5.0.20
+
+---
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+  .:
+    dependencies:
+      '@acme/api': 2.3.1
+
+  packages/consumer:
+    dependencies:
+      '@acme/api':
+        specifier: ^2.3.1
+        version: 2.3.1
+
+  packages/linked-consumer:
+    dependencies:
+      '@acme/api': 'link:../api'
+
+  packages/workspace-consumer:
+    dependencies:
+      '@acme/api': 'workspace:*'

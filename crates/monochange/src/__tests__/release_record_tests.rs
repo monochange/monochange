@@ -46,6 +46,7 @@ fn init_release_repo() -> TempDir {
 	fs::write(root.join("README.md"), "# test\n")
 		.unwrap_or_else(|error| panic!("write readme: {error}"));
 	git(root, &["add", "."]);
+
 	git(root, &["commit", "-m", "initial"]);
 	tempdir
 }
@@ -252,6 +253,7 @@ async fn create_release_tags_pushes_created_and_floating_tags() {
 		.output()
 		.unwrap_or_else(|error| panic!("ls-remote: {error}"));
 	let remote_tags = String::from_utf8_lossy(&remote_tags.stdout);
+
 	for tag in ["refs/tags/v1.0.1", "refs/tags/v1"] {
 		assert!(remote_tags.contains(tag), "expected {tag} in {remote_tags}");
 	}
@@ -277,8 +279,10 @@ fn sample_tag_report(status: &str, operations: &[ReleaseTagOperation]) -> Releas
 						ReleaseTagOperation::Created if index > 0 => {
 							Some("0123456789abc".to_string())
 						}
+
 						_ => None,
 					},
+
 					operation: *operation,
 					floating_results: if index == 0 {
 						vec![

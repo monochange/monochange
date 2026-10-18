@@ -257,6 +257,7 @@ async fn build_publish_readiness_report_for_publish(
 		)
 		.await;
 	}
+
 	build_publish_readiness_report(root, configuration, "HEAD", selected_packages).await
 }
 
@@ -333,6 +334,7 @@ async fn build_report_from_publish_report(
 ) -> MonochangeResult<PublishReadinessReport> {
 	let env_map = context.env_map.clone();
 	let mut request_by_key = BTreeMap::new();
+
 	for request in &context.requests {
 		request_by_key.insert(
 			publish_request_key(
@@ -343,7 +345,9 @@ async fn build_report_from_publish_report(
 			request,
 		);
 	}
+
 	let mut packages = Vec::with_capacity(report.packages.len());
+
 	for outcome in &report.packages {
 		let key = publish_request_key(
 			outcome.package.as_str(),
@@ -351,6 +355,7 @@ async fn build_report_from_publish_report(
 			outcome.version.as_str(),
 		);
 		let request = request_by_key.get(&key).copied();
+
 		let trust_readiness = match request {
 			Some(request) => {
 				crate::trusted_publishing_readiness::check_trusted_publishing_readiness(
@@ -364,6 +369,7 @@ async fn build_report_from_publish_report(
 			}
 			None => disabled_trust_readiness_fallback(),
 		};
+
 		let blocked_by_trust = trust_readiness.status == TrustedPublishingReadinessStatus::Blocked;
 		packages.push(PublishReadinessPackage {
 			package: outcome.package.clone(),
@@ -380,6 +386,7 @@ async fn build_report_from_publish_report(
 			} else {
 				outcome.message.clone()
 			},
+
 			trusted_publishing: Some(trust_readiness),
 		});
 	}
@@ -401,6 +408,7 @@ async fn build_report_from_publish_report(
 	} else {
 		PublishReadinessGlobalStatus::Ready
 	};
+
 	let package_set_fingerprint = package_set_fingerprint(&packages);
 	Ok(PublishReadinessReport {
 		schema_version: PUBLISH_READINESS_SCHEMA_VERSION,
@@ -424,6 +432,7 @@ fn publication_order_findings(
 	publish_order: &[String],
 ) -> Vec<PublishOrderFinding> {
 	let mut findings = Vec::new();
+
 	if publish_order.is_empty() {
 		return findings;
 	}
@@ -451,6 +460,7 @@ fn publication_order_findings(
 		})
 		.collect::<Vec<_>>();
 	order_violations.sort_by(|left, right| left.0.cmp(&right.0).then_with(|| left.1.cmp(&right.1)));
+
 	for (from_id, to_id, edge) in order_violations {
 		findings.push(PublishOrderFinding {
 			package: Some(from_id),
@@ -469,6 +479,7 @@ fn publication_order_findings(
 			.filter(|publication| positions.contains_key(publication.package.as_str()))
 			.map(|publication| publication.package.clone())
 			.collect::<Vec<_>>();
+
 		if record_ids != publish_order {
 			findings.push(PublishOrderFinding {
 				package: None,
@@ -493,6 +504,7 @@ fn apply_order_findings(
 		let Some(package_id) = finding.package.as_deref().filter(|_| finding.blocking) else {
 			continue;
 		};
+
 		for package in packages
 			.iter_mut()
 			.filter(|package| package.package == package_id)
@@ -547,9 +559,11 @@ fn publish_readiness_input_paths(
 
 	for package in &configuration.packages {
 		let package_root = root.join(&package.path);
+
 		for manifest in package_manifest_names(package.package_type) {
 			insert_existing_path(&mut paths, package_root.join(manifest));
 		}
+
 		insert_lockfile_paths(&mut paths, &package_root);
 	}
 
@@ -636,6 +650,7 @@ fn update_input_fingerprint_hash(mut hash: u64, bytes: &[u8]) -> u64 {
 		hash ^= u64::from(*byte);
 		hash = hash.wrapping_mul(FNV_PRIME);
 	}
+
 	hash
 }
 
@@ -657,7 +672,8 @@ fn readiness_status_from_publish_status(
 ) -> PublishReadinessPackageStatus {
 	match status {
 		package_publish::PackagePublishStatus::Planned
-		| package_publish::PackagePublishStatus::Published => PublishReadinessPackageStatus::Ready,
+		| package_publish::PackagePublishStatus::Published
+		| package_publish::PackagePublishStatus::Staged => PublishReadinessPackageStatus::Ready,
 		package_publish::PackagePublishStatus::SkippedExisting => {
 			PublishReadinessPackageStatus::AlreadyPublished
 		}
@@ -731,12 +747,14 @@ fn validate_readiness_artifact_header(report: &PublishReadinessReport) -> Monoch
 			report.kind
 		)));
 	}
+
 	if report.schema_version != PUBLISH_READINESS_SCHEMA_VERSION {
 		return Err(MonochangeError::Config(format!(
 			"publish readiness artifact schema version {} is not supported; expected {PUBLISH_READINESS_SCHEMA_VERSION}",
 			report.schema_version
 		)));
 	}
+
 	Ok(())
 }
 
@@ -747,6 +765,7 @@ fn validate_readiness_release_commit(
 	if artifact.record_commit == current.record_commit {
 		return Ok(());
 	}
+
 	Err(MonochangeError::Config(format!(
 		"publish readiness artifact was generated for release record {}, but `monochange step publish-packages` selected {}; rerun `monochange step publish-readiness --from HEAD --output <PATH>`",
 		artifact.record_commit, current.record_commit
@@ -786,8 +805,10 @@ fn package_identities(
 	packages: &[PublishReadinessPackage],
 ) -> MonochangeResult<BTreeSet<PackageIdentity<'_>>> {
 	let mut identities = BTreeSet::new();
+
 	for package in packages {
 		let identity = package_identity(package);
+
 		if !identities.insert(identity) {
 			return Err(MonochangeError::Config(format!(
 				"publish readiness artifact contains duplicate package entry {}",
@@ -795,6 +816,7 @@ fn package_identities(
 			)));
 		}
 	}
+
 	Ok(identities)
 }
 
@@ -804,12 +826,15 @@ fn package_set_fingerprint(packages: &[PublishReadinessPackage]) -> String {
 		.map(package_identity)
 		.collect::<BTreeSet<_>>();
 	let mut fingerprint = String::new();
+
 	for identity in identities {
 		if !fingerprint.is_empty() {
 			fingerprint.push('\n');
 		}
+
 		write_package_identity(&mut fingerprint, &identity);
 	}
+
 	fingerprint
 }
 
@@ -842,12 +867,15 @@ fn render_package_identity_list(identities: &[String]) -> String {
 	}
 
 	let mut rendered = String::new();
+
 	for identity in identities {
 		if !rendered.is_empty() {
 			rendered.push_str(", ");
 		}
+
 		rendered.push_str(identity);
 	}
+
 	rendered
 }
 
@@ -890,6 +918,7 @@ fn render_text_report(report: &PublishReadinessReport) -> String {
 		.filter(|package| package.status == PublishReadinessPackageStatus::Blocked)
 		.count();
 	let packages = plural(report.packages.len(), "package", "packages");
+
 	match report.status {
 		PublishReadinessGlobalStatus::Ready => {
 			text.headline(Outcome::Success, "Ready to publish", &[packages]);
@@ -902,6 +931,7 @@ fn render_text_report(report: &PublishReadinessReport) -> String {
 			);
 		}
 	}
+
 	text.fields(&[
 		("Ref", report.from.clone()),
 		(
@@ -930,6 +960,7 @@ fn render_text_report(report: &PublishReadinessReport) -> String {
 			.collect::<Vec<_>>();
 		text.table(&rows);
 	}
+
 	let trusted = report
 		.packages
 		.iter()
@@ -940,6 +971,7 @@ fn render_text_report(report: &PublishReadinessReport) -> String {
 				.map(|trust| (package, trust))
 		})
 		.collect::<Vec<_>>();
+
 	if !trusted.is_empty() {
 		text.section("Trusted publishing", Some(trusted.len()));
 		let rows = trusted
@@ -957,10 +989,12 @@ fn render_text_report(report: &PublishReadinessReport) -> String {
 			.collect::<Vec<_>>();
 		text.table(&rows);
 	}
+
 	if !report.publish_order.is_empty() {
 		text.section("Publish order", None);
 		text.indented(&report.publish_order.join(" → "), Tone::Plain);
 	}
+
 	if !report.order_findings.is_empty() {
 		text.section("Order findings", Some(report.order_findings.len()));
 		text.list(
@@ -971,6 +1005,7 @@ fn render_text_report(report: &PublishReadinessReport) -> String {
 			usize::MAX,
 		);
 	}
+
 	text.render()
 }
 
@@ -995,12 +1030,14 @@ fn render_markdown_report(report: &PublishReadinessReport) -> String {
 	let _ = writeln!(output, "- Release ref: `{}`", report.from);
 	let _ = writeln!(output, "- Release record: `{}`", report.record_commit);
 	output.push('\n');
+
 	if report.packages.is_empty() {
 		output.push_str("No packages selected for publishing.\n");
 	} else {
 		output
 			.push_str("| Package | Version | Registry | Status | Trusted publishing | Message |\n");
 		output.push_str("| --- | --- | --- | --- | --- | --- |\n");
+
 		for package in &report.packages {
 			let trust_label = package.trusted_publishing.as_ref().map_or_else(
 				|| "`-`".to_string(),
@@ -1018,6 +1055,7 @@ fn render_markdown_report(report: &PublishReadinessReport) -> String {
 			);
 		}
 	}
+
 	if !report.publish_order.is_empty() {
 		output.push('\n');
 		let _ = writeln!(
@@ -1026,6 +1064,7 @@ fn render_markdown_report(report: &PublishReadinessReport) -> String {
 			report.publish_order.join(", ")
 		);
 	}
+
 	for finding in &report.order_findings {
 		let _ = writeln!(
 			output,
@@ -1034,6 +1073,7 @@ fn render_markdown_report(report: &PublishReadinessReport) -> String {
 			finding.message
 		);
 	}
+
 	output
 }
 

@@ -135,6 +135,7 @@ fn get_merge_base_returns_actual_merge_base_when_available() {
 	git(root, &["add", "feature.txt"]);
 	git(root, &["commit", "-m", "feature"]);
 	git(root, &["checkout", "main"]);
+
 	fs::write(root.join("main.txt"), "main\n")
 		.unwrap_or_else(|error| panic!("write main file: {error}"));
 	git(root, &["add", "main.txt"]);
@@ -239,6 +240,7 @@ fn pull_request_changed_files_use_the_merge_base_range() {
 	git(root, &["checkout", "main"]);
 	fs::write(root.join("main.txt"), "main\n")
 		.unwrap_or_else(|error| panic!("write main file: {error}"));
+
 	git(root, &["add", "main.txt"]);
 	git(root, &["commit", "-m", "main"]);
 

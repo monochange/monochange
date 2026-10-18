@@ -5,6 +5,9 @@ dist/
 playwright-report/
 test-results/
 
+# Local Monosecret development values
+.env
+
 # Node
 node_modules/
 

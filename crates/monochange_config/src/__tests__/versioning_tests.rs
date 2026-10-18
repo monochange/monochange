@@ -333,11 +333,13 @@ fn title_configuration(scope: &str, key: &str, template: &str) -> String {
 	let template = serde_json::to_string(template)
 		.unwrap_or_else(|error| panic!("serialize title template: {error}"));
 	let declaration = format!("{key} = {template}\n");
+
 	let configuration = match scope {
 		"defaults" => format!("[defaults]\n{declaration}\n{BASE}"),
 		"group" => format!("{BASE}\n[group.sdk]\npackages = [\"app\"]\n{declaration}"),
 		_ => format!("{BASE}\n{declaration}"),
 	};
+
 	format!("{configuration}\n[package.app.values.build]\nenv = \"BUILD_NUMBER\"\n")
 }
 
@@ -349,6 +351,7 @@ fn titles_accept_every_release_context_field(
 	let template = "{{ id }} {{ version }} {{ previous_version }} {{ date }} {{ time }} {{ datetime }} {{ changes_count }} {{ tag_url }} {{ compare_url }}";
 	let configuration = load(&title_configuration(scope, key, template))
 		.unwrap_or_else(|error| panic!("title context fields should load: {error}"));
+
 	let titles = match scope {
 		"defaults" => {
 			(
@@ -374,6 +377,7 @@ fn titles_accept_every_release_context_field(
 	} else {
 		titles.1
 	};
+
 	assert_eq!(title.as_deref(), Some(template));
 }
 

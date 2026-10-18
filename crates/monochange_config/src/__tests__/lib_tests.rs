@@ -79,8 +79,10 @@ fn infer_group_bump_from_explicit_version(
 		return Ok(None);
 	};
 	let mut max_version: Option<&Version> = None;
+
 	for member_id in &group.packages {
 		let package_id = resolve_package_reference(member_id, workspace_root, packages)?;
+
 		if let Some(current_version) = packages
 			.iter()
 			.find(|package| package.id == package_id)
@@ -93,6 +95,7 @@ fn infer_group_bump_from_explicit_version(
 			});
 		}
 	}
+
 	Ok(max_version
 		.map(|current_version| crate::infer_bump_from_versions(current_version, explicit_version)))
 }
@@ -333,6 +336,7 @@ fn load_workspace_configuration_uses_defaults_when_file_is_missing() {
 		ChangelogFormat::Monochange
 	);
 	assert_eq!(configuration.defaults.empty_update_message, None);
+
 	assert!(configuration.packages.is_empty());
 	assert!(configuration.groups.is_empty());
 	assert!(configuration.cli.is_empty());
@@ -363,6 +367,7 @@ fn load_workspace_configuration_parses_prerelease_settings() {
 	assert_eq!(prerelease.branches, vec!["next", "prerelease/*"]);
 	assert!(!prerelease.keep_changesets);
 	assert!(prerelease.changelog);
+
 	assert!(!prerelease.release_notes);
 	assert!(prerelease.publish_packages);
 	assert!(!prerelease.write_manifests);
@@ -403,6 +408,7 @@ fn load_workspace_configuration_applies_prerelease_defaults() {
 	assert!(prerelease.keep_changesets);
 	assert!(!prerelease.changelog);
 	assert!(prerelease.release_notes);
+
 	assert!(!prerelease.publish_packages);
 	assert!(prerelease.write_manifests);
 }
@@ -433,6 +439,7 @@ fn load_workspace_configuration_supports_diagnostics_cli_command_definition() {
 		.find(|command| command.name == "diagnostics")
 		.unwrap_or_else(|| panic!("expected diagnostics command"));
 	assert_eq!(diagnostics.steps.len(), 1);
+
 	match diagnostics.steps.first() {
 		Some(CliStepDefinition::DiagnoseChangesets { .. }) => {}
 		Some(_) => panic!("expected DiagnoseChangesets step"),
@@ -646,6 +653,7 @@ fn load_workspace_configuration_parses_package_group_and_cli_command_declaration
 		configuration.defaults.changelog_format,
 		ChangelogFormat::Monochange
 	);
+
 	assert_eq!(configuration.packages.len(), 2);
 	assert_eq!(configuration.groups.len(), 1);
 	assert_eq!(
@@ -673,6 +681,7 @@ fn load_workspace_configuration_parses_package_group_and_cli_command_declaration
 			initial_header: None,
 		})
 	);
+
 	let group = configuration
 		.groups
 		.first()
@@ -774,6 +783,7 @@ fn load_workspace_configuration_parses_github_release_settings() {
 	assert_eq!(source.repo, "monochange");
 	assert!(source.releases.enabled);
 	assert!(source.releases.draft);
+
 	assert!(source.releases.prerelease);
 	assert!(source.releases.generate_notes);
 	assert_eq!(source.releases.changeset_context_timeout_seconds, 120);
@@ -788,6 +798,7 @@ fn load_workspace_configuration_parses_github_release_settings() {
 		source.pull_requests.title,
 		"chore(release): prepare release"
 	);
+
 	assert_eq!(
 		source.pull_requests.labels,
 		vec!["release", "automated", "bot"]
@@ -1856,6 +1867,7 @@ versioned_files = ["packages/app/*.json"]
 		Ok(configuration) => panic!("expected error: {configuration:?}"),
 		Err(error) => error,
 	};
+
 	let message = error.to_string();
 	assert!(
 		message.contains("ecosystem `python`"),
@@ -2146,6 +2158,7 @@ fn apply_version_groups_assigns_group_ids_and_detects_mismatched_versions() {
 		first_package.metadata.get("config_id").map(String::as_str),
 		Some("core")
 	);
+
 	assert_eq!(
 		second_package.metadata.get("config_id").map(String::as_str),
 		Some("web")
@@ -2528,6 +2541,7 @@ fn changeset_lint_validation_covers_summary_and_scoped_rule_errors() {
 			"min_length must not exceed max_heading_length",
 		),
 	];
+
 	for (settings, expected) in invalid_cases {
 		let error = crate::validate_changeset_lint_settings(&settings, &changelog)
 			.expect_err("invalid lint settings should be rejected")
@@ -2664,6 +2678,7 @@ fn lint_markdown_changeset_covers_summary_type_and_scope_failures() {
 		"summary must be at most 5 characters",
 	);
 	settings.summary.required = true;
+
 	settings.summary.max_length = None;
 	settings.summary.forbid_trailing_period = true;
 	expect_config_error(
@@ -2808,6 +2823,7 @@ fn lint_markdown_scope_covers_each_configured_requirement() {
 		),
 		"must include a fenced code block",
 	);
+
 	assert!(
 		crate::lint_markdown_scope(
 			"# Summary\n\n~~~text\ncode\n~~~",
@@ -2926,6 +2942,7 @@ fn changelog_streams_default_types_and_validate_one_stream_per_changeset() {
 		configuration.changelog.types["native"].bump,
 		BumpSeverity::Major
 	);
+
 	assert_eq!(
 		configuration.changelog.types["app_feature"].bump,
 		BumpSeverity::Minor
@@ -3023,6 +3040,7 @@ fn changelog_stream_validation_rejects_ambiguous_or_invalid_outputs() {
 			"references unknown package or group `missing`",
 		),
 	];
+
 	for (output_id, output, expected) in invalid_outputs {
 		let mut settings = raw_changelog_settings();
 		settings.outputs.insert(output_id.to_string(), output);
@@ -3073,6 +3091,7 @@ fn changelog_output_and_provider_validation_accepts_only_compatible_destinations
 		initial_header: None,
 	};
 	assert!(crate::validate_append_changelog_format("package `app`", Some(&markdown)).is_ok());
+
 	for format in [ChangelogFormat::Json, ChangelogFormat::Text] {
 		let standalone = ChangelogTarget {
 			format,
@@ -3146,6 +3165,7 @@ fn changelog_output_and_provider_validation_accepts_only_compatible_destinations
 	source.releases.changelog_output = "user".to_string();
 	assert!(crate::validate_source_changelog_output(Some(&source), &changelog).is_ok());
 	source.releases.changelog_output = "missing".to_string();
+
 	expect_config_error(
 		crate::validate_source_changelog_output(Some(&source), &changelog),
 		"references unknown [changelog.outputs] entry `missing`",
@@ -4244,6 +4264,7 @@ fn load_changeset_file_preserves_group_targets_and_source_paths() {
 	assert_eq!(target.kind.as_str(), "group");
 	assert_eq!(target.origin, "direct-change");
 	assert_eq!(target.explicit_version, None);
+
 	assert_eq!(changeset.signals.len(), 2);
 	assert!(
 		changeset
@@ -4758,6 +4779,47 @@ fn load_workspace_configuration_merges_publish_fail_on_duplicate() {
 		.package_by_id("legacy")
 		.unwrap_or_else(|| panic!("expected legacy package"));
 	assert!(!legacy.publish.fail_on_duplicate);
+}
+
+#[test]
+fn load_workspace_configuration_merges_publish_flow() {
+	let root = fixture_path("config/publish-flow");
+	let configuration = load_workspace_configuration(&root)
+		.unwrap_or_else(|error| panic!("configuration: {error}"));
+
+	let web = configuration
+		.package_by_id("web")
+		.unwrap_or_else(|| panic!("expected web package"));
+	assert_eq!(web.publish.flow, monochange_core::PublishFlow::Staged);
+
+	let legacy = configuration
+		.package_by_id("legacy")
+		.unwrap_or_else(|| panic!("expected legacy package"));
+	assert_eq!(legacy.publish.flow, monochange_core::PublishFlow::Direct);
+}
+
+#[test]
+fn load_workspace_configuration_defaults_publish_flow_to_direct_for_other_ecosystems() {
+	let root = fixture_path("config/publish-fail-on-duplicate");
+	let configuration = load_workspace_configuration(&root)
+		.unwrap_or_else(|error| panic!("configuration: {error}"));
+
+	let web = configuration
+		.package_by_id("web")
+		.unwrap_or_else(|| panic!("expected web package"));
+	assert_eq!(web.publish.flow, monochange_core::PublishFlow::Direct);
+}
+
+#[test]
+fn load_workspace_configuration_rejects_staged_publish_flow_for_non_npm_ecosystem() {
+	let root = fixture_path("config/rejects-publish-flow-non-npm");
+	let error = load_workspace_configuration(&root)
+		.err()
+		.unwrap_or_else(|| panic!("expected staged publish flow error"));
+	assert!(error.to_string().contains(
+		"ecosystems `python` uses staged publishing for an ecosystem without staged publish support"
+	));
+	assert!(error.to_string().contains("flow = \"staged\""));
 }
 
 #[test]
@@ -5290,6 +5352,7 @@ fn source_diagnostic_helpers_cover_empty_labels_sorting_and_fallback_spans() {
 	assert!(rendered.contains("^ earlier"), "{rendered}");
 	assert!(rendered.contains("^ later"), "{rendered}");
 	assert!(rendered.contains("  = help: try fixing it"), "{rendered}");
+
 	assert!(
 		rendered.contains("  = note: the first snippet marks the primary failure location"),
 		"{rendered}"
@@ -5319,6 +5382,7 @@ fn source_diagnostic_helpers_cover_empty_labels_sorting_and_fallback_spans() {
 	assert_eq!(line_index_for_offset(source, usize::MAX), 2);
 	assert_eq!(line_and_column_for_offset(source, usize::MAX), (3, 6));
 	assert_eq!(frontmatter_span_for_line_column(source, 2, 99), 10..11);
+
 	assert_eq!(
 		frontmatter_span_for_line_column(source, 99, 1),
 		source.len()..source.len()
@@ -5741,6 +5805,7 @@ fn load_workspace_configuration_accepts_command_step_with_shell_string() {
 		.iter()
 		.find(|c| c.name == "test")
 		.unwrap_or_else(|| panic!("expected test command"));
+
 	match test_cmd.steps.first() {
 		Some(CliStepDefinition::Command { shell, id, .. }) => {
 			assert_eq!(*shell, ShellConfig::Custom("bash".to_string()));
@@ -5842,6 +5907,7 @@ fn validate_ecosystem_version_readable_passes_fields_to_the_adapter() {
 		rendered.contains("package `web` versioned file `package.json`"),
 		"expected owner context in `{rendered}`"
 	);
+
 	assert!(
 		rendered.contains("does not contain a `metadata.bin.monochange.version` string field"),
 		"expected adapter detail in `{rendered}`"
@@ -7012,9 +7078,11 @@ fn load_change_signals_covers_configured_type_and_caused_by_context_paths() {
 			PublishState::Public,
 		),
 	];
+
 	for (package, id) in packages.iter_mut().zip(["core", "app"]) {
 		package.id = id.to_string();
 	}
+
 	apply_version_groups(&mut packages, &configuration)
 		.unwrap_or_else(|error| panic!("version groups: {error}"));
 
@@ -7097,9 +7165,11 @@ fn load_change_signals_applies_default_bump_for_object_type_with_context() {
 			PublishState::Public,
 		),
 	];
+
 	for (package, id) in packages.iter_mut().zip(["core", "app"]) {
 		package.id = id.to_string();
 	}
+
 	apply_version_groups(&mut packages, &configuration)
 		.unwrap_or_else(|error| panic!("version groups: {error}"));
 
@@ -7110,6 +7180,7 @@ fn load_change_signals_applies_default_bump_for_object_type_with_context() {
 	)
 	.unwrap_or_else(|error| panic!("change signals: {error}"));
 	assert_eq!(signals.len(), 2);
+
 	for signal in &signals {
 		assert!(signal.package_id == "core" || signal.package_id == "app");
 		assert_eq!(signal.requested_bump, Some(BumpSeverity::Minor));
@@ -7243,6 +7314,18 @@ fn validate_versioned_files_and_release_notes_cover_remaining_validation_paths()
 			.contains("for ecosystem `cargo`")
 	);
 
+	assert!(crate::path_is_supported_for_ecosystem(
+		Path::new("pnpm-lock.yaml"),
+		EcosystemType::Npm
+	));
+	assert!(crate::path_is_supported_for_ecosystem(
+		Path::new("yarn.lock"),
+		EcosystemType::Npm
+	));
+	assert!(crate::path_is_supported_for_ecosystem(
+		Path::new("bun.lock"),
+		EcosystemType::Npm
+	));
 	assert!(crate::path_is_supported_for_ecosystem(
 		Path::new("pubspec.yaml"),
 		EcosystemType::Dart
@@ -7485,7 +7568,6 @@ fn load_workspace_configuration_rejects_versioned_file_without_type_or_regex() {
 }
 
 // -- validate_versioned_files_content tests --
-
 /// A test double for one ecosystem adapter.
 ///
 /// `monochange_config` cannot depend on the ecosystem crates, so these tests
@@ -7627,10 +7709,55 @@ fn validate_changeset_targets_reports_missing_file_read_errors() {
 	let configuration = load_workspace_configuration(&root)
 		.unwrap_or_else(|error| panic!("configuration: {error}"));
 	let missing_changeset = root.join(".changeset/missing.md");
-	let error = crate::validate_changeset_targets(&configuration, &missing_changeset)
-		.err()
-		.unwrap_or_else(|| panic!("expected missing changeset read error"));
+	let package_ids = configuration
+		.packages
+		.iter()
+		.map(|package| package.id.as_str())
+		.collect::<std::collections::BTreeSet<_>>();
+	let group_members = configuration
+		.groups
+		.iter()
+		.map(|group| {
+			(
+				group.id.as_str(),
+				group
+					.packages
+					.iter()
+					.map(String::as_str)
+					.collect::<std::collections::BTreeSet<_>>(),
+			)
+		})
+		.collect::<BTreeMap<_, _>>();
+	let error = crate::validate_changeset_targets(
+		&configuration,
+		&missing_changeset,
+		&package_ids,
+		&group_members,
+	)
+	.err()
+	.unwrap_or_else(|| panic!("expected missing changeset read error"));
 	assert!(error.to_string().contains("failed to read"));
+}
+
+#[test]
+fn path_relative_to_normalized_root_uses_prefix_fast_path_and_fallback() {
+	let root = fixture_path("changeset-target-metadata/render-workspace");
+	let normalized_root = crate::normalize_path(&root);
+
+	// Already-canonical paths resolve with a component-wise prefix strip.
+	let manifest = normalized_root.join(".changeset/feature.md");
+	assert_eq!(
+		crate::path_relative_to_normalized_root(&normalized_root, &manifest),
+		Some(Path::new(".changeset/feature.md").to_path_buf())
+	);
+
+	// Paths outside the root exercise the canonicalizing fallback and still
+	// resolve to nothing.
+	let outside = Path::new("/definitely-not-a-directory/under/root");
+	assert_eq!(
+		crate::path_relative_to_normalized_root(&normalized_root, outside),
+		None
+	);
 }
 
 #[test]
@@ -7782,13 +7909,13 @@ fn load_workspace_configuration_parses_top_level_lints_and_scopes() {
 		.first()
 		.expect("expected lint scope");
 	assert_eq!(scope.name.as_deref(), Some("published cargo packages"));
+
 	assert_eq!(scope.selector.ecosystems, vec!["cargo".to_string()]);
 	assert_eq!(scope.selector.managed, Some(true));
 	assert_eq!(scope.selector.publishable, Some(true));
 }
 
 // -- proptest_config module (merged from proptest_config.rs) --
-
 use proptest::prelude::*;
 
 use crate::package_type_to_ecosystem_type;
@@ -8287,7 +8414,6 @@ versioned_files = [
 }
 
 // --- auto_discover tests ---
-
 #[test]
 fn manifest_file_for_ecosystem_returns_correct_filenames() {
 	use crate::manifest_file_for_ecosystem;
@@ -8698,6 +8824,7 @@ version_format = "primary"
 		util_package.ignored_paths,
 		vec![PathBuf::from("crates/ignored")]
 	);
+
 	assert_eq!(util_package.versioned_files.len(), 1);
 	assert_eq!(util_package.version_format, VersionFormat::Namespaced);
 	assert_eq!(
@@ -8938,6 +9065,7 @@ fn auto_discover_manifest_name_helpers_cover_comments_and_missing_values() {
 		"cargo:core-lib:crates/core lib:crates__core_lib:crates/core lib/Cargo.toml"
 	);
 	assert_eq!(crate::ecosystem_name(EcosystemType::Dart), "dart");
+
 	assert_eq!(crate::ecosystem_name(EcosystemType::Python), "python");
 }
 
@@ -9587,6 +9715,7 @@ fn floating_tags_reject_unsupported_template_variables() {
 
 fn cli_registration_workspace(root: &Path, packages: &[(&str, &str)]) {
 	let mut config = String::new();
+
 	for (id, cli_line) in packages {
 		let package_dir = root.join("crates").join(id);
 		fs::create_dir_all(&package_dir)
@@ -9600,11 +9729,14 @@ fn cli_registration_workspace(root: &Path, packages: &[(&str, &str)]) {
 			config,
 			"[package.{id}]\npath = \"crates/{id}\"\ntype = \"cargo\"\n"
 		);
+
 		if !cli_line.is_empty() {
 			config.push_str(cli_line);
+
 			config.push('\n');
 		}
 	}
+
 	fs::write(root.join("monochange.toml"), config)
 		.unwrap_or_else(|error| panic!("write monochange.toml: {error}"));
 }

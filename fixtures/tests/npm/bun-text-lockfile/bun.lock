@@ -1,0 +1,31 @@
+{
+  "lockfileVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "bun-text-lockfile-fixture",
+      "dependencies": {
+        "@acme/api": "workspace:packages/api",
+      },
+    },
+    "packages/api": {
+      "name": "@acme/api",
+      "dependencies": {
+        "left-pad": "1.3.0",
+      },
+    },
+    "packages/consumer": {
+      "name": "@acme/consumer",
+      "dependencies": {
+        "@acme/api": "2.3.1",
+      },
+    },
+  },
+  "packages": {
+    "@acme/api": ["@acme/api@2.3.1", "", {
+      "os": ["darwin", "linux"],
+    }, "sha512-b18f49e79f32b4a1c4a4068fd11d1a2d01b1f0f8e7f05c9d2e3a4b5c6d7e8f9a0"],
+    "@acme/consumer": ["@acme/consumer@workspace:packages/consumer"],
+    "left-pad": ["left-pad@1.3.0", "", "sha512-1fba07a2f5b1d17704e9a9f1e7f05"],
+  },
+  "overrides": {},
+}

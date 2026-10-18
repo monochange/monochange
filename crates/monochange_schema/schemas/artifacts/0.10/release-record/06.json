@@ -1,0 +1,104 @@
+{
+	"changed_files": [
+		"crates/hail_0/src/lib.rs"
+	],
+	"changelogs": [
+		{
+			"format": "monochange",
+			"notes": {
+				"sections": [
+					{
+						"collapsed": false,
+						"entries": [
+							"fix: schema artifact 6"
+						],
+						"title": "Bug Fixes"
+					}
+				],
+				"summary": [
+					"Release 6"
+				],
+				"title": "v0.10.6"
+			},
+			"output": "default",
+			"owner_id": "main",
+			"owner_kind": "group",
+			"path": "fixtures/changelog-6.md",
+			"rendered": "## Bug Fixes\n- fix: schema artifact 6",
+			"stream": "default"
+		}
+	],
+	"changesets": [
+		{
+			"details": "Generated from deterministic proptest seed 8430656067206529462.",
+			"path": ".changeset/schema-artifact-6.md",
+			"summary": "Exercise schema artifact fixture 6",
+			"targets": [
+				{
+					"caused_by": [
+						"hail-schema-compat"
+					],
+					"change_type": "feature",
+					"evidence_refs": [
+						"crates/hail_0/src/lib.rs"
+					],
+					"id": "hail_0",
+					"kind": "package",
+					"origin": ".changeset/schema-artifact-6.md"
+				}
+			]
+		}
+	],
+	"command": "monochange release --dry-run",
+	"created_at": "2026-01-06T00:00:00Z",
+	"deleted_changesets": [
+		".changeset/schema-artifact-6.md"
+	],
+	"kind": "monochange.releaseRecord",
+	"package_publications": [],
+	"provider": {
+		"host": null,
+		"kind": "gitlab",
+		"owner": "hail",
+		"repo": "iityebtf"
+	},
+	"release_targets": [
+		{
+			"id": "main",
+			"kind": "group",
+			"members": [],
+			"release": true,
+			"tag": true,
+			"tag_name": "v0.10.6",
+			"version": "0.10.6",
+			"version_format": "primary"
+		},
+		{
+			"id": "hail_1",
+			"kind": "package",
+			"members": [],
+			"release": true,
+			"tag": true,
+			"tag_name": "hail_1/v0.10.6",
+			"version": "0.10.6",
+			"version_format": "namespaced"
+		}
+	],
+	"released_packages": [
+		"hail_0",
+		"hail_1",
+		"hail_2",
+		"hail_3"
+	],
+	"schema_version": "0.10",
+	"updated_changelogs": [
+		"fixtures/changelog-6.md"
+	],
+	"version": "0.10.6",
+	"versions": {
+		"hail_0": "0.10.6",
+		"hail_1": "0.10.6",
+		"hail_2": "0.10.6",
+		"main": "0.10.6"
+	}
+}

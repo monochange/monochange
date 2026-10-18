@@ -156,6 +156,7 @@ fn render_changeset_diagnostics_renders_full_context() {
 	assert!(rendered.contains("caused by: core"));
 	assert!(rendered.contains("evidence: src/lib.rs"));
 	assert!(rendered.contains("introduced: abc1234"));
+
 	assert!(rendered.contains("last-updated: def1234"));
 	assert!(rendered.contains("review request: #42 (https://github.com/example/repo/pull/42)"));
 	assert!(rendered.contains("related issues: #99"));
@@ -232,6 +233,7 @@ fn build_prepared_changesets_uses_generic_context_without_a_git_repository() {
 		.as_ref()
 		.unwrap_or_else(|| panic!("expected generic git context"));
 	assert_eq!(context.provider, HostingProviderKind::GenericGit);
+
 	assert!(context.introduced.is_none());
 	assert!(context.last_updated.is_none());
 	assert!(context.related_issues.is_empty());

@@ -284,6 +284,7 @@ impl AnalysisSession {
 				if let Some(workspace) = cache.get(&tree) {
 					return Ok(workspace.clone());
 				}
+
 				let workspace = discover_analysis_workspace_from_snapshot(
 					&self.repo_root,
 					&SnapshotTarget::GitRevision(tree.clone()),
@@ -309,12 +310,14 @@ fn git_tree_object(repo_root: &Path, revision: &str) -> MonochangeResult<String>
 		.map_err(|error| {
 			MonochangeError::Discovery(format!("failed to resolve git tree `{object}`: {error}"))
 		})?;
+
 	if !output.status.success() {
 		return Err(MonochangeError::Discovery(format!(
 			"failed to resolve git tree `{object}`: {}",
 			String::from_utf8_lossy(&output.stderr).trim()
 		)));
 	}
+
 	String::from_utf8(output.stdout)
 		.map(|value| value.trim().to_string())
 		// patch-coverage:ignore-start -- `git rev-parse` emits an ASCII object id; invalid output requires replacing Git itself.
@@ -407,6 +410,7 @@ fn analyze_changes_in_session(
 			workspace_matcher,
 			package_matcher,
 		);
+
 		let package_id = preferred_package_id(package);
 		let package_changed_files = changed_files
 			.iter()
@@ -426,9 +430,11 @@ fn analyze_changes_in_session(
 			after_snapshot: Some(&after_snapshot),
 		};
 		let mut result = analyzer.analyze_package(&context)?;
+
 		if let Some(lifecycle_change) = lifecycle_change {
 			result.semantic_changes.push(lifecycle_change);
 		}
+
 		let release_identity = workspace.release_identities.get(&package_id).cloned();
 		package_analyses.insert(
 			package_id.clone(),
@@ -463,12 +469,15 @@ fn package_lifecycle_change(
 	let manifest_path = package.manifest_path.file_name().map(PathBuf::from)?;
 	let before_has_manifest = before.files.iter().any(|file| file.path == manifest_path);
 	let after_has_manifest = after.files.iter().any(|file| file.path == manifest_path);
+
 	let kind = match (before_has_manifest, after_has_manifest) {
 		(true, false) => SemanticChangeKind::Removed,
 		(false, true) => SemanticChangeKind::Added,
 		_ => return None,
 	};
+
 	let descriptor = format!("{} package `{}`", package.ecosystem, package.name);
+
 	let summary = match kind {
 		SemanticChangeKind::Added => format!("added {descriptor}"),
 		SemanticChangeKind::Removed => format!("removed {descriptor}"),
@@ -636,9 +645,11 @@ fn discover_analysis_workspace(root: &Path) -> MonochangeResult<AnalysisWorkspac
 
 	let (_, version_group_warnings) = apply_version_groups(&mut packages, &configuration)?;
 	warnings.extend(version_group_warnings);
+
 	if !configuration.packages.is_empty() {
 		packages.retain(|package| package.metadata.contains_key("config_id"));
 	} // patch-coverage:ignore-start patch-coverage:ignore-end -- configured-package filtering is exercised by every configured analysis fixture; llvm-cov attributes the closing brace inconsistently.
+
 	let workspace_path_matcher = PackagePathMatcher::new(
 		"workspace",
 		Path::new(""),
@@ -725,6 +736,7 @@ fn materialize_discovery_files(
 		.filter(|path| is_discovery_file(path))
 		.collect::<Vec<_>>();
 	validate_discovery_paths(&paths)?;
+
 	let files = match target {
 		SnapshotTarget::GitRevision(revision) => {
 			build_revision_snapshot_files_with_limit(
@@ -752,17 +764,21 @@ fn materialize_discovery_files(
 		SnapshotTarget::WorkingTree => unreachable!("working-tree discovery returned above"),
 		// patch-coverage:ignore-end
 	};
+
 	let materialized_paths = files
 		.iter()
 		.map(|file| file.path.clone())
 		.collect::<BTreeSet<_>>();
+
 	for file in files {
 		write_discovery_file(destination, &file.path, file.contents.as_bytes())?;
 	}
+
 	for path in paths {
 		if materialized_paths.contains(&path) {
 			continue;
 		}
+
 		if path.file_name().is_some_and(|name| name == "bun.lockb") {
 			write_discovery_file(destination, &path, &[])?;
 			continue;
@@ -863,10 +879,12 @@ fn rebase_discovered_workspace(
 		package.manifest_path = repo_root.join(manifest);
 		package.workspace_root = repo_root.join(package_workspace);
 	}
+
 	normalize_package_ids(repo_root, &mut workspace.packages);
 
 	let snapshot_display = snapshot_root.display().to_string();
 	let repo_display = repo_root.display().to_string();
+
 	for warning in &mut workspace.warnings {
 		*warning = warning.replace(&snapshot_display, &repo_display);
 	}
@@ -942,6 +960,7 @@ fn package_inputs(
 			workspace_path_matchers,
 			changed_path,
 		);
+
 		for package in package_matches {
 			let package_root = package_root_relative(repo_root, package)
 				.expect("package path matching should only return packages with a resolvable root");
@@ -952,6 +971,7 @@ fn package_inputs(
 				read_text_file_from_target(repo_root, &targets.before, changed_path)?;
 			let after_contents =
 				read_text_file_from_target(repo_root, &targets.after, changed_path)?;
+
 			let kind = classify_file_change(before_contents.as_ref(), after_contents.as_ref());
 			inputs
 				.entry(package.id.clone())
@@ -1115,6 +1135,7 @@ fn snapshot_package(
 		))
 	})?;
 	let label = snapshot_label(repo_root, target)?;
+
 	let files = match target {
 		SnapshotTarget::WorkingTree => snapshot_files_from_working_tree(repo_root, &package_root)?,
 		SnapshotTarget::GitRevision(revision) => {
@@ -1174,6 +1195,7 @@ fn git_object_output(output: std::process::Output, operation: &str) -> Monochang
 			String::from_utf8_lossy(&output.stderr).trim()
 		)));
 	}
+
 	String::from_utf8(output.stdout)
 		.map(|value| value.trim().to_string())
 		// patch-coverage:ignore-start -- Git emits ASCII object ids; invalid output requires replacing the executable after spawn.
@@ -1191,28 +1213,34 @@ fn snapshot_files_from_working_tree(
 	package_root: &Path,
 ) -> MonochangeResult<Vec<PackageSnapshotFile>> {
 	let absolute_root = repo_root.join(package_root);
+
 	if !absolute_root.exists() {
 		return Ok(Vec::new());
 	}
 
 	let mut files = Vec::new();
+
 	for entry in WalkDir::new(&absolute_root)
 		.into_iter()
 		.filter_map(Result::ok)
 	{
 		let entry_path = entry.path();
+
 		if entry.file_type().is_dir() && should_skip_directory(entry_path) {
 			continue;
 		}
+
 		if !entry.file_type().is_file() {
 			continue;
 		}
+
 		let relative_to_package = entry_path
 			.strip_prefix(&absolute_root)
 			.unwrap_or(entry_path);
 		let Some(contents) = read_working_tree_text(entry_path) else {
 			continue;
 		};
+
 		files.push(PackageSnapshotFile {
 			path: relative_to_package.to_path_buf(),
 			contents,
@@ -1332,6 +1360,7 @@ fn build_revision_snapshot_files_with_limit(
 			String::from_utf8_lossy(&stderr).trim()
 		)));
 	}
+
 	write_result?;
 
 	if max_file_size == MAX_SNAPSHOT_FILE_SIZE {
@@ -1371,6 +1400,7 @@ fn parse_revision_snapshot_batch_with_limit(
 ) -> MonochangeResult<Vec<PackageSnapshotFile>> {
 	let mut cursor = 0;
 	let mut files = Vec::new();
+
 	for path in paths {
 		// patch-coverage:ignore-start -- cursor advancement is bounded by slices below, so the outer slice and computed header slice cannot be absent.
 		let remaining = output.get(cursor..).ok_or_else(|| {
@@ -1390,9 +1420,11 @@ fn parse_revision_snapshot_batch_with_limit(
 		})?);
 		// patch-coverage:ignore-end
 		cursor = header_end + 1;
+
 		if header.ends_with(" missing") {
 			continue;
 		}
+
 		let size = header
 			.rsplit_once(' ')
 			.and_then(|(_, size)| size.parse::<usize>().ok())
@@ -1402,6 +1434,7 @@ fn parse_revision_snapshot_batch_with_limit(
 		let content_end = cursor.checked_add(size).ok_or_else(|| {
 			MonochangeError::Discovery("git cat-file batch size overflow".to_string())
 		})?;
+
 		let contents = output.get(cursor..content_end).ok_or_else(|| {
 			MonochangeError::Discovery("truncated git cat-file batch content".to_string())
 		})?;
@@ -1410,14 +1443,15 @@ fn parse_revision_snapshot_batch_with_limit(
 			MonochangeError::Discovery("git cat-file batch cursor overflow".to_string())
 		})?;
 		// patch-coverage:ignore-end
-
 		let Some(relative_to_package) = path.strip_prefix(package_root).ok().map(Path::to_path_buf)
 		else {
 			continue;
 		};
+
 		if size > max_file_size {
 			continue;
 		}
+
 		let Ok(contents) = String::from_utf8(contents.to_vec()) else {
 			continue;
 		};
@@ -1472,6 +1506,7 @@ fn build_snapshot_files_from_paths_with_limit(
 	max_file_size: usize,
 ) -> MonochangeResult<Vec<PackageSnapshotFile>> {
 	let mut files = Vec::new();
+
 	for path in paths {
 		let Some(relative_to_package) = path.strip_prefix(package_root).ok().map(Path::to_path_buf)
 		else {
@@ -1487,6 +1522,7 @@ fn build_snapshot_files_from_paths_with_limit(
 			contents,
 		});
 	}
+
 	files.sort_by(|left, right| left.path.cmp(&right.path));
 	Ok(files)
 }

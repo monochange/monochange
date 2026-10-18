@@ -46,9 +46,11 @@ fn git_command(root: &Path, args: &[&str]) -> Command {
 	] {
 		command.env_remove(variable);
 	}
+
 	if matches!(args.first(), Some(&"commit")) {
 		command.args(["-c", "commit.gpgsign=false"]);
 	}
+
 	command.args(args);
 	command
 }

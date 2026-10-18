@@ -240,8 +240,10 @@ fn json_progress_uses_the_same_bootstrap_and_workflow_events() {
 	assert!(names.contains(&"phase_started"), "{events:#?}");
 	assert!(names.contains(&"command_started"), "{events:#?}");
 	assert!(names.contains(&"step_started"), "{events:#?}");
+
 	assert!(names.contains(&"command_output"), "{events:#?}");
 	assert!(names.contains(&"command_finished"), "{events:#?}");
+
 	for (expected, event) in events.iter().enumerate() {
 		assert_eq!(event.get("sequence"), Some(&serde_json::json!(expected)));
 	}

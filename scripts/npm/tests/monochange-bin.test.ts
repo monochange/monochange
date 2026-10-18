@@ -34,6 +34,7 @@ function createPackage(root, pkgName, binaryContent) {
 		join(packageDir, "package.json"),
 		JSON.stringify({ name: pkgName, version: "1.0.0" }),
 	);
+
 	if (process.platform === "win32") {
 		writeFileSync(join(binDir, "monochange.exe"), binaryContent);
 	} else {

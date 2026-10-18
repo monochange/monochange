@@ -58,10 +58,12 @@ impl ReleaseJobStore for SqliteReleaseJobStore {
 		.map_err(store_error)?;
 
 		let mut enqueued = 0;
+
 		for row in schedules {
 			let mut schedule = row.try_into_schedule()?;
 			let job = ReleaseJob::from_schedule(&schedule, Uuid::new_v4());
 			let inserted = insert_job(&mut tx, Self::table("release_jobs"), &job).await?;
+
 			if inserted {
 				enqueued += 1;
 			}
@@ -116,6 +118,7 @@ impl ReleaseJobStore for SqliteReleaseJobStore {
 		.map_err(store_error)?
 		else {
 			tx.commit().await.map_err(store_error)?;
+
 			return Ok(None);
 		};
 

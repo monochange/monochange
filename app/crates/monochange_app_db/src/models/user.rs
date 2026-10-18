@@ -25,6 +25,15 @@ pub struct User {
 	#[welds(rename = "github_access_token")]
 	#[builder(setter(into))]
 	pub github_access_token: String,
+	#[welds(rename = "github_refresh_token")]
+	#[builder(default, setter(into, strip_option(fallback = github_refresh_token_opt)))]
+	pub github_refresh_token: Option<String>,
+	#[welds(rename = "github_access_token_expires_at")]
+	#[builder(default, setter(strip_option(fallback = github_access_token_expires_at_opt)))]
+	pub github_access_token_expires_at: Option<i64>,
+	#[welds(rename = "github_refresh_token_expires_at")]
+	#[builder(default, setter(strip_option(fallback = github_refresh_token_expires_at_opt)))]
+	pub github_refresh_token_expires_at: Option<i64>,
 	#[welds(rename = "email")]
 	#[builder(default, setter(into, strip_option(fallback = email_opt)))]
 	pub email: Option<String>,

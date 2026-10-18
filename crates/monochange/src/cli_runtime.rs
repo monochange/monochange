@@ -145,6 +145,7 @@ pub(crate) fn collect_cli_command_inputs(
 
 	for input in &cli_command.inputs {
 		let value_source = matches.value_source(input.name.as_str());
+
 		let values = match input.kind {
 			CliInputKind::StringList => {
 				matches
@@ -179,6 +180,7 @@ pub(crate) fn collect_cli_command_inputs(
 				}
 			}
 		};
+
 		inputs.insert(input.name.clone(), values);
 	}
 
@@ -195,6 +197,7 @@ fn resolve_step_inputs(
 
 	let mut resolved = BTreeMap::new();
 	let mut template_context = None;
+
 	for (input_name, input_value) in step.inputs() {
 		let values = match input_value {
 			CliStepInputValue::Inherited => {
@@ -202,6 +205,7 @@ fn resolve_step_inputs(
 			}
 			_ => resolve_step_input_override(input_value, context, &mut template_context)?,
 		};
+
 		resolved.insert(input_name.clone(), values);
 	}
 
@@ -222,6 +226,7 @@ fn resolve_step_input_override(
 				let values = resolve_step_input_template(value, context, template_context)?;
 				resolved.extend(values);
 			}
+
 			Ok(resolved)
 		}
 		CliStepInputValue::String(value) => {
@@ -238,12 +243,14 @@ fn resolve_step_input_template(
 	if !command_contains_template(template) {
 		return Ok(vec![template.to_string()]);
 	}
+
 	if let Some(input_name) = parse_direct_input_template_reference(template) {
 		return Ok(context.inputs.get(input_name).cloned().unwrap_or_default());
 	}
 
 	let template_context = template_context
 		.get_or_insert_with(|| build_cli_template_context(context, &context.inputs, None));
+
 	if let Some(path) = parse_direct_template_reference(template) {
 		return Ok(lookup_template_value(
 			&serde_json::Value::Object(template_context.clone()),
@@ -259,6 +266,7 @@ fn resolve_step_input_template(
 
 fn parse_direct_input_template_reference(template: &str) -> Option<&str> {
 	let input_name = parse_direct_template_reference(template)?.strip_prefix("inputs.")?;
+
 	if input_name.contains('.') {
 		None
 	} else {
@@ -269,6 +277,7 @@ fn parse_direct_input_template_reference(template: &str) -> Option<&str> {
 pub(crate) fn parse_direct_template_reference(template: &str) -> Option<&str> {
 	let trimmed = template.trim();
 	let inner = trimmed.strip_prefix("{{")?.strip_suffix("}}")?.trim();
+
 	if inner.is_empty()
 		|| !matches!(
 			inner.chars().next(),
@@ -290,6 +299,7 @@ pub(crate) fn lookup_template_value<'a>(
 	path: &str,
 ) -> Option<&'a serde_json::Value> {
 	let mut current = value;
+
 	for segment in path.split('.') {
 		current = match current {
 			serde_json::Value::Object(map) => map.get(segment)?,
@@ -297,6 +307,7 @@ pub(crate) fn lookup_template_value<'a>(
 			_ => return None,
 		};
 	}
+
 	Some(current)
 }
 
@@ -360,6 +371,7 @@ async fn ensure_prepared_release_for_consumer_step(
 	if context.prepared_release.is_some() {
 		return Ok(());
 	}
+
 	let loaded = maybe_load_prepared_release_execution(
 		root,
 		configuration,
@@ -386,9 +398,11 @@ fn publish_release_source_configuration(
 	let mut source = configured_source.cloned().ok_or_else(|| {
 		MonochangeError::Config("`PublishRelease` requires `[source]` configuration".to_string())
 	})?;
+
 	if parse_boolean_step_input(step_inputs, "draft")?.unwrap_or(false) {
 		source.releases.draft = true;
 	}
+
 	Ok(source)
 }
 
@@ -448,7 +462,6 @@ async fn build_release_results_for_source(
 		.collect())
 }
 // patch-coverage:ignore-end
-
 pub(crate) fn build_release_request_result(
 	dry_run: bool,
 	request: &SourceChangeRequest,
@@ -569,8 +582,8 @@ async fn build_issue_comment_results_for_source(
 		})
 		.collect())
 }
-// patch-coverage:ignore-end
 
+// patch-coverage:ignore-end
 pub(crate) async fn execute_cli_command_with_progress(
 	root: &Path,
 	configuration: &monochange_core::WorkspaceConfiguration,
@@ -677,10 +690,12 @@ pub(crate) async fn execute_cli_command_with_options(
 	for (step_index, step) in cli_command.steps.iter().enumerate() {
 		let step_started_at = Instant::now();
 		let show_progress = step_shows_progress(step);
+
 		if command_error.is_some() && !step.always_run() {
 			if show_progress {
 				progress.step_skipped(step_index, step, None, Some("an earlier step failed"));
 			}
+
 			telemetry.capture_step(
 				step_index,
 				step,
@@ -691,9 +706,11 @@ pub(crate) async fn execute_cli_command_with_options(
 			);
 			continue;
 		}
+
 		if show_progress {
 			progress.step_started(step_index, step);
 		}
+
 		let step_inputs = match resolve_step_inputs(&context, step) {
 			Ok(step_inputs) => step_inputs,
 			Err(error) => {
@@ -729,6 +746,7 @@ pub(crate) async fn execute_cli_command_with_options(
 				continue;
 			}
 		};
+
 		if !should_execute {
 			record_skipped_cli_step(&mut context, step, step_index, progress, show_progress);
 			telemetry.capture_step(
@@ -747,110 +765,38 @@ pub(crate) async fn execute_cli_command_with_options(
 		tracing::debug!(step = step.kind_name(), "executing CLI step");
 		let mut step_phase_timings = Vec::new();
 		let mut skipped_for_dry_run = false;
-		let step_result: MonochangeResult<()> = async {
+		// A `Command` step never replaces the command-level output, so the
+		// dispatcher must know the arm that ran without rendering anything.
+		let mut command_step_ran = false;
+		let state = StepExecutionState {
+			root,
+			configuration,
+			cli_command,
+			dry_run,
+			prepared_release_path: prepared_release_path.as_deref(),
+			show_progress,
+			step_index,
+			step,
+			step_inputs: &step_inputs,
+		};
+		let step_output: MonochangeResult<Option<String>> = async {
 			match step {
-				CliStepDefinition::Config { .. } => {
-					output = if matches!(cli_command.name.as_str(), "config" | "step config") {
-						Some(render_config_step(
-							root,
-							configuration,
-							context.output_format,
-						)?)
-					} else {
-						None
-					};
-					Ok(())
-				}
+				CliStepDefinition::Config { .. } => execute_config_step(&state, &context),
 				CliStepDefinition::Validate { .. } => {
-					let validation_started = Instant::now();
-					progress.phase_started("Checking workspace configuration");
-					let (warnings, mut validation_errors) =
-						lint::collect_workspace_validation_issues(root, configuration);
-					progress.phase_finished(
-						"Checked workspace configuration",
-						validation_started.elapsed(),
-					);
-					#[cfg(feature = "cargo")]
-					{
-						let cargo_validation_started = Instant::now();
-						progress.phase_started("Checking cargo version groups");
-						if let Err(error) = validate_cargo_workspace_version_groups(root) {
-							validation_errors.push(error.render());
-						}
-						progress.phase_finished(
-							"Checked cargo version groups",
-							cargo_validation_started.elapsed(),
-						);
-					}
-					if !context.quiet {
-						for warning in &warnings {
-							progress.warning(warning);
-						}
-					}
-					if !validation_errors.is_empty() {
-						let mut message = String::from("workspace validation failed");
-						for error in validation_errors {
-							message.push('\n');
-							message.push_str(&error);
-						}
-						return Err(MonochangeError::Config(message));
-					}
-					let mut text = TextReport::new(TextTheme::for_stdout());
-					let details = if warnings.is_empty() {
-						Vec::new()
-					} else {
-						vec![plural(warnings.len(), "warning", "warnings")]
-					};
-					text.headline(Outcome::Success, "Workspace validation passed", &details);
-					output = Some(text.render());
-					Ok(())
+					execute_validate_step(&state, &context, progress)
 				}
-				CliStepDefinition::Discover { .. } => {
-					output = Some(render_discovery_report(
-						&discover_workspace(root)?,
-						context.output_format,
-					)?);
-					Ok(())
-				}
+				CliStepDefinition::Discover { .. } => execute_discover_step(&state, &context),
 				CliStepDefinition::DisplayVersions { .. } => {
-					// Reporting the planned versions is useful precisely when there is
-					// nothing queued as well, so an empty changeset set renders "no
-					// versions planned" instead of failing the step.
-					let prepared_execution = match maybe_load_prepared_release_execution(
-						root,
-						configuration,
-						prepared_release_path.as_deref(),
-						true,
-						false,
+					execute_display_versions_step(
+						&state,
+						&context,
+						progress,
+						&mut step_phase_timings,
 					)
-					.await?
-					{
-						Some(loaded) => loaded.execution,
-						None => {
-							prepare_release_execution_with_configuration(
-								root,
-								configuration,
-								true,
-								false,
-								true,
-							)
-							.await?
-						}
-					};
-					for warning in &prepared_execution.warnings {
-						progress.warning(warning);
-					}
-					step_phase_timings.clone_from(&prepared_execution.phase_timings);
-					let rendered_output = render_display_versions_output(
-						&prepared_execution.prepared_release,
-						configuration,
-						context.output_format,
-					)?;
-					output = Some(rendered_output);
-					Ok(())
+					.await
 				}
 				CliStepDefinition::CreateChangeFile { .. } => {
-					output = Some(execute_create_change_file_step(
+					execute_create_change_file_step(
 						root,
 						configuration,
 						&step_inputs,
@@ -858,317 +804,36 @@ pub(crate) async fn execute_cli_command_with_options(
 						step_index,
 						step,
 						context.dry_run,
-					)?);
-					Ok(())
+					)
+					.map(Some)
 				}
 				CliStepDefinition::PrepareRelease {
 					allow_empty_changesets,
 					..
 				} => {
-					let write_empty_release_record =
-						parse_boolean_step_input(&step_inputs, "write_empty_release_record")?
-							.unwrap_or(false);
-					let write_release_json =
-						parse_boolean_step_input(&step_inputs, "release_json")?.unwrap_or(false);
-					let build_file_diffs = context.show_diff
-						|| cli_command
-							.steps
-							.get(step_index + 1..)
-							.is_some_and(steps_reference_release_file_diffs);
-					let prepared_execution = if let Some(loaded) =
-						maybe_load_prepared_release_execution(
-							root,
-							configuration,
-							prepared_release_path.as_deref(),
-							dry_run,
-							build_file_diffs,
-						)
-						.await?
-					{
-						context.command_logs.push(loaded.message);
-						loaded.execution
-					} else {
-						prepare_release_execution_with_configuration(
-							root,
-							configuration,
-							dry_run,
-							build_file_diffs,
-							*allow_empty_changesets,
-						)
-						.await?
-					};
-					for warning in &prepared_execution.warnings {
-						progress.warning(warning);
-					}
-					step_phase_timings.clone_from(&prepared_execution.phase_timings);
-					context.prepared_file_diffs = prepared_execution.file_diffs;
-					context.prepared_release = Some(prepared_execution.prepared_release);
-					let prepared_release = context
-						.prepared_release
-						.as_ref()
-						.expect("prepared release must be available after prepare step");
-					let manifest = build_release_manifest(
-						cli_command,
-						prepared_release,
-						&context.command_logs,
-					);
-					if should_write_release_record_for_prepared_release(
-						prepared_release,
-						write_empty_release_record,
-					) {
-						if dry_run && !write_release_json {
-							context.command_logs.push(
-								"skipped release record: dry-run preview (pass `--release-json` to write release.json)"
-									.to_string(),
-							);
-						} else {
-							let _record_path = write_release_record_file(
-								root,
-								configuration.source.as_ref(),
-								&manifest,
-							)?;
-						}
-						context.release_manifest_path =
-							Some(write_default_release_manifest_file(root, &manifest).await?);
-					} else {
-						context
-							.command_logs
-							.push("skipped release record: no packages were released".to_string());
-						context.release_manifest_path = None;
-					}
-					let updated_prepared_release = context.prepared_release.take().unwrap();
-					context.prepared_release = Some(updated_prepared_release);
-					output = None;
-					Ok(())
-				}
-				CliStepDefinition::VerifyReleaseBranch { .. } => {
-					let from_ref = step_inputs
-						.get("from")
-						.and_then(|v| v.first().cloned())
-						.unwrap_or_else(|| "HEAD".to_string());
-					let source = configuration.source.as_ref().ok_or_else(|| {
-						MonochangeError::Config(
-							"`VerifyReleaseBranch` requires `[source]` configuration".to_string(),
-						)
-					})?;
-					let report = release_branch_policy::verify_release_ref(
-						root,
-						&source.releases,
-						&from_ref,
-					)
-					.await?;
-					output = Some(format!(
-						"release branch verified: `{}` is reachable from `{}`",
-						from_ref, report.matched_branch
-					));
-					Ok(())
-				}
-				CliStepDefinition::PublishRelease { .. } => {
-					let verify_ref = step_inputs
-						.get("from-ref")
-						.and_then(|v| v.first().cloned())
-						.unwrap_or_else(|| "HEAD".to_string());
-					let manifest = if let Some(prepared_release) = context.prepared_release.as_ref()
-					{
-						build_release_manifest(cli_command, prepared_release, &context.command_logs)
-					} else {
-						let from_ref = step_inputs
-							.get("from-ref")
-							.and_then(|v| v.first().cloned())
-							.unwrap_or_else(|| "HEAD".to_string());
-						let discovery = discover_release_record(root, &from_ref).await?;
-						build_release_manifest_from_record(&discovery.record)
-					};
-					let source = publish_release_source_configuration(
-						configuration.source.as_ref(),
-						&step_inputs,
-					)?;
-					if !context.dry_run {
-						release_branch_policy::verify_release_ref_for_publish(
-							root,
-							Some(&source),
-							&configuration.prerelease,
-							&verify_ref,
-						)
-						.await?;
-					}
-					context.release_requests = build_source_release_requests(&source, &manifest);
-					let results = build_release_results_for_source(
-						context.dry_run,
-						&source,
-						&context.release_requests,
-					)
-					.await?;
-					context.release_results = results;
-					output = None;
-					Ok(())
-				}
-				CliStepDefinition::PlaceholderPublish { .. } => {
-					let selected_packages = selected_package_ids(&step_inputs);
-					let show_all_packages = boolean_step_input(&step_inputs, "show-all");
-					let npm_otp = step_inputs
-						.get("otp")
-						.and_then(|values| values.first())
-						.map(String::as_str);
-					let rate_limit_report = publish_rate_limits::plan_publish_rate_limits(
-						root,
-						configuration,
-						context.prepared_release.as_ref(),
-						&selected_packages,
-						publish_rate_limits::PublishRateLimitMode::Placeholder,
-						false,
-						context.dry_run,
-					)
-					.await?;
-					if !context.dry_run {
-						publish_rate_limits::enforce_publish_rate_limits(
-							configuration,
-							&rate_limit_report,
-							publish_rate_limits::PublishRateLimitMode::Placeholder,
-						)?;
-					}
-					let report = match package_publish::try_run_placeholder_publish_with_progress(
-						root,
-						configuration,
-						&selected_packages,
-						context.dry_run,
-						npm_otp,
+					execute_prepare_release_step(
+						&state,
+						&mut context,
 						progress,
+						&mut step_phase_timings,
+						*allow_empty_changesets,
 					)
 					.await
-					{
-						Ok(report) => report,
-						Err(error) => {
-							let (primary_error, report) = error.into_parts();
-							let error =
-								monochange_publish::ensure_publish_report_succeeded(&report)
-									.err()
-									.unwrap_or(primary_error);
-							context.package_publish_report = Some(report);
-							context.rate_limit_report = Some(rate_limit_report);
-							return Err(error);
-						}
-					};
-					monochange_publish::ensure_publish_report_succeeded(&report)?;
-					context.package_publish_report = Some(report);
-					context
-						.last_step_inputs
-						.insert("show-all".to_string(), vec![show_all_packages.to_string()]);
-					context.rate_limit_report = Some(rate_limit_report);
-					output = None;
-					Ok(())
+				}
+				CliStepDefinition::VerifyReleaseBranch { .. } => {
+					execute_verify_release_branch_step(&state).await
+				}
+				CliStepDefinition::PublishRelease { .. } => {
+					execute_publish_release_step(&state, &mut context).await
+				}
+				CliStepDefinition::PlaceholderPublish { .. } => {
+					execute_placeholder_publish_step(&state, &mut context, progress).await
 				}
 				CliStepDefinition::PublishPackages { .. } => {
-					let selected_packages = selected_package_ids(&step_inputs);
-					let publish_all = boolean_step_input(&step_inputs, "all");
-					let fail_on_duplicate = boolean_step_input(&step_inputs, "fail-on-duplicate");
-					let selected_groups = selected_group_ids(&step_inputs);
-					let selected_ecosystems = selected_ecosystem_ids(&step_inputs)?;
-					let resume_path = optional_publish_resume_artifact_path(&step_inputs)?;
-					let output_path = optional_publish_output_artifact_path(&step_inputs)?;
-					let stream_output = boolean_step_input(&step_inputs, "stream-output");
-					if !context.dry_run {
-						release_branch_policy::verify_release_ref_for_publish(
-							root,
-							configuration.source.as_ref(),
-							&configuration.prerelease,
-							"HEAD",
-						)
-						.await?;
-					}
-					let rate_limit_report = publish_rate_limits::plan_publish_rate_limits(
-						root,
-						configuration,
-						context.prepared_release.as_ref(),
-						&selected_packages,
-						publish_rate_limits::PublishRateLimitMode::Publish,
-						publish_all,
-						context.dry_run,
-					)
-					.await?;
-					if !context.dry_run {
-						publish_rate_limits::enforce_publish_rate_limits(
-							configuration,
-							&rate_limit_report,
-							publish_rate_limits::PublishRateLimitMode::Publish,
-						)?;
-					}
-					let report =
-						match package_publish::try_run_publish_packages_with_resume_and_progress(
-							root,
-							configuration,
-							context.prepared_release.as_ref(),
-							&selected_packages,
-							&selected_groups,
-							&selected_ecosystems,
-							package_publish::PublishPackagesOptions {
-								publish_all_configured_packages: publish_all,
-								dry_run: context.dry_run,
-								resume_path: resume_path.as_deref(),
-								fail_on_duplicate,
-								output: package_publish::PublishOutputOptions {
-									stream_output,
-									quiet: context.quiet,
-								},
-							},
-							progress,
-						)
-						.await
-						{
-							Ok(report) => report,
-							Err(error) => {
-								let (primary_error, report) = error.into_parts();
-								if !context.dry_run
-									&& let Some(output_path) = output_path.as_deref()
-								{
-									monochange_publish::write_publish_report_artifact(
-										output_path,
-										&report,
-									)?;
-								}
-								let error =
-									monochange_publish::ensure_publish_report_succeeded(&report)
-										.err()
-										.unwrap_or(primary_error);
-								context.package_publish_report = Some(report);
-								context.rate_limit_report = Some(rate_limit_report);
-								return Err(error);
-							}
-						};
-					if !context.dry_run
-						&& let Some(output_path) = output_path.as_deref()
-					{
-						monochange_publish::write_publish_report_artifact(output_path, &report)?;
-					}
-					monochange_publish::ensure_publish_report_succeeded(&report)?;
-					context.package_publish_report = Some(report);
-					context.rate_limit_report = Some(rate_limit_report);
-					output = None;
-					Ok(())
+					execute_publish_packages_step(&state, &mut context, progress).await
 				}
 				CliStepDefinition::PlanPublishRateLimits { .. } => {
-					let mode = publish_rate_limit_mode_from_inputs(&step_inputs)?;
-					let selected_packages = publish_rate_limit_selected_package_ids(
-						root,
-						configuration,
-						context.prepared_release.as_ref(),
-						&step_inputs,
-						mode,
-					)
-					.await?;
-					let report = publish_rate_limits::plan_publish_rate_limits(
-						root,
-						configuration,
-						context.prepared_release.as_ref(),
-						&selected_packages,
-						mode,
-						boolean_step_input(&step_inputs, "all"),
-						context.dry_run,
-					)
-					.await?;
-					context.rate_limit_report = Some(report);
-					output = None;
-					Ok(())
+					execute_plan_publish_rate_limits_step(&state, &mut context).await
 				}
 				CliStepDefinition::CommitRelease {
 					no_verify,
@@ -1180,79 +845,20 @@ pub(crate) async fn execute_cli_command_with_options(
 					oidc_audience,
 					..
 				} => {
-					release_branch_policy::verify_release_ref_for_commit(
-						root,
-						configuration.source.as_ref(),
-						"HEAD",
-					)
-					.await?;
-					ensure_prepared_release_for_consumer_step(
-						root,
-						configuration,
+					execute_commit_release_step(
+						&state,
 						&mut context,
-						prepared_release_path.as_deref(),
-						dry_run,
-						false,
-						"CommitRelease",
+						&CommitReleaseStepDefaults {
+							no_verify: *no_verify,
+							update_release_json: *update_release_json,
+							stage_all: *stage_all,
+							commit_backend: *commit_backend,
+							hosted_auth: *hosted_auth,
+							hosted_url: hosted_url.as_deref(),
+							oidc_audience: oidc_audience.as_deref(),
+						},
 					)
-					.await?;
-					let prepared_release = context
-						.prepared_release
-						.as_ref()
-						.expect("prepared release must be available before committing release");
-					let manifest = build_release_manifest(
-						cli_command,
-						prepared_release,
-						&context.command_logs,
-					);
-					let no_verify =
-						parse_boolean_step_input(&step_inputs, "no_verify")?.unwrap_or(*no_verify);
-					let update_release_json =
-						parse_boolean_step_input(&step_inputs, "update_release_json")?
-							.unwrap_or(*update_release_json);
-					let stage_all =
-						parse_boolean_step_input(&step_inputs, "stage_all")?.unwrap_or(*stage_all);
-					let commit_backend = string_step_input(&step_inputs, "commit_backend")
-						.and_then(|value| value.parse::<ReleaseBackend>().ok())
-						.unwrap_or(*commit_backend);
-					let release_commit_report = match commit_backend {
-						ReleaseBackend::Local => {
-							commit_release(
-								root,
-								&context,
-								configuration.source.as_ref(),
-								&manifest,
-								no_verify,
-								update_release_json,
-								stage_all,
-							)
-							.await?
-						}
-						ReleaseBackend::Hosted => {
-							let hosted_auth = string_step_input(&step_inputs, "hosted_auth")
-								.and_then(|value| {
-									value.parse::<monochange_core::HostedCommitAuth>().ok()
-								})
-								.unwrap_or(*hosted_auth);
-							let options = resolve_hosted_commit_options(
-								hosted_auth,
-								hosted_url.as_deref(),
-								oidc_audience.as_deref(),
-							);
-							Box::pin(hosted_commit_release(
-								root,
-								&context,
-								configuration.source.as_ref(),
-								&manifest,
-								update_release_json,
-								&options,
-							))
-							.await?
-						}
-					};
-					context.release_commit_report = Some(release_commit_report);
-					output = None;
-					Ok(())
+					.await
 				}
 				CliStepDefinition::OpenReleaseRequest {
 					no_verify,
@@ -1262,310 +868,47 @@ pub(crate) async fn execute_cli_command_with_options(
 					hosted_url,
 					..
 				} => {
-					let build_file_diffs = context.show_diff;
-					ensure_prepared_release_for_consumer_step(
-						root,
-						configuration,
+					execute_open_release_request_step(
+						&state,
 						&mut context,
-						prepared_release_path.as_deref(),
-						dry_run,
-						build_file_diffs,
-						"OpenReleaseRequest",
+						*no_verify,
+						*stage_all,
+						*backend,
+						*hosted_auth,
+						hosted_url.as_deref(),
 					)
-					.await?;
-					let prepared_release = context.prepared_release.as_ref().expect(
-						"prepared release must be available before opening release request",
-					);
-					let source = configuration.source.clone().ok_or_else(|| {
-						MonochangeError::Config(
-							"`OpenReleaseRequest` requires `[source]` configuration".to_string(),
-						)
-					})?;
-					let manifest = build_release_manifest(
-						cli_command,
-						prepared_release,
-						&context.command_logs,
-					);
-					let request = build_source_change_request(&source, &manifest);
-					let tracked_paths = tracked_release_pull_request_paths(&context, &manifest);
-					let dry_run = context.dry_run;
-					let no_verify =
-						parse_boolean_step_input(&step_inputs, "no_verify")?.unwrap_or(*no_verify);
-					let stage_all =
-						parse_boolean_step_input(&step_inputs, "stage_all")?.unwrap_or(*stage_all);
-					let backend = string_step_input(&step_inputs, "backend")
-						.and_then(|value| value.parse::<ReleaseBackend>().ok())
-						.unwrap_or(*backend);
-					let result = match backend {
-						ReleaseBackend::Local => {
-							build_release_request_result_for_source(
-								dry_run,
-								&source,
-								root,
-								&request,
-								&tracked_paths,
-								no_verify,
-								stage_all,
-							)
-							.await?
-						}
-						ReleaseBackend::Hosted => {
-							let hosted_auth = string_step_input(&step_inputs, "hosted_auth")
-								.and_then(|value| {
-									value.parse::<monochange_core::HostedCommitAuth>().ok()
-								})
-								.unwrap_or(*hosted_auth);
-							let options = resolve_hosted_commit_options(
-								hosted_auth,
-								hosted_url.as_deref(),
-								None,
-							);
-							Box::pin(hosted_release_request_result(
-								dry_run,
-								&options,
-								&request,
-								&tracked_paths,
-							))
-							.await?
-						}
-					};
-					context.release_request_result = Some(result);
-					context.release_request = Some(request);
-					output = None;
-					Ok(())
+					.await
 				}
 				CliStepDefinition::CommentReleasedIssues { .. } => {
-					let manifest = if let Some(prepared_release) = context.prepared_release.as_ref()
-					{
-						build_release_manifest(cli_command, prepared_release, &context.command_logs)
-					} else {
-						let from_ref = step_inputs
-							.get("from-ref")
-							.and_then(|v| v.first().cloned())
-							.unwrap_or_else(|| "HEAD".to_string());
-						let discovery = discover_release_record(root, &from_ref).await?;
-						build_release_manifest_from_record(&discovery.record)
-					};
-					let auto_close_issues =
-						parse_boolean_step_input(&step_inputs, "auto-close-issues")?
-							.unwrap_or(false);
-					let source = configuration.source.clone().ok_or_else(|| {
-						MonochangeError::Config(
-							"`CommentReleasedIssues` requires `[source]` configuration".to_string(),
-						)
-					})?;
-					let adapter = hosted_sources::configured_hosted_source_adapter(&source);
-					if !adapter.features().released_issue_comments {
-						return Err(MonochangeError::Config(format!(
-							"`CommentReleasedIssues` is not supported for `[source].provider = \"{}\"`",
-							source.provider
-						)));
-					}
-					let mut issue_comment_plans =
-						adapter.plan_released_issue_comments(&source, &manifest);
-					for plan in &mut issue_comment_plans {
-						plan.close &= auto_close_issues;
-					}
-					let dry_run = context.dry_run;
-					let results = build_issue_comment_results_for_source(
-						dry_run,
-						&source,
-						&issue_comment_plans,
-					)
-					.await?;
-					context.issue_comment_plans = issue_comment_plans;
-					context.issue_comment_results = results;
-					output = None;
-					Ok(())
+					execute_comment_released_issues_step(&state, &mut context).await
 				}
 				CliStepDefinition::ReleaseRecord { .. } => {
-					let from = step_inputs
-						.get("from")
-						.and_then(|values| values.first())
-						.map(String::as_str)
-						.ok_or_else(|| {
-							MonochangeError::Config("missing release-record ref".to_string())
-						})?;
-					if boolean_step_input(&step_inputs, "sha") {
-						let discovery = discover_release_record(root, from).await?;
-						output = Some(discovery.record_commit);
-					} else {
-						output = Some(
-							render_release_record_discovery(root, from, context.output_format)
-								.await?,
-						);
-					}
-					Ok(())
+					execute_release_record_step(&state, &context).await
 				}
 				CliStepDefinition::PublishReadiness { .. } => {
-					let from = step_inputs
-						.get("from")
-						.and_then(|values| values.first())
-						.cloned()
-						.ok_or_else(|| {
-							MonochangeError::Config("missing publish-readiness ref".to_string())
-						})?;
-					let selected_packages = selected_package_ids(&step_inputs);
-					let output_path =
-						optional_path_input(&step_inputs, "output", "PublishReadiness")?;
-					let options = publish_readiness::PublishReadinessOptions {
-						from,
-						selected_packages,
-						format: context.output_format,
-						output: output_path,
-					};
-					output = Some(
-						publish_readiness::run_publish_readiness(root, configuration, &options)
-							.await?,
-					);
-					Ok(())
+					execute_publish_readiness_step(&state, &context).await
 				}
 				CliStepDefinition::TagRelease { .. } => {
-					let from = step_inputs
-						.get("from")
-						.and_then(|values| values.first())
-						.map(String::as_str)
-						.ok_or_else(|| {
-							MonochangeError::Config("missing tag-release ref".to_string())
-						})?;
-					let push = step_inputs
-						.get("push")
-						.and_then(|values| values.first())
-						.is_none_or(|value| value == "true");
-					release_branch_policy::verify_release_ref_for_tags(
-						root,
-						configuration.source.as_ref(),
-						&configuration.prerelease,
-						from,
-					)
-					.await?;
-					output = Some(
-						render_release_tag_report(
-							root,
-							from,
-							context.output_format,
-							push,
-							context.dry_run,
-						)
-						.await?,
-					);
-					Ok(())
+					execute_tag_release_step(&state, &context).await
 				}
 				CliStepDefinition::AffectedPackages { .. } => {
-					let evaluation = execute_affected_packages_step(
-						root,
-						&step_inputs,
-						context.quiet,
-						Some(progress),
-					)
-					.await?;
-					context.changeset_policy_evaluation = Some(evaluation);
-					output = None;
-					Ok(())
+					execute_affected_packages_reporting_step(&state, &mut context, progress).await
 				}
 				CliStepDefinition::DiagnoseChangesets { .. } => {
 					let requested = step_inputs.get("changeset").cloned().unwrap_or_default();
 					let report = diagnose_changesets(root, &requested).await?;
 					context.changeset_diagnostics = Some(report);
-					output = None;
-					Ok(())
+
+					Ok(None)
 				}
 				CliStepDefinition::RetargetRelease { .. } => {
-					let from = step_inputs
-						.get("from")
-						.and_then(|values| values.first())
-						.cloned()
-						.ok_or_else(|| {
-							MonochangeError::Config(
-								"`RetargetRelease` requires a `from` input".to_string(),
-							)
-						})?;
-					let target = step_inputs
-						.get("target")
-						.and_then(|values| values.first())
-						.cloned()
-						.unwrap_or_else(|| "HEAD".to_string());
-					let force = parse_boolean_step_input(&step_inputs, "force")?.unwrap_or(false);
-					let sync_provider =
-						parse_boolean_step_input(&step_inputs, "sync_provider")?.unwrap_or(true);
-					if show_progress {
-						progress.step_status(
-							step_index,
-							step,
-							&format!("locating release record for {from}"),
-						);
-					}
-					let phase_started_at = Instant::now();
-					let discovery = discover_release_record(root, &from).await?;
-					step_phase_timings.push(StepPhaseTiming {
-						label: "locate release record".to_string(),
-						duration: phase_started_at.elapsed(),
-					});
-					if show_progress {
-						progress.step_status(
-							step_index,
-							step,
-							&format!(
-								"resolving source provider for {}",
-								discovery.resolved_commit
-							),
-						);
-					}
-					let phase_started_at = Instant::now();
-					let source = inferred_retarget_source_configuration(
-						configuration.source.as_ref(),
-						&discovery,
-						sync_provider,
-					);
-					step_phase_timings.push(StepPhaseTiming {
-						label: "resolve source provider".to_string(),
-						duration: phase_started_at.elapsed(),
-					});
-					if show_progress {
-						progress.step_status(
-							step_index,
-							step,
-							&format!("planning retarget to {target}"),
-						);
-					}
-					let phase_started_at = Instant::now();
-					let plan = plan_release_retarget(
-						root,
-						&discovery,
-						&target,
-						force,
-						sync_provider,
-						context.dry_run,
-						source.as_ref(),
+					execute_retarget_release_step(
+						&state,
+						&mut context,
+						progress,
+						&mut step_phase_timings,
 					)
-					.await?;
-					step_phase_timings.push(StepPhaseTiming {
-						label: "plan retarget".to_string(),
-						duration: phase_started_at.elapsed(),
-					});
-					if show_progress {
-						progress.step_status(
-							step_index,
-							step,
-							"applying git ref and provider updates",
-						);
-					}
-					let phase_started_at = Instant::now();
-					let retarget_future = execute_release_retarget(root, source.as_ref(), &plan);
-					let result = retarget_future.await?;
-					step_phase_timings.push(StepPhaseTiming {
-						label: "apply retarget".to_string(),
-						duration: phase_started_at.elapsed(),
-					});
-					context.retarget_report = Some(build_retarget_release_report(
-						&from,
-						&target,
-						&discovery,
-						plan.is_descendant,
-						&result,
-					));
-					output = None;
-					Ok(())
+					.await
 				}
 				CliStepDefinition::Command {
 					command,
@@ -1590,7 +933,9 @@ pub(crate) async fn execute_cli_command_with_options(
 							step_inputs: &step_inputs,
 						},
 					)? == CommandStepOutcome::SkippedForDryRun;
-					Ok(())
+					command_step_ran = true;
+
+					Ok(None)
 				}
 				_ => {
 					Err(MonochangeError::Config(
@@ -1600,6 +945,23 @@ pub(crate) async fn execute_cli_command_with_options(
 			}
 		}
 		.await;
+
+		let step_result = match step_output {
+			Ok(Some(rendered)) => {
+				output = Some(rendered);
+
+				Ok(())
+			}
+			Ok(None) => {
+				if !command_step_ran {
+					output = None;
+				}
+
+				Ok(())
+			}
+			Err(error) => Err(error),
+		};
+
 		if let Err(error) = step_result {
 			let elapsed = step_started_at.elapsed();
 			report_cli_step_failure(progress, show_progress, step_index, step, elapsed, &error);
@@ -1614,7 +976,9 @@ pub(crate) async fn execute_cli_command_with_options(
 			command_error.get_or_insert(error);
 			continue;
 		}
+
 		let elapsed = step_started_at.elapsed();
+
 		if show_progress && skipped_for_dry_run {
 			progress.step_skipped(
 				step_index,
@@ -1625,6 +989,7 @@ pub(crate) async fn execute_cli_command_with_options(
 		} else if show_progress {
 			progress.step_finished(step_index, step, elapsed, &step_phase_timings);
 		}
+
 		telemetry.capture_step(
 			step_index,
 			step,
@@ -1638,6 +1003,7 @@ pub(crate) async fn execute_cli_command_with_options(
 	if let Some(error) = command_error {
 		progress.command_failed(command_started_at.elapsed(), &error.render());
 		telemetry.capture_command(TelemetryOutcome::Error, Some(&error));
+
 		return Err(error);
 	}
 
@@ -1645,6 +1011,7 @@ pub(crate) async fn execute_cli_command_with_options(
 	let result = save_prepared_release_artifact(root, configuration, &context, artifact_path)
 		.await
 		.and_then(|()| resolve_command_output(cli_command, &context, dry_run, output));
+
 	match &result {
 		Ok(_) => {
 			progress.command_finished(command_started_at.elapsed());
@@ -1657,6 +1024,915 @@ pub(crate) async fn execute_cli_command_with_options(
 	}
 
 	result
+}
+
+/// Shared execution state for one step dispatched by
+/// `execute_cli_command_with_options`.
+struct StepExecutionState<'a> {
+	root: &'a Path,
+	configuration: &'a monochange_core::WorkspaceConfiguration,
+	cli_command: &'a CliCommandDefinition,
+	dry_run: bool,
+	prepared_release_path: Option<&'a Path>,
+	show_progress: bool,
+	step_index: usize,
+	step: &'a CliStepDefinition,
+	step_inputs: &'a BTreeMap<String, Vec<String>>,
+}
+
+/// Field defaults for `CommitRelease` taken from the step definition before
+/// step-input overrides are applied.
+struct CommitReleaseStepDefaults<'a> {
+	no_verify: bool,
+	update_release_json: bool,
+	stage_all: bool,
+	commit_backend: ReleaseBackend,
+	hosted_auth: monochange_core::HostedCommitAuth,
+	hosted_url: Option<&'a str>,
+	oidc_audience: Option<&'a str>,
+}
+
+fn execute_config_step(
+	state: &StepExecutionState<'_>,
+	context: &CliContext,
+) -> MonochangeResult<Option<String>> {
+	if matches!(state.cli_command.name.as_str(), "config" | "step config") {
+		Ok(Some(render_config_step(
+			state.root,
+			state.configuration,
+			context.output_format,
+		)?))
+	} else {
+		Ok(None)
+	}
+}
+
+fn execute_validate_step(
+	state: &StepExecutionState<'_>,
+	context: &CliContext,
+	progress: &mut ProgressReporter,
+) -> MonochangeResult<Option<String>> {
+	let validation_started = Instant::now();
+	progress.phase_started("Checking workspace configuration");
+	let (warnings, mut validation_errors) =
+		lint::collect_workspace_validation_issues(state.root, state.configuration);
+	progress.phase_finished(
+		"Checked workspace configuration",
+		validation_started.elapsed(),
+	);
+
+	#[cfg(feature = "cargo")]
+	{
+		let cargo_validation_started = Instant::now();
+		progress.phase_started("Checking cargo version groups");
+
+		if let Err(error) = validate_cargo_workspace_version_groups(state.root) {
+			validation_errors.push(error.render());
+		}
+
+		progress.phase_finished(
+			"Checked cargo version groups",
+			cargo_validation_started.elapsed(),
+		);
+	}
+
+	if !context.quiet {
+		for warning in &warnings {
+			progress.warning(warning);
+		}
+	}
+
+	if !validation_errors.is_empty() {
+		let mut message = String::from("workspace validation failed");
+
+		for error in validation_errors {
+			message.push('\n');
+			message.push_str(&error);
+		}
+
+		return Err(MonochangeError::Config(message));
+	}
+
+	let mut text = TextReport::new(TextTheme::for_stdout());
+	let details = if warnings.is_empty() {
+		Vec::new()
+	} else {
+		vec![plural(warnings.len(), "warning", "warnings")]
+	};
+
+	text.headline(Outcome::Success, "Workspace validation passed", &details);
+
+	Ok(Some(text.render()))
+}
+
+fn execute_discover_step(
+	state: &StepExecutionState<'_>,
+	context: &CliContext,
+) -> MonochangeResult<Option<String>> {
+	Ok(Some(render_discovery_report(
+		&discover_workspace(state.root)?,
+		context.output_format,
+	)?))
+}
+
+async fn execute_display_versions_step(
+	state: &StepExecutionState<'_>,
+	context: &CliContext,
+	progress: &mut ProgressReporter,
+	step_phase_timings: &mut Vec<StepPhaseTiming>,
+) -> MonochangeResult<Option<String>> {
+	// Reporting the planned versions is useful precisely when there is
+	// nothing queued as well, so an empty changeset set renders "no
+	// versions planned" instead of failing the step.
+	let prepared_execution = match maybe_load_prepared_release_execution(
+		state.root,
+		state.configuration,
+		state.prepared_release_path,
+		true,
+		false,
+	)
+	.await?
+	{
+		Some(loaded) => loaded.execution,
+		None => {
+			prepare_release_execution_with_configuration(
+				state.root,
+				state.configuration,
+				true,
+				false,
+				true,
+			)
+			.await?
+		}
+	};
+
+	for warning in &prepared_execution.warnings {
+		progress.warning(warning);
+	}
+
+	step_phase_timings.clone_from(&prepared_execution.phase_timings);
+
+	let rendered_output = render_display_versions_output(
+		&prepared_execution.prepared_release,
+		state.configuration,
+		context.output_format,
+	)?;
+
+	Ok(Some(rendered_output))
+}
+
+async fn execute_prepare_release_step(
+	state: &StepExecutionState<'_>,
+	context: &mut CliContext,
+	progress: &mut ProgressReporter,
+	step_phase_timings: &mut Vec<StepPhaseTiming>,
+	allow_empty_changesets: bool,
+) -> MonochangeResult<Option<String>> {
+	let write_empty_release_record =
+		parse_boolean_step_input(state.step_inputs, "write_empty_release_record")?.unwrap_or(false);
+	let write_release_json =
+		parse_boolean_step_input(state.step_inputs, "release_json")?.unwrap_or(false);
+	let build_file_diffs = context.show_diff
+		|| state
+			.cli_command
+			.steps
+			.get(state.step_index + 1..)
+			.is_some_and(steps_reference_release_file_diffs);
+	let prepared_execution = if let Some(loaded) = maybe_load_prepared_release_execution(
+		state.root,
+		state.configuration,
+		state.prepared_release_path,
+		state.dry_run,
+		build_file_diffs,
+	)
+	.await?
+	{
+		context.command_logs.push(loaded.message);
+		loaded.execution
+	} else {
+		prepare_release_execution_with_configuration(
+			state.root,
+			state.configuration,
+			state.dry_run,
+			build_file_diffs,
+			allow_empty_changesets,
+		)
+		.await?
+	};
+
+	for warning in &prepared_execution.warnings {
+		progress.warning(warning);
+	}
+
+	step_phase_timings.clone_from(&prepared_execution.phase_timings);
+	context.prepared_file_diffs = prepared_execution.file_diffs;
+	context.prepared_release = Some(prepared_execution.prepared_release);
+	let prepared_release = context
+		.prepared_release
+		.as_ref()
+		.expect("prepared release must be available after prepare step");
+	let manifest =
+		build_release_manifest(state.cli_command, prepared_release, &context.command_logs);
+
+	if should_write_release_record_for_prepared_release(
+		prepared_release,
+		write_empty_release_record,
+	) {
+		if state.dry_run && !write_release_json {
+			context.command_logs.push(
+				"skipped release record: dry-run preview (pass `--release-json` to write release.json)"
+					.to_string(),
+			);
+		} else {
+			let _record_path = write_release_record_file(
+				state.root,
+				state.configuration.source.as_ref(),
+				&manifest,
+			)?;
+		}
+
+		context.release_manifest_path =
+			Some(write_default_release_manifest_file(state.root, &manifest).await?);
+	} else {
+		context
+			.command_logs
+			.push("skipped release record: no packages were released".to_string());
+		context.release_manifest_path = None;
+	}
+
+	let updated_prepared_release = context.prepared_release.take().unwrap();
+	context.prepared_release = Some(updated_prepared_release);
+
+	Ok(None)
+}
+
+async fn execute_verify_release_branch_step(
+	state: &StepExecutionState<'_>,
+) -> MonochangeResult<Option<String>> {
+	let from_ref = state
+		.step_inputs
+		.get("from")
+		.and_then(|v| v.first().cloned())
+		.unwrap_or_else(|| "HEAD".to_string());
+	let source = state.configuration.source.as_ref().ok_or_else(|| {
+		MonochangeError::Config(
+			"`VerifyReleaseBranch` requires `[source]` configuration".to_string(),
+		)
+	})?;
+	let report =
+		release_branch_policy::verify_release_ref(state.root, &source.releases, &from_ref).await?;
+
+	Ok(Some(format!(
+		"release branch verified: `{}` is reachable from `{}`",
+		from_ref, report.matched_branch
+	)))
+}
+
+async fn execute_publish_release_step(
+	state: &StepExecutionState<'_>,
+	context: &mut CliContext,
+) -> MonochangeResult<Option<String>> {
+	let verify_ref = state
+		.step_inputs
+		.get("from-ref")
+		.and_then(|v| v.first().cloned())
+		.unwrap_or_else(|| "HEAD".to_string());
+	let manifest = if let Some(prepared_release) = context.prepared_release.as_ref() {
+		build_release_manifest(state.cli_command, prepared_release, &context.command_logs)
+	} else {
+		let from_ref = state
+			.step_inputs
+			.get("from-ref")
+			.and_then(|v| v.first().cloned())
+			.unwrap_or_else(|| "HEAD".to_string());
+		let discovery = discover_release_record(state.root, &from_ref).await?;
+		build_release_manifest_from_record(&discovery.record)
+	};
+	let source = publish_release_source_configuration(
+		state.configuration.source.as_ref(),
+		state.step_inputs,
+	)?;
+
+	if !context.dry_run {
+		release_branch_policy::verify_release_ref_for_publish(
+			state.root,
+			Some(&source),
+			&state.configuration.prerelease,
+			&verify_ref,
+		)
+		.await?;
+	}
+
+	context.release_requests = build_source_release_requests(&source, &manifest);
+	let results =
+		build_release_results_for_source(context.dry_run, &source, &context.release_requests)
+			.await?;
+	context.release_results = results;
+
+	Ok(None)
+}
+
+async fn execute_placeholder_publish_step(
+	state: &StepExecutionState<'_>,
+	context: &mut CliContext,
+	progress: &mut ProgressReporter,
+) -> MonochangeResult<Option<String>> {
+	let selected_packages = selected_package_ids(state.step_inputs);
+	let show_all_packages = boolean_step_input(state.step_inputs, "show-all");
+	let npm_otp = state
+		.step_inputs
+		.get("otp")
+		.and_then(|values| values.first())
+		.map(String::as_str);
+	let rate_limit_report = publish_rate_limits::plan_publish_rate_limits(
+		state.root,
+		state.configuration,
+		context.prepared_release.as_ref(),
+		&selected_packages,
+		publish_rate_limits::PublishRateLimitMode::Placeholder,
+		false,
+		context.dry_run,
+	)
+	.await?;
+
+	if !context.dry_run {
+		publish_rate_limits::enforce_publish_rate_limits(
+			state.configuration,
+			&rate_limit_report,
+			publish_rate_limits::PublishRateLimitMode::Placeholder,
+		)?;
+	}
+
+	let report = match package_publish::try_run_placeholder_publish_with_progress(
+		state.root,
+		state.configuration,
+		&selected_packages,
+		context.dry_run,
+		npm_otp,
+		progress,
+	)
+	.await
+	{
+		Ok(report) => report,
+		Err(error) => {
+			let (primary_error, report) = error.into_parts();
+			let error = monochange_publish::ensure_publish_report_succeeded(&report)
+				.err()
+				.unwrap_or(primary_error);
+			context.package_publish_report = Some(report);
+			context.rate_limit_report = Some(rate_limit_report);
+
+			return Err(error);
+		}
+	};
+
+	monochange_publish::ensure_publish_report_succeeded(&report)?;
+	context.package_publish_report = Some(report);
+	context
+		.last_step_inputs
+		.insert("show-all".to_string(), vec![show_all_packages.to_string()]);
+	context.rate_limit_report = Some(rate_limit_report);
+
+	Ok(None)
+}
+
+async fn execute_publish_packages_step(
+	state: &StepExecutionState<'_>,
+	context: &mut CliContext,
+	progress: &mut ProgressReporter,
+) -> MonochangeResult<Option<String>> {
+	let selected_packages = selected_package_ids(state.step_inputs);
+	let publish_all = boolean_step_input(state.step_inputs, "all");
+	let fail_on_duplicate = boolean_step_input(state.step_inputs, "fail-on-duplicate");
+	let selected_groups = selected_group_ids(state.step_inputs);
+	let selected_ecosystems = selected_ecosystem_ids(state.step_inputs)?;
+	let resume_path = optional_publish_resume_artifact_path(state.step_inputs)?;
+	let output_path = optional_publish_output_artifact_path(state.step_inputs)?;
+	let stream_output = boolean_step_input(state.step_inputs, "stream-output");
+
+	if !context.dry_run {
+		release_branch_policy::verify_release_ref_for_publish(
+			state.root,
+			state.configuration.source.as_ref(),
+			&state.configuration.prerelease,
+			"HEAD",
+		)
+		.await?;
+	}
+
+	let rate_limit_report = publish_rate_limits::plan_publish_rate_limits(
+		state.root,
+		state.configuration,
+		context.prepared_release.as_ref(),
+		&selected_packages,
+		publish_rate_limits::PublishRateLimitMode::Publish,
+		publish_all,
+		context.dry_run,
+	)
+	.await?;
+
+	if !context.dry_run {
+		publish_rate_limits::enforce_publish_rate_limits(
+			state.configuration,
+			&rate_limit_report,
+			publish_rate_limits::PublishRateLimitMode::Publish,
+		)?;
+	}
+
+	let report = match package_publish::try_run_publish_packages_with_resume_and_progress(
+		state.root,
+		state.configuration,
+		context.prepared_release.as_ref(),
+		&selected_packages,
+		&selected_groups,
+		&selected_ecosystems,
+		package_publish::PublishPackagesOptions {
+			publish_all_configured_packages: publish_all,
+			dry_run: context.dry_run,
+			resume_path: resume_path.as_deref(),
+			fail_on_duplicate,
+			output: package_publish::PublishOutputOptions {
+				stream_output,
+				quiet: context.quiet,
+			},
+		},
+		progress,
+	)
+	.await
+	{
+		Ok(report) => report,
+		Err(error) => {
+			let (primary_error, report) = error.into_parts();
+
+			if !context.dry_run
+				&& let Some(output_path) = output_path.as_deref()
+			{
+				monochange_publish::write_publish_report_artifact(output_path, &report)?;
+			}
+
+			let error = monochange_publish::ensure_publish_report_succeeded(&report)
+				.err()
+				.unwrap_or(primary_error);
+			context.package_publish_report = Some(report);
+			context.rate_limit_report = Some(rate_limit_report);
+
+			return Err(error);
+		}
+	};
+
+	if !context.dry_run
+		&& let Some(output_path) = output_path.as_deref()
+	{
+		monochange_publish::write_publish_report_artifact(output_path, &report)?;
+	}
+
+	monochange_publish::ensure_publish_report_succeeded(&report)?;
+	context.package_publish_report = Some(report);
+	context.rate_limit_report = Some(rate_limit_report);
+
+	Ok(None)
+}
+
+async fn execute_plan_publish_rate_limits_step(
+	state: &StepExecutionState<'_>,
+	context: &mut CliContext,
+) -> MonochangeResult<Option<String>> {
+	let mode = publish_rate_limit_mode_from_inputs(state.step_inputs)?;
+	let selected_packages = publish_rate_limit_selected_package_ids(
+		state.root,
+		state.configuration,
+		context.prepared_release.as_ref(),
+		state.step_inputs,
+		mode,
+	)
+	.await?;
+	let report = publish_rate_limits::plan_publish_rate_limits(
+		state.root,
+		state.configuration,
+		context.prepared_release.as_ref(),
+		&selected_packages,
+		mode,
+		boolean_step_input(state.step_inputs, "all"),
+		context.dry_run,
+	)
+	.await?;
+	context.rate_limit_report = Some(report);
+
+	Ok(None)
+}
+
+async fn execute_commit_release_step(
+	state: &StepExecutionState<'_>,
+	context: &mut CliContext,
+	defaults: &CommitReleaseStepDefaults<'_>,
+) -> MonochangeResult<Option<String>> {
+	release_branch_policy::verify_release_ref_for_commit(
+		state.root,
+		state.configuration.source.as_ref(),
+		"HEAD",
+	)
+	.await?;
+	ensure_prepared_release_for_consumer_step(
+		state.root,
+		state.configuration,
+		context,
+		state.prepared_release_path,
+		state.dry_run,
+		false,
+		"CommitRelease",
+	)
+	.await?;
+	let prepared_release = context
+		.prepared_release
+		.as_ref()
+		.expect("prepared release must be available before committing release");
+	let manifest =
+		build_release_manifest(state.cli_command, prepared_release, &context.command_logs);
+	let no_verify =
+		parse_boolean_step_input(state.step_inputs, "no_verify")?.unwrap_or(defaults.no_verify);
+	let update_release_json = parse_boolean_step_input(state.step_inputs, "update_release_json")?
+		.unwrap_or(defaults.update_release_json);
+	let stage_all =
+		parse_boolean_step_input(state.step_inputs, "stage_all")?.unwrap_or(defaults.stage_all);
+	let commit_backend = string_step_input(state.step_inputs, "commit_backend")
+		.and_then(|value| value.parse::<ReleaseBackend>().ok())
+		.unwrap_or(defaults.commit_backend);
+
+	let release_commit_report = match commit_backend {
+		ReleaseBackend::Local => {
+			commit_release(
+				state.root,
+				context,
+				state.configuration.source.as_ref(),
+				&manifest,
+				no_verify,
+				update_release_json,
+				stage_all,
+			)
+			.await?
+		}
+		ReleaseBackend::Hosted => {
+			let options = hosted_commit_options_from_step(
+				state.step_inputs,
+				ConfiguredHostedSettings {
+					auth: defaults.hosted_auth,
+					url: defaults.hosted_url,
+					oidc_audience: defaults.oidc_audience,
+				},
+			)?;
+			Box::pin(hosted_commit_release(
+				state.root,
+				context,
+				state.configuration.source.as_ref(),
+				&manifest,
+				update_release_json,
+				&options,
+			))
+			.await?
+		}
+	};
+
+	context.release_commit_report = Some(release_commit_report);
+
+	Ok(None)
+}
+
+async fn execute_open_release_request_step(
+	state: &StepExecutionState<'_>,
+	context: &mut CliContext,
+	no_verify_default: bool,
+	stage_all_default: bool,
+	backend_default: ReleaseBackend,
+	hosted_auth_default: monochange_core::HostedCommitAuth,
+	hosted_url: Option<&str>,
+) -> MonochangeResult<Option<String>> {
+	let build_file_diffs = context.show_diff;
+	ensure_prepared_release_for_consumer_step(
+		state.root,
+		state.configuration,
+		context,
+		state.prepared_release_path,
+		state.dry_run,
+		build_file_diffs,
+		"OpenReleaseRequest",
+	)
+	.await?;
+	let prepared_release = context
+		.prepared_release
+		.as_ref()
+		.expect("prepared release must be available before opening release request");
+	let source = state.configuration.source.clone().ok_or_else(|| {
+		MonochangeError::Config(
+			"`OpenReleaseRequest` requires `[source]` configuration".to_string(),
+		)
+	})?;
+	let manifest =
+		build_release_manifest(state.cli_command, prepared_release, &context.command_logs);
+	let request = build_source_change_request(&source, &manifest);
+	let tracked_paths = tracked_release_pull_request_paths(context, &manifest);
+	let dry_run = context.dry_run;
+	let no_verify =
+		parse_boolean_step_input(state.step_inputs, "no_verify")?.unwrap_or(no_verify_default);
+	let stage_all =
+		parse_boolean_step_input(state.step_inputs, "stage_all")?.unwrap_or(stage_all_default);
+	let backend = string_step_input(state.step_inputs, "backend")
+		.and_then(|value| value.parse::<ReleaseBackend>().ok())
+		.unwrap_or(backend_default);
+
+	let result = match backend {
+		ReleaseBackend::Local => {
+			build_release_request_result_for_source(
+				dry_run,
+				&source,
+				state.root,
+				&request,
+				&tracked_paths,
+				no_verify,
+				stage_all,
+			)
+			.await?
+		}
+		ReleaseBackend::Hosted => {
+			// The audience is an input only: a configured field would
+			// change the versioned configuration schema.
+			let options = hosted_commit_options_from_step(
+				state.step_inputs,
+				ConfiguredHostedSettings {
+					auth: hosted_auth_default,
+					url: hosted_url,
+					oidc_audience: None,
+				},
+			)?;
+			Box::pin(hosted_release_request_result(
+				dry_run,
+				&options,
+				&request,
+				&tracked_paths,
+			))
+			.await?
+		}
+	};
+
+	context.release_request_result = Some(result);
+	context.release_request = Some(request);
+
+	Ok(None)
+}
+
+async fn execute_comment_released_issues_step(
+	state: &StepExecutionState<'_>,
+	context: &mut CliContext,
+) -> MonochangeResult<Option<String>> {
+	let manifest = if let Some(prepared_release) = context.prepared_release.as_ref() {
+		build_release_manifest(state.cli_command, prepared_release, &context.command_logs)
+	} else {
+		let from_ref = state
+			.step_inputs
+			.get("from-ref")
+			.and_then(|v| v.first().cloned())
+			.unwrap_or_else(|| "HEAD".to_string());
+		let discovery = discover_release_record(state.root, &from_ref).await?;
+		build_release_manifest_from_record(&discovery.record)
+	};
+	let auto_close_issues =
+		parse_boolean_step_input(state.step_inputs, "auto-close-issues")?.unwrap_or(false);
+	let source = state.configuration.source.clone().ok_or_else(|| {
+		MonochangeError::Config(
+			"`CommentReleasedIssues` requires `[source]` configuration".to_string(),
+		)
+	})?;
+	let adapter = hosted_sources::configured_hosted_source_adapter(&source);
+
+	if !adapter.features().released_issue_comments {
+		return Err(MonochangeError::Config(format!(
+			"`CommentReleasedIssues` is not supported for `[source].provider = \"{}\"`",
+			source.provider
+		)));
+	}
+
+	let mut issue_comment_plans = adapter.plan_released_issue_comments(&source, &manifest);
+
+	for plan in &mut issue_comment_plans {
+		plan.close &= auto_close_issues;
+	}
+
+	let dry_run = context.dry_run;
+	let results =
+		build_issue_comment_results_for_source(dry_run, &source, &issue_comment_plans).await?;
+	context.issue_comment_plans = issue_comment_plans;
+	context.issue_comment_results = results;
+
+	Ok(None)
+}
+
+async fn execute_release_record_step(
+	state: &StepExecutionState<'_>,
+	context: &CliContext,
+) -> MonochangeResult<Option<String>> {
+	let from = state
+		.step_inputs
+		.get("from")
+		.and_then(|values| values.first())
+		.map(String::as_str)
+		.ok_or_else(|| MonochangeError::Config("missing release-record ref".to_string()))?;
+
+	if boolean_step_input(state.step_inputs, "sha") {
+		let discovery = discover_release_record(state.root, from).await?;
+
+		Ok(Some(discovery.record_commit))
+	} else {
+		Ok(Some(
+			render_release_record_discovery(state.root, from, context.output_format).await?,
+		))
+	}
+}
+
+async fn execute_publish_readiness_step(
+	state: &StepExecutionState<'_>,
+	context: &CliContext,
+) -> MonochangeResult<Option<String>> {
+	let from = state
+		.step_inputs
+		.get("from")
+		.and_then(|values| values.first())
+		.cloned()
+		.ok_or_else(|| MonochangeError::Config("missing publish-readiness ref".to_string()))?;
+	let selected_packages = selected_package_ids(state.step_inputs);
+	let output_path = optional_path_input(state.step_inputs, "output", "PublishReadiness")?;
+	let options = publish_readiness::PublishReadinessOptions {
+		from,
+		selected_packages,
+		format: context.output_format,
+		output: output_path,
+	};
+
+	Ok(Some(
+		publish_readiness::run_publish_readiness(state.root, state.configuration, &options).await?,
+	))
+}
+
+async fn execute_tag_release_step(
+	state: &StepExecutionState<'_>,
+	context: &CliContext,
+) -> MonochangeResult<Option<String>> {
+	let from = state
+		.step_inputs
+		.get("from")
+		.and_then(|values| values.first())
+		.map(String::as_str)
+		.ok_or_else(|| MonochangeError::Config("missing tag-release ref".to_string()))?;
+	let push = state
+		.step_inputs
+		.get("push")
+		.and_then(|values| values.first())
+		.is_none_or(|value| value == "true");
+	release_branch_policy::verify_release_ref_for_tags(
+		state.root,
+		state.configuration.source.as_ref(),
+		&state.configuration.prerelease,
+		from,
+	)
+	.await?;
+
+	Ok(Some(
+		render_release_tag_report(
+			state.root,
+			from,
+			context.output_format,
+			push,
+			context.dry_run,
+		)
+		.await?,
+	))
+}
+
+async fn execute_affected_packages_reporting_step(
+	state: &StepExecutionState<'_>,
+	context: &mut CliContext,
+	progress: &mut ProgressReporter,
+) -> MonochangeResult<Option<String>> {
+	let evaluation = execute_affected_packages_step(
+		state.root,
+		state.step_inputs,
+		context.quiet,
+		Some(progress),
+	)
+	.await?;
+
+	context.changeset_policy_evaluation = Some(evaluation);
+
+	Ok(None)
+}
+
+async fn execute_retarget_release_step(
+	state: &StepExecutionState<'_>,
+	context: &mut CliContext,
+	progress: &mut ProgressReporter,
+	step_phase_timings: &mut Vec<StepPhaseTiming>,
+) -> MonochangeResult<Option<String>> {
+	let from = state
+		.step_inputs
+		.get("from")
+		.and_then(|values| values.first())
+		.cloned()
+		.ok_or_else(|| {
+			MonochangeError::Config("`RetargetRelease` requires a `from` input".to_string())
+		})?;
+	let target = state
+		.step_inputs
+		.get("target")
+		.and_then(|values| values.first())
+		.cloned()
+		.unwrap_or_else(|| "HEAD".to_string());
+	let force = parse_boolean_step_input(state.step_inputs, "force")?.unwrap_or(false);
+	let sync_provider =
+		parse_boolean_step_input(state.step_inputs, "sync_provider")?.unwrap_or(true);
+
+	if state.show_progress {
+		progress.step_status(
+			state.step_index,
+			state.step,
+			&format!("locating release record for {from}"),
+		);
+	}
+
+	let phase_started_at = Instant::now();
+	let discovery = discover_release_record(state.root, &from).await?;
+	step_phase_timings.push(StepPhaseTiming {
+		label: "locate release record".to_string(),
+		duration: phase_started_at.elapsed(),
+	});
+
+	if state.show_progress {
+		progress.step_status(
+			state.step_index,
+			state.step,
+			&format!(
+				"resolving source provider for {}",
+				discovery.resolved_commit
+			),
+		);
+	}
+
+	let phase_started_at = Instant::now();
+	let source = inferred_retarget_source_configuration(
+		state.configuration.source.as_ref(),
+		&discovery,
+		sync_provider,
+	);
+	step_phase_timings.push(StepPhaseTiming {
+		label: "resolve source provider".to_string(),
+		duration: phase_started_at.elapsed(),
+	});
+
+	if state.show_progress {
+		progress.step_status(
+			state.step_index,
+			state.step,
+			&format!("planning retarget to {target}"),
+		);
+	}
+
+	let phase_started_at = Instant::now();
+	let plan = plan_release_retarget(
+		state.root,
+		&discovery,
+		&target,
+		force,
+		sync_provider,
+		context.dry_run,
+		source.as_ref(),
+	)
+	.await?;
+	step_phase_timings.push(StepPhaseTiming {
+		label: "plan retarget".to_string(),
+		duration: phase_started_at.elapsed(),
+	});
+
+	if state.show_progress {
+		progress.step_status(
+			state.step_index,
+			state.step,
+			"applying git ref and provider updates",
+		);
+	}
+
+	let phase_started_at = Instant::now();
+	let retarget_future = execute_release_retarget(state.root, source.as_ref(), &plan);
+	let result = retarget_future.await?;
+	step_phase_timings.push(StepPhaseTiming {
+		label: "apply retarget".to_string(),
+		duration: phase_started_at.elapsed(),
+	});
+	context.retarget_report = Some(build_retarget_release_report(
+		&from,
+		&target,
+		&discovery,
+		plan.is_descendant,
+		&result,
+	));
+
+	Ok(None)
 }
 
 struct CliTelemetry<'a> {
@@ -1747,9 +2023,11 @@ fn step_references_release_file_diffs(step: &CliStepDefinition) -> bool {
 			CliStepInputValue::Inherited | CliStepInputValue::Boolean(_) => false,
 		}
 	});
+
 	if step.when().is_some_and(mentions_file_diffs) || inputs_mention_file_diffs {
 		return true;
 	}
+
 	match step {
 		CliStepDefinition::Command {
 			command,
@@ -1773,9 +2051,11 @@ fn evaluate_cli_step_condition(
 	step_inputs: &BTreeMap<String, Vec<String>>,
 ) -> MonochangeResult<bool> {
 	let trimmed = condition.trim();
+
 	if trimmed.is_empty() {
 		return Ok(false);
 	}
+
 	if let Some(result) = evaluate_fast_cli_step_condition(trimmed, context, step_inputs) {
 		return Ok(result);
 	}
@@ -1783,14 +2063,17 @@ fn evaluate_cli_step_condition(
 	let condition_inputs = cli_step_condition_inputs(context, step_inputs);
 	let template_context = build_cli_template_context(context, &condition_inputs, None);
 	let template_context_json = serde_json::Value::Object(template_context.clone());
+
 	if let Some(path) = parse_direct_template_reference(trimmed) {
 		let Some(value) = lookup_template_value(&template_context_json, path) else {
 			return Err(MonochangeError::Config(format!(
 				"failed to evaluate `when` condition `{condition}`: unknown template path `{path}`"
 			)));
 		};
+
 		return parse_template_as_boolean(value, condition);
 	}
+
 	let normalized = normalize_when_expression(trimmed);
 	let jinja_context =
 		minijinja::Value::from_serialize(serde_json::Value::Object(template_context));
@@ -1813,21 +2096,27 @@ fn evaluate_fast_cli_step_condition(
 	step_inputs: &BTreeMap<String, Vec<String>>,
 ) -> Option<bool> {
 	let expression = trim_template_expression(condition)?;
+
 	if expression.contains('(') || expression.contains(')') {
 		return None;
 	}
 
 	let inputs = cli_step_condition_inputs(context, step_inputs);
 	let mut saw_operand = false;
+
 	for or_group in expression.split("||") {
 		let mut group_value = true;
+
 		for operand in or_group.split("&&") {
 			saw_operand = true;
+
 			if !group_value {
 				break;
 			}
+
 			group_value = evaluate_fast_cli_condition_operand(operand, context, &inputs)?;
 		}
+
 		if group_value {
 			return Some(true);
 		}
@@ -1853,19 +2142,23 @@ fn evaluate_fast_cli_condition_operand(
 	inputs: &BTreeMap<String, Vec<String>>,
 ) -> Option<bool> {
 	let operand = operand.trim();
+
 	if operand.is_empty() {
 		return None;
 	}
+
 	if let Some(operand) = operand.strip_prefix('!') {
 		return Some(!evaluate_fast_cli_condition_operand(
 			operand, context, inputs,
 		)?);
 	}
+
 	if let Some(operand) = operand.strip_prefix("not ") {
 		return Some(!evaluate_fast_cli_condition_operand(
 			operand, context, inputs,
 		)?);
 	}
+
 	if let Some(name) = operand.strip_prefix("inputs.") {
 		return parse_fast_condition_input(name, inputs);
 	}
@@ -1875,6 +2168,7 @@ fn evaluate_fast_cli_condition_operand(
 
 fn parse_fast_condition_input(name: &str, inputs: &BTreeMap<String, Vec<String>>) -> Option<bool> {
 	let values = inputs.get(name)?;
+
 	match values.as_slice() {
 		[] => Some(false),
 		[value] => parse_string_as_boolean(value, name).ok(),
@@ -1885,14 +2179,17 @@ fn parse_fast_condition_input(name: &str, inputs: &BTreeMap<String, Vec<String>>
 fn evaluate_fast_changeset_count_comparison(operand: &str, context: &CliContext) -> Option<bool> {
 	let prepared = context.prepared_release.as_ref()?;
 	let count = prepared.changeset_paths.len() as u64;
+
 	for operator in [">=", "<=", "==", "!=", ">", "<"] {
 		let Some((left, right)) = operand.split_once(operator) else {
 			continue;
 		};
 		let variable = left.trim();
+
 		if !matches!(variable, "number_of_changesets" | "changeset_count") {
 			return None;
 		}
+
 		let expected = right.trim().parse::<u64>().ok()?;
 		let matches = if operator == ">=" {
 			count >= expected
@@ -1907,6 +2204,7 @@ fn evaluate_fast_changeset_count_comparison(operand: &str, context: &CliContext)
 		} else {
 			count < expected
 		};
+
 		return Some(matches);
 	}
 
@@ -1941,32 +2239,40 @@ pub(crate) fn normalize_when_expression(condition: &str) -> String {
 	let expression = condition.replace("&&", " and ").replace("||", " or ");
 	let mut normalized = String::with_capacity(expression.len());
 	let mut chars = expression.chars().peekable();
+
 	while let Some(ch) = chars.next() {
 		if ch == '!' {
 			if let Some('=') = chars.peek() {
 				normalized.push('!');
 				continue;
 			}
+
 			let previous_was_expression_boundary = normalized.chars().last().is_none_or(|prev| {
 				prev.is_whitespace() || prev == '(' || prev == ',' || prev == '>' || prev == '<'
 			});
+
 			if previous_was_expression_boundary {
 				normalized.push_str("not ");
 			} else {
 				normalized.push('!');
 			}
+
 			continue;
 		}
+
 		normalized.push(ch);
 	}
+
 	normalized
 }
 
 fn parse_string_as_boolean(value: &str, condition: &str) -> MonochangeResult<bool> {
 	let value = value.trim().to_ascii_lowercase();
+
 	if let Ok(number) = value.parse::<i64>() {
 		return Ok(number != 0);
 	}
+
 	match value.as_str() {
 		"true" => Ok(true),
 		"false" | "0" | "" => Ok(false),
@@ -2025,14 +2331,17 @@ fn run_cli_command_command(
 	);
 	let interactive = step_input_is_true(options.step_inputs, "interactive");
 	let mut process_command = build_process_command(&context.root, options.shell, &interpolated)?;
+
 	if show_progress && !interactive {
 		progress.step_command(step_index, step, &render_command_for_error(&interpolated));
 	}
+
 	if interactive {
 		// Let the command own the terminal: pause the spinner so it does
 		// not animate over the command's own UI.
 		progress.pause_spinner();
 	}
+
 	let streamed = progress.is_enabled() && show_progress && !interactive;
 	let output = execute_process_command(
 		&mut process_command,
@@ -2139,9 +2448,11 @@ fn build_process_command(
 			));
 		};
 		let mut process_command = ProcessCommand::new(program);
+
 		process_command.args(args);
 		process_command
 	};
+
 	process_command.current_dir(root);
 
 	Ok(process_command)
@@ -2168,6 +2479,7 @@ fn execute_process_command(
 			stderr: Vec::new(),
 		});
 	}
+
 	if progress.is_enabled() && show_progress {
 		return run_process_with_streaming(
 			process_command,
@@ -2232,6 +2544,7 @@ fn log_command_step_output(
 
 	if stdout.is_empty() {
 		context.command_logs.push(format!("ran `{interpolated}`"));
+
 		return;
 	}
 
@@ -2325,6 +2638,7 @@ fn drain_stream_events_with_heartbeat_timeout(
 	let mut stdout_closed = false;
 	let mut stderr_closed = false;
 	let started_at = Instant::now();
+
 	while !stdout_closed || !stderr_closed {
 		match receiver.recv_timeout(heartbeat_interval) {
 			Ok(StreamEvent::Chunk(stream, chunk)) => {
@@ -2332,6 +2646,7 @@ fn drain_stream_events_with_heartbeat_timeout(
 					CommandStream::Stdout => stdout_buffer.extend_from_slice(&chunk),
 					CommandStream::Stderr => stderr_buffer.extend_from_slice(&chunk),
 				}
+
 				progress.log_command_output(
 					step_index,
 					step,
@@ -2351,6 +2666,7 @@ fn drain_stream_events_with_heartbeat_timeout(
 			Err(mpsc::RecvTimeoutError::Disconnected) => break,
 		}
 	}
+
 	(stdout_buffer, stderr_buffer)
 }
 
@@ -2381,6 +2697,7 @@ fn spawn_stream_reader(
 				}
 			}
 		}
+
 		let _ = sender.send(StreamEvent::Closed(stream));
 	})
 }
@@ -2411,6 +2728,7 @@ fn tail_process_output(label: &str, text: &str, line_limit: Option<usize>) -> Op
 	if text.is_empty() {
 		return None;
 	}
+
 	let mut lines = text.lines().collect::<Vec<_>>();
 	let Some(limit) = line_limit.filter(|limit| lines.len() > *limit) else {
 		return Some(format!("{label}:\n{text}"));
@@ -2443,14 +2761,18 @@ fn cli_inputs_template_value(
 fn cli_input_template_value(input_values: &[String]) -> serde_json::Value {
 	if input_values.len() == 1 {
 		let value = input_values.first().map_or("", String::as_str);
+
 		if value == "true" || value == "false" {
 			return serde_json::Value::Bool(value == "true");
 		}
+
 		return serde_json::Value::String(value.to_string());
 	}
+
 	if input_values.is_empty() {
 		return serde_json::Value::Bool(false);
 	}
+
 	serde_json::Value::Array(
 		input_values
 			.iter()
@@ -2485,6 +2807,7 @@ pub(crate) fn build_cli_template_context(
 				.to_string(),
 		),
 	);
+
 	if let Ok(configuration) = load_workspace_configuration(&context.root) {
 		template_context.insert(
 			"config".to_string(),
@@ -2617,6 +2940,7 @@ pub(crate) fn build_cli_template_context(
 	// Structured steps.<id>.* namespace from command step outputs
 	if !context.step_outputs.is_empty() {
 		let mut steps_map = serde_json::Map::new();
+
 		for (id, output) in &context.step_outputs {
 			let mut output_map = serde_json::Map::new();
 			output_map.insert(
@@ -2629,6 +2953,7 @@ pub(crate) fn build_cli_template_context(
 			);
 			steps_map.insert(id.clone(), serde_json::Value::Object(output_map));
 		}
+
 		template_context.insert("steps".to_string(), serde_json::Value::Object(steps_map));
 	}
 
@@ -2721,6 +3046,7 @@ fn build_release_template_value(context: &CliContext) -> serde_json::Value {
 				.collect(),
 		),
 	);
+
 	release_map.insert(
 		"changeset_paths".to_string(),
 		serde_json::Value::Array(
@@ -2822,11 +3148,13 @@ fn build_package_publish_template_value(
 	rate_limit_report: Option<&monochange_core::PublishRateLimitReport>,
 ) -> serde_json::Value {
 	let mut value = serde_json::to_value(report).unwrap_or(serde_json::Value::Null);
+
 	if let Some(object) = value.as_object_mut() {
 		object.insert(
 			"summary".to_string(),
 			serde_json::to_value(report.summary()).unwrap_or(serde_json::Value::Null),
 		);
+
 		if let Some(rate_limit_report) = rate_limit_report {
 			object.insert(
 				"rate_limits".to_string(),
@@ -2834,6 +3162,7 @@ fn build_package_publish_template_value(
 			);
 		}
 	}
+
 	value
 }
 
@@ -2917,6 +3246,7 @@ fn render_github_actions_publish_batches(
 			.collect::<Vec<_>>()
 			.join(" ");
 		lines.push(format!("            packages: \"{packages}\""));
+
 		if let Some(wait_seconds) = batch.recommended_wait_seconds {
 			lines.push(format!("            wait_seconds: {wait_seconds}"));
 		} else {
@@ -2941,6 +3271,7 @@ fn render_gitlab_ci_publish_batches(report: &monochange_core::PublishRateLimitRe
 		"  parallel:".to_string(),
 		"    matrix:".to_string(),
 	];
+
 	for batch in &report.batches {
 		let packages = batch
 			.packages
@@ -2956,11 +3287,13 @@ fn render_gitlab_ci_publish_batches(report: &monochange_core::PublishRateLimitRe
 			batch.total_batches
 		));
 		lines.push(format!("        PACKAGES: \"{packages}\""));
+
 		lines.push(format!(
 			"        WAIT_SECONDS: \"{}\"",
 			batch.recommended_wait_seconds.unwrap_or_default()
 		));
 	}
+
 	lines.extend([
 		"  script:".to_string(),
 		"    - '# For batches after the first, run a later pipeline instead of sleeping inside CI.'".to_string(),
@@ -2992,9 +3325,11 @@ fn selected_ecosystem_ids(
 ) -> MonochangeResult<BTreeSet<Ecosystem>> {
 	let ecosystems = inputs.get("ecosystem").into_iter().flatten();
 	let mut result = BTreeSet::new();
+
 	for value in ecosystems {
 		result.insert(parse_ecosystem_input(value)?);
 	}
+
 	Ok(result)
 }
 
@@ -3048,11 +3383,13 @@ fn optional_path_input(
 	};
 
 	let trimmed = path.trim();
+
 	if trimmed.is_empty() {
 		let message = match name {
 			"readiness" => "`--readiness <PATH>` must not be blank; run `monochange step publish-readiness --from HEAD --output <PATH>` first".to_string(),
 			_ => format!("`{step_name}` received a blank `{name}` path"),
 		};
+
 		return Err(MonochangeError::Config(message));
 	}
 
@@ -3142,9 +3479,11 @@ pub(crate) fn inferred_retarget_source_configuration(
 	if let Some(source) = configured_source {
 		return Some(source.clone());
 	}
+
 	if !sync_provider {
 		return None;
 	}
+
 	let provider = discovery.record.provider.as_ref()?;
 	Some(SourceConfiguration {
 		provider: provider.kind,
@@ -3182,6 +3521,7 @@ pub(crate) fn build_retarget_release_report(
 			.collect(),
 		git_tag_results: result.git_tag_results.clone(),
 		provider_results: result.provider_results.clone(),
+
 		status: if result.dry_run {
 			"dry_run".to_string()
 		} else {
@@ -3196,6 +3536,7 @@ fn render_package_publish_report(
 ) -> Vec<String> {
 	let summary = report.summary();
 	let mut lines = vec![package_publish_headline(report, summary)];
+
 	if summary.total() == 0 {
 		return lines;
 	}
@@ -3208,9 +3549,11 @@ fn render_package_publish_report(
 				package.status,
 				package_publish::PackagePublishStatus::Planned
 					| package_publish::PackagePublishStatus::Published
+					| package_publish::PackagePublishStatus::Staged
 			)
 		})
 		.collect::<Vec<_>>();
+
 	if !primary_packages.is_empty() {
 		lines.push(String::new());
 		lines.extend(render_publish_package_rows(&primary_packages, false));
@@ -3238,6 +3581,7 @@ fn render_package_publish_report(
 
 	lines.push(String::new());
 	lines.push("Details".to_string());
+
 	for package in &report.packages {
 		lines.push(format!(
 			"- {} {} via {} — {}",
@@ -3258,15 +3602,19 @@ fn render_package_publish_report(
 			"  trust message: {}",
 			package.trusted_publishing.message
 		));
+
 		if let Some(repository) = &package.trusted_publishing.repository {
 			lines.push(format!("  repository: {repository}"));
 		}
+
 		if let Some(workflow) = &package.trusted_publishing.workflow {
 			lines.push(format!("  workflow: {workflow}"));
 		}
+
 		if let Some(environment) = &package.trusted_publishing.environment {
 			lines.push(format!("  environment: {environment}"));
 		}
+
 		if let Some(setup_url) = &package.trusted_publishing.setup_url {
 			lines.push(format!("  setup: {setup_url}"));
 			lines.push("  next: open the setup URL, configure trusted publishing for this package, then rerun `monochange step publish-packages`".to_string());
@@ -3290,6 +3638,7 @@ fn package_publish_headline(
 			}
 		};
 	}
+
 	if summary.already_exists == summary.total() {
 		return match report.mode {
 			package_publish::PackagePublishRunMode::Placeholder => {
@@ -3300,6 +3649,7 @@ fn package_publish_headline(
 			}
 		};
 	}
+
 	if summary.failed > 0 {
 		if summary.published > 0 {
 			return format!(
@@ -3313,22 +3663,40 @@ fn package_publish_headline(
 			publish_package_count(report.mode, summary.failed)
 		);
 	}
+
 	if summary.planned > 0 {
 		return format!(
 			"Would publish {}",
 			publish_package_count(report.mode, summary.planned)
 		);
 	}
+
 	if summary.blocked > 0 {
 		return format!(
 			"Publishing blocked for {}",
 			publish_package_count(report.mode, summary.blocked)
 		);
 	}
+
+	if summary.published > 0 && summary.staged > 0 {
+		return format!(
+			"Published {}; staged {} awaiting approval",
+			publish_package_count(report.mode, summary.published),
+			publish_package_count(report.mode, summary.staged),
+		);
+	}
+
 	if summary.published > 0 {
 		return format!(
 			"Published {}",
 			publish_package_count(report.mode, summary.published)
+		);
+	}
+
+	if summary.staged > 0 {
+		return format!(
+			"Staged {} awaiting approval",
+			publish_package_count(report.mode, summary.staged)
 		);
 	}
 
@@ -3353,6 +3721,7 @@ fn package_publish_counts(
 	} else {
 		"packages"
 	};
+
 	if summary.already_exists == summary.total() {
 		let version_kind = match report.mode {
 			package_publish::PackagePublishRunMode::Placeholder => "placeholder versions",
@@ -3365,6 +3734,7 @@ fn package_publish_counts(
 	}
 
 	let mut parts = vec![format!("Checked {} {package_noun}", summary.total())];
+
 	if summary.already_exists > 0 {
 		parts.push(if summary.already_exists == 1 {
 			"1 package version already exists".to_string()
@@ -3372,20 +3742,32 @@ fn package_publish_counts(
 			format!("{} package versions already exist", summary.already_exists)
 		});
 	}
+
+	if summary.staged > 0 {
+		parts.push(format!(
+			"{} staged awaiting approval (`npm stage list`, then `npm stage approve <stage-id>`)",
+			summary.staged
+		));
+	}
+
 	if summary.blocked > 0 {
 		parts.push(format!("{} blocked", summary.blocked));
 	}
+
 	if summary.failed > 0 {
 		parts.push(format!("{} failed", summary.failed));
 	}
+
 	if summary.not_attempted > 0 {
 		parts.push(format!("{} not attempted", summary.not_attempted));
 	}
+
 	if report.dry_run {
 		parts.push("No changes were made".to_string());
 	} else if summary.failed == 0 {
 		parts.push("0 failed".to_string());
 	}
+
 	format!("{}.", parts.join(". "))
 }
 
@@ -3411,6 +3793,7 @@ fn render_publish_package_rows(
 			} else {
 				String::new()
 			};
+
 			format!(
 				"  {name:<package_width$}  {version:<version_width$}  {registry}{message}",
 				name = package.package,
@@ -3432,9 +3815,11 @@ fn append_publish_problem_rows(
 		.iter()
 		.filter(|package| package.status == status)
 		.collect::<Vec<_>>();
+
 	if packages.is_empty() {
 		return;
 	}
+
 	lines.push(String::new());
 	lines.push(title.to_string());
 	lines.extend(render_publish_package_rows(&packages, true));
@@ -3448,6 +3833,7 @@ fn append_package_publish_command_output_lines(
 	if let Some(command) = &package.command {
 		lines.push(format!("{indent}command: {command}"));
 	}
+
 	append_labeled_multiline_block(lines, "stdout", package.stdout.as_deref(), indent);
 	append_labeled_multiline_block(lines, "stderr", package.stderr.as_deref(), indent);
 }
@@ -3462,6 +3848,7 @@ fn append_labeled_multiline_block(
 		return;
 	};
 	lines.push(format!("{indent}{label}:"));
+
 	for output_line in value.lines() {
 		lines.push(format!("{indent}  │ {output_line}"));
 	}
@@ -3474,6 +3861,7 @@ fn append_package_publish_command_output_markdown_lines(
 	if let Some(command) = &package.command {
 		lines.push(format!("- **Command:** `{command}`"));
 	}
+
 	append_markdown_output_block(lines, "stdout", package.stdout.as_deref());
 	append_markdown_output_block(lines, "stderr", package.stderr.as_deref());
 }
@@ -3494,6 +3882,7 @@ fn render_package_publish_report_markdown(
 ) -> Vec<String> {
 	let summary = report.summary();
 	let mut lines = vec![format!("**{}**", package_publish_headline(report, summary))];
+
 	if summary.total() == 0 {
 		return lines;
 	}
@@ -3532,6 +3921,7 @@ fn render_package_publish_report_markdown(
 
 	lines.push(String::new());
 	lines.push("### Details".to_string());
+
 	for package in &report.packages {
 		lines.push(format!(
 			"- **`{}`** `{}` via `{}` → {}",
@@ -3571,6 +3961,7 @@ fn render_package_publish_report_markdown(
 			"Environment",
 			package.trusted_publishing.environment.as_deref(),
 		);
+
 		if let Some(setup_url) = &package.trusted_publishing.setup_url {
 			lines.push(format!("- **Setup:** `{setup_url}`"));
 			lines.push(
@@ -3594,9 +3985,11 @@ fn append_publish_problem_rows_markdown(
 		.iter()
 		.filter(|package| package.status == status)
 		.collect::<Vec<_>>();
+
 	if packages.is_empty() {
 		return;
 	}
+
 	lines.push(String::new());
 	lines.push(format!("**{title}**"));
 	lines.extend(packages.into_iter().map(|package| {
@@ -3611,6 +4004,7 @@ fn package_publish_status_label(status: package_publish::PackagePublishStatus) -
 	match status {
 		package_publish::PackagePublishStatus::Planned => "planned",
 		package_publish::PackagePublishStatus::Published => "published",
+		package_publish::PackagePublishStatus::Staged => "staged (awaiting approval)",
 		package_publish::PackagePublishStatus::SkippedExisting => "already exists",
 		package_publish::PackagePublishStatus::SkippedExternal => "not attempted",
 		package_publish::PackagePublishStatus::Blocked => "blocked",
@@ -3663,13 +4057,17 @@ pub(crate) fn render_retarget_release_report(report: &RetargetReleaseReport) -> 
 			),
 		)
 	};
+
 	let mut details = Vec::new();
+
 	if report.force {
 		details.push("forced".to_string());
 	}
+
 	if report.dry_run {
 		details.push("dry-run".to_string());
 	}
+
 	text.headline(outcome, &headline, &details);
 	let provider = if !report.sync_provider {
 		"not synced".to_string()
@@ -3678,6 +4076,7 @@ pub(crate) fn render_retarget_release_report(report: &RetargetReleaseReport) -> 
 	} else {
 		"nothing to sync".to_string()
 	};
+
 	text.fields(&[
 		(
 			"Ref",
@@ -3701,6 +4100,7 @@ pub(crate) fn render_retarget_release_report(report: &RetargetReleaseReport) -> 
 		),
 		("Provider", provider),
 	]);
+
 	if !report.git_tag_results.is_empty() {
 		text.section("Tags", Some(report.git_tag_results.len()));
 		let rows = report
@@ -3727,6 +4127,7 @@ pub(crate) fn render_retarget_release_report(report: &RetargetReleaseReport) -> 
 			.collect::<Vec<_>>();
 		text.table(&rows);
 	}
+
 	text.render()
 }
 
@@ -3784,6 +4185,7 @@ fn cli_command_variable_value(context: &CliContext, variable: CommandVariable) -
 		.as_ref()
 		.and_then(|prepared| prepared.group_version.as_deref())
 		.unwrap_or(version);
+
 	match variable {
 		CommandVariable::Version => version.to_string(),
 		CommandVariable::GroupVersion => group_version.to_string(),
@@ -3834,6 +4236,7 @@ pub(crate) fn render_cli_command_result(
 	}
 
 	let mut report = TextReport::new(TextTheme::for_stdout());
+
 	if let Some(publish_report) = &context.package_publish_report {
 		report.raw_block(
 			&render_package_publish_report(
@@ -3843,23 +4246,29 @@ pub(crate) fn render_cli_command_result(
 			.join("\n"),
 		);
 	}
+
 	if let Some(prepared_release) = &context.prepared_release {
 		render_prepared_release_summary(&mut report, prepared_release, context);
 	} else {
 		render_release_automation_sections(&mut report, context);
 	}
+
 	if let Some(rate_limits) = &context.rate_limit_report {
 		render_rate_limit_sections(&mut report, rate_limits);
 	}
+
 	if let Some(evaluation) = &context.changeset_policy_evaluation {
 		render_changeset_policy_sections(&mut report, evaluation);
 	}
+
 	let show_all_publish_details = boolean_step_input(&context.last_step_inputs, "show-all");
+
 	if !context.command_logs.is_empty()
 		&& (context.package_publish_report.is_none() || show_all_publish_details)
 	{
 		report.section("Log", None);
 		let verbose = report.is_verbose();
+
 		report.list(
 			context
 				.command_logs
@@ -3875,9 +4284,11 @@ pub(crate) fn render_cli_command_result(
 			COMMAND_LOG_LIMIT,
 		);
 	}
+
 	if report.is_empty() {
 		render_completed_headline(&mut report, cli_command, context.dry_run);
 	}
+
 	report.render()
 }
 
@@ -3896,6 +4307,7 @@ fn render_completed_headline(
 	} else {
 		Vec::new()
 	};
+
 	report.headline(
 		Outcome::Success,
 		&format!("{} completed", cli_command.name),
@@ -3909,6 +4321,7 @@ fn render_prepared_release_summary(
 	context: &CliContext,
 ) {
 	let mut details = Vec::new();
+
 	if !prepared_release.released_packages.is_empty() {
 		details.push(plural(
 			prepared_release.released_packages.len(),
@@ -3916,6 +4329,7 @@ fn render_prepared_release_summary(
 			"packages",
 		));
 	}
+
 	if context.dry_run {
 		details.push("dry-run, no files were changed".to_string());
 	} else if !prepared_release.changed_files.is_empty() {
@@ -3942,6 +4356,7 @@ fn render_prepared_release_summary(
 
 	if !prepared_release.released_packages.is_empty() {
 		report.section("Packages", Some(prepared_release.released_packages.len()));
+
 		for line in wrap_names(&prepared_release.released_packages, PACKAGE_LINE_WIDTH) {
 			report.indented(&line, Tone::Plain);
 		}
@@ -3976,6 +4391,7 @@ fn render_prepared_release_summary(
 
 	if context.show_diff && !context.prepared_file_diffs.is_empty() {
 		report.section("File diffs", Some(context.prepared_file_diffs.len()));
+
 		for file_diff in &context.prepared_file_diffs {
 			report.raw_block(&file_diff.display_diff);
 		}
@@ -3995,20 +4411,24 @@ fn render_release_automation_sections(report: &mut TextReport, context: &CliCont
 	if let Some(commit_report) = &context.release_commit_report {
 		render_release_commit_section(report, commit_report, &context.root);
 	}
+
 	if !context.release_results.is_empty() {
 		report.section("Provider releases", Some(context.release_results.len()));
 		report.list(context.release_results.iter().cloned(), usize::MAX);
 	}
+
 	if let Some(release_request_result) = &context.release_request_result {
 		report.section("Release request", None);
 		report.indented(release_request_result, Tone::Plain);
 	}
+
 	for warning in release_request_warning_lines(context.release_request.as_ref()) {
 		report.paragraph(
 			&format!("warning: {}", warning.trim_start_matches("- ")),
 			Tone::Warning,
 		);
 	}
+
 	if !context.issue_comment_results.is_empty() {
 		report.section("Issue comments", Some(context.issue_comment_results.len()));
 		report.list(context.issue_comment_results.iter().cloned(), usize::MAX);
@@ -4017,20 +4437,25 @@ fn render_release_automation_sections(report: &mut TextReport, context: &CliCont
 
 fn render_release_target_rows(report: &mut TextReport, targets: &[ReleaseTarget]) {
 	let mut rows = Vec::with_capacity(targets.len());
+
 	for target in targets {
 		let mut traits = vec![target.kind.to_string()];
+
 		if target.tag {
 			traits.push("tag".to_string());
 		}
+
 		if target.release {
 			traits.push("release".to_string());
 		}
+
 		rows.push(vec![
 			TableCell::new(&target.id, Tone::Heading),
 			TableCell::new(&target.tag_name, Tone::Value),
 			TableCell::new(traits.join(" · "), Tone::Muted),
 		]);
 	}
+
 	report.table(&rows);
 }
 
@@ -4053,6 +4478,7 @@ fn render_release_commit_section(
 		"tracked path",
 		"tracked paths",
 	)];
+
 	if commit_report.status != "completed" {
 		details.push(commit_report.status.replace('_', "-"));
 	}
@@ -4070,6 +4496,7 @@ fn render_release_commit_section(
 		.filter(|path| path.is_absolute())
 		.map(|path| root_relative(root, path).display().to_string())
 		.collect::<Vec<_>>();
+
 	if !outside_changed_files.is_empty() {
 		report.list(outside_changed_files, CHANGED_FILE_LIMIT);
 	}
@@ -4080,12 +4507,14 @@ fn render_rate_limit_sections(
 	rate_limits: &monochange_core::PublishRateLimitReport,
 ) {
 	report.section("Publish rate limits", None);
+
 	if rate_limits.windows.is_empty() {
 		report.indented(
 			"no publish operations matched the current plan",
 			Tone::Muted,
 		);
 	}
+
 	for window in &rate_limits.windows {
 		report.indented(
 			&format!(
@@ -4099,17 +4528,22 @@ fn render_rate_limit_sections(
 			Tone::Plain,
 		);
 		let mut limits = Vec::new();
+
 		if let Some(limit) = window.limit {
 			limits.push(format!("limit {limit}"));
 		}
+
 		if let Some(window_seconds) = window.window_seconds {
 			limits.push(format!("per {window_seconds}s"));
 		}
+
 		limits.push(window.notes.clone());
 		report.indented(&format!("  {}", limits.join(" · ")), Tone::Muted);
 	}
+
 	if !rate_limits.batches.is_empty() {
 		report.section("Planned batches", Some(rate_limits.batches.len()));
+
 		for batch in &rate_limits.batches {
 			report.indented(
 				&format!(
@@ -4121,6 +4555,7 @@ fn render_rate_limit_sections(
 				),
 				Tone::Plain,
 			);
+
 			if let Some(wait_seconds) = batch.recommended_wait_seconds {
 				report.indented(
 					&format!("  wait {wait_seconds}s before this batch"),
@@ -4129,6 +4564,7 @@ fn render_rate_limit_sections(
 			}
 		}
 	}
+
 	for warning in &rate_limits.warnings {
 		report.paragraph(&format!("warning: {warning}"), Tone::Warning);
 	}
@@ -4143,6 +4579,7 @@ fn render_changeset_policy_sections(
 		ChangesetPolicyStatus::Passed | ChangesetPolicyStatus::Skipped => Outcome::Success,
 		ChangesetPolicyStatus::NotRequired => Outcome::Neutral,
 	};
+
 	report.headline(
 		outcome,
 		&evaluation.summary,
@@ -4152,11 +4589,14 @@ fn render_changeset_policy_sections(
 		)],
 	);
 	let errors = unique_lines(&evaluation.errors);
+
 	if !errors.is_empty() {
 		report.section("Errors", Some(errors.len()));
 		report.list(errors.iter().map(|error| format!("✖ {error}")), usize::MAX);
 	}
+
 	let warnings = unique_lines(&evaluation.warnings);
+
 	if !warnings.is_empty() {
 		report.section("Warnings", Some(warnings.len()));
 		report.list(
@@ -4164,9 +4604,11 @@ fn render_changeset_policy_sections(
 			usize::MAX,
 		);
 	}
+
 	if !evaluation.matched_skip_labels.is_empty() {
 		report.fields(&[("Skip labels", evaluation.matched_skip_labels.join(", "))]);
 	}
+
 	if !evaluation.changeset_paths.is_empty() {
 		report.section("Changesets", Some(evaluation.changeset_paths.len()));
 		report.list(
@@ -4174,6 +4616,7 @@ fn render_changeset_policy_sections(
 			CHANGED_FILE_LIMIT,
 		);
 	}
+
 	if !evaluation.matched_paths.is_empty() {
 		report.section("Matched paths", Some(evaluation.matched_paths.len()));
 		report.list(evaluation.matched_paths.iter().cloned(), CHANGED_FILE_LIMIT);
@@ -4197,20 +4640,26 @@ const PACKAGE_LINE_WIDTH: usize = 96;
 fn wrap_names(names: &[String], width: usize) -> Vec<String> {
 	let mut lines = Vec::new();
 	let mut line = String::new();
+
 	for (index, name) in names.iter().enumerate() {
 		let separator = if index + 1 == names.len() { "" } else { "," };
 		let item = format!("{name}{separator}");
+
 		if !line.is_empty() && display_width(&line) + 1 + display_width(&item) > width {
 			lines.push(std::mem::take(&mut line));
 		}
+
 		if !line.is_empty() {
 			line.push(' ');
 		}
+
 		line.push_str(&item);
 	}
+
 	if !line.is_empty() {
 		lines.push(line);
 	}
+
 	lines
 }
 
@@ -4270,11 +4719,13 @@ impl Serialize for ReleaseVersionPackages<'_> {
 		S: serde::Serializer,
 	{
 		let mut map = serializer.serialize_map(Some(self.packages.len()))?;
+
 		for decision in self.packages {
 			if let Some(version) = &decision.planned_version {
 				map.serialize_entry(decision.package_id.as_str(), &DisplayVersion(version))?;
 			}
 		}
+
 		map.end()
 	}
 }
@@ -4285,11 +4736,13 @@ impl Serialize for ReleaseVersionGroups<'_> {
 		S: serde::Serializer,
 	{
 		let mut map = serializer.serialize_map(Some(self.groups.len()))?;
+
 		for group in self.groups {
 			if let Some(version) = &group.planned_version {
 				map.serialize_entry(group.group_id.as_str(), &DisplayVersion(version))?;
 			}
 		}
+
 		map.end()
 	}
 }
@@ -4321,12 +4774,14 @@ fn render_release_version_summary_text(
 	package_labels: &BTreeMap<String, String>,
 ) -> String {
 	let mut report = TextReport::new(TextTheme::for_stdout());
+
 	if summary.groups.is_empty() && summary.packages.is_empty() {
 		report.headline(
 			Outcome::Neutral,
 			"No versions planned",
 			&["add a changeset with `monochange change` to plan a release".to_string()],
 		);
+
 		return report.render();
 	}
 
@@ -4337,9 +4792,11 @@ fn render_release_version_summary_text(
 			.unwrap_or_else(|| package_id.to_string())
 	};
 	let mut details = Vec::new();
+
 	if !summary.groups.is_empty() {
 		details.push(plural(summary.groups.len(), "group", "groups"));
 	}
+
 	details.push(plural(summary.packages.len(), "package", "packages"));
 	report.headline(Outcome::Success, "Next versions", &details);
 
@@ -4348,6 +4805,7 @@ fn render_release_version_summary_text(
 		.iter()
 		.map(|group| group.group_id.as_str())
 		.collect::<BTreeSet<_>>();
+
 	if !summary.groups.is_empty() {
 		report.section("Groups", None);
 		let planned_groups = summary.groups.iter().filter_map(|group| {
@@ -4356,6 +4814,7 @@ fn render_release_version_summary_text(
 				.as_ref()
 				.map(|version| (group, version))
 		});
+
 		for (group, version) in planned_groups {
 			report.table(&[vec![
 				TableCell::new(&group.group_id, Tone::Heading),
@@ -4368,6 +4827,7 @@ fn render_release_version_summary_text(
 				.filter(|decision| decision.group_id.as_deref() == Some(group.group_id.as_str()))
 				.map(|decision| label(&decision.package_id))
 				.collect::<Vec<_>>();
+
 			for line in wrap_names(&members, PACKAGE_LINE_WIDTH - 4) {
 				report.indented(&format!("  {line}"), Tone::Muted);
 			}
@@ -4393,10 +4853,12 @@ fn render_release_version_summary_text(
 			})
 		})
 		.collect::<Vec<_>>();
+
 	if !ungrouped.is_empty() {
 		report.section("Packages", None);
 		report.table(&ungrouped);
 	}
+
 	report.render()
 }
 
@@ -4427,6 +4889,7 @@ fn configured_package_labels(
 fn normalized_package_dir(path: &Path) -> String {
 	let text = path.to_string_lossy().replace('\\', "/");
 	let text = text.trim_start_matches("./").trim_end_matches('/');
+
 	if text == "." {
 		String::new()
 	} else {
@@ -4438,9 +4901,11 @@ fn render_release_version_summary_markdown(summary: &ReleaseVersionSummary<'_>) 
 	if summary.groups.is_empty() && summary.packages.is_empty() {
 		return "No package or group versions were planned.".to_string();
 	}
+
 	let mut sections = Vec::with_capacity(
 		usize::from(!summary.groups.is_empty()) + usize::from(!summary.packages.is_empty()),
 	);
+
 	if !summary.groups.is_empty() {
 		let lines = summary
 			.groups
@@ -4454,6 +4919,7 @@ fn render_release_version_summary_markdown(summary: &ReleaseVersionSummary<'_>) 
 			.collect::<Vec<_>>();
 		sections.push(render_markdown_section("Group versions", &lines));
 	}
+
 	if !summary.packages.is_empty() {
 		let lines = summary
 			.packages
@@ -4465,8 +4931,10 @@ fn render_release_version_summary_markdown(summary: &ReleaseVersionSummary<'_>) 
 					.map(|version| format!("- `{}`: `{version}`", decision.package_id))
 			})
 			.collect::<Vec<_>>();
+
 		sections.push(render_markdown_section("Package versions", &lines));
 	}
+
 	sections.join("\n\n")
 }
 
@@ -4476,6 +4944,7 @@ fn render_display_versions_output(
 	format: OutputFormat,
 ) -> MonochangeResult<String> {
 	let summary = build_release_version_summary(prepared_release);
+
 	match format {
 		OutputFormat::Json | OutputFormat::JsonMin => {
 			format.render_json_value(&summary, "display versions")
@@ -4507,11 +4976,13 @@ pub(crate) fn render_cli_command_markdown_result(
 
 	let dry_run = if context.dry_run { " (dry-run)" } else { "" };
 	let mut sections = vec![format!("# `{}`{dry_run}", cli_command.name)];
+
 	if let Some(report) = &context.package_publish_report {
 		let title = match report.mode {
 			package_publish::PackagePublishRunMode::Placeholder => "Placeholder publishing",
 			package_publish::PackagePublishRunMode::Release => "Package publishing",
 		};
+
 		let rendered = render_package_publish_report_markdown(
 			report,
 			boolean_step_input(&context.last_step_inputs, "show-all"),
@@ -4521,9 +4992,11 @@ pub(crate) fn render_cli_command_markdown_result(
 
 	if let Some(prepared_release) = &context.prepared_release {
 		let mut summary = Vec::new();
+
 		if let Some(version) = &prepared_release.version {
 			summary.push(format!("- **Version:** `{version}`"));
 		}
+
 		if !prepared_release.released_packages.is_empty() {
 			summary.push(format!(
 				"- **Released packages:** {}",
@@ -4535,11 +5008,14 @@ pub(crate) fn render_cli_command_markdown_result(
 					.join(", ")
 			));
 		}
+
 		if !summary.is_empty() {
 			sections.push(render_markdown_section("Summary", &summary));
 		}
+
 		if !prepared_release.release_targets.is_empty() {
 			let mut lines = Vec::new();
+
 			for target in &prepared_release.release_targets {
 				lines.push(format!(
 					"- **{} `{}`** → `{}`",
@@ -4551,14 +5027,17 @@ pub(crate) fn render_cli_command_markdown_result(
 					yes_no(target.release)
 				));
 			}
+
 			sections.push(render_markdown_section("Release targets", &lines));
 		}
+
 		if let Some(path) = &context.release_manifest_path {
 			sections.push(render_markdown_section(
 				"Release manifest",
 				&[format!("- `{}`", path.display())],
 			));
 		}
+
 		if !context.release_results.is_empty() {
 			let lines = context
 				.release_results
@@ -4567,25 +5046,30 @@ pub(crate) fn render_cli_command_markdown_result(
 				.collect::<Vec<_>>();
 			sections.push(render_markdown_section("Releases", &lines));
 		}
+
 		if let Some(release_commit_report) = &context.release_commit_report {
 			sections.push(render_markdown_section(
 				"Release commit",
 				&render_release_commit_report_markdown(release_commit_report),
 			));
 		}
+
 		if let Some(release_request_result) = &context.release_request_result {
 			sections.push(render_markdown_section(
 				"Release request",
 				&[format!("- {release_request_result}")],
 			));
 		}
+
 		let request_warnings = release_request_warning_lines(context.release_request.as_ref());
+
 		if !request_warnings.is_empty() {
 			sections.push(render_markdown_section(
 				"Release request warnings",
 				&request_warnings,
 			));
 		}
+
 		if !context.issue_comment_results.is_empty() {
 			let lines = context
 				.issue_comment_results
@@ -4594,6 +5078,7 @@ pub(crate) fn render_cli_command_markdown_result(
 				.collect::<Vec<_>>();
 			sections.push(render_markdown_section("Issue comments", &lines));
 		}
+
 		if !prepared_release.changed_files.is_empty() {
 			let lines = prepared_release
 				.changed_files
@@ -4602,8 +5087,10 @@ pub(crate) fn render_cli_command_markdown_result(
 				.collect::<Vec<_>>();
 			sections.push(render_markdown_section("Changed files", &lines));
 		}
+
 		if context.show_diff && !context.prepared_file_diffs.is_empty() {
 			let mut lines = Vec::new();
+
 			for file_diff in &context.prepared_file_diffs {
 				lines.push(format!("### `{}`", file_diff.path.display()));
 				lines.push("```diff".to_string());
@@ -4611,11 +5098,14 @@ pub(crate) fn render_cli_command_markdown_result(
 				lines.push("```".to_string());
 				lines.push(String::new());
 			}
+
 			while lines.last().is_some_and(String::is_empty) {
 				lines.pop();
 			}
+
 			sections.push(render_markdown_section("File diffs", &lines));
 		}
+
 		if !prepared_release.deleted_changesets.is_empty() {
 			let lines = prepared_release
 				.deleted_changesets
@@ -4625,7 +5115,9 @@ pub(crate) fn render_cli_command_markdown_result(
 			sections.push(render_markdown_section("Deleted changesets", &lines));
 		}
 	}
+
 	let show_all_publish_details = boolean_step_input(&context.last_step_inputs, "show-all");
+
 	if !context.command_logs.is_empty()
 		&& (context.package_publish_report.is_none() || show_all_publish_details)
 	{
@@ -4657,14 +5149,17 @@ fn render_markdown_section(title: &str, lines: &[String]) -> String {
 	if lines.is_empty() {
 		return format!("## {title}");
 	}
+
 	format!("## {title}\n\n{}", lines.join("\n"))
 }
 
 fn render_release_commit_report_markdown(report: &CommitReleaseReport) -> Vec<String> {
 	let mut lines = vec![format!("- **Subject:** {}", report.subject)];
+
 	if let Some(commit) = &report.commit {
 		lines.push(format!("- **Commit:** `{}`", short_commit_sha(commit)));
 	}
+
 	if !report.tracked_paths.is_empty() {
 		lines.push("- **Tracked paths:**".to_string());
 		lines.extend(
@@ -4765,18 +5260,22 @@ fn execute_create_change_file_step(
 		// it for the actual file write so the loader only shows during work.
 		let spinner_was_active = progress.pause_spinner();
 		let result = interactive::run_interactive_change(configuration, &options)?;
+
 		if spinner_was_active {
 			let status = if dry_run {
 				"rendering change file preview"
 			} else {
 				"writing change file"
 			};
+
 			progress.step_status(step_index, step, status);
 		}
+
 		let output_path = step_inputs
 			.get("output")
 			.and_then(|values| values.first())
 			.map(PathBuf::from);
+
 		if dry_run {
 			let planned =
 				workspace_ops::plan_interactive_change_file(root, &result, output_path.as_deref())?;
@@ -4787,6 +5286,7 @@ fn execute_create_change_file_step(
 		}
 	} else {
 		let package_refs = step_inputs.get("package").cloned().unwrap_or_default();
+
 		if package_refs.is_empty() {
 			return Err(MonochangeError::Config(
 				"command `change` requires at least one `--package` value or `--interactive` mode"
@@ -4804,6 +5304,7 @@ fn execute_create_change_file_step(
 		} else {
 			ChangeBump::Patch
 		};
+
 		let version = step_inputs
 			.get("version")
 			.and_then(|values| values.first())
@@ -4838,6 +5339,7 @@ fn execute_create_change_file_step(
 			.details(details.as_deref())
 			.output(output_path.as_deref())
 			.build();
+
 		if dry_run {
 			let planned = plan_change_file(root, request)?;
 			Ok(render_preview(planned))
@@ -4871,6 +5373,7 @@ async fn execute_affected_packages_step(
 		.get("changed_paths")
 		.cloned()
 		.unwrap_or_default();
+
 	let changed_paths = match &from_ref {
 		Some(rev) => {
 			if !quiet
@@ -4884,14 +5387,17 @@ async fn execute_affected_packages_step(
 		}
 		None => explicit_paths,
 	};
+
 	let labels = step_inputs.get("label").cloned().unwrap_or_default();
 	let enforce = step_inputs
 		.get("verify")
 		.is_some_and(|values| values.iter().any(|v| v == "true"));
 	let mut evaluation = affected_packages(root, &changed_paths, &labels).await?;
+
 	if let Some(base_ref) = &from_ref {
 		check_changeset_bump_alignment(root, base_ref, &mut evaluation)?;
 	}
+
 	evaluation.enforce = enforce;
 	Ok(evaluation)
 }
@@ -4924,6 +5430,7 @@ fn maybe_fail_enforced_changeset_policy(
 			if quiet {
 				return Err(MonochangeError::Config(evaluation.summary.clone()));
 			}
+
 			Err(MonochangeError::Reported {
 				output: rendered,
 				diagnostic: evaluation.summary.clone(),
@@ -4970,6 +5477,7 @@ fn resolve_command_output(
 ) -> MonochangeResult<String> {
 	if let Some(prepared_release) = &context.prepared_release {
 		let format = context.output_format;
+
 		return match format {
 			OutputFormat::Json | OutputFormat::JsonMin => {
 				let manifest =
@@ -4984,11 +5492,13 @@ fn resolve_command_output(
 						release_commit: context.release_commit_report.as_ref(),
 						package_publish: context.package_publish_report.as_ref(),
 						publish_rate_limits: context.rate_limit_report.as_ref(),
+
 						file_diffs: if context.show_diff {
 							&context.prepared_file_diffs
 						} else {
 							&[]
 						},
+
 						commands: &context.command_results,
 					},
 				)
@@ -4997,8 +5507,10 @@ fn resolve_command_output(
 			OutputFormat::Text => Ok(render_cli_command_result(cli_command, context)),
 		};
 	}
+
 	if let Some(evaluation) = &context.changeset_policy_evaluation {
 		let format = context.output_format;
+
 		let rendered = match format {
 			OutputFormat::Json | OutputFormat::JsonMin => {
 				format.render_json_value(evaluation, "changeset policy evaluation")?
@@ -5010,28 +5522,36 @@ fn resolve_command_output(
 
 		return maybe_fail_enforced_changeset_policy(evaluation, context.quiet, rendered);
 	}
+
 	if let Some(report) = &context.changeset_diagnostics {
 		let format = context.output_format;
+
 		let rendered = match format {
 			OutputFormat::Json | OutputFormat::JsonMin => {
 				format.render_json_value(report, "changeset diagnostics")?
 			}
 			OutputFormat::Markdown | OutputFormat::Text => render_changeset_diagnostics(report),
 		};
+
 		return Ok(rendered);
 	}
+
 	if let Some(report) = &context.retarget_report {
 		let format = context.output_format;
+
 		let rendered = match format {
 			OutputFormat::Json | OutputFormat::JsonMin => {
 				format.render_json_value(report, "retarget report")?
 			}
 			OutputFormat::Markdown | OutputFormat::Text => render_retarget_release_report(report),
 		};
+
 		return Ok(rendered);
 	}
+
 	if let Some(report) = &context.package_publish_report {
 		let format = context.output_format;
+
 		let rendered = match format {
 			OutputFormat::Json | OutputFormat::JsonMin => {
 				render_publish_command_json(
@@ -5043,13 +5563,17 @@ fn resolve_command_output(
 			OutputFormat::Markdown => render_cli_command_markdown_result(cli_command, context),
 			OutputFormat::Text => render_cli_command_result(cli_command, context),
 		};
+
 		return Ok(rendered);
 	}
+
 	if let Some(report) = &context.rate_limit_report {
 		if let Some(ci_renderer) = requested_ci_renderer(&context.last_step_inputs)? {
 			return render_publish_rate_limit_ci_snippet(report, ci_renderer);
 		}
+
 		let format = context.output_format;
+
 		let rendered = match format {
 			OutputFormat::Json | OutputFormat::JsonMin => {
 				render_publish_command_json(format, None, Some(report))?
@@ -5058,10 +5582,13 @@ fn resolve_command_output(
 				render_cli_command_result(cli_command, context)
 			}
 		};
+
 		return Ok(rendered);
 	}
+
 	if has_release_automation_results(context) {
 		let format = context.output_format;
+
 		return match format {
 			OutputFormat::Json | OutputFormat::JsonMin => {
 				let mut value = serde_json::Map::new();
@@ -5079,6 +5606,7 @@ fn resolve_command_output(
 						serde_json::json!(context.command_results),
 					);
 				}
+
 				format.render_json_value(&value, "release automation result")
 			}
 			OutputFormat::Markdown | OutputFormat::Text => {
@@ -5101,6 +5629,7 @@ fn resolve_command_output(
 			"command results",
 		);
 	}
+
 	if !context.command_logs.is_empty() {
 		return Ok(render_cli_command_result(cli_command, context));
 	}
@@ -5121,7 +5650,6 @@ fn has_release_automation_results(context: &CliContext) -> bool {
 		|| !context.issue_comment_results.is_empty()
 }
 // patch-coverage:ignore-end
-
 #[cfg(test)]
 #[path = "__tests__/cli_runtime_tests.rs"]
 mod tests;

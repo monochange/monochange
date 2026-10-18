@@ -1,0 +1,7 @@
+{
+  "name": "yarn-web",
+  "version": "1.0.0",
+  "dependencies": {
+    "yarn-shared": "workspace:*"
+  }
+}

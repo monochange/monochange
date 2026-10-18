@@ -13,7 +13,6 @@
 //
 // `docs:check` runs the check so an edit to the published skill without a
 // matching copy fails CI rather than shipping a stale CLI.
-
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
@@ -65,19 +64,24 @@ const drift = [];
 for (const file of FILES) {
 	const from = path.join(source, file);
 	const to = path.join(destination, file);
+
 	if (!existsSync(from)) {
 		console.error(`Source file missing: ${from}`);
 		process.exit(1);
 	}
+
 	if (!check) {
 		mkdirSync(path.dirname(to), { recursive: true });
+
 		copyFileSync(from, to);
 		continue;
 	}
+
 	if (!existsSync(to)) {
 		drift.push(`${file} is missing from the CLI crate`);
 		continue;
 	}
+
 	if (readFileSync(from, "utf8") !== readFileSync(to, "utf8")) {
 		drift.push(`${file} differs from packages/monochange__skill`);
 	}
@@ -90,6 +94,7 @@ if (check) {
 	const stale = listFiles(destination)
 		.map((served) => path.relative(destination, served).split(path.sep).join("/"))
 		.filter((served) => !FILES.includes(served));
+
 	for (const file of stale) {
 		drift.push(`${file} is served by the CLI but absent from packages/monochange__skill`);
 	}
@@ -97,9 +102,11 @@ if (check) {
 
 if (drift.length > 0) {
 	console.error("The skill copy in crates/monochange/skill has drifted:");
+
 	for (const line of drift) {
 		console.error(`  - ${line}`);
 	}
+
 	console.error("\nRun `node scripts/docs/sync-skill.mjs` and commit the result.");
 	process.exit(1);
 }
@@ -112,14 +119,18 @@ function listFiles(directory) {
 	if (!existsSync(directory)) {
 		return [];
 	}
+
 	const found = [];
+
 	for (const entry of readdirSync(directory, { withFileTypes: true })) {
 		const child = path.join(directory, entry.name);
+
 		if (entry.isDirectory()) {
 			found.push(...listFiles(child));
 		} else if (entry.isFile()) {
 			found.push(child);
 		}
 	}
+
 	return found;
 }
