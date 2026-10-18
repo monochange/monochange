@@ -5,7 +5,7 @@ expression: render_help_snapshot(&path)
 Version: [current]
 Command: monochange publish
 
-Run the built-in publishing steps through short subcommands. Each subcommand runs the same built-in step as the equivalent `monochange step <name>` command, with the same inputs and output formats. `packages` publishes release-state package versions to their registries, `readiness` reports registry readiness without publishing, and `placeholder` bootstraps first-time registry packages with placeholder versions.
+Publish packages and inspect registry publishing state
 
 [1m[97mUsage:[0m [93mmonochange publish[0m [95m[OPTIONS][0m [95m<COMMAND>[0m
 
@@ -16,7 +16,7 @@ Run the built-in publishing steps through short subcommands. Each subcommand run
 
 [1m[96mOptions:[0m
   [93m-h[0m, [93m--help[0m
-          Print help (see a summary with '-h')
+          Print help
 
 [1m[96mGlobal Options:[0m
   [93m-q[0m, [93m--quiet[0m

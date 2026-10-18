@@ -1127,6 +1127,33 @@ fn command_help_request(args: &[OsString]) -> Option<&str> {
 		.then_some(*command_name)
 }
 
+/// Commands whose results depend on monochange.toml, so running them without
+/// one deserves a warning instead of a silent default plan.
+fn command_reads_release_configuration(command_name: &str) -> bool {
+	matches!(
+		command_name,
+		"check"
+			| "next" | "next-versions"
+			| "preview"
+			| "prepare"
+			| "create"
+			| "affected"
+			| "diagnose"
+			| "config"
+			| "versions"
+			| "notes" | "publish"
+			| "step"
+	)
+}
+
+fn missing_configuration_warning(command_name: Option<&str>, root: &Path) -> Option<&'static str> {
+	let reads_configuration = command_name.is_some_and(command_reads_release_configuration);
+	(reads_configuration && !root.join("monochange.toml").exists()).then_some(
+		"no monochange.toml found in this directory, so results use built-in defaults; run \
+		 `monochange init` to create one",
+	)
+}
+
 fn command_help_requires_workspace_configuration(command_name: &str) -> bool {
 	matches!(command_name, "change")
 }
@@ -1453,6 +1480,10 @@ async fn dispatch_cli_args(
 				view: monochange_snapshot::SnapshotView::Full,
 			},
 		);
+	}
+
+	if let Some(warning) = missing_configuration_warning(matches.subcommand_name(), root) {
+		progress.warning(warning);
 	}
 
 	let jq_expression = matches.get_one::<String>("jq").cloned();

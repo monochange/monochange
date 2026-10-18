@@ -5,7 +5,7 @@ expression: render_help_snapshot(&path)
 Version: [current]
 Command: monochange help
 
-Show detailed help, examples, and tips for any monochange command. Run `monochange help` to list all commands, or `monochange help <command>` for detailed usage information with examples.
+Show detailed help for a command
 
 [1m[97mUsage:[0m [93mmonochange help[0m [95m[OPTIONS][0m [95m[COMMAND]...[0m
 
@@ -15,7 +15,7 @@ Show detailed help, examples, and tips for any monochange command. Run `monochan
 
 [1m[96mOptions:[0m
   [93m-h[0m, [93m--help[0m
-          Print help (see a summary with '-h')
+          Print help
 
 [1m[96mGlobal Options:[0m
   [93m-q[0m, [93m--quiet[0m

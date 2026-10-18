@@ -4629,7 +4629,7 @@ impl CliStepDefinition {
 
 fn step_input_help_text(name: &str) -> &'static str {
 	match name {
-		"format" => "Result format: text, Markdown, pretty JSON, or compact JSON",
+		"format" => "Output format for the command result",
 		"no_verify" => "Skip Git commit hooks for this operation",
 		"update_release_json" => "Update the committed release record before committing",
 		"stage_all" => "Stage every workspace change instead of release files only",

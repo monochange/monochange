@@ -9,20 +9,6 @@ expression: value
       "max_bump": "major",
       "options": [
         {
-          "canonical_name": "--dry-run",
-          "global": false,
-          "hidden": false,
-          "names": [
-            "--dry-run"
-          ],
-          "value": {
-            "kind": "flag",
-            "repeatable": false,
-            "required": false,
-            "variadic": false
-          }
-        },
-        {
           "canonical_name": "--format",
           "global": false,
           "hidden": false,
@@ -38,6 +24,20 @@ expression: value
             ],
             "kind": "enum",
             "repeatable": true,
+            "required": false,
+            "variadic": false
+          }
+        },
+        {
+          "canonical_name": "--dry-run",
+          "global": false,
+          "hidden": true,
+          "names": [
+            "--dry-run"
+          ],
+          "value": {
+            "kind": "flag",
+            "repeatable": false,
             "required": false,
             "variadic": false
           }

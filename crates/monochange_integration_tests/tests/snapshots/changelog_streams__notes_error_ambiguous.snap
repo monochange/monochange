@@ -2,5 +2,5 @@
 source: crates/monochange_integration_tests/tests/changelog_streams.rs
 expression: "String::from_utf8_lossy(&output.stderr).trim()"
 ---
-error[config.invalid]: changelog output `user_multi` produced release notes for multiple targets; pass `--target <id>` to select one
+error[cli.usage]: changelog output `user_multi` produced release notes for multiple targets; pass `--target <id>` with one of: app, sdk
   command: monochange notes

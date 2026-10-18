@@ -28,17 +28,17 @@ Options:
       --head-ref <REF>
           Head ref to analyze. Defaults to HEAD
 
-      --detection-level <detection-level>
+      --detection-level <LEVEL>
           Level of semantic detail to request from analyzers
           
           [default: signature]
           [possible values: basic, signature, semantic]
 
-      --format <format>
-          Output format
+      --format <FORMAT>
+          Output format for the command result
           
           [default: text]
-          [possible values: text, json, json-min, markdown, md]
+          [possible values: text, json, json-min, md]
 
   -h, --help
           Print help

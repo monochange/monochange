@@ -1,0 +1,5 @@
+---
+source: crates/monochange_github/src/__tests__/lib_tests.rs
+expression: error.to_string()
+---
+GitHub API POST `/graphql` failed: status 401; Bad credentials; documentation: https://docs.github.com/rest

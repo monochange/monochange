@@ -679,7 +679,7 @@ async fn enrich_changeset_context_with_client(
 		load_review_requests_for_commits_with_client(client, source, &review_request_lookup_shas)
 			.await
 			.unwrap_or_else(|error| {
-				tracing::warn!(commits = review_request_lookup_shas.len(), %error, "failed to batch load GitHub review requests; continuing with commit annotations only");
+				tracing::warn!(commits = review_request_lookup_shas.len(), %error, "could not load GitHub review requests; continuing with commit annotations only");
 				BTreeMap::new()
 			});
 
@@ -930,10 +930,9 @@ async fn load_review_request_batch_with_client(
 		.graphql::<serde_json::Value>(&json!({ "query": query }))
 		.await
 		.map_err(|error| {
-			MonochangeError::Config(format!(
-				"failed to batch load GitHub review requests for {} commit(s): {error}",
-				shas.len()
-			))
+			// A provider failure, not a configuration problem: keep GitHub's
+			// status and message without a `config error:` prefix.
+			MonochangeError::Diagnostic(format_github_api_error("POST", "/graphql", &error))
 		})?;
 
 	let repository = response

@@ -22,17 +22,17 @@ Analyze semantic changes for one package across main, head, and optional release
       [93m--head-ref[0m[95m [0m[95m<REF>[0m
           Head ref to analyze. Defaults to HEAD
 
-      [93m--detection-level[0m[95m [0m[95m<detection-level>[0m
+      [93m--detection-level[0m[95m [0m[95m<LEVEL>[0m
           Level of semantic detail to request from analyzers
 
           [default: signature]
           [possible values: basic, signature, semantic]
 
-      [93m--format[0m[95m [0m[95m<format>[0m
-          Output format
+      [93m--format[0m[95m [0m[95m<FORMAT>[0m
+          Output format for the command result
 
           [default: text]
-          [possible values: text, json, json-min, markdown, md]
+          [possible values: text, json, json-min, md]
 
   [93m-h[0m, [93m--help[0m
           Print help

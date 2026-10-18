@@ -35,3 +35,8 @@ Start the monochange MCP (Model Context Protocol) server over stdin/stdout
 
       [93m--snapshot[0m
           Print a normalized JSON snapshot for this command subtree
+
+Examples:
+  monochange mcp
+
+Agent runtimes launch this command themselves; `monochange subagents` writes the MCP config that does so.

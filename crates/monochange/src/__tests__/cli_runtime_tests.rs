@@ -1259,7 +1259,7 @@ fn release_version_summary_renderers_cover_empty_and_single_section_states() {
 	let no_labels = BTreeMap::new();
 	assert_eq!(
 		render_release_version_summary_text(&empty, &no_labels),
-		"• No versions planned · add a changeset with `monochange change` to plan a release"
+		"• No versions planned · add a changeset with `monochange create` to plan a release"
 	);
 	assert_eq!(
 		render_release_version_summary_markdown(&empty),
@@ -3145,7 +3145,7 @@ async fn display_versions_reports_no_planned_versions_without_changesets() {
 	for (format, expected) in [
 		(
 			"text",
-			"• No versions planned · add a changeset with `monochange change` to plan a release",
+			"• No versions planned · add a changeset with `monochange create` to plan a release",
 		),
 		("md", "No package or group versions were planned."),
 	] {

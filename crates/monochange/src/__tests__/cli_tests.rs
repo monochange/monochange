@@ -5,6 +5,7 @@ use monochange_classification::parse_detection_level;
 use monochange_core::DetectionLevel;
 
 use super::markdown_to_clap_help;
+use super::step_command_summary;
 use super::strip_inline_markdown;
 
 #[test]
@@ -242,5 +243,13 @@ fn classify_options_glue_propagates_invalid_dependency_propagation_errors() {
 		error
 			.to_string()
 			.contains("unsupported dependency propagation `transitive`")
+	);
+}
+
+#[test]
+fn step_command_summary_describes_unlisted_steps_generically() {
+	assert_eq!(
+		step_command_summary("command"),
+		"Run the built-in command release workflow step"
 	);
 }

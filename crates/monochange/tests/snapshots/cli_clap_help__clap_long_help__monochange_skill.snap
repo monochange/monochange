@@ -5,7 +5,7 @@ expression: render_help_snapshot(&path)
 Version: [current]
 Command: monochange skill
 
-The monochange agent skill ships inside this binary, so it works without network access, an npm package, or a cloned repository. `monochange skill read` prints a topic as raw Markdown for an agent to consume, and `monochange skill install --dir` writes the whole skill into an agent runtime's skill directory. Bare `monochange skill` lists every bundled topic.
+Read or install the bundled monochange agent skill
 
 [1m[97mUsage:[0m [93mmonochange skill[0m [95m[OPTIONS][0m [95m[COMMAND][0m
 
@@ -15,7 +15,7 @@ The monochange agent skill ships inside this binary, so it works without network
 
 [1m[96mOptions:[0m
   [93m-h[0m, [93m--help[0m
-          Print help (see a summary with '-h')
+          Print help
 
 [1m[96mGlobal Options:[0m
   [93m-q[0m, [93m--quiet[0m
@@ -47,5 +47,7 @@ Examples:
   monochange skill install --dir ./.claude/skills/monochange
   monochange skill install --dir ~/.codex/skills/monochange --force
 
-The skill directory is normally named `monochange` inside a runtime's skills
-folder. Existing skills are never replaced unless --force is passed.
+The skill ships inside this binary, so it works without network access, an npm
+package, or a cloned repository. Bare `monochange skill` lists every bundled
+topic. The skill directory is normally named `monochange` inside a runtime's
+skills folder. Existing skills are never replaced unless --force is passed.
