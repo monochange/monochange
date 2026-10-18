@@ -51,10 +51,13 @@ RUN arch="$(dpkg --print-architecture)" \
 
 WORKDIR /app
 
-# Copy workspace files
+# Copy workspace files. `docs/Cargo.toml` is required for `cargo metadata` to
+# parse the root workspace during split builds, even though the image never
+# compiles the docs crate.
 COPY Cargo.toml Cargo.lock ./
 COPY crates/ crates/
 COPY app/ app/
+COPY docs/Cargo.toml docs/Cargo.toml
 COPY docs/src/ docs/src/
 
 # Build the Leptos SSR application.
