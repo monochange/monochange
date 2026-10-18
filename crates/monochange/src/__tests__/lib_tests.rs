@@ -78,6 +78,7 @@ use crate::git_support::run_git_process;
 use crate::git_support::run_git_status;
 use crate::interactive::InteractiveChangeResult;
 use crate::interactive::InteractiveTarget;
+use crate::missing_configuration_warning;
 use crate::parse_snapshot_request;
 use crate::plan_release;
 use crate::push_change_target_markdown;
@@ -17823,4 +17824,21 @@ fn validate_counts_warnings_in_its_headline() {
 	.unwrap_or_else(|error| panic!("validate with warnings: {error}"));
 
 	assert_eq!(output, "✔ Workspace validation passed · 1 warning");
+}
+
+#[test]
+fn missing_configuration_warning_only_fires_for_release_commands_without_config() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+
+	assert!(
+		missing_configuration_warning(Some("check"), root)
+			.is_some_and(|warning| warning.contains("monochange init"))
+	);
+	assert_eq!(missing_configuration_warning(Some("init"), root), None);
+	assert_eq!(missing_configuration_warning(None, root), None);
+
+	fs::write(root.join("monochange.toml"), "")
+		.unwrap_or_else(|error| panic!("write config: {error}"));
+	assert_eq!(missing_configuration_warning(Some("check"), root), None);
 }

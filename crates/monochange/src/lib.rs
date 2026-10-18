@@ -1146,6 +1146,14 @@ fn command_reads_release_configuration(command_name: &str) -> bool {
 	)
 }
 
+fn missing_configuration_warning(command_name: Option<&str>, root: &Path) -> Option<&'static str> {
+	let reads_configuration = command_name.is_some_and(command_reads_release_configuration);
+	(reads_configuration && !root.join("monochange.toml").exists()).then_some(
+		"no monochange.toml found in this directory, so results use built-in defaults; run \
+		 `monochange init` to create one",
+	)
+}
+
 fn command_help_requires_workspace_configuration(command_name: &str) -> bool {
 	matches!(command_name, "change")
 }
@@ -1469,15 +1477,8 @@ async fn dispatch_cli_args(
 		);
 	}
 
-	if matches
-		.subcommand_name()
-		.is_some_and(command_reads_release_configuration)
-		&& !root.join("monochange.toml").exists()
-	{
-		progress.warning(
-			"no monochange.toml found in this directory, so results use built-in defaults; run \
-			 `monochange init` to create one",
-		);
+	if let Some(warning) = missing_configuration_warning(matches.subcommand_name(), root) {
+		progress.warning(warning);
 	}
 
 	let jq_expression = matches.get_one::<String>("jq").cloned();
