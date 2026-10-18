@@ -17,4 +17,4 @@ Build and deployment changes:
 New website benchmarking, run by the `benchmark` job in `app-ci.yml` on every app-affecting change and locally through `pnpm bench:website` / `pnpm size:website`:
 
 - `scripts/benchmark-website.ts` boots the release server against a throwaway SQLite database and runs Lighthouse (desktop preset) across the core flows, failing when metrics in `scripts/website-budgets.json` regress. `MONOCHANGE_ALLOW_BENCHMARK_BUDGET_FAILURES=true` keeps the CLI benchmark escape hatch.
-- `scripts/website-size.ts` compares the gzip transfer size of `app/target/site/pkg` against the committed `scripts/website-size-baseline.json` and fails on growth beyond 1% until the baseline is deliberately updated with `pnpm size:website:update`.
+- `scripts/website-size.ts` compares the gzip transfer size of `app/target/site/pkg` against the committed `scripts/website-size-baseline.json` and fails when the total grows beyond 1% (or a transferred file beyond 5%, absorbing cross-platform codegen variance) until the baseline is deliberately updated with `pnpm size:website:update`.

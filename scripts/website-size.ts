@@ -10,9 +10,11 @@
 //   pnpm node scripts/website-size.ts check --site-root app/target/site \
 //     [--file scripts/website-size-baseline.json] [--output comment.md]
 //
-// `check` fails when the gzip transfer total, or any single file that existed
-// in the baseline, grows beyond the allowed headroom. Set
-// MONOCHANGE_WEBSITE_SIZE_TOLERANCE (fraction, default 0.01) to adjust.
+// `check` fails when the gzip transfer total grows beyond 1%, or when any
+// transferred file (`.wasm`/`.js`/`.css`) that existed in the baseline grows
+// beyond 5% — WASM codegen varies slightly across build platforms, so the
+// per-file guard is looser than the total. Set
+// MONOCHANGE_WEBSITE_SIZE_TOLERANCE (fraction) to adjust the total tolerance.
 
 import { readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -23,6 +25,7 @@ import { gzipSync } from "node:zlib";
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(scriptDir, "..");
 const DEFAULT_TOLERANCE = 0.01;
+const FILE_TOLERANCE = 0.05;
 
 function die(message) {
 	console.error(message);
@@ -95,11 +98,18 @@ function compare(baseline: SiteMeasurement, current: SiteMeasurement, tolerance:
 			`total gzip transfer grew from ${baseline.totalGzipBytes} to ${current.totalGzipBytes} bytes (tolerance ${(tolerance * 100).toFixed(2)}%)`,
 		);
 	}
+	// WASM codegen differs slightly between host platforms, so per-file
+	// enforcement applies only to the files browsers actually transfer and
+	// allows wider variance than the total; the total stays the tight guard.
+	const perFileTolerance = Math.max(tolerance, FILE_TOLERANCE);
 	for (const [name, before] of Object.entries(baseline.files)) {
+		if (!/\.(?:wasm|js|css)$/u.test(name)) continue;
 		const after = current.files[name];
 		if (!after) continue;
-		if (after.gzipBytes - before.gzipBytes > Math.ceil(before.gzipBytes * tolerance)) {
-			differences.push(`${name} gzip grew from ${before.gzipBytes} to ${after.gzipBytes} bytes`);
+		if (after.gzipBytes - before.gzipBytes > Math.ceil(before.gzipBytes * perFileTolerance)) {
+			differences.push(
+				`${name} gzip grew from ${before.gzipBytes} to ${after.gzipBytes} bytes (tolerance ${(perFileTolerance * 100).toFixed(2)}%)`,
+			);
 		}
 	}
 	return differences;
