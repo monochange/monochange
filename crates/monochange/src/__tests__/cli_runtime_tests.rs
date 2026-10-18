@@ -919,9 +919,9 @@ fn render_helpers_cover_release_commit_and_markdown_sections() {
 		subject: "chore(release): publish".to_string(),
 		body: "body".to_string(),
 		commit: Some("1234567890abcdef".to_string()),
-		verified: None,
 		tracked_paths: vec![PathBuf::from("Cargo.toml"), PathBuf::from("CHANGELOG.md")],
 		dry_run: false,
+		verified: Some(true),
 		status: "already_exists".to_string(),
 	};
 	let mut text = TextReport::new(TextTheme::for_stdout());
@@ -929,6 +929,7 @@ fn render_helpers_cover_release_commit_and_markdown_sections() {
 	let mut untracked = report.clone();
 	untracked.commit = None;
 	untracked.status = "completed".to_string();
+	untracked.verified = None;
 	untracked.tracked_paths = vec![PathBuf::from("/repo/.monochange/releases/abc/release.json")];
 	render_release_commit_section(&mut text, &untracked, Path::new("/repo"));
 
@@ -944,6 +945,22 @@ fn render_helpers_cover_release_commit_and_markdown_sections() {
 		markdown_lines
 			.iter()
 			.any(|line| line.contains("**Tracked paths:**"))
+	);
+	assert!(
+		markdown_lines
+			.iter()
+			.any(|line| line.contains("**Verified:** yes"))
+	);
+
+	let mut unverified = report.clone();
+	unverified.verified = Some(false);
+	let mut unverified_text = TextReport::new(TextTheme::for_stdout());
+	render_release_commit_section(&mut unverified_text, &unverified, Path::new("/repo"));
+	assert!(unverified_text.render().contains("not verified"));
+	assert!(
+		render_release_commit_report_markdown(&unverified)
+			.iter()
+			.any(|line| line.contains("**Verified:** no"))
 	);
 
 	assert_eq!(yes_no(true), "yes");
@@ -1133,9 +1150,9 @@ fn render_cli_command_results_include_release_details_policy_and_logs() {
 		subject: "chore(release): publish".to_string(),
 		body: "body".to_string(),
 		commit: Some("abcdef1234567890".to_string()),
-		verified: None,
 		tracked_paths: vec![PathBuf::from("Cargo.toml")],
 		dry_run: false,
+		verified: Some(true),
 		status: "completed".to_string(),
 	});
 

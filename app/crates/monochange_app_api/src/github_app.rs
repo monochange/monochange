@@ -47,8 +47,10 @@ pub enum GitHubAppError {
 		"base branch `{0}` moved to `{1}` while the release was being prepared from `{2}`; the run for the newer commit refreshes the release branch"
 	)]
 	BaseMoved(String, String, String),
-	#[error("GitHub reported the commit as unverified")]
-	UnverifiedCommit,
+	#[error(
+		"GitHub created the release commit `{0}` but reported it as unverified ({1}); the release branch was not moved"
+	)]
+	UnverifiedCommit(String, String),
 	#[error("invalid webhook signature")]
 	WebhookSignature,
 	#[error("invalid GitHub app slug")]
@@ -739,14 +741,15 @@ pub async fn create_release_commit(
 		.and_then(|verification| verification.reason.clone());
 
 	if !verified {
-		tracing::warn!(
-			commit = %commit.sha,
-			reason = verification_reason.as_deref().unwrap_or("unknown"),
-			"GitHub did not verify the hosted release commit"
-		);
+		return Err(GitHubAppError::UnverifiedCommit(
+			commit.sha,
+			verification_reason.unwrap_or_else(|| "unknown".to_string()),
+		));
 	}
 
-	// 5. Point the release branch at the new commit.
+	// 5. Point the release branch at the new commit. By this point the commit
+	// is always verified, since an unverified commit returns `UnverifiedCommit`
+	// before the ref is updated here.
 	let operation = match update {
 		ReleaseBranchUpdate::Create => "create release branch ref",
 		ReleaseBranchUpdate::FastForward | ReleaseBranchUpdate::Regenerate => {
