@@ -208,6 +208,8 @@ Expected health response:
 }
 ```
 
+If the logs warn that the GitHub App credentials are not configured, the dashboard shows "Repository connection is unavailable". Add `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, and `GITHUB_APP_WEBHOOK_SECRET` to the `github` section of the `monochange.dev` item, then restart the app with `docker compose restart app`.
+
 ## 8. SQLite backups
 
 Droplet backups are useful, but they are not enough. Keep SQLite-consistent backups and copy them off-Droplet.
