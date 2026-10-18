@@ -10,6 +10,7 @@ ARG NIGHTLY_TOOLCHAIN=nightly-2026-05-08
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         build-essential \
+        brotli \
         perl \
         pkg-config \
         libssl-dev \
@@ -56,9 +57,25 @@ COPY crates/ crates/
 COPY app/ app/
 COPY docs/src/ docs/src/
 
-# Build the Leptos SSR application
-WORKDIR /app/app
-RUN cargo leptos build --release
+# Build the Leptos SSR application.
+#
+# The cargo registry and target directory live in BuildKit cache mounts so
+# dependency artifacts survive between image builds; anything the final image
+# needs is copied out of the mounts because their contents are not part of the
+# layer. The server binary is stripped here rather than through a cargo
+# profile, which would also strip proc-macro dylibs and corrupt them on macOS
+# hosts.
+# Precompress the pkg assets: the static file handler serves these `.gz` and
+# `.br` siblings to clients that accept them, so the 1-vCPU droplet never
+# compresses the WASM chunks at request time.
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/app/app/target \
+    cargo leptos build --release --split \
+    && strip target/release/monochange_app \
+    && cp -a target/site /site \
+    && cp target/release/monochange_app /monochange_app \
+    && find /site/pkg -type f \( -name '*.wasm' -o -name '*.js' -o -name '*.css' \) \
+        -exec sh -c 'gzip -9 -k "$1" && brotli -q 11 -c "$1" > "$1.br"' _ {} \;
 
 # ── Final stage ────────────────────────────────────────────────────────────
 FROM debian:bookworm-slim
@@ -86,8 +103,8 @@ RUN apt-get update \
 RUN useradd -m -u 1000 app
 
 # Copy static assets and binary from builder
-COPY --from=builder /app/app/target/site /app/site
-COPY --from=builder /app/app/target/release/monochange_app /app/monochange_app
+COPY --from=builder /site /app/site
+COPY --from=builder /monochange_app /app/monochange_app
 COPY app/monosecret.toml /app/monosecret.toml
 COPY app/deploy/docker-entrypoint.sh /usr/local/bin/monochange-app-entrypoint
 

@@ -111,6 +111,11 @@ tailwind = true
 tailwind-input-file = "style/input.css"
 # Enable WASM code splitting on #[lazy_route] boundaries
 split = true
+# Compile the WASM client for size; the server binary keeps the runtime-first
+# `release` profile below.
+lib-profile-release = "wasm-release"
+# Minify the wasm-bindgen JS glue during release builds.
+js-minify = true
 
 [workspace.lints.rust]
 unsafe_code = "deny"
@@ -133,8 +138,28 @@ cast_possible_wrap = "allow"
 cast_precision_loss = "allow"
 cast_sign_loss = "allow"
 
+# Runtime-first server profile. Stripping is disabled here and happens in the
+# Dockerfile instead: cargo defaults release builds to `-C strip=debuginfo`,
+# which corrupts proc-macro dylibs on newer macOS hosts.
 [profile.release]
-opt-level = "z"
+opt-level = 3
 lto = true
 codegen-units = 1
-strip = true
+strip = "none"
+
+# Proc-macros and build scripts are host tools, never shipped: build them
+# unoptimized so they compile faster and link with the conservative settings
+# some macOS hosts need for dyld to load them.
+[profile.release.build-override]
+opt-level = 0
+strip = "none"
+
+# Download-size-first profile for the hydrating WASM client.
+[profile.wasm-release]
+inherits = "release"
+opt-level = "z"
+panic = "abort"
+strip = "none"
+
+[profile.wasm-release.build-override]
+opt-level = 0

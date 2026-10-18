@@ -2,26 +2,41 @@
 
 use leptos::prelude::*;
 use leptos_meta::Title;
+use leptos_router::LazyRoute;
 use leptos_router::hooks::use_params_map;
+use leptos_router::lazy_route;
 
 use crate::error::ErrorTemplate;
 use crate::server_fns::book::BookPage;
 use crate::server_fns::book::get_book_page;
 
+/// Book page data, split into its own WASM chunk.
+pub struct BookRoute {
+	chapter: Resource<Result<Option<BookPage>, server_fn::ServerFnError>>,
+}
+
 /// Read a chapter without leaving monochange.dev.
-#[component]
-pub fn BookPageView() -> impl IntoView {
-	let params = use_params_map();
-	let chapter = Resource::new(
-		move || params.get().get("chapter").unwrap_or_default(),
-		get_book_page,
-	);
-	view! {
-		<div class="site-width book-layout">
-			<Suspense fallback=|| view! { <p role="status">"Loading the book…"</p> }>
-				{move || chapter.get().map(book_page)}
-			</Suspense>
-		</div>
+#[lazy_route]
+impl LazyRoute for BookRoute {
+	fn data() -> Self {
+		let params = use_params_map();
+		let chapter = Resource::new(
+			move || params.get().get("chapter").unwrap_or_default(),
+			get_book_page,
+		);
+		Self { chapter }
+	}
+
+	fn view(this: Self) -> AnyView {
+		let BookRoute { chapter } = this;
+		view! {
+			<div class="site-width book-layout">
+				<Suspense fallback=|| view! { <p role="status">"Loading the book…"</p> }>
+					{move || chapter.get().map(book_page)}
+				</Suspense>
+			</div>
+		}
+		.into_any()
 	}
 }
 
