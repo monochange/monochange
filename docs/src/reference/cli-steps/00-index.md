@@ -181,7 +181,7 @@ Use `--progress-format auto|unicode|ascii|json` or `MONOCHANGE_PROGRESS_FORMAT` 
 
 - `auto` enables the human renderer only when stderr is a terminal
 - `unicode` forces the human renderer with Unicode symbols
-- `ascii` forces the human renderer with ASCII-safe symbols
+- `ascii` forces the human renderer with ASCII-safe symbols, and text results on stdout use ASCII headline symbols too
 - `json` emits newline-delimited progress events for automation and benchmarks
 
 `PrepareRelease` and `DisplayVersions` steps also report per-phase timings when they compute release state. Those timings power the benchmark phase-budget checks for release workflows such as `monochange step prepare-release --dry-run` and configured `monochange run release` wrappers.

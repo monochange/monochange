@@ -10,7 +10,7 @@ Supported values:
 
 - `auto`: default behavior. Deterministic human progress output is enabled for terminals, CI logs, editor tasks, and captured processes; animation is terminal-only.
 - `unicode`: force the human renderer with Unicode symbols and spinners.
-- `ascii`: force the human renderer with ASCII-safe symbols.
+- `ascii`: force the human renderer with ASCII-safe symbols. Text results on stdout also switch their headline symbols (`+`, `!`, `x`, `-`), separators, and ellipses to ASCII.
 - `json`: emit newline-delimited JSON progress events on stderr.
 
 `--quiet` suppresses progress output. `MONOCHANGE_NO_PROGRESS=1` also disables the automatic human renderer.

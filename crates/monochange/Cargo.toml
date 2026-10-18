@@ -104,6 +104,7 @@ toml_edit = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 typed-builder = { workspace = true }
+unicode-width = { workspace = true }
 urlencoding = { workspace = true }
 
 [dev-dependencies]
