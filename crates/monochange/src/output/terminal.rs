@@ -9,6 +9,9 @@ use std::sync::atomic::AtomicBool;
 use std::sync::atomic::AtomicU64;
 use std::sync::atomic::Ordering;
 
+use crate::output::color::ColorChoice;
+use crate::output::color::ColorEnvironment;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum ProgressFormat {
 	Auto,
@@ -36,6 +39,8 @@ pub(crate) struct ProgressSettings {
 	pub(crate) tracing_enabled: bool,
 	/// `--verbose`: show every phase timing and progress notes.
 	pub(crate) verbose: bool,
+	/// `--color`: whether progress, diagnostics, and warnings are styled.
+	pub(crate) color: ColorChoice,
 }
 
 impl ProgressSettings {
@@ -73,6 +78,7 @@ impl ProgressSettings {
 			format,
 			tracing_enabled,
 			verbose,
+			color: ColorChoice::from_args(args),
 		}
 	}
 }
@@ -107,8 +113,7 @@ impl TerminalCapabilities {
 			stderr_is_terminal: io::stderr().is_terminal(),
 			ci: running_in_ci() && !running_under_test(),
 			github_actions: running_in_github_actions() && !running_under_test(),
-			term_is_dumb: env::var("TERM").is_ok_and(|term| term == "dumb"),
-			no_color: env::var_os("NO_COLOR").is_some(),
+			color_environment: ColorEnvironment::detect(),
 			no_progress: env::var_os("MONOCHANGE_NO_PROGRESS").is_some(),
 		};
 		Self::resolve(settings, probe)
@@ -118,12 +123,12 @@ impl TerminalCapabilities {
 		let human = settings.format != ProgressFormat::Json;
 		let progress_enabled = !settings.quiet && !probe.no_progress;
 		let color = progress_enabled
-			&& human && probe.stderr_is_terminal
-			&& !probe.term_is_dumb
-			&& !probe.no_color;
+			&& human && settings
+			.color
+			.resolve(probe.color_environment, probe.stderr_is_terminal);
 		let animate = progress_enabled
 			&& human && probe.stderr_is_terminal
-			&& !probe.term_is_dumb
+			&& !probe.color_environment.term_is_dumb
 			&& !probe.ci
 			&& !settings.tracing_enabled;
 
@@ -150,9 +155,19 @@ struct TerminalProbe {
 	stderr_is_terminal: bool,
 	ci: bool,
 	github_actions: bool,
-	term_is_dumb: bool,
-	no_color: bool,
+	color_environment: ColorEnvironment,
 	no_progress: bool,
+}
+
+/// Return to column 0 and erase the line. The style reset is only written when
+/// the erased line may have carried styling, so `NO_COLOR` output stays free of
+/// colour escapes.
+pub(crate) fn erase_line(color: bool) -> &'static str {
+	if color {
+		"\r\u{1b}[2K\u{1b}[0m"
+	} else {
+		"\r\u{1b}[2K"
+	}
 }
 
 /// The one stderr channel shared by progress, diagnostics, and warnings.
@@ -164,6 +179,7 @@ struct TerminalProbe {
 pub(crate) struct SharedStderr {
 	writer: Arc<Mutex<Box<dyn Write + Send>>>,
 	spinner_active: Arc<AtomicBool>,
+	spinner_color: Arc<AtomicBool>,
 	line_cleared: Arc<AtomicBool>,
 	sequence: Arc<AtomicU64>,
 	group_open: Arc<AtomicBool>,
@@ -178,6 +194,7 @@ impl SharedStderr {
 		Self {
 			writer: Arc::new(Mutex::new(Box::new(writer))),
 			spinner_active: Arc::new(AtomicBool::new(false)),
+			spinner_color: Arc::new(AtomicBool::new(false)),
 			line_cleared: Arc::new(AtomicBool::new(false)),
 			sequence: Arc::new(AtomicU64::new(0)),
 			group_open: Arc::new(AtomicBool::new(false)),
@@ -195,15 +212,19 @@ impl SharedStderr {
 	/// Write one complete line, erasing an animated spinner line first.
 	pub(crate) fn write_line(&self, text: &str) {
 		if self.spinner_active.load(Ordering::Relaxed) {
-			self.write(format!("\r\u{1b}[2K\u{1b}[0m{text}\n").as_bytes());
+			let erase = erase_line(self.spinner_color.load(Ordering::Relaxed));
+			self.write(format!("{erase}{text}\n").as_bytes());
 			self.line_cleared.store(true, Ordering::Relaxed);
 			return;
 		}
 		self.write(format!("{text}\n").as_bytes());
 	}
 
-	pub(crate) fn set_spinner_active(&self, active: bool) {
+	/// Mark whether a spinner owns the current line and whether it is styled,
+	/// so line erases only reset styling that was actually written.
+	pub(crate) fn set_spinner_active(&self, active: bool, color: bool) {
 		self.spinner_active.store(active, Ordering::Relaxed);
+		self.spinner_color.store(color, Ordering::Relaxed);
 	}
 
 	/// Report whether another writer erased the spinner line since the last

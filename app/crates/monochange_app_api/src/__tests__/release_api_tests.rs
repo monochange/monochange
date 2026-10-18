@@ -84,7 +84,10 @@ fn moved_branches_are_conflicts() {
 		StatusCode::SERVICE_UNAVAILABLE
 	);
 	assert_eq!(
-		release_commit_error_status(&GitHubAppError::UnverifiedCommit),
+		release_commit_error_status(&GitHubAppError::UnverifiedCommit(
+			"release-sha".to_string(),
+			"unsigned".to_string(),
+		)),
 		StatusCode::BAD_GATEWAY
 	);
 }
@@ -127,9 +130,8 @@ fn github_creating_release_branch(verification: &serde_json::Value) -> MockServe
 
 #[tokio::test]
 async fn release_commit_response_reports_github_verification() {
-	let server = github_creating_release_branch(
-		&serde_json::json!({ "verified": false, "reason": "unsigned" }),
-	);
+	let server =
+		github_creating_release_branch(&serde_json::json!({ "verified": true, "reason": "valid" }));
 
 	let response = commit_release_files(
 		&reqwest::Client::new(),
@@ -144,10 +146,32 @@ async fn release_commit_response_reports_github_verification() {
 		response,
 		HostedCommitResponse {
 			commit: Some("release-sha".to_string()),
-			verified: false,
+			verified: true,
 			status: Some("completed".to_string()),
-			message: Some("unsigned".to_string()),
+			message: Some("valid".to_string()),
 		}
+	);
+}
+
+#[tokio::test]
+async fn unverified_release_commit_is_a_bad_gateway() {
+	let server = github_creating_release_branch(
+		&serde_json::json!({ "verified": false, "reason": "unsigned" }),
+	);
+
+	let (status, body) = commit_release_files(
+		&reqwest::Client::new(),
+		&server.base_url(),
+		"installation-token",
+		&request_with_path("crates/core/Cargo.toml"),
+	)
+	.await
+	.unwrap_err();
+
+	assert_eq!(status, StatusCode::BAD_GATEWAY);
+	assert_eq!(
+		body.0.message,
+		"GitHub created the release commit `release-sha` but reported it as unverified (unsigned); the release branch was not moved"
 	);
 }
 

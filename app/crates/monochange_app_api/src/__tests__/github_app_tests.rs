@@ -1,4 +1,8 @@
-//! Authenticated app identity determines the repository connection link.
+//! Tests for the monochange GitHub App identity and release-commit creation.
+//!
+//! The authenticated app identity determines the repository connection link,
+//! and the hosted release-commit contract — including the hard failure when
+//! GitHub does not verify a commit — stays pinned to observable behavior.
 
 // The tokio test macro constructs its runtime with `expect`.
 #![allow(clippy::disallowed_methods)]
@@ -251,6 +255,17 @@ struct CommitWrites<'a> {
 }
 
 fn mock_commit_writes(server: &MockServer) -> CommitWrites<'_> {
+	mock_commit_writes_with(
+		server,
+		&serde_json::json!({ "sha": RELEASE_COMMIT, "verification": { "verified": true, "reason": "valid" } }),
+	)
+}
+
+/// The Git Database writes, with GitHub answering the commit with `commit`.
+fn mock_commit_writes_with<'a>(
+	server: &'a MockServer,
+	commit: &serde_json::Value,
+) -> CommitWrites<'a> {
 	CommitWrites {
 		blob: server.mock(|when, then| {
 			when.method(Method::POST)
@@ -269,10 +284,7 @@ fn mock_commit_writes(server: &MockServer) -> CommitWrites<'_> {
 			when.method(Method::POST)
 				.path("/repos/acme/actions/git/commits")
 				.json_body_includes(r#"{ "tree": "tree-sha", "parents": ["base-sha"] }"#);
-			then.status(201).json_body(serde_json::json!({
-				"sha": RELEASE_COMMIT,
-				"verification": { "verified": true, "reason": "valid" },
-			}));
+			then.status(201).json_body(commit.clone());
 		}),
 	}
 }
@@ -332,6 +344,45 @@ async fn first_release_commit_creates_the_release_branch() {
 	writes.tree.assert();
 	writes.commit.assert();
 	create.assert();
+}
+
+#[rstest]
+#[case::unsigned(
+	serde_json::json!({ "sha": RELEASE_COMMIT, "verification": { "verified": false, "reason": "unsigned" } }),
+	"unsigned"
+)]
+#[case::verification_missing(serde_json::json!({ "sha": RELEASE_COMMIT }), "unknown")]
+#[tokio::test]
+async fn unverified_release_commit_fails_without_moving_the_branch(
+	#[case] commit: serde_json::Value,
+	#[case] reason: &str,
+) {
+	let server = MockServer::start();
+	mock_branch(&server, RELEASE_BRANCH, Some(BASE_COMMIT));
+	let writes = mock_commit_writes_with(&server, &commit);
+	let update = mock_branch_update(&server, RELEASE_BRANCH, false);
+
+	let error = create_commit(
+		&server,
+		&release_commit_request(RELEASE_BRANCH, Some("main")),
+	)
+	.await
+	.unwrap_err();
+
+	assert!(
+		matches!(
+			&error,
+			GitHubAppError::UnverifiedCommit(sha, actual) if sha == RELEASE_COMMIT && actual == reason
+		),
+		"{error}"
+	);
+	assert!(
+		error
+			.to_string()
+			.contains("the release branch was not moved")
+	);
+	writes.commit.assert();
+	update.assert_calls(0);
 }
 
 #[tokio::test]

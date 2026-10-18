@@ -41,6 +41,11 @@ Global Options:
   -v, --verbose
           Show full result lists and logs, every step timing, and progress notes
 
+      --color <WHEN>
+          Control when output uses color; `auto` honors NO_COLOR, CLICOLOR, and CLICOLOR_FORCE
+          
+          [possible values: auto, always, never]
+
       --progress-format <FORMAT>
           Control progress output on stderr
           

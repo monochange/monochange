@@ -214,7 +214,7 @@ Run `cargo xtask skill commands check` before changing this file. Run `cargo xta
 | `monochange step publish-readiness`   | Check package registry publishing readiness without publishing packages.                       |
 | `monochange step placeholder-publish` | Publish first-time placeholder package versions for a release record.                          |
 
-Global flags include `--quiet`, `--verbose` (full lists and logs, every step timing, and progress notes), `--progress-format <auto|unicode|ascii|json>`, and `--jq <expression>` for JSON output filtering. Usage errors exit with status `2`; other failures exit with `1`, and `--progress-format json` reports them as a `diagnostic` event.
+Global flags include `--quiet`, `--verbose` (full lists and logs, every step timing, and progress notes), `--progress-format <auto|unicode|ascii|json>`, `--color <auto|always|never>` (`auto` styles terminals and honors `NO_COLOR`, `CLICOLOR`, and `CLICOLOR_FORCE`), and `--jq <expression>` for JSON output filtering. Usage errors exit with status `2`; other failures exit with `1`, and `--progress-format json` reports them as a `diagnostic` event.
 
 `--quiet` suppresses explicit JSON output as well as text, so omit it when parsing stdout. Use `--format json` or `json-min` for a machine-readable payload, and `--jq` when the CLI should filter that payload. Inspect the actual JSON shape: ungrouped release plans keep per-package versions in `release_targets`, while the top-level `version` can be null.
 

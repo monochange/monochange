@@ -25,6 +25,7 @@ use crate::output::terminal::ProgressFormat;
 use crate::output::terminal::ProgressSettings;
 use crate::output::terminal::SharedStderr;
 use crate::output::terminal::TerminalCapabilities;
+use crate::output::terminal::erase_line;
 use crate::output::text::display_width;
 use crate::output::warnings::WarningMode;
 use crate::output::warnings::WarningSink;
@@ -167,6 +168,7 @@ impl ProgressReporter {
 			format,
 			tracing_enabled: false,
 			verbose: crate::output::text::verbose_output(),
+			color: crate::output::color::color_choice(),
 		};
 		let capabilities = TerminalCapabilities::detect(settings);
 		Self::with_output(
@@ -202,6 +204,7 @@ impl ProgressReporter {
 			format,
 			tracing_enabled: false,
 			verbose: crate::output::text::verbose_output(),
+			color: crate::output::color::color_choice(),
 		};
 		let capabilities = TerminalCapabilities::detect(settings);
 		Self::with_context(
@@ -934,7 +937,7 @@ impl ProgressReporter {
 		let color = self.color;
 		let spinner_frames = self.symbols.spinner_frames;
 		let started_at = started_at.unwrap_or_else(Instant::now);
-		self.stderr.set_spinner_active(true);
+		self.stderr.set_spinner_active(true, color);
 		let handle = thread::spawn(move || {
 			thread::sleep(SPINNER_DELAY);
 			let mut full_line = true;
@@ -974,9 +977,9 @@ impl ProgressReporter {
 		};
 		spinner.stop.store(true, Ordering::Relaxed);
 		let _ = spinner.handle.join();
-		self.stderr.set_spinner_active(false);
+		self.stderr.set_spinner_active(false, self.color);
 		if spinner.rendered.load(Ordering::Relaxed) {
-			self.stderr.write(b"\r\x1b[2K\x1b[0m");
+			self.stderr.write(erase_line(self.color).as_bytes());
 		}
 	}
 
@@ -1766,7 +1769,9 @@ fn paint_text(text: &str, style: Style, color: bool) -> String {
 		Style::Success => "32;1",
 		Style::Warning => "33;1",
 		Style::Error => "31;1",
-		Style::Header => "37;1",
+		// Bold in the default foreground stays readable on light and dark
+		// terminal themes alike.
+		Style::Header => "1",
 		Style::Detail => "35",
 		Style::Muted => "2",
 	};
@@ -1814,7 +1819,8 @@ pub(crate) fn strip_terminal_controls(text: &str) -> String {
 fn render_spinner_tick(frame: &str, message: &str, color: bool, full_line: bool) -> String {
 	if full_line {
 		format!(
-			"\r\u{1b}[2K\u{1b}[0m{} {}",
+			"{}{} {}",
+			erase_line(color),
 			paint_text(frame, Style::Accent, color),
 			message,
 		)

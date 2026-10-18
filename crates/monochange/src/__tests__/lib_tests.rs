@@ -14493,27 +14493,6 @@ fn resolve_release_datetime_honors_env_overrides() {
 }
 
 #[test]
-fn diff_output_supports_color_respects_common_terminal_env_controls() {
-	temp_env::with_var("NO_COLOR", Some("1"), || {
-		assert!(!crate::diff_output_supports_color(true));
-	});
-	temp_env::with_var("NO_COLOR", None::<&str>, || {
-		temp_env::with_var("CLICOLOR", Some("0"), || {
-			assert!(!crate::diff_output_supports_color(true));
-		});
-		temp_env::with_var("CLICOLOR", None::<&str>, || {
-			temp_env::with_var("CLICOLOR_FORCE", Some("1"), || {
-				assert!(crate::diff_output_supports_color(false));
-			});
-			temp_env::with_var("CLICOLOR_FORCE", None::<&str>, || {
-				assert!(crate::diff_output_supports_color(true));
-				assert!(!crate::diff_output_supports_color(false));
-			});
-		});
-	});
-}
-
-#[test]
 fn colorize_diff_output_styles_unified_diff_markers() {
 	assert_eq!(
 		crate::colorize_diff_output("--- a/Cargo.toml"),
@@ -14571,10 +14550,8 @@ fn build_file_diff_previews_handles_missing_files_and_color_modes() {
 		},
 	];
 
-	let plain_previews = temp_env::with_var("NO_COLOR", Some("1"), || {
-		crate::build_file_diff_previews(tempdir.path(), &updates)
-			.unwrap_or_else(|error| panic!("plain previews: {error}"))
-	});
+	let plain_previews = crate::build_file_diff_previews(tempdir.path(), &updates)
+		.unwrap_or_else(|error| panic!("plain previews: {error}"));
 	assert_eq!(plain_previews.len(), 2);
 	assert!(
 		plain_previews
@@ -14588,13 +14565,8 @@ fn build_file_diff_previews_handles_missing_files_and_color_modes() {
 		.join("\n---\n");
 	assert!(rendered_plain_diffs.contains("new-file.md"));
 
-	let colored_previews = temp_env::with_vars(
-		[
-			("NO_COLOR", None::<&str>),
-			("CLICOLOR", None::<&str>),
-			("CLICOLOR_FORCE", Some("1")),
-		],
-		|| {
+	let colored_previews = crate::tests::block_on_in_context(
+		crate::output::color::with_color_choice(crate::output::color::ColorChoice::Always, async {
 			crate::build_file_diff_previews(
 				tempdir.path(),
 				&[crate::FileUpdate {
@@ -14602,9 +14574,9 @@ fn build_file_diff_previews_handles_missing_files_and_color_modes() {
 					content: updated_existing_content,
 				}],
 			)
-			.unwrap_or_else(|error| panic!("colored previews: {error}"))
-		},
-	);
+		}),
+	)
+	.unwrap_or_else(|error| panic!("colored previews: {error}"));
 	assert_eq!(colored_previews.len(), 1);
 	assert!(colored_previews[0].display_diff.contains("\u{1b}["));
 	assert!(!colored_previews[0].diff.contains("\u{1b}["));
@@ -15915,12 +15887,32 @@ fn format_clap_error_returns_plain_text_without_color() {
 }
 
 #[test]
-fn format_clap_error_returns_empty_with_color() {
+fn format_clap_error_returns_ansi_styled_text_with_color() {
 	use clap::Command;
-	let cmd = Command::new("test").about("test cmd");
+	let cmd = Command::new("test")
+		.about("test cmd")
+		.styles(clap::builder::Styles::styled());
 	let err = cmd.try_get_matches_from(["test", "--help"]).unwrap_err();
 	let out = crate::format_clap_error(&err, true);
-	assert_eq!(out, String::new());
+	assert!(out.contains("\u{1b}["));
+	assert_eq!(
+		crate::output::strip_terminal_controls(&out),
+		err.to_string()
+	);
+}
+
+#[test]
+fn diagnostic_command_skips_the_color_flag_in_both_spellings() {
+	for args in [
+		vec!["monochange", "--color", "always", "publish", "readiness"],
+		vec!["monochange", "--color=never", "publish", "readiness"],
+	] {
+		let args = args.into_iter().map(OsString::from).collect::<Vec<_>>();
+		assert_eq!(
+			crate::cli_diagnostic_command(&args).as_deref(),
+			Some("monochange publish readiness")
+		);
+	}
 }
 
 #[test]

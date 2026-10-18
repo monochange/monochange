@@ -1,3 +1,4 @@
+pub(crate) mod color;
 pub(crate) mod diagnostic;
 pub(crate) mod progress;
 pub(crate) mod terminal;
