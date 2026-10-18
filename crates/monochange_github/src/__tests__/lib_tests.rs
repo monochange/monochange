@@ -3018,18 +3018,18 @@ fn issue_reference_without_a_number_is_dropped() {
 fn strip_markdown_code_removes_fences_and_inline_spans() {
 	let text = "Refs #1 and `#2`\n```rust\nlet x = \"#3\";\n~~~\n#4\n```\n~~~\n#5\n~~~\nafter #6";
 
-	assert_eq!(strip_markdown_code(text), "Refs #1 and \nafter #6\n");
+	assert_eq!(strip_markdown_code(text), "Refs #1 and  \nafter #6\n");
 }
 
 #[test]
 fn extract_issue_numbers_ignores_sibling_repository_shorthand_and_code() {
-	let body = "Tracked as surfpool#802, see [pinapod#39](https://github.com/pina-rs/pinapod/pull/39).\nColour `#000000`, issue #12, not #12abc.";
+	let body = "Tracked as surfpool#802, see [pinapod#39](https://github.com/pina-rs/pinapod/pull/39).\nColour `#000000`, issue #12, not #12abc, `code`#13.";
 
 	assert_eq!(
 		extract_issue_numbers(body, Some("pina-rs/pina"))
 			.into_iter()
 			.collect::<Vec<_>>(),
-		vec![12]
+		vec![12, 13]
 	);
 }
 

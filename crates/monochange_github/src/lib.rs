@@ -1125,7 +1125,8 @@ fn strip_markdown_code(text: &str) -> String {
 			(None, Some(marker)) => fence = Some(marker),
 			(Some(open), Some(marker)) if open == marker => fence = None,
 			(None, None) => {
-				prose.push_str(&inline_code.replace_all(line, ""));
+				// A space keeps `foo`#1 from gluing `foo` onto the reference as a prefix.
+				prose.push_str(&inline_code.replace_all(line, " "));
 				prose.push('\n');
 			}
 			_ => {}
