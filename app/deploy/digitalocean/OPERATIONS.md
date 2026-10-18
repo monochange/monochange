@@ -28,7 +28,7 @@ restrict,command="/usr/local/bin/monochange-ci-deploy" ssh-ed25519 <public-key> 
 
 The key accepts only `deploy <full-commit-sha> <stable-version>` with a compressed image on stdin. It cannot request a shell, port forwarding, or a PTY. The forced command locks deployment, rejects an older version, loads the image, verifies its commit tag, backs up SQLite, and calls the existing deploy helper. Treat this key as production access: deployed application code can access runtime secrets through the container.
 
-Store its private key as the `WEBSITE_DEPLOY_SSH_KEY` secret in the `website-production` Actions environment, restricted to the `main` branch, and keep a recovery copy as the `WEBSITE_DEPLOY_SSH_KEY` field in the `deploy` section of the `monochange.dev` item in the `monochange` vault. Do not copy the personal SSH key into CI. Rotation means installing a new dedicated public key, replacing both stored copies, verifying deployment, and removing the old authorized key.
+Store its private key as the `WEBSITE_DEPLOY_SSH_KEY` secret in the `website-production` Actions environment, restricted to the `main` branch, and keep a recovery copy as the `WEBSITE_DEPLOY_SSH_KEY` field of the `deploy` item in the `monochange` vault. Do not copy the personal SSH key into CI. Rotation means installing a new dedicated public key, replacing both stored copies, verifying deployment, and removing the old authorized key.
 
 No API token, registry credential, DNS change, or additional paid service is required. Runtime passwords remain on the server. A failed build leaves production untouched; a failed rollout keeps the release draft. Inspect Actions and the current database before retrying or restoring a backup.
 
@@ -36,9 +36,9 @@ No API token, registry credential, DNS change, or additional paid service is req
 
 Create a custom-scoped DigitalOcean token named `monochange deployment`, expiring after 90 days. Use `account:read`, `actions:read`, `droplet:read`, `domain:create`, `domain:read`, `domain:update`, `firewall:create`, `firewall:read`, and `firewall:update`. DigitalOcean adds the required read scopes for regions, sizes, images, and snapshots. These are resource-type scopes across the team; they are not restricted to one Droplet. Creating or deleting Droplets, deleting DNS/firewalls, billing, registries, and app-platform access are outside this token's permissions.
 
-Store the generated token in the 1Password app, never as a command argument: add a password field labelled `DIGITALOCEAN_ACCESS_TOKEN` to the `deploy` section of the `monochange.dev` item in the `monochange` vault of the Kickjump account, and note its expiry on the item.
+Store the generated token in the 1Password app, never as a command argument: add a password field labelled `DIGITALOCEAN_ACCESS_TOKEN` to the `deploy` item in the `monochange` vault of the Kickjump account, and note its expiry on the item.
 
-The deployment manifest resolves only this API token, through your own signed-in 1Password app rather than the production service account, and does not read the app's runtime secrets. Every monochange credential lives in that one item; see the [production secret layout](../../DEPLOY.md#production-secret-layout). The production service account can read the `deploy` section too, which is why the token stays narrowly scoped and expires after 90 days.
+The deployment manifest resolves only this API token, through your own signed-in 1Password app rather than the production service account, and does not read the app's runtime secrets. Every monochange credential lives in that one vault; see the [production secret layout](../../DEPLOY.md#production-secret-layout). The production service account can read the `deploy` item too, which is why the token stays narrowly scoped and expires after 90 days.
 
 For a single API operation:
 
