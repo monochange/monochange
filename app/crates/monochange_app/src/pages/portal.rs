@@ -7,8 +7,10 @@ mod tests;
 
 use leptos::prelude::*;
 use leptos_meta::Title;
+use leptos_router::LazyRoute;
 use leptos_router::hooks::use_params_map;
 use leptos_router::hooks::use_query_map;
+use leptos_router::lazy_route;
 use monochange_app_feedback::PublicAuthor;
 use monochange_app_feedback::PublicLink;
 use monochange_app_feedback::PublicStatus;
@@ -135,35 +137,67 @@ fn preview_pane(result: Result<String, ServerFnError>) -> AnyView {
 	}
 }
 
-#[component]
-pub fn PortalPage() -> impl IntoView {
-	let params = use_params_map();
-	let query = use_query_map();
-	let share = ServerAction::<ShareFeedback>::new();
-	let vote = ServerAction::<PortalVote>::new();
-	let reply = ServerAction::<PortalReply>::new();
-	let key = move || {
-		let params = params.read();
-		(
-			params.get("organization").unwrap_or_default(),
-			params.get("project").unwrap_or_default(),
-			share.version().get() + vote.version().get() + reply.version().get(),
-		)
-	};
-	let snapshot = Resource::new_blocking(key, |(organization, project, _)| {
-		portal_view(organization, project)
-	});
-	let shared = move || query.read().get("shared");
+/// Public feedback portal data, split into its own WASM chunk.
+pub struct PortalRoute {
+	share: ServerAction<ShareFeedback>,
+	vote: ServerAction<PortalVote>,
+	reply: ServerAction<PortalReply>,
+	snapshot: Resource<Result<Option<PortalSnapshot>, server_fn::ServerFnError>>,
+	shared: Memo<Option<String>>,
+}
 
-	view! {
-		<Suspense fallback=|| view! { <p class="site-width dashboard-section" role="status">"Loading feedback…"</p> }>
-			{move || snapshot.get().map(|result| match result {
-				Ok(Some(snapshot)) => view! { <PortalContent snapshot=snapshot share=share vote=vote reply=reply shared=shared() /> }.into_any(),
-				Ok(None) => view! { <section class="site-width"><Unavailable title="Project not found" message="This feedback portal doesn't exist. Check the link you were given." /></section> }.into_any(),
-				Err(_) => view! { <section class="site-width"><Unavailable title="Feedback couldn't be loaded" message="Please reload the page to try again." /></section> }.into_any(),
-			})}
+/// A project's public feedback portal, loaded as one lazily split route.
+#[lazy_route]
+impl LazyRoute for PortalRoute {
+	fn data() -> Self {
+		let params = use_params_map();
+		let query = use_query_map();
+		let share = ServerAction::<ShareFeedback>::new();
+		let vote = ServerAction::<PortalVote>::new();
+		let reply = ServerAction::<PortalReply>::new();
+		let key = {
+			let (share, vote, reply) = (share, vote, reply);
+			move || {
+				let params = params.read();
+				(
+					params.get("organization").unwrap_or_default(),
+					params.get("project").unwrap_or_default(),
+					share.version().get() + vote.version().get() + reply.version().get(),
+				)
+			}
+		};
+		let snapshot = Resource::new_blocking(key, |(organization, project, _)| {
+			portal_view(organization, project)
+		});
+		let shared = Memo::new(move |_| query.read().get("shared"));
+		Self {
+			share,
+			vote,
+			reply,
+			snapshot,
+			shared,
+		}
+	}
 
-		</Suspense>
+	fn view(this: Self) -> AnyView {
+		let PortalRoute {
+			share,
+			vote,
+			reply,
+			snapshot,
+			shared,
+		} = this;
+		view! {
+			<Suspense fallback=|| view! { <p class="site-width dashboard-section" role="status">"Loading feedback…"</p> }>
+				{move || snapshot.get().map(|result| match result {
+					Ok(Some(snapshot)) => view! { <PortalContent snapshot=snapshot share=share vote=vote reply=reply shared=shared.get() /> }.into_any(),
+					Ok(None) => view! { <section class="site-width"><Unavailable title="Project not found" message="This feedback portal doesn't exist. Check the link you were given." /></section> }.into_any(),
+					Err(_) => view! { <section class="site-width"><Unavailable title="Feedback couldn't be loaded" message="Please reload the page to try again." /></section> }.into_any(),
+				})}
+
+			</Suspense>
+		}
+		.into_any()
 	}
 }
 

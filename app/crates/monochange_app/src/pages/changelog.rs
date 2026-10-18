@@ -2,29 +2,45 @@
 
 use leptos::prelude::*;
 use leptos_meta::Title;
+use leptos_router::LazyRoute;
+use leptos_router::lazy_route;
 
 use crate::server_fns::releases::WebsiteRelease;
 use crate::server_fns::releases::get_website_releases;
 
+/// Changelog data, split into its own WASM chunk.
+pub struct ChangelogRoute {
+	releases: Resource<Result<Vec<WebsiteRelease>, server_fn::ServerFnError>>,
+}
+
 /// Show approved website releases and a reusable integration example.
-#[component]
-pub fn ChangelogPage() -> impl IntoView {
-	let releases = Resource::new(|| (), |()| get_website_releases());
-	view! {
-		<Title text="What's new — monochange" />
-		<section class="site-width release-intro">
-			<p class="eyebrow">"The website, version by version"</p>
-			<h1>"What's new."</h1>
-			<p>"Updates that make monochange.dev better for you. The CLI has its own "<a href="https://github.com/monochange/monochange/releases">"release notes"</a>"."</p>
-		</section>
-		<section class="site-width release-layout" aria-label="Website release history">
-			<div class="release-history">
-				<Suspense fallback=|| view! { <p role="status">"Loading release notes…"</p> }>
-					{move || releases.get().map(release_history)}
-				</Suspense>
-			</div>
-			<aside class="release-example"><img src="/branding/mark.svg" width="64" height="64" alt="" /><h2>"Your notes. Your layout."</h2><p>"This page uses monochange's generated JSON. Use the same release notes in your own website, app, or update feed."</p><a class="text-link" href="/book/guide/website-release-notes">"Build your own changelog"</a></aside>
-		</section>
+#[lazy_route]
+impl LazyRoute for ChangelogRoute {
+	fn data() -> Self {
+		Self {
+			releases: Resource::new(|| (), |()| get_website_releases()),
+		}
+	}
+
+	fn view(this: Self) -> AnyView {
+		let ChangelogRoute { releases } = this;
+		view! {
+			<Title text="What's new — monochange" />
+			<section class="site-width release-intro">
+				<p class="eyebrow">"The website, version by version"</p>
+				<h1>"What's new."</h1>
+				<p>"Updates that make monochange.dev better for you. The CLI has its own "<a href="https://github.com/monochange/monochange/releases">"release notes"</a>"."</p>
+			</section>
+			<section class="site-width release-layout" aria-label="Website release history">
+				<div class="release-history">
+					<Suspense fallback=|| view! { <p role="status">"Loading release notes…"</p> }>
+						{move || releases.get().map(release_history)}
+					</Suspense>
+				</div>
+				<aside class="release-example"><img src="/branding/mark.svg" width="64" height="64" alt="" /><h2>"Your notes. Your layout."</h2><p>"This page uses monochange's generated JSON. Use the same release notes in your own website, app, or update feed."</p><a class="text-link" href="/book/guide/website-release-notes">"Build your own changelog"</a></aside>
+			</section>
+		}
+		.into_any()
 	}
 }
 

@@ -2,38 +2,60 @@
 
 use leptos::prelude::*;
 use leptos_meta::Title;
+use leptos_router::LazyRoute;
+use leptos_router::lazy_route;
 
 use crate::components::arrow::ArrowIcon;
 use crate::links::BOOK_URL;
+use crate::server_fns::auth::SessionUser;
 use crate::server_fns::auth::get_session;
 use crate::server_fns::installation::RepositoryConnectionStatus;
 use crate::server_fns::installation::repository_connection;
 use crate::server_fns::organizations::OrganizationSummary;
 use crate::server_fns::organizations::list_organizations;
 
-/// Dashboard page shown after login.
-#[component]
-pub fn DashboardPage() -> impl IntoView {
-	let user = Resource::new_blocking(|| (), |()| get_session());
-	let organizations = Resource::new_blocking(|| (), |()| list_organizations());
-	let connection = Resource::new_blocking(|| (), |()| repository_connection());
+/// Dashboard data, loaded before its lazily split view chunk hydrates.
+pub struct DashboardRoute {
+	user: Resource<Result<Option<SessionUser>, server_fn::ServerFnError>>,
+	organizations: Resource<Result<Vec<OrganizationSummary>, server_fn::ServerFnError>>,
+	connection: Resource<Result<RepositoryConnectionStatus, server_fn::ServerFnError>>,
+}
 
-	view! {
-		<Title text="Your workspace — monochange" />
-		<section class="site-width dashboard-section">
-			<Suspense fallback=|| view! { <p role="status">"Loading your workspace…"</p> }>
-				{move || user.get().map(|result| match result {
-					Ok(Some(session)) => organizations.get().map(|result| match result {
-						Ok(organizations) => view! { <DashboardContent user=session organizations=organizations connection=connection /> }.into_any(),
-						Err(_) => view! { <DashboardNotice title="Repositories couldn't be loaded" message="Please reload the page to try again." /> }.into_any(),
-					}).into_any(),
+/// Dashboard page shown after login, split into its own WASM chunk.
+#[lazy_route]
+impl LazyRoute for DashboardRoute {
+	fn data() -> Self {
+		Self {
+			user: Resource::new_blocking(|| (), |()| get_session()),
+			organizations: Resource::new_blocking(|| (), |()| list_organizations()),
+			connection: Resource::new_blocking(|| (), |()| repository_connection()),
+		}
+	}
 
-					Ok(None) => view! { <DashboardNotice title="Your workspace starts here." message="Sign in with GitHub to see your connected repositories." /> }.into_any(),
-					Err(_) => view! { <DashboardNotice title="Your session couldn't be loaded" message="Please sign in again to continue." /> }.into_any(),
-				})}
+	fn view(this: Self) -> AnyView {
+		let DashboardRoute {
+			user,
+			organizations,
+			connection,
+		} = this;
+		view! {
+			<Title text="Your workspace — monochange" />
+			<section class="site-width dashboard-section">
+				<Suspense fallback=|| view! { <p role="status">"Loading your workspace…"</p> }>
+					{move || user.get().map(|result| match result {
+						Ok(Some(session)) => organizations.get().map(|result| match result {
+							Ok(organizations) => view! { <DashboardContent user=session organizations=organizations connection=connection /> }.into_any(),
+							Err(_) => view! { <DashboardNotice title="Repositories couldn't be loaded" message="Please reload the page to try again." /> }.into_any(),
+						}).into_any(),
 
-			</Suspense>
-		</section>
+						Ok(None) => view! { <DashboardNotice title="Your workspace starts here." message="Sign in with GitHub to see your connected repositories." /> }.into_any(),
+						Err(_) => view! { <DashboardNotice title="Your session couldn't be loaded" message="Please sign in again to continue." /> }.into_any(),
+					})}
+
+				</Suspense>
+			</section>
+		}
+		.into_any()
 	}
 }
 

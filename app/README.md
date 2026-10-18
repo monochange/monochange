@@ -32,6 +32,22 @@ devenv shell cargo check --manifest-path app/Cargo.toml -p monochange_app
 
 Release automation uses the same SQLite database and remains disabled unless `MONOCHANGE_APP_AUTOMATION` is explicitly enabled.
 
+## performance benchmarks and bundle size
+
+Every app pull request runs a Lighthouse suite over the core flows (`/`, `/install`, `/pricing`, `/changelog`, `/book`, a book chapter, `/login`, and the signed-out `/dashboard`) plus a gzip bundle-size check against the committed baseline. Locally, after a release build:
+
+```bash
+# from the repository root, with pnpm dependencies installed
+cargo leptos --manifest-path app/crates/monochange_app/Cargo.toml build --release --split
+pnpm bench:website          # Lighthouse against a throwaway local server
+pnpm size:website           # compare app/target/site/pkg against the baseline
+pnpm size:website:update    # accept a deliberate size change in the same PR
+```
+
+Budgets live in `scripts/website-budgets.json`; the size baseline in `scripts/website-size-baseline.json`. `pnpm bench:website` needs Chrome or Chromium locally (`CHROME_PATH` is honoured). The app CI job fails on budget violations unless `MONOCHANGE_ALLOW_BENCHMARK_BUDGET_FAILURES=true` is set, mirroring the CLI benchmark escape hatch.
+
+The client is split into per-route WASM chunks (`#[lazy_route]` boundaries, built with `cargo leptos build --split`): the landing and login views stay in the initial bundle while every other route loads its code on first navigation. `/pkg` assets are served with revalidation caching, and the deployment image precompresses them (gzip and brotli) alongside compression at the Caddy edge.
+
 ## deploy
 
 See [DEPLOY.md](./DEPLOY.md) for the DigitalOcean Docker deployment guide.

@@ -2,7 +2,9 @@
 
 use leptos::prelude::*;
 use leptos_meta::Title;
+use leptos_router::LazyRoute;
 use leptos_router::hooks::use_params_map;
+use leptos_router::lazy_route;
 
 use crate::pages::organization::Unavailable;
 use crate::pages::organization::action_error;
@@ -15,29 +17,42 @@ use crate::server_fns::organizations::feedback_console_path;
 use crate::server_fns::organizations::organization_path;
 use crate::server_fns::organizations::project_overview;
 
-#[component]
-pub fn ProjectPage() -> impl IntoView {
-	let params = use_params_map();
-	let key = move || {
-		let params = params.read();
-		(
-			params.get("organization").unwrap_or_default(),
-			params.get("project").unwrap_or_default(),
-		)
-	};
-	let details = Resource::new_blocking(key, |(organization, project)| {
-		project_overview(organization, project)
-	});
+/// One-project page data, split into its own WASM chunk.
+pub struct ProjectRoute {
+	details: Resource<Result<Option<ProjectDetails>, server_fn::ServerFnError>>,
+}
 
-	view! {
-		<Suspense fallback=|| view! { <p class="site-width dashboard-section" role="status">"Loading project…"</p> }>
-			{move || details.get().map(|result| match result {
-				Ok(Some(details)) => view! { <ProjectContent details=details /> }.into_any(),
-				Ok(None) => view! { <section class="site-width"><Unavailable title="Project not found" message="It may have been renamed or deleted, or it belongs to an organisation you don't own." /></section> }.into_any(),
-				Err(_) => view! { <section class="site-width"><Unavailable title="This project couldn't be loaded" message="Please reload the page to try again." /></section> }.into_any(),
-			})}
+/// One project: the repositories it brings together, and its settings.
+#[lazy_route]
+impl LazyRoute for ProjectRoute {
+	fn data() -> Self {
+		let params = use_params_map();
+		let key = move || {
+			let params = params.read();
+			(
+				params.get("organization").unwrap_or_default(),
+				params.get("project").unwrap_or_default(),
+			)
+		};
+		let details = Resource::new_blocking(key, |(organization, project)| {
+			project_overview(organization, project)
+		});
+		Self { details }
+	}
 
-		</Suspense>
+	fn view(this: Self) -> AnyView {
+		let ProjectRoute { details } = this;
+		view! {
+			<Suspense fallback=|| view! { <p class="site-width dashboard-section" role="status">"Loading project…"</p> }>
+				{move || details.get().map(|result| match result {
+					Ok(Some(details)) => view! { <ProjectContent details=details /> }.into_any(),
+					Ok(None) => view! { <section class="site-width"><Unavailable title="Project not found" message="It may have been renamed or deleted, or it belongs to an organisation you don't own." /></section> }.into_any(),
+					Err(_) => view! { <section class="site-width"><Unavailable title="This project couldn't be loaded" message="Please reload the page to try again." /></section> }.into_any(),
+				})}
+
+			</Suspense>
+		}
+		.into_any()
 	}
 }
 
