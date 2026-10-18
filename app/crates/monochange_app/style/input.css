@@ -394,7 +394,7 @@ button.button:disabled { opacity: .55; cursor: progress; }
 :root.dark .portal-tracker li[data-state="done"]::before { background: #a78bfa; }
 :root.dark .portal-message[data-author="team"] { border-left-color: #c4b5fd; }
 @media (min-width: 1050px) {
-  .portal-layout { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); grid-template-areas: "roadmap share" "roadmap yours"; align-items: start; }
+  .portal-layout { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); grid-template-rows: auto 1fr; grid-template-areas: "roadmap share" "roadmap yours"; align-items: start; }
   .portal-share { grid-area: share; }
   .portal-roadmap { grid-area: roadmap; }
   .portal-yours { grid-area: yours; }
