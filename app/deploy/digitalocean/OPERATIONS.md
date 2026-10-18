@@ -28,7 +28,7 @@ restrict,command="/usr/local/bin/monochange-ci-deploy" ssh-ed25519 <public-key> 
 
 The key accepts only `deploy <full-commit-sha> <stable-version>` with a compressed image on stdin. It cannot request a shell, port forwarding, or a PTY. The forced command locks deployment, rejects an older version, loads the image, verifies its commit tag, backs up SQLite, and calls the existing deploy helper. Treat this key as production access: deployed application code can access runtime secrets through the container.
 
-Store its private key as the `WEBSITE_DEPLOY_SSH_KEY` secret in the `website-production` Actions environment, restricted to the `main` branch, and as a concealed field in the private monochange deployment recovery vault through the scoped Monosecret service account. Do not copy the personal SSH key into CI. Rotation means installing a new dedicated public key, replacing both stored copies, verifying deployment, and removing the old authorized key.
+Store its private key as the `WEBSITE_DEPLOY_SSH_KEY` secret in the `website-production` Actions environment, restricted to the `main` branch, and keep a recovery copy as the `WEBSITE_DEPLOY_SSH_KEY` field of the `deploy` item in the `monochange` vault. Do not copy the personal SSH key into CI. Rotation means installing a new dedicated public key, replacing both stored copies, verifying deployment, and removing the old authorized key.
 
 No API token, registry credential, DNS change, or additional paid service is required. Runtime passwords remain on the server. A failed build leaves production untouched; a failed rollout keeps the release draft. Inspect Actions and the current database before retrying or restoring a backup.
 
@@ -36,13 +36,9 @@ No API token, registry credential, DNS change, or additional paid service is req
 
 Create a custom-scoped DigitalOcean token named `monochange deployment`, expiring after 90 days. Use `account:read`, `actions:read`, `droplet:read`, `domain:create`, `domain:read`, `domain:update`, `firewall:create`, `firewall:read`, and `firewall:update`. DigitalOcean adds the required read scopes for regions, sizes, images, and snapshots. These are resource-type scopes across the team; they are not restricted to one Droplet. Creating or deleting Droplets, deleting DNS/firewalls, billing, registries, and app-platform access are outside this token's permissions.
 
-Store the generated token using Monosecret's secure prompt, never as a command argument:
+Store the generated token in the 1Password app, never as a command argument: add a password field labelled `DIGITALOCEAN_ACCESS_TOKEN` to the `deploy` item in the `monochange` vault of the Kickjump account, and note its expiry on the item.
 
-```nu
-ms set --file app/deploy/digitalocean/monosecret.toml --reason "store DigitalOcean deployment token" DIGITALOCEAN_ACCESS_TOKEN
-```
-
-The deployment manifest addresses the local system keyring under project `monochange_deployment`. It resolves only this API token, does not use the shared development service account, and does not read the app's runtime secrets. Keep a recovery copy and its expiry in a separate private `monochange deployment` 1Password vault. Do not put operational credentials in the runtime `monochange` vault: the app's service account must not be able to administer its host.
+The deployment manifest resolves only this API token, through your own signed-in 1Password app rather than the production service account, and does not read the app's runtime secrets. Every monochange credential lives in that one vault; see the [production secret layout](../../DEPLOY.md#production-secret-layout). The production service account can read the `deploy` item too, which is why the token stays narrowly scoped and expires after 90 days.
 
 For a single API operation:
 
@@ -58,7 +54,7 @@ doctl compute droplet get 606211709
 doctl compute firewall get 1932d940-ca0c-49c2-b27c-08a0b464f31a
 ```
 
-`doctl` reads `DIGITALOCEAN_ACCESS_TOKEN` from the child environment. Do not run `doctl auth init`, put tokens in shell history, print the environment, or retry failed secret resolution. After expiry, deliberately replace the keyring value and recovery copy with a new token of the same scope.
+`doctl` reads `DIGITALOCEAN_ACCESS_TOKEN` from the child environment. Do not run `doctl auth init`, put tokens in shell history, print the environment, or retry failed secret resolution. After expiry, deliberately replace the `DIGITALOCEAN_ACCESS_TOKEN` field with a new token of the same scope.
 
 The API reference is [DigitalOcean's official API documentation](https://docs.digitalocean.com/reference/api/reference/); CLI commands are documented in the [doctl reference](https://docs.digitalocean.com/reference/doctl/reference/).
 

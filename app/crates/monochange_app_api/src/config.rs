@@ -23,7 +23,13 @@ pub(super) fn github_app_credentials(
 		.filter(|value| !value.trim().is_empty());
 
 	match (app_id, private_key, webhook_secret) {
-		(None, None, None) => Ok(None),
+		(None, None, None) => {
+			tracing::warn!(
+				"GitHub App credentials are not configured: repository connection is unavailable until \
+				 GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY, and GITHUB_APP_WEBHOOK_SECRET are set"
+			);
+			Ok(None)
+		}
 		(Some(app_id), Some(private_key), Some(webhook_secret)) => {
 			EncodingKey::from_rsa_pem(private_key.as_bytes())?;
 			let api_url = std::env::var("GITHUB_API_URL")
