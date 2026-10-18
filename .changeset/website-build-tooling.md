@@ -4,7 +4,7 @@ monochange_app: feat
 
 # Split the website client, compress the edge, and gate page performance
 
-Release builds must now pass `cargo leptos build --release --split` (the Dockerfile and app CI do): every route except the landing and login views is a `#[lazy_route]` boundary, so the initial WASM download excludes dashboard, organisation, project, feedback, portal, book, changelog, install, and pricing code. Server functions referenced only by those views move into their route chunks.
+Release builds must now pass `cargo leptos build --release --split` (the Dockerfile and app CI do): every route except the landing and login views is a `#[lazy_route]` boundary, so the initial WASM download excludes dashboard, organisation, project, feedback, portal, book, changelog, install, and pricing code. Server functions referenced only by those views move into their route chunks, and the client hydrates through `leptos::mount::hydrate_lazy`, which lazy routes require.
 
 Build and deployment changes:
 

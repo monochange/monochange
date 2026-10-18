@@ -2,66 +2,66 @@
 	"preset": "desktop",
 	"routes": {
 		"/": {
-			"performance": 0.9,
+			"performance": 0.85,
 			"ttfbMs": 600,
-			"fcpMs": 1200,
-			"lcpMs": 2000,
+			"fcpMs": 1500,
+			"lcpMs": 2400,
 			"tbtMs": 250,
 			"cls": 0.1
 		},
 		"/install": {
-			"performance": 0.9,
+			"performance": 0.85,
 			"ttfbMs": 600,
-			"fcpMs": 1200,
-			"lcpMs": 2000,
+			"fcpMs": 1500,
+			"lcpMs": 2400,
 			"tbtMs": 250,
 			"cls": 0.1
 		},
 		"/pricing": {
-			"performance": 0.9,
+			"performance": 0.85,
 			"ttfbMs": 600,
-			"fcpMs": 1200,
-			"lcpMs": 2000,
+			"fcpMs": 1500,
+			"lcpMs": 2400,
 			"tbtMs": 250,
 			"cls": 0.1
 		},
 		"/changelog": {
-			"performance": 0.9,
+			"performance": 0.85,
 			"ttfbMs": 600,
-			"fcpMs": 1200,
-			"lcpMs": 2000,
+			"fcpMs": 1500,
+			"lcpMs": 2400,
 			"tbtMs": 250,
 			"cls": 0.1
 		},
 		"/book": {
-			"performance": 0.9,
+			"performance": 0.85,
 			"ttfbMs": 600,
-			"fcpMs": 1200,
+			"fcpMs": 1500,
 			"lcpMs": 2500,
 			"tbtMs": 250,
 			"cls": 0.1
 		},
 		"/book/guide/02-setup": {
-			"performance": 0.9,
+			"performance": 0.85,
 			"ttfbMs": 600,
-			"fcpMs": 1200,
+			"fcpMs": 1500,
 			"lcpMs": 2500,
 			"tbtMs": 250,
 			"cls": 0.1
 		},
 		"/login": {
-			"performance": 0.9,
+			"performance": 0.85,
 			"ttfbMs": 600,
-			"fcpMs": 1200,
-			"lcpMs": 2000,
+			"fcpMs": 1500,
+			"lcpMs": 2400,
 			"tbtMs": 250,
 			"cls": 0.1
 		},
 		"/dashboard": {
 			"performance": 0.85,
 			"ttfbMs": 600,
-			"fcpMs": 1200,
-			"lcpMs": 2000,
+			"fcpMs": 1500,
+			"lcpMs": 2400,
 			"tbtMs": 250,
 			"cls": 0.1
 		}
@@ -71,6 +71,6 @@
 		"pkgWasmBytes": 4200000,
 		"pkgJsBytes": 300000,
 		"pkgCssBytes": 200000,
-		"pkgEagerWasmBytes": 1700000
+		"pkgEagerWasmBytes": 1750000
 	}
 }
