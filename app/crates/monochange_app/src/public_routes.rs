@@ -54,6 +54,26 @@ fn book_asset(asset: &str) -> Response {
 		None => StatusCode::NOT_FOUND.into_response(),
 	}
 }
+
+/// Serves `/pkg` hydration assets with revalidation caching: the static file
+/// handler answers `If-Modified-Since` with cheap 304s, so browsers reuse the
+/// cached WASM chunks while a deployment can never pair fresh HTML with stale
+/// client code. The image ships precompressed `.gz`/`.br` siblings that the
+/// file handler serves to clients that accept them.
+pub async fn pkg_cache_control(
+	request: axum::extract::Request,
+	next: axum::middleware::Next,
+) -> Response {
+	let is_pkg_asset = request.uri().path().starts_with("/pkg/");
+	let mut response = next.run(request).await;
+	if is_pkg_asset {
+		response.headers_mut().insert(
+			header::CACHE_CONTROL,
+			axum::http::HeaderValue::from_static("public, max-age=0, must-revalidate"),
+		);
+	}
+	response
+}
 #[cfg(test)]
 #[path = "__tests__/public_routes_tests.rs"]
 mod tests;

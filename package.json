@@ -14,11 +14,15 @@
 		"fmt:check": "oxfmt --check \"**/*.ts\"",
 		"lint": "oxlint --type-aware .",
 		"lint:syntax": "oxlint .",
-		"build": "tsdown"
+		"build": "tsdown",
+		"bench:website": "node scripts/benchmark-website.ts run",
+		"size:website": "node scripts/website-size.ts check",
+		"size:website:update": "node scripts/website-size.ts update"
 	},
 	"devDependencies": {
 		"@rslint/tsgo": "^0.5.0",
 		"@types/node": "^24.10.1",
+		"lighthouse": "^13.5.0",
 		"oxfmt": "^0.46.0",
 		"oxlint": "^1.61.0",
 		"oxlint-tsgolint": "^0.22.0",

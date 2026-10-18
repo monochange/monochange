@@ -48,6 +48,41 @@ async fn other_routes_are_not_redirected_to_documentation() {
 	assert_eq!(response.status(), StatusCode::NOT_FOUND);
 }
 
+#[tokio::test]
+async fn pkg_assets_cache_immutably_while_pages_stay_fresh() {
+	let app = axum::Router::new()
+		.route("/pkg/{*file}", axum::routing::get(|| async { "asset" }))
+		.route("/", axum::routing::get(|| async { "page" }))
+		.layer(axum::middleware::from_fn(super::pkg_cache_control));
+
+	let asset = app
+		.clone()
+		.oneshot(
+			Request::builder()
+				.uri("/pkg/monochange_app.wasm")
+				.body(Body::empty())
+				.unwrap(),
+		)
+		.await
+		.unwrap();
+	assert_eq!(asset.status(), StatusCode::OK);
+	assert_eq!(
+		asset.headers()[axum::http::header::CACHE_CONTROL],
+		"public, max-age=0, must-revalidate"
+	);
+
+	let page = app
+		.oneshot(Request::builder().uri("/").body(Body::empty()).unwrap())
+		.await
+		.unwrap();
+	assert_eq!(page.status(), StatusCode::OK);
+	assert!(
+		page.headers()
+			.get(axum::http::header::CACHE_CONTROL)
+			.is_none()
+	);
+}
+
 #[rstest]
 #[case(
 	"/book-assets/branding/logo-280.png",

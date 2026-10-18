@@ -3,7 +3,9 @@
 
 use leptos::prelude::*;
 use leptos_meta::Title;
+use leptos_router::LazyRoute;
 use leptos_router::hooks::use_params_map;
+use leptos_router::lazy_route;
 
 use crate::components::arrow::ArrowIcon;
 use crate::pages::dashboard::organization_avatar;
@@ -22,24 +24,39 @@ pub fn action_error(error: &server_fn::ServerFnError) -> String {
 	}
 }
 
-#[component]
-pub fn OrganizationPage() -> impl IntoView {
-	let params = use_params_map();
-	let login = move || params.read().get("organization").unwrap_or_default();
-	let overview = Resource::new_blocking(login, organization_overview);
+/// One-organisation page data, split into its own WASM chunk.
+pub struct OrganizationRoute {
+	login: Memo<String>,
+	overview: Resource<Result<Option<OrganizationSummary>, server_fn::ServerFnError>>,
+}
 
-	view! {
-		<Title text=move || format!("{} — monochange", login()) />
-		<section class="site-width dashboard-section">
-			<Suspense fallback=|| view! { <p role="status">"Loading organisation…"</p> }>
-				{move || overview.get().map(|result| match result {
-					Ok(Some(organization)) => view! { <OrganizationContent organization=organization /> }.into_any(),
-					Ok(None) => view! { <Unavailable title="Organisation not found" message="It isn't connected, or you're not one of its owners." /> }.into_any(),
-					Err(_) => view! { <Unavailable title="This organisation couldn't be loaded" message="Please reload the page to try again." /> }.into_any(),
-				})}
+/// One organisation: its projects, a form to create one, and its connected
+/// repositories.
+#[lazy_route]
+impl LazyRoute for OrganizationRoute {
+	fn data() -> Self {
+		let params = use_params_map();
+		let login = Memo::new(move |_| params.read().get("organization").unwrap_or_default());
+		let overview = Resource::new_blocking(move || login.get(), organization_overview);
+		Self { login, overview }
+	}
 
-			</Suspense>
-		</section>
+	fn view(this: Self) -> AnyView {
+		let OrganizationRoute { login, overview } = this;
+		view! {
+			<Title text=move || format!("{} — monochange", login.get()) />
+			<section class="site-width dashboard-section">
+				<Suspense fallback=|| view! { <p role="status">"Loading organisation…"</p> }>
+					{move || overview.get().map(|result| match result {
+						Ok(Some(organization)) => view! { <OrganizationContent organization=organization /> }.into_any(),
+						Ok(None) => view! { <Unavailable title="Organisation not found" message="It isn't connected, or you're not one of its owners." /> }.into_any(),
+						Err(_) => view! { <Unavailable title="This organisation couldn't be loaded" message="Please reload the page to try again." /> }.into_any(),
+					})}
+
+				</Suspense>
+			</section>
+		}
+		.into_any()
 	}
 }
 
