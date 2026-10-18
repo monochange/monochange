@@ -71,6 +71,7 @@ COPY docs/src/ docs/src/
 # Precompress the pkg assets: the static file handler serves these `.gz` and
 # `.br` siblings to clients that accept them, so the 1-vCPU droplet never
 # compresses the WASM chunks at request time.
+WORKDIR /app/app
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/app/app/target \
     cargo leptos build --release --split \
