@@ -309,7 +309,7 @@ pub(crate) async fn git_stage_all(root: &Path) -> MonochangeResult<()> {
 	.await
 }
 // patch-coverage:ignore-end
-async fn resolve_stageable_release_paths(
+pub(crate) async fn resolve_stageable_release_paths(
 	root: &Path,
 	tracked_paths: &[PathBuf],
 ) -> MonochangeResult<Vec<PathBuf>> {
@@ -430,6 +430,45 @@ pub(crate) async fn git_commit_paths(
 	no_verify: bool,
 ) -> MonochangeResult<()> {
 	run_git_commit_message(root, message, "create release commit", no_verify).await
+}
+
+/// List every path `git add --all` would put into the next commit, relative
+/// to `root`, without touching the index.
+///
+/// Tracked changes, staged or not, come from `git diff HEAD`; renames are
+/// split into a deletion and an addition so every path is reported on its
+/// own. Untracked files are included unless `.gitignore` excludes them.
+#[must_use = "the changed paths must be used"]
+pub(crate) async fn git_changed_paths(root: &Path) -> MonochangeResult<Vec<PathBuf>> {
+	let tracked = run_git_capture(
+		root,
+		&[
+			"diff",
+			"--name-only",
+			"--no-renames",
+			"--relative",
+			"-z",
+			"HEAD",
+		],
+		"failed to list changed release files",
+	)
+	.await?;
+	let untracked = run_git_capture(
+		root,
+		&["ls-files", "--others", "--exclude-standard", "-z"],
+		"failed to list untracked release files",
+	)
+	.await?;
+	let mut paths = tracked
+		.split('\0')
+		.chain(untracked.split('\0'))
+		.filter(|path| !path.is_empty())
+		.map(PathBuf::from)
+		.collect::<Vec<_>>();
+	paths.sort();
+	paths.dedup();
+
+	Ok(paths)
 }
 
 #[must_use = "the HEAD commit result must be checked"]

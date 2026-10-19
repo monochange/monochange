@@ -23,6 +23,7 @@ pub mod webhooks;
 use std::sync::Arc;
 
 use axum::Router;
+use axum::extract::DefaultBodyLimit;
 use axum::http::StatusCode;
 use axum::routing::get;
 use axum::routing::post;
@@ -65,6 +66,13 @@ pub fn load_app_secrets(
 	builder.with_reason(APP_SECRETS_REASON).load()
 }
 
+/// Largest hosted release commit request body the app accepts.
+///
+/// A release commit carries the full content of every file it changes. A
+/// grouped release rewrites every package changelog, which already exceeds
+/// axum's 2 MiB default for large workspaces such as monochange itself.
+pub const RELEASE_COMMIT_BODY_LIMIT: usize = 32 * 1024 * 1024;
+
 /// The machine-to-machine API routes served by the app.
 ///
 /// The router owns its state so it can be merged into the Leptos router
@@ -74,7 +82,8 @@ pub fn api_router(state: AppState) -> Router<()> {
 		.route("/api/github/webhooks", post(webhooks::github_webhook))
 		.route(
 			"/api/release-commits",
-			post(release_api::create_release_commit),
+			post(release_api::create_release_commit)
+				.layer(DefaultBodyLimit::max(RELEASE_COMMIT_BODY_LIMIT)),
 		)
 		.route(
 			"/api/release-requests",

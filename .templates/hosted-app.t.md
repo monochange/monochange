@@ -34,6 +34,8 @@ steps = [
 ]
 ```
 
+When `CommitRelease` sets `stage_all = true`, the hosted commit also carries every other changed, added, or deleted file in the workspace, such as lockfiles or generated files that earlier `Command` steps rewrote, matching the local backend's `git add --all`. Files that `.gitignore` excludes are left out.
+
 GitHub Actions authenticates with its OIDC token. Grant `id-token: write` to the job that calls the hosted release steps. Other CI systems can use a monochange API token stored as `MONOCHANGE_TOKEN` in the CI secret store; never commit it to the repository.
 
 Every run rebuilds the release pull request branch from `[source.pull_requests].base` and the bot replaces the previous release commit, so each push refreshes the open release pull request. A run whose base branch moved while it was preparing the release fails with a conflict and leaves the refresh to the run for the newer commit. The bot only replaces monochange release branches: the branch must be named `<branch_prefix>/release`, which `monochange step commit-release`, `monochange step open-release-request`, and a `[cli.release]` workflow produce, and it must not be the repository's default branch. Workflows with other names, such as `[cli.release-pr]`, get `<branch_prefix>/release-pr`; the first run creates that branch, but later runs fail with a conflict until the branch is deleted.

@@ -75,3 +75,22 @@ type = "PrepareRelease"
 type = "OpenReleaseRequest"
 backend = "hosted"
 inputs = { hosted_auth = "password" }
+
+# Earlier steps rewrite files monochange does not track; `stage_all` must
+# carry them in the hosted commit, as `git add --all` would locally.
+[cli.release-stage-all]
+help_text = "Commit every workspace change through the hosted app."
+
+[[cli.release-stage-all.steps]]
+type = "PrepareRelease"
+
+[[cli.release-stage-all.steps]]
+type = "Command"
+name = "regenerate files"
+shell = true
+command = 'printf "# regenerated\n" > Cargo.lock && printf "{}\n" > schema.json && git add schema.json && printf "pub fn updated() {}\n" > crates/core/src/lib.rs && mkdir -p target && printf "ignored\n" > target/build.log'
+
+[[cli.release-stage-all.steps]]
+type = "CommitRelease"
+commit_backend = "hosted"
+inputs = { stage_all = true }

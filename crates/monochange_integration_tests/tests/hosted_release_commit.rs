@@ -493,3 +493,66 @@ fn hosted_steps_reject_unsupported_hosted_auth_inputs(#[case] command: &str) {
 		String::from_utf8_lossy(&output.stderr)
 	);
 }
+
+#[test]
+fn hosted_stage_all_commits_carry_every_workspace_change() {
+	let tempdir = setup_hosted_fixture();
+	let root = tempdir.path();
+
+	let server = MockServer::start();
+	let commit_body = CapturedBody::default();
+	let commit_mock = server.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/api/release-commits")
+			.header("Authorization", "Bearer monochange-token")
+			.is_true(capture_body(&commit_body));
+		then.status(200).json_body(serde_json::json!({
+			"commit": "hosted-commit-sha",
+			"verified": true,
+			"status": "completed",
+		}));
+	});
+
+	// The fixture's `release-stage-all` command regenerates a lockfile,
+	// stages a schema, edits a source file, and writes build output that
+	// `.gitignore` excludes before committing through the hosted app.
+	let output = Command::new(get_cargo_bin("monochange"))
+		.current_dir(root)
+		.env("NO_COLOR", "1")
+		.env_remove("RUST_LOG")
+		.env("MONOCHANGE_NO_PROGRESS", "1")
+		.env("MONOCHANGE_HOSTED_URL", server.base_url())
+		.env("GITHUB_REPOSITORY", "acme/actions")
+		.env("GITHUB_REF_NAME", "main")
+		.env_remove("ACTIONS_ID_TOKEN_REQUEST_URL")
+		.env_remove("ACTIONS_ID_TOKEN_REQUEST_TOKEN")
+		.env("MONOCHANGE_TOKEN", "monochange-token")
+		.arg("run")
+		.arg("release-stage-all")
+		.output()
+		.unwrap_or_else(|error| panic!("run hosted stage-all release: {error}"));
+	assert!(
+		output.status.success(),
+		"hosted stage-all release failed\nstdout:\n{}\nstderr:\n{}",
+		String::from_utf8_lossy(&output.stdout),
+		String::from_utf8_lossy(&output.stderr)
+	);
+	commit_mock.assert();
+
+	let commit = captured(&commit_body);
+	let files = commit["files"]
+		.as_array()
+		.map(|files| {
+			files
+				.iter()
+				.map(|file| {
+					serde_json::json!({
+						"path": file["path"],
+						"deleted": file["content"].is_null(),
+					})
+				})
+				.collect::<Vec<_>>()
+		})
+		.unwrap_or_default();
+	assert_json_snapshot!(files);
+}
