@@ -9,10 +9,10 @@ expression: hosted_requests
     "branch": "monochange/release/release",
     "files": [
       ".changeset/feature.md",
+      ".monochange/releases/829c44b7a1ee8674/release.json",
       "Cargo.toml",
       "crates/core/CHANGELOG.md",
-      "crates/core/Cargo.toml",
-      ".monochange/releases/829c44b7a1ee8674/release.json"
+      "crates/core/Cargo.toml"
     ],
     "owner": "acme",
     "repository": "actions"

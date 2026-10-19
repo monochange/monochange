@@ -1586,6 +1586,7 @@ async fn execute_commit_release_step(
 				state.configuration.source.as_ref(),
 				&manifest,
 				update_release_json,
+				stage_all,
 				&options,
 			))
 			.await?

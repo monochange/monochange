@@ -508,3 +508,62 @@ async fn find_release_record_files_at_commit_detects_records_added_by_merged_bra
 		vec![".monochange/releases/62bde665dd709751/release.json".to_string()]
 	);
 }
+
+#[tokio::test(flavor = "multi_thread")]
+async fn git_changed_paths_lists_what_stage_all_would_commit() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	init_git_repo(root);
+	fs::write(root.join(".gitignore"), "/target\n")
+		.unwrap_or_else(|error| panic!("write gitignore: {error}"));
+	fs::write(root.join("kept.txt"), "kept\n")
+		.unwrap_or_else(|error| panic!("write kept: {error}"));
+	fs::write(root.join("edited.txt"), "before\n")
+		.unwrap_or_else(|error| panic!("write edited: {error}"));
+	fs::write(root.join("removed.txt"), "removed\n")
+		.unwrap_or_else(|error| panic!("write removed: {error}"));
+	git(root, &["add", "."]);
+	git(root, &["commit", "-m", "initial"]);
+
+	fs::write(root.join("edited.txt"), "after\n")
+		.unwrap_or_else(|error| panic!("edit file: {error}"));
+	fs::remove_file(root.join("removed.txt"))
+		.unwrap_or_else(|error| panic!("remove file: {error}"));
+	fs::write(root.join("staged.txt"), "staged\n")
+		.unwrap_or_else(|error| panic!("write staged: {error}"));
+	git(root, &["add", "staged.txt"]);
+	fs::write(root.join("untracked.txt"), "untracked\n")
+		.unwrap_or_else(|error| panic!("write untracked: {error}"));
+	fs::create_dir_all(root.join("target"))
+		.unwrap_or_else(|error| panic!("create target: {error}"));
+	fs::write(root.join("target/ignored.txt"), "ignored\n")
+		.unwrap_or_else(|error| panic!("write ignored: {error}"));
+
+	let paths = git_changed_paths(root)
+		.await
+		.unwrap_or_else(|error| panic!("list changed paths: {error}"));
+
+	assert_eq!(
+		paths,
+		["edited.txt", "removed.txt", "staged.txt", "untracked.txt"]
+			.map(PathBuf::from)
+			.to_vec()
+	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn git_changed_paths_reports_repositories_without_commits() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	init_git_repo(tempdir.path());
+
+	let error = git_changed_paths(tempdir.path())
+		.await
+		.expect_err("a repository without HEAD has nothing to diff against");
+
+	assert!(
+		error
+			.to_string()
+			.contains("failed to list changed release files"),
+		"{error}"
+	);
+}

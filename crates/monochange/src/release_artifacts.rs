@@ -8,7 +8,9 @@ use similar::TextDiff;
 use super::*;
 use crate::cli_runtime::build_release_request_result;
 use crate::cli_runtime::string_step_input;
+use crate::git_support::git_changed_paths;
 use crate::git_support::git_stage_all;
+use crate::git_support::resolve_stageable_release_paths;
 use crate::output::color::stdout_color;
 use crate::output::text::Outcome;
 use crate::output::text::TableCell;
@@ -2052,9 +2054,12 @@ pub(crate) async fn hosted_commit_release(
 	source: Option<&SourceConfiguration>,
 	manifest: &ReleaseManifest,
 	update_release_json: bool,
+	stage_all: bool,
 	options: &HostedCommitOptions,
 ) -> MonochangeResult<CommitReleaseReport> {
-	let prepared = prepare_release_commit(root, context, source, manifest, update_release_json)?;
+	let mut prepared =
+		prepare_release_commit(root, context, source, manifest, update_release_json)?;
+	prepared.tracked_paths = hosted_commit_paths(root, &prepared.tracked_paths, stage_all).await?;
 	let body = prepared.message.body.clone().unwrap_or_default();
 	let branches = hosted_commit_branches(source, &manifest.command);
 	let request = build_hosted_commit_request(root, &prepared, context.dry_run, &branches).await?;
@@ -2079,6 +2084,38 @@ pub(crate) async fn hosted_commit_release(
 		dry_run: context.dry_run,
 		status: response.status.unwrap_or_else(|| "completed".to_string()),
 	})
+}
+
+/// Choose the repository-relative paths a hosted release commit sends.
+///
+/// Release-managed paths go through the same filter the local backend uses
+/// before `git add`: ignored local artifacts such as
+/// `.monochange/local/release-manifest.json` stay out of the commit, and a
+/// missing path is only sent as a deletion when git tracks it.
+///
+/// With `stage_all`, every other changed file is added, matching the local
+/// backend's `git add --all`. Release commands often run steps that rewrite
+/// files monochange does not track itself, such as lockfiles, generated
+/// schemas, or snapshots; the hosted backend has no index to stage them
+/// into, so it sends their contents instead.
+async fn hosted_commit_paths(
+	root: &Path,
+	tracked_paths: &[PathBuf],
+	stage_all: bool,
+) -> MonochangeResult<Vec<PathBuf>> {
+	let mut paths = resolve_stageable_release_paths(root, tracked_paths)
+		.await?
+		.into_iter()
+		.map(|path| {
+			path.strip_prefix(root)
+				.map_or(path.clone(), Path::to_path_buf)
+		})
+		.collect::<BTreeSet<_>>();
+	if stage_all {
+		paths.extend(git_changed_paths(root).await?);
+	}
+
+	Ok(paths.into_iter().collect())
 }
 
 /// The branches a hosted release commit is written to and prepared from.

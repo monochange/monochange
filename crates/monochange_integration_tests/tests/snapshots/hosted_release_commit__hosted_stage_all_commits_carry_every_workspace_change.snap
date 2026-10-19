@@ -1,0 +1,38 @@
+---
+source: crates/monochange_integration_tests/tests/hosted_release_commit.rs
+expression: files
+---
+[
+  {
+    "deleted": true,
+    "path": ".changeset/feature.md"
+  },
+  {
+    "deleted": false,
+    "path": ".monochange/releases/829c44b7a1ee8674/release.json"
+  },
+  {
+    "deleted": false,
+    "path": "Cargo.lock"
+  },
+  {
+    "deleted": false,
+    "path": "Cargo.toml"
+  },
+  {
+    "deleted": false,
+    "path": "crates/core/CHANGELOG.md"
+  },
+  {
+    "deleted": false,
+    "path": "crates/core/Cargo.toml"
+  },
+  {
+    "deleted": false,
+    "path": "crates/core/src/lib.rs"
+  },
+  {
+    "deleted": false,
+    "path": "schema.json"
+  }
+]

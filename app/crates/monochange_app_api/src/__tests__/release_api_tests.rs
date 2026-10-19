@@ -26,6 +26,7 @@ use super::validate_branch_names;
 use super::validate_commit_paths;
 use crate::AppSecrets;
 use crate::AppState;
+use crate::RELEASE_COMMIT_BODY_LIMIT;
 use crate::api_router;
 use crate::github_app::GitHubAppAuth;
 use crate::github_app::GitHubAppError;
@@ -428,6 +429,54 @@ async fn release_commit_endpoint_requires_the_configured_api_token(
 
 	assert_eq!(status, expected_status, "{body}");
 	assert_eq!(body["message"], message);
+}
+
+#[tokio::test]
+async fn release_commit_endpoint_reads_bodies_larger_than_the_axum_default() {
+	// A grouped release rewrites every changelog; monochange's own already
+	// exceed axum's 2 MiB default, which used to reject the request with
+	// `413 Payload Too Large` before authentication ran.
+	let github = MockServer::start();
+	let state = release_api_state(&github, API_TOKEN).await;
+	let mut request = request_with_path("crates/core/CHANGELOG.md");
+	request.files[0].content = Some("- release note\n".repeat(256 * 1024));
+
+	let (status, body) = post_release_commit(&state, "not-the-api-token", &request).await;
+
+	assert_eq!(status, StatusCode::UNAUTHORIZED, "{body}");
+	assert_eq!(body["message"], "invalid MONOCHANGE_TOKEN");
+}
+
+#[tokio::test]
+async fn release_commit_endpoint_rejects_bodies_over_the_release_limit() {
+	let github = MockServer::start();
+	let state = release_api_state(&github, API_TOKEN).await;
+
+	let response = api_router(state)
+		.oneshot(
+			Request::builder()
+				.method("POST")
+				.uri("/api/release-commits")
+				.header("authorization", format!("Bearer {API_TOKEN}"))
+				.header("content-type", "application/json")
+				.body(Body::from(vec![b' '; RELEASE_COMMIT_BODY_LIMIT + 1]))
+				.unwrap(),
+		)
+		.await
+		.unwrap();
+
+	// The handler reports every body rejection as a bad request.
+	assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+	let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+		.await
+		.unwrap();
+	let body: serde_json::Value = serde_json::from_slice(&body).unwrap();
+	assert!(
+		body["message"]
+			.as_str()
+			.is_some_and(|message| message.contains("length limit exceeded")),
+		"{body}"
+	);
 }
 
 #[rstest]
