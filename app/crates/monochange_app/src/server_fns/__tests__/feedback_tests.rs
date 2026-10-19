@@ -180,6 +180,16 @@ fn actions_follow_the_stage() {
 		]
 	);
 	item.issue = Some(monochange_app_feedback::IssueRef {
+		repository: None,
+		number: 9,
+		url: None,
+	});
+	item.stage = Stage::Accepted;
+	assert_eq!(
+		console_actions(&item),
+		[ConsoleAction::EditSummary, ConsoleAction::Close]
+	);
+	item.issue = Some(monochange_app_feedback::IssueRef {
 		repository: Some("alice/web".to_owned()),
 		number: 9,
 		url: None,

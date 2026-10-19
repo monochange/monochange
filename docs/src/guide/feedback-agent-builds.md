@@ -26,6 +26,8 @@ The GitHub App needs **Contents: read and write** on the repository to check for
 
 Save this as `.github/workflows/monochange-feedback-build.yml` on the default branch. It uses the [Claude Code action](https://github.com/anthropics/claude-code-action) and an `ANTHROPIC_API_KEY` repository secret; any agent that edits files in the checkout can take its place.
 
+The workflow has two jobs. The agent runs in `build` with a read-only token and hands over its changes as a patch. `open-pull-request` starts from a fresh checkout, applies the patch, and is the only job that can push.
+
 ```yaml
 name: monochange feedback build
 
@@ -40,18 +42,18 @@ concurrency:
   group: monochange-feedback-${{ github.event.client_payload.item }}
   cancel-in-progress: false
 
+env:
+  ITEM: ${{ github.event.client_payload.item }}
+  ISSUE: ${{ github.event.client_payload.issue_number }}
+  BRANCH: ${{ github.event.client_payload.branch }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:
-      contents: write
+      contents: read
       issues: read
-      pull-requests: write
-    env:
-      ITEM: ${{ github.event.client_payload.item }}
-      ISSUE: ${{ github.event.client_payload.issue_number }}
-      BRANCH: ${{ github.event.client_payload.branch }}
     steps:
       - name: check the request
         run: |
@@ -82,18 +84,44 @@ jobs:
             --add-dir ${{ runner.temp }}
             --allowedTools Read,Edit,Write,Glob,Grep,Bash(npm test:*)
 
+      - name: save the changes
+        run: |
+          git add -A
+          git diff --cached --binary > "$RUNNER_TEMP/feedback.patch"
+          [ -s "$RUNNER_TEMP/feedback.patch" ] || { echo "The agent changed nothing."; exit 1; }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: feedback-patch
+          path: ${{ runner.temp }}/feedback.patch
+          retention-days: 7
+
+  open-pull-request:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: feedback-patch
+          path: ${{ runner.temp }}/patch
+
       - name: open the pull request
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          git diff --quiet && git diff --cached --quiet && [ -z "$(git ls-files --others --exclude-standard)" ] && { echo "The agent changed nothing."; exit 1; }
           title="$(gh issue view "$ISSUE" --json title --jq .title)"
           git config user.name "github-actions[bot]"
           git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
           git switch -c "$BRANCH"
-          git add -A
+          git apply --index "$RUNNER_TEMP/patch/feedback.patch"
           git commit -m "${BRANCH%%/*}: $title" -m "Closes #$ISSUE" -m "Feedback-Item: $ITEM"
-          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:refs/heads/$BRANCH"
+          git push origin "HEAD:refs/heads/$BRANCH"
           gh pr create --draft --head "$BRANCH" --title "${BRANCH%%/*}: $title" --body "$(printf 'Closes #%s\n\nBuilt by an agent from accepted feedback.\n\nFeedback-Item: %s\n' "$ISSUE" "$ITEM")"
 ```
 
@@ -105,8 +133,10 @@ Pull requests opened with the workflow's own `GITHUB_TOKEN` [don't start other w
 
 The brief starts as end-user feedback, so the workflow treats the agent as untrusted:
 
-- **Your code stays in your CI.** The agent runs on your runners with your model key. monochange never sees the code or the agent's output.
-- **The agent holds no push credentials.** Checkout drops the token, and only the final step, which runs after the agent, pushes and opens the pull request.
-- **It can't change CI.** The workflow token has no `workflows` permission, so a pushed change to `.github/workflows/` is rejected.
+- **Your code stays in your CI.** The agent runs on your runners with your model key. monochange sends ids and reads the pull request's description from webhooks; it never sees the code.
+- **The agent can't push.** Its job's token can only read, and checkout drops even that. The job that pushes starts from a fresh checkout and only applies the patch, so nothing the agent left behind runs there.
+- **It can't change CI.** The workflow token can't push changes to `.github/workflows/`, so a patch that touches them is rejected.
 - **The request can't smuggle commands.** Payload values reach the shell through environment variables and are checked against the expected shapes before anything runs.
 - **A maintainer decides.** The pull request is a draft, nothing merges it automatically, and the existing release flow ships it.
+
+The model key is the one secret the agent's job holds, because the agent needs it to run. A check command the agent may run can read it, so keep the allowed commands narrow and use a key with its own spending limit.

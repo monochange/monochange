@@ -97,7 +97,14 @@ pub fn console_actions(item: &FeedbackItem) -> Vec<ConsoleAction> {
 			]
 		}
 
-		Stage::Accepted => {
+		// An issue linked before projects spanned repositories can't say
+		// where to build.
+		Stage::Accepted
+			if item
+				.issue
+				.as_ref()
+				.is_some_and(|issue| issue.repository.is_some()) =>
+		{
 			vec![
 				ConsoleAction::BuildWithAgent,
 				ConsoleAction::EditSummary,
@@ -105,7 +112,7 @@ pub fn console_actions(item: &FeedbackItem) -> Vec<ConsoleAction> {
 			]
 		}
 
-		Stage::Building | Stage::InReview => {
+		Stage::Accepted | Stage::Building | Stage::InReview => {
 			vec![ConsoleAction::EditSummary, ConsoleAction::Close]
 		}
 		_ => Vec::new(),
