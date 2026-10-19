@@ -4,6 +4,8 @@
 //! The filters live in the page's query string, so a filtered view survives
 //! a reload and can be shared. Pages stay local to each list.
 
+use leptos_router::location::Url;
+
 use crate::server_fns::repos::RepoInfo;
 
 /// How many repositories one page of a list shows.
@@ -62,23 +64,26 @@ impl RepositoryFilter {
 
 	/// `path` with these filters as its query string.
 	pub fn href(&self, path: &str) -> String {
-		let mut query = url::form_urlencoded::Serializer::new(String::new());
+		let mut pairs = Vec::new();
 
 		if !self.search.trim().is_empty() {
-			query.append_pair(SEARCH_KEY, &self.search);
+			pairs.push((SEARCH_KEY, self.search.as_str()));
 		}
 
 		if let Some(organization) = &self.organization {
-			query.append_pair(ORGANIZATION_KEY, organization);
+			pairs.push((ORGANIZATION_KEY, organization.as_str()));
 		}
 
-		let query = query.finish();
-
-		if query.is_empty() {
-			path.to_owned()
-		} else {
-			format!("{path}?{query}")
+		if pairs.is_empty() {
+			return path.to_owned();
 		}
+
+		// The router's escape uses the browser's encoder in the client bundle.
+		let query: Vec<String> = pairs
+			.into_iter()
+			.map(|(key, value)| format!("{key}={}", Url::escape(value)))
+			.collect();
+		format!("{path}?{}", query.join("&"))
 	}
 }
 
@@ -86,15 +91,16 @@ impl RepositoryFilter {
 ///
 /// A search without a `/` looks at the repository's own name, since the list
 /// is already grouped by account. With a `/` it matches `owner/name`, so
-/// `acme/` finds every repository of `acme`.
+/// `acme/` finds every repository of `acme`. GitHub names are ASCII, so
+/// ASCII case folding keeps Unicode tables out of the browser bundle.
 pub fn matches_search(repository: &RepoInfo, search: &str) -> bool {
-	let search = search.trim().to_lowercase();
+	let search = search.trim().to_ascii_lowercase();
 
 	if search.is_empty() {
 		return true;
 	}
 
-	let full_name = repository.github_full_name.to_lowercase();
+	let full_name = repository.github_full_name.to_ascii_lowercase();
 	let haystack = if search.contains('/') {
 		full_name.as_str()
 	} else {

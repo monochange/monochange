@@ -39,14 +39,14 @@ fn filters_round_trip_through_the_query_string() {
 	assert!(filter.is_active());
 	assert!(filter.includes_organization("acme"));
 	assert!(!filter.includes_organization("globex"));
-	assert_eq!(filter.href("/dashboard"), "/dashboard?q=web+app&org=Acme");
+	assert_eq!(filter.href("/dashboard"), "/dashboard?q=web%20app&org=Acme");
 	assert_eq!(
 		filter.with_search(String::new()).href("/dashboard"),
 		"/dashboard?org=Acme"
 	);
 	assert_eq!(
 		filter.with_organization(String::new()).href("/dashboard"),
-		"/dashboard?q=web+app"
+		"/dashboard?q=web%20app"
 	);
 	assert_eq!(
 		RepositoryFilter::new(None, Some("Acme".to_owned())).with_organization("globex".to_owned()),

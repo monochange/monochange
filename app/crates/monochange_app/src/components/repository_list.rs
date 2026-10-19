@@ -2,8 +2,6 @@
 //! kept in the URL, pages within each list, and a filterable picker for
 //! project forms.
 
-use std::collections::HashSet;
-
 use leptos::prelude::*;
 use leptos_router::NavigateOptions;
 use leptos_router::hooks::use_navigate;
@@ -177,7 +175,6 @@ pub fn RepositoryPicker(
 	#[prop(optional)]
 	selected: Vec<String>,
 ) -> impl IntoView {
-	let selected: HashSet<String> = selected.into_iter().collect();
 	let (search, set_search) = signal(String::new());
 	let filterable = repositories.len() > PICKER_FILTER_THRESHOLD;
 	let all = StoredValue::new(repositories.clone());
@@ -200,7 +197,7 @@ pub fn RepositoryPicker(
 				</label>
 			})}
 			<div class="checkbox-list">
-				{repositories.into_iter().map(|repository| {
+				{repositories.into_iter().map(move |repository| {
 					let checked = selected.contains(&repository.github_full_name.to_ascii_lowercase());
 					let visibility = if repository.github_private { "Private" } else { "Public" };
 					let full_name = repository.github_full_name.clone();
