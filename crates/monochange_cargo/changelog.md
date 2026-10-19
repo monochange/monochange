@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-19)
+
+<details>
+<summary><strong>🔨 Refactor</strong></summary>
+
+#### Load changesets without redundant canonicalization and re-parsing
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #793](https://github.com/monochange/monochange/pull/793)
+
+Loading a changeset file rebuilt a `ChangesetLoadContext` that canonicalized the workspace root and every package manifest path — four `realpath` syscalls per package per file — so batch loading cost grew with packages × changesets. The context now canonicalizes the root once, resolves manifest paths with a `strip_prefix` fast path, and borrows configured change-type names instead of cloning them. Measured with the `cli_commands` benchmarks, changeset loading drops 84–96% across 5/20/50-package workspaces and `prepare_release` dry runs drop 6–44%.
+
+Changeset parsing also stops allocating two full copies of every file for line-ending normalization (a `Cow` borrows LF-only text, the common case), validation no longer rebuilds the package and group lookups for every changeset file, and configured Cargo packages are discovered with one manifest read and parse instead of three.
+
+</details>
+
 ## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)
 
 ### Changed

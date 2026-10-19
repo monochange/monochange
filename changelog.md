@@ -4,6 +4,384 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-19)
+
+Grouped release for `main`.
+
+### 💥 Breaking Change
+
+#### ChangesetLoadContext borrows configured change types
+
+_Packages:_ 🔴 _monochange_config_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #793](https://github.com/monochange/monochange/pull/793)
+
+`ChangesetLoadContext.change_types_by_target` now stores `ChangeTypeLookup<'a>`, which borrows change-type names from the workspace configuration instead of cloning `String` vectors for every context build. The field is public API, so code that names this type explicitly must carry the lifetime. The same change removes four `realpath` syscalls per package from every changeset load, cutting changeset loading time by 84–96% on the benchmark workspaces.
+
+```rust
+// before
+let lookup: &ChangeTypeLookup = context.change_types_by_target
+	.get(target)
+	.expect("target lookup exists");
+
+// after: the lookup borrows from the workspace configuration
+let lookup: &ChangeTypeLookup<'_> = context.change_types_by_target
+	.get(target)
+	.expect("target lookup exists");
+```
+
+#### Add the base branch to `HostedCommitRequest`
+
+_Packages:_ 🔴 _monochange_core_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #789](https://github.com/monochange/monochange/pull/789)
+
+**Breaking change:** `monochange_core::HostedCommitRequest` gains `base_branch: Option<String>`, the branch the release was prepared from. The monochange app uses it to refresh a release pull request only while that branch still points at the prepared commit, so a stale run never replaces a newer release.
+
+Struct literals must add the field:
+
+```rust
+let request = HostedCommitRequest {
+	// existing fields…
+	base_branch: Some("main".to_owned()),
+};
+```
+
+Serialized requests omit `base_branch` when it is `None`. See `docs/src/guide/migrations/0.19.md`.
+
+#### Add yarn.lock support for Yarn Classic and Berry workspaces
+
+_Packages:_ 🔴 _monochange_npm_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)
+
+The npm-family adapter now recognizes `yarn.lock` as a versioned lockfile: release preparation discovers it, rewrites resolved version pins directly, and `yarn install --mode=update-lockfile` is the default `lockfile_commands` override when you prefer package-manager resolution.
+
+Adding the `YarnLock` variant to the public `NpmVersionedFileKind` enum is the breaking surface: downstream exhaustive matches must gain the new arm (mark the enum `#[non_exhaustive]` in a follow-up if variant additions should stop requiring major releases).
+
+`monochange_npm::update_yarn_lock` walks entry headers in both layouts: Classic (`version "1.2.3"` under `"name@range":` keys) and Berry (`version: 1.2.3` under descriptor keys such as `"name@npm:1.2.3"`). Workspace-resolved entries keep their `0.0.0-use.local` placeholder, and comments, checksums, resolved URLs, key ordering, and quoting are preserved because only the version value span is rewritten. Configure typed entries as `{ path = "yarn.lock", type = "npm" }`.
+
+```rust
+match monochange_npm::supported_versioned_file_kind(path) {
+    Some(monochange_npm::NpmVersionedFileKind::YarnLock) => {
+        // new: yarn.lock is rewritten directly during releases
+    }
+    // every exhaustive match on NpmVersionedFileKind needs this arm now
+    _ => {}
+}
+```
+
+### 🚀 Feature
+
+#### Add machine-readable output and OIDC audience to hosted release steps
+
+_Packages:_ 🟠 _monochange_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #789](https://github.com/monochange/monochange/pull/789)
+
+`monochange step commit-release` now accepts `--format text|json|json-min|md`, and its JSON `release_commit` object includes `verified` when the hosted backend created the commit, so CI can read the commit and its GitHub verification without parsing text:
+
+```bash
+monochange step commit-release --commit-backend hosted --format json
+```
+
+```json
+{
+	"release_commit": {
+		"commit": "4f2c9e1",
+		"verified": true,
+		"status": "completed"
+	}
+}
+```
+
+`verified` is omitted for local commits and dry runs, where it is unknown.
+
+`OpenReleaseRequest` accepts the `oidc_audience` input that `CommitRelease` already had, so both hosted steps can request tokens for a custom audience:
+
+```bash
+monochange step open-release-request --backend hosted --oidc-audience release.example.com
+```
+
+In a workflow, pass it through the step inputs: `{ type = "OpenReleaseRequest", backend = "hosted", inputs = { oidc_audience = "release.example.com" } }`.
+
+#### Add a global `--color` flag and one color policy for all output
+
+_Packages:_ 🟠 _monochange_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #795](https://github.com/monochange/monochange/pull/795)
+
+Every command now accepts `--color <auto|always|never>`, and results on stdout, progress, diagnostics, and warnings on stderr, release-file diffs, and `--help` pages all follow the same rule. Before, each output decided on its own: only diffs honored `CLICOLOR_FORCE`, result text stayed plain whenever `TERM` was unset, and `--help` was never colored.
+
+`always` and `never` override the environment. Under `auto` (the default):
+
+- a non-empty `NO_COLOR` turns color off;
+- otherwise `CLICOLOR_FORCE` set to anything but `0` turns it on, even when output is piped;
+- otherwise `CLICOLOR=0` or `TERM=dumb` turn it off;
+- otherwise only a terminal gets color.
+
+```bash
+# keep colors when piping into a pager
+monochange --color always step validate | less -R
+
+# plain output in a terminal
+monochange --color never next
+```
+
+Progress step labels are now bold in the terminal's default color instead of bold white, so they stay readable on light themes, and erasing the spinner line no longer writes a color reset when color is off.
+
+### 🐛 Fixed
+
+- **Wire yarn.lock through release preparation.** The `monochange` crate reads and rewrites `yarn.lock` versioned files during release preparation, and `monochange_config` accepts `yarn.lock` as a typed npm-family versioned-file path so `monochange check` validates entries that target it. The npm CLI wrapper readme lists Yarn alongside npm, pnpm, and Bun. _Packages:_ 🟢 _@monochange/cli_, 🟢 _monochange_, 🟢 _monochange_config_ _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)
+- **Document the global `--color` flag.** The command reference lists `--color <auto|always|never>` alongside the other global flags and explains which environment variables `auto` honors. _Packages:_ 🟢 _@monochange/skill_ _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #795](https://github.com/monochange/monochange/pull/795)
+
+#### Keep advisory classification evidence out of release planning
+
+_Packages:_ 🟢 _monochange_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #783](https://github.com/monochange/monochange/pull/783) · _Closed issues:_ [#776](https://github.com/monochange/monochange/issues/776)
+
+Release planning escalated planned bumps from compatibility evidence even when `classification_enforced = false`, so a patch changeset released as `2.0.0` whenever the branch diff carried a rename the analyzer read as breaking, and the outcome differed by branch because the feature branch analyzed the branch range while the default branch analyzed the working directory.
+
+Evidence for packages with `classification_enforced = false` now stays advisory in `preview`, `prepare`, and `run release` the way it already was in `change classify`: the changeset decides the bump and a plan warning records what the evidence suggested. The prepared-release cache fingerprint also includes the detected change frame, so a feature branch's plan is never reused on the default branch after a fast-forward merge leaves identical commits, changesets, and HEAD.
+
+#### Keep same-second changeset creations from overwriting each other
+
+_Packages:_ 🟢 _monochange_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #780](https://github.com/monochange/monochange/pull/780) · _Closed issues:_ [#774](https://github.com/monochange/monochange/issues/774)
+
+`monochange create` named changesets `<unix seconds>-<package>.md`, so two creations inside the same second (scripts, agents, or a quick second command) produced the same file and the second silently replaced the first. Both calls reported success while the first changeset was lost.
+
+Default changeset names now append a counter when the timestamped name is already taken, so every creation gets its own file without passing `--output`.
+
+#### Preview prepare-and-commit release workflows with --dry-run
+
+_Packages:_ 🟢 _monochange_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #781](https://github.com/monochange/monochange/pull/781) · _Closed issues:_ [#773](https://github.com/monochange/monochange/issues/773)
+
+`PrepareRelease` skips writing the release record during dry-run previews, but `CommitRelease` still required that record on disk, so `monochange run release
+--dry-run` — the natural way to preview a prepare-and-commit pipeline — failed with `no release record found`.
+
+CommitRelease now reports the commit it would make (subject, tracked paths, and the expected `.monochange/releases/<hash>/release.json` path) without requiring or writing the record. The real run still validates and stages the record as before.
+
+#### Make `--help` pages consistent and fix misleading CLI messages
+
+_Packages:_ 🟢 _monochange_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #800](https://github.com/monochange/monochange/pull/800)
+
+Help pages for `next`, `create`, `preview`, `prepare`, `affected`, `diagnose`, `discover`, `config`, and the `step` and `publish` subcommands now list one `Options` block (with `-h, --help`), use `[OPTIONS]` in the usage line, and include examples. `--dry-run` is listed only on commands that can write files or contact a service. It is still accepted everywhere, so existing scripts keep working. `init`, `skill`, `versions`, `publish`, and `change classify` print the same compact layout as every other page; their longer explanations now follow the options.
+
+`--format` reads the same everywhere: `--format <FORMAT>  Output format [possible values: text, json, json-min, md]`, with `markdown` still accepted as a spelling of `md`. Commands without Markdown output list `text, json, json-min`. Every `monochange step --help` entry now has its own description instead of "Run the built-in … release workflow step", and the no-op `monochange populate` is hidden from help but still runs.
+
+Messages that pointed people the wrong way are fixed:
+
+- `monochange next` with no changesets suggests `monochange create` instead of `monochange change`, which needs a subcommand.
+- `monochange check` reports each lint suite's own rule count instead of the total for every suite.
+- `monochange publish readiness` without `--from` names the missing option and exits with status `2`:
+
+  ```text
+  error[cli.usage]: missing required option `--from <ref>`; pass the release commit or tag to check, for example `--from HEAD`
+  ```
+
+- `monochange lint explain <unknown>` points at `monochange lint list`, and `monochange notes` lists the target ids to pass to `--target` when an output covers several. Both also exit with status `2`.
+- `check`, `next`, `preview`, `prepare`, and the other release commands warn when no `monochange.toml` exists instead of silently planning with defaults.
+- `monochange subagents --help` no longer lists `monochange` twice in the preferred-CLI order.
+- When GitHub rejects the review-request lookup in `diagnose`, the warning shows GitHub's status and message (for example `status 401; Bad credentials`) instead of `config error: … GitHub`.
+
+#### Show hosted release commit verification in text and Markdown reports
+
+_Packages:_ 🟢 _monochange_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #763](https://github.com/monochange/monochange/pull/763)
+
+The `CommitRelease` step already records GitHub's verification result in the `verified` field of its JSON report. The text and Markdown summaries now show it too, so a run that used the hosted backend says whether GitHub verified the release commit without reading the JSON.
+
+Local commits and dry runs leave `verified` unset and render as before.
+
+**Before (text output):**
+
+```text
+Release commit
+  1234567  chore(release): publish
+  2 tracked paths · already-exists
+```
+
+**After (text output):**
+
+```text
+Release commit
+  1234567  chore(release): publish
+  2 tracked paths · already-exists · verified
+```
+
+The Markdown summary adds a `- **Verified:** yes` or `- **Verified:** no` line. When GitHub does not verify a hosted commit, the hosted backend now fails the step and leaves the release branch where it was.
+
+#### Commit hosted releases to the release pull request branch
+
+_Packages:_ 🟢 _monochange_, 🟢 _monochange_hosting_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #789](https://github.com/monochange/monochange/pull/789)
+
+Workflows that call the hosted backend from a push to `main` sent the release commit to the branch that triggered the run (`GITHUB_HEAD_REF`, then `GITHUB_REF_NAME`), so the monochange app was asked to commit onto `main` instead of the release pull request branch. Hosted `CommitRelease` now always targets the branch that `OpenReleaseRequest` opens, derived from `[source.pull_requests]` `branch_prefix`, and reports the configured `base` branch so the app can tell a stale run from a refresh.
+
+Built-in step commands also derived the release branch from the step name, so `monochange step open-release-request` opened `monochange/release/step-open-release-request`. `release_pull_request_branch` in `monochange_hosting` now maps every `step <name>` command to the default `release` branch for all providers:
+
+```bash
+monochange step commit-release --commit-backend hosted
+monochange step open-release-request --backend hosted
+# before: commit to `main`, pull request from `monochange/release/step-open-release-request`
+# after:  both use `monochange/release/release`
+```
+
+The hosted request also sent the release record by its absolute runner path (for example `/home/runner/work/repo/repo/.monochange/releases/<id>/release.json`), which the app rejects as not repository-relative. Release records are now sent as `.monochange/releases/<id>/release.json`.
+
+Workflows that set `GITHUB_HEAD_REF` to the release branch to work around this can drop that override.
+
+#### Honor hosted backend flags on release step commands
+
+_Packages:_ 🟢 _monochange_, 🟢 _monochange_core_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #789](https://github.com/monochange/monochange/pull/789)
+
+`--hosted-url` and `--oidc-audience` were accepted by `monochange step commit-release` but ignored, so a self-hosted app or a custom OIDC audience could only be set in `monochange.toml`. `--hosted-auth` on `monochange step open-release-request` rejected every value, including `oidc`, because the input declared no choices.
+
+Both steps now resolve hosted settings in this order: step input (command-line flag or workflow `inputs`), then the `MONOCHANGE_HOSTED_URL` environment variable for the URL, then the step configuration, then the defaults (`https://monochange.dev` and an audience derived from its host). Empty values are ignored, so unset workflow inputs no longer shadow configuration, and an unknown `--hosted-auth` value fails instead of silently falling back.
+
+```bash
+monochange step open-release-request --backend hosted --hosted-auth oidc \
+  --hosted-url https://release.example.com --oidc-audience release.example.com
+```
+
+Previously `monochange.toml` values took precedence over `MONOCHANGE_HOSTED_URL`; the environment variable now overrides the configured `hosted_url`, as its documentation described.
+
+#### Print workspace-relative paths in `versions` output through symlinked roots
+
+_Packages:_ 🟢 _monochange_
+
+_Owner:_ Ifiok Jr. · _Introduced in:_ [098f464](https://github.com/monochange/monochange/commit/098f4642f3e0bc33f2f2e07f51c597de24ffcbfa)
+
+`monochange versions` and `monochange versions sync` printed absolute manifest paths in their text output whenever the workspace root was reached through a symlink, because the renderer trimmed the root exactly as it was given instead of comparing normalized paths. On macOS every workspace checked out under a `/var/folders` temporary directory hit this, so file headings showed full paths such as `/private/var/folders/.../packages/version_mismatch/pubspec.yaml` instead of `packages/version_mismatch/pubspec.yaml`.
+
+Path headings and skipped-ecosystem entries now relativize against the normalized root, so the text output stays workspace-relative no matter how the root path is spelled. The JSON output is unchanged.
+
+#### Align text tables when names contain emoji or CJK characters
+
+_Packages:_ 🟢 _monochange_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #794](https://github.com/monochange/monochange/pull/794)
+
+Text results measured column widths by counting characters, so a package or group id such as `🚀-launcher` or `docs-日本語` pushed every later column out of line. Widths are now measured in terminal columns with `unicode-width`, and previews of long lines are shortened by columns too, so wide names no longer split a character or overrun the limit.
+
+`--progress-format ascii` (or `MONOCHANGE_PROGRESS_FORMAT=ascii`) now also keeps the result on stdout within ASCII. Headlines use the same symbols as the ASCII progress output (`+`, `!`, `x`, `-`), and the headline separator and truncated-list ellipsis become `-` and `...`:
+
+```text
+$ monochange next --progress-format ascii
++ Next versions - 3 packages
+
+Packages
+  core         0.1.1  patch
+  docs-日本語  0.1.1  patch
+  🚀-launcher  0.1.1  minor
+```
+
+#### Report per-suite lint rule counts and GitHub lookup failures without a config prefix
+
+_Packages:_ 🟢 _monochange_core_, 🟢 _monochange_github_, 🟢 _monochange_lint_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #800](https://github.com/monochange/monochange/pull/800)
+
+- `monochange_lint`: `LintProgressReporter::suite_started` now receives the number of the suite's own rules that the current selection allows, instead of every registered rule that applies to the suite's first target. Reporters that print "checking N files with M rules" now show each suite's real rule count.
+- `monochange_github`: a failed review-request GraphQL lookup now returns `MonochangeError::Diagnostic` with GitHub's status and message (for example `status 401; Bad credentials` for `POST /graphql`) instead of `MonochangeError::Config("failed to batch load … GitHub")`. Callers that matched the old `config error:` text should match the diagnostic instead.
+- `monochange_core`: the built-in `format` step input's help text is now `Output format for the command result`, matching every other `--format` option.
+
+#### Discover packages in workspaces nested under ignored directory names
+
+_Packages:_ 🟢 _monochange_core_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #779](https://github.com/monochange/monochange/pull/779) · _Closed issues:_ [#775](https://github.com/monochange/monochange/issues/775)
+
+`DiscoveryPathFilter` checked every component of the absolute manifest path against the skipped-directory list, so a workspace checked out below a directory named `.claude`, `node_modules`, `target`, `.git`, `.devenv`, `.fvm`, `.repos`, or `book` discovered zero packages. Claude Code worktrees (`.claude/worktrees/<name>`) were the common case: `monochange discover` reported an empty workspace and `monochange check` linted nothing.
+
+Only components below the workspace root are checked now, matching how gitignore matching already worked, so the same repository discovers the same packages wherever it is checked out. Ignored directory names inside the workspace still filter discovery.
+
+#### Link only real issues as a changeset's related issues
+
+_Packages:_ 🟢 _monochange_github_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #797](https://github.com/monochange/monochange/pull/797) · _Closed issues:_ [#745](https://github.com/monochange/monochange/issues/745)
+
+GitHub changeset context recorded every `#N` in a pull request body as a related issue. Pull requests mentioned in prose, numbers from other repositories written as `repo#N`, and numbers inside code were published under "Related issues", and `CommentReleasedIssues` then posted "Released in …" on them.
+
+`enrich_changeset_context` now asks GitHub what each referenced number is, with one `issueOrPullRequest` lookup per batch of 100 numbers, and keeps only `Issue` nodes. Each kept `HostedIssueRef` gets the issue's `title` and URL. Related issues come from the review request that introduced the changeset, so a pull request that only reformatted or reverted `.changeset/*.md` files no longer adds its references to every changeset it touched.
+
+Reference extraction also changed:
+
+- `repo#N` without an owner is treated as a reference to another repository and skipped, the same as `owner/other-repo#N`.
+- References inside fenced code blocks and inline code spans are ignored.
+- `#12abc` is no longer read as `#12`.
+
+If the lookup fails, only references made with a closing keyword (`Closes #7`) are kept, without titles. Consumers that worked around the bug by writing full pull request URLs in descriptions can keep doing so; nothing needs to change.
+
+#### Rewrite real Bun JSONC lockfiles without corrupting workspace references
+
+_Packages:_ 🟢 _monochange_npm_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)
+
+`update_bun_lock` replaced the first `"name": "..."` string it found, which corrupted real `bun.lock` files: inter-workspace references such as `"ui": "workspace:packages/ui"` were overwritten with the released version. Bun writes `bun.lock` as JSONC with trailing commas and pins registry dependencies as exact versions.
+
+The updater now rewrites only exact semver pins (`"ui": "1.3.0"`) and the `name@version` descriptors that open `"name": [...]` package-map entries of released packages. Workspace, alias, `npm:` protocol, range, and git or URL references are left untouched, as is the JSONC formatting.
+
+#### Infer root lockfiles for configured npm-family packages
+
+_Packages:_ 🟢 _monochange_npm_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)
+
+`load_configured_npm_package` anchored configured packages to their manifest directory, so release preparation never inferred the workspace-level `pnpm-lock.yaml`, `package-lock.json`, or `yarn.lock`; those lockfiles only updated through explicit `versioned_files` entries or configured `lockfile_commands`. Package-manager detection had the same blind spot for `bun.lock` and `yarn.lock`.
+
+The loader now resolves the workspace root by walking up to the nearest ancestor declaring `pnpm-workspace.yaml` or a `package.json` with `workspaces`, mirroring the cargo adapter, and recognizes `bun.lock` and `yarn.lock` when detecting the manager. Root lockfiles are rewritten directly during releases, and default lockfile commands run from the workspace root.
+
+#### Parse pnpm 12 lockfiles written as two YAML documents
+
+_Packages:_ 🟢 _monochange_npm_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #778](https://github.com/monochange/monochange/pull/778) · _Closed issues:_ [#772](https://github.com/monochange/monochange/issues/772)
+
+pnpm 12 emits `pnpm-lock.yaml` as two YAML documents separated by `---`: an env document holding `configDependencies` and `packageManagerDependencies`, followed by the main project lockfile. `update_pnpm_lock_text` validated the file with a single-document YAML parser, so preparing a release in a pnpm 12 workspace failed with `failed to parse pnpm lock yaml` and the lockfile had to be refreshed manually with `pnpm install --lockfile-only`.
+
+The updater now validates every document in the stream and scans each top-level `importers`, `packages`, and `snapshots` section, so pinned versions rewrite in the project document while the env document, separators, quoting, and formatting stay byte-for-byte identical. `monochange_npm::validate_versioned_file` also accepts multi-document pnpm lockfiles for typed `versioned_files` entries.
+
+<details>
+<summary><strong>🔨 Refactor</strong></summary>
+
+- **Readability formatting across the workspace.** Apply monostyle's formatter-safe whitespace conventions and dprint normalization across every crate — blank-line separation around control flow and consistent formatting only, with no behavior changes. The repository now scores 84.5 overall on monostyle (readability 89.6) and gates future changes through `lint:monostyle`. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #793](https://github.com/monochange/monochange/pull/793)
+
+#### Load changesets without redundant canonicalization and re-parsing
+
+_Packages:_ 🟢 _monochange_, 🟢 _monochange_cargo_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #793](https://github.com/monochange/monochange/pull/793)
+
+Loading a changeset file rebuilt a `ChangesetLoadContext` that canonicalized the workspace root and every package manifest path — four `realpath` syscalls per package per file — so batch loading cost grew with packages × changesets. The context now canonicalizes the root once, resolves manifest paths with a `strip_prefix` fast path, and borrows configured change-type names instead of cloning them. Measured with the `cli_commands` benchmarks, changeset loading drops 84–96% across 5/20/50-package workspaces and `prepare_release` dry runs drop 6–44%.
+
+Changeset parsing also stops allocating two full copies of every file for line-ending normalization (a `Cow` borrows LF-only text, the common case), validation no longer rebuilds the package and group lookups for every changeset file, and configured Cargo packages are discovered with one manifest read and parse instead of three.
+
+#### Split the CLI step dispatcher into per-step handlers
+
+_Packages:_ 🟢 _monochange_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #793](https://github.com/monochange/monochange/pull/793)
+
+`execute_cli_command_with_options` had grown into a 1,085-line function whose step loop inlined the body of all 20 `CliStepDefinition` variants — cognitive complexity 449 with nesting up to 16 levels, and monostyle reported it as the single largest readability penalty in the repository. Each variant now dispatches to a dedicated `execute_<step>_step` function that receives a shared `StepExecutionState`, so the dispatcher reads as a table and each step's logic is readable in isolation. Behavior is unchanged: the CLI test suite and all snapshots pass without modification.
+
+The repository also adopted monostyle for readability scoring (`lint:monostyle` gates `lint:all` at an overall score of 75 via `monostyle.toml`) and applied monostyle's 5,063 formatter-safe whitespace autofixes across the workspace, lifting the repository-wide readability score from 81.4 to 89.8.
+
+</details>
+
 ## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)
 
 Grouped release for `main`.
