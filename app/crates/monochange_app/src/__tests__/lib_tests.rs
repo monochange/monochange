@@ -23,18 +23,50 @@ pub(crate) async fn render<V: leptos::prelude::IntoView + 'static>(
 ) -> String {
 	use leptos::prelude::*;
 
+	render_request(
+		axum::http::Request::new(axum::body::Body::empty()),
+		move || {
+			leptos_meta::provide_meta_context();
+			view! {
+				<!DOCTYPE html>
+				<html>
+					<head><leptos_meta::MetaTags /></head>
+					<body>{app()}</body>
+				</html>
+			}
+		},
+	)
+	.await
+}
+
+/// Server-renders `app` inside a router at `uri`, for components that read
+/// the URL.
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) async fn render_at<V: leptos::prelude::IntoView + 'static>(
+	uri: &'static str,
+	app: impl Fn() -> V + Clone + Send + Sync + 'static,
+) -> String {
+	use leptos::prelude::*;
+
+	let request = axum::http::Request::builder()
+		.uri(uri)
+		.body(axum::body::Body::empty())
+		.unwrap();
+	render_request(request, move || {
+		let app = app.clone();
+		view! { <leptos_router::components::Router>{app()}</leptos_router::components::Router> }
+	})
+	.await
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+async fn render_request<V: leptos::prelude::IntoView + 'static>(
+	request: axum::http::Request<axum::body::Body>,
+	app: impl Fn() -> V + Clone + Send + Sync + 'static,
+) -> String {
 	routes();
-	let render = leptos_axum::render_app_to_stream_in_order(move || {
-		leptos_meta::provide_meta_context();
-		view! {
-			<!DOCTYPE html>
-			<html>
-				<head><leptos_meta::MetaTags /></head>
-				<body>{app()}</body>
-			</html>
-		}
-	});
-	let response = render(axum::http::Request::new(axum::body::Body::empty())).await;
+	let render = leptos_axum::render_app_to_stream_in_order(app);
+	let response = render(request).await;
 	let body = tokio::time::timeout(
 		std::time::Duration::from_secs(10),
 		axum::body::to_bytes(response.into_body(), 262_144),
