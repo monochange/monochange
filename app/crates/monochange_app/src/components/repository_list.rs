@@ -135,17 +135,17 @@ pub fn RepositoryPager(
 	// The page belongs to the search it was chosen for; a new search starts
 	// again from the first page.
 	let requested = RwSignal::new((String::new(), 1_usize));
-	let current = Memo::new(move |_| {
+	let current = move || {
 		let search = search.get();
 		let (chosen_for, page) = requested.get();
 		let page = if chosen_for == search { page } else { 1 };
 		repositories.with_value(|repositories| repository_page(repositories, &search, page))
-	});
+	};
 	let go = move |page: usize| requested.set((search.get_untracked(), page));
 
 	view! {
 		{move || {
-			let page = current.get();
+			let page = current();
 
 			if page.matches == 0 {
 				return view! { <p class="repository-none">"No repositories match “" {search.get().trim().to_owned()} "”."</p> }.into_any();

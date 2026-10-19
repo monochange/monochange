@@ -8,7 +8,7 @@ use leptos::server;
 use serde::Deserialize;
 use serde::Serialize;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RepoInfo {
 	pub id: i32,
 	pub github_full_name: String,

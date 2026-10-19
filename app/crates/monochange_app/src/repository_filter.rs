@@ -113,7 +113,7 @@ pub fn matches_search(repository: &RepoInfo, search: &str) -> bool {
 }
 
 /// One page of the repositories that match a search.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct RepositoryPage {
 	pub repositories: Vec<RepoInfo>,
 	/// The page shown, from 1; a page past the end shows the last one.
