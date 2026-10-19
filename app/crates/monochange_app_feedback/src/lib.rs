@@ -57,6 +57,7 @@ pub use disclosure::Surface;
 pub use discussion::Actor;
 pub use discussion::DiscussionMessage;
 pub use handoff::AgentBrief;
+pub use handoff::BuildRequest;
 pub use handoff::ChangesetDraft;
 pub use handoff::ChangesetTarget;
 pub use handoff::HandoffError;
@@ -636,6 +637,10 @@ impl<T: TriageEngine> FeedbackService<T> {
 			self.find(id)?,
 			self.policy.visibility,
 		)?)
+	}
+
+	pub fn build_request(&self, id: &str) -> Result<BuildRequest, ServiceError> {
+		Ok(handoff::build_request(self.find(id)?)?)
 	}
 
 	pub fn agent_brief(

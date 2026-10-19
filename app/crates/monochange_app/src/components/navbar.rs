@@ -10,6 +10,7 @@ use crate::links::BOOK_URL;
 use crate::server_fns::auth::Logout;
 use crate::server_fns::auth::SessionUser;
 use crate::server_fns::auth::get_session;
+use crate::server_fns::portal::navigation_sign_in_path;
 
 /// Public navigation, including a direct link to the published book.
 #[component]
@@ -70,6 +71,8 @@ fn SessionLinks(
 	session: Resource<Result<Option<SessionUser>, server_fn::ServerFnError>>,
 	sign_out: ServerAction<Logout>,
 ) -> impl IntoView {
+	let location = use_location();
+	let sign_in = move || navigation_sign_in_path(&location.pathname.get());
 	view! {
 		<Suspense fallback=|| view! { <span role="status">"Loading account…"</span> }>
 			{move || session.get().map(|result| match result {
@@ -79,8 +82,8 @@ fn SessionLinks(
 						<button type="submit" class="text-link" disabled=move || sign_out.pending().get()>"Sign out"</button>
 					</ActionForm>
 				}.into_any(),
-				Ok(None) => view! { <a href="/login" class="button button-brand nav-sign-in">"Sign in"</a> }.into_any(),
-				Err(_) => view! { <a href="/login" class="button button-brand nav-sign-in">"Sign in again"</a> }.into_any(),
+				Ok(None) => view! { <a href=sign_in() class="button button-brand nav-sign-in">"Sign in"</a> }.into_any(),
+				Err(_) => view! { <a href=sign_in() class="button button-brand nav-sign-in">"Sign in again"</a> }.into_any(),
 			})}
 
 		</Suspense>

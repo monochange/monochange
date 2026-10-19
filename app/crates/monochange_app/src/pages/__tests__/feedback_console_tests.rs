@@ -155,3 +155,32 @@ async fn accepted_items_offer_an_issue_in_any_connected_repository() {
 	}
 	assert!(!html.contains("threshold overridden"));
 }
+
+#[tokio::test]
+async fn issued_items_can_be_built_by_the_repository_agent() {
+	let mut entry = accepted_bug();
+	entry.item.issue = Some(monochange_app_feedback::IssueRef {
+		repository: Some("alice/web".to_owned()),
+		number: 9,
+		url: None,
+	});
+	entry.actions = console_actions(&entry.item);
+	let html = render_console(console(RepositoryVisibility::Private, vec![entry.clone()])).await;
+	for expected in [
+		"Build with an agent",
+		"value=\"build_with_agent\"",
+		"Runs the agent workflow in <code>alice/web</code>",
+		"never merges on its own",
+	] {
+		assert!(html.contains(expected), "missing {expected}: {html}");
+	}
+
+	entry.item.stage = Stage::Building;
+	entry.actions = console_actions(&entry.item);
+	let html = render_console(console(RepositoryVisibility::Private, vec![entry])).await;
+	assert!(
+		html.contains("An agent is building this; its pull request moves it to review"),
+		"{html}"
+	);
+	assert!(!html.contains("Build with an agent"), "{html}");
+}

@@ -316,6 +316,48 @@ pub fn issue_draft(
 	})
 }
 
+/// What a repository's agent workflow needs to start on an accepted item.
+/// The issue already carries the brief a maintainer reviewed, so nothing a
+/// user wrote travels with the request.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BuildRequest {
+	pub item: String,
+	/// `owner/name` of the repository the issue, and so the build, lives in.
+	pub repository: String,
+	pub issue_number: u64,
+	pub branch: String,
+}
+
+/// The request that starts an agent on `item`. Only an accepted item whose
+/// issue names its repository can start one; anything further along is
+/// already being built.
+pub fn build_request(item: &FeedbackItem) -> Result<BuildRequest, HandoffError> {
+	if item.stage != Stage::Accepted {
+		return Err(HandoffError::NotAccepted(item.stage));
+	}
+
+	let report = accepted_report(item)?;
+	let issue = item.issue.as_ref().ok_or(HandoffError::IssueRequired)?;
+	let repository = issue
+		.repository
+		.clone()
+		.ok_or(HandoffError::IssueRequired)?;
+	Ok(BuildRequest {
+		item: item.id.clone(),
+		repository,
+		issue_number: issue.number,
+		branch: agent_branch(&item.id, report.classification),
+	})
+}
+
+fn agent_branch(id: &str, kind: FeedbackKind) -> String {
+	let prefix = match kind {
+		FeedbackKind::BugReport => "fix",
+		FeedbackKind::FeatureRequest => "feat",
+	};
+	format!("{prefix}/feedback-{id}")
+}
+
 /// Briefs the coding agent once the issue exists.
 pub fn agent_brief(
 	item: &FeedbackItem,
@@ -358,7 +400,7 @@ pub fn agent_brief(
 		}
 	};
 
-	let branch = format!("{prefix}/feedback-{}", item.id);
+	let branch = agent_branch(&item.id, report.classification);
 
 	let reproduction = match &report.reproduction {
 		ReproductionOutcome::Reproduced { steps } => {

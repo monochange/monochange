@@ -230,6 +230,14 @@ The GitHub App availability notice uses the theme-aware panel background, the co
 
 Repository lists use ruled rows, a bold repository name, secondary access and installation details, and a free label. Loading, session failure, repository failure, and empty states use direct messages and the relevant sign-in, book, or setup action. Green and red authentication callback utilities are local status treatments, not additional brand accents.
 
+### Feedback portal
+
+The public portal at `/p/{org}/{project}` opens with an indigo hero: the project name, its description, four counts (under review, planned, in progress, shipped) in a ruled strip, and the visitor's GitHub identity or a light **Sign in with GitHub** button. Two violet radial glows sit behind the hero; they are decoration, so the hero still reads on the flat `brand-800`/`brand-900` field.
+
+Below it, the roadmap is a board of cards grouped by status, each group marked by a coloured dot and a count. Wide layouts put the roadmap on the left and the composer and "Yours" on the right; narrow layouts stack composer, roadmap, then "Yours". The vote control is a tall pill with a chevron and a tabular count; the pressed state fills with the brand gradient and uses `aria-pressed`. Signed-out visitors see the same control as a sign-in link.
+
+Writing needs GitHub sign-in, so signed-out composers and discussions show a dashed invitation panel instead of a form; reading never does. A visitor's own items carry a five-step tracker (shared, reviewed, planned, building, shipped) with `aria-current="step"`, and declined or closed items show their status instead. Every action stays a plain form that works before hydration.
+
 ## Do's and Don'ts
 
 ### Do:

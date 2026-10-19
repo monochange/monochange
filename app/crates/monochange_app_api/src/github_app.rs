@@ -1001,3 +1001,81 @@ pub async fn create_issue(
 
 	Ok(response.json().await?)
 }
+
+/// Whether `path` exists on the default branch of `full_name`.
+///
+/// # Errors
+/// Returns an error if the request fails or GitHub answers with anything but
+/// found or not found, for example when the app can't read contents.
+pub async fn repository_file_exists(
+	http: &reqwest::Client,
+	api_url: &str,
+	installation_token: &str,
+	full_name: &str,
+	path: &str,
+) -> Result<bool, GitHubAppError> {
+	let response = http
+		.get(format!(
+			"{}/repos/{full_name}/contents/{path}",
+			api_url.trim_end_matches('/')
+		))
+		.bearer_auth(installation_token)
+		.header("Accept", "application/vnd.github+json")
+		.header("User-Agent", "monochange")
+		.send()
+		.await?;
+
+	match response.status() {
+		reqwest::StatusCode::OK => Ok(true),
+		reqwest::StatusCode::NOT_FOUND => Ok(false),
+		status => {
+			let body = response.text().await.unwrap_or_default();
+			Err(api_error("read repository file", status, body))
+		}
+	}
+}
+
+#[derive(Debug, Serialize)]
+struct RepositoryDispatchRequest<'a, P: Serialize> {
+	event_type: &'a str,
+	client_payload: &'a P,
+}
+
+/// Send a `repository_dispatch` event named `event_type` to `full_name`.
+/// GitHub runs every workflow on the default branch that listens for it.
+///
+/// # Errors
+/// Returns an error if the request fails or GitHub rejects it, for example
+/// when the app lacks Contents write access on the repository.
+pub async fn dispatch_repository_event<P: Serialize>(
+	http: &reqwest::Client,
+	api_url: &str,
+	installation_token: &str,
+	full_name: &str,
+	event_type: &str,
+	client_payload: &P,
+) -> Result<(), GitHubAppError> {
+	let response = http
+		.post(format!(
+			"{}/repos/{full_name}/dispatches",
+			api_url.trim_end_matches('/')
+		))
+		.bearer_auth(installation_token)
+		.header("Accept", "application/vnd.github+json")
+		.header("User-Agent", "monochange")
+		.json(&RepositoryDispatchRequest {
+			event_type,
+			client_payload,
+		})
+		.send()
+		.await?;
+
+	if !response.status().is_success() {
+		let status = response.status();
+		let body = response.text().await.unwrap_or_default();
+
+		return Err(api_error("dispatch repository event", status, body));
+	}
+
+	Ok(())
+}

@@ -70,7 +70,7 @@ pub(crate) mod feedback {
 			.await
 			.unwrap();
 		monochange_app_db::run_migrations(&db).await.unwrap();
-		sqlx::query("INSERT INTO users (id, github_id, github_login, github_access_token) VALUES (1, 101, 'alice', 'unused'), (2, 202, 'bob', 'unused')").execute(&db).await.unwrap();
+		sqlx::query("INSERT INTO users (id, github_id, github_login, github_access_token) VALUES (1, 101, 'alice', 'unused'), (2, 202, 'bob', 'unused'), (3, 303, 'carol', 'unused'), (4, 404, 'dave', 'unused')").execute(&db).await.unwrap();
 		sqlx::query("INSERT INTO installations (id, user_id, github_installation_id, github_account_login, github_account_type) VALUES (1, 1, 1001, 'alice', 'User'), (2, 2, 1002, 'bob', 'User')").execute(&db).await.unwrap();
 		sqlx::query("INSERT INTO repositories (installation_id, github_repo_id, github_full_name, github_private) VALUES (1, 11, 'alice/web', 0), (1, 12, 'alice/api', 1), (2, 21, 'bob/app', 0)").execute(&db).await.unwrap();
 		let mut connection = db.acquire().await.unwrap();
@@ -101,40 +101,33 @@ pub(crate) mod feedback {
 		Arc::new(AppState::new(db, secrets).unwrap())
 	}
 
-	/// A request context signed in as `user` (1 is Alice, 2 is Bob) with an
-	/// optional viewer cookie.
-	pub(crate) fn context(
-		state: &Arc<AppState>,
-		user: Option<i32>,
-		viewer: Option<&str>,
-	) -> (Owner, ResponseOptions) {
+	/// The GitHub account behind each fixture user.
+	pub(crate) fn account(user: i32) -> (i64, &'static str) {
+		match user {
+			1 => (101, "alice"),
+			2 => (202, "bob"),
+			3 => (303, "carol"),
+			_ => (404, "dave"),
+		}
+	}
+
+	/// A request context, signed in as `user` when given: 1 is Alice, who
+	/// maintains the project, 2 is Bob, and 3 and 4 are Carol and Dave, who
+	/// use it.
+	pub(crate) fn context(state: &Arc<AppState>, user: Option<i32>) -> (Owner, ResponseOptions) {
 		let owner = Owner::new();
 		let response = ResponseOptions::default();
 		let mut request = Request::new(());
-		let mut cookies = Vec::new();
 
 		if let Some(user) = user {
-			let (github_id, login) = if user == 1 {
-				(101, "alice")
-			} else {
-				(202, "bob")
-			};
-
+			let (github_id, login) = account(user);
 			let token = create_token(&state.jwt_secret, user, github_id, login).unwrap();
-			cookies.push(format!("{}={token}", oauth::SESSION_COOKIE_NAME));
-		}
-
-		if let Some(viewer) = viewer {
-			cookies.push(format!(
-				"{}={viewer}",
-				crate::server_fns::portal::VIEWER_COOKIE
-			));
-		}
-
-		if !cookies.is_empty() {
-			request
-				.headers_mut()
-				.insert(COOKIE, cookies.join("; ").parse().unwrap());
+			request.headers_mut().insert(
+				COOKIE,
+				format!("{}={token}", oauth::SESSION_COOKIE_NAME)
+					.parse()
+					.unwrap(),
+			);
 		}
 
 		let (parts, ()) = request.into_parts();

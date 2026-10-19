@@ -112,15 +112,20 @@ pub async fn get_session() -> Result<Option<SessionUser>, server_fn::ServerFnErr
 
 // Leptos server functions must be async.
 #[allow(clippy::unused_async)]
+/// The GitHub authorization URL. Sign-in returns to `next` afterwards when it
+/// is a path on this site, and to the dashboard otherwise.
 #[server]
-pub async fn get_login_url() -> Result<String, server_fn::ServerFnError> {
+pub async fn get_login_url(next: Option<String>) -> Result<String, server_fn::ServerFnError> {
 	use std::sync::Arc;
 
 	use leptos_axum::ResponseOptions;
 
 	let state: Arc<monochange_app_api::AppState> = expect_context();
-	let pending = monochange_app_api::oauth::login_state(&state.jwt_secret)
-		.map_err(|error| server_fn::ServerFnError::new(format!("OAuth state: {error}")))?;
+	let pending = match next.as_deref() {
+		Some(next) => monochange_app_api::oauth::login_state_returning(&state.jwt_secret, next),
+		None => monochange_app_api::oauth::login_state(&state.jwt_secret),
+	}
+	.map_err(|error| server_fn::ServerFnError::new(format!("OAuth state: {error}")))?;
 	let resp = expect_context::<ResponseOptions>();
 	resp.append_header(
 		axum::http::header::SET_COOKIE,
@@ -165,6 +170,9 @@ pub async fn exchange_code(
 	let verified =
 		monochange_app_api::oauth::verify_login_state(&state.jwt_secret, &jar, &state_param)
 			.map_err(|_| server_fn::ServerFnError::new("Invalid or expired OAuth state"))?;
+	let return_to = verified
+		.return_to
+		.unwrap_or_else(|| "/dashboard".to_owned());
 	let resp = expect_context::<ResponseOptions>();
 	let cookie = monochange_app_api::oauth::clear_login_state();
 	resp.append_header(
@@ -264,7 +272,7 @@ pub async fn exchange_code(
 			.map_err(|error| server_fn::ServerFnError::new(format!("Cookie: {error}")))?,
 	);
 
-	leptos_axum::redirect("/dashboard");
+	leptos_axum::redirect(&return_to);
 	Ok(SessionUser {
 		github_id,
 		github_login: login,

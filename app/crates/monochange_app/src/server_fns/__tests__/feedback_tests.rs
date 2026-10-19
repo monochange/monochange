@@ -6,6 +6,7 @@
 use std::sync::Arc;
 use std::sync::OnceLock;
 
+use httpmock::Method::GET;
 use httpmock::Method::POST;
 use httpmock::MockServer;
 use leptos::prelude::*;
@@ -98,7 +99,7 @@ async fn only_maintainers_see_the_console() {
 	let state = state().await;
 
 	for user in [None, Some(2)] {
-		let (owner, _) = context(&state, user, None);
+		let (owner, _) = context(&state, user);
 		assert!(
 			owner
 				.with(|| {
@@ -133,7 +134,7 @@ async fn only_maintainers_see_the_console() {
 
 	// Bob's installation isn't linked to an organisation yet, so it has no
 	// projects to collect feedback for.
-	let (bob, _) = context(&state, Some(2), None);
+	let (bob, _) = context(&state, Some(2));
 	assert!(
 		bob.with(|| ScopedFuture::new(feedback_console("bob".to_owned(), "app".to_owned())))
 			.await
@@ -174,6 +175,33 @@ fn actions_follow_the_stage() {
 		actions(Stage::Accepted),
 		[
 			ConsoleAction::CreateIssue,
+			ConsoleAction::EditSummary,
+			ConsoleAction::Close,
+		]
+	);
+	item.issue = Some(monochange_app_feedback::IssueRef {
+		repository: None,
+		number: 9,
+		url: None,
+	});
+	item.stage = Stage::Accepted;
+	assert_eq!(
+		console_actions(&item),
+		[ConsoleAction::EditSummary, ConsoleAction::Close]
+	);
+	item.issue = Some(monochange_app_feedback::IssueRef {
+		repository: Some("alice/web".to_owned()),
+		number: 9,
+		url: None,
+	});
+	let mut actions = |stage: Stage| {
+		item.stage = stage;
+		console_actions(&item)
+	};
+	assert_eq!(
+		actions(Stage::Accepted),
+		[
+			ConsoleAction::BuildWithAgent,
 			ConsoleAction::EditSummary,
 			ConsoleAction::Close,
 		]
@@ -219,7 +247,7 @@ async fn the_console_shows_items_newest_first_through_the_gate() {
 		"Dark mode for invoices please",
 	)
 	.await;
-	let (owner, _) = context(&state, Some(1), None);
+	let (owner, _) = context(&state, Some(1));
 	let view = owner
 		.with(|| {
 			ScopedFuture::new(feedback_console(
@@ -286,7 +314,7 @@ async fn maintainers_decide_through_every_action() {
 		"Make it purple",
 	)
 	.await;
-	let (owner, _) = context(&state, Some(1), None);
+	let (owner, _) = context(&state, Some(1));
 
 	act(&owner, Act::new(&first, "open_voting")).await.unwrap();
 	assert_eq!(stage(&state, &first).await, Stage::Voting);
@@ -410,7 +438,7 @@ async fn accepted_items_become_github_issues() {
 		.await;
 	let state = state().await;
 	let id = submit(&state, "v-1", FeedbackKind::BugReport, "Totals are wrong").await;
-	let (owner, _) = context(&state, Some(1), None);
+	let (owner, _) = context(&state, Some(1));
 	act(
 		&owner,
 		Act {
@@ -443,7 +471,7 @@ async fn accepted_items_become_github_issues() {
 	let mut configured = (*state).clone();
 	configured.github_app = Some(test_app(&server));
 	let configured = Arc::new(configured);
-	let (owner, _) = context(&configured, Some(1), None);
+	let (owner, _) = context(&configured, Some(1));
 	assert_eq!(
 		act(
 			&owner,
@@ -491,8 +519,103 @@ async fn accepted_items_become_github_issues() {
 	assert_eq!(issue.number, 9);
 	assert_eq!(
 		view.items[0].actions,
-		[ConsoleAction::EditSummary, ConsoleAction::Close]
+		[
+			ConsoleAction::BuildWithAgent,
+			ConsoleAction::EditSummary,
+			ConsoleAction::Close,
+		]
 	);
+}
+
+#[tokio::test]
+async fn accepted_issues_are_built_by_the_repository_agent() {
+	let server = MockServer::start_async().await;
+	server
+		.mock_async(|when, then| {
+			when.method(POST)
+				.path("/app/installations/1001/access_tokens");
+			then.status(201)
+				.json_body(serde_json::json!({"token": "t"}));
+		})
+		.await;
+	server
+		.mock_async(|when, then| {
+			when.method(POST).path("/repos/alice/web/issues");
+			then.status(201).json_body(
+				serde_json::json!({"number": 9, "html_url": "https://github.com/alice/web/issues/9"}),
+			);
+		})
+		.await;
+	let workflow = server
+		.mock_async(|when, then| {
+			when.method(GET)
+				.path("/repos/alice/web/contents/.github/workflows/monochange-feedback-build.yml");
+			then.status(404);
+		})
+		.await;
+	let mut configured = (*state().await).clone();
+	configured.github_app = Some(test_app(&server));
+	let state = Arc::new(configured);
+	let id = submit(&state, "v-1", FeedbackKind::BugReport, "Totals are wrong").await;
+	let (owner, _) = context(&state, Some(1));
+	act(
+		&owner,
+		Act {
+			override_rationale: Some("Money bug"),
+			..Act::new(&id, "accept")
+		},
+	)
+	.await
+	.unwrap();
+	act(
+		&owner,
+		Act {
+			repository: Some("alice/web"),
+			..Act::new(&id, "create_issue")
+		},
+	)
+	.await
+	.unwrap();
+
+	assert_eq!(
+		act(&owner, Act::new(&id, "build_with_agent")).await,
+		Err(
+			"alice/web has no agent workflow yet. Add .github/workflows/monochange-feedback-build.yml there, then try again."
+				.to_owned()
+		)
+	);
+	assert_eq!(stage(&state, &id).await, Stage::Accepted);
+
+	workflow.delete_async().await;
+	server
+		.mock_async(|when, then| {
+			when.method(GET)
+				.path("/repos/alice/web/contents/.github/workflows/monochange-feedback-build.yml");
+			then.status(200).json_body(serde_json::json!({}));
+		})
+		.await;
+	let dispatch = server
+		.mock_async(|when, then| {
+			when.method(POST)
+				.path("/repos/alice/web/dispatches")
+				.json_body(serde_json::json!({
+					"event_type": "monochange-feedback-build",
+					"client_payload": {
+						"item": id,
+						"repository": "alice/web",
+						"issue_number": 9,
+						"branch": format!("fix/feedback-{id}"),
+					},
+				}));
+			then.status(204);
+		})
+		.await;
+	act(&owner, Act::new(&id, "build_with_agent"))
+		.await
+		.unwrap();
+
+	dispatch.assert_async().await;
+	assert_eq!(stage(&state, &id).await, Stage::Building);
 }
 
 #[tokio::test]
@@ -505,7 +628,7 @@ async fn maintainers_reply_in_the_discussion() {
 		"Dark mode for invoices",
 	)
 	.await;
-	let (owner, _) = context(&state, Some(1), None);
+	let (owner, _) = context(&state, Some(1));
 	owner
 		.with(|| {
 			ScopedFuture::new(maintainer_reply(

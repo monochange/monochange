@@ -11,13 +11,16 @@ use leptos_router::LazyRoute;
 use leptos_router::hooks::use_params_map;
 use leptos_router::hooks::use_query_map;
 use leptos_router::lazy_route;
+use monochange_app_feedback::FeedbackKind;
 use monochange_app_feedback::PublicAuthor;
 use monochange_app_feedback::PublicLink;
 use monochange_app_feedback::PublicStatus;
 use monochange_app_feedback::RoadmapEntry;
 use monochange_app_feedback::ShipWindow;
 use monochange_app_feedback::SimilarItem;
+use monochange_app_feedback::Stage;
 
+use crate::components::arrow::ArrowIcon;
 use crate::markdown::MarkdownFormat;
 use crate::markdown::apply_format;
 use crate::pages::organization::Unavailable;
@@ -26,6 +29,7 @@ use crate::server_fns::portal::PortalReply;
 use crate::server_fns::portal::PortalSnapshot;
 use crate::server_fns::portal::PortalVote;
 use crate::server_fns::portal::ShareFeedback;
+use crate::server_fns::portal::portal_sign_in_path;
 use crate::server_fns::portal::portal_view;
 use crate::server_fns::portal::preview_markdown;
 use crate::server_fns::portal::similar_requests;
@@ -76,6 +80,16 @@ fn link_label(link: &PublicLink) -> (&'static str, String) {
 		PublicLink::Issue(url) => ("Issue", url.clone()),
 		PublicLink::PullRequest(url) => ("Pull request", url.clone()),
 		PublicLink::ReleaseNotes(url) => ("Release notes", url.clone()),
+	}
+}
+
+/// The class that styles a discussion message by who wrote it.
+fn author_class(author: PublicAuthor) -> &'static str {
+	match author {
+		PublicAuthor::Submitter => "submitter",
+		PublicAuthor::Community => "community",
+		PublicAuthor::Maintainer => "team",
+		PublicAuthor::Assistant => "assistant",
 	}
 }
 
@@ -201,6 +215,70 @@ impl LazyRoute for PortalRoute {
 	}
 }
 
+/// The steps a visitor's own item moves through, in order.
+const TRACKER_STEPS: [&str; 5] = ["Shared", "Reviewed", "Planned", "Building", "Shipped"];
+
+/// How far along the tracker `stage` is, or `None` once the item was
+/// declined or closed and will not move again.
+fn tracker_step(stage: Stage) -> Option<usize> {
+	match stage {
+		Stage::Received | Stage::Quarantined | Stage::Triaging | Stage::Discussing => Some(0),
+		Stage::Voting => Some(1),
+		Stage::Accepted => Some(2),
+		Stage::Building | Stage::InReview | Stage::Merged => Some(3),
+		Stage::Shipped => Some(4),
+		Stage::Declined | Stage::Closed => None,
+	}
+}
+
+/// The class that colours a roadmap group's marker.
+fn status_class(status: PublicStatus) -> &'static str {
+	match status {
+		PublicStatus::InProgress => "in-progress",
+		PublicStatus::Planned => "planned",
+		PublicStatus::UnderReview => "under-review",
+		PublicStatus::Shipped => "shipped",
+		PublicStatus::Declined => "declined",
+	}
+}
+
+fn count(roadmap: &[RoadmapEntry], status: PublicStatus) -> usize {
+	roadmap
+		.iter()
+		.filter(|entry| entry.status == status)
+		.count()
+}
+
+#[component]
+fn GitHubMark() -> impl IntoView {
+	view! {
+		<svg class="github-mark" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" /></svg>
+	}
+}
+
+/// A bug or a lightbulb, matching what was shared.
+#[component]
+fn KindIcon(kind: FeedbackKind) -> impl IntoView {
+	let path = match kind {
+		FeedbackKind::BugReport => {
+			"M8 9a4 4 0 1 1 8 0v5a4 4 0 0 1-8 0V9Zm4-4V3M9 4l1.5 2M15 4l-1.5 2M4 10h4m8 0h4M4 15h4m8 0h4M12 13v6"
+		}
+		FeedbackKind::FeatureRequest => {
+			"M9 18h6m-5 3h4M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1 2V16h5.2v-.2c0-.8.4-1.5 1-2A6 6 0 0 0 12 3Z"
+		}
+	};
+	view! {
+		<svg class="kind-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d=path /></svg>
+	}
+}
+
+/// Asks a signed-out visitor to continue with GitHub, and comes back to
+/// `anchor` afterwards.
+#[component]
+fn SignInButton(href: String, #[prop(into)] label: String, class: &'static str) -> impl IntoView {
+	view! { <a href=href class=format!("button {class}")><GitHubMark />{label}</a> }
+}
+
 #[component]
 fn PortalContent(
 	snapshot: PortalSnapshot,
@@ -211,8 +289,9 @@ fn PortalContent(
 ) -> impl IntoView {
 	let organization = snapshot.organization.clone();
 	let project = snapshot.project_slug.clone();
+	let signed_in = snapshot.viewer.is_some();
+	let sign_in = |anchor: &str| portal_sign_in_path(&organization, &project, anchor);
 	let roadmap = snapshot.feed.roadmap.clone();
-	let own_items = snapshot.own.clone();
 	let groups = STATUS_ORDER
 		.iter()
 		.filter_map(|(status, heading)| {
@@ -221,74 +300,119 @@ fn PortalContent(
 				.filter(|entry| entry.status == *status)
 				.cloned()
 				.collect();
-			(!entries.is_empty()).then_some((*heading, entries))
+			(!entries.is_empty()).then_some((*status, *heading, entries))
 		})
 		.collect::<Vec<_>>();
 	let has_roadmap = !groups.is_empty();
+	let stats = [
+		("Under review", count(&roadmap, PublicStatus::UnderReview)),
+		("Planned", count(&roadmap, PublicStatus::Planned)),
+		("In progress", count(&roadmap, PublicStatus::InProgress)),
+		("Shipped", snapshot.feed.shipped.len()),
+	];
+	let identity = match snapshot.viewer.clone() {
+		Some(viewer) => {
+			view! {
+				<div class="portal-viewer">
+					{viewer.avatar_url.map(|url| view! { <img src=url alt="" width="32" height="32" /> })}
+					<span><b>{format!("@{}", viewer.login)}</b><small>"Your name stays private here"</small></span>
+				</div>
+			}
+			.into_any()
+		}
+		None => view! { <SignInButton href=sign_in("share") label="Sign in with GitHub" class="button-light portal-hero-sign-in" /> }.into_any(),
+	};
 
 	view! {
 		<Title text=format!("{} feedback — monochange", snapshot.project_name) />
 		<section class="portal-hero">
 			<div class="site-width">
-				<p class="portal-eyebrow">{format!("{organization} · feedback")}</p>
+				<div class="portal-hero-top">
+					<p class="portal-eyebrow">{format!("{organization} · Feedback")}</p>
+					{identity}
+				</div>
 				<h1>{snapshot.project_name.clone()}</h1>
-				{(!snapshot.description.is_empty()).then(|| view! { <p>{snapshot.description.clone()}</p> })}
+				{(!snapshot.description.is_empty()).then(|| view! { <p class="portal-lede">{snapshot.description.clone()}</p> })}
+				<dl class="portal-stats">
+					{stats.into_iter().map(|(label, value)| view! { <div><dt>{label}</dt><dd>{value}</dd></div> }).collect::<Vec<_>>()}
+				</dl>
 				<nav class="portal-jump" aria-label="Sections"><a href="#share">"Share"</a><a href="#roadmap">"Roadmap"</a><a href="#yours">"Yours"</a></nav>
 			</div>
 		</section>
 		<div class="site-width portal-layout">
-			<section id="share" class="portal-panel" aria-labelledby="share-title">
+			<section id="share" class="portal-panel portal-share" aria-labelledby="share-title">
 				<h2 id="share-title">"Share a bug or an idea"</h2>
-				{shared.map(|id| view! { <p class="portal-thanks" role="status">{format!("Thanks! It's filed as {id}. Follow it under “Yours”.")}</p> })}
-				<ShareForm organization=organization.clone() project=project.clone() share=share />
+				{shared.map(|id| view! { <p class="portal-thanks" role="status"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>{format!("Thanks! It's filed as {id}. Follow it under “Yours”.")}</p> })}
+				{if signed_in {
+					view! { <ShareForm organization=organization.clone() project=project.clone() share=share /> }.into_any()
+				} else {
+					view! {
+						<div class="portal-gate">
+							<div class="portal-gate-icons" aria-hidden="true"><span><KindIcon kind=FeedbackKind::BugReport /></span><span><KindIcon kind=FeedbackKind::FeatureRequest /></span></div>
+							<p>"Sign in with GitHub to share, vote, and hear about every step until it ships. One account counts once, and your GitHub name isn't shown on this page."</p>
+							<SignInButton href=sign_in("share") label="Continue with GitHub" class="button-brand" />
+						</div>
+					}.into_any()
+				}}
 			</section>
-			<section id="roadmap" class="portal-panel" aria-labelledby="roadmap-title">
-				<h2 id="roadmap-title">"Roadmap"</h2>
+			<section id="roadmap" class="portal-panel portal-roadmap" aria-labelledby="roadmap-title">
+				<div class="portal-panel-head">
+					<h2 id="roadmap-title">"Roadmap"</h2>
+					<p>"Vote for what you want next. The team decides what to build, and every step shows here."</p>
+				</div>
 				{move || vote.value().get().and_then(Result::err).map(|error| view! { <p class="form-error" role="alert">{action_error(&error)}</p> })}
 
 				{if has_roadmap {
 					view! {
-						<div>{groups.into_iter().map(|(heading, entries)| view! {
-							<div class="portal-group">
-								<h3>{heading}</h3>
+						<div class="portal-groups">{groups.into_iter().map(|(status, heading, entries)| view! {
+							<div class="portal-group" data-status=status_class(status)>
+								<h3><span class="portal-dot" aria-hidden="true"></span>{heading}<span class="portal-count">{entries.len()}</span></h3>
 								<ul class="portal-list">
 									{entries.into_iter().map(|entry| {
 										let voted = snapshot.voted.contains(&entry.id);
 										let thread = snapshot.threads.get(&entry.id).cloned().unwrap_or_default();
-										view! { <RoadmapRow entry=entry voted=voted thread=thread organization=organization.clone() project=project.clone() vote=vote reply=reply /> }
+										let sign_in = sign_in(&format!("item-{}", entry.id));
+										view! { <RoadmapRow entry=entry voted=voted thread=thread organization=organization.clone() project=project.clone() vote=vote reply=reply sign_in=(!signed_in).then_some(sign_in) /> }
 									}).collect::<Vec<_>>()}
 								</ul>
 							</div>
 						}).collect::<Vec<_>>()}</div>
 					}.into_any()
 				} else {
-					view! { <p class="project-empty">"Nothing on the roadmap yet. Be the first to share an idea."</p> }.into_any()
+					view! { <div class="portal-empty"><KindIcon kind=FeedbackKind::FeatureRequest /><p>"Nothing on the roadmap yet. Be the first to share an idea."</p></div> }.into_any()
 				}}
 				{(!snapshot.feed.shipped.is_empty()).then(|| view! {
-					<div class="portal-group">
-						<h3>"Recently shipped"</h3>
-						<ul class="portal-list">
+					<div class="portal-group" data-status="shipped">
+						<h3><span class="portal-dot" aria-hidden="true"></span>"Recently shipped"<span class="portal-count">{snapshot.feed.shipped.len()}</span></h3>
+						<ol class="portal-timeline">
 							{snapshot.feed.shipped.iter().map(|entry| view! {
-								<li class="portal-item">
+								<li>
 									<span class="portal-version">{format!("v{}", entry.version)}</span>
-									<div><h4>{with_redaction_bars(&entry.title)}</h4><a class="text-link" href=entry.notes_url.clone() rel="noopener noreferrer">"Release notes"</a></div>
+									<div><h4>{with_redaction_bars(&entry.title)}</h4><a class="text-link" href=entry.notes_url.clone() rel="noopener noreferrer">"Release notes"<ArrowIcon /></a></div>
 								</li>
 							}).collect::<Vec<_>>()}
-						</ul>
+						</ol>
 					</div>
 				})}
 
 			</section>
-			<section id="yours" class="portal-panel" aria-labelledby="yours-title">
+			<section id="yours" class="portal-panel portal-yours" aria-labelledby="yours-title">
 				<h2 id="yours-title">"Yours"</h2>
 				{move || reply.value().get().and_then(Result::err).map(|error| view! { <p class="form-error" role="alert">{action_error(&error)}</p> })}
 
-				{if snapshot.own.is_empty() {
+				{if !signed_in {
+					view! {
+						<div class="portal-gate portal-gate-quiet">
+							<p>"Sign in to follow what you share, from the first reply to the release that ships it."</p>
+							<SignInButton href=sign_in("yours") label="Sign in with GitHub" class="button-quiet" />
+						</div>
+					}.into_any()
+				} else if snapshot.own.is_empty() {
 					view! { <p class="project-empty">"What you share appears here, with every update until it ships."</p> }.into_any()
 				} else {
 					view! {
-						<ul class="portal-list">
-							{own_items.into_iter().map(|own| view! { <OwnRow own=own organization=organization.clone() project=project.clone() reply=reply /> }).collect::<Vec<_>>()}
+						<ul class="portal-own-list">
+							{snapshot.own.iter().cloned().map(|own| view! { <OwnRow own=own organization=organization.clone() project=project.clone() reply=reply /> }).collect::<Vec<_>>()}
 						</ul>
 					}.into_any()
 				}}
@@ -318,6 +442,8 @@ fn RoadmapRow(
 	project: String,
 	vote: ServerAction<PortalVote>,
 	reply: ServerAction<PortalReply>,
+	/// Where a signed-out visitor goes to sign in; `None` once signed in.
+	sign_in: Option<String>,
 ) -> impl IntoView {
 	let votable = entry.status != PublicStatus::Declined
 		&& !matches!(
@@ -327,37 +453,58 @@ fn RoadmapRow(
 	let discussable = entry.status != PublicStatus::Declined;
 
 	let kind = match entry.kind {
-		monochange_app_feedback::FeedbackKind::BugReport => "Bug",
-		monochange_app_feedback::FeedbackKind::FeatureRequest => "Idea",
+		FeedbackKind::BugReport => "Bug",
+		FeedbackKind::FeatureRequest => "Idea",
 	};
-	let vote_label = if voted {
-		format!("Remove your vote ({})", entry.votes)
-	} else {
-		format!("Vote ({})", entry.votes)
+	let chevron = view! { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 14 6-6 6 6" /></svg> };
+	let vote_control = match &sign_in {
+		Some(href) if votable => {
+			view! {
+				<a class="portal-vote-button" href=href.clone() aria-label=format!("Sign in with GitHub to vote ({})", entry.votes)>{chevron}<span>{entry.votes}</span></a>
+			}
+			.into_any()
+		}
+		_ => {
+			let vote_label = if voted {
+				format!("Remove your vote ({})", entry.votes)
+			} else {
+				format!("Vote ({})", entry.votes)
+			};
+			let (organization, project, item) =
+				(organization.clone(), project.clone(), entry.id.clone());
+			view! {
+				<ActionForm action=vote attr:class="portal-vote">
+					<input type="hidden" name="organization" value=organization />
+					<input type="hidden" name="project" value=project />
+					<input type="hidden" name="item" value=item />
+					<input type="hidden" name="on" value=(!voted).to_string() />
+					<button type="submit" class="portal-vote-button" aria-pressed=voted.to_string() disabled=!votable aria-label=vote_label>{chevron}<span>{entry.votes}</span></button>
+				</ActionForm>
+			}
+			.into_any()
+		}
 	};
 
 	let anchor = format!("item-{}", entry.id);
 	let thread_view = (discussable || !thread.is_empty()).then(|| {
-		view! { <Thread thread=thread item=entry.id.clone() organization=organization.clone() project=project.clone() reply=reply discussable=discussable /> }
+		view! { <Thread thread=thread item=entry.id.clone() organization=organization.clone() project=project.clone() reply=reply discussable=discussable sign_in=sign_in.clone() /> }
 	});
 
 	view! {
-		<li class="portal-item" id=anchor>
-			<ActionForm action=vote attr:class="portal-vote">
-				<input type="hidden" name="organization" value=organization.clone() />
-				<input type="hidden" name="project" value=project.clone() />
-				<input type="hidden" name="item" value=entry.id.clone() />
-				<input type="hidden" name="on" value=(!voted).to_string() />
-				<button type="submit" aria-pressed=voted.to_string() disabled=!votable aria-label=vote_label>{entry.votes}</button>
-			</ActionForm>
-			<div class="portal-item-body">
-				<h4>{with_redaction_bars(&entry.title)}</h4>
-				<div class="portal-meta">
-					<span>{with_redaction_bars(&entry.status_line)}</span>
-					<span class="chip">{kind}</span>
-					{ship_window(&entry.ship_window).map(|label| view! { <span class="chip">{label}</span> })}
-					{entry.links.iter().map(|link| { let (label, url) = link_label(link); view! { <a class="text-link" href=url rel="noopener noreferrer">{label}</a> } }).collect::<Vec<_>>()}
+		<li class="portal-card" id=anchor>
+			{vote_control}
+			<div class="portal-card-body">
+				<div class="portal-card-tags">
+					<span class="portal-kind-tag"><KindIcon kind=entry.kind />{kind}</span>
+					{ship_window(&entry.ship_window).map(|label| view! { <span class="portal-ship">{label}</span> })}
 				</div>
+				<h4>{with_redaction_bars(&entry.title)}</h4>
+				<p class="portal-card-status">{with_redaction_bars(&entry.status_line)}</p>
+				{(!entry.links.is_empty()).then(|| view! {
+					<div class="portal-links">
+						{entry.links.iter().map(|link| { let (label, url) = link_label(link); view! { <a href=url rel="noopener noreferrer">{label}</a> } }).collect::<Vec<_>>()}
+					</div>
+				})}
 				{thread_view}
 			</div>
 		</li>
@@ -372,24 +519,60 @@ fn Thread(
 	project: String,
 	reply: ServerAction<PortalReply>,
 	discussable: bool,
+	sign_in: Option<String>,
 ) -> impl IntoView {
-	view! {
-		<details class="portal-thread">
-			<summary>{format!("Discussion ({})", thread.len())}</summary>
-			{thread.iter().map(|message| view! {
-				<div class="console-message"><b>{author_label(message.author)}</b><p>{with_redaction_bars(&message.body)}</p></div>
-			}).collect::<Vec<_>>()}
-			{discussable.then(|| view! {
+	let summary = match thread.len() {
+		0 => "Start the discussion".to_owned(),
+		1 => "1 comment".to_owned(),
+		count => format!("{count} comments"),
+	};
+	let composer = discussable.then(|| match sign_in {
+		Some(href) => view! { <a class="text-link portal-thread-sign-in" href=href>"Sign in with GitHub to join the discussion"</a> }.into_any(),
+		None => {
+			view! {
 				<ActionForm action=reply attr:class="portal-reply">
 					<input type="hidden" name="organization" value=organization />
 					<input type="hidden" name="project" value=project />
 					<input type="hidden" name="item" value=item />
-					<label class="field"><span>"Add to the discussion"</span><textarea name="body" rows="2" required></textarea></label>
+					<label class="field"><span class="sr-only">"Add to the discussion"</span><textarea name="body" rows="2" required placeholder="Add to the discussion"></textarea></label>
 					<button type="submit" class="button button-quiet">"Comment"</button>
 				</ActionForm>
-			})}
+			}
+			.into_any()
+		}
+	});
+	view! {
+		<details class="portal-thread">
+			<summary><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4V5Z" /></svg>{summary}</summary>
+			<div class="portal-messages">
+				{thread.iter().map(|message| view! {
+					<div class="portal-message" data-author=author_class(message.author)><b>{author_label(message.author)}</b><p>{with_redaction_bars(&message.body)}</p></div>
+				}).collect::<Vec<_>>()}
+			</div>
+			{composer}
 		</details>
 	}
+}
+
+/// The tracker under one of the visitor's items.
+fn tracker(stage: Stage) -> AnyView {
+	let Some(current) = tracker_step(stage) else {
+		return view! { <p class="portal-closed">{monochange_app_feedback::roadmap::public_status_line(stage)}</p> }.into_any();
+	};
+
+	view! {
+		<ol class="portal-tracker" aria-label="Progress">
+			{TRACKER_STEPS.iter().enumerate().map(|(index, step)| {
+				let progress = match index.cmp(&current) {
+					std::cmp::Ordering::Less => "done",
+					std::cmp::Ordering::Equal => "current",
+					std::cmp::Ordering::Greater => "next",
+				};
+				view! { <li data-state=progress aria-current=(index == current).then_some("step")><span>{*step}</span></li> }
+			}).collect::<Vec<_>>()}
+		</ol>
+	}
+	.into_any()
 }
 
 #[component]
@@ -416,9 +599,10 @@ fn OwnRow(
 	});
 	view! {
 		<li class="portal-own" class:awaiting=awaiting id=anchor>
-			<span class="portal-id">{own.id.clone()}</span>
+			<div class="portal-own-head"><span class="portal-id">{own.id.clone()}</span>{awaiting.then(|| view! { <span class="portal-needs-you">"Needs your answer"</span> })}</div>
 			<h4>{with_redaction_bars(&own.update.title)}</h4>
 			<p class="portal-status">{with_redaction_bars(&own.update.body)}</p>
+			{tracker(own.stage)}
 			{question}
 		</li>
 	}
@@ -446,15 +630,18 @@ fn ShareForm(
 			<input type="hidden" name="project" value=project />
 			<fieldset class="portal-kind">
 				<legend class="sr-only">"What are you sharing?"</legend>
-				<label><input type="radio" name="kind" value="bug_report" checked /><span>"Something's wrong"</span></label>
-				<label><input type="radio" name="kind" value="feature_request" /><span>"I have an idea"</span></label>
+				<label><input type="radio" name="kind" value="bug_report" checked /><span><KindIcon kind=FeedbackKind::BugReport /><b>"Something's wrong"</b><small>"Report a bug"</small></span></label>
+				<label><input type="radio" name="kind" value="feature_request" /><span><KindIcon kind=FeedbackKind::FeatureRequest /><b>"I have an idea"</b><small>"Suggest a feature"</small></span></label>
 			</fieldset>
 			<MarkdownEditor name="description" label="Tell us more" text=text set_text=set_text />
 			<Suspense fallback=|| ()>
 				{move || similar.get().and_then(Result::ok).and_then(similar_notice)}
 			</Suspense>
 			{move || share.value().get().and_then(Result::err).map(|error| view! { <p class="form-error" role="alert">{action_error(&error)}</p> })}
-			<button type="submit" class="button button-brand" disabled=move || share.pending().get()>{move || if share.pending().get() { "Sending…" } else { "Send feedback" }}</button>
+			<div class="portal-form-foot">
+				<p>"The team reads everything. You'll see each step under “Yours”."</p>
+				<button type="submit" class="button button-brand" disabled=move || share.pending().get()>{move || if share.pending().get() { "Sending…" } else { "Send feedback" }}</button>
+			</div>
 		</ActionForm>
 	}
 }

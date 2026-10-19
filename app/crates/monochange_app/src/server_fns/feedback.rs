@@ -23,11 +23,12 @@ pub enum ConsoleAction {
 	Duplicate,
 	EditSummary,
 	CreateIssue,
+	BuildWithAgent,
 	Close,
 }
 
 impl ConsoleAction {
-	pub const ALL: [ConsoleAction; 8] = [
+	pub const ALL: [ConsoleAction; 9] = [
 		ConsoleAction::Resume,
 		ConsoleAction::OpenVoting,
 		ConsoleAction::Accept,
@@ -35,6 +36,7 @@ impl ConsoleAction {
 		ConsoleAction::Duplicate,
 		ConsoleAction::EditSummary,
 		ConsoleAction::CreateIssue,
+		ConsoleAction::BuildWithAgent,
 		ConsoleAction::Close,
 	];
 
@@ -51,6 +53,7 @@ impl ConsoleAction {
 			ConsoleAction::Duplicate => "duplicate",
 			ConsoleAction::EditSummary => "edit_summary",
 			ConsoleAction::CreateIssue => "create_issue",
+			ConsoleAction::BuildWithAgent => "build_with_agent",
 			ConsoleAction::Close => "close",
 		}
 	}
@@ -89,6 +92,21 @@ pub fn console_actions(item: &FeedbackItem) -> Vec<ConsoleAction> {
 		Stage::Accepted if item.issue.is_none() => {
 			vec![
 				ConsoleAction::CreateIssue,
+				ConsoleAction::EditSummary,
+				ConsoleAction::Close,
+			]
+		}
+
+		// An issue linked before projects spanned repositories can't say
+		// where to build.
+		Stage::Accepted
+			if item
+				.issue
+				.as_ref()
+				.is_some_and(|issue| issue.repository.is_some()) =>
+		{
+			vec![
+				ConsoleAction::BuildWithAgent,
 				ConsoleAction::EditSummary,
 				ConsoleAction::Close,
 			]
@@ -142,7 +160,7 @@ pub(crate) fn feedback_error(
 			tracing::warn!(%error, "feedback operation failed");
 			server_fn::ServerFnError::new(match error {
 				FeedbackError::GitHub(_) => {
-					"GitHub didn't accept the request. Check that the GitHub App can write issues in that repository, then try again."
+					"GitHub didn't accept the request. Check that the GitHub App can write issues and contents in that repository, then try again."
 				}
 				_ => "Feedback couldn't be saved. Please try again.",
 			})
@@ -159,6 +177,12 @@ pub(crate) fn feedback_error(
 		}
 		FeedbackError::UnknownRepository(repository) => {
 			server_fn::ServerFnError::new(format!("{repository} isn't connected to this project."))
+		}
+		FeedbackError::AgentWorkflowMissing(repository) => {
+			server_fn::ServerFnError::new(format!(
+				"{repository} has no agent workflow yet. Add {} there, then try again.",
+				monochange_app_api::feedback::AGENT_WORKFLOW
+			))
 		}
 		FeedbackError::Service(error) => {
 			server_fn::ServerFnError::new(sentence(&error.to_string()))
@@ -318,6 +342,11 @@ pub async fn feedback_action(
 		ConsoleAction::CreateIssue => {
 			let repository = required(repository, "Choose the repository the issue belongs in.")?;
 			monochange_app_api::feedback::create_issue(&state, scope, &item, &repository)
+				.await
+				.map(|_| ())
+		}
+		ConsoleAction::BuildWithAgent => {
+			monochange_app_api::feedback::start_agent_build(&state, scope, &item)
 				.await
 				.map(|_| ())
 		}
