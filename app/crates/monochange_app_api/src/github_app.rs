@@ -1079,3 +1079,50 @@ pub async fn dispatch_repository_event<P: Serialize>(
 
 	Ok(())
 }
+
+/// The commit at the tip of `full_name`'s default branch, as a full SHA.
+///
+/// # Errors
+/// Returns an error if either request fails or GitHub answers with anything
+/// but the repository and its branch.
+pub async fn default_branch_head(
+	http: &reqwest::Client,
+	api_url: &str,
+	installation_token: &str,
+	full_name: &str,
+) -> Result<String, GitHubAppError> {
+	let api_url = api_url.trim_end_matches('/');
+	let read = |url: String| {
+		http.get(url)
+			.bearer_auth(installation_token)
+			.header("Accept", "application/vnd.github+json")
+			.header("User-Agent", "monochange")
+			.send()
+	};
+
+	let response = read(format!("{api_url}/repos/{full_name}")).await?;
+
+	if !response.status().is_success() {
+		let status = response.status();
+		let body = response.text().await.unwrap_or_default();
+
+		return Err(api_error("read repository", status, body));
+	}
+
+	let repository: RepositoryResponse = response.json().await?;
+	let response = read(format!(
+		"{api_url}/repos/{full_name}/git/ref/heads/{}",
+		repository.default_branch
+	))
+	.await?;
+
+	if !response.status().is_success() {
+		let status = response.status();
+		let body = response.text().await.unwrap_or_default();
+
+		return Err(api_error("read default branch", status, body));
+	}
+
+	let reference: RefResponse = response.json().await?;
+	Ok(reference.object.sha)
+}

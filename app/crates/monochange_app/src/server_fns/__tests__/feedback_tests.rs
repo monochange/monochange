@@ -14,6 +14,7 @@ use leptos::reactive::computed::ScopedFuture;
 use monochange_app_api::AppState;
 use monochange_app_api::feedback::FeedbackError;
 use monochange_app_api::github_app::GitHubAppAuth;
+use monochange_app_feedback::ContributorTask;
 use monochange_app_feedback::FeedbackItem;
 use monochange_app_feedback::FeedbackKind;
 use monochange_app_feedback::FeedbackSubmission;
@@ -33,9 +34,25 @@ use super::feedback_action;
 use super::feedback_console;
 use super::feedback_error;
 use super::maintainer_reply;
+use super::set_shared_compute;
+use super::share_task;
+use super::withdraw_task;
 use crate::tests::feedback::context;
 use crate::tests::feedback::state;
 use crate::tests::feedback::submit;
+
+async fn stored_tasks(state: &Arc<AppState>) -> Vec<ContributorTask> {
+	let public = monochange_app_api::feedback::public_project(state, "alice", "pocketbook")
+		.await
+		.unwrap()
+		.unwrap();
+	monochange_app_api::feedback::load(state, &public.scope)
+		.await
+		.unwrap()
+		.service
+		.tasks()
+		.to_vec()
+}
 
 async fn stage(state: &Arc<AppState>, id: &str) -> Stage {
 	let public = monochange_app_api::feedback::public_project(state, "alice", "pocketbook")
@@ -463,7 +480,7 @@ async fn accepted_items_become_github_issues() {
 		)
 		.await,
 		Err(
-			"The GitHub App isn't configured on this deployment, so issues can't be created yet."
+			"The GitHub App isn't configured on this deployment, so monochange can't reach GitHub yet."
 				.to_owned()
 		)
 	);
@@ -616,6 +633,207 @@ async fn accepted_issues_are_built_by_the_repository_agent() {
 
 	dispatch.assert_async().await;
 	assert_eq!(stage(&state, &id).await, Stage::Building);
+}
+
+async fn opt_in(owner: &Owner, enabled: bool) -> Result<(), String> {
+	owner
+		.with(|| {
+			ScopedFuture::new(set_shared_compute(
+				"alice".to_owned(),
+				"pocketbook".to_owned(),
+				enabled,
+			))
+		})
+		.await
+		.map_err(|error| crate::pages::organization::action_error(&error))
+}
+
+async fn share(owner: &Owner, item: &str, check: &str) -> Result<(), String> {
+	owner
+		.with(|| {
+			ScopedFuture::new(share_task(
+				"alice".to_owned(),
+				"pocketbook".to_owned(),
+				item.to_owned(),
+				"Round quarterly totals to cents".to_owned(),
+				"Totals match their invoices\n\nA test covers fractional cents\n".to_owned(),
+				"src/totals/**".to_owned(),
+				check.to_owned(),
+			))
+		})
+		.await
+		.map_err(|error| crate::pages::organization::action_error(&error))
+}
+
+async fn withdraw(owner: &Owner, task: &str) -> Result<(), String> {
+	owner
+		.with(|| {
+			ScopedFuture::new(withdraw_task(
+				"alice".to_owned(),
+				"pocketbook".to_owned(),
+				task.to_owned(),
+			))
+		})
+		.await
+		.map_err(|error| crate::pages::organization::action_error(&error))
+}
+
+async fn console(owner: &Owner) -> super::ConsoleView {
+	owner
+		.with(|| {
+			ScopedFuture::new(feedback_console(
+				"alice".to_owned(),
+				"pocketbook".to_owned(),
+			))
+		})
+		.await
+		.unwrap()
+		.unwrap()
+}
+
+#[tokio::test]
+async fn only_maintainers_manage_shared_tasks() {
+	let state = state().await;
+
+	for user in [None, Some(2)] {
+		let (owner, _) = context(&state, user);
+		let unavailable = Err("That project isn't available to you.".to_owned());
+		assert_eq!(opt_in(&owner, true).await, unavailable);
+		assert_eq!(share(&owner, "fb-1", "cargo test").await, unavailable);
+		assert_eq!(withdraw(&owner, "task-1").await, unavailable);
+	}
+}
+
+#[tokio::test]
+async fn public_projects_share_accepted_items_as_tasks() {
+	let server = MockServer::start_async().await;
+	server
+		.mock_async(|when, then| {
+			when.method(POST)
+				.path("/app/installations/1001/access_tokens");
+			then.status(201)
+				.json_body(serde_json::json!({"token": "t"}));
+		})
+		.await;
+	server
+		.mock_async(|when, then| {
+			when.method(POST).path("/repos/alice/web/issues");
+			then.status(201).json_body(
+				serde_json::json!({"number": 9, "html_url": "https://github.com/alice/web/issues/9"}),
+			);
+		})
+		.await;
+	server
+		.mock_async(|when, then| {
+			when.method(GET).path("/repos/alice/web");
+			then.status(200)
+				.json_body(serde_json::json!({"default_branch": "main"}));
+		})
+		.await;
+	server
+		.mock_async(|when, then| {
+			when.method(GET).path("/repos/alice/web/git/ref/heads/main");
+			then.status(200).json_body(serde_json::json!({
+				"object": {"sha": "0123456789abcdef0123456789abcdef01234567"}
+			}));
+		})
+		.await;
+	let mut configured = (*state().await).clone();
+	configured.github_app = Some(test_app(&server));
+	let state = Arc::new(configured);
+	let id = submit(&state, "v-1", FeedbackKind::BugReport, "Totals are wrong").await;
+	let (owner, _) = context(&state, Some(1));
+	act(
+		&owner,
+		Act {
+			override_rationale: Some("Money bug"),
+			..Act::new(&id, "accept")
+		},
+	)
+	.await
+	.unwrap();
+	act(
+		&owner,
+		Act {
+			repository: Some("alice/web"),
+			..Act::new(&id, "create_issue")
+		},
+	)
+	.await
+	.unwrap();
+
+	// alice/api is private, so the whole project is.
+	opt_in(&owner, true).await.unwrap();
+	assert_eq!(
+		share(&owner, &id, "cargo test totals").await,
+		Err("Only projects whose repositories are all public can share tasks.".to_owned())
+	);
+	assert!(!console(&owner).await.items[0].shareable);
+
+	sqlx::query("DELETE FROM project_repositories WHERE repository_external_id = 12")
+		.execute(&state.db)
+		.await
+		.unwrap();
+	let view = console(&owner).await;
+	assert!(view.shared_compute);
+	assert!(view.items[0].shareable);
+	share(&owner, &id, "cargo test totals").await.unwrap();
+	share(&owner, &id, "printenv").await.unwrap();
+
+	let stored = stored_tasks(&state).await;
+	assert_eq!(
+		stored[0].draft.acceptance,
+		[
+			"Totals match their invoices",
+			"A test covers fractional cents"
+		]
+	);
+	assert_eq!(stored[0].target.issue_number, 9);
+	assert_eq!(stored[0].shared_by, "alice");
+	let expires = chrono::DateTime::from_timestamp(stored[0].expires_at, 0)
+		.unwrap()
+		.format("%-d %B %Y")
+		.to_string();
+
+	let view = console(&owner).await;
+	let tasks = &view.items[0].tasks;
+	assert_eq!(
+		tasks
+			.iter()
+			.map(|entry| (entry.id.as_str(), entry.state.as_str(), entry.withdrawable))
+			.collect::<Vec<_>>(),
+		[
+			("task-2", "Rejected by screening", true),
+			("task-1", format!("Listed until {expires}").as_str(), true),
+		]
+	);
+	assert_eq!(tasks[1].title, "Round quarterly totals to cents");
+	assert_eq!(tasks[1].check, "cargo test totals");
+	assert!(tasks[1].reasons.is_empty());
+	assert_eq!(
+		tasks[0].reasons,
+		[
+			"the check command must start with a build tool such as cargo, npm, or pytest, not printenv"
+		]
+	);
+
+	withdraw(&owner, "task-1").await.unwrap();
+	assert_eq!(
+		withdraw(&owner, "task-1").await,
+		Err("Task task-1 was already withdrawn.".to_owned())
+	);
+	let view = console(&owner).await;
+	assert_eq!(view.items[0].tasks[1].state, "Withdrawn");
+	assert!(!view.items[0].tasks[1].withdrawable);
+
+	// Opting out stops a listed task from listing without withdrawing it.
+	share(&owner, &id, "cargo test totals").await.unwrap();
+	opt_in(&owner, false).await.unwrap();
+	let view = console(&owner).await;
+	assert!(!view.shared_compute);
+	assert!(!view.items[0].shareable);
+	assert_eq!(view.items[0].tasks[0].state, "No longer listed");
+	assert!(view.items[0].tasks[0].withdrawable);
 }
 
 #[tokio::test]

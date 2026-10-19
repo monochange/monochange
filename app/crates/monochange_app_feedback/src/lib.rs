@@ -38,6 +38,7 @@ pub mod pipeline;
 pub mod roadmap;
 pub mod similarity;
 pub mod submission;
+pub mod tasks;
 pub mod triage;
 
 pub mod voting;
@@ -91,6 +92,13 @@ pub use submission::PageContext;
 pub use submission::PinnedElement;
 pub use submission::RegisteredApp;
 pub use submission::SubmitterIdentity;
+pub use tasks::ContributorTask;
+pub use tasks::PublicTask;
+pub use tasks::TaskDraft;
+pub use tasks::TaskError;
+pub use tasks::TaskRejection;
+pub use tasks::TaskStatus;
+pub use tasks::TaskTarget;
 use thiserror::Error;
 pub use triage::ReproductionOutcome;
 pub use triage::RuleBasedTriage;
@@ -123,6 +131,8 @@ pub enum ServiceError {
 	Disclosure(#[from] DisclosureError),
 	#[error(transparent)]
 	Handoff(#[from] HandoffError),
+	#[error(transparent)]
+	Task(#[from] TaskError),
 }
 
 /// What the widget learns right after submitting.
@@ -190,6 +200,12 @@ pub struct FeedbackState {
 	pub rules: VotingRules,
 	pub apps: Vec<RegisteredApp>,
 	pub items: Vec<FeedbackItem>,
+	/// Whether the project opted into the shared compute experiment.
+	#[serde(default)]
+	pub shared_compute: bool,
+	/// Every task ever shared, listed or not. Tasks are never deleted.
+	#[serde(default)]
+	pub tasks: Vec<ContributorTask>,
 }
 
 /// In-process orchestrator for one repository's feedback loop. The hosted
@@ -203,6 +219,8 @@ pub struct FeedbackService<T: TriageEngine> {
 	cadence: CadenceSnapshot,
 	apps: BTreeMap<String, RegisteredApp>,
 	items: Vec<FeedbackItem>,
+	shared_compute: bool,
+	tasks: Vec<ContributorTask>,
 	notifications: Vec<Notification>,
 }
 
@@ -220,6 +238,8 @@ impl<T: TriageEngine> FeedbackService<T> {
 			cadence,
 			apps: BTreeMap::new(),
 			items: Vec::new(),
+			shared_compute: false,
+			tasks: Vec::new(),
 			notifications: Vec::new(),
 		}
 	}
@@ -242,6 +262,8 @@ impl<T: TriageEngine> FeedbackService<T> {
 				.map(|app| (app.slug.clone(), app))
 				.collect(),
 			items: state.items,
+			shared_compute: state.shared_compute,
+			tasks: state.tasks,
 			notifications: Vec::new(),
 		}
 	}
@@ -253,6 +275,8 @@ impl<T: TriageEngine> FeedbackService<T> {
 			rules: self.rules,
 			apps: self.apps.values().cloned().collect(),
 			items: self.items.clone(),
+			shared_compute: self.shared_compute,
+			tasks: self.tasks.clone(),
 		}
 	}
 
@@ -653,6 +677,140 @@ impl<T: TriageEngine> FeedbackService<T> {
 			self.policy.visibility,
 			target,
 		)?)
+	}
+
+	pub fn shared_compute(&self) -> bool {
+		self.shared_compute
+	}
+
+	/// Opts the project into, or out of, the shared compute experiment.
+	/// Opting out stops every task listing; nothing is withdrawn, so opting
+	/// back in lists the unexpired ones again.
+	pub fn set_shared_compute(&mut self, enabled: bool) {
+		self.shared_compute = enabled;
+	}
+
+	/// Every task shared so far, oldest first.
+	pub fn tasks(&self) -> &[ContributorTask] {
+		&self.tasks
+	}
+
+	/// Shares an accepted item as a task pinned to `commit`, and screens it.
+	/// A task that fails screening is kept as rejected so the maintainer sees
+	/// why, but never lists. Returns the stored task.
+	pub fn share_task(
+		&mut self,
+		item_id: &str,
+		commit: &str,
+		draft: &TaskDraft,
+		maintainer: &str,
+		now: i64,
+		expires_at: i64,
+	) -> Result<ContributorTask, ServiceError> {
+		let (repository, issue_number) = self.task_issue(item_id)?;
+		let draft = draft.normalized();
+		let target = TaskTarget {
+			repository,
+			commit: commit.trim().to_ascii_lowercase(),
+			issue_number,
+		};
+		let reasons = tasks::screen_task(&target, &draft);
+
+		if reasons.is_empty() && self.open_tasks(now).len() >= tasks::MAX_LISTED_TASKS {
+			return Err(TaskError::TooManyListed.into());
+		}
+
+		let task = ContributorTask {
+			// Tasks are never deleted, so the count names the next one.
+			id: format!("task-{}", self.tasks.len() + 1),
+			item: item_id.to_owned(),
+			target,
+			draft,
+			shared_by: maintainer.to_owned(),
+			created_at: now,
+			expires_at,
+			status: if reasons.is_empty() {
+				TaskStatus::Listed
+			} else {
+				TaskStatus::Rejected { reasons }
+			},
+		};
+		self.tasks.push(task.clone());
+		Ok(task)
+	}
+
+	/// The repository a task on `item_id` would run in, when the item can be
+	/// shared at all. Callers resolve the commit to pin there before calling
+	/// [`Self::share_task`].
+	pub fn task_repository(&self, item_id: &str) -> Result<String, ServiceError> {
+		self.task_issue(item_id).map(|(repository, _)| repository)
+	}
+
+	fn task_issue(&self, item_id: &str) -> Result<(String, u64), ServiceError> {
+		if !self.shared_compute {
+			return Err(TaskError::NotEnabled.into());
+		}
+
+		if self.policy.visibility != RepositoryVisibility::Public {
+			return Err(TaskError::PrivateProject.into());
+		}
+
+		let item = self.find(item_id)?;
+
+		if item.stage != Stage::Accepted {
+			return Err(TaskError::NotAccepted(item.stage).into());
+		}
+
+		Ok(item
+			.issue
+			.as_ref()
+			.and_then(|issue| Some((issue.repository.clone()?, issue.number)))
+			.ok_or(TaskError::IssueRequired)?)
+	}
+
+	/// Takes a task down, listed or rejected.
+	pub fn withdraw_task(&mut self, task_id: &str) -> Result<(), ServiceError> {
+		let task = self
+			.tasks
+			.iter_mut()
+			.find(|task| task.id == task_id)
+			.ok_or_else(|| TaskError::NotFound(task_id.to_owned()))?;
+
+		if task.status == TaskStatus::Withdrawn {
+			return Err(TaskError::AlreadyWithdrawn(task_id.to_owned()).into());
+		}
+
+		task.status = TaskStatus::Withdrawn;
+		Ok(())
+	}
+
+	/// The tasks contributors can run at `now`, oldest first. A task lists
+	/// while it is unexpired, its item is still accepted, and the project is
+	/// public and opted in.
+	pub fn open_tasks(&self, now: i64) -> Vec<PublicTask> {
+		self.tasks
+			.iter()
+			.filter(|task| self.is_open(task, now))
+			.map(PublicTask::of)
+			.collect()
+	}
+
+	/// One task a contributor can run at `now`.
+	pub fn open_task(&self, task_id: &str, now: i64) -> Option<PublicTask> {
+		self.tasks
+			.iter()
+			.find(|task| task.id == task_id && self.is_open(task, now))
+			.map(PublicTask::of)
+	}
+
+	fn is_open(&self, task: &ContributorTask, now: i64) -> bool {
+		self.shared_compute
+			&& self.policy.visibility == RepositoryVisibility::Public
+			&& task.status == TaskStatus::Listed
+			&& now < task.expires_at
+			&& self
+				.item(&task.item)
+				.is_some_and(|item| item.stage == Stage::Accepted)
 	}
 
 	/// The public roadmap and shipped list, plus what was withheld.

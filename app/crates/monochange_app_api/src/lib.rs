@@ -5,6 +5,7 @@
 //! - Session cookie management
 //! - GitHub App authentication, webhook verification, and OIDC verification
 //! - Hosted release commit and release request endpoints
+//! - The public contributor task API
 
 #[cfg(test)]
 #[path = "__tests__/lib_tests.rs"]
@@ -16,12 +17,14 @@ pub mod github_app;
 pub mod oauth;
 pub mod oidc;
 pub mod release_api;
+pub mod tasks_api;
 pub mod webhooks;
 
 use std::sync::Arc;
 
 use axum::Router;
 use axum::http::StatusCode;
+use axum::routing::get;
 use axum::routing::post;
 use chrono::Duration;
 use chrono::Utc;
@@ -76,6 +79,14 @@ pub fn api_router(state: AppState) -> Router<()> {
 		.route(
 			"/api/release-requests",
 			post(release_api::publish_release_request),
+		)
+		.route(
+			"/api/projects/{organization}/{project}/tasks",
+			get(tasks_api::list_tasks),
+		)
+		.route(
+			"/api/projects/{organization}/{project}/tasks/{task}",
+			get(tasks_api::show_task),
 		)
 		.with_state(state)
 }
