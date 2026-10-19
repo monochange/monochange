@@ -4,6 +4,60 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-19)
+
+### 💥 Breaking Change
+
+#### Add the base branch to `HostedCommitRequest`
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #789](https://github.com/monochange/monochange/pull/789)
+
+**Breaking change:** `monochange_core::HostedCommitRequest` gains `base_branch: Option<String>`, the branch the release was prepared from. The monochange app uses it to refresh a release pull request only while that branch still points at the prepared commit, so a stale run never replaces a newer release.
+
+Struct literals must add the field:
+
+```rust
+let request = HostedCommitRequest {
+	// existing fields…
+	base_branch: Some("main".to_owned()),
+};
+```
+
+Serialized requests omit `base_branch` when it is `None`. See `docs/src/guide/migrations/0.19.md`.
+
+### 🐛 Fixed
+
+#### Report per-suite lint rule counts and GitHub lookup failures without a config prefix
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #800](https://github.com/monochange/monochange/pull/800)
+
+- `monochange_lint`: `LintProgressReporter::suite_started` now receives the number of the suite's own rules that the current selection allows, instead of every registered rule that applies to the suite's first target. Reporters that print "checking N files with M rules" now show each suite's real rule count.
+- `monochange_github`: a failed review-request GraphQL lookup now returns `MonochangeError::Diagnostic` with GitHub's status and message (for example `status 401; Bad credentials` for `POST /graphql`) instead of `MonochangeError::Config("failed to batch load … GitHub")`. Callers that matched the old `config error:` text should match the diagnostic instead.
+- `monochange_core`: the built-in `format` step input's help text is now `Output format for the command result`, matching every other `--format` option.
+
+#### Discover packages in workspaces nested under ignored directory names
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #779](https://github.com/monochange/monochange/pull/779) · _Closed issues:_ [#775](https://github.com/monochange/monochange/issues/775)
+
+`DiscoveryPathFilter` checked every component of the absolute manifest path against the skipped-directory list, so a workspace checked out below a directory named `.claude`, `node_modules`, `target`, `.git`, `.devenv`, `.fvm`, `.repos`, or `book` discovered zero packages. Claude Code worktrees (`.claude/worktrees/<name>`) were the common case: `monochange discover` reported an empty workspace and `monochange check` linted nothing.
+
+Only components below the workspace root are checked now, matching how gitignore matching already worked, so the same repository discovers the same packages wherever it is checked out. Ignored directory names inside the workspace still filter discovery.
+
+#### Honor hosted backend flags on release step commands
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #789](https://github.com/monochange/monochange/pull/789)
+
+`--hosted-url` and `--oidc-audience` were accepted by `monochange step commit-release` but ignored, so a self-hosted app or a custom OIDC audience could only be set in `monochange.toml`. `--hosted-auth` on `monochange step open-release-request` rejected every value, including `oidc`, because the input declared no choices.
+
+Both steps now resolve hosted settings in this order: step input (command-line flag or workflow `inputs`), then the `MONOCHANGE_HOSTED_URL` environment variable for the URL, then the step configuration, then the defaults (`https://monochange.dev` and an audience derived from its host). Empty values are ignored, so unset workflow inputs no longer shadow configuration, and an unknown `--hosted-auth` value fails instead of silently falling back.
+
+```bash
+monochange step open-release-request --backend hosted --hosted-auth oidc \
+  --hosted-url https://release.example.com --oidc-audience release.example.com
+```
+
+Previously `monochange.toml` values took precedence over `MONOCHANGE_HOSTED_URL`; the environment variable now overrides the configured `hosted_url`, as its documentation described.
+
 ## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)
 
 ### 💥 Breaking Change

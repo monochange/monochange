@@ -9,6 +9,12 @@
 - Replaced obsolete examples with current `monochange.toml`, changeset, release-preview, and publishing workflow examples.
 - Added the release-aware change-classification workflow, including confidence, completeness, comparison baselines, cargo-semver-checks follow-up, and changeset validation.
 
+## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-19)
+
+### 🐛 Fixed
+
+- **Document the global `--color` flag.** The command reference lists `--color <auto|always|never>` alongside the other global flags and explains which environment variables `auto` honors. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #795](https://github.com/monochange/monochange/pull/795)
+
 ## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)
 
 ### 🐛 Fixed

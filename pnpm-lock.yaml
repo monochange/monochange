@@ -39,28 +39,28 @@ importers:
   packages/monochange__cli:
     optionalDependencies:
       '@monochange/cli-darwin-arm64':
-        specifier: ^0.18.0
+        specifier: ^0.19.0
         version: link:../monochange__cli-darwin-arm64
       '@monochange/cli-darwin-x64':
-        specifier: ^0.18.0
+        specifier: ^0.19.0
         version: link:../monochange__cli-darwin-x64
       '@monochange/cli-linux-arm64-gnu':
-        specifier: ^0.18.0
+        specifier: ^0.19.0
         version: link:../monochange__cli-linux-arm64-gnu
       '@monochange/cli-linux-arm64-musl':
-        specifier: ^0.18.0
+        specifier: ^0.19.0
         version: link:../monochange__cli-linux-arm64-musl
       '@monochange/cli-linux-x64-gnu':
-        specifier: ^0.18.0
+        specifier: ^0.19.0
         version: link:../monochange__cli-linux-x64-gnu
       '@monochange/cli-linux-x64-musl':
-        specifier: ^0.18.0
+        specifier: ^0.19.0
         version: link:../monochange__cli-linux-x64-musl
       '@monochange/cli-win32-arm64-msvc':
-        specifier: ^0.18.0
+        specifier: ^0.19.0
         version: link:../monochange__cli-win32-arm64-msvc
       '@monochange/cli-win32-x64-msvc':
-        specifier: ^0.18.0
+        specifier: ^0.19.0
         version: link:../monochange__cli-win32-x64-msvc
 
   packages/monochange__cli-darwin-arm64: {}
@@ -714,6 +714,11 @@ packages:
 
   ajv-formats@3.0.1:
     resolution: {integrity: sha512-8iUql50EUR+uUcdRQ3HDqa6EVyo3docL8g5WJ3FNcWmu62IbkGUue/pEyLBW8VGKKucTPgqeks4fIU1DA4yowQ==}
+    peerDependencies:
+      ajv: ^8.0.0
+    peerDependenciesMeta:
+      ajv:
+        optional: true
 
   ajv@8.20.0:
     resolution: {integrity: sha512-Thbli+OlOj+iMPYFBVBfJ3OmCAnaSyNn4M1vz9T6Gka5Jt9ba/HIR56joy65tY6kx/FCF5VXNB819Y7/GUrBGA==}
@@ -1937,8 +1942,8 @@ snapshots:
       convert-source-map: 2.0.0
       tinyrainbow: 3.1.0
 
-  ajv-formats@3.0.1:
-    dependencies:
+  ajv-formats@3.0.1(ajv@8.20.0):
+    optionalDependencies:
       ajv: 8.20.0
 
   ajv@8.20.0:
@@ -2150,7 +2155,7 @@ snapshots:
       '@paulirish/trace_engine': 0.0.65
       '@sentry/node': 10.76.2(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
       ajv: 8.20.0
-      ajv-formats: 3.0.1
+      ajv-formats: 3.0.1(ajv@8.20.0)
       axe-core: 4.14.0
       chrome-launcher: 1.2.2
       configstore: 7.1.0
