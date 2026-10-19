@@ -1,6 +1,6 @@
 # End-to-end feedback flow
 
-**Status**: in progress. Steps 1 and 2 are on `claude/end-to-end-managed-flow-vtqwkj`; step 4 is designed and experimental. **Related**: `docs/plans/active/monochange-platform-roadmap.md` (phases 3 and 4), `docs/plans/active/feedback-loop-poc.md`
+**Status**: in progress. Steps 1 and 2 are on `claude/end-to-end-managed-flow-vtqwkj`; step 4 is experimental, and its first part (A1) is on `claude/shared-compute-tasks`. **Related**: `docs/plans/active/monochange-platform-roadmap.md` (phases 3 and 4), `docs/plans/active/feedback-loop-poc.md`
 
 ## Goal
 
@@ -80,6 +80,8 @@ The safety rule for this flow: **an agent checking that a task is safe is a trip
 **Build order.**
 
 - **A. Platform tasks.** Tasks on accepted items, the task rules and screening model, owner review of rejections, and a public task API.
+  - **A1 (built).** The per-project opt-in, sharing a task on an accepted item pinned to the default branch head, the program-checked task rules, withdrawing, a 14-day expiry, and the public read API (`GET /api/projects/{organization}/{project}/tasks[/{task}]`). Guide: `docs/src/guide/feedback-shared-tasks.md`.
+  - **A2 (next).** The screening model on top of the rules, owner review of rejections, reports, and rate limits per contributor.
 - **B. CLI.** `monochange tasks list|show|run|submit`, the container sandbox, and the model proxy. Claude Code first, then other agent CLIs.
 - **C. Platform submissions.** Submission rules and review, pull requests from the monochange fork, candidates, and the comparison.
 

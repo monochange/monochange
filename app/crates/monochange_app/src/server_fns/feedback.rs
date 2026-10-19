@@ -5,6 +5,7 @@
 mod tests;
 
 use leptos::server;
+use monochange_app_feedback::ContributorTask;
 use monochange_app_feedback::FeedbackItem;
 use monochange_app_feedback::RepositoryVisibility;
 use monochange_app_feedback::SimilarItem;
@@ -131,6 +132,20 @@ pub struct ConsoleItem {
 	pub actions: Vec<ConsoleAction>,
 	/// Listed items that look like the same request.
 	pub similar: Vec<SimilarItem>,
+	/// Tasks shared from this item, newest first.
+	pub tasks: Vec<ConsoleTask>,
+	/// Whether a new task can be shared from it now.
+	pub shareable: bool,
+}
+
+/// A shared task as its maintainer sees it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ConsoleTask {
+	pub task: ContributorTask,
+	/// Whether contributors can run it right now.
+	pub open: bool,
+	/// When it stops listing, as a date.
+	pub expires: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -140,6 +155,8 @@ pub struct ConsoleView {
 	pub project_slug: String,
 	pub visibility: RepositoryVisibility,
 	pub acceptance_threshold: u32,
+	/// Whether the project opted into the shared compute experiment.
+	pub shared_compute: bool,
 	/// Connected repositories an issue can be opened in.
 	pub repositories: Vec<String>,
 	/// Newest first.
@@ -172,7 +189,7 @@ pub(crate) fn feedback_error(
 		}
 		FeedbackError::GitHubAppMissing => {
 			server_fn::ServerFnError::new(
-				"The GitHub App isn't configured on this deployment, so issues can't be created yet.",
+				"The GitHub App isn't configured on this deployment, so monochange can't reach GitHub yet.",
 			)
 		}
 		FeedbackError::UnknownRepository(repository) => {
@@ -230,6 +247,8 @@ fn console_view(
 
 	let visibility = service.policy().visibility;
 	let feed = service.status_feed();
+	let now = chrono::Utc::now().timestamp();
+	let open = service.open_tasks(now);
 	let items = service
 		.items()
 		.iter()
@@ -262,6 +281,22 @@ fn console_view(
 					.into_iter()
 					.filter(|similar| similar.id != item.id)
 					.collect(),
+				tasks: service
+					.tasks()
+					.iter()
+					.rev()
+					.filter(|task| task.item == item.id)
+					.map(|task| {
+						ConsoleTask {
+							open: open.iter().any(|listed| listed.id == task.id),
+							expires: chrono::DateTime::from_timestamp(task.expires_at, 0)
+								.map(|expires| expires.format("%-d %B %Y").to_string())
+								.unwrap_or_default(),
+							task: task.clone(),
+						}
+					})
+					.collect(),
+				shareable: service.task_repository(&item.id).is_ok(),
 				item: item.clone(),
 			}
 		})
@@ -272,6 +307,7 @@ fn console_view(
 		project_slug: maintained.project.slug.clone(),
 		visibility,
 		acceptance_threshold: service.state().rules.acceptance_threshold,
+		shared_compute: service.shared_compute(),
 		repositories: maintained
 			.scope
 			.repositories
@@ -405,6 +441,92 @@ pub async fn maintainer_reply(
 	let author = Actor::Maintainer(maintained.maintainer.clone());
 	monochange_app_api::feedback::update(&state, &maintained.scope, |service| {
 		service.reply(&item, &author, &body, Vec::new()).map(|_| ())
+	})
+	.await
+	.map_err(feedback_error)
+}
+
+/// Opts the project into, or out of, the shared compute experiment.
+#[server]
+pub async fn set_shared_compute(
+	organization: String,
+	project: String,
+	enabled: bool,
+) -> Result<(), server_fn::ServerFnError> {
+	use std::sync::Arc;
+
+	let state: Arc<monochange_app_api::AppState> = leptos::prelude::expect_context();
+	let maintained = super::organizations::maintained_project(&state, &organization, &project)
+		.await?
+		.ok_or_else(not_found)?;
+	monochange_app_api::feedback::update(&state, &maintained.scope, |service| {
+		service.set_shared_compute(enabled);
+		Ok(())
+	})
+	.await
+	.map_err(feedback_error)
+}
+
+/// Splits a textarea into lines. Blank ones drop out when the draft is
+/// normalized.
+#[cfg(not(target_arch = "wasm32"))]
+fn lines(text: &str) -> Vec<String> {
+	text.lines().map(str::to_owned).collect()
+}
+
+/// Shares an accepted item with contributors as a task. A task that fails
+/// screening is kept, with its reasons, and never lists.
+#[server]
+pub async fn share_task(
+	organization: String,
+	project: String,
+	item: String,
+	title: String,
+	acceptance: String,
+	paths: String,
+	check: String,
+) -> Result<(), server_fn::ServerFnError> {
+	use std::sync::Arc;
+
+	use monochange_app_feedback::TaskDraft;
+
+	let state: Arc<monochange_app_api::AppState> = leptos::prelude::expect_context();
+	let maintained = super::organizations::maintained_project(&state, &organization, &project)
+		.await?
+		.ok_or_else(not_found)?;
+	let draft = TaskDraft {
+		title,
+		acceptance: lines(&acceptance),
+		paths: lines(&paths),
+		check,
+	};
+	monochange_app_api::feedback::share_task(
+		&state,
+		&maintained.scope,
+		&item,
+		&draft,
+		&maintained.maintainer,
+	)
+	.await
+	.map(|_| ())
+	.map_err(feedback_error)
+}
+
+/// Takes a shared task down.
+#[server]
+pub async fn withdraw_task(
+	organization: String,
+	project: String,
+	task: String,
+) -> Result<(), server_fn::ServerFnError> {
+	use std::sync::Arc;
+
+	let state: Arc<monochange_app_api::AppState> = leptos::prelude::expect_context();
+	let maintained = super::organizations::maintained_project(&state, &organization, &project)
+		.await?
+		.ok_or_else(not_found)?;
+	monochange_app_api::feedback::update(&state, &maintained.scope, |service| {
+		service.withdraw_task(&task)
 	})
 	.await
 	.map_err(feedback_error)

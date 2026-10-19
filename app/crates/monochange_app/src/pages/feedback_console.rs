@@ -16,14 +16,19 @@ use monochange_app_feedback::FeedbackKind;
 use monochange_app_feedback::ReproductionOutcome;
 use monochange_app_feedback::Sensitivity;
 use monochange_app_feedback::Stage;
+use monochange_app_feedback::TaskStatus;
 
 use crate::pages::organization::Unavailable;
 use crate::pages::organization::action_error;
 use crate::server_fns::feedback::ConsoleAction;
 use crate::server_fns::feedback::ConsoleItem;
+use crate::server_fns::feedback::ConsoleTask;
 use crate::server_fns::feedback::ConsoleView;
 use crate::server_fns::feedback::FeedbackAction;
 use crate::server_fns::feedback::MaintainerReply;
+use crate::server_fns::feedback::SetSharedCompute;
+use crate::server_fns::feedback::ShareTask;
+use crate::server_fns::feedback::WithdrawTask;
 use crate::server_fns::feedback::feedback_console;
 use crate::server_fns::organizations::organization_path;
 use crate::server_fns::organizations::project_path;
@@ -70,10 +75,45 @@ fn plural(count: usize, word: &str) -> String {
 	}
 }
 
+/// The console's task actions: the opt-in, sharing, and withdrawing.
+#[derive(Clone, Copy)]
+struct TaskActions {
+	opt_in: ServerAction<SetSharedCompute>,
+	share: ServerAction<ShareTask>,
+	withdraw: ServerAction<WithdrawTask>,
+}
+
+impl TaskActions {
+	fn new() -> Self {
+		Self {
+			opt_in: ServerAction::new(),
+			share: ServerAction::new(),
+			withdraw: ServerAction::new(),
+		}
+	}
+
+	fn version(self) -> usize {
+		self.opt_in.version().get() + self.share.version().get() + self.withdraw.version().get()
+	}
+
+	/// The latest failure of any of them, for the console's error line.
+	fn error(self) -> Option<server_fn::ServerFnError> {
+		[
+			self.opt_in.value().get(),
+			self.share.value().get(),
+			self.withdraw.value().get(),
+		]
+		.into_iter()
+		.flatten()
+		.find_map(Result::err)
+	}
+}
+
 /// Maintainer console data, split into its own WASM chunk.
 pub struct FeedbackConsoleRoute {
 	act: ServerAction<FeedbackAction>,
 	reply: ServerAction<MaintainerReply>,
+	tasks: TaskActions,
 	console: Resource<Result<Option<ConsoleView>, server_fn::ServerFnError>>,
 }
 
@@ -85,6 +125,7 @@ impl LazyRoute for FeedbackConsoleRoute {
 		let params = use_params_map();
 		let act = ServerAction::<FeedbackAction>::new();
 		let reply = ServerAction::<MaintainerReply>::new();
+		let tasks = TaskActions::new();
 		let key = {
 			let (act, reply) = (act, reply);
 			move || {
@@ -92,7 +133,7 @@ impl LazyRoute for FeedbackConsoleRoute {
 				(
 					params.get("organization").unwrap_or_default(),
 					params.get("project").unwrap_or_default(),
-					act.version().get() + reply.version().get(),
+					act.version().get() + reply.version().get() + tasks.version(),
 				)
 			}
 		};
@@ -102,6 +143,7 @@ impl LazyRoute for FeedbackConsoleRoute {
 		Self {
 			act,
 			reply,
+			tasks,
 			console,
 		}
 	}
@@ -110,13 +152,14 @@ impl LazyRoute for FeedbackConsoleRoute {
 		let FeedbackConsoleRoute {
 			act,
 			reply,
+			tasks,
 			console,
 		} = this;
 		view! {
 			<section class="site-width dashboard-section">
 				<Suspense fallback=|| view! { <p role="status">"Loading feedback…"</p> }>
 					{move || console.get().map(|result| match result {
-						Ok(Some(view)) => view! { <ConsoleContent view=view act=act reply=reply /> }.into_any(),
+						Ok(Some(view)) => view! { <ConsoleContent view=view act=act reply=reply tasks=tasks /> }.into_any(),
 						Ok(None) => view! { <Unavailable title="Project not found" message="It may have been renamed or deleted, or it belongs to an organisation you don't own." /> }.into_any(),
 						Err(_) => view! { <Unavailable title="Feedback couldn't be loaded" message="Please reload the page to try again." /> }.into_any(),
 					})}
@@ -133,6 +176,7 @@ fn ConsoleContent(
 	view: ConsoleView,
 	act: ServerAction<FeedbackAction>,
 	reply: ServerAction<MaintainerReply>,
+	tasks: TaskActions,
 ) -> impl IntoView {
 	let visibility_note = match view.visibility {
 		monochange_app_feedback::RepositoryVisibility::Private => {
@@ -163,6 +207,8 @@ fn ConsoleContent(
 		</div>
 		{move || act.value().get().and_then(Result::err).map(|error| view! { <p class="form-error" role="alert">{action_error(&error)}</p> })}
 		{move || reply.value().get().and_then(Result::err).map(|error| view! { <p class="form-error" role="alert">{action_error(&error)}</p> })}
+		{move || tasks.error().map(|error| view! { <p class="form-error" role="alert">{action_error(&error)}</p> })}
+		<SharedComputePanel organization=organization.clone() project=project.clone() enabled=view.shared_compute visibility=view.visibility opt_in=tasks.opt_in />
 		<section class="repository-section" aria-labelledby="feedback-items-title">
 			<div class="repository-heading"><h2 id="feedback-items-title">"Items"</h2><p>{plural(count, "item")}</p></div>
 
@@ -183,6 +229,7 @@ fn ConsoleContent(
 									others=others
 									act=act
 									reply=reply
+									tasks=tasks
 								/>
 							}
 						}).collect::<Vec<_>>()}
@@ -191,6 +238,121 @@ fn ConsoleContent(
 			}}
 
 		</section>
+	}
+}
+
+/// The shared compute opt-in. Only public projects can turn it on, since
+/// every shared task is public.
+#[component]
+fn SharedComputePanel(
+	organization: String,
+	project: String,
+	enabled: bool,
+	visibility: monochange_app_feedback::RepositoryVisibility,
+	opt_in: ServerAction<SetSharedCompute>,
+) -> impl IntoView {
+	let public = visibility == monochange_app_feedback::RepositoryVisibility::Public;
+	let body = if !public {
+		view! { <p>"Shared compute needs every repository in this project to be public, because shared tasks are public."</p> }.into_any()
+	} else if enabled {
+		view! { <p>"On. Accepted items with a GitHub issue can be shared as tasks that contributors run with their own agents. Every task is screened before it lists, and nothing merges without you."</p> }.into_any()
+	} else {
+		view! { <p>"Share accepted work as tasks that contributors run with their own agents, in a sandbox on their machine. Tasks are public, screened before they list, and come back as pull requests you review."</p> }.into_any()
+	};
+
+	view! {
+		<section class="console-shared-compute" aria-labelledby="shared-compute-title">
+			<h2 id="shared-compute-title">"Shared compute " <small>"Experimental"</small></h2>
+			{body}
+			{(public || enabled).then(|| view! {
+				<ActionForm action=opt_in attr:class="console-action">
+					<input type="hidden" name="organization" value=organization />
+					<input type="hidden" name="project" value=project />
+					<input type="hidden" name="enabled" value=(!enabled).to_string() />
+					<button type="submit" class=if enabled { "button button-quiet" } else { "button button-brand" }>{if enabled { "Turn off" } else { "Turn on" }}</button>
+				</ActionForm>
+			})}
+		</section>
+	}
+}
+
+/// What a shared task's maintainer needs to know about it at a glance.
+fn task_state(entry: &ConsoleTask) -> String {
+	match &entry.task.status {
+		TaskStatus::Listed if entry.open => format!("Listed until {}", entry.expires),
+		TaskStatus::Listed => "No longer listed".to_owned(),
+		TaskStatus::Rejected { .. } => "Rejected by screening".to_owned(),
+		TaskStatus::Withdrawn => "Withdrawn".to_owned(),
+	}
+}
+
+/// The tasks shared from one item, and the form that shares another.
+#[component]
+fn ItemTasks(
+	organization: String,
+	project: String,
+	item: String,
+	title: String,
+	tasks: Vec<ConsoleTask>,
+	shareable: bool,
+	actions: TaskActions,
+) -> impl IntoView {
+	let fields = |organization: &str, project: &str| {
+		view! {
+			<input type="hidden" name="organization" value=organization.to_owned() />
+			<input type="hidden" name="project" value=project.to_owned() />
+		}
+	};
+	let list = tasks
+		.into_iter()
+		.map(|entry| {
+			let reasons = match &entry.task.status {
+				TaskStatus::Rejected { reasons } => reasons.iter().map(ToString::to_string).collect(),
+				_ => Vec::new(),
+			};
+			let withdrawable = entry.task.status != TaskStatus::Withdrawn;
+			let id = entry.task.id.clone();
+			let hidden = fields(&organization, &project);
+			view! {
+				<li class="console-task">
+					<div>
+						<b>{entry.task.draft.title.clone()}</b>
+						<small>{format!("{} · {} · {}", entry.task.id, task_state(&entry), entry.task.draft.check)}</small>
+						{(!reasons.is_empty()).then(|| view! {
+							<ul class="console-task-reasons">{reasons.into_iter().map(|reason| view! { <li>{reason}</li> }).collect::<Vec<_>>()}</ul>
+						})}
+					</div>
+					{withdrawable.then(|| view! {
+						<ActionForm action=actions.withdraw>
+							{hidden}
+							<input type="hidden" name="task" value=id />
+							<button type="submit" class="text-link">"Withdraw"</button>
+						</ActionForm>
+					})}
+				</li>
+			}
+		})
+		.collect::<Vec<_>>();
+	let has_tasks = !list.is_empty();
+	let share_fields = fields(&organization, &project);
+
+	view! {
+		<div class="console-block">
+			<h4>"Contributor tasks"</h4>
+			{has_tasks.then(|| view! { <ul class="console-tasks">{list}</ul> })}
+			{shareable.then(|| view! {
+				<ActionForm action=actions.share attr:class="console-action console-share">
+					{share_fields}
+					<input type="hidden" name="item" value=item />
+					<p>"Contributors' agents see only what you write here, pinned to the default branch as it is now. Screening refuses anything that reaches beyond the code."</p>
+					<label class="field"><span>"Task title"</span><input name="title" required maxlength="120" autocomplete="off" value=title /></label>
+					<label class="field"><span>"Acceptance criteria " <small>"(one per line)"</small></span><textarea name="acceptance" rows="3" required></textarea></label>
+					<label class="field"><span>"Paths it may change " <small>"(one per line, such as src/totals/**)"</small></span><textarea name="paths" rows="2" required></textarea></label>
+					<label class="field"><span>"Check command"</span><input name="check" required maxlength="200" autocomplete="off" placeholder="cargo test -p invoices" /></label>
+					<button type="submit" class="button button-brand">"Share with contributors"</button>
+				</ActionForm>
+			})}
+		</div>
 	}
 }
 
@@ -320,6 +482,7 @@ fn ConsoleCard(
 	others: Vec<(String, String)>,
 	act: ServerAction<FeedbackAction>,
 	reply: ServerAction<MaintainerReply>,
+	tasks: TaskActions,
 ) -> AnyView {
 	let item = entry.item.clone();
 	let id = item.id.clone();
@@ -343,6 +506,19 @@ fn ConsoleCard(
 			| Stage::InReview
 			| Stage::Merged
 	);
+	let task_block = (entry.shareable || !entry.tasks.is_empty()).then(|| {
+		view! {
+			<ItemTasks
+				organization=organization.clone()
+				project=project.clone()
+				item=id.clone()
+				title=title.clone()
+				tasks=entry.tasks.clone()
+				shareable=entry.shareable
+				actions=tasks
+			/>
+		}
+	});
 	let reply_fields = view! {
 		<input type="hidden" name="organization" value=organization.clone() />
 		<input type="hidden" name="project" value=project.clone() />
@@ -502,6 +678,7 @@ fn ConsoleCard(
 						}.into_any())}
 					</div>
 				}.into_any())}
+				{task_block}
 				{can_reply.then(|| view! {
 					<ActionForm action=reply attr:class="console-reply">
 						{reply_fields}

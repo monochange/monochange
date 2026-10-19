@@ -17,6 +17,9 @@ use monochange_app_feedback::RepositoryVisibility;
 use monochange_app_feedback::ServiceError;
 use monochange_app_feedback::Stage;
 use monochange_app_feedback::SubmitterIdentity;
+use monochange_app_feedback::TaskDraft;
+use monochange_app_feedback::TaskError;
+use monochange_app_feedback::TaskStatus;
 use rsa::RsaPrivateKey;
 use rsa::pkcs1::EncodeRsaPrivateKey;
 use rsa::pkcs1::LineEnding;
@@ -28,11 +31,13 @@ use super::FeedbackError;
 use super::PORTAL_APP;
 use super::ProjectRepository;
 use super::ProjectScope;
+use super::TASK_LIFETIME;
 use super::account_viewer_id;
 use super::create_issue;
 use super::load;
 use super::notifications_for;
 use super::public_project;
+use super::share_task;
 use super::start_agent_build;
 use super::update;
 use super::viewer_id;
@@ -515,6 +520,168 @@ async fn agent_builds_start_only_where_a_workflow_will_run_them() {
 	assert!(matches!(
 		start_agent_build(&state, &scope, "fb-1").await,
 		Err(FeedbackError::Service(_))
+	));
+}
+
+fn task_draft() -> TaskDraft {
+	TaskDraft {
+		title: "Round quarterly totals to cents".to_owned(),
+		acceptance: vec!["Quarterly totals match their invoices".to_owned()],
+		paths: vec!["src/totals/**".to_owned()],
+		check: "cargo test totals".to_owned(),
+	}
+}
+
+async fn share(
+	state: &AppState,
+	scope: &ProjectScope,
+) -> Result<monochange_app_feedback::ContributorTask, FeedbackError> {
+	share_task(state, scope, "fb-1", &task_draft(), "ifiok").await
+}
+
+#[tokio::test]
+async fn shared_tasks_pin_the_default_branch_and_expire() {
+	let server = MockServer::start_async().await;
+	server
+		.mock_async(|when, then| {
+			when.method(POST)
+				.path("/app/installations/1001/access_tokens");
+			then.status(201)
+				.json_body(serde_json::json!({"token": "t"}));
+		})
+		.await;
+	server
+		.mock_async(|when, then| {
+			when.method(GET).path("/repos/acme/api");
+			then.status(404).body("Not Found");
+		})
+		.await;
+	server
+		.mock_async(|when, then| {
+			when.method(GET).path("/repos/acme/web");
+			then.status(200)
+				.json_body(serde_json::json!({"default_branch": "trunk"}));
+		})
+		.await;
+	let missing_branch = server
+		.mock_async(|when, then| {
+			when.method(GET).path("/repos/acme/web/git/ref/heads/trunk");
+			then.status(409).body("Git Repository is empty.");
+		})
+		.await;
+	let mut state = state().await;
+	let scope = scope(false);
+	accepted(&state, &scope).await;
+
+	assert!(matches!(
+		share(&state, &scope).await,
+		Err(FeedbackError::GitHubAppMissing)
+	));
+	state.github_app = Some(app(&server));
+	assert!(matches!(
+		share(&state, &scope).await,
+		Err(FeedbackError::Service(ServiceError::Task(
+			TaskError::NotEnabled
+		)))
+	));
+	update(&state, &scope, |service| {
+		service.set_shared_compute(true);
+		Ok(())
+	})
+	.await
+	.unwrap();
+	let link = |repository: &'static str| {
+		update(&state, &scope, move |service| {
+			service.link_issue("fb-1", issue_in(repository))
+		})
+	};
+	link("acme/other").await.unwrap();
+	assert!(matches!(
+		share(&state, &scope).await,
+		Err(FeedbackError::UnknownRepository(_))
+	));
+	link("acme/api").await.unwrap();
+	assert!(matches!(
+		share(&state, &scope).await,
+		Err(FeedbackError::GitHub(_))
+	));
+	link("acme/web").await.unwrap();
+	assert!(matches!(
+		share(&state, &scope).await,
+		Err(FeedbackError::GitHub(_))
+	));
+	missing_branch.assert_async().await;
+	assert!(
+		load(&state, &scope)
+			.await
+			.unwrap()
+			.service
+			.tasks()
+			.is_empty()
+	);
+
+	missing_branch.delete_async().await;
+	server
+		.mock_async(|when, then| {
+			when.method(GET).path("/repos/acme/web/git/ref/heads/trunk");
+			then.status(200).json_body(serde_json::json!({
+				"object": {"sha": "0123456789ABCDEF0123456789ABCDEF01234567"}
+			}));
+		})
+		.await;
+	let task = share(&state, &scope).await.unwrap();
+	assert_eq!(task.status, TaskStatus::Listed);
+	assert_eq!(task.target.repository, "acme/web");
+	assert_eq!(
+		task.target.commit,
+		"0123456789abcdef0123456789abcdef01234567"
+	);
+	assert_eq!(task.target.issue_number, 12);
+	assert_eq!(task.shared_by, "ifiok");
+	assert_eq!(
+		task.expires_at - task.created_at,
+		TASK_LIFETIME.num_seconds()
+	);
+	assert_eq!(
+		load(&state, &scope)
+			.await
+			.unwrap()
+			.service
+			.open_tasks(task.created_at),
+		vec![monochange_app_feedback::PublicTask {
+			id: "task-1".to_owned(),
+			item: "fb-1".to_owned(),
+			repository: "acme/web".to_owned(),
+			commit: task.target.commit.clone(),
+			issue_number: 12,
+			title: task_draft().title,
+			acceptance: task_draft().acceptance,
+			paths: task_draft().paths,
+			check: task_draft().check,
+			expires_at: task.expires_at,
+		}]
+	);
+}
+
+#[tokio::test]
+async fn private_projects_never_share_tasks() {
+	let server = MockServer::start_async().await;
+	let mut state = state().await;
+	state.github_app = Some(app(&server));
+	let scope = scope(true);
+	accepted(&state, &scope).await;
+	update(&state, &scope, |service| {
+		service.set_shared_compute(true);
+		service.link_issue("fb-1", issue_in("acme/api"))
+	})
+	.await
+	.unwrap();
+
+	assert!(matches!(
+		share_task(&state, &scope, "fb-1", &task_draft(), "ifiok").await,
+		Err(FeedbackError::Service(ServiceError::Task(
+			TaskError::PrivateProject
+		)))
 	));
 }
 

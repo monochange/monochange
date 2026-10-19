@@ -23,6 +23,7 @@ fn console(visibility: RepositoryVisibility, items: Vec<ConsoleItem>) -> Console
 		project_slug: "pocketbook".to_owned(),
 		visibility,
 		acceptance_threshold: 3,
+		shared_compute: false,
 		repositories: vec!["alice/web".to_owned(), "alice/api".to_owned()],
 		items,
 	}
@@ -30,7 +31,7 @@ fn console(visibility: RepositoryVisibility, items: Vec<ConsoleItem>) -> Console
 
 async fn render_console(view: ConsoleView) -> String {
 	Box::pin(render(move || {
-		view! { <ConsoleContent view=view.clone() act=ServerAction::new() reply=ServerAction::new() /> }
+		view! { <ConsoleContent view=view.clone() act=ServerAction::new() reply=ServerAction::new() tasks=TaskActions::new() /> }
 	}))
 	.await
 }
@@ -87,6 +88,8 @@ fn accepted_bug() -> ConsoleItem {
 		withheld: None,
 		actions,
 		similar: Vec::new(),
+		tasks: Vec::new(),
+		shareable: false,
 	}
 }
 
@@ -183,4 +186,104 @@ async fn issued_items_can_be_built_by_the_repository_agent() {
 		"{html}"
 	);
 	assert!(!html.contains("Build with an agent"), "{html}");
+}
+
+#[tokio::test]
+async fn only_public_projects_can_turn_on_shared_compute() {
+	let html = render_console(console(RepositoryVisibility::Private, Vec::new())).await;
+	assert!(
+		html.contains("Shared compute needs every repository in this project to be public"),
+		"{html}"
+	);
+	assert!(!html.contains("Turn on"), "{html}");
+
+	let html = render_console(console(RepositoryVisibility::Public, Vec::new())).await;
+	assert!(html.contains("Experimental"), "{html}");
+	assert!(html.contains("Turn on"), "{html}");
+	assert!(html.contains("name=\"enabled\" value=\"true\""), "{html}");
+
+	let mut enabled = console(RepositoryVisibility::Public, Vec::new());
+	enabled.shared_compute = true;
+	let html = render_console(enabled).await;
+	assert!(html.contains("Turn off"), "{html}");
+	assert!(html.contains("name=\"enabled\" value=\"false\""), "{html}");
+	// A project that turned private can still turn it off.
+	let mut private = console(RepositoryVisibility::Private, Vec::new());
+	private.shared_compute = true;
+	assert!(render_console(private).await.contains("Turn off"));
+}
+
+fn shared(id: &str, status: TaskStatus, open: bool) -> ConsoleTask {
+	ConsoleTask {
+		task: monochange_app_feedback::ContributorTask {
+			id: id.to_owned(),
+			item: "fb-1".to_owned(),
+			target: monochange_app_feedback::TaskTarget {
+				repository: "alice/web".to_owned(),
+				commit: "0123456789abcdef0123456789abcdef01234567".to_owned(),
+				issue_number: 9,
+			},
+			draft: monochange_app_feedback::TaskDraft {
+				title: format!("Round totals {id}"),
+				acceptance: vec!["Totals match".to_owned()],
+				paths: vec!["src/totals/**".to_owned()],
+				check: "cargo test totals".to_owned(),
+			},
+			shared_by: "alice".to_owned(),
+			created_at: 0,
+			expires_at: 0,
+			status,
+		},
+		open,
+		expires: "2 November 2026".to_owned(),
+	}
+}
+
+#[tokio::test]
+async fn shared_tasks_show_their_state_and_screening_reasons() {
+	let mut entry = accepted_bug();
+	entry.shareable = true;
+	entry.tasks = vec![
+		shared(
+			"task-4",
+			TaskStatus::Rejected {
+				reasons: vec![monochange_app_feedback::TaskRejection::UnsupportedCheck {
+					reason: "can't be empty".to_owned(),
+				}],
+			},
+			false,
+		),
+		shared("task-3", TaskStatus::Withdrawn, false),
+		shared("task-2", TaskStatus::Listed, false),
+		shared("task-1", TaskStatus::Listed, true),
+	];
+	let html = render_console(console(RepositoryVisibility::Public, vec![entry])).await;
+	for expected in [
+		"Contributor tasks",
+		"task-4 · Rejected by screening · cargo test totals",
+		"the check command can't be empty",
+		"task-3 · Withdrawn",
+		"task-2 · No longer listed",
+		"task-1 · Listed until 2 November 2026",
+		"Share with contributors",
+		"name=\"acceptance\"",
+		"value=\"Invoice totals are wrong\"",
+		"name=\"task\" value=\"task-1\"",
+	] {
+		assert!(html.contains(expected), "missing {expected}: {html}");
+	}
+	// A withdrawn task can't be withdrawn again.
+	assert!(!html.contains("name=\"task\" value=\"task-3\""), "{html}");
+}
+
+#[tokio::test]
+async fn items_without_tasks_or_a_share_form_show_no_task_block() {
+	let html = render_console(console(RepositoryVisibility::Public, vec![accepted_bug()])).await;
+	assert!(!html.contains("Contributor tasks"), "{html}");
+
+	let mut entry = accepted_bug();
+	entry.tasks = vec![shared("task-1", TaskStatus::Withdrawn, false)];
+	let html = render_console(console(RepositoryVisibility::Public, vec![entry])).await;
+	assert!(html.contains("Contributor tasks"), "{html}");
+	assert!(!html.contains("Share with contributors"), "{html}");
 }

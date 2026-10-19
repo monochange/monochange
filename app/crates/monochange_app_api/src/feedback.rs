@@ -16,6 +16,7 @@ use monochange_app_db::feedback::NotificationRecord;
 use monochange_app_db::feedback::SaveOutcome;
 use monochange_app_feedback::BuildRequest;
 use monochange_app_feedback::CadenceSnapshot;
+use monochange_app_feedback::ContributorTask;
 use monochange_app_feedback::DisclosurePolicy;
 use monochange_app_feedback::FeedbackService;
 use monochange_app_feedback::FeedbackState;
@@ -26,6 +27,7 @@ use monochange_app_feedback::ReleaseLink;
 use monochange_app_feedback::RepositoryVisibility;
 use monochange_app_feedback::RuleBasedTriage;
 use monochange_app_feedback::ServiceError;
+use monochange_app_feedback::TaskDraft;
 use thiserror::Error;
 
 use crate::AppState;
@@ -42,6 +44,9 @@ pub const AGENT_BUILD_EVENT: &str = "monochange-feedback-build";
 /// build starts, so a click never moves an item to "in development" with
 /// nothing running.
 pub const AGENT_WORKFLOW: &str = ".github/workflows/monochange-feedback-build.yml";
+
+/// How long a shared task lists before it expires.
+pub const TASK_LIFETIME: chrono::Duration = chrono::Duration::days(14);
 
 /// How many times an update reruns after losing a race.
 const UPDATE_ATTEMPTS: usize = 3;
@@ -300,6 +305,49 @@ pub async fn start_agent_build(
 	.await?;
 	update(state, scope, |service| service.start_build(item_id)).await?;
 	Ok(request)
+}
+
+/// Shares an accepted item with contributors as a task pinned to the tip of
+/// its repository's default branch, and screens it. A task that fails
+/// screening is stored as rejected, with the reasons, and never lists.
+/// Only projects whose repositories are all public can share, since one
+/// private repository makes the whole project private.
+pub async fn share_task(
+	state: &AppState,
+	scope: &ProjectScope,
+	item_id: &str,
+	draft: &TaskDraft,
+	maintainer: &str,
+) -> Result<ContributorTask, FeedbackError> {
+	let app = state
+		.github_app
+		.as_ref()
+		.ok_or(FeedbackError::GitHubAppMissing)?;
+	let repository = load(state, scope).await?.service.task_repository(item_id)?;
+	let target = scope.repository(&repository)?;
+	let token = app
+		.installation_token(&state.http, target.github_installation_id)
+		.await?;
+	let commit = crate::github_app::default_branch_head(
+		&state.http,
+		&app.api_url,
+		&token,
+		&target.full_name,
+	)
+	.await?;
+	let now = chrono::Utc::now();
+	let expires = now + TASK_LIFETIME;
+	update(state, scope, |service| {
+		service.share_task(
+			item_id,
+			&commit,
+			draft,
+			maintainer,
+			now.timestamp(),
+			expires.timestamp(),
+		)
+	})
+	.await
 }
 
 /// A project as anyone may see it, resolved without a session.
