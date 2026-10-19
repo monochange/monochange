@@ -47,7 +47,10 @@ async fn filters_show_the_url_search_and_account() {
 	assert!(html.contains("value=\"web app\""), "{html}");
 	assert!(html.contains("<option value=\"globex\" selected"), "{html}");
 	assert!(!html.contains("<option value=\"\" selected"), "{html}");
-	assert!(html.contains("<noscript>"), "{html}");
+	assert!(
+		html.contains("<button type=\"submit\" class=\"sr-only\">Search</button>"),
+		"{html}"
+	);
 }
 
 #[tokio::test]
@@ -134,6 +137,7 @@ async fn long_pickers_can_be_filtered() {
 	.await;
 
 	assert!(html.contains("Filter repositories"), "{html}");
+	assert!(html.contains("form=\"repository-picker-filter\""), "{html}");
 	assert_eq!(
 		html.matches("type=\"checkbox\"").count(),
 		PICKER_FILTER_THRESHOLD + 1

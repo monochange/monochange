@@ -17,6 +17,11 @@ use crate::server_fns::repos::RepoInfo;
 /// Pickers with more repositories than this get a filter field.
 pub const PICKER_FILTER_THRESHOLD: usize = 8;
 
+/// A form id no element uses. The picker's filter field names it, so the
+/// field belongs to no form: Enter in it can't submit the project form, and
+/// its text is never sent.
+pub const PICKER_FILTER_FORM: &str = "repository-picker-filter";
+
 /// The repository filters in the current page's query string.
 pub fn use_repository_filter() -> Memo<RepositoryFilter> {
 	let query = use_query_map();
@@ -44,7 +49,10 @@ pub fn ChevronIcon() -> impl IntoView {
 
 /// A name search, plus an account filter when there is more than one
 /// account. It is a plain GET form, so it works before the page hydrates;
-/// afterwards each change updates the URL in place.
+/// afterwards each change updates the URL in place. The visually hidden
+/// submit button keeps Enter working without JavaScript. It isn't wrapped in
+/// `<noscript>`, whose contents a scripting browser parses as text, which
+/// would break hydration.
 #[component]
 pub fn RepositoryFilters(
 	filter: Memo<RepositoryFilter>,
@@ -87,7 +95,7 @@ pub fn RepositoryFilters(
 					<ChevronIcon />
 				</label>
 			})}
-			<noscript><button type="submit" class="button button-quiet">"Search"</button></noscript>
+			<button type="submit" class="sr-only">"Search"</button>
 		</form>
 	}
 }
@@ -193,7 +201,7 @@ pub fn RepositoryPicker(
 				<label class="filter-search picker-search">
 					<span class="sr-only">"Filter repositories by name"</span>
 					<SearchIcon />
-					<input type="search" placeholder="Filter repositories" autocomplete="off" spellcheck="false" on:input=move |event| set_search.set(event_target_value(&event)) on:keydown=|event| if event.key() == "Enter" { event.prevent_default() } />
+					<input type="search" form=PICKER_FILTER_FORM placeholder="Filter repositories" autocomplete="off" spellcheck="false" on:input=move |event| set_search.set(event_target_value(&event)) />
 				</label>
 			})}
 			<div class="checkbox-list">
