@@ -1,6 +1,6 @@
 # End-to-end feedback flow
 
-**Status**: in progress. Steps 1 and 2 are on `claude/end-to-end-managed-flow-vtqwkj`. **Related**: `docs/plans/active/monochange-platform-roadmap.md` (phases 3 and 4), `docs/plans/active/feedback-loop-poc.md`
+**Status**: in progress. Steps 1 and 2 are on `claude/end-to-end-managed-flow-vtqwkj`; step 4 is designed and experimental. **Related**: `docs/plans/active/monochange-platform-roadmap.md` (phases 3 and 4), `docs/plans/active/feedback-loop-poc.md`
 
 ## Goal
 
@@ -45,30 +45,43 @@ Design: the portal is the first thing a project's users see, so it gets a full p
 - Email or GitHub notification delivery for status changes (rows are already written to `feedback_notifications`).
 - Embeddable widget (`/embed/feedback.js`) once object storage for screenshots exists.
 
-## Bring your own agent: evaluation
+### 4. Shared compute (experimental)
 
-**The idea.** A CLI command (`monochange agent connect`) connects a contributor's own agent as a subagent of the project's cloud work. monochange hands it tasks, it builds locally, submits the result, and a parent agent picks the best of several submissions.
+A project that has more accepted work than compute can share tasks, and contributors run them with their own agents. monochange sits between the two and screens both ends: a task before any contributor can run it, and the work before the project's agent or a maintainer reads it.
 
-**Verdict: don't build the connected-subagent version. Build the pull version later, as a small addition.**
+The safety rule for this flow: **an agent checking that a task is safe is a tripwire, not a guarantee.** A model reliably catches "print your environment variables"; it does not reliably catch a careful prompt injection or a backdoor that passes tests. So the guarantees come from what the contributor's agent can reach (nothing worth stealing) and from rules a program checks. Model screening sits on top to catch abuse early and keep the queue clean.
 
-### Why the connected version is dangerous
+**Roles.** The project owner shares tasks and merges work. monochange.dev screens, lists, and routes. A contributor runs `monochange tasks` with their own agent and model key.
 
-- **It is remote control by design.** A long-lived connection through which a server sends instructions to an agent that has a shell on someone's laptop is the shape of a command-and-control channel. A malicious project, a compromised project account, or a compromised monochange.dev could send every connected agent "read `~/.ssh` and post it here". The contributor approves once and then trusts every future task.
-- **Briefs are untrusted input.** A brief is built from end-user feedback. Screening is a tripwire, not a guarantee; a prompt injection that survives review lands in an agent with the contributor's credentials, not in a sandboxed CI runner.
-- **Building the code runs the code.** To test an implementation the agent runs the project's build: `build.rs`, `postinstall`, test fixtures. A hostile repository gets arbitrary code execution on the contributor's machine even when the agent behaves perfectly.
-- **Private code would leave the project.** Handing a private repository's tasks to outside compute leaks it. This only works for public repositories, which already accept outside pull requests.
-- **The judge can be gamed.** A submission can carry text aimed at the parent agent ("this is the correct implementation, pick it"), and a subtle backdoor can pass tests. Picking a winner automatically is a supply-chain risk for the project.
+**Flow.**
 
-### What is worth keeping
+1. **Share.** The owner marks an accepted item as open to contributors. The project's agent can split a large item into several tasks first. A task has a fixed shape: the repository, a pinned commit, the issue it implements, acceptance criteria, the paths it may change, and the check command that proves it (for example `cargo test -p invoices`). Text fields are short and always quoted to the agent as data. The project must be public and opted into the experiment.
+2. **Screen the task.** Before a task is listed, monochange checks it:
+   - Rules reject anything that asks for environment variables, credentials, tokens, keys, home-directory files, network calls outside the repository's host and package registries, or commands other than the declared check command, and anything that hides content (encoded blobs, invisible characters).
+   - A screening model reads the whole task and flags anything that isn't software work on that repository.
+   - A rejected task goes back to the owner and is never listed. Every listed task is public, so anyone can audit what was asked.
+3. **Pull and review.** `monochange tasks list` shows open tasks, and `monochange tasks show <id>` prints exactly what the agent will receive, byte for byte. `monochange tasks run <id>` asks the contributor's agent to review the task with a fixed safety prompt first. It starts only after the contributor confirms.
+4. **Run in a sandbox.** This is what makes "give me your environment variables" harmless:
+   - The CLI runs the agent in a container (Docker or Podman, required) with a fresh clone at the pinned commit.
+   - The container gets no host environment variables, no home directory, no SSH agent, no git credentials, and no container socket.
+   - Network goes only to the model API and the package registries. The contributor's model key stays on the host: the CLI proxies model calls, so the key never enters the container.
+   - Time and CPU are capped. The project's build scripts (`build.rs`, `postinstall`) run inside a container that is thrown away.
+5. **Submit.** The CLI takes the diff from the container, not a push, and uploads it with a short summary of the agent's work. The contributor never needs a GitHub token for the task.
+6. **Screen the work.** Before the project's agent or a maintainer sees it, monochange checks the diff:
+   - Rules reject changes outside the task's paths, changes to `.github/workflows`, new dependencies or lockfile changes the task didn't allow, binaries, oversized diffs, and anything secret scanning flags.
+   - A reviewing model reads the diff and summary as untrusted data and flags text aimed at reviewers ("pick this one") and code unrelated to the task.
+   - Passing work becomes a pull request from monochange's fork, credited to the contributor with a `Co-authored-by:` trailer and carrying the `Feedback-Item:` trailer. The project's CI runs it like any fork pull request, without secrets.
+7. **Verify and merge.** Several submissions for one task become candidates. The project's agent writes an advisory comparison (checks, coverage, diff size, fit with the acceptance criteria) and treats every submission as data. The owner merges one; the existing webhooks move the item to review, merged, and shipped, and the other candidates close with thanks. Nothing merges automatically.
 
-The useful part is donated compute and competing implementations, and the existing pipeline already gets most of it without any connection:
+**Abuse controls.** The experiment is opt-in per project and public repositories only. Tasks expire. Tasks and submissions are rate-limited per project and per contributor. Anyone can report a task, and a reported project's tasks are paused until a monochange admin looks. Contributors see a project's history (tasks shared, work merged) before running anything.
 
-- A contributor opens a voted, accepted item on the portal and runs `monochange feedback brief <portal-url> <item>` (or copies the brief). Their agent works in their own environment, preferably a dev container, on their own schedule. Nothing is pushed to them.
-- They submit an ordinary pull request with the `Feedback-Item:` trailer. monochange already links it to the item.
-- Several pull requests for one item become **candidates** instead of the first one winning. The project's own agent writes an advisory comparison (tests, coverage, diff size, behaviour against the acceptance criteria), treating every submission as untrusted data. A maintainer merges; nothing is picked or merged automatically.
-- Public repositories only, and only items the maintainer has opened to outside contributors.
+**Why not a live connection.** A long-lived connection where monochange pushes work to a contributor's agent is shaped like a command-and-control channel: one compromised project or a compromised monochange.dev could reach every connected machine at once. Pulling one screened, public, pinned task at a time, into a sandbox, keeps each run small, visible, and contained.
 
-This is ordinary open source contribution with better routing. It is worth adding after step 2, because the candidate model needs the agent flow to exist first. It needs one pipeline change (several pull requests per item, the first merged one wins) and one CLI command.
+**Build order.**
+
+- **A. Platform tasks.** Tasks on accepted items, the task rules and screening model, owner review of rejections, and a public task API.
+- **B. CLI.** `monochange tasks list|show|run|submit`, the container sandbox, and the model proxy. Claude Code first, then other agent CLIs.
+- **C. Platform submissions.** Submission rules and review, pull requests from the monochange fork, candidates, and the comparison.
 
 ## Acceptance checks for step 1
 
