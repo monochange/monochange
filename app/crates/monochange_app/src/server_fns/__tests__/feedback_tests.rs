@@ -14,6 +14,7 @@ use leptos::reactive::computed::ScopedFuture;
 use monochange_app_api::AppState;
 use monochange_app_api::feedback::FeedbackError;
 use monochange_app_api::github_app::GitHubAppAuth;
+use monochange_app_feedback::ContributorTask;
 use monochange_app_feedback::FeedbackItem;
 use monochange_app_feedback::FeedbackKind;
 use monochange_app_feedback::FeedbackSubmission;
@@ -21,7 +22,6 @@ use monochange_app_feedback::RepositoryVisibility;
 use monochange_app_feedback::ServiceError;
 use monochange_app_feedback::Stage;
 use monochange_app_feedback::SubmitterIdentity;
-use monochange_app_feedback::TaskStatus;
 use monochange_app_feedback::VotingRules;
 use rsa::RsaPrivateKey;
 use rsa::pkcs1::EncodeRsaPrivateKey;
@@ -40,6 +40,19 @@ use super::withdraw_task;
 use crate::tests::feedback::context;
 use crate::tests::feedback::state;
 use crate::tests::feedback::submit;
+
+async fn stored_tasks(state: &Arc<AppState>) -> Vec<ContributorTask> {
+	let public = monochange_app_api::feedback::public_project(state, "alice", "pocketbook")
+		.await
+		.unwrap()
+		.unwrap();
+	monochange_app_api::feedback::load(state, &public.scope)
+		.await
+		.unwrap()
+		.service
+		.tasks()
+		.to_vec()
+}
 
 async fn stage(state: &Arc<AppState>, id: &str) -> Stage {
 	let public = monochange_app_api::feedback::public_project(state, "alice", "pocketbook")
@@ -767,31 +780,41 @@ async fn public_projects_share_accepted_items_as_tasks() {
 	share(&owner, &id, "cargo test totals").await.unwrap();
 	share(&owner, &id, "printenv").await.unwrap();
 
-	let view = console(&owner).await;
-	let tasks = &view.items[0].tasks;
+	let stored = stored_tasks(&state).await;
 	assert_eq!(
-		tasks
-			.iter()
-			.map(|entry| (entry.task.id.as_str(), entry.open))
-			.collect::<Vec<_>>(),
-		[("task-2", false), ("task-1", true)]
-	);
-	assert!(matches!(tasks[0].task.status, TaskStatus::Rejected { .. }));
-	assert_eq!(
-		tasks[1].task.draft.acceptance,
+		stored[0].draft.acceptance,
 		[
 			"Totals match their invoices",
 			"A test covers fractional cents"
 		]
 	);
-	assert_eq!(tasks[1].task.target.issue_number, 9);
-	assert_eq!(tasks[1].task.shared_by, "alice");
+	assert_eq!(stored[0].target.issue_number, 9);
+	assert_eq!(stored[0].shared_by, "alice");
+	let expires = chrono::DateTime::from_timestamp(stored[0].expires_at, 0)
+		.unwrap()
+		.format("%-d %B %Y")
+		.to_string();
+
+	let view = console(&owner).await;
+	let tasks = &view.items[0].tasks;
 	assert_eq!(
-		tasks[1].expires,
-		chrono::DateTime::from_timestamp(tasks[1].task.expires_at, 0)
-			.unwrap()
-			.format("%-d %B %Y")
-			.to_string()
+		tasks
+			.iter()
+			.map(|entry| (entry.id.as_str(), entry.state.as_str(), entry.withdrawable))
+			.collect::<Vec<_>>(),
+		[
+			("task-2", "Rejected by screening", true),
+			("task-1", format!("Listed until {expires}").as_str(), true),
+		]
+	);
+	assert_eq!(tasks[1].title, "Round quarterly totals to cents");
+	assert_eq!(tasks[1].check, "cargo test totals");
+	assert!(tasks[1].reasons.is_empty());
+	assert_eq!(
+		tasks[0].reasons,
+		[
+			"the check command must start with a build tool such as cargo, npm, or pytest, not printenv"
+		]
 	);
 
 	withdraw(&owner, "task-1").await.unwrap();
@@ -800,13 +823,17 @@ async fn public_projects_share_accepted_items_as_tasks() {
 		Err("Task task-1 was already withdrawn.".to_owned())
 	);
 	let view = console(&owner).await;
-	assert_eq!(view.items[0].tasks[1].task.status, TaskStatus::Withdrawn);
-	assert!(!view.items[0].tasks[1].open);
+	assert_eq!(view.items[0].tasks[1].state, "Withdrawn");
+	assert!(!view.items[0].tasks[1].withdrawable);
 
+	// Opting out stops a listed task from listing without withdrawing it.
+	share(&owner, &id, "cargo test totals").await.unwrap();
 	opt_in(&owner, false).await.unwrap();
 	let view = console(&owner).await;
 	assert!(!view.shared_compute);
 	assert!(!view.items[0].shareable);
+	assert_eq!(view.items[0].tasks[0].state, "No longer listed");
+	assert!(view.items[0].tasks[0].withdrawable);
 }
 
 #[tokio::test]

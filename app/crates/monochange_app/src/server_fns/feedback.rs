@@ -5,7 +5,6 @@
 mod tests;
 
 use leptos::server;
-use monochange_app_feedback::ContributorTask;
 use monochange_app_feedback::FeedbackItem;
 use monochange_app_feedback::RepositoryVisibility;
 use monochange_app_feedback::SimilarItem;
@@ -138,14 +137,18 @@ pub struct ConsoleItem {
 	pub shareable: bool,
 }
 
-/// A shared task as its maintainer sees it.
+/// A shared task as its maintainer sees it, already worded on the server so
+/// the console's eager bundle carries no task model or screening messages.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ConsoleTask {
-	pub task: ContributorTask,
-	/// Whether contributors can run it right now.
-	pub open: bool,
-	/// When it stops listing, as a date.
-	pub expires: String,
+	pub id: String,
+	pub title: String,
+	pub check: String,
+	/// Where it stands, such as "Listed until 2 November 2026".
+	pub state: String,
+	/// Why screening refused it; empty unless it was rejected.
+	pub reasons: Vec<String>,
+	pub withdrawable: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -236,6 +239,36 @@ fn optional(value: Option<String>) -> Option<String> {
 		.filter(|value| !value.is_empty())
 }
 
+/// What a shared task's maintainer needs to know about it at a glance.
+#[cfg(not(target_arch = "wasm32"))]
+fn console_task(task: &monochange_app_feedback::ContributorTask, open: bool) -> ConsoleTask {
+	use monochange_app_feedback::TaskStatus;
+
+	let state = match &task.status {
+		TaskStatus::Listed if open => {
+			let expires = chrono::DateTime::from_timestamp(task.expires_at, 0)
+				.map(|expires| expires.format("%-d %B %Y").to_string())
+				.unwrap_or_default();
+			format!("Listed until {expires}")
+		}
+		TaskStatus::Listed => "No longer listed".to_owned(),
+		TaskStatus::Rejected { .. } => "Rejected by screening".to_owned(),
+		TaskStatus::Withdrawn => "Withdrawn".to_owned(),
+	};
+	let reasons = match &task.status {
+		TaskStatus::Rejected { reasons } => reasons.iter().map(ToString::to_string).collect(),
+		TaskStatus::Listed | TaskStatus::Withdrawn => Vec::new(),
+	};
+	ConsoleTask {
+		id: task.id.clone(),
+		title: task.draft.title.clone(),
+		check: task.draft.check.clone(),
+		state,
+		reasons,
+		withdrawable: task.status != TaskStatus::Withdrawn,
+	}
+}
+
 #[cfg(not(target_arch = "wasm32"))]
 fn console_view(
 	maintained: &super::organizations::MaintainedProject,
@@ -286,15 +319,7 @@ fn console_view(
 					.iter()
 					.rev()
 					.filter(|task| task.item == item.id)
-					.map(|task| {
-						ConsoleTask {
-							open: open.iter().any(|listed| listed.id == task.id),
-							expires: chrono::DateTime::from_timestamp(task.expires_at, 0)
-								.map(|expires| expires.format("%-d %B %Y").to_string())
-								.unwrap_or_default(),
-							task: task.clone(),
-						}
-					})
+					.map(|task| console_task(task, open.iter().any(|listed| listed.id == task.id)))
 					.collect(),
 				shareable: service.task_repository(&item.id).is_ok(),
 				item: item.clone(),

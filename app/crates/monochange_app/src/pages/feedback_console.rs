@@ -16,7 +16,6 @@ use monochange_app_feedback::FeedbackKind;
 use monochange_app_feedback::ReproductionOutcome;
 use monochange_app_feedback::Sensitivity;
 use monochange_app_feedback::Stage;
-use monochange_app_feedback::TaskStatus;
 
 use crate::pages::organization::Unavailable;
 use crate::pages::organization::action_error;
@@ -276,16 +275,6 @@ fn SharedComputePanel(
 	}
 }
 
-/// What a shared task's maintainer needs to know about it at a glance.
-fn task_state(entry: &ConsoleTask) -> String {
-	match &entry.task.status {
-		TaskStatus::Listed if entry.open => format!("Listed until {}", entry.expires),
-		TaskStatus::Listed => "No longer listed".to_owned(),
-		TaskStatus::Rejected { .. } => "Rejected by screening".to_owned(),
-		TaskStatus::Withdrawn => "Withdrawn".to_owned(),
-	}
-}
-
 /// The tasks shared from one item, and the form that shares another.
 #[component]
 fn ItemTasks(
@@ -306,18 +295,14 @@ fn ItemTasks(
 	let list = tasks
 		.into_iter()
 		.map(|entry| {
-			let reasons = match &entry.task.status {
-				TaskStatus::Rejected { reasons } => reasons.iter().map(ToString::to_string).collect(),
-				_ => Vec::new(),
-			};
-			let withdrawable = entry.task.status != TaskStatus::Withdrawn;
-			let id = entry.task.id.clone();
+			let ConsoleTask { id, title, check, state, reasons, withdrawable } = entry;
+			let summary = format!("{id} · {state} · {check}");
 			let hidden = fields(&organization, &project);
 			view! {
 				<li class="console-task">
 					<div>
-						<b>{entry.task.draft.title.clone()}</b>
-						<small>{format!("{} · {} · {}", entry.task.id, task_state(&entry), entry.task.draft.check)}</small>
+						<b>{title}</b>
+						<small>{summary}</small>
 						{(!reasons.is_empty()).then(|| view! {
 							<ul class="console-task-reasons">{reasons.into_iter().map(|reason| view! { <li>{reason}</li> }).collect::<Vec<_>>()}</ul>
 						})}
