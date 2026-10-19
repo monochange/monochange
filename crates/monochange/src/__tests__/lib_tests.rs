@@ -78,6 +78,7 @@ use crate::git_support::run_git_process;
 use crate::git_support::run_git_status;
 use crate::interactive::InteractiveChangeResult;
 use crate::interactive::InteractiveTarget;
+use crate::missing_configuration_warning;
 use crate::parse_snapshot_request;
 use crate::plan_release;
 use crate::push_change_target_markdown;
@@ -1205,7 +1206,7 @@ async fn publish_subcommands_dispatch_to_their_built_in_steps() {
 
 	assert_eq!(
 		error.to_string(),
-		"config error: missing publish-readiness ref"
+		"config error: missing required option `--from <ref>`; pass the release commit or tag to check, for example `--from HEAD`"
 	);
 }
 
@@ -1376,7 +1377,7 @@ async fn comment_released_issues_help_documents_post_merge_options() {
 	.await
 	.unwrap_or_else(|error| panic!("comment-released-issues help: {error}"));
 
-	assert!(output.contains("Run the built-in comment-released-issues release workflow step"));
+	assert!(output.contains("Comment on linked issues shipped in a prepared release"));
 	assert!(output.contains("--from-ref <FROM-REF>"));
 	assert!(output.contains("--auto-close-issues"));
 }
@@ -1395,7 +1396,7 @@ async fn repair_release_help_describes_retargeting_workflow() {
 	.await
 	.unwrap_or_else(|error| panic!("repair-release help: {error}"));
 
-	assert!(output.contains("Run the built-in retarget-release release workflow step"));
+	assert!(output.contains("Repair a recent release by retargeting its release tags"));
 	assert!(output.contains("--from"));
 	assert!(output.contains("--sync-provider"));
 }
@@ -1536,7 +1537,9 @@ async fn versions_help_and_matches_document_dedicated_versions_command() {
 	)
 	.await
 	.unwrap_or_else(|error| panic!("versions help: {error}"));
-	assert!(versions_help.contains("Run the built-in display-versions release workflow step"));
+	assert!(versions_help.contains(
+		"Show the next version for each release group and package without writing files"
+	));
 	assert!(versions_help.contains("--format <FORMAT>"));
 
 	let matches = build_command_for_root("monochange", &fixture_root)
@@ -7829,7 +7832,7 @@ async fn execute_cli_command_builtin_release_steps_require_from_input() {
 				always_run: false,
 				inputs: BTreeMap::new(),
 			},
-			"missing publish-readiness ref",
+			"missing required option `--from <ref>`",
 		),
 		(
 			"tag-release",
@@ -14493,27 +14496,6 @@ fn resolve_release_datetime_honors_env_overrides() {
 }
 
 #[test]
-fn diff_output_supports_color_respects_common_terminal_env_controls() {
-	temp_env::with_var("NO_COLOR", Some("1"), || {
-		assert!(!crate::diff_output_supports_color(true));
-	});
-	temp_env::with_var("NO_COLOR", None::<&str>, || {
-		temp_env::with_var("CLICOLOR", Some("0"), || {
-			assert!(!crate::diff_output_supports_color(true));
-		});
-		temp_env::with_var("CLICOLOR", None::<&str>, || {
-			temp_env::with_var("CLICOLOR_FORCE", Some("1"), || {
-				assert!(crate::diff_output_supports_color(false));
-			});
-			temp_env::with_var("CLICOLOR_FORCE", None::<&str>, || {
-				assert!(crate::diff_output_supports_color(true));
-				assert!(!crate::diff_output_supports_color(false));
-			});
-		});
-	});
-}
-
-#[test]
 fn colorize_diff_output_styles_unified_diff_markers() {
 	assert_eq!(
 		crate::colorize_diff_output("--- a/Cargo.toml"),
@@ -14571,10 +14553,8 @@ fn build_file_diff_previews_handles_missing_files_and_color_modes() {
 		},
 	];
 
-	let plain_previews = temp_env::with_var("NO_COLOR", Some("1"), || {
-		crate::build_file_diff_previews(tempdir.path(), &updates)
-			.unwrap_or_else(|error| panic!("plain previews: {error}"))
-	});
+	let plain_previews = crate::build_file_diff_previews(tempdir.path(), &updates)
+		.unwrap_or_else(|error| panic!("plain previews: {error}"));
 	assert_eq!(plain_previews.len(), 2);
 	assert!(
 		plain_previews
@@ -14588,13 +14568,8 @@ fn build_file_diff_previews_handles_missing_files_and_color_modes() {
 		.join("\n---\n");
 	assert!(rendered_plain_diffs.contains("new-file.md"));
 
-	let colored_previews = temp_env::with_vars(
-		[
-			("NO_COLOR", None::<&str>),
-			("CLICOLOR", None::<&str>),
-			("CLICOLOR_FORCE", Some("1")),
-		],
-		|| {
+	let colored_previews = crate::tests::block_on_in_context(
+		crate::output::color::with_color_choice(crate::output::color::ColorChoice::Always, async {
 			crate::build_file_diff_previews(
 				tempdir.path(),
 				&[crate::FileUpdate {
@@ -14602,9 +14577,9 @@ fn build_file_diff_previews_handles_missing_files_and_color_modes() {
 					content: updated_existing_content,
 				}],
 			)
-			.unwrap_or_else(|error| panic!("colored previews: {error}"))
-		},
-	);
+		}),
+	)
+	.unwrap_or_else(|error| panic!("colored previews: {error}"));
 	assert_eq!(colored_previews.len(), 1);
 	assert!(colored_previews[0].display_diff.contains("\u{1b}["));
 	assert!(!colored_previews[0].diff.contains("\u{1b}["));
@@ -15888,7 +15863,7 @@ async fn cli_help_subcommand_renders_detailed_command_help() {
 	.unwrap_or_else(|error| panic!("help step validate output: {error}"));
 
 	assert!(output.contains("validate"));
-	assert!(output.contains("Run the built-in validate release workflow step"));
+	assert!(output.contains("Validate configuration, changesets, and version groups"));
 	assert!(output.contains("Usage"));
 }
 
@@ -15915,12 +15890,32 @@ fn format_clap_error_returns_plain_text_without_color() {
 }
 
 #[test]
-fn format_clap_error_returns_empty_with_color() {
+fn format_clap_error_returns_ansi_styled_text_with_color() {
 	use clap::Command;
-	let cmd = Command::new("test").about("test cmd");
+	let cmd = Command::new("test")
+		.about("test cmd")
+		.styles(clap::builder::Styles::styled());
 	let err = cmd.try_get_matches_from(["test", "--help"]).unwrap_err();
 	let out = crate::format_clap_error(&err, true);
-	assert_eq!(out, String::new());
+	assert!(out.contains("\u{1b}["));
+	assert_eq!(
+		crate::output::strip_terminal_controls(&out),
+		err.to_string()
+	);
+}
+
+#[test]
+fn diagnostic_command_skips_the_color_flag_in_both_spellings() {
+	for args in [
+		vec!["monochange", "--color", "always", "publish", "readiness"],
+		vec!["monochange", "--color=never", "publish", "readiness"],
+	] {
+		let args = args.into_iter().map(OsString::from).collect::<Vec<_>>();
+		assert_eq!(
+			crate::cli_diagnostic_command(&args).as_deref(),
+			Some("monochange publish readiness")
+		);
+	}
 }
 
 #[test]
@@ -17829,4 +17824,38 @@ fn validate_counts_warnings_in_its_headline() {
 	.unwrap_or_else(|error| panic!("validate with warnings: {error}"));
 
 	assert_eq!(output, "✔ Workspace validation passed · 1 warning");
+}
+
+#[test]
+fn missing_configuration_warning_only_fires_for_release_commands_without_config() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+
+	assert!(
+		missing_configuration_warning(Some("check"), root)
+			.is_some_and(|warning| warning.contains("monochange init"))
+	);
+	assert_eq!(missing_configuration_warning(Some("init"), root), None);
+	assert_eq!(missing_configuration_warning(None, root), None);
+
+	fs::write(root.join("monochange.toml"), "")
+		.unwrap_or_else(|error| panic!("write config: {error}"));
+	assert_eq!(missing_configuration_warning(Some("check"), root), None);
+}
+
+#[test]
+fn release_commands_still_run_with_defaults_when_configuration_is_missing() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let output = run_cli(
+		tempdir.path(),
+		[
+			OsString::from("monochange"),
+			OsString::from("config"),
+			OsString::from("--format"),
+			OsString::from("json"),
+		],
+	)
+	.unwrap_or_else(|error| panic!("config without monochange.toml: {error}"));
+
+	assert!(output.trim_start().starts_with('{'), "{output}");
 }

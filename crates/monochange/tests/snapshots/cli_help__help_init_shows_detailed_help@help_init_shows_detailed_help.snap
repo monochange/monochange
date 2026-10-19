@@ -19,20 +19,13 @@ Options:
       --force
           Overwrite an existing monochange.toml file
 
-      --provider <provider>
-          Configure release automation for the specified provider. When provided, the generated config includes:
-          
-          - [source] section with the provider configured
-          - Release and pull request settings for the provider
-          - A minimal starter config without generated [cli.*] command aliases
-          - GitHub Actions workflows (for --provider=github)
-          
-          Supported providers: github, gitlab, gitea
+      --provider <PROVIDER>
+          Source-control provider for release automation workflows
           
           [possible values: github, gitlab, gitea]
 
   -h, --help
-          Print help (see a summary with '-h')
+          Print help
 
 Global Options:
   -q, --quiet
@@ -40,6 +33,11 @@ Global Options:
 
   -v, --verbose
           Show full result lists and logs, every step timing, and progress notes
+
+      --color <WHEN>
+          Control when output uses color; `auto` honors NO_COLOR, CLICOLOR, and CLICOLOR_FORCE
+          
+          [possible values: auto, always, never]
 
       --progress-format <FORMAT>
           Control progress output on stderr
@@ -51,6 +49,18 @@ Global Options:
 
       --snapshot
           Print a normalized JSON snapshot for this command subtree
+
+Examples:
+  monochange init
+  monochange init --provider github
+  monochange init --force
+
+With --provider, the generated config also includes:
+  - a [source] section for the provider
+  - release and pull request settings for the provider
+  - GitHub Actions workflows (for --provider github)
+
+The starter config does not generate [cli.*] command aliases.
 
 
 ----- stderr -----

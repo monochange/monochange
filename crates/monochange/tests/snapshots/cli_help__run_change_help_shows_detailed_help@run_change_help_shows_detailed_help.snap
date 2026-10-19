@@ -14,13 +14,7 @@ exit_code: 0
 ----- stdout -----
 Create a change file for one or more packages
 
-Usage: monochange run change [--dry-run] [--interactive] --package <PACKAGE> [--bump <BUMP>] --reason <REASON> [--version <VERSION>] [--type <TYPE>] [--caused-by <CAUSED_BY>] [--details <DETAILS>] [--output <PATH>]
-
-Options:
-  -h, --help  Print help
-
-Release Options:
-      --dry-run  Run the command in dry-run mode when supported
+Usage: monochange run change [OPTIONS] --package <PACKAGE> --reason <REASON>
 
 Options:
   -i, --interactive            
@@ -32,10 +26,15 @@ Options:
       --caused-by <CAUSED_BY>  
       --details <DETAILS>      
       --output <PATH>          
+  -h, --help                   Print help
+
+Release Options:
+      --dry-run  Show what would change without writing files or contacting services
 
 Global Options:
   -q, --quiet                     Suppress result, progress, and diagnostic output without changing execution
   -v, --verbose                   Show full result lists and logs, every step timing, and progress notes
+      --color <WHEN>              Control when output uses color; `auto` honors NO_COLOR, CLICOLOR, and CLICOLOR_FORCE [possible values: auto, always, never]
       --progress-format <FORMAT>  Control progress output on stderr [possible values: auto, unicode, ascii, json]
       --jq <EXPRESSION>           Filter explicit JSON output; requires `--format json` or `--format json-min`
       --snapshot                  Print a normalized JSON snapshot for this command subtree

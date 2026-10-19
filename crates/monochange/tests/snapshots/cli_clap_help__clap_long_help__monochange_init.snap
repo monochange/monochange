@@ -13,20 +13,13 @@ Generate monochange.toml with detected packages and groups
       [93m--force[0m
           Overwrite an existing monochange.toml file
 
-      [93m--provider[0m[95m [0m[95m<provider>[0m
-          Configure release automation for the specified provider. When provided, the generated config includes:
-
-          - [source] section with the provider configured
-          - Release and pull request settings for the provider
-          - A minimal starter config without generated [cli.*] command aliases
-          - GitHub Actions workflows (for --provider=github)
-
-          Supported providers: github, gitlab, gitea
+      [93m--provider[0m[95m [0m[95m<PROVIDER>[0m
+          Source-control provider for release automation workflows
 
           [possible values: github, gitlab, gitea]
 
   [93m-h[0m, [93m--help[0m
-          Print help (see a summary with '-h')
+          Print help
 
 [1m[96mGlobal Options:[0m
   [93m-q[0m, [93m--quiet[0m
@@ -34,6 +27,11 @@ Generate monochange.toml with detected packages and groups
 
   [93m-v[0m, [93m--verbose[0m
           Show full result lists and logs, every step timing, and progress notes
+
+      [93m--color[0m[95m [0m[95m<WHEN>[0m
+          Control when output uses color; `auto` honors NO_COLOR, CLICOLOR, and CLICOLOR_FORCE
+
+          [possible values: auto, always, never]
 
       [93m--progress-format[0m[95m [0m[95m<FORMAT>[0m
           Control progress output on stderr
@@ -45,3 +43,15 @@ Generate monochange.toml with detected packages and groups
 
       [93m--snapshot[0m
           Print a normalized JSON snapshot for this command subtree
+
+Examples:
+  monochange init
+  monochange init --provider github
+  monochange init --force
+
+With --provider, the generated config also includes:
+  - a [source] section for the provider
+  - release and pull request settings for the provider
+  - GitHub Actions workflows (for --provider github)
+
+The starter config does not generate [cli.*] command aliases.

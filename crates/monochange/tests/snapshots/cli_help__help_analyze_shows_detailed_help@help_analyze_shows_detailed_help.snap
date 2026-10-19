@@ -28,17 +28,17 @@ Options:
       --head-ref <REF>
           Head ref to analyze. Defaults to HEAD
 
-      --detection-level <detection-level>
+      --detection-level <LEVEL>
           Level of semantic detail to request from analyzers
           
           [default: signature]
           [possible values: basic, signature, semantic]
 
-      --format <format>
-          Output format
+      --format <FORMAT>
+          Output format for the command result
           
           [default: text]
-          [possible values: text, json, json-min, markdown, md]
+          [possible values: text, json, json-min, md]
 
   -h, --help
           Print help
@@ -49,6 +49,11 @@ Global Options:
 
   -v, --verbose
           Show full result lists and logs, every step timing, and progress notes
+
+      --color <WHEN>
+          Control when output uses color; `auto` honors NO_COLOR, CLICOLOR, and CLICOLOR_FORCE
+          
+          [possible values: auto, always, never]
 
       --progress-format <FORMAT>
           Control progress output on stderr

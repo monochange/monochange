@@ -20,7 +20,6 @@ monochange discovers packages across Cargo, npm/pnpm/Bun, Deno, Dart/Flutter, Py
 
 [1m[96mWorkspace Commands:[0m
   [93minit[0m           Generate monochange.toml with detected packages and groups
-  [93mpopulate[0m       Check for default CLI workflow aliases (none are provided in this version)
   [93mdiscover[0m       Discover packages across supported ecosystems
   [93mconfig[0m         Render resolved monochange configuration and workspace metadata
   [93mcheck[0m          Validate configuration, changesets, and run manifest lint rules
@@ -48,7 +47,7 @@ monochange discovers packages across Cargo, npm/pnpm/Bun, Deno, Dart/Flutter, Py
 [1m[96mWorkflow Commands (monochange.toml):[0m
   [93mchange[0m         Create a change file for one or more packages (run it with `monochange run change`)
   [93mpublish-check[0m  Validate the release and preview package publishing in dry-run mode
-  [93mrelease[0m        Prepare a pull request release from discovered change files. It should only be run in a github action.
+  [93mrelease[0m        Prepare a release pull request from pending changesets (run in GitHub Actions)
 
 [1m[96mOptions:[0m
   [93m-q[0m, [93m--quiet[0m
@@ -56,6 +55,11 @@ monochange discovers packages across Cargo, npm/pnpm/Bun, Deno, Dart/Flutter, Py
 
   [93m-v[0m, [93m--verbose[0m
           Show full result lists and logs, every step timing, and progress notes
+
+      [93m--color[0m[95m [0m[95m<WHEN>[0m
+          Control when output uses color; `auto` honors NO_COLOR, CLICOLOR, and CLICOLOR_FORCE
+
+          [possible values: auto, always, never]
 
       [93m--progress-format[0m[95m [0m[95m<FORMAT>[0m
           Control progress output on stderr

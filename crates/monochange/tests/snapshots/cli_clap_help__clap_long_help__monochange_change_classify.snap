@@ -5,7 +5,7 @@ expression: render_help_snapshot(&path)
 Version: [current]
 Command: monochange change classify
 
-Compare a merge candidate with its base branch and each package's latest release. Reports compatibility impact, proposed changeset bump, confidence, completeness, and the findings that support each recommendation.
+Compare the pull request and latest release, then propose package bumps
 
 [1m[97mUsage:[0m [93mmonochange change classify[0m [95m[OPTIONS][0m
 
@@ -40,10 +40,10 @@ Compare a merge candidate with its base branch and each package's latest release
           Skip registered cli command-surface comparisons; MONOCHANGE_SKIP_CLI_SNAPSHOTS=1 also skips them
 
       [93m--format[0m[95m [0m[95m<FORMAT>[0m
-          Report format
+          Output format for the command result
 
           [default: text]
-          [possible values: markdown, md, json, json-min, text]
+          [possible values: text, json, json-min, md]
 
       [93m--output[0m[95m [0m[95m<PATH>[0m
           Also write the report to a file
@@ -55,7 +55,7 @@ Compare a merge candidate with its base branch and each package's latest release
           [possible values: none, public]
 
   [93m-h[0m, [93m--help[0m
-          Print help (see a summary with '-h')
+          Print help
 
 [1m[96mGlobal Options:[0m
   [93m-q[0m, [93m--quiet[0m
@@ -63,6 +63,11 @@ Compare a merge candidate with its base branch and each package's latest release
 
   [93m-v[0m, [93m--verbose[0m
           Show full result lists and logs, every step timing, and progress notes
+
+      [93m--color[0m[95m [0m[95m<WHEN>[0m
+          Control when output uses color; `auto` honors NO_COLOR, CLICOLOR, and CLICOLOR_FORCE
+
+          [possible values: auto, always, never]
 
       [93m--progress-format[0m[95m [0m[95m<FORMAT>[0m
           Control progress output on stderr
@@ -74,3 +79,5 @@ Compare a merge candidate with its base branch and each package's latest release
 
       [93m--snapshot[0m
           Print a normalized JSON snapshot for this command subtree
+
+Compares a merge candidate with its base branch and each package's latest release. Reports compatibility impact, proposed changeset bump, confidence, completeness, and the findings that support each recommendation.

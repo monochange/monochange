@@ -13,7 +13,6 @@ use std::fmt::Write as _;
 use std::fs;
 #[cfg(feature = "mcp")]
 use std::future::Future;
-use std::io::IsTerminal;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command as ProcessCommand;
@@ -716,12 +715,12 @@ fn command_args_after_globals(args: &[OsString]) -> impl Iterator<Item = &str> {
 			}
 			if matches!(
 				*arg,
-				"--log-level" | "--format" | "--progress-format" | "--jq"
+				"--log-level" | "--format" | "--progress-format" | "--jq" | "--color"
 			) {
 				skip_value = true;
 				return true;
 			}
-			matches!(*arg, "--quiet" | "-q" | "--verbose" | "-v")
+			matches!(*arg, "--quiet" | "-q" | "--verbose" | "-v") || arg.starts_with("--color=")
 		})
 }
 
@@ -1014,14 +1013,17 @@ where
 /// Execute the `monochange` CLI against an explicit repository root.
 ///
 /// This is primarily useful for tests and embedding, where the caller wants to
-/// Print a clap `DisplayHelp`/`DisplayVersion` error preserving ANSI colors
-/// when `colored` is true, or return plain text when false.
+/// Render a clap `DisplayHelp`/`DisplayVersion` error with ANSI styling when
+/// `colored` is true, or as plain text when false.
 fn format_clap_error(error: &clap::Error, colored: bool) -> String {
+	clap_styled_text(&error.render(), colored)
+}
+
+fn clap_styled_text(text: &clap::builder::StyledStr, colored: bool) -> String {
 	if colored {
-		let _ = error.print();
-		String::new()
+		text.ansi().to_string()
 	} else {
-		error.to_string()
+		text.to_string()
 	}
 }
 
@@ -1125,6 +1127,33 @@ fn command_help_request(args: &[OsString]) -> Option<&str> {
 		.then_some(*command_name)
 }
 
+/// Commands whose results depend on monochange.toml, so running them without
+/// one deserves a warning instead of a silent default plan.
+fn command_reads_release_configuration(command_name: &str) -> bool {
+	matches!(
+		command_name,
+		"check"
+			| "next" | "next-versions"
+			| "preview"
+			| "prepare"
+			| "create"
+			| "affected"
+			| "diagnose"
+			| "config"
+			| "versions"
+			| "notes" | "publish"
+			| "step"
+	)
+}
+
+fn missing_configuration_warning(command_name: Option<&str>, root: &Path) -> Option<&'static str> {
+	let reads_configuration = command_name.is_some_and(command_reads_release_configuration);
+	(reads_configuration && !root.join("monochange.toml").exists()).then_some(
+		"no monochange.toml found in this directory, so results use built-in defaults; run \
+		 `monochange init` to create one",
+	)
+}
+
 fn command_help_requires_workspace_configuration(command_name: &str) -> bool {
 	matches!(command_name, "change")
 }
@@ -1159,7 +1188,7 @@ fn render_clap_long_help(
 		return render_unknown_clap_help_path(bin_name, &command, path);
 	};
 
-	target.render_long_help().to_string()
+	clap_styled_text(&target.render_long_help(), output::color::stdout_color())
 }
 
 fn clap_command_at_path_mut<'command>(
@@ -1275,9 +1304,18 @@ async fn run_with_args_in_dir_with_progress(
 	progress: &mut output::ProgressReporter,
 ) -> MonochangeResult<String> {
 	let verbose = output::terminal::verbose_requested(&args);
-	output::text::with_verbosity(
-		verbose,
-		Box::pin(dispatch_cli_args(bin_name, args, root, progress)),
+	let ascii = output::terminal::ProgressSettings::from_args(&args).format
+		== output::ProgressFormat::Ascii;
+	let color = output::color::ColorChoice::from_args(&args);
+	output::color::with_color_choice(
+		color,
+		output::text::with_verbosity(
+			verbose,
+			output::text::with_ascii_symbols(
+				ascii,
+				Box::pin(dispatch_cli_args(bin_name, args, root, progress)),
+			),
+		),
 	)
 	.await
 }
@@ -1321,10 +1359,7 @@ async fn dispatch_cli_args(
 
 	if let Err(error) = base_command.try_get_matches_from(args.clone()) {
 		if matches!(error.kind(), ErrorKind::DisplayVersion) {
-			return Ok(format_clap_error(
-				&error,
-				!cfg!(test) && std::io::stdout().is_terminal(),
-			));
+			return Ok(format_clap_error(&error, output::color::stdout_color()));
 		}
 
 		if matches!(error.kind(), ErrorKind::DisplayHelp)
@@ -1343,7 +1378,7 @@ async fn dispatch_cli_args(
 			{
 				return Ok(format_clap_error(
 					&help_error,
-					!cfg!(test) && std::io::stdout().is_terminal(),
+					output::color::stdout_color(),
 				));
 			}
 		}
@@ -1359,7 +1394,7 @@ async fn dispatch_cli_args(
 			{
 				return Ok(format_clap_error(
 					&help_error,
-					!cfg!(test) && std::io::stdout().is_terminal(),
+					output::color::stdout_color(),
 				));
 			}
 		}
@@ -1408,10 +1443,7 @@ async fn dispatch_cli_args(
 				return Ok(render_clap_long_help(bin_name, &cli, &[]));
 			}
 
-			return Ok(format_clap_error(
-				&error,
-				!cfg!(test) && std::io::stdout().is_terminal(),
-			));
+			return Ok(format_clap_error(&error, output::color::stdout_color()));
 		}
 		Err(error) => {
 			if matches!(error.kind(), ErrorKind::UnknownArgument)
@@ -1422,7 +1454,7 @@ async fn dispatch_cli_args(
 					render_custom_command_argument_error(
 						&error,
 						cli_command,
-						!cfg!(test) && std::io::stderr().is_terminal(),
+						output::color::stderr_color(),
 					),
 				));
 			}
@@ -1448,6 +1480,10 @@ async fn dispatch_cli_args(
 				view: monochange_snapshot::SnapshotView::Full,
 			},
 		);
+	}
+
+	if let Some(warning) = missing_configuration_warning(matches.subcommand_name(), root) {
+		progress.warning(warning);
 	}
 
 	let jq_expression = matches.get_one::<String>("jq").cloned();

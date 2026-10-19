@@ -5,9 +5,12 @@ use leptos_meta::MetaTags;
 use leptos_meta::Stylesheet;
 use leptos_meta::Title;
 use leptos_meta::provide_meta_context;
+use leptos_router::Lazy;
+use leptos_router::LazyRoute;
 use leptos_router::components::Route;
 use leptos_router::components::Router;
 use leptos_router::components::Routes;
+use leptos_router::lazy_route;
 use leptos_router::path;
 
 use crate::components::brand_icon::BrandIcon;
@@ -15,16 +18,17 @@ use crate::components::navbar::NavBar;
 use crate::error::ErrorTemplate;
 use crate::links::BOOK_URL;
 use crate::links::SOURCE_URL;
-use crate::pages::book::BookPageView;
-use crate::pages::changelog::ChangelogPage;
-use crate::pages::dashboard::DashboardPage;
-use crate::pages::feedback_console::FeedbackConsolePage;
+use crate::pages::book::BookRoute;
+use crate::pages::changelog::ChangelogRoute;
+use crate::pages::dashboard::DashboardRoute;
+use crate::pages::feedback_console::FeedbackConsoleRoute;
 use crate::pages::home::HomePage;
-use crate::pages::install::InstallPage;
-use crate::pages::organization::OrganizationPage;
-use crate::pages::portal::PortalPage;
-use crate::pages::pricing::PricingPage;
-use crate::pages::project::ProjectPage;
+use crate::pages::install::InstallRoute;
+use crate::pages::organization::OrganizationRoute;
+use crate::pages::portal::PortalRoute;
+use crate::pages::pricing::PricingRoute;
+use crate::pages::project::ProjectRoute;
+use crate::server_fns::auth::SessionUser;
 
 // Leptos strips literal comments. The inert template below preserves this
 // contract in server output and occupies the same node during hydration.
@@ -84,18 +88,18 @@ pub fn App() -> impl IntoView {
 					view! { <ErrorTemplate status=404 message="Page not found" /> }
 				}>
 					<Route path=path!("/") view=HomePage />
-					<Route path=path!("/dashboard") view=DashboardPage />
-					<Route path=path!("/dashboard/:organization") view=OrganizationPage />
-					<Route path=path!("/dashboard/:organization/projects/:project") view=ProjectPage />
-					<Route path=path!("/dashboard/:organization/projects/:project/feedback") view=FeedbackConsolePage />
-					<Route path=path!("/install") view=InstallPage />
+					<Route path=path!("/dashboard") view={Lazy::<DashboardRoute>::new()} />
+					<Route path=path!("/dashboard/:organization") view={Lazy::<OrganizationRoute>::new()} />
+					<Route path=path!("/dashboard/:organization/projects/:project") view={Lazy::<ProjectRoute>::new()} />
+					<Route path=path!("/dashboard/:organization/projects/:project/feedback") view={Lazy::<FeedbackConsoleRoute>::new()} />
+					<Route path=path!("/install") view={Lazy::<InstallRoute>::new()} />
 					<Route path=path!("/login") view=LoginPage />
-					<Route path=path!("/pricing") view=PricingPage />
-					<Route path=path!("/changelog") view=ChangelogPage />
-					<Route path=path!("/book") view=BookPageView />
-					<Route path=path!("/book/*chapter") view=BookPageView />
-					<Route path=path!("/auth/callback") view=AuthCallbackPage />
-					<Route path=path!("/p/:organization/:project") view=PortalPage />
+					<Route path=path!("/pricing") view={Lazy::<PricingRoute>::new()} />
+					<Route path=path!("/changelog") view={Lazy::<ChangelogRoute>::new()} />
+					<Route path=path!("/book") view={Lazy::<BookRoute>::new()} />
+					<Route path=path!("/book/*chapter") view={Lazy::<BookRoute>::new()} />
+					<Route path=path!("/auth/callback") view={Lazy::<AuthCallbackRoute>::new()} />
+					<Route path=path!("/p/:organization/:project") view={Lazy::<PortalRoute>::new()} />
 				</Routes>
 			</main>
 			<Footer />
@@ -189,74 +193,86 @@ fn LoginPage() -> impl IntoView {
 }
 
 // ── Auth Callback Page ──
-#[component]
-fn AuthCallbackPage() -> impl IntoView {
-	let params = leptos_router::hooks::use_query_map();
+/// Auth callback data, split into its own WASM chunk.
+struct AuthCallbackRoute {
+	result: Resource<Result<SessionUser, String>>,
+}
 
-	// Cookie headers must be complete before SSR starts sending the page.
-	let result = Resource::new_blocking(
-		move || params.get(),
-		|params| {
-			async move {
-				let code = params.get("code").unwrap_or_default();
-				let state = params.get("state").unwrap_or_default();
-				if code.is_empty() {
-					return Err("No authorization code received".to_string());
+#[lazy_route]
+impl LazyRoute for AuthCallbackRoute {
+	fn data() -> Self {
+		let params = leptos_router::hooks::use_query_map();
+
+		// Cookie headers must be complete before SSR starts sending the page.
+		let result = Resource::new_blocking(
+			move || params.get(),
+			|params| {
+				async move {
+					let code = params.get("code").unwrap_or_default();
+					let state = params.get("state").unwrap_or_default();
+					if code.is_empty() {
+						return Err("No authorization code received".to_string());
+					}
+
+					crate::server_fns::auth::exchange_code(code, state)
+						.await
+						.map_err(|e| e.to_string())
 				}
+			},
+		);
+		Self { result }
+	}
 
-				crate::server_fns::auth::exchange_code(code, state)
-					.await
-					.map_err(|e| e.to_string())
-			}
-		},
-	);
-
-	view! {
-		<div class="flex min-h-[80vh] items-center justify-center">
-			<Suspense fallback=|| {
-				view! {
-					<div class="text-center">
-						<div class="mx-auto size-12 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600" />
-						<p class="mt-4 text-sm text-gray-500">Completing sign in...</p>
-					</div>
-				}
-			}>
-				{move || result.get().map(|r| match r {
-					Ok(user) => view! {
+	fn view(this: Self) -> AnyView {
+		let AuthCallbackRoute { result } = this;
+		view! {
+			<div class="flex min-h-[80vh] items-center justify-center">
+				<Suspense fallback=|| {
+					view! {
 						<div class="text-center">
-							<div class="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900">
-								<svg class="size-8 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-									<path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-								</svg>
-							</div>
-							<h2 class="text-2xl font-bold text-gray-900 dark:text-white">Signed in!</h2>
-							<p class="mt-2 text-gray-600 dark:text-gray-400">Welcome, {user.github_login}!</p>
-							<a href="/dashboard" class="mt-8 inline-flex items-center gap-x-2 rounded-xl bg-brand-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 transition-colors">
-								Go to dashboard
-								<svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-									<path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-								</svg>
-							</a>
+							<div class="mx-auto size-12 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600" />
+							<p class="mt-4 text-sm text-gray-500">Completing sign in...</p>
 						</div>
-					}.into_any(),
-					Err(e) => view! {
-						<div class="text-center">
-							<div class="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900">
-								<svg class="size-8 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-									<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-								</svg>
+					}
+				}>
+					{move || result.get().map(|r| match r {
+						Ok(user) => view! {
+							<div class="text-center">
+								<div class="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900">
+									<svg class="size-8 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+										<path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+									</svg>
+								</div>
+								<h2 class="text-2xl font-bold text-gray-900 dark:text-white">Signed in!</h2>
+								<p class="mt-2 text-gray-600 dark:text-gray-400">Welcome, {user.github_login}!</p>
+								<a href="/dashboard" class="mt-8 inline-flex items-center gap-x-2 rounded-xl bg-brand-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 transition-colors">
+									Go to dashboard
+									<svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+										<path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+									</svg>
+								</a>
 							</div>
-							<h2 class="text-2xl font-bold text-red-600 dark:text-red-400">Sign in failed</h2>
-							<p class="mt-2 text-gray-600 dark:text-gray-400">{e}</p>
-							<a href="/login" class="mt-8 inline-block rounded-xl bg-brand-600 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-700 transition-colors">
-								Try again
-							</a>
-						</div>
-					}.into_any(),
-				})}
+						}.into_any(),
+						Err(e) => view! {
+							<div class="text-center">
+								<div class="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900">
+									<svg class="size-8 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+										<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+									</svg>
+								</div>
+								<h2 class="text-2xl font-bold text-red-600 dark:text-red-400">Sign in failed</h2>
+								<p class="mt-2 text-gray-600 dark:text-gray-400">{e}</p>
+								<a href="/login" class="mt-8 inline-block rounded-xl bg-brand-600 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-700 transition-colors">
+									Try again
+								</a>
+							</div>
+						}.into_any(),
+					})}
 
-			</Suspense>
-		</div>
+				</Suspense>
+			</div>
+		}
+		.into_any()
 	}
 }
 

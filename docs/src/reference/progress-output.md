@@ -10,10 +10,20 @@ Supported values:
 
 - `auto`: default behavior. Deterministic human progress output is enabled for terminals, CI logs, editor tasks, and captured processes; animation is terminal-only.
 - `unicode`: force the human renderer with Unicode symbols and spinners.
-- `ascii`: force the human renderer with ASCII-safe symbols.
+- `ascii`: force the human renderer with ASCII-safe symbols. Text results on stdout also switch their headline symbols (`+`, `!`, `x`, `-`), separators, and ellipses to ASCII.
 - `json`: emit newline-delimited JSON progress events on stderr.
 
 `--quiet` suppresses progress output. `MONOCHANGE_NO_PROGRESS=1` also disables the automatic human renderer.
+
+## Color
+
+One color policy covers result text on stdout, progress, warnings, and diagnostics on stderr, release-file diffs, and `--help` pages. Choose it with the global `--color <WHEN>` flag:
+
+- `auto`: default behavior. A non-empty `NO_COLOR` turns color off; otherwise `CLICOLOR_FORCE` set to anything but `0` turns it on, even when output is piped; otherwise `CLICOLOR=0` or `TERM=dumb` turn it off; otherwise only output written to a terminal is colored.
+- `always`: color every stream, regardless of the environment.
+- `never`: never color, regardless of the environment.
+
+`--progress-format json` and JSON results are never colored.
 
 ## Human progress output
 

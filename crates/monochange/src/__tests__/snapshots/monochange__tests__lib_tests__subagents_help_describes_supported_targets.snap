@@ -13,13 +13,14 @@ Options:
       --all              Generate files for all supported targets
       --force            Overwrite generated files that already exist with different contents
       --dry-run          Preview the generated files without writing them
-      --format <format>  Output format for the generated subagent plan [default: text] [possible values: text, json, json-min, markdown, md]
+      --format <FORMAT>  Output format for the command result [default: text] [possible values: text, json, json-min, md]
       --no-mcp           Skip repo-local MCP config files for supported targets
   -h, --help             Print help
 
 Global Options:
   -q, --quiet                     Suppress result, progress, and diagnostic output without changing execution
   -v, --verbose                   Show full result lists and logs, every step timing, and progress notes
+      --color <WHEN>              Control when output uses color; `auto` honors NO_COLOR, CLICOLOR, and CLICOLOR_FORCE [possible values: auto, always, never]
       --progress-format <FORMAT>  Control progress output on stderr [possible values: auto, unicode, ascii, json]
       --jq <EXPRESSION>           Filter explicit JSON output; requires `--format json` or `--format json-min`
       --snapshot                  Print a normalized JSON snapshot for this command subtree
@@ -41,7 +42,6 @@ Targets:
 
 Generated agents are CLI-first. They should prefer:
   1. monochange
-  2. monochange
-  3. npx -y @monochange/cli
+  2. npx -y @monochange/cli
 
 Use `--no-mcp` to skip MCP config files for targets that support repo-local MCP config.

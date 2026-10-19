@@ -20,6 +20,11 @@ Start the monochange MCP (Model Context Protocol) server over stdin/stdout
   [93m-v[0m, [93m--verbose[0m
           Show full result lists and logs, every step timing, and progress notes
 
+      [93m--color[0m[95m [0m[95m<WHEN>[0m
+          Control when output uses color; `auto` honors NO_COLOR, CLICOLOR, and CLICOLOR_FORCE
+
+          [possible values: auto, always, never]
+
       [93m--progress-format[0m[95m [0m[95m<FORMAT>[0m
           Control progress output on stderr
 
@@ -30,3 +35,8 @@ Start the monochange MCP (Model Context Protocol) server over stdin/stdout
 
       [93m--snapshot[0m
           Print a normalized JSON snapshot for this command subtree
+
+Examples:
+  monochange mcp
+
+Agent runtimes launch this command themselves; `monochange subagents` writes the MCP config that does so.

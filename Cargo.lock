@@ -2153,6 +2153,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "typed-builder",
+ "unicode-width 0.2.2",
  "urlencoding",
 ]
 

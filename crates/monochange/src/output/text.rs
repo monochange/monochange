@@ -8,7 +8,9 @@
 //! output and CI logs stay plain.
 
 use std::future::Future;
-use std::io::IsTerminal;
+
+use unicode_width::UnicodeWidthChar;
+use unicode_width::UnicodeWidthStr;
 
 /// How a piece of result text is emphasized in a terminal.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -26,6 +28,8 @@ pub(crate) enum Tone {
 tokio::task_local! {
 	/// `--verbose` for the command running on this task.
 	static VERBOSE: bool;
+	/// `--progress-format ascii` for the command running on this task.
+	static ASCII_SYMBOLS: bool;
 }
 
 /// Run `future` with `--verbose` result rendering turned on or off.
@@ -41,23 +45,43 @@ pub(crate) fn verbose_output() -> bool {
 	VERBOSE.try_with(|verbose| *verbose).unwrap_or(false)
 }
 
-/// How result text on stdout is presented: ANSI styling, and whether long
-/// lists and logs are shown in full (`--verbose`).
+/// Run `future` with result symbols drawn from ASCII (`--progress-format
+/// ascii`) or Unicode.
+pub(crate) async fn with_ascii_symbols<F: Future>(ascii: bool, future: F) -> F::Output {
+	ASCII_SYMBOLS.scope(ascii, future).await
+}
+
+/// Whether the running command asked for ASCII result symbols.
+pub(crate) fn ascii_symbols() -> bool {
+	ASCII_SYMBOLS.try_with(|ascii| *ascii).unwrap_or(false)
+}
+
+/// How result text on stdout is presented: ANSI styling, whether long
+/// lists and logs are shown in full (`--verbose`), and whether symbols stay
+/// within ASCII (`--progress-format ascii`).
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct TextTheme {
 	color: bool,
 	verbose: bool,
+	ascii: bool,
 }
 
 impl TextTheme {
-	/// Colour only for an interactive stdout that has not opted out.
+	/// Colour stdout as the shared `--color` policy decides.
 	pub(crate) fn for_stdout() -> Self {
-		let interactive = std::io::stdout().is_terminal();
-		let no_color = std::env::var_os("NO_COLOR").is_some();
-		let term_supports_color = std::env::var("TERM").is_ok_and(|term| term != "dumb");
 		Self {
-			color: !cfg!(test) && interactive && !no_color && term_supports_color,
+			color: crate::output::color::stdout_color(),
 			verbose: verbose_output(),
+			ascii: ascii_symbols(),
+		}
+	}
+
+	/// The headline and list glyphs for this theme.
+	fn symbols(self) -> &'static ResultSymbols {
+		if self.ascii {
+			&ASCII_RESULT_SYMBOLS
+		} else {
+			&UNICODE_RESULT_SYMBOLS
 		}
 	}
 
@@ -80,6 +104,35 @@ impl TextTheme {
 	}
 }
 
+/// Glyphs a [`TextReport`] draws around its own text.
+struct ResultSymbols {
+	success: &'static str,
+	warning: &'static str,
+	failure: &'static str,
+	neutral: &'static str,
+	separator: &'static str,
+	ellipsis: &'static str,
+}
+
+const UNICODE_RESULT_SYMBOLS: ResultSymbols = ResultSymbols {
+	success: "✔",
+	warning: "▲",
+	failure: "✖",
+	neutral: "•",
+	separator: "·",
+	ellipsis: "…",
+};
+
+/// Matches the progress symbols `--progress-format ascii` draws on stderr.
+const ASCII_RESULT_SYMBOLS: ResultSymbols = ResultSymbols {
+	success: "+",
+	warning: "!",
+	failure: "x",
+	neutral: "-",
+	separator: "-",
+	ellipsis: "...",
+};
+
 /// The outcome a headline reports.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum Outcome {
@@ -90,12 +143,12 @@ pub(crate) enum Outcome {
 }
 
 impl Outcome {
-	fn symbol(self) -> (&'static str, Tone) {
+	fn symbol(self, symbols: &ResultSymbols) -> (&'static str, Tone) {
 		match self {
-			Self::Success => ("✔", Tone::Success),
-			Self::Warning => ("▲", Tone::Warning),
-			Self::Failure => ("✖", Tone::Error),
-			Self::Neutral => ("•", Tone::Accent),
+			Self::Success => (symbols.success, Tone::Success),
+			Self::Warning => (symbols.warning, Tone::Warning),
+			Self::Failure => (symbols.failure, Tone::Error),
+			Self::Neutral => (symbols.neutral, Tone::Accent),
 		}
 	}
 }
@@ -140,18 +193,22 @@ impl TextReport {
 
 	/// The first line of the result, such as `✔ Prepared release · dry-run`.
 	pub(crate) fn headline(&mut self, outcome: Outcome, text: &str, details: &[String]) {
-		let (symbol, tone) = outcome.symbol();
+		let symbols = self.theme.symbols();
+		let (symbol, tone) = outcome.symbol(symbols);
 		let mut line = format!(
 			"{} {}",
 			self.theme.paint(symbol, tone),
 			self.theme.paint(text, Tone::Heading)
 		);
 		if !details.is_empty() {
-			line.push_str(
-				&self
-					.theme
-					.paint(&format!(" · {}", details.join(" · ")), Tone::Muted),
-			);
+			line.push_str(&self.theme.paint(
+				&format!(
+					" {} {}",
+					symbols.separator,
+					details.join(&format!(" {} ", symbols.separator))
+				),
+				Tone::Muted,
+			));
 		}
 		self.push_separated(line);
 	}
@@ -221,7 +278,8 @@ impl TextReport {
 		if items.len() > limit {
 			self.lines.push(self.theme.paint(
 				&format!(
-					"  … and {} more (use --format json for the full list)",
+					"  {} and {} more (use --format json for the full list)",
+					self.theme.symbols().ellipsis,
 					items.len() - limit
 				),
 				Tone::Muted,
@@ -308,7 +366,8 @@ impl TextReport {
 	}
 }
 
-/// The first line of `text`, shortened to `limit` characters with an ellipsis.
+/// The first line of `text`, shortened to `limit` terminal columns with an
+/// ellipsis.
 pub(crate) fn first_line_preview(text: &str, limit: usize) -> String {
 	let line = text
 		.lines()
@@ -323,7 +382,14 @@ pub(crate) fn first_line_preview(text: &str, limit: usize) -> String {
 			line.to_string()
 		};
 	}
-	let shortened = line.chars().take(limit).collect::<String>();
+	let mut width = 0;
+	let shortened = line
+		.chars()
+		.take_while(|character| {
+			width += character.width().unwrap_or_default();
+			width <= limit
+		})
+		.collect::<String>();
 	format!("{}…", shortened.trim_end())
 }
 
@@ -342,8 +408,10 @@ pub(crate) fn summarize_log(text: &str) -> String {
 	}
 }
 
+/// The number of terminal columns `text` occupies, so emoji and CJK names
+/// (two columns each) keep tables aligned.
 pub(crate) fn display_width(text: &str) -> usize {
-	text.chars().count()
+	text.width()
 }
 
 pub(crate) fn plural(count: usize, singular: &str, plural: &str) -> String {

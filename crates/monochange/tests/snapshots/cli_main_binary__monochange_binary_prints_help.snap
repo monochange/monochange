@@ -26,7 +26,6 @@ Release Commands:
 
 Workspace Commands:
   init       Generate monochange.toml with detected packages and groups
-  populate   Check for default CLI workflow aliases (none are provided in this version)
   discover   Discover packages across supported ecosystems
   config     Render resolved monochange configuration and workspace metadata
   check      Validate configuration, changesets, and run manifest lint rules
@@ -57,6 +56,11 @@ Options:
 
   -v, --verbose
           Show full result lists and logs, every step timing, and progress notes
+
+      --color <WHEN>
+          Control when output uses color; `auto` honors NO_COLOR, CLICOLOR, and CLICOLOR_FORCE
+          
+          [possible values: auto, always, never]
 
       --progress-format <FORMAT>
           Control progress output on stderr

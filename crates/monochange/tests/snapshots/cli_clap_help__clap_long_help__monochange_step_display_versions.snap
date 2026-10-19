@@ -5,23 +5,18 @@ expression: render_help_snapshot(&path)
 Version: [current]
 Command: monochange step display-versions
 
-Run the built-in display-versions release workflow step
+Show the next version for each release group and package without writing files
 
-[1m[97mUsage:[0m monochange step display-versions [--dry-run] [--format <FORMAT>]
-
-[1m[96mOptions:[0m
-  [93m-h[0m, [93m--help[0m
-          Print help
-
-[1m[96mRelease Options:[0m
-      [93m--dry-run[0m
-          Run the command in dry-run mode when supported
+[1m[97mUsage:[0m [93mmonochange step display-versions[0m [95m[OPTIONS][0m
 
 [1m[96mOptions:[0m
       [93m--format[0m[95m [0m[95m<FORMAT>[0m
-          Result format: text, Markdown, pretty JSON, or compact JSON
+          Output format for the command result
 
           [possible values: text, json, json-min, md]
+
+  [93m-h[0m, [93m--help[0m
+          Print help
 
 [1m[96mGlobal Options:[0m
   [93m-q[0m, [93m--quiet[0m
@@ -29,6 +24,11 @@ Run the built-in display-versions release workflow step
 
   [93m-v[0m, [93m--verbose[0m
           Show full result lists and logs, every step timing, and progress notes
+
+      [93m--color[0m[95m [0m[95m<WHEN>[0m
+          Control when output uses color; `auto` honors NO_COLOR, CLICOLOR, and CLICOLOR_FORCE
+
+          [possible values: auto, always, never]
 
       [93m--progress-format[0m[95m [0m[95m<FORMAT>[0m
           Control progress output on stderr
@@ -40,3 +40,7 @@ Run the built-in display-versions release workflow step
 
       [93m--snapshot[0m
           Print a normalized JSON snapshot for this command subtree
+
+Examples:
+  monochange step display-versions
+  monochange step display-versions --format json --jq '.groups'

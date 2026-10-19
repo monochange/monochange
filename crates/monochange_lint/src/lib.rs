@@ -200,7 +200,7 @@ impl Linter {
 
 		let mut total_files = 0usize;
 		let mut total_rules = 0usize;
-		let mut suite_targets: Vec<(String, Vec<LintTarget>)> = Vec::new();
+		let mut suite_targets: Vec<(String, Vec<LintTarget>, usize)> = Vec::new();
 
 		for (suite_id, suite) in &self.registry.suites {
 			if !self.selection.allows_suite(suite_id) {
@@ -225,22 +225,14 @@ impl Linter {
 
 			total_files += targets.len();
 			total_rules += applicable_rules * targets.len();
-			suite_targets.push((suite_id.clone(), targets));
+			suite_targets.push((suite_id.clone(), targets, applicable_rules));
 		}
 
 		reporter.planning_finished(total_files, total_rules);
 
-		for (suite_id, targets) in &suite_targets {
-			let fallback = LintTarget {
-				workspace_root: workspace_root.to_path_buf(),
-				manifest_path: workspace_root.join("Cargo.toml"),
-				contents: String::new(),
-				metadata: monochange_core::lint::LintTargetMetadata::default(),
-				parsed: Box::new(()),
-			};
-			let any_target = targets.first().unwrap_or(&fallback);
-			let applicable_rules = self.registry.rules.applicable_rules(any_target);
-			reporter.suite_started(suite_id, targets.len(), applicable_rules.len());
+		for (suite_id, targets, rule_count) in &suite_targets {
+			// Count the suite's own rules, not every registered rule.
+			reporter.suite_started(suite_id, targets.len(), *rule_count);
 
 			let mut suite_result_count = 0usize;
 			let mut suite_fixable = 0usize;

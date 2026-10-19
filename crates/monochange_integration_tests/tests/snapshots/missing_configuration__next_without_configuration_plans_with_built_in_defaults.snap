@@ -1,0 +1,8 @@
+---
+source: crates/monochange_integration_tests/tests/missing_configuration.rs
+expression: output
+---
+{
+  "packages": {},
+  "groups": {}
+}

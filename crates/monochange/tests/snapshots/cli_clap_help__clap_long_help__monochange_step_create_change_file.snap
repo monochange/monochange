@@ -7,15 +7,7 @@ Command: monochange step create-change-file
 
 Create a changeset file for one or more packages
 
-[1m[97mUsage:[0m monochange step create-change-file [--dry-run] [--interactive] [--package <PACKAGE>] [--bump <BUMP>] [--version <VERSION>] [--reason <REASON>] [--type <TYPE>] [--details <DETAILS>] [--output <PATH>]
-
-[1m[96mOptions:[0m
-  [93m-h[0m, [93m--help[0m
-          Print help
-
-[1m[96mRelease Options:[0m
-      [93m--dry-run[0m
-          Run the command in dry-run mode when supported
+[1m[97mUsage:[0m [93mmonochange step create-change-file[0m [95m[OPTIONS][0m
 
 [1m[96mOptions:[0m
   [93m-i[0m, [93m--interactive[0m
@@ -44,12 +36,24 @@ Create a changeset file for one or more packages
       [93m--output[0m[95m [0m[95m<PATH>[0m
           Write the complete result to this path
 
+  [93m-h[0m, [93m--help[0m
+          Print help
+
+[1m[96mRelease Options:[0m
+      [93m--dry-run[0m
+          Show what would change without writing files or contacting services
+
 [1m[96mGlobal Options:[0m
   [93m-q[0m, [93m--quiet[0m
           Suppress result, progress, and diagnostic output without changing execution
 
   [93m-v[0m, [93m--verbose[0m
           Show full result lists and logs, every step timing, and progress notes
+
+      [93m--color[0m[95m [0m[95m<WHEN>[0m
+          Control when output uses color; `auto` honors NO_COLOR, CLICOLOR, and CLICOLOR_FORCE
+
+          [possible values: auto, always, never]
 
       [93m--progress-format[0m[95m [0m[95m<FORMAT>[0m
           Control progress output on stderr
@@ -61,3 +65,7 @@ Create a changeset file for one or more packages
 
       [93m--snapshot[0m
           Print a normalized JSON snapshot for this command subtree
+
+Examples:
+  monochange step create-change-file --interactive
+  monochange step create-change-file --package core --bump minor --reason "Add a retry option"

@@ -347,6 +347,6 @@ fn unsupported_format_choice_fails_with_config_error() {
 		String::from_utf8_lossy(&output.stdout)
 	);
 	let stderr = String::from_utf8_lossy(&output.stderr);
-	assert!(stderr.contains("invalid value 'yaml' for '--format <format>'"));
+	assert!(stderr.contains("invalid value 'yaml' for '--format <FORMAT>'"));
 	assert!(stderr.contains("possible values: text, json, json-min"));
 }

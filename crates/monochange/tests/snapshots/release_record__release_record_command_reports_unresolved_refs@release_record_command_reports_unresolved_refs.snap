@@ -2,6 +2,7 @@
 source: crates/monochange/tests/release_record.rs
 expression: "String::from_utf8(output.stderr).unwrap_or_else(|error|\npanic!(\"stderr utf8: {error}\"))"
 ---
+warning: no monochange.toml found in this directory, so results use built-in defaults; run `monochange init` to create one
 error[git.failed]: could not resolve ref `missing-tag` to a commit: fatal: Needed a single revision
   command: monochange step release-record
   help:    Check that the ref or path exists in this clone. CI checkouts are often shallow: fetch full history and tags (for example `fetch-depth: 0` with `actions/checkout`), then rerun.

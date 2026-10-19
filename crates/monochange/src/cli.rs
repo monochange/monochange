@@ -289,6 +289,15 @@ fn build_command_with_workflows(
 				.action(ArgAction::SetTrue),
 		)
 		.arg(
+			Arg::new("color")
+				.long("color")
+				.global(true)
+				.help_heading(GLOBAL_OPTIONS_HELP_HEADING)
+				.help("Control when output uses color; `auto` honors NO_COLOR, CLICOLOR, and CLICOLOR_FORCE")
+				.value_name("WHEN")
+				.value_parser(["auto", "always", "never"]),
+		)
+		.arg(
 			Arg::new("progress-format")
 				.long("progress-format")
 				.global(true)
@@ -367,26 +376,23 @@ fn build_command_with_workflows(
 				.arg(
 					Arg::new("provider")
 						.long("provider")
+						.value_name("PROVIDER")
 						.help("Source-control provider for release automation workflows")
-						.long_help(
-							"Configure release automation for the specified provider. \
-When provided, the generated config includes:\n\
-\n\
-- [source] section with the provider configured\n\
-- Release and pull request settings for the provider\n\
-- A minimal starter config without generated [cli.*] command aliases\n\
-- GitHub Actions workflows (for --provider=github)\n\
-\nSupported providers: github, gitlab, gitea",
-						)
 						.value_parser(["github", "gitlab", "gitea"]),
+				)
+				.after_help(
+					"Examples:\n  monochange init\n  monochange init --provider github\n  monochange init --force\n\n\
+With --provider, the generated config also includes:\n  - a [source] section for the provider\n  - \
+release and pull request settings for the provider\n  - GitHub Actions workflows (for --provider github)\n\n\
+The starter config does not generate [cli.*] command aliases.",
 				),
 		)
 		.subcommand(
+			// Kept so existing scripts keep working; this version provides no
+			// default aliases, so the command never changes monochange.toml.
 			Command::new("populate")
 				.about("Check for default CLI workflow aliases (none are provided in this version)")
-				.long_about(
-					"Check monochange.toml for missing default CLI workflow aliases. This version provides no defaults, so the configuration stays unchanged. Use `monochange command` to define custom workflows.",
-				),
+				.hide(true),
 		)
 		.subcommand(build_command_wizard_subcommand())
 		.subcommand(build_skill_subcommand())
@@ -404,9 +410,12 @@ When provided, the generated config includes:\n\
 		.subcommand({
 			#[cfg(feature = "mcp")]
 			{
-				Command::new("mcp").about(
-					"Start the monochange MCP (Model Context Protocol) server over stdin/stdout",
-				)
+				Command::new("mcp")
+					.about("Start the monochange MCP (Model Context Protocol) server over stdin/stdout")
+					.after_help(
+						"Examples:\n  monochange mcp\n\nAgent runtimes launch this command themselves; `monochange subagents` \
+writes the MCP config that does so.",
+					)
 			}
 			#[cfg(not(feature = "mcp"))]
 			{
@@ -452,7 +461,7 @@ const HELP_COMMAND_GROUPS: &[(&str, &[&str])] = &[
 	(
 		"Workspace Commands",
 		&[
-			"init", "populate", "discover", "config", "check", "versions", "lint", "migrate",
+			"init", "discover", "config", "check", "versions", "lint", "migrate",
 		],
 	),
 	(
@@ -570,8 +579,8 @@ pub(crate) fn build_change_subcommand() -> Command {
 fn build_classify_subcommand() -> Command {
 	Command::new("classify")
 		.about("Compare the pull request and latest release, then propose package bumps")
-		.long_about(
-			"Compare a merge candidate with its base branch and each package's latest release. Reports compatibility impact, proposed changeset bump, confidence, completeness, and the findings that support each recommendation.",
+		.after_help(
+			"Compares a merge candidate with its base branch and each package's latest release. Reports compatibility impact, proposed changeset bump, confidence, completeness, and the findings that support each recommendation.",
 		)
 		.arg(
 			Arg::new("base")
@@ -605,6 +614,9 @@ pub(crate) fn build_api_subcommand() -> Command {
 		.subcommand(
 			Command::new("diff")
 				.about("Classify an explicit API diff")
+				.after_help(
+					"Examples:\n  monochange api diff --package core\n  monochange api diff --base origin/main --head HEAD --format json",
+				)
 				.arg(
 					Arg::new("base")
 						.long("base")
@@ -615,7 +627,8 @@ pub(crate) fn build_api_subcommand() -> Command {
 					Arg::new("head")
 						.long("head")
 						.value_name("REF")
-						.default_value("HEAD"),
+						.default_value("HEAD")
+						.help("Head ref to classify"),
 				)
 				.arg(classification_release_arg())
 				.arg(classification_package_arg())
@@ -654,7 +667,8 @@ pub(crate) fn build_changeset_subcommand() -> Command {
 					Arg::new("head")
 						.long("head")
 						.value_name("REF")
-						.default_value("HEAD"),
+						.default_value("HEAD")
+						.help("Head ref to classify"),
 				)
 				.arg(classification_release_arg())
 				.arg(classification_package_arg())
@@ -727,12 +741,26 @@ fn classification_output_arg() -> Arg {
 }
 
 fn classification_format_arg() -> Arg {
+	format_arg(MARKDOWN_OUTPUT_FORMATS)
+}
+
+/// Formats for commands that also render Markdown; `markdown` is accepted as a
+/// spelling of `md`.
+const MARKDOWN_OUTPUT_FORMATS: &[&str] = &["text", "json", "json-min", "md"];
+/// Formats for commands whose results are text or data only.
+const DATA_OUTPUT_FORMATS: &[&str] = &["text", "json", "json-min"];
+
+/// The `--format` option, described the same way on every command.
+fn format_arg(formats: &'static [&'static str]) -> Arg {
+	let possible_values = formats.iter().map(|format| {
+		clap::builder::PossibleValue::new(*format).aliases((*format == "md").then_some("markdown"))
+	});
 	Arg::new("format")
 		.long("format")
 		.value_name("FORMAT")
+		.help("Output format for the command result")
 		.default_value("text")
-		.value_parser(["markdown", "md", "json", "json-min", "text"])
-		.help("Report format")
+		.value_parser(clap::builder::PossibleValuesParser::new(possible_values))
 }
 
 fn classification_dependency_propagation_arg() -> Arg {
@@ -794,13 +822,6 @@ pub(crate) fn build_command_wizard_subcommand() -> Command {
 pub(crate) fn build_skill_subcommand() -> Command {
 	Command::new("skill")
 		.about("Read or install the bundled monochange agent skill")
-		.long_about(
-			"The monochange agent skill ships inside this binary, so it works without network \
-			 access, an npm package, or a cloned repository. `monochange skill read` prints a topic \
-			 as raw Markdown for an agent to consume, and `monochange skill install --dir` writes \
-			 the whole skill into an agent runtime's skill directory. Bare `monochange skill` lists \
-			 every bundled topic.",
-		)
 		.after_help(
 			r"Examples:
   monochange skill
@@ -809,17 +830,18 @@ pub(crate) fn build_skill_subcommand() -> Command {
   monochange skill install --dir ./.claude/skills/monochange
   monochange skill install --dir ~/.codex/skills/monochange --force
 
-The skill directory is normally named `monochange` inside a runtime's skills
-folder. Existing skills are never replaced unless --force is passed.",
+The skill ships inside this binary, so it works without network access, an npm
+package, or a cloned repository. Bare `monochange skill` lists every bundled
+topic. The skill directory is normally named `monochange` inside a runtime's
+skills folder. Existing skills are never replaced unless --force is passed.",
 		)
 		.subcommand(
 			Command::new("read")
 				.about("Print a bundled skill topic as raw Markdown")
-				.long_about(
-					"Print one bundled skill document as raw Markdown on stdout. The output is the \
-					 document itself, with no terminal rendering or added framing, so YAML \
-					 frontmatter and code blocks survive verbatim. Omit TOPIC to list every bundled \
-					 topic.",
+				.after_help(
+					"The output is the document itself, with no terminal rendering or added framing, \
+					 so YAML frontmatter and code blocks survive verbatim. Omit TOPIC to list every \
+					 bundled topic.",
 				)
 				.arg(
 					Arg::new("topic")
@@ -830,11 +852,10 @@ folder. Existing skills are never replaced unless --force is passed.",
 		.subcommand(
 			Command::new("install")
 				.about("Write the bundled skill into an agent runtime's skill directory")
-				.long_about(
-					"Write SKILL.md and every bundled reference into a directory the agent runtime \
-					 reads as a skill. The directory is normally named `monochange` inside the \
-					 runtime's skills folder. An existing skill is never replaced unless --force is \
-					 passed.",
+				.after_help(
+					"Writes SKILL.md and every bundled reference. The directory is normally named \
+					 `monochange` inside the runtime's skills folder. An existing skill is never \
+					 replaced unless --force is passed.",
 				)
 				.arg(
 					Arg::new("dir")
@@ -872,8 +893,7 @@ Targets:
 
 Generated agents are CLI-first. They should prefer:
   1. monochange
-  2. monochange
-  3. npx -y @monochange/cli
+  2. npx -y @monochange/cli
 
 Use `--no-mcp` to skip MCP config files for targets that support repo-local MCP config.",
 		)
@@ -904,13 +924,7 @@ Use `--no-mcp` to skip MCP config files for targets that support repo-local MCP 
 				.help("Preview the generated files without writing them")
 				.action(ArgAction::SetTrue),
 		)
-		.arg(
-			Arg::new("format")
-				.long("format")
-				.help("Output format for the generated subagent plan")
-				.default_value("text")
-				.value_parser(["text", "json", "json-min", "markdown", "md"]),
-		)
+		.arg(format_arg(MARKDOWN_OUTPUT_FORMATS))
 		.arg(
 			Arg::new("no-mcp")
 				.long("no-mcp")
@@ -962,16 +976,13 @@ Analysis notes:
 		.arg(
 			Arg::new("detection-level")
 				.long("detection-level")
+				.value_name("LEVEL")
 				.default_value("signature")
 				.value_parser(["basic", "signature", "semantic"])
 				.help("Level of semantic detail to request from analyzers"),
 		)
 		.arg(
-			Arg::new("format")
-				.long("format")
-				.default_value("text")
-				.value_parser(["text", "json", "json-min", "markdown", "md"])
-				.help("Output format"),
+			format_arg(MARKDOWN_OUTPUT_FORMATS),
 		)
 }
 
@@ -994,11 +1005,7 @@ Audit notes:
   - Reports changelog providers and trusted-publishing migration recommendations.",
 				)
 				.arg(
-					Arg::new("format")
-						.long("format")
-						.help("Output format")
-						.default_value("text")
-						.value_parser(["text", "json", "json-min", "markdown", "md"]),
+					format_arg(MARKDOWN_OUTPUT_FORMATS),
 				),
 		)
 		.subcommand(
@@ -1022,11 +1029,7 @@ Migration notes:
 						.action(ArgAction::SetTrue),
 				)
 				.arg(
-					Arg::new("format")
-						.long("format")
-						.help("Output format")
-						.default_value("text")
-						.value_parser(["text", "json", "json-min", "markdown", "md"]),
+					format_arg(MARKDOWN_OUTPUT_FORMATS),
 				),
 		)
 }
@@ -1063,11 +1066,7 @@ pub(crate) fn build_check_subcommand() -> Command {
 				.value_delimiter(','),
 		)
 		.arg(
-			Arg::new("format")
-				.long("format")
-				.help("Output format")
-				.default_value("text")
-				.value_parser(["text", "json", "json-min", "markdown", "md"]),
+			format_arg(MARKDOWN_OUTPUT_FORMATS),
 		)
 }
 
@@ -1080,11 +1079,7 @@ pub(crate) fn build_lint_subcommand() -> Command {
 			Command::new("list")
 				.about("List registered lint rules and presets")
 				.arg(
-					Arg::new("format")
-						.long("format")
-						.help("Output format")
-						.default_value("text")
-						.value_parser(["text", "json", "json-min", "markdown", "md"]),
+					format_arg(MARKDOWN_OUTPUT_FORMATS),
 		)
 		)
 		.subcommand(
@@ -1096,11 +1091,7 @@ pub(crate) fn build_lint_subcommand() -> Command {
 						.help("Lint rule id or preset id to explain"),
 				)
 				.arg(
-					Arg::new("format")
-						.long("format")
-						.help("Output format")
-						.default_value("text")
-						.value_parser(["text", "json", "json-min", "markdown", "md"]),
+					format_arg(MARKDOWN_OUTPUT_FORMATS),
 		)
 		)
 		.subcommand(
@@ -1120,11 +1111,6 @@ pub(crate) fn build_lint_subcommand() -> Command {
 pub(crate) fn build_help_subcommand() -> Command {
 	Command::new("help")
 		.about("Show detailed help for a command")
-		.long_about(
-			"Show detailed help, examples, and tips for any monochange command. \
-			 Run `monochange help` to list all commands, or `monochange help <command>` for \
-			 detailed usage information with examples.",
-		)
 		.arg(
 			Arg::new("command")
 				.help("Built-in command path to get help for (e.g. step validate, init). Config-defined workflow commands are listed too; use `monochange run <name> --help` when a built-in command shares the name")
@@ -1235,7 +1221,7 @@ pub(crate) fn top_level_step_alias_command_definition(
 		help_text: Some(alias.help_text.to_string()),
 		inputs: step.step_inputs_schema(),
 		steps: vec![step.with_inherited_step_inputs()],
-		dry_run: false,
+		dry_run: alias.force_dry_run,
 	})
 }
 
@@ -1250,23 +1236,41 @@ fn build_top_level_step_alias_subcommands() -> Vec<Command> {
 		.collect()
 }
 
-fn step_command_summary(step: &CliStepDefinition) -> String {
-	match step.step_kebab_name().as_str() {
-		"affected-packages" => "Compute affected packages from a prepared release plan".to_string(),
-		"create-change-file" => "Create a changeset file for one or more packages".to_string(),
-		"prepare-release" => "Plan version bumps, changelogs, and release artifacts".to_string(),
-		"release-record" => {
-			"Inspect the release record associated with a tag or commit".to_string()
+fn step_command_summary(kebab: &str) -> String {
+	match kebab {
+		"config" => "Render resolved monochange configuration and workspace metadata",
+		"validate" => "Validate configuration, changesets, and version groups",
+		"discover" => "Discover packages across supported ecosystems",
+		"display-versions" => {
+			"Show the next version for each release group and package without writing files"
 		}
+		"create-change-file" => "Create a changeset file for one or more packages",
+		"prepare-release" => "Plan version bumps, changelogs, and release artifacts",
+		"commit-release" => "Create a release commit that embeds the durable release record",
+		"verify-release-branch" => "Verify a commit is reachable from a configured release branch",
+		"publish-release" => "Publish provider release objects from a prepared release artifact",
+		"placeholder-publish" => {
+			"Publish placeholder package versions for missing registry packages"
+		}
+		"publish-packages" => "Publish package versions from durable monochange release state",
+		"plan-publish-rate-limits" => {
+			"Plan package-registry rate-limit windows for publish operations"
+		}
+		"open-release-request" => {
+			"Open or update the hosted release request from prepared release state"
+		}
+		"comment-released-issues" => "Comment on linked issues shipped in a prepared release",
+		"affected-packages" => "Compute affected packages from a prepared release plan",
+		"diagnose-changesets" => "Inspect changeset provenance and review metadata",
+		"release-record" => "Inspect the release record associated with a tag or commit",
 		"publish-readiness" => {
-			"Check package registry publishing readiness without publishing packages".to_string()
+			"Check package registry publishing readiness without publishing packages"
 		}
-		"tag-release" => "Create and push release tags from a release record".to_string(),
-		"publish-release" => {
-			"Publish provider release objects from a prepared release artifact".to_string()
-		}
-		kebab => format!("Run the built-in {kebab} release workflow step"),
+		"tag-release" => "Create and push release tags from a release record",
+		"retarget-release" => "Repair a recent release by retargeting its release tags",
+		kebab => return format!("Run the built-in {kebab} release workflow step"),
 	}
+	.to_string()
 }
 
 pub(crate) fn build_step_subcommand() -> Command {
@@ -1280,8 +1284,8 @@ pub(crate) fn build_step_subcommand() -> Command {
 		let step = step.with_inherited_step_inputs();
 		let kebab = step.step_kebab_name();
 		let synthetic = CliCommandDefinition {
+			help_text: Some(step_command_summary(&kebab)),
 			name: kebab,
-			help_text: Some(step_command_summary(&step)),
 			inputs: step.step_inputs_schema(),
 			steps: vec![step],
 			dry_run: false,
@@ -1376,13 +1380,6 @@ pub(crate) fn publish_step_command_definition(
 fn build_publish_subcommand() -> Command {
 	let mut command = Command::new("publish")
 		.about("Publish packages and inspect registry publishing state")
-		.long_about(
-			"Run the built-in publishing steps through short subcommands. Each subcommand runs the \
-same built-in step as the equivalent `monochange step <name>` command, with the same inputs and \
-output formats. `packages` publishes release-state package versions to their registries, \
-`readiness` reports registry readiness without publishing, and `placeholder` bootstraps \
-first-time registry packages with placeholder versions.",
-		)
 		.after_help(
 			"Examples:\n  monochange publish readiness --from HEAD --output readiness.json\n  monochange publish packages --output publish.json\n  monochange publish placeholder --format json\n\nEach subcommand accepts the same inputs as the matching built-in step:\n  monochange publish packages     -> monochange step publish-packages\n  monochange publish readiness    -> monochange step publish-readiness\n  monochange publish placeholder  -> monochange step placeholder-publish",
 		)
@@ -1430,19 +1427,23 @@ pub(crate) fn build_cli_command_subcommand_with_prefix(
 		.help_text
 		.clone()
 		.unwrap_or_else(|| format!("Run the `{}` command", cli_command.name));
-	let usage = cli_command_usage_with_prefix(cli_command, usage_prefix);
 
-	let mut command = Command::new(leak_string(cli_command.name.clone()))
-		.about(help_text)
-		.override_usage(usage)
-		.next_help_heading(RELEASE_OPTIONS_HELP_HEADING)
-		.arg(
-			Arg::new("dry-run")
-				.long("dry-run")
-				.help_heading(RELEASE_OPTIONS_HELP_HEADING)
-				.help("Run the command in dry-run mode when supported")
-				.action(ArgAction::SetTrue),
-		);
+	let mut command = Command::new(leak_string(cli_command.name.clone())).about(help_text);
+
+	for input in &cli_command.inputs {
+		command = command.arg(build_cli_command_input_arg(input));
+	}
+
+	// `--dry-run` stays accepted everywhere so scripts keep working, but it is
+	// only listed for commands with a step that can change something.
+	command = command.arg(
+		Arg::new("dry-run")
+			.long("dry-run")
+			.help_heading(RELEASE_OPTIONS_HELP_HEADING)
+			.help("Show what would change without writing files or contacting services")
+			.action(ArgAction::SetTrue)
+			.hide(!cli_command_can_write(cli_command)),
+	);
 
 	if command_supports_release_diff_preview(cli_command) {
 		command = command
@@ -1462,17 +1463,61 @@ pub(crate) fn build_cli_command_subcommand_with_prefix(
 			);
 	}
 
-	if let Some(after_help) = cli_command_after_help(cli_command) {
+	if let Some(after_help) = cli_command_after_help(cli_command)
+		.map(ToString::to_string)
+		.or_else(|| cli_command_examples(cli_command, usage_prefix))
+	{
 		command = command.after_help(after_help);
 	}
 
-	command = command.next_help_heading("Options");
-
-	for input in &cli_command.inputs {
-		command = command.arg(build_cli_command_input_arg(input));
-	}
-
 	command
+}
+
+/// Step kinds that only read the workspace, so `--dry-run` changes nothing.
+const READ_ONLY_STEP_KINDS: &[&str] = &[
+	"Config",
+	"Validate",
+	"Discover",
+	"DisplayVersions",
+	"AffectedPackages",
+	"DiagnoseChangesets",
+	"ReleaseRecord",
+	"PublishReadiness",
+	"PlanPublishRateLimits",
+];
+
+/// Whether any step of `cli_command` can write files or contact a service.
+fn cli_command_can_write(cli_command: &CliCommandDefinition) -> bool {
+	!cli_command.dry_run
+		&& cli_command
+			.steps
+			.iter()
+			.any(|step| !READ_ONLY_STEP_KINDS.contains(&step.kind_name()))
+}
+
+/// Examples for built-in step commands that have no dedicated help notes.
+fn cli_command_examples(cli_command: &CliCommandDefinition, usage_prefix: &str) -> Option<String> {
+	let [step] = cli_command.steps.as_slice() else {
+		return None;
+	};
+	let arguments: &[&str] = match step.kind_name() {
+		"Config" | "Discover" | "DiagnoseChangesets" => &["", " --format json"],
+		"DisplayVersions" => &["", " --format json --jq '.groups'"],
+		"PrepareRelease" => &[" --diff", " --format json"],
+		"CreateChangeFile" => {
+			&[
+				" --interactive",
+				" --package core --bump minor --reason \"Add a retry option\"",
+			]
+		}
+		_ => return None,
+	};
+	let command = format!("{usage_prefix} {}", cli_command.name);
+	let mut examples = String::from("Examples:");
+	for argument in arguments {
+		let _ = write!(examples, "\n  {command}{argument}");
+	}
+	Some(examples)
 }
 
 pub(crate) fn cli_command_after_help(cli_command: &CliCommandDefinition) -> Option<&'static str> {
@@ -1761,11 +1806,6 @@ fn leak_string(value: impl Into<String>) -> &'static str {
 pub(crate) fn build_versions_subcommand() -> Command {
 	Command::new("versions")
 		.about("List package and group versions or sync internal dependency constraints")
-		.long_about(
-			"List current package and version-group versions, or update internal workspace dependency \
-references to match canonical package versions. Use `monochange versions list --format json` \
-for a flat version inventory and `monochange versions sync` to normalize dependency constraints.",
-		)
 		.after_help(
 			"Examples:\n  monochange versions list --format json\n  monochange versions sync --dry-run\n  monochange versions sync --dry-run --format json\n  monochange versions sync --strategy exact\n\n\
 Calling `monochange versions` without a subcommand checks whether internal dependency constraints \
@@ -1777,30 +1817,20 @@ match package versions without writing files. Run `monochange versions sync` to 
 		.subcommand(
 			Command::new("list")
 				.about("List current package and group versions")
-				.long_about(
-					"List current package and version-group versions as a flat mapping keyed by the exact \
-monochange package or group id.",
-				)
+				.after_help("Versions are keyed by the exact monochange package or group id.")
 				.arg(
-					Arg::new("format")
-						.long("format")
-						.help("Output format")
-						.default_value("text")
-						.value_parser(["text", "json", "json-min"]),
+					format_arg(DATA_OUTPUT_FORMATS),
 				),
 		)
 		.subcommand(
 			Command::new("sync")
 				.about("Sync internal dependency constraints to package versions")
-				.long_about(
-					"Update internal workspace dependency references to match canonical package versions. \
-Use this when migrating to monochange, checking whether manifests are already in sync, \
-or normalizing constraints before grouping packages for shared releases.",
-				)
 				.after_help(
 					"Examples:\n  monochange versions sync --dry-run\n  monochange versions sync --dry-run --format json\n  monochange versions sync --strategy exact\n\n\
-This command syncs internal workspace dependency constraints. Strategy precedence is package config, \
-then ecosystem config, then the ecosystem default unless --strategy forces one style for this run.",
+Use this when migrating to monochange, checking whether manifests are already in sync, or \
+normalizing constraints before grouping packages for shared releases. Strategy precedence is \
+package config, then ecosystem config, then the ecosystem default unless --strategy forces one \
+style for this run.",
 				)
 				.args(versions_sync_args()),
 		)
@@ -1812,18 +1842,12 @@ fn versions_sync_args() -> Vec<Arg> {
 			.long("dry-run")
 			.help("Show what would change without modifying files")
 			.action(ArgAction::SetTrue),
-		Arg::new("format")
-			.long("format")
-			.help("Output format")
-			.default_value("text")
-			.value_parser(["text", "json", "json-min"]),
+		format_arg(DATA_OUTPUT_FORMATS),
 		Arg::new("strategy")
 			.long("strategy")
-			.help("Override version constraint strategy: default, exact, caret, compatible")
-			.long_help(
-				"Override the version constraint strategy. With `default`, monochange uses \
-package config first, then ecosystem config, then the ecosystem default. Use \
-`exact`, `caret`, or `compatible` to force one style for this run.",
+			.value_name("STRATEGY")
+			.help(
+				"Version constraint style for this run; `default` follows package, then ecosystem config",
 			)
 			.default_value("default")
 			.value_parser(["default", "exact", "caret", "compatible"]),

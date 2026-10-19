@@ -7,7 +7,9 @@ mod tests;
 
 use leptos::prelude::*;
 use leptos_meta::Title;
+use leptos_router::LazyRoute;
 use leptos_router::hooks::use_params_map;
+use leptos_router::lazy_route;
 use monochange_app_feedback::Actor;
 use monochange_app_feedback::FeedbackItem;
 use monochange_app_feedback::FeedbackKind;
@@ -68,34 +70,61 @@ fn plural(count: usize, word: &str) -> String {
 	}
 }
 
-#[component]
-pub fn FeedbackConsolePage() -> impl IntoView {
-	let params = use_params_map();
-	let act = ServerAction::<FeedbackAction>::new();
-	let reply = ServerAction::<MaintainerReply>::new();
-	let key = move || {
-		let params = params.read();
-		(
-			params.get("organization").unwrap_or_default(),
-			params.get("project").unwrap_or_default(),
-			act.version().get() + reply.version().get(),
-		)
-	};
-	let console = Resource::new_blocking(key, |(organization, project, _)| {
-		feedback_console(organization, project)
-	});
+/// Maintainer console data, split into its own WASM chunk.
+pub struct FeedbackConsoleRoute {
+	act: ServerAction<FeedbackAction>,
+	reply: ServerAction<MaintainerReply>,
+	console: Resource<Result<Option<ConsoleView>, server_fn::ServerFnError>>,
+}
 
-	view! {
-		<section class="site-width dashboard-section">
-			<Suspense fallback=|| view! { <p role="status">"Loading feedback…"</p> }>
-				{move || console.get().map(|result| match result {
-					Ok(Some(view)) => view! { <ConsoleContent view=view act=act reply=reply /> }.into_any(),
-					Ok(None) => view! { <Unavailable title="Project not found" message="It may have been renamed or deleted, or it belongs to an organisation you don't own." /> }.into_any(),
-					Err(_) => view! { <Unavailable title="Feedback couldn't be loaded" message="Please reload the page to try again." /> }.into_any(),
-				})}
+/// The maintainer console: every feedback item with its triage, what users
+/// see, the discussion, and the decisions the pipeline allows.
+#[lazy_route]
+impl LazyRoute for FeedbackConsoleRoute {
+	fn data() -> Self {
+		let params = use_params_map();
+		let act = ServerAction::<FeedbackAction>::new();
+		let reply = ServerAction::<MaintainerReply>::new();
+		let key = {
+			let (act, reply) = (act, reply);
+			move || {
+				let params = params.read();
+				(
+					params.get("organization").unwrap_or_default(),
+					params.get("project").unwrap_or_default(),
+					act.version().get() + reply.version().get(),
+				)
+			}
+		};
+		let console = Resource::new_blocking(key, |(organization, project, _)| {
+			feedback_console(organization, project)
+		});
+		Self {
+			act,
+			reply,
+			console,
+		}
+	}
 
-			</Suspense>
-		</section>
+	fn view(this: Self) -> AnyView {
+		let FeedbackConsoleRoute {
+			act,
+			reply,
+			console,
+		} = this;
+		view! {
+			<section class="site-width dashboard-section">
+				<Suspense fallback=|| view! { <p role="status">"Loading feedback…"</p> }>
+					{move || console.get().map(|result| match result {
+						Ok(Some(view)) => view! { <ConsoleContent view=view act=act reply=reply /> }.into_any(),
+						Ok(None) => view! { <Unavailable title="Project not found" message="It may have been renamed or deleted, or it belongs to an organisation you don't own." /> }.into_any(),
+						Err(_) => view! { <Unavailable title="Feedback couldn't be loaded" message="Please reload the page to try again." /> }.into_any(),
+					})}
+
+				</Suspense>
+			</section>
+		}
+		.into_any()
 	}
 }
 

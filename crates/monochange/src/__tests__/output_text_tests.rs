@@ -4,6 +4,7 @@ fn plain() -> TextTheme {
 	TextTheme {
 		color: false,
 		verbose: false,
+		ascii: false,
 	}
 }
 
@@ -11,6 +12,15 @@ fn colored() -> TextTheme {
 	TextTheme {
 		color: true,
 		verbose: false,
+		ascii: false,
+	}
+}
+
+fn ascii() -> TextTheme {
+	TextTheme {
+		color: false,
+		verbose: false,
+		ascii: true,
 	}
 }
 
@@ -66,6 +76,7 @@ fn verbose_themes_show_every_list_item() {
 	let verbose = TextTheme {
 		color: false,
 		verbose: true,
+		ascii: false,
 	};
 	let mut report = TextReport::new(verbose);
 	assert!(report.is_verbose());
@@ -157,6 +168,72 @@ fn counts_use_the_right_noun() {
 	assert_eq!(plural(1, "file", "files"), "1 file");
 	assert_eq!(plural(0, "file", "files"), "0 files");
 	assert_eq!(display_width("→ é"), 3);
+	assert_eq!(display_width("📦 パッケージ"), 13);
+}
+
+#[test]
+fn tables_align_columns_after_emoji_and_cjk_names() {
+	let mut report = TextReport::new(plain());
+	report.table(&[
+		vec![
+			TableCell::plain("sdk"),
+			TableCell::plain("v1.1.0"),
+			TableCell::plain("cargo"),
+		],
+		vec![
+			TableCell::plain("🚀-launcher"),
+			TableCell::plain("v2.0.0"),
+			TableCell::plain("npm"),
+		],
+		vec![
+			TableCell::plain("日本語-docs"),
+			TableCell::plain("v0.3.1"),
+			TableCell::plain("deno"),
+		],
+	]);
+	report.fields(&[
+		("名前", "日本語-docs".to_string()),
+		("Version", "v0.3.1".to_string()),
+	]);
+
+	insta::assert_snapshot!(report.render());
+}
+
+#[test]
+fn ascii_themes_draw_result_symbols_from_ascii() {
+	let mut report = TextReport::new(ascii());
+	report.headline(
+		Outcome::Success,
+		"ok",
+		&["2 packages".to_string(), "dry-run".to_string()],
+	);
+	report.headline(Outcome::Warning, "careful", &[]);
+	report.headline(Outcome::Failure, "broken", &[]);
+	report.headline(Outcome::Neutral, "note", &[]);
+	report.section("Changed files", Some(3));
+	report.list(["a.toml", "b.toml", "c.toml"].map(ToString::to_string), 2);
+
+	insta::assert_snapshot!(report.render());
+}
+
+#[test]
+fn ascii_symbols_are_scoped_to_the_running_command() {
+	assert!(!ascii_symbols());
+	assert!(crate::tests::block_on_in_context(with_ascii_symbols(
+		true,
+		async { TextTheme::for_stdout().ascii }
+	)));
+	assert!(!crate::tests::block_on_in_context(with_ascii_symbols(
+		false,
+		async { ascii_symbols() }
+	)));
+	assert!(!TextTheme::for_stdout().ascii);
+}
+
+#[test]
+fn previews_shorten_wide_text_by_terminal_columns() {
+	assert_eq!(first_line_preview("日本語のパッケージ", 6), "日本語…");
+	assert_eq!(first_line_preview("日本語のパッケージ", 7), "日本語…");
 }
 
 #[test]

@@ -3190,6 +3190,39 @@ fn enrich_changeset_context_falls_back_to_commit_annotations_when_batch_lookup_f
 }
 
 #[test]
+fn batch_review_request_lookup_reports_github_failures_without_a_config_prefix() {
+	let server = MockServer::start();
+	let unauthorized = server.mock(|when, then| {
+		when.method(POST).path("/graphql");
+		then.status(401)
+			.header("content-type", "application/json")
+			.body(
+				r#"{"message":"Bad credentials","documentation_url":"https://docs.github.com/rest"}"#,
+			);
+	});
+	let github = SourceConfiguration {
+		provider: SourceProvider::GitHub,
+		host: None,
+		api_url: None,
+		owner: "ifiokjr".to_string(),
+		repo: "monochange".to_string(),
+		releases: ProviderReleaseSettings::default(),
+		pull_requests: ProviderMergeRequestSettings::default(),
+	};
+	let error = github_runtime()
+		.unwrap_or_else(|error| panic!("runtime: {error}"))
+		.block_on(async {
+			let client = build_test_client(&server);
+			load_review_request_batch_with_client(&client, &github, &["abc1234567890".to_string()])
+				.await
+				.err()
+				.unwrap_or_else(|| panic!("expected unauthorized error"))
+		});
+	unauthorized.assert();
+	insta::assert_snapshot!(error.to_string());
+}
+
+#[test]
 fn batch_review_request_lookup_reports_missing_repository_payload_and_parses_body_issue_refs() {
 	let server = MockServer::start();
 	let missing_repository = server.mock(|when, then| {

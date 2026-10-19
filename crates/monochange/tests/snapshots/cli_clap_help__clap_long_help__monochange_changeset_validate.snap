@@ -17,6 +17,8 @@ Compare pending changesets with classified change severity
           Override the automatically detected default branch ref
 
       [93m--head[0m[95m [0m[95m<REF>[0m
+          Head ref to classify
+
           [default: HEAD]
 
       [93m--release[0m[95m [0m[95m<REF>[0m
@@ -41,10 +43,10 @@ Compare pending changesets with classified change severity
           Fail on any proposed bump mismatch, including incomplete evidence
 
       [93m--format[0m[95m [0m[95m<FORMAT>[0m
-          Report format
+          Output format for the command result
 
           [default: text]
-          [possible values: markdown, md, json, json-min, text]
+          [possible values: text, json, json-min, md]
 
       [93m--output[0m[95m [0m[95m<PATH>[0m
           Also write the report to a file
@@ -64,6 +66,11 @@ Compare pending changesets with classified change severity
 
   [93m-v[0m, [93m--verbose[0m
           Show full result lists and logs, every step timing, and progress notes
+
+      [93m--color[0m[95m [0m[95m<WHEN>[0m
+          Control when output uses color; `auto` honors NO_COLOR, CLICOLOR, and CLICOLOR_FORCE
+
+          [possible values: auto, always, never]
 
       [93m--progress-format[0m[95m [0m[95m<FORMAT>[0m
           Control progress output on stderr
