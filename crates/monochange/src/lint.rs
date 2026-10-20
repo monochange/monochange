@@ -350,7 +350,7 @@ pub(crate) fn render_lint_catalog(format: OutputFormat) -> MonochangeResult<Stri
 		OutputFormat::Text | OutputFormat::Markdown => {
 			let mut text = TextReport::new(TextTheme::for_stdout());
 			let fixable = rules.iter().filter(|rule| rule.autofixable).count();
-			text.headline(
+			text.summary(
 				Outcome::Neutral,
 				&plural(rules.len(), "lint rule", "lint rules"),
 				&[
@@ -408,7 +408,7 @@ pub(crate) fn render_lint_explanation(id: &str, format: OutputFormat) -> Monocha
 			}
 			OutputFormat::Text | OutputFormat::Markdown => {
 				let mut text = TextReport::new(TextTheme::for_stdout());
-				text.headline(Outcome::Neutral, &rule.id, std::slice::from_ref(&rule.name));
+				text.title(&rule.id, std::slice::from_ref(&rule.name));
 				text.fields(&[
 					("Category", debug_label(&rule.category)),
 					("Maturity", debug_label(&rule.maturity)),
@@ -449,11 +449,7 @@ pub(crate) fn render_lint_explanation(id: &str, format: OutputFormat) -> Monocha
 			}
 			OutputFormat::Text | OutputFormat::Markdown => {
 				let mut text = TextReport::new(TextTheme::for_stdout());
-				text.headline(
-					Outcome::Neutral,
-					&preset.id,
-					std::slice::from_ref(&preset.name),
-				);
+				text.title(&preset.id, std::slice::from_ref(&preset.name));
 				text.fields(&[("Maturity", debug_label(&preset.maturity))]);
 				text.paragraph(&preset.description, Tone::Plain);
 				text.section("Rules", Some(preset.rules.len()));
@@ -679,32 +675,6 @@ fn format_check_report(input: &CheckReportInput<'_>, theme: TextTheme) -> String
 		_ => (Outcome::Failure, "Checks failed"),
 	};
 
-	text.headline(outcome, headline, &details);
-
-	if !input.validation_errors.is_empty() {
-		text.section("Workspace validation", Some(input.validation_errors.len()));
-
-		for error in input.validation_errors {
-			text.raw_block(error);
-		}
-	}
-
-	let workspace_warnings = input
-		.validation_warnings
-		.iter()
-		.chain(&report.warnings)
-		.collect::<Vec<_>>();
-
-	if !workspace_warnings.is_empty() {
-		text.section("Warnings", Some(workspace_warnings.len()));
-		text.list(
-			workspace_warnings
-				.into_iter()
-				.map(|warning| format!("▲ {warning}")),
-			usize::MAX,
-		);
-	}
-
 	let mut by_file: BTreeMap<&Path, Vec<&monochange_core::lint::LintResult>> = BTreeMap::new();
 
 	for result in &report.results {
@@ -775,6 +745,30 @@ fn format_check_report(input: &CheckReportInput<'_>, theme: TextTheme) -> String
 		}
 	}
 
+	let workspace_warnings = input
+		.validation_warnings
+		.iter()
+		.chain(&report.warnings)
+		.collect::<Vec<_>>();
+
+	if !workspace_warnings.is_empty() {
+		text.section("Warnings", Some(workspace_warnings.len()));
+		text.list(
+			workspace_warnings
+				.into_iter()
+				.map(|warning| format!("▲ {warning}")),
+			usize::MAX,
+		);
+	}
+
+	if !input.validation_errors.is_empty() {
+		text.section("Workspace validation", Some(input.validation_errors.len()));
+
+		for error in input.validation_errors {
+			text.raw_block(error);
+		}
+	}
+
 	if fixable > 0 {
 		let command = theme.paint("`monochange check --fix`", Tone::Accent);
 		let sentence = if input.fixed_files > 0 {
@@ -791,6 +785,8 @@ fn format_check_report(input: &CheckReportInput<'_>, theme: TextTheme) -> String
 
 		text.paragraph(&sentence, Tone::Plain);
 	}
+
+	text.summary(outcome, headline, &details);
 
 	text.render()
 }

@@ -912,26 +912,6 @@ fn render_report(
 }
 fn render_text_report(report: &PublishReadinessReport) -> String {
 	let mut text = TextReport::new(TextTheme::for_stdout());
-	let blocked = report
-		.packages
-		.iter()
-		.filter(|package| package.status == PublishReadinessPackageStatus::Blocked)
-		.count();
-	let packages = plural(report.packages.len(), "package", "packages");
-
-	match report.status {
-		PublishReadinessGlobalStatus::Ready => {
-			text.headline(Outcome::Success, "Ready to publish", &[packages]);
-		}
-		PublishReadinessGlobalStatus::Blocked => {
-			text.headline(
-				Outcome::Failure,
-				"Publishing is blocked",
-				&[format!("{blocked} of {packages} blocked")],
-			);
-		}
-	}
-
 	text.fields(&[
 		("Ref", report.from.clone()),
 		(
@@ -940,25 +920,9 @@ fn render_text_report(report: &PublishReadinessReport) -> String {
 		),
 	]);
 
-	if report.packages.is_empty() {
-		text.paragraph("No packages are selected for publishing.", Tone::Muted);
-	} else {
-		text.section("Packages", Some(report.packages.len()));
-		let rows = report
-			.packages
-			.iter()
-			.map(|package| {
-				let (label, tone) = readiness_package_status_display(package.status);
-				vec![
-					TableCell::new(&package.package, Tone::Heading),
-					TableCell::new(&package.version, Tone::Value),
-					TableCell::new(&package.registry, Tone::Muted),
-					TableCell::new(label, tone),
-					TableCell::plain(&package.message),
-				]
-			})
-			.collect::<Vec<_>>();
-		text.table(&rows);
+	if !report.publish_order.is_empty() {
+		text.section("Publish order", None);
+		text.indented(&report.publish_order.join(" → "), Tone::Plain);
 	}
 
 	let trusted = report
@@ -990,9 +954,25 @@ fn render_text_report(report: &PublishReadinessReport) -> String {
 		text.table(&rows);
 	}
 
-	if !report.publish_order.is_empty() {
-		text.section("Publish order", None);
-		text.indented(&report.publish_order.join(" → "), Tone::Plain);
+	if report.packages.is_empty() {
+		text.paragraph("No packages are selected for publishing.", Tone::Muted);
+	} else {
+		text.section("Packages", Some(report.packages.len()));
+		let rows = report
+			.packages
+			.iter()
+			.map(|package| {
+				let (label, tone) = readiness_package_status_display(package.status);
+				vec![
+					TableCell::new(&package.package, Tone::Heading),
+					TableCell::new(&package.version, Tone::Value),
+					TableCell::new(&package.registry, Tone::Muted),
+					TableCell::new(label, tone),
+					TableCell::plain(&package.message),
+				]
+			})
+			.collect::<Vec<_>>();
+		text.table(&rows);
 	}
 
 	if !report.order_findings.is_empty() {
@@ -1004,6 +984,26 @@ fn render_text_report(report: &PublishReadinessReport) -> String {
 			}),
 			usize::MAX,
 		);
+	}
+
+	let blocked = report
+		.packages
+		.iter()
+		.filter(|package| package.status == PublishReadinessPackageStatus::Blocked)
+		.count();
+	let packages = plural(report.packages.len(), "package", "packages");
+
+	match report.status {
+		PublishReadinessGlobalStatus::Ready => {
+			text.summary(Outcome::Success, "Ready to publish", &[packages]);
+		}
+		PublishReadinessGlobalStatus::Blocked => {
+			text.summary(
+				Outcome::Failure,
+				"Publishing is blocked",
+				&[format!("{blocked} of {packages} blocked")],
+			);
+		}
 	}
 
 	text.render()

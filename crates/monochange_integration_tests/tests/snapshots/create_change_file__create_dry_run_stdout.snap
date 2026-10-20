@@ -2,10 +2,10 @@
 source: crates/monochange_integration_tests/tests/create_change_file.rs
 expression: normalize_timestamps(&stdout)
 ---
-• Would create changeset .changeset/[timestamp]-core.md · dry-run, nothing was written
-
 ---
 core: minor
 ---
 
 # Add helper
+
+• Would create changeset .changeset/[timestamp]-core.md · dry-run, nothing was written

@@ -25,10 +25,10 @@ fn ascii() -> TextTheme {
 }
 
 #[test]
-fn reports_lead_with_a_headline_and_separate_sections() {
+fn reports_close_with_their_summary_after_every_section() {
 	let mut report = TextReport::new(plain());
 	assert!(report.is_empty());
-	report.headline(
+	report.summary(
 		Outcome::Success,
 		"Prepared release",
 		&["2 packages".to_string(), "3 files changed".to_string()],
@@ -63,12 +63,24 @@ fn reports_lead_with_a_headline_and_separate_sections() {
 #[test]
 fn every_outcome_has_its_own_symbol() {
 	let mut report = TextReport::new(plain());
-	report.headline(Outcome::Success, "ok", &[]);
-	report.headline(Outcome::Warning, "careful", &[]);
-	report.headline(Outcome::Failure, "broken", &[]);
-	report.headline(Outcome::Neutral, "note", &[]);
+	report.summary(Outcome::Success, "ok", &[]);
+	report.summary(Outcome::Warning, "careful", &[]);
+	report.summary(Outcome::Failure, "broken", &[]);
+	report.summary(Outcome::Neutral, "note", &[]);
 
-	assert_eq!(report.render(), "✔ ok\n\n▲ careful\n\n✖ broken\n\n• note");
+	assert_eq!(report.render(), "✔ ok\n▲ careful\n✖ broken\n• note");
+}
+
+#[test]
+fn reference_pages_open_with_a_title() {
+	let mut report = TextReport::new(plain());
+	report.title("cargo/recommended", &["Recommended".to_string()]);
+	report.paragraph("Rules for Cargo workspaces.", Tone::Plain);
+
+	assert_eq!(
+		report.render(),
+		"• cargo/recommended · Recommended\n\nRules for Cargo workspaces."
+	);
 }
 
 #[test]
@@ -133,7 +145,7 @@ fn colored_themes_wrap_each_tone_and_reset_it() {
 	assert_eq!(plain().paint("x", Tone::Error), "x");
 
 	let mut report = TextReport::new(theme);
-	report.headline(Outcome::Failure, "broken", &["1 error".to_string()]);
+	report.summary(Outcome::Failure, "broken", &["1 error".to_string()]);
 	assert_eq!(
 		report.render(),
 		"\u{1b}[31;1m✖\u{1b}[0m \u{1b}[1mbroken\u{1b}[0m\u{1b}[2m · 1 error\u{1b}[0m"
@@ -202,14 +214,14 @@ fn tables_align_columns_after_emoji_and_cjk_names() {
 #[test]
 fn ascii_themes_draw_result_symbols_from_ascii() {
 	let mut report = TextReport::new(ascii());
-	report.headline(
+	report.summary(
 		Outcome::Success,
 		"ok",
 		&["2 packages".to_string(), "dry-run".to_string()],
 	);
-	report.headline(Outcome::Warning, "careful", &[]);
-	report.headline(Outcome::Failure, "broken", &[]);
-	report.headline(Outcome::Neutral, "note", &[]);
+	report.summary(Outcome::Warning, "careful", &[]);
+	report.summary(Outcome::Failure, "broken", &[]);
+	report.summary(Outcome::Neutral, "note", &[]);
 	report.section("Changed files", Some(3));
 	report.list(["a.toml", "b.toml", "c.toml"].map(ToString::to_string), 2);
 

@@ -1,0 +1,11 @@
+---
+source: crates/monochange/src/output/../__tests__/cli_progress_tests.rs
+expression: recorded_text(&bytes)
+---
+▶ Publishing 4 packages (Placeholder) across 📦 npm, 🎯 dart
+  › npm      2 pending · 1 batch · no documented limit · low confidence
+  › pub_dev  2 pending · 2 batches · limit 1 per 24h · medium confidence
+    batch 1/2: app
+    batch 2/2: app_icons · wait 86400s first
+✔ 🦀 cargo monochange published 1.2.3 to crates.io
+▶ Publishing 4 packages (Placeholder) across 📦 npm, 🎯 dart

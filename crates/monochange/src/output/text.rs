@@ -1,11 +1,15 @@
 //! Building blocks for human command results on stdout.
 //!
-//! Every text result follows the same shape: a headline that answers the
-//! command's question, then titled sections with aligned tables or short
-//! lists. Long lists are truncated with a pointer to `--format json`, which
-//! always carries the complete data, and `--verbose` shows them in full.
-//! Colour is applied only when stdout is an interactive terminal, so captured
-//! output and CI logs stay plain.
+//! A command reads from the top down: stderr shows what it plans to do and
+//! the log of doing it, then the stdout result follows. Every text result
+//! keeps the same shape: titled sections with aligned tables or short lists,
+//! ordered from supporting detail to the items that matter most, then one
+//! summary line that answers the command's question. The summary is always
+//! the last line, so a glance at the bottom of the terminal says what
+//! happened. Long lists are truncated with a pointer to `--format json`,
+//! which always carries the complete data, and `--verbose` shows them in
+//! full. Colour is applied only when stdout is an interactive terminal, so
+//! captured output and CI logs stay plain.
 
 use std::future::Future;
 
@@ -173,10 +177,12 @@ impl TableCell {
 	}
 }
 
-/// A human command result assembled from a headline and sections.
+/// A human command result assembled from sections and a closing summary.
 pub(crate) struct TextReport {
 	theme: TextTheme,
 	lines: Vec<String>,
+	/// Summary lines, rendered after every section.
+	summaries: Vec<String>,
 	/// Indexes of lines from [`TextReport::raw_block`], which keep their
 	/// trailing whitespace (a diff context line is a single space).
 	verbatim: std::collections::BTreeSet<usize>,
@@ -187,12 +193,28 @@ impl TextReport {
 		Self {
 			theme,
 			lines: Vec::new(),
+			summaries: Vec::new(),
 			verbatim: std::collections::BTreeSet::new(),
 		}
 	}
 
-	/// The first line of the result, such as `✔ Prepared release · dry-run`.
-	pub(crate) fn headline(&mut self, outcome: Outcome, text: &str, details: &[String]) {
+	/// The closing line of the result, such as `✔ Prepared release ·
+	/// dry-run`, rendered after every section however early it is added.
+	/// A result that combines several reports keeps their summaries in the
+	/// order they were added.
+	pub(crate) fn summary(&mut self, outcome: Outcome, text: &str, details: &[String]) {
+		let line = self.status_line(outcome, text, details);
+		self.summaries.push(line);
+	}
+
+	/// The opening line of a reference page, such as `lint explain`, that
+	/// describes one thing instead of reporting what a command did.
+	pub(crate) fn title(&mut self, text: &str, details: &[String]) {
+		let line = self.status_line(Outcome::Neutral, text, details);
+		self.push_separated(line);
+	}
+
+	fn status_line(&self, outcome: Outcome, text: &str, details: &[String]) -> String {
 		let symbols = self.theme.symbols();
 		let (symbol, tone) = outcome.symbol(symbols);
 		let mut line = format!(
@@ -210,7 +232,7 @@ impl TextReport {
 				Tone::Muted,
 			));
 		}
-		self.push_separated(line);
+		line
 	}
 
 	/// Start a titled section, such as `Changed files (12)`.
@@ -332,7 +354,7 @@ impl TextReport {
 	}
 
 	pub(crate) fn is_empty(&self) -> bool {
-		self.lines.is_empty()
+		self.lines.is_empty() && self.summaries.is_empty()
 	}
 
 	pub(crate) fn is_verbose(&self) -> bool {
@@ -354,6 +376,12 @@ impl TextReport {
 			.collect::<Vec<_>>();
 		while lines.last().is_some_and(|line| line.trim().is_empty()) {
 			lines.pop();
+		}
+		if !self.summaries.is_empty() {
+			if !lines.is_empty() {
+				lines.push("");
+			}
+			lines.extend(self.summaries.iter().map(String::as_str));
 		}
 		lines.join("\n")
 	}

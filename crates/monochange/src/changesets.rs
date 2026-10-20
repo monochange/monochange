@@ -169,12 +169,12 @@ pub(crate) fn render_changeset_diagnostics(report: &ChangesetDiagnosticsReport) 
 	let mut text = TextReport::new(TextTheme::for_stdout());
 
 	if report.changesets.is_empty() {
-		text.headline(Outcome::Neutral, "No matching changesets found", &[]);
+		text.summary(Outcome::Neutral, "No matching changesets found", &[]);
 
 		return text.render();
 	}
 
-	text.headline(
+	text.summary(
 		Outcome::Neutral,
 		&plural(report.changesets.len(), "changeset", "changesets"),
 		&[],

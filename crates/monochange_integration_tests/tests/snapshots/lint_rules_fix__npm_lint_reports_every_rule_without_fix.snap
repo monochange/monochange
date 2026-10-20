@@ -2,8 +2,6 @@
 source: crates/monochange_integration_tests/tests/lint_rules_fix.rs
 expression: "normalize_workspace_paths(fixture.path(), output)"
 ---
-✖ Checks failed · 9 errors · 7 fixable
-
 package.json
   7:4  ✖ root package.json should not have production dependencies; move them to devDependencies
          npm/root-no-prod-deps · fixable
@@ -31,3 +29,5 @@ packages/shared/package.json
          npm/required-package-fields
 
 Run `monochange check --fix` to fix 7 issues automatically.
+
+✖ Checks failed · 9 errors · 7 fixable

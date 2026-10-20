@@ -772,7 +772,14 @@ fn resolve_command_output_defaults_to_text_without_step_format() {
 	let output = resolve_command_output(&cli_command, &context, true, None)
 		.unwrap_or_else(|error| panic!("resolve text output: {error}"));
 
-	assert!(output.starts_with("• No release planned"), "{output}");
+	assert!(
+		output
+			.lines()
+			.last()
+			.unwrap_or_default()
+			.starts_with("• No release planned"),
+		"{output}"
+	);
 	assert!(!output.trim_start().starts_with('{'));
 }
 
@@ -1271,7 +1278,7 @@ fn release_version_summary_renderers_cover_empty_and_single_section_states() {
 	let groups_only = build_release_version_summary(&groups_release);
 	assert_eq!(
 		render_release_version_summary_text(&groups_only, &no_labels),
-		"✔ Next versions · 1 group · 0 packages\n\nGroups\n  sdk  2.0.0  minor"
+		"Groups\n  sdk  2.0.0  minor\n\n✔ Next versions · 1 group · 0 packages"
 	);
 	assert_eq!(
 		render_release_version_summary_markdown(&groups_only),
@@ -1284,7 +1291,7 @@ fn release_version_summary_renderers_cover_empty_and_single_section_states() {
 	let labels = BTreeMap::from([("core".to_string(), "core-lib".to_string())]);
 	assert_eq!(
 		render_release_version_summary_text(&packages_only, &labels),
-		"✔ Next versions · 2 packages\n\nPackages\n  core-lib  1.2.0  minor\n  web       1.2.1  patch"
+		"Packages\n  core-lib  1.2.0  minor\n  web       1.2.1  patch\n\n✔ Next versions · 2 packages"
 	);
 	assert_eq!(
 		render_release_version_summary_markdown(&packages_only),
@@ -1386,17 +1393,17 @@ fn placeholder_publish_report_prioritizes_actions_and_hides_details_by_default()
 		],
 	};
 
-	let default = render_package_publish_report(&report, false).join("\n");
-	assert!(default.starts_with("Would publish 1 placeholder package\n\n  @scope/pkg"));
-	assert!(default.contains("Blocked\n  @scope/pkg"));
-	assert!(default.contains(
-		"Checked 4 packages. 1 package version already exists. 1 blocked. 1 not attempted. No changes were made."
+	let default = render_publish_text(&report, false);
+	assert!(default.starts_with("Would publish (1)\n  @scope/pkg"));
+	assert!(default.contains("Blocked (1)\n  @scope/pkg"));
+	assert!(default.ends_with(
+		"\n\n• Would publish 1 placeholder package · 1 already published · 1 blocked · 1 not attempted · dry-run, no changes were made"
 	));
 	assert!(!default.contains("Details"));
 	assert!(!default.contains("trusted publishing:"));
 	assert_eq!(default.matches("@scope/pkg").count(), 2);
 
-	let detailed = render_package_publish_report(&report, true).join("\n");
+	let detailed = render_publish_text(&report, true);
 	assert!(detailed.contains("Details"));
 	assert!(detailed.contains("already exists"));
 	assert!(detailed.contains("not attempted"));
@@ -1404,7 +1411,7 @@ fn placeholder_publish_report_prioritizes_actions_and_hides_details_by_default()
 }
 
 #[test]
-fn publish_rendering_puts_the_outcome_before_command_metadata() {
+fn publish_rendering_ends_with_the_outcome_summary() {
 	let mut context = cli_context();
 	context.package_publish_report = Some(package_publish::PackagePublishReport {
 		mode: package_publish::PackagePublishRunMode::Placeholder,
@@ -1429,8 +1436,8 @@ fn publish_rendering_puts_the_outcome_before_command_metadata() {
 	};
 
 	let text = render_cli_command_result(&command, &context);
-	assert!(text.starts_with("Published 1 placeholder package\n\n  @scope/pkg"));
-	assert!(text.contains("Checked 2 packages. 1 package version already exists. 0 failed."));
+	assert!(text.starts_with("Published (1)\n  @scope/pkg"));
+	assert!(text.ends_with("\n\n✔ Published 1 placeholder package · 1 already published"));
 	assert_eq!(text.matches("@scope/pkg").count(), 1);
 	assert!(!text.contains("command `placeholder` completed"));
 
@@ -1503,8 +1510,14 @@ fn placeholder_json_and_template_outputs_keep_all_package_rows() {
 	);
 }
 
+fn render_publish_text(report: &package_publish::PackagePublishReport, show_all: bool) -> String {
+	let mut text = TextReport::new(TextTheme::for_stdout());
+	render_package_publish_report(&mut text, report, show_all);
+	text.render()
+}
+
 #[test]
-fn package_publish_headlines_distinguish_every_outcome() {
+fn package_publish_outcome_lines_distinguish_every_outcome() {
 	let report = |mode, dry_run, statuses: &[package_publish::PackagePublishStatus]| {
 		package_publish::PackagePublishReport {
 			mode,
@@ -1521,7 +1534,7 @@ fn package_publish_headlines_distinguish_every_outcome() {
 		}
 	};
 	let headline = |report: &package_publish::PackagePublishReport| {
-		package_publish_headline(report, report.summary())
+		package_publish_outcome_line(report, report.summary()).1
 	};
 
 	assert_eq!(
@@ -1675,10 +1688,9 @@ fn render_package_publish_reports_cover_empty_and_detailed_variants() {
 		dry_run: true,
 		packages: Vec::new(),
 	};
-	let text_lines = render_package_publish_report(&empty_placeholder, false);
 	assert_eq!(
-		text_lines,
-		vec!["No packages matched placeholder publishing criteria"]
+		render_publish_text(&empty_placeholder, false),
+		"• No packages matched placeholder publishing criteria"
 	);
 	assert_eq!(
 		render_package_publish_report_markdown(&empty_placeholder, false),
@@ -1693,7 +1705,7 @@ fn render_package_publish_reports_cover_empty_and_detailed_variants() {
 			package_publish::TrustedPublishingStatus::ManualActionRequired,
 		)],
 	};
-	let text = render_package_publish_report(&detailed_report, true).join("\n");
+	let text = render_publish_text(&detailed_report, true);
 	assert!(text.contains("repository: monochange/monochange"));
 	assert!(text.contains("workflow: publish.yml"));
 	assert!(text.contains("environment: release"));
@@ -1739,15 +1751,15 @@ fn render_package_publish_reports_include_command_output_blocks() {
 		packages: vec![outcome],
 	};
 
-	let default = render_package_publish_report(&report, false).join("\n");
+	let default = render_publish_text(&report, false);
 	assert!(!default.contains("command: npm publish --access public"));
 	assert!(!default.contains("stdout:"));
 	assert!(!default.contains("stderr:"));
 
-	let text = render_package_publish_report(&report, true).join("\n");
+	let text = render_publish_text(&report, true);
 	assert!(text.contains("command: npm publish --access public"));
-	assert!(text.contains("stdout:\n    │ published\n    │ with provenance"));
-	assert!(text.contains("stderr:\n    │ npm notice package"));
+	assert!(text.contains("stdout:\n      │ published\n      │ with provenance"));
+	assert!(text.contains("stderr:\n      │ npm notice package"));
 
 	let markdown = render_package_publish_report_markdown(&report, true).join("\n");
 	assert!(markdown.contains("**Command:** `npm publish --access public`"));
@@ -1784,7 +1796,7 @@ fn render_package_publish_reports_include_manual_registry_guidance() {
 		}],
 	};
 
-	let text = render_package_publish_report(&report, true).join("\n");
+	let text = render_publish_text(&report, true);
 	assert!(text.contains("trusted publishing: manual-action-required"));
 	assert!(text.contains("trust message: configure trusted publishing manually for `pkg`"));
 	assert!(text.contains("setup: https://crates.io/crates/pkg"));
@@ -1978,7 +1990,10 @@ fn resolve_command_output_supports_package_publish_text_and_markdown_without_rel
 	});
 	let text = resolve_command_output(&cli_command, &text_context, true, None)
 		.unwrap_or_else(|error| panic!("package publish text output: {error}"));
-	assert_eq!(text, "No packages matched placeholder publishing criteria");
+	assert_eq!(
+		text,
+		"• No packages matched placeholder publishing criteria"
+	);
 
 	let mut markdown_context = cli_context();
 	markdown_context.output_format = OutputFormat::Markdown;
@@ -2062,7 +2077,7 @@ fn resolve_command_output_supports_publish_rate_limit_reports_without_release_st
 	});
 	let empty = resolve_command_output(&cli_command, &context, true, None)
 		.unwrap_or_else(|error| panic!("empty rate limit output: {error}"));
-	assert!(empty.contains("no publish operations matched the current plan"));
+	assert_eq!(empty, "• No publish operations matched the current plan");
 
 	let mut windows_without_batches = sample_rate_limit_report();
 	windows_without_batches.batches.clear();
@@ -2071,6 +2086,20 @@ fn resolve_command_output_supports_publish_rate_limit_reports_without_release_st
 		.unwrap_or_else(|error| panic!("rate limit output without batches: {error}"));
 	assert!(no_batches.contains("Publish rate limits"));
 	assert!(!no_batches.contains("Planned batches"));
+	assert!(
+		no_batches.ends_with("\n\n▲ Planned 13 publish operations · 0 batches · 1 registry"),
+		"{no_batches}"
+	);
+
+	let mut fits_one_window = sample_rate_limit_report();
+	fits_one_window.warnings.clear();
+	context.rate_limit_report = Some(fits_one_window);
+	let fits = resolve_command_output(&cli_command, &context, true, None)
+		.unwrap_or_else(|error| panic!("rate limit output without warnings: {error}"));
+	assert!(
+		fits.ends_with("\n\n✔ Planned 13 publish operations · 2 batches · 1 registry"),
+		"{fits}"
+	);
 }
 
 #[test]
@@ -4156,7 +4185,7 @@ fn changeset_policy_results_show_not_required_verdicts_and_warnings() {
 
 	let text = render_cli_command_result(&default_cli_command("affected-packages"), &context);
 	assert!(
-		text.starts_with("• no package changes need a changeset · changeset policy not required"),
+		text.ends_with("\n\n• no package changes need a changeset · changeset policy not required"),
 		"{text}"
 	);
 	assert!(
@@ -4207,4 +4236,98 @@ fn release_automation_json_lists_command_step_results() {
 	let json = resolve_command_output(&command, &context, false, None)
 		.unwrap_or_else(|error| panic!("release automation json: {error}"));
 	assert!(!json.contains("\"commands\""), "{json}");
+}
+
+#[test]
+fn package_publish_summaries_end_with_the_outcome_and_remaining_counts() {
+	let report = |statuses: &[package_publish::PackagePublishStatus]| {
+		package_publish::PackagePublishReport {
+			mode: package_publish::PackagePublishRunMode::Release,
+			dry_run: false,
+			packages: statuses
+				.iter()
+				.map(|status| {
+					sample_package_publish_outcome(
+						*status,
+						package_publish::TrustedPublishingStatus::Disabled,
+					)
+				})
+				.collect(),
+		}
+	};
+
+	let partly_blocked = render_publish_text(
+		&report(&[
+			package_publish::PackagePublishStatus::Published,
+			package_publish::PackagePublishStatus::Blocked,
+			package_publish::PackagePublishStatus::SkippedExternal,
+		]),
+		false,
+	);
+	assert!(
+		partly_blocked.ends_with(
+			"Blocked (1)\n  @scope/pkg  1.2.3  npm  published package to npm\n\n▲ Published 1 package · 1 blocked · 1 not attempted"
+		),
+		"{partly_blocked}"
+	);
+
+	let staged = render_publish_text(
+		&report(&[
+			package_publish::PackagePublishStatus::Published,
+			package_publish::PackagePublishStatus::Staged,
+		]),
+		false,
+	);
+	assert!(
+		staged.ends_with(
+			"Approve staged packages with `npm stage list`, then `npm stage approve <stage-id>`.\n\n✔ Published 1 package; staged 1 package awaiting approval"
+		),
+		"{staged}"
+	);
+
+	assert_eq!(
+		render_publish_text(
+			&report(&[package_publish::PackagePublishStatus::SkippedExternal]),
+			false
+		),
+		"• No packages were published · 1 not attempted"
+	);
+	assert_eq!(
+		render_publish_text(
+			&report(&[
+				package_publish::PackagePublishStatus::SkippedExisting,
+				package_publish::PackagePublishStatus::SkippedExisting,
+			]),
+			false
+		),
+		"• No packages need publishing · 2 already published"
+	);
+	assert_eq!(
+		package_publish_outcome_line(
+			&report(&[package_publish::PackagePublishStatus::Failed]),
+			report(&[package_publish::PackagePublishStatus::Failed]).summary(),
+		)
+		.0,
+		Outcome::Failure
+	);
+}
+
+#[test]
+fn publish_results_keep_rate_limit_warnings_but_not_the_plan() {
+	let mut context = cli_context();
+	context.rate_limit_report = Some(sample_rate_limit_report());
+	context.package_publish_report = Some(package_publish::PackagePublishReport {
+		mode: package_publish::PackagePublishRunMode::Release,
+		dry_run: false,
+		packages: vec![sample_package_publish_outcome(
+			package_publish::PackagePublishStatus::Published,
+			package_publish::TrustedPublishingStatus::Disabled,
+		)],
+	});
+
+	let text = render_cli_command_result(&default_cli_command("publish-packages"), &context);
+	assert_eq!(
+		text,
+		"warning: needs 2 batches\n\nPublished (1)\n  @scope/pkg  1.2.3  npm\n\n✔ Published 1 package"
+	);
 }

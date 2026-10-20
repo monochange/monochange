@@ -2,8 +2,6 @@
 source: crates/monochange_integration_tests/tests/lint_rules_fix.rs
 expression: "normalize_workspace_paths(fixture.path(), output)"
 ---
-✖ Checks failed · 4 errors · 2 fixable
-
 .changeset/missing-heading.md
   1:1  ✖ changeset body must start with a summary heading
          changesets/summary
@@ -19,3 +17,5 @@ expression: "normalize_workspace_paths(fixture.path(), output)"
          changesets/prefer-inline · fixable
 
 Run `monochange check --fix` to fix 2 issues automatically.
+
+✖ Checks failed · 4 errors · 2 fixable

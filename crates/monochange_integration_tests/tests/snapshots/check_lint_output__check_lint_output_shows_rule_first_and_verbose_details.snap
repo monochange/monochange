@@ -2,8 +2,6 @@
 source: crates/monochange_integration_tests/tests/check_lint_output.rs
 expression: output
 ---
-✖ Checks failed · 6 errors · 1 warning · 2 fixable
-
 packages/app/package.json
   1:1   ✖ missing required package.json field `repository`
           npm/required-package-fields
@@ -30,3 +28,5 @@ packages/shared/package.json
          severity error
 
 Run `monochange check --fix` to fix 2 issues automatically.
+
+✖ Checks failed · 6 errors · 1 warning · 2 fixable

@@ -2,8 +2,6 @@
 source: crates/monochange/src/__tests__/lint_tests.rs
 expression: output
 ---
-✖ Checks failed · 1 error · 1 warning
-
 test.toml
   1:1  ✖ Test error
          test/rule
@@ -11,3 +9,5 @@ test.toml
   2:1  ▲ Test warning
          test/rule
          severity warning
+
+✖ Checks failed · 1 error · 1 warning

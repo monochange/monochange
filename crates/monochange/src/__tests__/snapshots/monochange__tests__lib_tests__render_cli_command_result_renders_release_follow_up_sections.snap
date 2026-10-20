@@ -2,13 +2,19 @@
 source: crates/monochange/src/__tests__/lib_tests.rs
 expression: rendered
 ---
-• Release preview · 1 package · dry-run, no files were changed
+Manifest  target/release-manifest.json
+
+Changed files (1)
+  Cargo.toml
+
+Packages (1)
+  core
 
 Releases
   sdk  v1.2.3  group · tag · release
 
-Packages (1)
-  core
+Issue comments (1)
+  dry-run org/repo 123
 
 Provider releases (1)
   dry-run org/repo v1.2.3 (sdk) via github
@@ -16,10 +22,4 @@ Provider releases (1)
 Release request
   dry-run org/repo monochange/release/release -> main via github
 
-Issue comments (1)
-  dry-run org/repo 123
-
-Changed files (1)
-  Cargo.toml
-
-Manifest  target/release-manifest.json
+• Release preview · 1 package · dry-run, no files were changed

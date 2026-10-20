@@ -342,7 +342,14 @@ fn migrate_audit_reports_legacy_release_tooling() {
 	)
 	.unwrap_or_else(|error| panic!("migration audit: {error}"));
 
-	assert!(output.starts_with("▲ Migration needed"), "{output}");
+	assert!(
+		output
+			.lines()
+			.last()
+			.unwrap_or_default()
+			.starts_with("▲ Migration needed"),
+		"{output}"
+	);
 	assert!(
 		has_table_row(&output, &["knope", "legacy-release-tool", "knope.toml"]),
 		"{output}"
@@ -609,8 +616,16 @@ fn migrate_release_records_reports_migration_and_rendering_branches() {
 		crate::migration_audit::run_migration_command(root, false, &clap::ArgMatches::default())
 			.unwrap_or_else(|error| panic!("default migration audit: {error}"));
 	assert!(
-		default_output.starts_with("✔ No migration needed")
-			|| default_output.starts_with("▲ Migration needed"),
+		default_output
+			.lines()
+			.last()
+			.unwrap_or_default()
+			.starts_with("✔ No migration needed")
+			|| default_output
+				.lines()
+				.last()
+				.unwrap_or_default()
+				.starts_with("▲ Migration needed"),
 		"{default_output}"
 	);
 }
@@ -727,7 +742,14 @@ fn migrate_audit_reports_ready_workspace_and_quiet_mode() {
 	)
 	.unwrap_or_else(|error| panic!("migration audit ready: {error}"));
 
-	assert!(output.starts_with("✔ No migration needed"), "{output}");
+	assert!(
+		output
+			.lines()
+			.last()
+			.unwrap_or_default()
+			.starts_with("✔ No migration needed"),
+		"{output}"
+	);
 	assert!(
 		has_table_row(
 			&output,
@@ -2042,7 +2064,7 @@ fn publish_readiness_dispatches_from_release_record_and_writes_artifact() {
 	.unwrap_or_else(|error| panic!("publish-readiness output: {error}"));
 
 	assert!(output.contains("✔ Ready to publish"), "{output}");
-	assert!(output.contains("\nRef            HEAD\n"), "{output}");
+	assert!(output.starts_with("Ref            HEAD\n"), "{output}");
 	assert!(
 		output.contains("No packages are selected for publishing."),
 		"{output}"
@@ -3569,7 +3591,12 @@ fn command_release_dry_run_discovers_changesets_without_mutating_files() {
 	.unwrap_or_else(|error| panic!("command output: {error}"));
 
 	assert!(
-		output.starts_with("• Release preview") && output.contains("dry-run"),
+		output
+			.lines()
+			.last()
+			.unwrap_or_default()
+			.starts_with("• Release preview")
+			&& output.contains("dry-run"),
 		"unexpected command output:\n{output}"
 	);
 	assert!(output.contains("1.1.0"));
@@ -3748,8 +3775,15 @@ async fn command_versions_reports_planned_versions_without_mutating_files() {
 	.await
 	.unwrap_or_else(|error| panic!("versions output: {error}"));
 
-	assert!(output.starts_with("✔ Next versions"), "{output}");
-	assert!(output.contains("\nGroups\n"), "{output}");
+	assert!(
+		output
+			.lines()
+			.last()
+			.unwrap_or_default()
+			.starts_with("✔ Next versions"),
+		"{output}"
+	);
+	assert!(output.starts_with("Groups\n"), "{output}");
 	assert_eq!(
 		fs::read_to_string(&workspace_manifest)
 			.unwrap_or_else(|error| panic!("workspace manifest after versions: {error}")),
@@ -4017,7 +4051,11 @@ fn command_release_updates_manifests_changelogs_and_deletes_changesets() {
 	let package_versioned_file = fs::read_to_string(tempdir.path().join("crates/core/extra.toml"))
 		.unwrap_or_else(|error| panic!("package versioned file: {error}"));
 	assert!(
-		output.starts_with("✔ Prepared release"),
+		output
+			.lines()
+			.last()
+			.unwrap_or_default()
+			.starts_with("✔ Prepared release"),
 		"unexpected command output:\n{output}"
 	);
 
@@ -4273,7 +4311,14 @@ fn command_release_uses_empty_update_message_precedence_for_grouped_changelogs()
 	let group_changelog = fs::read_to_string(tempdir.path().join("changelog.md"))
 		.unwrap_or_else(|error| panic!("group changelog: {error}"));
 
-	assert!(output.starts_with("✔ Prepared release"), "{output}");
+	assert!(
+		output
+			.lines()
+			.last()
+			.unwrap_or_default()
+			.starts_with("✔ Prepared release"),
+		"{output}"
+	);
 	assert!(core_changelog.contains("Package override for workflow-core -> 1.0.1"));
 	assert!(app_changelog.contains("Update triggered by group sdk; version 1.0.1."));
 	assert!(group_changelog.contains("Update triggered by group sdk; version 1.0.1."));
@@ -4316,7 +4361,7 @@ fn command_diagnostics_reports_requested_changeset_text() {
 	)
 	.unwrap_or_else(|error| panic!("command output: {error}"));
 
-	assert!(output.contains("\n.changeset/feature.md\n"));
+	assert!(output.starts_with(".changeset/feature.md\n"));
 	assert!(output.contains("  Add feature"));
 	assert!(output.contains("core"));
 }
@@ -4421,7 +4466,7 @@ fn command_diagnostics_resolves_changeset_fallback_for_short_paths() {
 	)
 	.unwrap_or_else(|error| panic!("command output: {error}"));
 
-	assert!(output.contains("\n.changeset/feature.md\n"), "{output}");
+	assert!(output.starts_with(".changeset/feature.md\n"), "{output}");
 }
 
 #[test]
@@ -4444,7 +4489,7 @@ fn command_diagnostics_supports_absolute_changeset_path() {
 	)
 	.unwrap_or_else(|error| panic!("command output: {error}"));
 
-	assert!(output.contains("\n.changeset/feature.md\n"), "{output}");
+	assert!(output.starts_with(".changeset/feature.md\n"), "{output}");
 }
 
 #[test]
@@ -6224,7 +6269,7 @@ fn text_release_record_discovery_omits_empty_sections() {
 	let rendered = crate::release_record::text_release_record_discovery(&discovery);
 	assert_eq!(
 		rendered,
-		"✔ Found release record · 0 release targets\n\nRef            HEAD → def5678\nRecord commit  abc1234 · 2 commits back"
+		"Ref            HEAD → def5678\nRecord commit  abc1234 · 2 commits back\n\n✔ Found release record · 0 release targets"
 	);
 }
 
@@ -8650,12 +8695,17 @@ async fn execute_cli_command_supports_placeholder_and_package_publish_steps() {
 			)
 			.await
 			.unwrap_or_else(|error| panic!("placeholder publish: {error}"));
-			assert!(placeholder_output.starts_with("Would publish 2 placeholder packages"));
+			assert!(
+				placeholder_output.ends_with(
+					"\n\n• Would publish 2 placeholder packages · dry-run, no changes were made"
+				),
+				"placeholder output:\n{placeholder_output}"
+			);
 			assert!(
 				placeholder_output.contains("  core") && placeholder_output.contains("  app"),
 				"placeholder output:\n{placeholder_output}"
 			);
-			assert!(placeholder_output.contains("Publish rate limits"));
+			assert!(!placeholder_output.contains("Publish rate limits"));
 
 			let publish_command = CliCommandDefinition {
 				name: "publish".to_string(),
@@ -8690,12 +8740,16 @@ async fn execute_cli_command_supports_placeholder_and_package_publish_steps() {
 			)
 			.await
 			.unwrap_or_else(|error| panic!("publish packages: {error}"));
-			assert!(publish_output.starts_with("Would publish 1 package"));
+			assert!(
+				publish_output
+					.ends_with("\n• Would publish 1 package · dry-run, no changes were made"),
+				"publish output:\n{publish_output}"
+			);
 			assert!(
 				publish_output.contains("  core"),
 				"publish output:\n{publish_output}"
 			);
-			assert!(publish_output.contains("Publish rate limits"));
+			assert!(!publish_output.contains("Publish rate limits"));
 		},
 	)
 	.await;
@@ -9402,11 +9456,12 @@ async fn execute_cli_command_allows_package_publish_steps_without_readiness_or_m
 			)
 			.await
 			.unwrap_or_else(|error| panic!("non-dry-run placeholder publish: {error}"));
+			// Progress shows the rate-limit plan before publishing, so the
+			// result ends with what happened instead of repeating the plan.
 			assert_eq!(
-				placeholder_output.lines().next(),
-				Some("No packages matched placeholder publishing criteria")
+				placeholder_output,
+				"• No packages matched placeholder publishing criteria"
 			);
-			assert!(placeholder_output.contains("no publish operations matched the current plan"));
 
 			let publish_command = CliCommandDefinition {
 				name: "publish".to_string(),
@@ -9444,8 +9499,8 @@ async fn execute_cli_command_allows_package_publish_steps_without_readiness_or_m
 				panic!("non-dry-run publish packages without readiness: {error}")
 			});
 			assert_eq!(
-				publish_output.lines().next(),
-				Some("No packages matched publishing criteria")
+				publish_output.lines().last(),
+				Some("• No packages matched publishing criteria")
 			);
 
 			let release_tempdir =
@@ -9484,8 +9539,8 @@ async fn execute_cli_command_allows_package_publish_steps_without_readiness_or_m
 			.await
 			.unwrap_or_else(|error| panic!("publish packages without readiness: {error}"));
 			assert_eq!(
-				publish_output.lines().next(),
-				Some("No packages matched publishing criteria")
+				publish_output.lines().last(),
+				Some("• No packages matched publishing criteria")
 			);
 			let publish_result = fs::read_to_string(&publish_result_path)
 				.unwrap_or_else(|error| panic!("read publish result: {error}"));
@@ -9515,8 +9570,10 @@ async fn execute_cli_command_allows_package_publish_steps_without_readiness_or_m
 			)
 			.await
 			.unwrap_or_else(|error| panic!("publish plan without matches: {error}"));
-			assert!(plan_output.contains("Publish rate limits"));
-			assert!(plan_output.contains("no publish operations matched the current plan"));
+			assert_eq!(
+				plan_output,
+				"• No publish operations matched the current plan"
+			);
 		},
 	)
 	.await;
@@ -9916,7 +9973,11 @@ fn render_retarget_release_report_handles_provider_sync_variants() {
 		.git_tag_results
 		.retain(|tag_result| tag_result.operation != monochange_core::RetargetOperation::Failed);
 	assert!(
-		render_retarget_release_report(&applied).starts_with("✔ Moved 1 release tag to def5678"),
+		render_retarget_release_report(&applied)
+			.lines()
+			.last()
+			.unwrap_or_default()
+			.starts_with("✔ Moved 1 release tag to def5678"),
 		"{}",
 		render_retarget_release_report(&applied)
 	);
@@ -14327,7 +14388,13 @@ async fn render_release_record_discovery_supports_text_and_json_formats() {
 	let text = crate::render_release_record_discovery(root, "HEAD", crate::OutputFormat::Text)
 		.await
 		.unwrap_or_else(|error| panic!("release-record text: {error}"));
-	assert!(text.starts_with("✔ Found release record"), "{text}");
+	assert!(
+		text.lines()
+			.last()
+			.unwrap_or_default()
+			.starts_with("✔ Found release record"),
+		"{text}"
+	);
 	assert!(text.contains("Ref            HEAD → "), "{text}");
 	let json = crate::render_release_record_discovery(root, "HEAD", crate::OutputFormat::Json)
 		.await
@@ -14353,7 +14420,13 @@ async fn render_release_tag_report_supports_text_and_json_formats() {
 	)
 	.await
 	.unwrap_or_else(|error| panic!("tag-release text: {error}"));
-	assert!(text.starts_with("• Would create"), "{text}");
+	assert!(
+		text.lines()
+			.last()
+			.unwrap_or_default()
+			.starts_with("• Would create"),
+		"{text}"
+	);
 	assert!(text.contains("push disabled · dry-run"), "{text}");
 	assert!(text.contains("planned"), "{text}");
 
@@ -14650,7 +14723,14 @@ fn command_release_without_diff_skips_file_diff_previews() {
 	)
 	.unwrap_or_else(|error| panic!("release without diff: {error}"));
 	set_force_build_file_diff_previews_error(false);
-	assert!(output.starts_with("✔ Prepared release"), "{output}");
+	assert!(
+		output
+			.lines()
+			.last()
+			.unwrap_or_default()
+			.starts_with("✔ Prepared release"),
+		"{output}"
+	);
 }
 
 #[test]
@@ -14917,7 +14997,13 @@ fn render_discovery_report_supports_json_and_text_formats() {
 
 	let text = crate::render_discovery_report(&report, crate::OutputFormat::Text)
 		.unwrap_or_else(|error| panic!("text discovery: {error}"));
-	assert!(text.starts_with("✔ Discovered 1 package"), "{text}");
+	assert!(
+		text.lines()
+			.last()
+			.unwrap_or_default()
+			.starts_with("✔ Discovered 1 package"),
+		"{text}"
+	);
 	assert!(text.contains("Warnings (1)"), "{text}");
 }
 
@@ -17797,7 +17883,7 @@ fn text_release_record_discovery_marks_targets_without_tags() {
 }
 
 #[test]
-fn validate_counts_warnings_in_its_headline() {
+fn validate_counts_warnings_in_its_summary() {
 	let tempdir = setup_fixture("config/versioned-file-empty-glob");
 	let output = run_cli(
 		tempdir.path(),

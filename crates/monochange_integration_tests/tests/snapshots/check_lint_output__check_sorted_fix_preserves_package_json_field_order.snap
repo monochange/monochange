@@ -2,8 +2,6 @@
 source: crates/monochange_integration_tests/tests/check_lint_output.rs
 expression: "normalize_workspace_paths(fixture.path(), output)"
 ---
-✖ Checks failed · 5 errors · fixed 1 file
-
 packages/app/package.json
   1:1  ✖ missing required package.json field `repository`
          npm/required-package-fields
@@ -17,3 +15,5 @@ packages/shared/package.json
          npm/required-package-fields
   1:1  ✖ missing required package.json field `license`
          npm/required-package-fields
+
+✖ Checks failed · 5 errors · fixed 1 file

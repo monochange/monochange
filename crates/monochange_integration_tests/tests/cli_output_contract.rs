@@ -225,7 +225,11 @@ fn check_failure_separates_the_result_from_the_actionable_diagnostic() {
 
 	assert!(!output.status.success());
 	assert!(
-		stdout.starts_with("✖ Checks failed · 6 errors · 1 warning"),
+		stdout
+			.lines()
+			.last()
+			.unwrap_or_default()
+			.starts_with("✖ Checks failed · 6 errors · 1 warning"),
 		"{stdout}"
 	);
 	assert!(stdout.contains("npm/workspace-protocol"), "{stdout}");

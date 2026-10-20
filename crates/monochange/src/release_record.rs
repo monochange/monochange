@@ -628,7 +628,7 @@ pub(crate) fn text_release_tag_report(report: &ReleaseTagReport) -> String {
 		details.push("dry-run".to_string());
 	}
 
-	text.headline(outcome, &headline, &details);
+	text.summary(outcome, &headline, &details);
 	text.fields(&[
 		(
 			"Ref",
@@ -713,7 +713,7 @@ pub(crate) fn text_release_record_discovery(discovery: &ReleaseRecordDiscovery) 
 		"release target",
 		"release targets",
 	));
-	text.headline(Outcome::Success, "Found release record", &details);
+	text.summary(Outcome::Success, "Found release record", &details);
 	let mut fields = vec![
 		(
 			"Ref",

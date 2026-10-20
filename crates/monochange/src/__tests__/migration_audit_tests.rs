@@ -107,7 +107,13 @@ fn audit_migration_detects_legacy_release_tooling() {
 
 	let text = render_migration_audit_report(&report, OutputFormat::Text)
 		.unwrap_or_else(|error| panic!("render migration audit text: {error}"));
-	assert!(text.starts_with("▲ Migration needed"), "{text}");
+	assert!(
+		text.lines()
+			.last()
+			.unwrap_or_default()
+			.starts_with("▲ Migration needed"),
+		"{text}"
+	);
 	assert!(text.contains("GitHub Actions workflow references cargo-release"));
 	let json = render_migration_audit_report(&report, OutputFormat::Json)
 		.unwrap_or_else(|error| panic!("render migration audit json: {error}"));
@@ -136,7 +142,13 @@ fn audit_migration_reports_ready_for_empty_workspace() {
 
 	let text = render_migration_audit_report(&report, OutputFormat::Markdown)
 		.unwrap_or_else(|error| panic!("render migration audit markdown: {error}"));
-	assert!(text.starts_with("✔ No migration needed"), "{text}");
+	assert!(
+		text.lines()
+			.last()
+			.unwrap_or_default()
+			.starts_with("✔ No migration needed"),
+		"{text}"
+	);
 	assert!(!text.contains("Signals ("));
 	assert!(text.contains("Generate monochange configuration"));
 }
@@ -167,7 +179,7 @@ fn audit_migration_ignores_non_migration_signals_for_status() {
 }
 
 #[test]
-fn release_record_migration_reports_lead_with_the_migration_outcome() {
+fn release_record_migration_reports_end_with_the_migration_outcome() {
 	let record = |path: &str, status: ReleaseRecordMigrationStatus| {
 		ReleaseRecordMigrationEntry {
 			path: path.to_string(),
@@ -202,6 +214,9 @@ fn release_record_migration_reports_lead_with_the_migration_outcome() {
 	report.records[0].status = ReleaseRecordMigrationStatus::Migrated;
 	assert!(
 		text_release_record_migration_report(&report)
+			.lines()
+			.last()
+			.unwrap_or_default()
 			.starts_with("✔ Migrated 1 of 2 release records to schema 2")
 	);
 

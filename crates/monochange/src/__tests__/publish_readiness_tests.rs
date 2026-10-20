@@ -1389,7 +1389,7 @@ async fn build_publish_readiness_report_handles_empty_release_publications() {
 }
 
 #[test]
-fn blocked_readiness_reports_lead_with_the_blocked_count() {
+fn blocked_readiness_reports_end_with_the_blocked_count() {
 	let mut blocked = sample_readiness_package();
 	blocked.status = PublishReadinessPackageStatus::Blocked;
 	blocked.message = "version already exists with different content".to_string();

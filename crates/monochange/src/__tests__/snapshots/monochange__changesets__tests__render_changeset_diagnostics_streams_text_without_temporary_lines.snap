@@ -2,8 +2,6 @@
 source: crates/monochange/src/__tests__/changesets_tests.rs
 expression: rendered
 ---
-• 2 changesets
-
 .changeset/feature.md
   ship feature
   long details
@@ -19,3 +17,5 @@ expression: rendered
   (missing summary)
 
   review #77
+
+• 2 changesets

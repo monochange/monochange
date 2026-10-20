@@ -2,8 +2,6 @@
 source: crates/monochange/src/__tests__/publish_readiness_tests.rs
 expression: text
 ---
-✖ Publishing is blocked · 1 of 3 packages blocked
-
 Ref            HEAD
 Record commit  record1
 
@@ -14,3 +12,5 @@ Packages (3)
 
 Order findings (1)
   ✖ core must publish before app
+
+✖ Publishing is blocked · 1 of 3 packages blocked

@@ -35,6 +35,10 @@ Still open:
 - Publish summaries (PR 3) and release-note structure (PR 5) are unchanged.
 - The verified release commit fallback (GitHub `POST /git/trees` 422 for deleted files) needs `"sha": null` for deletions in `monochange_github`.
 
+## Progress (2026-10-20)
+
+The headline-first layout above is reversed. Text results now end with their summary line, and stdout sections run from supporting detail to the rows that need attention. Publishing prints its rate-limit plan on stderr under the run's opening line, so the plan precedes the log and the result keeps only rate-limit warnings. Publish results group packages by status and fold the `Checked N packages…` sentence into the summary, which covers the publish half of PR 3. `docs/src/reference/progress-output.md` documents the order.
+
 ## Assessment
 
 The CLI does not have one output contract. Each command decides what `text`, `markdown`, and `json` mean. Three progress reporters make separate decisions about animation, color, terminal control sequences, and CI. Release-note documents also store rendered Markdown entries instead of structured entries, so a later renderer cannot produce clean text or JSON.
