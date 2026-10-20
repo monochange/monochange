@@ -155,6 +155,7 @@ fn sample_publish_outcome(
 		command: None,
 		stdout: None,
 		stderr: None,
+		rate_limit: None,
 	}
 }
 

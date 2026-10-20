@@ -1,0 +1,19 @@
+#!/bin/sh
+# Stands in for `cargo publish`: the first crate uploads, every later upload is
+# refused with crates.io's real 429 wording.
+state="${RATE_LIMIT_STUB_STATE:?}"
+if [ ! -f "$state" ]; then
+	: > "$state"
+	echo "   Uploading crate" >&2
+	exit 0
+fi
+cat >&2 <<'OUTPUT'
+    Updating crates.io index
+   Packaging rate_limit_layout v0.0.0
+   Uploading rate_limit_layout v0.0.0
+error: failed to publish rate_limit_layout v0.0.0 to registry at https://crates.io
+
+Caused by:
+  the remote server responded with an error (status 429 Too Many Requests): You have published too many new crates in a short period of time. Please try again after Tue, 20 Oct 2020 10:59:10 GMT and see https://crates.io/docs/rate-limits for more details.
+OUTPUT
+exit 101

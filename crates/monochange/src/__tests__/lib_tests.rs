@@ -7419,6 +7419,7 @@ fn template_context_exposes_publish_namespace() {
 				command: None,
 				stdout: None,
 				stderr: None,
+				rate_limit: None,
 			}],
 		}),
 		rate_limit_report: Some(monochange_core::PublishRateLimitReport {

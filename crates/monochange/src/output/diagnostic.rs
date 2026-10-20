@@ -296,6 +296,12 @@ fn classify(error: &MonochangeError) -> (&'static str, String, Vec<String>) {
 			)
 		}
 		MonochangeError::Discovery(message)
+			if message.contains(" rate limit stopped publishing at ") =>
+		{
+			let (message, hints) = split_inline_hints(message);
+			("publish.rate_limited", message, hints)
+		}
+		MonochangeError::Discovery(message)
 			if message.starts_with("package publishing did not complete") =>
 		{
 			(
@@ -443,6 +449,20 @@ fn generic_hint(message: &str, hint: &str) -> Vec<String> {
 	} else {
 		vec![hint.to_string()]
 	}
+}
+
+/// Move `help: ` lines written by the failing operation into hints, so the
+/// specific next step replaces the generic one.
+fn split_inline_hints(message: &str) -> (String, Vec<String>) {
+	let (hints, lines): (Vec<&str>, Vec<&str>) =
+		message.lines().partition(|line| line.starts_with("help: "));
+	(
+		lines.join("\n"),
+		hints
+			.into_iter()
+			.map(|hint| hint.trim_start_matches("help: ").to_string())
+			.collect(),
+	)
 }
 
 fn is_git_failure(message: &str) -> bool {

@@ -824,6 +824,7 @@ fn sample_package_publish_outcome(
 		command: None,
 		stdout: None,
 		stderr: None,
+		rate_limit: None,
 	}
 }
 
@@ -1349,6 +1350,7 @@ fn render_cli_command_results_include_package_publish_reports() {
 			command: None,
 			stdout: None,
 			stderr: None,
+			rate_limit: None,
 		}],
 	});
 	context.command_logs = vec!["ran npm trust".to_string()];
@@ -1793,6 +1795,7 @@ fn render_package_publish_reports_include_manual_registry_guidance() {
 			command: None,
 			stdout: None,
 			stderr: None,
+			rate_limit: None,
 		}],
 	};
 
@@ -1916,6 +1919,7 @@ fn resolve_command_output_supports_package_publish_json_without_release_state() 
 			command: None,
 			stdout: None,
 			stderr: None,
+			rate_limit: None,
 		}],
 	});
 

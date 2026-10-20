@@ -1875,6 +1875,7 @@ fn blocked_packages_are_pending_when_resuming() {
 				command: None,
 				stdout: None,
 				stderr: None,
+				rate_limit: None,
 			},
 			PackagePublishOutcome {
 				package: "tail".to_string(),
@@ -1888,6 +1889,7 @@ fn blocked_packages_are_pending_when_resuming() {
 				command: None,
 				stdout: None,
 				stderr: None,
+				rate_limit: None,
 			},
 		],
 	};
@@ -1926,6 +1928,7 @@ fn ensure_publish_report_succeeded_includes_summary_and_failed_package_detail() 
 				command: None,
 				stdout: None,
 				stderr: None,
+				rate_limit: None,
 			},
 			PackagePublishOutcome {
 				package: "tail".to_string(),
@@ -1939,6 +1942,7 @@ fn ensure_publish_report_succeeded_includes_summary_and_failed_package_detail() 
 				command: None,
 				stdout: None,
 				stderr: None,
+				rate_limit: None,
 			},
 		],
 	};
@@ -1951,6 +1955,139 @@ fn ensure_publish_report_succeeded_includes_summary_and_failed_package_detail() 
 	));
 	assert!(error.contains("failed package failed 2.0.0"));
 	assert!(error.contains("registry denied publication"));
+}
+
+#[test]
+fn ensure_publish_report_succeeded_explains_registry_rate_limits() {
+	let outcome = |package: &str, status, rate_limit| {
+		PackagePublishOutcome {
+			package: package.to_string(),
+			ecosystem: Ecosystem::Cargo,
+			registry: RegistryKind::CratesIo.to_string(),
+			version: "0.0.0".to_string(),
+			status,
+			message: "outcome".to_string(),
+			placeholder: true,
+			trusted_publishing: disabled_trust_outcome(),
+			command: None,
+			stdout: None,
+			stderr: None,
+			rate_limit,
+		}
+	};
+	let hit = PublishRateLimitHit {
+		reason: Some(
+			"You have published too many new crates in a short period of time.".to_string(),
+		),
+		retry_at: Some("2026-10-20T10:59:10+00:00".to_string()),
+		docs_url: Some(CRATES_IO_RATE_LIMIT_DOCS.to_string()),
+	};
+	let mut report = PackagePublishReport {
+		mode: PackagePublishRunMode::Placeholder,
+		dry_run: false,
+		packages: vec![
+			outcome("canvist_canvas", PackagePublishStatus::Published, None),
+			outcome(
+				"canvist_editor",
+				PackagePublishStatus::SkippedExisting,
+				None,
+			),
+			outcome(
+				"canvist_layout",
+				PackagePublishStatus::Failed,
+				Some(hit.clone()),
+			),
+			outcome("canvist_model", PackagePublishStatus::Blocked, None),
+		],
+	};
+	let now = chrono::DateTime::parse_from_rfc3339("2026-10-20T10:53:00Z")
+		.unwrap_or_else(|error| panic!("now: {error}"))
+		.with_timezone(&chrono::Utc);
+
+	let error = ensure_publish_report_succeeded_at(&report, now)
+		.expect_err("rate-limited report should fail")
+		.to_string();
+	insta::assert_snapshot!("rate_limited_publish_error_with_retry_time", error);
+
+	report.packages.truncate(3);
+	report.packages[2].rate_limit = Some(PublishRateLimitHit {
+		reason: None,
+		retry_at: None,
+		docs_url: None,
+	});
+	let error = ensure_publish_report_succeeded_at(&report, now)
+		.expect_err("rate-limited report should fail")
+		.to_string();
+	insta::assert_snapshot!("rate_limited_publish_error_without_retry_time", error);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn real_publish_rate_limit_reports_the_registry_reason_instead_of_the_tool_log() {
+	let requests = [publish_request("limited"), publish_request("tail")];
+	let (endpoints, registry_thread) = npm_not_found_endpoints(1);
+	let progress = RecordingPublishProgressReporter::default();
+	let mut executor = SequencedCommandExecutor::new([Ok(command_output(
+		false,
+		"   Packaging limited v1.0.0",
+		"error: failed to publish limited\n\nCaused by:\n  the remote server responded with an \
+		 error (status 429 Too Many Requests): You have published too many new crates in a short \
+		 period of time. Please try again after Tue, 20 Oct 2020 10:59:10 GMT and see \
+		 https://crates.io/docs/rate-limits for more details.",
+	))]);
+
+	let report = execute_publish_requests_with_progress(
+		Path::new("."),
+		None,
+		PackagePublishRunMode::Release,
+		false,
+		&requests,
+		&registry_client().unwrap(),
+		&endpoints,
+		&BTreeMap::new(),
+		&mut executor,
+		&build_publish_command_builder(),
+		&PlaceholderManifestWriterRegistry::new(),
+		&PublishReadinessRegistry::new(),
+		&TestPublishTrustHandler,
+		&progress,
+	)
+	.await
+	.unwrap_or_else(|error| panic!("execute publish requests: {error}"));
+	registry_thread
+		.join()
+		.unwrap_or_else(|_| panic!("test registry thread panicked"));
+
+	let limited = &report.packages[0];
+	assert_eq!(limited.status, PackagePublishStatus::Failed);
+	assert_eq!(
+		limited.message,
+		"rate limited by npm until Tue 20 Oct 2020 10:59:10 UTC. You have published too many new \
+		 crates in a short period of time."
+	);
+	assert_eq!(
+		limited
+			.rate_limit
+			.as_ref()
+			.and_then(|hit| hit.retry_at.as_deref()),
+		Some("2020-10-20T10:59:10+00:00")
+	);
+	assert!(
+		limited
+			.stderr
+			.as_deref()
+			.is_some_and(|stderr| stderr.contains("Caused by:")),
+		"the full tool output stays in the report"
+	);
+	assert_eq!(report.packages[1].status, PackagePublishStatus::Blocked);
+
+	let events = progress.events.lock().unwrap();
+	assert!(events.iter().any(|event| {
+		matches!(
+			event,
+			PublishProgressEvent::PackageFailed { message, .. }
+				if message.starts_with("rate limited by npm") && !message.contains('\n')
+		)
+	}));
 }
 
 #[tokio::test(flavor = "multi_thread")]

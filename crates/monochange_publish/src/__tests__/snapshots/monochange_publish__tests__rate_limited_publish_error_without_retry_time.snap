@@ -1,0 +1,6 @@
+---
+source: crates/monochange_publish/src/__tests__/lib_tests.rs
+expression: error
+---
+discovery error: crates.io rate limit stopped publishing at canvist_layout 0.0.0: 2 of 3 packages published
+help: Wait for the crates.io rate limit to reset, then rerun the same command. Versions that are already published are skipped, so publishing resumes with canvist_layout (1 package left).
