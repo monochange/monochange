@@ -209,12 +209,12 @@ This pattern is especially useful when multiple packages live in the same ecosys
 
 ## Registry-specific recommendations
 
-| Registry  | Recommended multi-package pattern                                                                                                | Why                                                                   |
-| --------- | -------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Registry  | Recommended multi-package pattern                                                                                      | Why                                                                   |
+| --------- | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
 | npm       | one post-merge `monochange publish readiness` + `monochange publish packages` job when possible                        | monochange can automate npm trusted-publishing setup on GitHub        |
-| crates.io | one job per crate when using external OIDC auth                                                                                  | trusted publishing is enrolled per crate and workflow context matters |
+| crates.io | one job per crate when using external OIDC auth                                                                        | trusted publishing is enrolled per crate and workflow context matters |
 | jsr       | built-in `monochange publish readiness` + `monochange publish packages` is often fine, but keep setup package-specific | registry linking is still manual                                      |
-| pub.dev   | package-specific tags and often one workflow per package                                                                         | automated publishing is tag-driven and package-specific               |
+| pub.dev   | package-specific tags and often one workflow per package                                                               | automated publishing is tag-driven and package-specific               |
 
 ## Keep config, tags, and workflows aligned
 
