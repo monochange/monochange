@@ -4,6 +4,66 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)
+
+Grouped release for `main`.
+
+### 🐛 Fixed
+
+#### Make hosted release commits match the files a local release commit stages
+
+_Packages:_ 🟢 _monochange_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #803](https://github.com/monochange/monochange/pull/803)
+
+`CommitRelease` with `commit_backend = "hosted"` now honors `stage_all = true`. Before this change, the hosted backend ignored the setting and sent only the files monochange tracks itself (changelogs, manifests, consumed changesets, and the release record), so files that earlier `Command` steps rewrote, such as `Cargo.lock`, `pnpm-lock.yaml`, generated schemas, or CLI snapshots, were missing from the bot's release commit.
+
+With `stage_all = true`, the hosted request now also carries every path `git add --all` would stage: modified and staged tracked files, untracked files that `.gitignore` does not exclude, and deleted files (sent without content so the release commit removes them). Workflows that leave `stage_all` unset still send only the release-managed files.
+
+The hosted backend now also filters release-managed files the way the local backend does before `git add`. It no longer sends `.monochange/local/release-manifest.json` or other ignored local artifacts, which previously landed on the release branch, and it only sends a missing path as a deletion when git tracks it.
+
+```toml
+[[cli.release.steps]]
+type = "CommitRelease"
+commit_backend = "hosted"
+inputs = { stage_all = true }
+```
+
+#### Publish pnpm workspaces with pnpm under trusted publishing
+
+_Packages:_ 🟢 _monochange_, 🟢 _monochange_publish_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #809](https://github.com/monochange/monochange/pull/809)
+
+npm-registry packages in a pnpm workspace now always publish with `pnpm publish`, including when `publish.trusted_publishing` is enabled. Before this change, trusted publishing switched these packages to `npm publish`. npm does not understand the `workspace:` protocol, so any internal dependency declared as `workspace:*` or `workspace:^` was published verbatim and broke installs for consumers. pnpm rewrites those ranges to real versions when it packs.
+
+pnpm 11 performs npm's OIDC trusted-publishing exchange natively, so trusted publishing from a pnpm workspace now requires pnpm 11.1.3 or later on the publishing runner:
+
+```yaml
+- uses: pnpm/action-setup@v6
+  with:
+    version: 11
+```
+
+pnpm publish and placeholder commands also pass `--no-git-checks`. monochange validates the release commit itself, and release jobs usually run from a detached tag checkout with build outputs in the tree, which pnpm's branch and clean-tree checks would reject. npm, Yarn, and Bun workspaces keep publishing with the `npm` CLI.
+
+<details>
+<summary><strong>🔨 Refactor</strong></summary>
+
+#### Split the CLI dispatcher and changelog validation into focused helpers
+
+_Packages:_ 🟢 _monochange_, 🟢 _monochange_config_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #808](https://github.com/monochange/monochange/pull/808)
+
+`dispatch_cli_args` held every config-free fast path, configuration loading, clap error handling, `--jq` validation, and all subcommand arms in one function, and monostyle scored it at a cognitive complexity of 364, the largest complexity penalty in the repository. It is now a short sequence of calls: `render_config_free_request` answers version and built-in help before the workspace loads, `load_configuration_with_progress` reports the loading phase, `render_clap_parse_failure` turns parse errors into help or diagnostics, `run_cli_subcommand` dispatches the parsed subcommand to one helper per command, and `finish_cli_output` applies `--quiet`, `--jq`, and Markdown output once. Branches that could never run are removed: the second root-help checks, the post-parse `--snapshot` flag and `help` subcommand handling (both are always answered before parsing), and the usage errors for `step`, `run`, `change`, `api`, and `changeset`, whose nested subcommands clap already requires. The per-command `--quiet` checks collapse into the final step except for `skill`, which writes topic content directly. The now-unused `command_path_from_matches` helper is deleted.
+
+`validate_changelog_configuration` in `monochange_config` is split the same way, into template, type, output, output-target, and excluded-type validators that keep the original checks, error messages, and order.
+
+Behavior is unchanged. The repository's monostyle complexity score rises from 79.5 to 80.8, and `lint:monostyle` now fails below 80 for readability or complexity and runs in the CI `lint` job.
+
+</details>
+
 ## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-19)
 
 Grouped release for `main`.

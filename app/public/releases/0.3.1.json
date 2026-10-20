@@ -1,0 +1,90 @@
+{
+	"title": "0.3.1",
+	"summary": [],
+	"sections": [
+		{
+			"title": "New",
+			"collapsed": false,
+			"entries": [
+				{
+					"summary": "Fair use limits for the monochange.dev API",
+					"details_markdown": "monochange.dev now limits how quickly one client can call its API, so a single script can't slow the site down for everyone else. Normal browsing never comes close to the limit. Signed-in users get five times the allowance of anonymous visitors.\n\nIf you do hit the limit, the site tells you how many seconds to wait before trying again. Scripts that read the public task API get a `429 Too Many Requests` response with a `Retry-After` header, and every API response reports how many requests remain.",
+					"change_type": "website_feature",
+					"bump": "minor",
+					"stream": "website",
+					"style": "expanded",
+					"provenance": {
+						"source_path": ".changeset/api-rate-limits-website.md",
+						"changeset_path": ".changeset/api-rate-limits-website.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #807",
+							"url": "https://github.com/monochange/monochange/pull/807"
+						},
+						"introduced_commit": {
+							"label": "7f804e9",
+							"url": "https://github.com/monochange/monochange/commit/7f804e9c4c0087d10390c115409ddc8f1c5da746"
+						}
+					}
+				},
+				{
+					"summary": "Search, filter, and page through your repositories",
+					"details_markdown": "The dashboard no longer lists every connected repository at once. Each account folds open to its repositories, 20 to a page, in a list that scrolls inside the window. Search by repository name, or pick one account, to narrow every list; the search stays in the address so you can reload or share the filtered view. An organisation's page gets the same search and pages, and the repository checkboxes when you create or edit a project can be filtered by name.\n\nThe \"Free\" label beside each repository is gone; each row now shows whether the repository is public or private.",
+					"change_type": "website_feature",
+					"bump": "minor",
+					"stream": "website",
+					"style": "expanded",
+					"provenance": {
+						"source_path": ".changeset/dashboard-repository-search-website.md",
+						"changeset_path": ".changeset/dashboard-repository-search-website.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #804",
+							"url": "https://github.com/monochange/monochange/pull/804"
+						},
+						"introduced_commit": {
+							"label": "54ad057",
+							"url": "https://github.com/monochange/monochange/commit/54ad0578d090b8116c7cd4cc0f37e629a9df7f7a"
+						}
+					}
+				}
+			]
+		},
+		{
+			"title": "Improved",
+			"collapsed": false,
+			"entries": [
+				{
+					"summary": "Set up bot release pull requests without a token",
+					"details_markdown": "The GitHub App guide now walks through using monochange.dev to create release commits and release pull requests: why the app replaces `GITHUB_TOKEN` and personal access tokens, what to approve when installing the app, the `monochange.toml` change, and a complete GitHub Actions job that only needs `id-token: write`. It no longer says hosted releases need a separate rollout, and it explains that monochange.dev does not issue per-user `MONOCHANGE_TOKEN` values, so hosted release commits run from GitHub Actions.",
+					"change_type": "website_fix",
+					"bump": "patch",
+					"stream": "website",
+					"style": "compact",
+					"provenance": {
+						"source_path": ".changeset/hosted-release-setup-guide.md",
+						"changeset_path": ".changeset/hosted-release-setup-guide.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #806",
+							"url": "https://github.com/monochange/monochange/pull/806"
+						},
+						"introduced_commit": {
+							"label": "fcf4db6",
+							"url": "https://github.com/monochange/monochange/commit/fcf4db68e4b9ccfebc003e04f98c9198494817e3"
+						}
+					}
+				}
+			]
+		}
+	]
+}
