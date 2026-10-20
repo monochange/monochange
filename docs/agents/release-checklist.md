@@ -8,7 +8,7 @@ New crates that do not yet exist on their target registry must be placeholder-pu
 
 - [ ] Identify every package in `monochange.toml` whose registry entry does not yet exist. Run `cargo search <crate>` for each cargo package, and `npm view <pkg> version` for each npm package. Anything that returns "not found" needs a placeholder.
 - [ ] For each missing crate, verify its `Cargo.toml` does **not** have `publish = false`. If it does, the crate is intentionally private and should also have `tag = false, release = false, changelog = false` in `monochange.toml`.
-- [ ] Run `monochange step placeholder-publish` to publish placeholder versions for every missing package. This step is manual and must happen **before** the release PR is merged.
+- [ ] Run `monochange publish placeholder` to publish placeholder versions for every missing package. This step is manual and must happen **before** the release PR is merged.
 - [ ] Verify placeholders landed: re-run the registry search for each crate.
 
 **Why it matters.** If a new crate is in the release group (`tag = true`, `release = true`) but has no registry entry, the publish job will fail partway through. crates.io will 404 on the crate name, and the remaining batches never execute.
@@ -24,7 +24,7 @@ New crates that do not yet exist on their target registry must be placeholder-pu
 - [ ] Run `monochange step plan-publish-rate-limits --mode publish --format json` locally and inspect the output. Confirm that:
   - Every expected package appears in the plan.
   - Crate batches respect crates.io rate limits (1 new crate / 5 min, or OIDC-provenance batch limits).
-  - npm platform packages are **excluded** from the `monochange step plan-publish-rate-limits` output if they are no longer published by this script (npm publishing is now handled by `monochange step publish-packages`).
+  - npm platform packages are **excluded** from the `monochange step plan-publish-rate-limits` output if they are no longer published by this script (npm publishing is now handled by `monochange publish packages`).
 - [ ] If crates.io OIDC trusted publishing is used (which it should be), confirm the publish job runs in the `publisher` environment with `id-token: write` permission.
 - [ ] Confirm the publish matrix gracefully handles zero batches (no packages to publish) without failing the workflow.
 
@@ -44,7 +44,7 @@ push to main → ci.yml (release-pr: refresh release PR + dispatch publish dry r
 
 ## 5. npm publishing flow
 
-npm packages are handled differently from cargo crates. Platform-specific npm packages (`@monochange/cli-darwin-arm64`, etc.) and the main CLI wrapper (`@monochange/cli`) are built and populated by `scripts/npm/populate-packages.ts` inside the `publish.yml` **plan** job. They are now published by `monochange step publish-packages` alongside cargo crates in the **publish** job.
+npm packages are handled differently from cargo crates. Platform-specific npm packages (`@monochange/cli-darwin-arm64`, etc.) and the main CLI wrapper (`@monochange/cli`) are built and populated by `scripts/npm/populate-packages.ts` inside the `publish.yml` **plan** job. They are now published by `monochange publish packages` alongside cargo crates in the **publish** job.
 
 - [ ] Confirm `scripts/npm/build-packages.ts` runs **before** `scripts/npm/populate-packages.ts` so binaries are populated.
 - [ ] Confirm `scripts/npm/populate-packages.ts` validates binary presence before populate.

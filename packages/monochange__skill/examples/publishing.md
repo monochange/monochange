@@ -7,7 +7,7 @@ monochange publish readiness --from HEAD --output readiness.json
 monochange publish placeholder
 ```
 
-These are the short forms of `monochange step publish-readiness` and `monochange step placeholder-publish`; both spellings run the same step.
+Prefer these commands over `monochange step publish-readiness` and `monochange step placeholder-publish`; both spellings run the same step.
 
 A repository workflow wraps publish planning and publishing. Every input a step binds must also be declared on the command, so the example below declares `format`, `package`, and `readiness` before passing them:
 

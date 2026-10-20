@@ -226,12 +226,12 @@ When `publish.trusted_publishing = true`, release publishing is a mandatory CI/O
 Use this sequence when adopting trusted publishing for an existing workspace:
 
 1. Set `publish.trusted_publishing = true` for the target ecosystem, then override individual packages only when they differ.
-2. Run `monochange step placeholder-publish --dry-run` to see which packages do not exist yet.
-3. If needed, run `monochange step placeholder-publish` so the package exists in the registry first.
+2. Run `monochange publish placeholder --dry-run` to see which packages do not exist yet.
+3. If needed, run `monochange publish placeholder` so the package exists in the registry first.
 4. Complete the registry-side trusted-publishing setup for each package.
-5. Run `monochange step publish-packages --dry-run` to confirm monochange sees the expected trust configuration.
-6. Optionally generate a readiness artifact in CI with `monochange step publish-readiness --from HEAD --output .monochange/readiness.json` for preflight review or publish planning.
-7. Publish from CI with `monochange step publish-packages --output .monochange/publish-result.json`.
+5. Run `monochange publish packages --dry-run` to confirm monochange sees the expected trust configuration.
+6. Optionally generate a readiness artifact in CI with `monochange publish readiness --from HEAD --output .monochange/readiness.json` for preflight review or publish planning.
+7. Publish from CI with `monochange publish packages --output .monochange/publish-result.json`.
 
 Placeholder publishing is especially useful when the package name must exist in the registry before trusted publishing can be configured.
 
@@ -326,7 +326,7 @@ Trusted publishing on crates.io exchanges your CI identity for a short-lived pub
 - you must be an owner of the crate on `crates.io`
 - the repository must live on GitHub or GitLab
 
-If the crate does not exist yet, bootstrap it first with a real initial release or `monochange step placeholder-publish`. The first publish still uses the normal crates.io token flow.
+If the crate does not exist yet, bootstrap it first with a real initial release or `monochange publish placeholder`. The first publish still uses the normal crates.io token flow.
 
 **UI path**
 
@@ -445,7 +445,7 @@ Automated publishing on pub.dev authenticates with a temporary GitHub-signed OID
 - you must be an uploader or admin for the package
 - the repository must be on GitHub
 
-If the package does not exist yet, publish it once first or use `monochange step placeholder-publish`.
+If the package does not exist yet, publish it once first or use `monochange publish placeholder`.
 
 **UI path**
 

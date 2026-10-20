@@ -254,7 +254,7 @@ pub(crate) async fn registry_side_readiness(
 			TrustedPublishingReadiness {
 				status: TrustedPublishingReadinessStatus::Blocked,
 				message: format!(
-					"`{}` has never been published to {} and trusted publishing can only be configured after an initial publish; bootstrap the package with `monochange step placeholder-publish`, then rerun `monochange step publish-readiness --from HEAD --output <PATH>`",
+					"`{}` has never been published to {} and trusted publishing can only be configured after an initial publish; bootstrap the package with `monochange publish placeholder`, then rerun `monochange publish readiness --from HEAD --output <PATH>`",
 					request.package_name, request.registry
 				),
 			}

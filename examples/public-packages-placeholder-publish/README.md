@@ -22,7 +22,7 @@ monochange run release --dry-run --diff
 When you want to inspect the placeholder plan without publishing anything:
 
 ```bash
-monochange step placeholder-publish --dry-run --format json
+monochange publish placeholder --dry-run --format json
 ```
 
 ## Why this example is opinionated

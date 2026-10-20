@@ -158,7 +158,7 @@ These are common commands for repositories using monochange. Optional `[cli.*]` 
 
 `monochange next` answers "what version comes next" from pending changesets alone. It prints one version per release group and one version for every package that releases independently, accepts `--format text|json|json-min|md`, and writes nothing: no `release.json`, no prepared-release cache, and no committed file changes. It is the read-only alias for `monochange step display-versions`, and reports `no package or group versions were planned` when the changeset directory is empty. Use `monochange preview` instead when you also need changelog and release-artifact previews.
 
-`monochange publish` groups the built-in publishing steps behind short subcommands. Each one runs the same step as its `monochange step *` equivalent, with the same inputs and output formats: `monochange publish packages` runs `step publish-packages`, `monochange publish readiness` runs `step publish-readiness`, and `monochange publish placeholder` runs `step placeholder-publish`. The `monochange step *` forms stay supported.
+`monochange publish` groups the built-in publishing steps behind short subcommands. Each one runs the same step as its `monochange step *` equivalent, with the same inputs and output formats: `monochange publish packages` runs `step publish-packages`, `monochange publish readiness` runs `step publish-readiness`, and `monochange publish placeholder` runs `step placeholder-publish`. Prefer the `monochange publish` forms in CI, scripts, and docs; the `monochange step *` forms stay supported for compatibility.
 
 `monochange publish readiness` performs non-mutating registry checks before `monochange publish packages`. For built-in Cargo publishes to crates.io it also verifies current manifest publishability: `publish = false` blocks publishing, `publish = [...]` must include `crates-io`, `description` must be set, and either `license` or `license-file` must be set. Workspace-inherited Cargo metadata is accepted, and already-published versions remain non-blocking in readiness reports. The artifact fingerprints `monochange.toml`, package manifests, lockfiles, and registry/tooling files, so rerun `monochange publish readiness` after those inputs change. `monochange step plan-publish-rate-limits --readiness <path>` validates the artifact for planning and limits rate-limit batches to package ids that are ready in both the artifact and the fresh local readiness check. `monochange publish packages` publishes directly from prepared release or `HEAD` release state and does not require the readiness artifact. If readiness shows missing first-time registry packages, run `monochange publish placeholder`, then rerun readiness before real publishing. Python packages support built-in PyPI publishing with `uv build` and `uv publish`. Go packages publish by creating VCS tags (`v1.2.3` for root modules, `path/v1.2.3` for submodules) and checking visibility through the Go module proxy. Keep `mode = "external"` for private registries or custom publication flows.
 
@@ -252,11 +252,11 @@ monochange step publish-release --dry-run --format json
 monochange step open-release-request --dry-run --format json
 monochange step release-record --from v1.2.3
 monochange step tag-release --from HEAD --dry-run --format json
-monochange step publish-readiness --from HEAD --output .monochange/readiness.json
-monochange step placeholder-publish
-monochange step publish-readiness --from HEAD --output .monochange/readiness.json
+monochange publish readiness --from HEAD --output .monochange/readiness.json
+monochange publish placeholder
+monochange publish readiness --from HEAD --output .monochange/readiness.json
 monochange step plan-publish-rate-limits --readiness .monochange/readiness.json --format json
-monochange step publish-packages --output .monochange/publish-result.json
+monochange publish packages --output .monochange/publish-result.json
 monochange step retarget-release --from v1.2.3 --target HEAD --dry-run
 monochange run release
 ```

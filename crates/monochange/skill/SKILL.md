@@ -23,7 +23,7 @@ Inspect config first, prefer JSON and dry-run output while planning, and record 
 - `monochange versions sync --strategy exact|caret|compatible` never writes `~` or `=`. Release preparation also uses the native default strategy for automatic dependency synchronization. Custom release prefixes require typed `versioned_files` entries targeting the manifests to change; `[ecosystems.<name>] dependency_version_prefix` supplies their default, rather than changing native synchronization globally. See [skills/configuration.md](skills/configuration.md) for dependency-name selection and native-manifest overrides.
 - Use dry-run or preview commands before mutating versions, committing, tagging, releasing, or publishing.
 - A package that ships a CLI can register it under `[package.<id>].cli = { name, snapshot }` so change classification reports command-surface breaks instead of unclassified changes. Refresh baselines with `monochange snapshot --package <id> --save` during release preparation. Rust and clap CLIs get the snapshot document from `monochange snapshot --view index`; TypeScript, Python, Go, and Dart CLIs emit it through a small script validated against the published command snapshot schema. See [skills/configuration.md](skills/configuration.md).
-- Gate CI on a dry-run publish check (`monochange step publish-packages --dry-run`), ideally also against a simulated release commit (`monochange run release --commit` without pushing), so changes that would break publication never merge. See [skills/multi-package-publishing.md](skills/multi-package-publishing.md).
+- Gate CI on a dry-run publish check (`monochange publish packages --dry-run`), ideally also against a simulated release commit (`monochange run release --commit` without pushing), so changes that would break publication never merge. See [skills/multi-package-publishing.md](skills/multi-package-publishing.md).
 - Never publish with local credentials on behalf of a user unless they explicitly own that operation and the project rules allow it.
 - Gitignore only `.monochange/local/`. Never ignore the whole `.monochange/` directory, because release records (`.monochange/releases/<id>/release.json`) and prerelease state are committed release state that publish, tag, and readiness steps read from git history. Ignoring them makes releases unpublishable.
 
@@ -80,9 +80,9 @@ Built-in commands in the current CLI:
 - `monochange lint`: list, explain, or scaffold lint rules and presets.
 - `monochange mcp`: run the stdio MCP server.
 - `monochange step validate`: validate `monochange.toml` and changeset targets.
-- `monochange step publish-readiness`: verify publishability from a release record without publishing.
-- `monochange publish packages|readiness|placeholder`: short forms of `monochange step publish-packages`, `step publish-readiness`, and `step placeholder-publish`.
-- `monochange step placeholder-publish`: publish first-time placeholder versions for packages in a release record.
+- `monochange publish readiness`: verify publishability from a release record without publishing.
+- `monochange publish packages|readiness|placeholder`: the preferred spelling for package publishing; `monochange step publish-packages`, `step publish-readiness`, and `step placeholder-publish` run the same steps.
+- `monochange publish placeholder`: publish first-time placeholder versions for packages in a release record.
 - `monochange versions list [--format text|json|json-min]`: read-only flat inventory of current package and group versions.
 - `monochange versions sync [--dry-run] [--format text|json|json-min] [--strategy default|exact|caret|compatible]`: synchronize internal workspace dependency constraints across all supported ecosystems. Bare `monochange versions` still runs the sync behavior but prints a deprecation warning; use `monochange versions sync` instead.
 

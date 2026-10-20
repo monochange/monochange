@@ -71,3 +71,5 @@ Publish package versions from durable monochange release state
 
       [93m--snapshot[0m
           Print a normalized JSON snapshot for this command subtree
+
+Prefer `monochange publish packages`, which runs this step with the same inputs.

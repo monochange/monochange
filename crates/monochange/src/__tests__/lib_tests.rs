@@ -16093,8 +16093,8 @@ fn init_with_github_provider_creates_workflow_files() {
 		"expected monochange step tag-release command"
 	);
 	assert!(
-		release.contains("monochange step publish-packages"),
-		"expected monochange step publish-packages command"
+		release.contains("monochange publish packages"),
+		"expected monochange publish packages command"
 	);
 	assert!(
 		release.contains("github-actions[bot]"),

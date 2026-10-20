@@ -361,8 +361,9 @@ fn mock_crates_io_missing(request_count: usize) -> (u16, MockCratesIo) {
 fn publish_readiness_blocks_never_published_packages_in_ci_trusted_publishing() {
 	// In a GitHub Actions context the trust checks are strict: packages that
 	// were never published cannot use trusted publishing and must be blocked
-	// with placeholder-publish guidance before anything is mutated. The
-	// registry mock 404s every lookup, so the packages do not exist.
+	// with `monochange publish placeholder` guidance before anything is
+	// mutated. The registry mock 404s every lookup, so the packages do not
+	// exist.
 	let (port, _mock) = mock_crates_io_missing(4);
 	let workspace = setup_publish_readiness_repo();
 	run_readiness_release(workspace.path());
@@ -402,7 +403,7 @@ fn publish_readiness_blocks_never_published_packages_in_ci_trusted_publishing() 
 		let message = trusted["message"].as_str().unwrap_or_default();
 
 		assert!(
-			message.contains("placeholder-publish"),
+			message.contains("monochange publish placeholder"),
 			"expected bootstrap guidance in {message}"
 		);
 	}

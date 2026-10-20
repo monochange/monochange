@@ -23,7 +23,7 @@ Publishing is the only release phase that cannot be rolled back. A broken releas
 Run a dry-run publish check before anything mutates:
 
 ```bash
-monochange step publish-packages --dry-run
+monochange publish packages --dry-run
 ```
 
 The dry run resolves the same publish set and dependency-aware batches as a real publish, checks each selected version against its registry, and validates the configured publishing flow without mutating any registry. Repositories commonly expose it through a configured workflow command such as `monochange run publish-check` or through a lint script.
@@ -71,7 +71,7 @@ Publish ordering uses ecosystem-specific dependency fields. npm defaults to `dep
 ## Safety
 
 - Do not run real publish commands when the user only asked for a preview.
-- Prefer `monochange publish readiness` (or `monochange step publish-readiness`) before package publication.
+- Run `monochange publish readiness` before package publication.
 - Prefer dry-run workflows such as a configured `monochange run publish-check` when available.
 - Retain JSON artifacts from readiness, bootstrap, plan, and publish runs.
 - Re-run readiness when manifests, lockfiles, publish config, registry auth mode, or package selection changes after an artifact was created.

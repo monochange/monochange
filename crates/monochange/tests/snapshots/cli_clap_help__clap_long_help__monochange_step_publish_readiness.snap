@@ -49,3 +49,5 @@ Check package registry publishing readiness without publishing packages
 
       [93m--snapshot[0m
           Print a normalized JSON snapshot for this command subtree
+
+Prefer `monochange publish readiness`, which runs this step with the same inputs.
