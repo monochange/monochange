@@ -2,8 +2,6 @@
 source: crates/monochange_integration_tests/tests/lint_rules_fix.rs
 expression: "normalize_workspace_paths(fixture.path(), output.clone())"
 ---
-✖ Checks failed · 8 errors · fixed 1 file
-
 packages/app/pubspec.yaml
   1:1  ✖ packages with a `flutter` section must declare `dependencies.flutter = { sdk: flutter }`
          dart/flutter-package-metadata-consistent
@@ -23,3 +21,5 @@ packages/helper/pubspec.yaml
          dart/required-package-fields
   1:1  ✖ pubspec.yaml must declare environment.sdk explicitly
          dart/sdk-constraint-present
+
+✖ Checks failed · 8 errors · fixed 1 file

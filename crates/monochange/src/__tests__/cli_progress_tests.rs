@@ -1231,3 +1231,136 @@ fn long_running_spinners_show_the_elapsed_time() {
 	let output = recorded_text(&bytes);
 	assert!(output.contains("compile workspace 5s"), "{output}");
 }
+
+fn publish_rate_limit_plan() -> PublishRateLimitReport {
+	let window = |registry, limit, window_seconds, pending, batches_required, confidence| {
+		monochange_core::RegistryRateLimitWindowPlan {
+			registry,
+			operation: monochange_core::RateLimitOperation::PlaceholderPublish,
+			limit,
+			window_seconds,
+			pending,
+			batches_required,
+			fits_single_window: batches_required == 1,
+			confidence,
+			notes: format!("{registry} notes"),
+			evidence: Vec::new(),
+		}
+	};
+	let batch = |registry, batch_index, total_batches, packages: &[&str], wait| {
+		monochange_core::PublishRateLimitBatch {
+			registry,
+			operation: monochange_core::RateLimitOperation::PlaceholderPublish,
+			batch_index,
+			total_batches,
+			packages: packages.iter().map(ToString::to_string).collect(),
+			recommended_wait_seconds: wait,
+		}
+	};
+	PublishRateLimitReport {
+		dry_run: false,
+		windows: vec![
+			window(
+				monochange_core::RegistryKind::Npm,
+				None,
+				None,
+				2,
+				1,
+				monochange_core::RateLimitConfidence::Low,
+			),
+			window(
+				monochange_core::RegistryKind::PubDev,
+				Some(1),
+				Some(86_400),
+				2,
+				2,
+				monochange_core::RateLimitConfidence::Medium,
+			),
+		],
+		batches: vec![
+			batch(
+				monochange_core::RegistryKind::Npm,
+				1,
+				1,
+				&["@scope/ui", "@scope/core"],
+				None,
+			),
+			batch(monochange_core::RegistryKind::PubDev, 1, 2, &["app"], None),
+			batch(
+				monochange_core::RegistryKind::PubDev,
+				2,
+				2,
+				&["app_icons"],
+				Some(86_400),
+			),
+		],
+		warnings: vec!["2 pub_dev placeholder_publish operations need 2 batches".to_string()],
+	}
+}
+
+fn placeholder_run_started() -> PublishProgressEvent {
+	PublishProgressEvent::RunStarted {
+		mode: PackagePublishRunMode::Placeholder,
+		dry_run: false,
+		total: 4,
+		ecosystems: vec![Ecosystem::Npm, Ecosystem::Dart],
+	}
+}
+
+#[test]
+fn publish_plans_follow_the_run_opening_line_before_any_package() {
+	let (reporter, bytes) = recorded_reporter(ProgressFormat::Auto);
+	reporter.set_publish_plan(&publish_rate_limit_plan());
+	PublishProgressReporter::report(&reporter, placeholder_run_started());
+	PublishProgressReporter::report(
+		&reporter,
+		PublishProgressEvent::PackagePublished(publish_package()),
+	);
+	// The plan belongs to one run; a later run does not repeat it.
+	PublishProgressReporter::report(&reporter, placeholder_run_started());
+
+	insta::assert_snapshot!(recorded_text(&bytes));
+}
+
+#[test]
+fn verbose_publish_plans_explain_each_registry_limit() {
+	let mut capabilities = capabilities(false, false);
+	capabilities.verbose = true;
+	let (reporter, bytes) = recorded_reporter_with(1, capabilities, ProgressFormat::Ascii);
+	reporter.set_publish_plan(&publish_rate_limit_plan());
+	PublishProgressReporter::report(&reporter, placeholder_run_started());
+
+	let output = recorded_text(&bytes);
+	assert!(output.contains("\n    npm notes\n"), "{output}");
+	assert!(output.contains("\n    pub_dev notes\n"), "{output}");
+	assert!(
+		output.contains("  > pub_dev  2 pending - 2 batches - limit 1 per 24h"),
+		"{output}"
+	);
+}
+
+#[test]
+fn json_progress_reports_the_publish_plan_after_the_run_starts() {
+	let (reporter, bytes) = recorded_reporter(ProgressFormat::Json);
+	reporter.set_publish_plan(&publish_rate_limit_plan());
+	PublishProgressReporter::report(&reporter, placeholder_run_started());
+
+	let events = recorded_text(&bytes)
+		.lines()
+		.map(|line| serde_json::from_str::<serde_json::Value>(line).unwrap())
+		.collect::<Vec<_>>();
+	assert_eq!(events.len(), 2);
+	assert_eq!(events[0]["event"], "publish_run_started");
+	assert_eq!(events[1]["event"], "publish_plan");
+	assert_eq!(
+		events[1]["rate_limits"]["windows"][1]["registry"],
+		"pub_dev"
+	);
+	assert_eq!(
+		events[1]["rate_limits"]["batches"]
+			.as_array()
+			.unwrap()
+			.len(),
+		3
+	);
+}

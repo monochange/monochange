@@ -1,0 +1,27 @@
+---
+source: crates/monochange_integration_tests/tests/publish_rate_limit.rs
+expression: "durations.replace_all(stderr.trim(), \"[duration]\")"
+---
+▶ Loading workspace configuration
+✔ Loaded workspace configuration [duration]
+▶ publish placeholder packages
+▶ Publishing 3 packages (Placeholder) across 🦀 cargo
+  › crates_io  3 pending · 1 batch · limit 10 per 60s · high confidence
+▶ 🦀 cargo rate_limit_canvas checking 0.0.0 on crates_io
+▶ 🦀 cargo rate_limit_canvas publishing 0.0.0 to crates_io
+✔ 🦀 cargo rate_limit_canvas published 0.0.0 to crates_io
+▶ 🦀 cargo rate_limit_layout checking 0.0.0 on crates_io
+▶ 🦀 cargo rate_limit_layout publishing 0.0.0 to crates_io
+✖ 🦀 cargo rate_limit_layout failed: rate limited by crates.io until Tue 20 Oct 2020 10:59:10 UTC. You have published too many new crates in a short period of time.
+○ 🦀 cargo rate_limit_model not attempted because publishing rate_limit_layout 0.0.0 failed earlier in this run
+✖ Publish complete: 1 published, 1 failed, 1 skipped
+✖ publish placeholder packages  [duration]
+  └─ crates.io rate limit stopped publishing at rate_limit_layout 0.0.0: 1 of 3 packages published
+error[publish.rate_limited]: crates.io rate limit stopped publishing at rate_limit_layout 0.0.0: 1 of 3 packages published
+
+    crates.io: You have published too many new crates in a short period of time.
+    retry after: Tue 20 Oct 2020 10:59:10 UTC
+    limits: https://crates.io/docs/rate-limits
+
+  command: monochange step placeholder-publish
+  help:    Wait until Tue 20 Oct 2020 10:59:10 UTC, then rerun the same command. Versions that are already published are skipped, so publishing resumes with rate_limit_layout (2 packages left).

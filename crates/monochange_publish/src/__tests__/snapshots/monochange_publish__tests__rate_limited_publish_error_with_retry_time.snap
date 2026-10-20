@@ -1,0 +1,9 @@
+---
+source: crates/monochange_publish/src/__tests__/lib_tests.rs
+expression: error
+---
+discovery error: crates.io rate limit stopped publishing at canvist_layout 0.0.0: 2 of 4 packages published
+crates.io: You have published too many new crates in a short period of time.
+retry after: 10:59:10 UTC (in 7 minutes)
+limits: https://crates.io/docs/rate-limits
+help: Wait until 10:59:10 UTC (in 7 minutes), then rerun the same command. Versions that are already published are skipped, so publishing resumes with canvist_layout (2 packages left).

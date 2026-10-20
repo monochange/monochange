@@ -44,6 +44,7 @@ use tracing::info;
 use urlencoding::encode;
 
 pub mod oidc;
+mod rate_limit_errors;
 mod rate_limits;
 
 pub use oidc::ACTIONS_ID_TOKEN_REQUEST_TOKEN_ENV;
@@ -54,6 +55,10 @@ pub use oidc::PUB_TOKEN_ENV_VAR;
 pub use oidc::actions_id_token_request_url;
 pub use oidc::actions_oidc_context;
 pub use oidc::mint_actions_id_token;
+pub use rate_limit_errors::CRATES_IO_RATE_LIMIT_DOCS;
+pub use rate_limit_errors::PublishRateLimitHit;
+pub use rate_limit_errors::detect_rate_limit_hit;
+pub use rate_limit_errors::registry_display_name;
 pub use rate_limits::PYPI_TRUSTED_PUBLISHERS_DOCS;
 pub use rate_limits::plan_rate_limit_batches;
 pub use rate_limits::plan_rate_limit_window;
@@ -249,6 +254,9 @@ pub struct PackagePublishOutcome {
 	pub stdout: Option<String>,
 	#[serde(default, skip_serializing_if = "Option::is_none")]
 	pub stderr: Option<String>,
+	/// Set when the registry refused the upload because of its rate limit.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub rate_limit: Option<PublishRateLimitHit>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -398,6 +406,7 @@ pub fn failed_publish_outcome(
 		command: None,
 		stdout: None,
 		stderr: None,
+		rate_limit: None,
 	}
 }
 
@@ -446,6 +455,7 @@ fn empty_publish_report(
 					command: None,
 					stdout: None,
 					stderr: None,
+					rate_limit: None,
 				}
 			})
 			.collect(),
@@ -480,6 +490,7 @@ fn append_skipped_after_failure_outcomes(
 			command: None,
 			stdout: None,
 			stderr: None,
+			rate_limit: None,
 		});
 	}
 }
@@ -1211,6 +1222,7 @@ pub async fn try_execute_publish_requests_with_progress(
 				command: None,
 				stdout: None,
 				stderr: None,
+				rate_limit: None,
 			});
 			continue;
 		}
@@ -1297,6 +1309,7 @@ pub async fn try_execute_publish_requests_with_progress(
 				command: None,
 				stdout: None,
 				stderr: None,
+				rate_limit: None,
 			});
 			continue;
 		}
@@ -1345,6 +1358,7 @@ pub async fn try_execute_publish_requests_with_progress(
 					command: None,
 					stdout: None,
 					stderr: None,
+					rate_limit: None,
 				});
 
 				continue;
@@ -1410,6 +1424,7 @@ pub async fn try_execute_publish_requests_with_progress(
 					command: None,
 					stdout: None,
 					stderr: None,
+					rate_limit: None,
 				});
 				continue;
 			}
@@ -1546,19 +1561,12 @@ pub async fn try_execute_publish_requests_with_progress(
 					command: Some(render_command(&publish_command)),
 					stdout: non_empty_output(output.stdout),
 					stderr: non_empty_output(output.stderr),
+					rate_limit: None,
 				});
 				continue;
 			}
 
-			let mut outcome = failed_publish_outcome(
-				mode,
-				request,
-				format!(
-					"`{}` failed: {}",
-					render_command(&publish_command),
-					render_publish_command_error(&output, request, mode)
-				),
-			);
+			let mut outcome = failed_command_outcome(mode, request, &publish_command, &output);
 			outcome.command = Some(render_command(&publish_command));
 			outcome.stdout = non_empty_output(output.stdout);
 			outcome.stderr = non_empty_output(output.stderr);
@@ -1630,6 +1638,7 @@ pub async fn try_execute_publish_requests_with_progress(
 			command: Some(render_command(&publish_command)),
 			stdout: non_empty_output(output.stdout),
 			stderr: non_empty_output(output.stderr),
+			rate_limit: None,
 		});
 	}
 
@@ -2403,6 +2412,36 @@ pub fn render_command_error(output: &CommandOutput) -> String {
 		(true, false) => output.stderr.clone(),
 		(false, false) => format!("stdout:\n{}\n\nstderr:\n{}", output.stdout, output.stderr),
 	}
+}
+
+/// A failed publish command, described by the registry's rate limit when that
+/// is what stopped it, so the reason and retry time are not buried in tool logs.
+fn failed_command_outcome(
+	mode: PackagePublishRunMode,
+	request: &PublishRequest,
+	publish_command: &CommandSpec,
+	output: &CommandOutput,
+) -> PackagePublishOutcome {
+	let now = chrono::Utc::now();
+	let combined = format!("{}\n{}", output.stdout, output.stderr);
+	let Some(hit) = detect_rate_limit_hit(request.registry, &combined, now) else {
+		return failed_publish_outcome(
+			mode,
+			request,
+			format!(
+				"`{}` failed: {}",
+				render_command(publish_command),
+				render_publish_command_error(output, request, mode)
+			),
+		);
+	};
+	let mut outcome = failed_publish_outcome(
+		mode,
+		request,
+		hit.render_message(request.registry.as_str(), now),
+	);
+	outcome.rate_limit = Some(hit);
+	outcome
 }
 
 fn render_publish_command_error(
@@ -3503,6 +3542,13 @@ pub fn write_publish_report_artifact(
 }
 
 pub fn ensure_publish_report_succeeded(report: &PackagePublishReport) -> MonochangeResult<()> {
+	ensure_publish_report_succeeded_at(report, chrono::Utc::now())
+}
+
+fn ensure_publish_report_succeeded_at(
+	report: &PackagePublishReport,
+	now: chrono::DateTime<chrono::Utc>,
+) -> MonochangeResult<()> {
 	let summary = report.summary();
 	let Some(failed) = report
 		.packages
@@ -3511,6 +3557,12 @@ pub fn ensure_publish_report_succeeded(report: &PackagePublishReport) -> Monocha
 	else {
 		return Ok(());
 	};
+
+	if let Some(hit) = &failed.rate_limit {
+		return Err(MonochangeError::Discovery(rate_limited_publish_message(
+			failed, hit, summary, now,
+		)));
+	}
 
 	Err(MonochangeError::Discovery(format!(
 		"package publishing did not complete: {} total, {} published, {} failed, {} blocked, {} already existed, {} not attempted, {} planned; failed package {} {}: {}",
@@ -3525,6 +3577,46 @@ pub fn ensure_publish_report_succeeded(report: &PackagePublishReport) -> Monocha
 		failed.version,
 		failed.message
 	)))
+}
+
+/// Explain a run stopped by a registry rate limit: what was published, the
+/// registry's reason, when uploads reopen, and how to resume.
+///
+/// Lines starting with `help: ` become the diagnostic's hints.
+fn rate_limited_publish_message(
+	failed: &PackagePublishOutcome,
+	hit: &PublishRateLimitHit,
+	summary: PackagePublishSummary,
+	now: chrono::DateTime<chrono::Utc>,
+) -> String {
+	let registry = registry_display_name(&failed.registry);
+	let done = summary.published + summary.staged + summary.already_exists;
+	let left = summary.total() - done;
+	let retry_at = hit.render_retry_at(now);
+	let mut lines = vec![format!(
+		"{registry} rate limit stopped publishing at {} {}: {done} of {} packages published",
+		failed.package,
+		failed.version,
+		summary.total()
+	)];
+	lines.extend(
+		hit.reason
+			.as_ref()
+			.map(|reason| format!("{registry}: {reason}")),
+	);
+	lines.extend(retry_at.as_ref().map(|time| format!("retry after: {time}")));
+	lines.extend(hit.docs_url.as_ref().map(|url| format!("limits: {url}")));
+	let wait = retry_at.map_or_else(
+		|| format!("Wait for the {registry} rate limit to reset"),
+		|time| format!("Wait until {time}"),
+	);
+	let packages = if left == 1 { "package" } else { "packages" };
+	lines.push(format!(
+		"help: {wait}, then rerun the same command. Versions that are already published are \
+		 skipped, so publishing resumes with {} ({left} {packages} left).",
+		failed.package
+	));
+	lines.join("\n")
 }
 
 pub fn create_publish_report_directory(parent: &Path) -> MonochangeResult<()> {

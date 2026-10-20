@@ -14,13 +14,10 @@ info:
 success: true
 exit_code: 0
 ----- stdout -----
-• Release preview · 2 packages · dry-run, no files were changed
+Log
+  skipped release record: dry-run preview (pass `--release-json` to write release.json)
 
-Releases
-  sdk  v1.1.0  group · tag · release
-
-Packages (2)
-  workflow-app, workflow-core
+Manifest  .monochange/local/release-manifest.json
 
 Changed files (6)
   Cargo.toml
@@ -30,9 +27,12 @@ Changed files (6)
   crates/core/Cargo.toml
   group.toml
 
-Manifest  .monochange/local/release-manifest.json
+Packages (2)
+  workflow-app, workflow-core
 
-Log
-  skipped release record: dry-run preview (pass `--release-json` to write release.json)
+Releases
+  sdk  v1.1.0  group · tag · release
+
+• Release preview · 2 packages · dry-run, no files were changed
 
 ----- stderr -----

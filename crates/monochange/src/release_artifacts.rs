@@ -2542,7 +2542,7 @@ pub(crate) fn text_discovery_report(report: &DiscoveryReport) -> String {
 		Outcome::Success
 	};
 
-	text.headline(
+	text.summary(
 		outcome,
 		&format!(
 			"Discovered {}",

@@ -1,0 +1,7 @@
+---
+source: crates/monochange_integration_tests/tests/publish_rate_limit.rs
+expression: "diagnostic[\"detail\"].as_str().unwrap_or_default()"
+---
+crates.io: You have published too many new crates in a short period of time.
+retry after: Tue 20 Oct 2020 10:59:10 UTC
+limits: https://crates.io/docs/rate-limits

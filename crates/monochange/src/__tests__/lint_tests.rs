@@ -345,7 +345,14 @@ fn run_check_command_reports_all_validation_errors_before_failing() {
 	.unwrap_or_else(|error| panic!("expected warning manifest to be written: {error}"));
 	let warning_text = run_check_command(warning_root, false, &[], &[], OutputFormat::Text, false)
 		.unwrap_or_else(|error| panic!("expected warning-only check to pass: {error}"));
-	assert!(warning_text.starts_with("▲ Checks passed with warnings"));
+	assert!(
+		warning_text
+			.lines()
+			.last()
+			.unwrap_or_default()
+			.starts_with("▲ Checks passed with warnings"),
+		"{warning_text}"
+	);
 
 	assert!(warning_text.contains("matches no files"));
 
@@ -377,7 +384,11 @@ fn run_check_command_applies_fixes_and_reports_them() {
 	let output = run_check_command(tempdir.path(), true, &[], &[], OutputFormat::Text, false)
 		.unwrap_or_else(|error| panic!("expected fixable lint workspace to succeed: {error}"));
 	assert!(
-		output.starts_with("✔ Checks passed · fixed 1 file"),
+		output
+			.lines()
+			.last()
+			.unwrap_or_default()
+			.starts_with("✔ Checks passed · fixed 1 file"),
 		"{output}"
 	);
 
@@ -416,7 +427,11 @@ fn run_lint_step_rechecks_after_fixing_errors() {
 		.unwrap_or_else(|error| panic!("expected fixable lint step to succeed: {error}"));
 	assert!(!has_errors);
 	assert!(
-		output.starts_with("✔ Checks passed · fixed 1 file"),
+		output
+			.lines()
+			.last()
+			.unwrap_or_default()
+			.starts_with("✔ Checks passed · fixed 1 file"),
 		"{output}"
 	);
 }
@@ -440,7 +455,7 @@ fn handle_lint_subcommand_dispatches_supported_commands() {
 		.try_get_matches_from(["lint", "list"])
 		.unwrap();
 	let list_output = handle_lint_subcommand(&root, &list_matches).unwrap();
-	assert!(list_output.contains("\nRules ("), "{list_output}");
+	assert!(list_output.starts_with("Rules ("), "{list_output}");
 	assert!(list_output.contains("\nPresets ("), "{list_output}");
 
 	let explain_matches = build_lint_subcommand()

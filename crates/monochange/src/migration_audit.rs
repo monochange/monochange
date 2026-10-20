@@ -287,19 +287,19 @@ fn text_release_record_migration_report(report: &ReleaseRecordMigrationReport) -
 	let scanned = plural(report.scanned, "release record", "release records");
 
 	if report.migrated == 0 {
-		text.headline(
+		text.summary(
 			Outcome::Success,
 			&format!("Release records already use {schema}"),
 			&[format!("{scanned} checked")],
 		);
 	} else if report.dry_run {
-		text.headline(
+		text.summary(
 			Outcome::Neutral,
 			&format!("Would migrate {} of {scanned} to {schema}", report.migrated),
 			&["dry-run, no files were modified".to_string()],
 		);
 	} else {
-		text.headline(
+		text.summary(
 			Outcome::Success,
 			&format!("Migrated {} of {scanned} to {schema}", report.migrated),
 			&[],
@@ -711,10 +711,10 @@ fn render_text_report(report: &MigrationAuditReport) -> String {
 
 	match report.status {
 		MigrationAuditStatus::Ready => {
-			text.headline(Outcome::Success, "No migration needed", &[signals]);
+			text.summary(Outcome::Success, "No migration needed", &[signals]);
 		}
 		MigrationAuditStatus::MigrationNeeded => {
-			text.headline(Outcome::Warning, "Migration needed", &[signals]);
+			text.summary(Outcome::Warning, "Migration needed", &[signals]);
 		}
 	}
 

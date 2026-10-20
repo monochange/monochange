@@ -2,13 +2,32 @@
 source: crates/monochange/src/__tests__/cli_runtime_tests.rs
 expression: text
 ---
-✔ Prepared release · 1 package · 1 file changed
+Log
+  ran cargo check
+
+Manifest  .monochange/local/release.json
+
+File diffs (1)
+
+--- a/Cargo.toml
++++ b/Cargo.toml
+-old
++new
+
+Consumed changesets (1)
+  .changeset/feature.md
+
+Changed files (1)
+  Cargo.toml
+
+Packages (1)
+  core
 
 Releases
   core  v1.2.3  package · tag · release
 
-Packages (1)
-  core
+Issue comments (1)
+  commented on #42
 
 Release commit
   abcdef1  chore(release): publish
@@ -20,36 +39,16 @@ Provider releases (1)
 Release request
   opened release request
 
-Issue comments (1)
-  commented on #42
-
-Changed files (1)
-  Cargo.toml
-
-Consumed changesets (1)
-  .changeset/feature.md
-
-File diffs (1)
-
---- a/Cargo.toml
-+++ b/Cargo.toml
--old
-+new
-
-Manifest  .monochange/local/release.json
-
-✖ coverage missing · changeset policy failed
-
-Errors (1)
-  ✖ missing changeset
-
-Skip labels  skip-changeset
+Matched paths (1)
+  crates/core/src/lib.rs
 
 Changesets (1)
   .changeset/feature.md
 
-Matched paths (1)
-  crates/core/src/lib.rs
+Skip labels  skip-changeset
 
-Log
-  ran cargo check
+Errors (1)
+  ✖ missing changeset
+
+✔ Prepared release · 1 package · 1 file changed
+✖ coverage missing · changeset policy failed

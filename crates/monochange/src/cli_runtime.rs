@@ -1120,7 +1120,7 @@ fn execute_validate_step(
 		vec![plural(warnings.len(), "warning", "warnings")]
 	};
 
-	text.headline(Outcome::Success, "Workspace validation passed", &details);
+	text.summary(Outcome::Success, "Workspace validation passed", &details);
 
 	Ok(Some(text.render()))
 }
@@ -1363,6 +1363,7 @@ async fn execute_placeholder_publish_step(
 		)?;
 	}
 
+	progress.set_publish_plan(&rate_limit_report);
 	let report = match package_publish::try_run_placeholder_publish_with_progress(
 		state.root,
 		state.configuration,
@@ -1439,6 +1440,7 @@ async fn execute_publish_packages_step(
 		)?;
 	}
 
+	progress.set_publish_plan(&rate_limit_report);
 	let report = match package_publish::try_run_publish_packages_with_resume_and_progress(
 		state.root,
 		state.configuration,
@@ -3573,176 +3575,247 @@ pub(crate) fn build_retarget_release_report(
 }
 
 fn render_package_publish_report(
+	text: &mut TextReport,
 	report: &package_publish::PackagePublishReport,
 	show_all_packages: bool,
-) -> Vec<String> {
+) {
 	let summary = report.summary();
-	let mut lines = vec![package_publish_headline(report, summary)];
 
-	if summary.total() == 0 {
-		return lines;
+	if show_all_packages && summary.total() > 0 {
+		text.section("Details", Some(report.packages.len()));
+		text.list(
+			report.packages.iter().map(package_publish_detail_item),
+			usize::MAX,
+		);
 	}
 
-	let primary_packages = report
-		.packages
-		.iter()
-		.filter(|package| {
-			matches!(
-				package.status,
-				package_publish::PackagePublishStatus::Planned
-					| package_publish::PackagePublishStatus::Published
-					| package_publish::PackagePublishStatus::Staged
-			)
-		})
-		.collect::<Vec<_>>();
-
-	if !primary_packages.is_empty() {
-		lines.push(String::new());
-		lines.extend(render_publish_package_rows(&primary_packages, false));
+	// Failures and blocked packages sit closest to the summary because they
+	// are the rows a reader has to act on.
+	for (status, title) in [
+		(
+			package_publish::PackagePublishStatus::Planned,
+			"Would publish",
+		),
+		(
+			package_publish::PackagePublishStatus::Published,
+			"Published",
+		),
+		(
+			package_publish::PackagePublishStatus::Staged,
+			"Staged awaiting approval",
+		),
+		(package_publish::PackagePublishStatus::Blocked, "Blocked"),
+		(package_publish::PackagePublishStatus::Failed, "Failed"),
+	] {
+		render_publish_status_section(text, report, status, title);
 	}
 
-	append_publish_problem_rows(
-		&mut lines,
-		report,
-		package_publish::PackagePublishStatus::Failed,
-		"Failed",
+	if summary.staged > 0 {
+		text.paragraph(
+			"Approve staged packages with `npm stage list`, then `npm stage approve <stage-id>`.",
+			Tone::Plain,
+		);
+	}
+
+	let (outcome, line) = package_publish_outcome_line(report, summary);
+	text.summary(
+		outcome,
+		&line,
+		&package_publish_summary_details(report, summary),
 	);
-	append_publish_problem_rows(
-		&mut lines,
-		report,
-		package_publish::PackagePublishStatus::Blocked,
-		"Blocked",
-	);
+}
 
-	lines.push(String::new());
-	lines.push(package_publish_counts(report, summary));
-
-	if !show_all_packages {
-		return lines;
-	}
-
-	lines.push(String::new());
-	lines.push("Details".to_string());
-
-	for package in &report.packages {
-		lines.push(format!(
-			"- {} {} via {} — {}",
+/// One package of `--show-all` publish details, with its facts on the
+/// lines under the package.
+fn package_publish_detail_item(package: &package_publish::PackagePublishOutcome) -> String {
+	let mut lines = vec![
+		format!(
+			"{} {} via {} — {}",
 			package.package,
 			package.version,
 			package.registry,
 			package_publish_status_label(package.status),
-		));
-		lines.push(format!("  ecosystem: {}", package.ecosystem));
-		lines.push(format!("  placeholder: {}", yes_no(package.placeholder)));
-		lines.push(format!("  publish: {}", package.message));
-		append_package_publish_command_output_lines(&mut lines, package, "  ");
-		lines.push(format!(
-			"  trusted publishing: {}",
-			trusted_publishing_status_label(package.trusted_publishing.status)
-		));
-		lines.push(format!(
-			"  trust message: {}",
-			package.trusted_publishing.message
-		));
+		),
+		format!("ecosystem: {}", package.ecosystem),
+		format!("placeholder: {}", yes_no(package.placeholder)),
+		format!("publish: {}", package.message),
+	];
+	append_package_publish_command_output_lines(&mut lines, package, "");
+	lines.push(format!(
+		"trusted publishing: {}",
+		trusted_publishing_status_label(package.trusted_publishing.status)
+	));
+	lines.push(format!(
+		"trust message: {}",
+		package.trusted_publishing.message
+	));
 
-		if let Some(repository) = &package.trusted_publishing.repository {
-			lines.push(format!("  repository: {repository}"));
-		}
-
-		if let Some(workflow) = &package.trusted_publishing.workflow {
-			lines.push(format!("  workflow: {workflow}"));
-		}
-
-		if let Some(environment) = &package.trusted_publishing.environment {
-			lines.push(format!("  environment: {environment}"));
-		}
-
-		if let Some(setup_url) = &package.trusted_publishing.setup_url {
-			lines.push(format!("  setup: {setup_url}"));
-			lines.push("  next: open the setup URL, configure trusted publishing for this package, then rerun `monochange publish packages`".to_string());
-		}
+	if let Some(repository) = &package.trusted_publishing.repository {
+		lines.push(format!("repository: {repository}"));
 	}
 
-	lines
+	if let Some(workflow) = &package.trusted_publishing.workflow {
+		lines.push(format!("workflow: {workflow}"));
+	}
+
+	if let Some(environment) = &package.trusted_publishing.environment {
+		lines.push(format!("environment: {environment}"));
+	}
+
+	if let Some(setup_url) = &package.trusted_publishing.setup_url {
+		lines.push(format!("setup: {setup_url}"));
+		lines.push("next: open the setup URL, configure trusted publishing for this package, then rerun `monochange publish packages`".to_string());
+	}
+
+	lines.join("\n")
 }
 
-fn package_publish_headline(
+fn render_publish_status_section(
+	text: &mut TextReport,
+	report: &package_publish::PackagePublishReport,
+	status: package_publish::PackagePublishStatus,
+	title: &str,
+) {
+	let packages = report
+		.packages
+		.iter()
+		.filter(|package| package.status == status)
+		.collect::<Vec<_>>();
+
+	if packages.is_empty() {
+		return;
+	}
+
+	let problem = matches!(
+		status,
+		package_publish::PackagePublishStatus::Blocked
+			| package_publish::PackagePublishStatus::Failed
+	);
+	text.section(title, Some(packages.len()));
+	let rows = packages
+		.iter()
+		.map(|package| {
+			let mut row = vec![
+				TableCell::new(&package.package, Tone::Heading),
+				TableCell::new(&package.version, Tone::Value),
+				TableCell::new(&package.registry, Tone::Muted),
+			];
+
+			if problem {
+				row.push(TableCell::new(&package.message, Tone::Error));
+			}
+
+			row
+		})
+		.collect::<Vec<_>>();
+	text.table(&rows);
+}
+
+/// Counts the summary line adds after its outcome, such as `16 already
+/// published`.
+fn package_publish_summary_details(
 	report: &package_publish::PackagePublishReport,
 	summary: package_publish::PackagePublishSummary,
-) -> String {
+) -> Vec<String> {
+	let mut details = Vec::new();
+
 	if summary.total() == 0 {
-		return match report.mode {
-			package_publish::PackagePublishRunMode::Placeholder => {
-				"No packages matched placeholder publishing criteria".to_string()
-			}
-			package_publish::PackagePublishRunMode::Release => {
-				"No packages matched publishing criteria".to_string()
-			}
+		return details;
+	}
+
+	if summary.already_exists > 0 {
+		details.push(format!("{} already published", summary.already_exists));
+	}
+
+	if summary.blocked > 0 && (summary.failed > 0 || summary.planned > 0 || summary.published > 0) {
+		details.push(format!("{} blocked", summary.blocked));
+	}
+
+	if summary.not_attempted > 0 {
+		details.push(format!("{} not attempted", summary.not_attempted));
+	}
+
+	if report.dry_run {
+		details.push("dry-run, no changes were made".to_string());
+	}
+
+	details
+}
+
+fn package_publish_outcome_line(
+	report: &package_publish::PackagePublishReport,
+	summary: package_publish::PackagePublishSummary,
+) -> (Outcome, String) {
+	let placeholder = report.mode == package_publish::PackagePublishRunMode::Placeholder;
+	let count = |count: usize| publish_package_count(report.mode, count);
+
+	if summary.total() == 0 {
+		let line = if placeholder {
+			"No packages matched placeholder publishing criteria"
+		} else {
+			"No packages matched publishing criteria"
 		};
+		return (Outcome::Neutral, line.to_string());
 	}
 
 	if summary.already_exists == summary.total() {
-		return match report.mode {
-			package_publish::PackagePublishRunMode::Placeholder => {
-				"No placeholder packages need publishing".to_string()
-			}
-			package_publish::PackagePublishRunMode::Release => {
-				"No packages need publishing".to_string()
-			}
+		let line = if placeholder {
+			"No placeholder packages need publishing"
+		} else {
+			"No packages need publishing"
 		};
+		return (Outcome::Neutral, line.to_string());
 	}
 
 	if summary.failed > 0 {
-		if summary.published > 0 {
-			return format!(
+		let line = if summary.published > 0 {
+			format!(
 				"Published {}; {} failed",
-				publish_package_count(report.mode, summary.published),
-				summary.failed,
-			);
-		}
-		return format!(
-			"Publishing failed for {}",
-			publish_package_count(report.mode, summary.failed)
-		);
+				count(summary.published),
+				summary.failed
+			)
+		} else {
+			format!("Publishing failed for {}", count(summary.failed))
+		};
+		return (Outcome::Failure, line);
 	}
 
 	if summary.planned > 0 {
-		return format!(
-			"Would publish {}",
-			publish_package_count(report.mode, summary.planned)
+		return (
+			Outcome::Neutral,
+			format!("Would publish {}", count(summary.planned)),
 		);
 	}
 
-	if summary.blocked > 0 {
-		return format!(
-			"Publishing blocked for {}",
-			publish_package_count(report.mode, summary.blocked)
-		);
+	if summary.published == 0 && summary.staged == 0 {
+		return if summary.blocked > 0 {
+			(
+				Outcome::Warning,
+				format!("Publishing blocked for {}", count(summary.blocked)),
+			)
+		} else {
+			(Outcome::Neutral, "No packages were published".to_string())
+		};
 	}
 
-	if summary.published > 0 && summary.staged > 0 {
-		return format!(
-			"Published {}; staged {} awaiting approval",
-			publish_package_count(report.mode, summary.published),
-			publish_package_count(report.mode, summary.staged),
-		);
-	}
+	let line = match (summary.published, summary.staged) {
+		(0, staged) => format!("Staged {} awaiting approval", count(staged)),
+		(published, 0) => format!("Published {}", count(published)),
+		(published, staged) => {
+			format!(
+				"Published {}; staged {} awaiting approval",
+				count(published),
+				count(staged)
+			)
+		}
+	};
+	let outcome = if summary.blocked > 0 {
+		Outcome::Warning
+	} else {
+		Outcome::Success
+	};
 
-	if summary.published > 0 {
-		return format!(
-			"Published {}",
-			publish_package_count(report.mode, summary.published)
-		);
-	}
-
-	if summary.staged > 0 {
-		return format!(
-			"Staged {} awaiting approval",
-			publish_package_count(report.mode, summary.staged)
-		);
-	}
-
-	"No packages were published".to_string()
+	(outcome, line)
 }
 
 fn publish_package_count(mode: package_publish::PackagePublishRunMode, count: usize) -> String {
@@ -3813,60 +3886,6 @@ fn package_publish_counts(
 	format!("{}.", parts.join(". "))
 }
 
-fn render_publish_package_rows(
-	packages: &[&package_publish::PackagePublishOutcome],
-	include_message: bool,
-) -> Vec<String> {
-	let package_width = packages
-		.iter()
-		.map(|package| package.package.chars().count())
-		.max()
-		.unwrap_or_default();
-	let version_width = packages
-		.iter()
-		.map(|package| package.version.chars().count())
-		.max()
-		.unwrap_or_default();
-	packages
-		.iter()
-		.map(|package| {
-			let message = if include_message {
-				format!(" — {}", package.message)
-			} else {
-				String::new()
-			};
-
-			format!(
-				"  {name:<package_width$}  {version:<version_width$}  {registry}{message}",
-				name = package.package,
-				version = package.version,
-				registry = package.registry,
-			)
-		})
-		.collect()
-}
-
-fn append_publish_problem_rows(
-	lines: &mut Vec<String>,
-	report: &package_publish::PackagePublishReport,
-	status: package_publish::PackagePublishStatus,
-	title: &str,
-) {
-	let packages = report
-		.packages
-		.iter()
-		.filter(|package| package.status == status)
-		.collect::<Vec<_>>();
-
-	if packages.is_empty() {
-		return;
-	}
-
-	lines.push(String::new());
-	lines.push(title.to_string());
-	lines.extend(render_publish_package_rows(&packages, true));
-}
-
 fn append_package_publish_command_output_lines(
 	lines: &mut Vec<String>,
 	package: &package_publish::PackagePublishOutcome,
@@ -3923,7 +3942,10 @@ fn render_package_publish_report_markdown(
 	show_all_packages: bool,
 ) -> Vec<String> {
 	let summary = report.summary();
-	let mut lines = vec![format!("**{}**", package_publish_headline(report, summary))];
+	let mut lines = vec![format!(
+		"**{}**",
+		package_publish_outcome_line(report, summary).1
+	)];
 
 	if summary.total() == 0 {
 		return lines;
@@ -4110,7 +4132,7 @@ pub(crate) fn render_retarget_release_report(report: &RetargetReleaseReport) -> 
 		details.push("dry-run".to_string());
 	}
 
-	text.headline(outcome, &headline, &details);
+	text.summary(outcome, &headline, &details);
 	let provider = if !report.sync_provider {
 		"not synced".to_string()
 	} else if let Some(provider_result) = report.provider_results.first() {
@@ -4278,33 +4300,10 @@ pub(crate) fn render_cli_command_result(
 	}
 
 	let mut report = TextReport::new(TextTheme::for_stdout());
-
-	if let Some(publish_report) = &context.package_publish_report {
-		report.raw_block(
-			&render_package_publish_report(
-				publish_report,
-				boolean_step_input(&context.last_step_inputs, "show-all"),
-			)
-			.join("\n"),
-		);
-	}
-
-	if let Some(prepared_release) = &context.prepared_release {
-		render_prepared_release_summary(&mut report, prepared_release, context);
-	} else {
-		render_release_automation_sections(&mut report, context);
-	}
-
-	if let Some(rate_limits) = &context.rate_limit_report {
-		render_rate_limit_sections(&mut report, rate_limits);
-	}
-
-	if let Some(evaluation) = &context.changeset_policy_evaluation {
-		render_changeset_policy_sections(&mut report, evaluation);
-	}
-
 	let show_all_publish_details = boolean_step_input(&context.last_step_inputs, "show-all");
 
+	// The log of what ran comes first and the results it produced follow,
+	// so each report's summary line closes the output.
 	if !context.command_logs.is_empty()
 		&& (context.package_publish_report.is_none() || show_all_publish_details)
 	{
@@ -4327,8 +4326,32 @@ pub(crate) fn render_cli_command_result(
 		);
 	}
 
+	if let Some(rate_limits) = &context.rate_limit_report {
+		if context.package_publish_report.is_some() {
+			// Progress showed the plan before publishing began; only its
+			// warnings still need attention once the packages are published.
+			render_rate_limit_warnings(&mut report, rate_limits);
+		} else {
+			render_rate_limit_sections(&mut report, rate_limits);
+		}
+	}
+
+	if let Some(prepared_release) = &context.prepared_release {
+		render_prepared_release_summary(&mut report, prepared_release, context);
+	} else {
+		render_release_automation_sections(&mut report, context);
+	}
+
+	if let Some(publish_report) = &context.package_publish_report {
+		render_package_publish_report(&mut report, publish_report, show_all_publish_details);
+	}
+
+	if let Some(evaluation) = &context.changeset_policy_evaluation {
+		render_changeset_policy_sections(&mut report, evaluation);
+	}
+
 	if report.is_empty() {
-		render_completed_headline(&mut report, cli_command, context.dry_run);
+		render_completed_summary(&mut report, cli_command, context.dry_run);
 	}
 
 	report.render()
@@ -4339,7 +4362,7 @@ pub(crate) fn render_cli_command_result(
 const CHANGED_FILE_LIMIT: usize = 20;
 const COMMAND_LOG_LIMIT: usize = 20;
 
-fn render_completed_headline(
+fn render_completed_summary(
 	report: &mut TextReport,
 	cli_command: &CliCommandDefinition,
 	dry_run: bool,
@@ -4350,7 +4373,7 @@ fn render_completed_headline(
 		Vec::new()
 	};
 
-	report.headline(
+	report.summary(
 		Outcome::Success,
 		&format!("{} completed", cli_command.name),
 		&details,
@@ -4362,6 +4385,58 @@ fn render_prepared_release_summary(
 	prepared_release: &PreparedRelease,
 	context: &CliContext,
 ) {
+	if let Some(path) = &context.release_manifest_path {
+		report.fields(&[("Manifest", path.display().to_string())]);
+	}
+
+	if context.show_diff && !context.prepared_file_diffs.is_empty() {
+		report.section("File diffs", Some(context.prepared_file_diffs.len()));
+
+		for file_diff in &context.prepared_file_diffs {
+			report.raw_block(&file_diff.display_diff);
+		}
+	}
+
+	if !prepared_release.deleted_changesets.is_empty() {
+		report.section(
+			"Consumed changesets",
+			Some(prepared_release.deleted_changesets.len()),
+		);
+		report.list(
+			prepared_release
+				.deleted_changesets
+				.iter()
+				.map(|path| path.display().to_string()),
+			CHANGED_FILE_LIMIT,
+		);
+	}
+
+	if !prepared_release.changed_files.is_empty() {
+		report.section("Changed files", Some(prepared_release.changed_files.len()));
+		report.list(
+			prepared_release
+				.changed_files
+				.iter()
+				.map(|path| path.display().to_string()),
+			CHANGED_FILE_LIMIT,
+		);
+	}
+
+	if !prepared_release.released_packages.is_empty() {
+		report.section("Packages", Some(prepared_release.released_packages.len()));
+
+		for line in wrap_names(&prepared_release.released_packages, PACKAGE_LINE_WIDTH) {
+			report.indented(&line, Tone::Plain);
+		}
+	}
+
+	if !prepared_release.release_targets.is_empty() {
+		report.section("Releases", None);
+		render_release_target_rows(report, &prepared_release.release_targets);
+	}
+
+	render_release_automation_sections(report, context);
+
 	let mut details = Vec::new();
 
 	if !prepared_release.released_packages.is_empty() {
@@ -4389,59 +4464,7 @@ fn render_prepared_release_summary(
 	} else {
 		(Outcome::Success, "Prepared release")
 	};
-	report.headline(outcome, headline, &details);
-
-	if !prepared_release.release_targets.is_empty() {
-		report.section("Releases", None);
-		render_release_target_rows(report, &prepared_release.release_targets);
-	}
-
-	if !prepared_release.released_packages.is_empty() {
-		report.section("Packages", Some(prepared_release.released_packages.len()));
-
-		for line in wrap_names(&prepared_release.released_packages, PACKAGE_LINE_WIDTH) {
-			report.indented(&line, Tone::Plain);
-		}
-	}
-
-	render_release_automation_sections(report, context);
-
-	if !prepared_release.changed_files.is_empty() {
-		report.section("Changed files", Some(prepared_release.changed_files.len()));
-		report.list(
-			prepared_release
-				.changed_files
-				.iter()
-				.map(|path| path.display().to_string()),
-			CHANGED_FILE_LIMIT,
-		);
-	}
-
-	if !prepared_release.deleted_changesets.is_empty() {
-		report.section(
-			"Consumed changesets",
-			Some(prepared_release.deleted_changesets.len()),
-		);
-		report.list(
-			prepared_release
-				.deleted_changesets
-				.iter()
-				.map(|path| path.display().to_string()),
-			CHANGED_FILE_LIMIT,
-		);
-	}
-
-	if context.show_diff && !context.prepared_file_diffs.is_empty() {
-		report.section("File diffs", Some(context.prepared_file_diffs.len()));
-
-		for file_diff in &context.prepared_file_diffs {
-			report.raw_block(&file_diff.display_diff);
-		}
-	}
-
-	if let Some(path) = &context.release_manifest_path {
-		report.fields(&[("Manifest", path.display().to_string())]);
-	}
+	report.summary(outcome, headline, &details);
 }
 
 /// Release commit, provider releases, release request, and issue comments.
@@ -4450,6 +4473,11 @@ fn render_prepared_release_summary(
 /// `publish-release` reads a committed release record, so they render on
 /// their own instead of only inside the release summary.
 fn render_release_automation_sections(report: &mut TextReport, context: &CliContext) {
+	if !context.issue_comment_results.is_empty() {
+		report.section("Issue comments", Some(context.issue_comment_results.len()));
+		report.list(context.issue_comment_results.iter().cloned(), usize::MAX);
+	}
+
 	if let Some(commit_report) = &context.release_commit_report {
 		render_release_commit_section(report, commit_report, &context.root);
 	}
@@ -4469,11 +4497,6 @@ fn render_release_automation_sections(report: &mut TextReport, context: &CliCont
 			&format!("warning: {}", warning.trim_start_matches("- ")),
 			Tone::Warning,
 		);
-	}
-
-	if !context.issue_comment_results.is_empty() {
-		report.section("Issue comments", Some(context.issue_comment_results.len()));
-		report.list(context.issue_comment_results.iter().cloned(), usize::MAX);
 	}
 }
 
@@ -4544,17 +4567,13 @@ fn render_release_commit_section(
 	}
 }
 
+/// The full publish plan, when planning is the command's result.
 fn render_rate_limit_sections(
 	report: &mut TextReport,
 	rate_limits: &monochange_core::PublishRateLimitReport,
 ) {
-	report.section("Publish rate limits", None);
-
-	if rate_limits.windows.is_empty() {
-		report.indented(
-			"no publish operations matched the current plan",
-			Tone::Muted,
-		);
+	if !rate_limits.windows.is_empty() {
+		report.section("Publish rate limits", None);
 	}
 
 	for window in &rate_limits.windows {
@@ -4607,6 +4626,44 @@ fn render_rate_limit_sections(
 		}
 	}
 
+	render_rate_limit_warnings(report, rate_limits);
+
+	if rate_limits.windows.is_empty() {
+		report.summary(
+			Outcome::Neutral,
+			"No publish operations matched the current plan",
+			&[],
+		);
+		return;
+	}
+
+	let pending = rate_limits
+		.windows
+		.iter()
+		.map(|window| window.pending)
+		.sum::<usize>();
+	let outcome = if rate_limits.warnings.is_empty() {
+		Outcome::Success
+	} else {
+		Outcome::Warning
+	};
+	report.summary(
+		outcome,
+		&format!(
+			"Planned {}",
+			plural(pending, "publish operation", "publish operations")
+		),
+		&[
+			plural(rate_limits.batches.len(), "batch", "batches"),
+			plural(rate_limits.windows.len(), "registry", "registries"),
+		],
+	);
+}
+
+fn render_rate_limit_warnings(
+	report: &mut TextReport,
+	rate_limits: &monochange_core::PublishRateLimitReport,
+) {
 	for warning in &rate_limits.warnings {
 		report.paragraph(&format!("warning: {warning}"), Tone::Warning);
 	}
@@ -4616,25 +4673,21 @@ fn render_changeset_policy_sections(
 	report: &mut TextReport,
 	evaluation: &ChangesetPolicyEvaluation,
 ) {
-	let outcome = match evaluation.status {
-		ChangesetPolicyStatus::Failed => Outcome::Failure,
-		ChangesetPolicyStatus::Passed | ChangesetPolicyStatus::Skipped => Outcome::Success,
-		ChangesetPolicyStatus::NotRequired => Outcome::Neutral,
-	};
+	if !evaluation.matched_paths.is_empty() {
+		report.section("Matched paths", Some(evaluation.matched_paths.len()));
+		report.list(evaluation.matched_paths.iter().cloned(), CHANGED_FILE_LIMIT);
+	}
 
-	report.headline(
-		outcome,
-		&evaluation.summary,
-		&[format!(
-			"changeset policy {}",
-			evaluation.status.to_string().replace('_', " ")
-		)],
-	);
-	let errors = unique_lines(&evaluation.errors);
+	if !evaluation.changeset_paths.is_empty() {
+		report.section("Changesets", Some(evaluation.changeset_paths.len()));
+		report.list(
+			evaluation.changeset_paths.iter().cloned(),
+			CHANGED_FILE_LIMIT,
+		);
+	}
 
-	if !errors.is_empty() {
-		report.section("Errors", Some(errors.len()));
-		report.list(errors.iter().map(|error| format!("✖ {error}")), usize::MAX);
+	if !evaluation.matched_skip_labels.is_empty() {
+		report.fields(&[("Skip labels", evaluation.matched_skip_labels.join(", "))]);
 	}
 
 	let warnings = unique_lines(&evaluation.warnings);
@@ -4647,22 +4700,27 @@ fn render_changeset_policy_sections(
 		);
 	}
 
-	if !evaluation.matched_skip_labels.is_empty() {
-		report.fields(&[("Skip labels", evaluation.matched_skip_labels.join(", "))]);
+	let errors = unique_lines(&evaluation.errors);
+
+	if !errors.is_empty() {
+		report.section("Errors", Some(errors.len()));
+		report.list(errors.iter().map(|error| format!("✖ {error}")), usize::MAX);
 	}
 
-	if !evaluation.changeset_paths.is_empty() {
-		report.section("Changesets", Some(evaluation.changeset_paths.len()));
-		report.list(
-			evaluation.changeset_paths.iter().cloned(),
-			CHANGED_FILE_LIMIT,
-		);
-	}
+	let outcome = match evaluation.status {
+		ChangesetPolicyStatus::Failed => Outcome::Failure,
+		ChangesetPolicyStatus::Passed | ChangesetPolicyStatus::Skipped => Outcome::Success,
+		ChangesetPolicyStatus::NotRequired => Outcome::Neutral,
+	};
 
-	if !evaluation.matched_paths.is_empty() {
-		report.section("Matched paths", Some(evaluation.matched_paths.len()));
-		report.list(evaluation.matched_paths.iter().cloned(), CHANGED_FILE_LIMIT);
-	}
+	report.summary(
+		outcome,
+		&evaluation.summary,
+		&[format!(
+			"changeset policy {}",
+			evaluation.status.to_string().replace('_', " ")
+		)],
+	);
 }
 
 /// The distinct lines of `lines`, in their original order.
@@ -4818,7 +4876,7 @@ fn render_release_version_summary_text(
 	let mut report = TextReport::new(TextTheme::for_stdout());
 
 	if summary.groups.is_empty() && summary.packages.is_empty() {
-		report.headline(
+		report.summary(
 			Outcome::Neutral,
 			"No versions planned",
 			&["add a changeset with `monochange create` to plan a release".to_string()],
@@ -4840,7 +4898,7 @@ fn render_release_version_summary_text(
 	}
 
 	details.push(plural(summary.packages.len(), "package", "packages"));
-	report.headline(Outcome::Success, "Next versions", &details);
+	report.summary(Outcome::Success, "Next versions", &details);
 
 	let grouped_ids = summary
 		.groups
@@ -5273,7 +5331,7 @@ fn execute_create_change_file_step(
 	// Dry runs show the changeset that would be written.
 	let render_preview = |planned: PlannedChangeFile| {
 		let mut text = TextReport::new(TextTheme::for_stdout());
-		text.headline(
+		text.summary(
 			Outcome::Neutral,
 			&format!(
 				"Would create changeset {}",
@@ -5394,7 +5452,7 @@ fn execute_create_change_file_step(
 
 fn render_created_changeset(root: &Path, path: &Path) -> String {
 	let mut text = TextReport::new(TextTheme::for_stdout());
-	text.headline(
+	text.summary(
 		Outcome::Success,
 		&format!("Created changeset {}", root_relative(root, path).display()),
 		&[],
@@ -5678,7 +5736,7 @@ fn resolve_command_output(
 
 	Ok(output.unwrap_or_else(|| {
 		let mut report = TextReport::new(TextTheme::for_stdout());
-		render_completed_headline(&mut report, cli_command, dry_run);
+		render_completed_summary(&mut report, cli_command, dry_run);
 		report.render()
 	}))
 }

@@ -2,8 +2,6 @@
 source: crates/monochange/src/__tests__/release_record_tests.rs
 expression: "text_release_tag_report(&sample_tag_report(\"completed\",\n&[ReleaseTagOperation::Created, ReleaseTagOperation::AlreadyUpToDate,\nReleaseTagOperation::Created,]))"
 ---
-✔ Created 2 release tags · push enabled
-
 Ref            HEAD → def5678
 Record commit  abc1234 · 1 commit back
 
@@ -13,3 +11,5 @@ Tags (3)
     v1.0  alias       → abc1234  new alias
   v1.1.0  up to date  → abc1234  unchanged
   v1.2.0  created     → abc1234  was 0123456
+
+✔ Created 2 release tags · push enabled

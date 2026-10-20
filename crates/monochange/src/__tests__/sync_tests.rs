@@ -393,7 +393,7 @@ fn format_sync_result_reports_constraints_that_are_already_in_sync() {
 	let output = sync::format_sync_result(Path::new("/workspace"), &result, false, false);
 	assert_eq!(
 		output,
-		"✔ Internal dependency constraints are already in sync · strategy default\n\nStrategy order: package config → ecosystem config → ecosystem default; `--strategy` overrides."
+		"Strategy order: package config → ecosystem config → ecosystem default; `--strategy` overrides.\n\n✔ Internal dependency constraints are already in sync · strategy default"
 	);
 }
 
@@ -430,8 +430,8 @@ fn format_sync_result_check_points_at_versions_sync() {
 		skipped: vec![],
 	};
 	let output = sync::format_sync_result(Path::new("/workspace"), &result, true, true);
-	assert!(output.starts_with(
-		"• Would update 1 dependency constraint · in 1 file · strategy default · no files were modified"
+	assert!(output.ends_with(
+		"\n\n• Would update 1 dependency constraint · in 1 file · strategy default · no files were modified"
 	));
 	assert!(output.contains("Run `monochange versions sync` to write these changes."));
 

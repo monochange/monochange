@@ -2,8 +2,6 @@
 source: crates/monochange_integration_tests/tests/lint_rules_fix.rs
 expression: "normalize_workspace_paths(fixture.path(), output)"
 ---
-✖ Checks failed · 17 errors · 7 fixable
-
 packages/app/pubspec.yaml
   1:1  ✖ flutter.assets is not sorted alphabetically
          dart/assets-sorted · fixable
@@ -45,3 +43,5 @@ packages/orphan/pubspec.yaml
          dart/unlisted-package-private · fixable
 
 Run `monochange check --fix` to fix 7 issues automatically.
+
+✖ Checks failed · 17 errors · 7 fixable

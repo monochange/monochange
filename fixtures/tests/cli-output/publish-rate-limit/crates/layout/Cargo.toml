@@ -1,0 +1,6 @@
+[package]
+name = "rate_limit_layout"
+version = "1.0.0"
+edition = "2021"
+description = "Rate limit fixture crate"
+license = "MIT"

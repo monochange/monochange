@@ -13,8 +13,6 @@ info:
 success: true
 exit_code: 0
 ----- stdout -----
-✔ Analyzed core · 1 semantic change main → HEAD
-
 Package        core (core)
 Ecosystem      cargo
 Manifest       crates/core/Cargo.toml
@@ -52,5 +50,7 @@ release → head (7)
   2 changed files:
     Cargo.toml
     src/lib.rs
+
+✔ Analyzed core · 1 semantic change main → HEAD
 
 ----- stderr -----

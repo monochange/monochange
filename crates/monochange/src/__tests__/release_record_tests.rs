@@ -307,7 +307,7 @@ fn sample_tag_report(status: &str, operations: &[ReleaseTagOperation]) -> Releas
 }
 
 #[test]
-fn release_tag_reports_lead_with_what_happened_to_the_tags() {
+fn release_tag_reports_end_with_what_happened_to_the_tags() {
 	insta::assert_snapshot!(
 		"release_tag_report_dry_run",
 		text_release_tag_report(&sample_tag_report(
@@ -331,11 +331,17 @@ fn release_tag_reports_lead_with_what_happened_to_the_tags() {
 			"already_up_to_date",
 			&[ReleaseTagOperation::AlreadyUpToDate]
 		))
+		.lines()
+		.last()
+		.unwrap_or_default()
 		.starts_with("✔ Release tags are already up to date · push enabled")
 	);
 	let none = text_release_tag_report(&sample_tag_report("no_tags_declared", &[]));
 	assert!(
-		none.starts_with("• The release record declares no tags"),
+		none.lines()
+			.last()
+			.unwrap_or_default()
+			.starts_with("• The release record declares no tags"),
 		"{none}"
 	);
 	assert!(!none.contains("Tags ("), "{none}");

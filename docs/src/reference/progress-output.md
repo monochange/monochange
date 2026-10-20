@@ -2,6 +2,39 @@
 
 monochange writes progress information to stderr so stdout can remain stable for text, markdown, and JSON command results.
 
+## How output is ordered
+
+Every command that prints more than one line reads from top to bottom in the same order. The further up you scroll, the more explanation you get; the last line always says what happened:
+
+1. **Plan** (stderr): what the command is about to do, such as the `monochange › release · 3 steps` banner or `▶ Publishing 24 packages (Placeholder) across npm, dart`.
+2. **Plan details** (stderr): context worth knowing before work starts. A publish run lists each registry's pending packages, batches, and documented rate limit under its opening line, and names each batch when a registry needs more than one.
+3. **Log** (stderr): a line for each step, package, or command output as it happens.
+4. **Details** (stdout): the result's sections, ordered from supporting detail to the rows that need attention, such as failed or blocked packages and lint errors.
+5. **Summary** (stdout): one closing line that answers the command's question, with the counts that matter.
+
+A placeholder publish run reads like this:
+
+```text
+▶ Publishing 4 packages (Placeholder) across 📦 npm, 🎯 dart
+  › npm      2 pending · 1 batch · no documented limit · low confidence
+  › pub_dev  1 pending · 1 batch · limit 12 per 24h · medium confidence
+✔ 📦 npm @acme/ui published 0.0.0 to npm
+✔ 📦 npm @acme/core published 0.0.0 to npm
+○ 🎯 dart acme acme 0.0.0 already exists on pub_dev
+✔ 🎯 dart acme_icons published 0.0.0 to pub_dev
+✓ Publish complete: 3 published, 1 skipped
+✔ publish placeholder packages  12.4s
+
+Published (3)
+  @acme/ui    0.0.0  npm
+  @acme/core  0.0.0  npm
+  acme_icons  0.0.0  pub_dev
+
+✔ Published 3 placeholder packages · 1 already published
+```
+
+Reference pages that describe one thing rather than report what a command did, such as `monochange lint explain <id>`, open with the thing's name instead.
+
 ## Selecting a renderer
 
 Use the global `--progress-format <FORMAT>` flag or set `MONOCHANGE_PROGRESS_FORMAT`.
@@ -10,7 +43,7 @@ Supported values:
 
 - `auto`: default behavior. Deterministic human progress output is enabled for terminals, CI logs, editor tasks, and captured processes; animation is terminal-only.
 - `unicode`: force the human renderer with Unicode symbols and spinners.
-- `ascii`: force the human renderer with ASCII-safe symbols. Text results on stdout also switch their headline symbols (`+`, `!`, `x`, `-`), separators, and ellipses to ASCII.
+- `ascii`: force the human renderer with ASCII-safe symbols. Text results on stdout also switch their summary symbols (`+`, `!`, `x`, `-`), separators, and ellipses to ASCII.
 - `json`: emit newline-delimited JSON progress events on stderr.
 
 `--quiet` suppresses progress output. `MONOCHANGE_NO_PROGRESS=1` also disables the automatic human renderer.
@@ -109,6 +142,7 @@ Common lifecycle events:
 - `lint_fix_finished`
 - `lint_summary`
 - `publish_run_started`
+- `publish_plan` (the rate-limit plan, as `rate_limits`, right after `publish_run_started`)
 - `publish_registry_check_started`
 - `publish_package_started`
 - `publish_package_skipped`

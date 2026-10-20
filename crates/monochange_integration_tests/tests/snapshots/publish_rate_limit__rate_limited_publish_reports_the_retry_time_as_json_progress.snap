@@ -1,0 +1,20 @@
+---
+source: crates/monochange_integration_tests/tests/publish_rate_limit.rs
+expression: diagnostic
+---
+{
+  "code": "publish.rate_limited",
+  "command": "step placeholder-publish",
+  "context": {
+    "command": "monochange step placeholder-publish"
+  },
+  "detail": "[multiline text]",
+  "dry_run": false,
+  "event": "diagnostic",
+  "exit_code": 1,
+  "hints": [
+    "Wait until Tue 20 Oct 2020 10:59:10 UTC, then rerun the same command. Versions that are already published are skipped, so publishing resumes with rate_limit_layout (2 packages left)."
+  ],
+  "sequence": 16,
+  "summary": "crates.io rate limit stopped publishing at rate_limit_layout 0.0.0: 1 of 3 packages published"
+}

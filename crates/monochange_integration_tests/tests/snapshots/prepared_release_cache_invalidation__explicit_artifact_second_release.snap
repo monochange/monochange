@@ -2,23 +2,23 @@
 source: crates/monochange_integration_tests/tests/prepared_release_cache_invalidation.rs
 expression: second
 ---
-✔ Prepared release · 1 package · 3 files changed
+Log
+  reused prepared release artifact `.monochange/local/explicit-prepared-release.json`
 
-Releases
-  alpha  alpha/v1.1.0  package · tag · release
+Manifest  .monochange/local/release-manifest.json
 
-Packages (1)
-  alpha
+Consumed changesets (1)
+  .changeset/feature.md
 
 Changed files (3)
   Cargo.toml
   crates/alpha/CHANGELOG.md
   crates/alpha/Cargo.toml
 
-Consumed changesets (1)
-  .changeset/feature.md
+Packages (1)
+  alpha
 
-Manifest  .monochange/local/release-manifest.json
+Releases
+  alpha  alpha/v1.1.0  package · tag · release
 
-Log
-  reused prepared release artifact `.monochange/local/explicit-prepared-release.json`
+✔ Prepared release · 1 package · 3 files changed

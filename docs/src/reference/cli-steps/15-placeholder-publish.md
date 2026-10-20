@@ -71,9 +71,10 @@ The only way to opt out of placeholder publishing is `publish.enabled = false`.
 
 - in dry-run mode, plans and previews placeholder publish operations without touching registries
 - in normal mode, publishes `0.0.0` placeholder versions for missing packages
-- starts with the outcome and the placeholder packages published or planned, followed by explicit per-status counts
+- ends with the placeholder packages published or planned and a summary line with explicit per-status counts
 - keeps already-existing package rows, trusted-publishing metadata, commands, and captured output behind `--show-all`
 - returns every package row when `--format json` is selected, regardless of `--show-all`
+- when a registry refuses an upload because of its rate limit (HTTP 429), stops with `error[publish.rate_limited]`, names the registry's reason, the time it accepts uploads again, and its limits page, and records the same details under `rate_limit` (`reason`, `retry_at`, `docs_url`) on the failed package in `--format json`; the tool's own packaging log stays in the package's captured `stdout`/`stderr` instead of the terminal. Rerunning after the retry time resumes where the run stopped, because versions that already exist are skipped
 - contributes `publish.*` and `publish_rate_limits.*` template context to the command result
 
 ## Example

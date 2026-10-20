@@ -17,21 +17,10 @@ info:
 success: true
 exit_code: 0
 ----- stdout -----
-• Release preview · 2 packages · dry-run, no files were changed
+Log
+  skipped release record: dry-run preview (pass `--release-json` to write release.json)
 
-Releases
-  sdk  v1.1.0  group · tag · release
-
-Packages (2)
-  workflow-app, workflow-core
-
-Changed files (6)
-  Cargo.toml
-  changelog.md
-  crates/app/Cargo.toml
-  crates/core/CHANGELOG.md
-  crates/core/Cargo.toml
-  group.toml
+Manifest  .monochange/local/release-manifest.json
 
 File diffs (4)
 
@@ -90,9 +79,20 @@ File diffs (4)
 +workflow-core = { version = "1.1.0" }
 +workflow-app = { version = "1.1.0" }
 
-Manifest  .monochange/local/release-manifest.json
+Changed files (6)
+  Cargo.toml
+  changelog.md
+  crates/app/Cargo.toml
+  crates/core/CHANGELOG.md
+  crates/core/Cargo.toml
+  group.toml
 
-Log
-  skipped release record: dry-run preview (pass `--release-json` to write release.json)
+Packages (2)
+  workflow-app, workflow-core
+
+Releases
+  sdk  v1.1.0  group · tag · release
+
+• Release preview · 2 packages · dry-run, no files were changed
 
 ----- stderr -----

@@ -833,7 +833,7 @@ pub(crate) fn format_sync_result(
 	let strategy = format!("strategy {}", strategy_name(result.strategy));
 
 	if change_count == 0 {
-		text.headline(
+		text.summary(
 			Outcome::Success,
 			"Internal dependency constraints are already in sync",
 			&[strategy],
@@ -855,7 +855,7 @@ pub(crate) fn format_sync_result(
 			(Outcome::Success, "Updated")
 		};
 
-		text.headline(
+		text.summary(
 			outcome,
 			&format!(
 				"{verb} {}",

@@ -3580,7 +3580,9 @@ dependencies = [
 name = "monochange_publish"
 version = "0.19.1"
 dependencies = [
+ "chrono",
  "monochange_core",
+ "regex",
  "reqwest",
  "rustls",
  "serde",

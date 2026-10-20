@@ -2,17 +2,16 @@
 source: crates/monochange/src/__tests__/cli_runtime_tests.rs
 expression: text
 ---
-✔ Prepared release · 2 packages · 1 file changed
-
-Releases
-  core  v1.2.3  package · tag
+Changed files (1)
+  Cargo.toml
 
 Packages (2)
   core, utils
 
-Changed files (1)
-  Cargo.toml
-
-✔ skip label matched · changeset policy skipped
+Releases
+  core  v1.2.3  package · tag
 
 Skip labels  docs-only
+
+✔ Prepared release · 2 packages · 1 file changed
+✔ skip label matched · changeset policy skipped

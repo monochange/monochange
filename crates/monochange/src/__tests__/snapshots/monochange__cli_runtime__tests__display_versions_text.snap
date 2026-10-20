@@ -2,8 +2,8 @@
 source: crates/monochange/src/__tests__/cli_runtime_tests.rs
 expression: text
 ---
-✔ Next versions · 1 group · 2 packages
-
 Groups
   sdk  2.0.0  minor
     core, web
+
+✔ Next versions · 1 group · 2 packages

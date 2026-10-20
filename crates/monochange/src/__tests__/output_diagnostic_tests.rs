@@ -73,6 +73,32 @@ fn command_failures_explain_the_output_and_name_the_failed_step() {
 }
 
 #[test]
+fn rate_limited_publishes_say_when_to_rerun_instead_of_a_generic_hint() {
+	let diagnostic = CliDiagnostic::from_error(
+		&MonochangeError::Discovery(
+			"crates.io rate limit stopped publishing at canvist_layout 0.0.0: 11 of 15 packages \
+			 published\ncrates.io: You have published too many new crates in a short period of \
+			 time.\nretry after: 10:59:10 UTC (in 6 minutes)\nlimits: \
+			 https://crates.io/docs/rate-limits\nhelp: Wait until 10:59:10 UTC (in 6 minutes), then \
+			 rerun the same command."
+				.to_string(),
+		),
+		Some("monochange publish placeholder"),
+	);
+
+	insta::assert_snapshot!(diagnostic.render(false), @r"
+	error[publish.rate_limited]: crates.io rate limit stopped publishing at canvist_layout 0.0.0: 11 of 15 packages published
+
+	    crates.io: You have published too many new crates in a short period of time.
+	    retry after: 10:59:10 UTC (in 6 minutes)
+	    limits: https://crates.io/docs/rate-limits
+
+	  command: monochange publish placeholder
+	  help:    Wait until 10:59:10 UTC (in 6 minutes), then rerun the same command.
+	");
+}
+
+#[test]
 fn pre_rendered_source_diagnostics_keep_their_snippet_alignment() {
 	let message = "error: package `zzz` path `crates/missing` does not exist\n  --> monochange.toml:39:1\n\n   |\n39 | path = \"crates/missing\"\n   | ^^^^^^ missing package path\n\n  = help: create the package directory\n  = note: paths are relative";
 	let diagnostic = CliDiagnostic::from_error(

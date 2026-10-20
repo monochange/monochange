@@ -251,6 +251,7 @@ fn sample_publish_outcome(package: &str, status: PackagePublishStatus) -> Packag
 		command: None,
 		stdout: None,
 		stderr: None,
+		rate_limit: None,
 	}
 }
 

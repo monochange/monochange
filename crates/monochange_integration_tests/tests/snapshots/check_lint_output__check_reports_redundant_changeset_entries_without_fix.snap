@@ -2,8 +2,6 @@
 source: crates/monochange_integration_tests/tests/check_lint_output.rs
 expression: output
 ---
-✖ Checks failed · 3 errors · 3 fixable
-
 .changeset/redundant-flow.md
   2:6  ✖ changeset entry for `core` repeats a bump that type `feat` already implies; use the inline form `core: feat`
          changesets/prefer-inline · fixable
@@ -18,3 +16,5 @@ expression: output
          severity error · span 75..89 · fix: Convert change entry to inline form
 
 Run `monochange check --fix` to fix 3 issues automatically.
+
+✖ Checks failed · 3 errors · 3 fixable

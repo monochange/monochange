@@ -374,7 +374,7 @@ fn render_text_report(report: &AnalyzeReport) -> String {
 		details.push("first release".to_string());
 	}
 
-	text.headline(
+	text.summary(
 		Outcome::Success,
 		&format!("Analyzed {package_id}"),
 		&details,
@@ -418,14 +418,6 @@ fn render_text_report(report: &AnalyzeReport) -> String {
 	));
 	text.fields(&fields);
 
-	if !report.warnings.is_empty() {
-		text.section("Warnings", Some(report.warnings.len()));
-		text.list(
-			report.warnings.iter().map(|warning| format!("▲ {warning}")),
-			usize::MAX,
-		);
-	}
-
 	render_frame_section(
 		&mut text,
 		"main → head",
@@ -439,6 +431,14 @@ fn render_text_report(report: &AnalyzeReport) -> String {
 
 	if let Some(release_to_head) = &report.frames.release_to_head {
 		render_frame_section(&mut text, "release → head", release_to_head, package_id);
+	}
+
+	if !report.warnings.is_empty() {
+		text.section("Warnings", Some(report.warnings.len()));
+		text.list(
+			report.warnings.iter().map(|warning| format!("▲ {warning}")),
+			usize::MAX,
+		);
 	}
 
 	text.render()

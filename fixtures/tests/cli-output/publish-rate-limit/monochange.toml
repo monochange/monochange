@@ -1,0 +1,15 @@
+[defaults]
+package_type = "cargo"
+changelog = false
+
+[package.rate_limit_canvas]
+path = "crates/canvas"
+
+[package.rate_limit_layout]
+path = "crates/layout"
+
+[package.rate_limit_model]
+path = "crates/model"
+
+[ecosystems.cargo]
+enabled = true

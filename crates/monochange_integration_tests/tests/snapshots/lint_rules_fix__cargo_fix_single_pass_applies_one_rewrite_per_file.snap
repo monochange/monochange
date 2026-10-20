@@ -2,8 +2,6 @@
 source: crates/monochange_integration_tests/tests/lint_rules_fix.rs
 expression: "normalize_workspace_paths(fixture.path(), output)"
 ---
-✖ Checks failed · 7 errors · 5 fixable · fixed 3 files
-
 crates/core/Cargo.toml
   1:1  ✖ internal dependency `utils` should use workspace = true
          cargo/internal-dependency-workspace · fixable
@@ -21,3 +19,5 @@ crates/core/Cargo.toml
          cargo/sorted-dependencies · fixable
 
 5 issues are still auto-fixable; run `monochange check --fix` again.
+
+✖ Checks failed · 7 errors · 5 fixable · fixed 3 files

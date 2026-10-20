@@ -20,21 +20,10 @@ info:
 success: true
 exit_code: 0
 ----- stdout -----
-Would publish 2 placeholder packages
-
+Would publish (2)
   core     0.0.0  crates_io
   npm_pkg  0.0.0  npm
 
-Checked 2 packages. No changes were made.
-
-Publish rate limits
-  crates_io placeholder_publish: 1 pending, 1 batch required, confidence High
-    limit 10 · per 60s · crates.io source enforces 10 uploads per minute for existing crates
-  npm placeholder_publish: 1 pending, 1 batch required, confidence Low
-    npm does not publish a precise package publish quota; use sequential CI publishing with retries
-
-Planned batches (2)
-  crates_io batch 1/1: core
-  npm batch 1/1: npm_pkg
+• Would publish 2 placeholder packages · dry-run, no changes were made
 
 ----- stderr -----

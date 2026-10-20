@@ -12,11 +12,15 @@ use std::time::Instant;
 
 use monochange_core::CliCommandDefinition;
 use monochange_core::CliStepDefinition;
+use monochange_core::PublishRateLimitBatch;
+use monochange_core::PublishRateLimitReport;
+use monochange_core::RegistryRateLimitWindowPlan;
 use monochange_core::lint::LintProgressReporter;
 use monochange_publish::EcosystemProgressPresentation;
 use monochange_publish::PublishProgressEvent;
 use monochange_publish::PublishProgressPackage;
 use monochange_publish::PublishProgressReporter;
+use monochange_publish::render_rate_limit_window;
 use serde::Serialize;
 
 use crate::StepPhaseTiming;
@@ -27,6 +31,7 @@ use crate::output::terminal::SharedStderr;
 use crate::output::terminal::TerminalCapabilities;
 use crate::output::terminal::erase_line;
 use crate::output::text::display_width;
+use crate::output::text::plural;
 use crate::output::warnings::WarningMode;
 use crate::output::warnings::WarningSink;
 use crate::output::warnings::escape_workflow_data;
@@ -141,6 +146,8 @@ pub(crate) struct ProgressReporter {
 	step_started_at: Mutex<Option<Instant>>,
 	next_heartbeat: Mutex<Duration>,
 	failed_step: Mutex<Option<String>>,
+	/// Rate-limit plan shown under the next publish run's opening line.
+	publish_plan: Mutex<Option<PublishRateLimitReport>>,
 }
 
 struct SpinnerState {
@@ -271,6 +278,7 @@ impl ProgressReporter {
 			step_started_at: Mutex::new(None),
 			next_heartbeat: Mutex::new(HEARTBEAT_FIRST),
 			failed_step: Mutex::new(None),
+			publish_plan: Mutex::new(None),
 		}
 	}
 
@@ -291,6 +299,32 @@ impl ProgressReporter {
 
 	pub(crate) fn is_enabled(&self) -> bool {
 		self.enabled
+	}
+
+	/// Show `plan` under the opening line of the next publish run, so the
+	/// registry limits and batches read as the plan before any package is
+	/// published instead of trailing the result.
+	pub(crate) fn set_publish_plan(&self, plan: &PublishRateLimitReport) {
+		self.publish_plan.lock().unwrap().replace(plan.clone());
+	}
+
+	fn report_publish_plan(&self) {
+		let Some(plan) = self.publish_plan.lock().unwrap().take() else {
+			return;
+		};
+		if self.render_mode == ProgressRenderMode::Json {
+			let mut payload = serde_json::Map::new();
+			payload.insert(
+				"rate_limits".to_string(),
+				serde_json::to_value(&plan).unwrap_or(serde_json::Value::Null),
+			);
+			self.emit_domain_json_event("publish_plan", payload);
+			return;
+		}
+		for line in render_publish_plan(&plan, &self.symbols, self.color, self.capabilities.verbose)
+		{
+			self.print_line(&line);
+		}
 	}
 
 	/// Build the sink that renders `tracing` warnings through this reporter's
@@ -1339,9 +1373,13 @@ impl PublishProgressReporter for ProgressReporter {
 		if !self.enabled {
 			return;
 		}
+		let run_started = matches!(event, PublishProgressEvent::RunStarted { .. });
 		if self.render_mode == ProgressRenderMode::Json {
 			let (event_name, payload) = publish_event_json(&event);
 			self.emit_domain_json_event(event_name, payload);
+			if run_started {
+				self.report_publish_plan();
+			}
 			return;
 		}
 		let activity = matches!(
@@ -1360,7 +1398,93 @@ impl PublishProgressReporter for ProgressReporter {
 			}
 			self.print_line(&line);
 		}
+		if run_started {
+			self.report_publish_plan();
+		}
 	}
+}
+
+/// The rate-limit plan as lines under a publish run's opening line: one
+/// line per registry, and the batches only when a registry needs more than
+/// one.
+fn render_publish_plan(
+	plan: &PublishRateLimitReport,
+	symbols: &ProgressSymbols,
+	color: bool,
+	verbose: bool,
+) -> Vec<String> {
+	let registry_width = plan
+		.windows
+		.iter()
+		.map(|window| display_width(window.registry.as_str()))
+		.max()
+		.unwrap_or_default();
+	let separator = format!(" {} ", symbols.separator);
+	let mut lines = Vec::new();
+
+	for window in &plan.windows {
+		let registry = pad_to(window.registry.as_str(), registry_width);
+		lines.push(format!(
+			"  {} {}  {}",
+			paint_text(symbols.status, Style::Muted, color),
+			paint_text(&registry, Style::Header, color),
+			paint_text(
+				&publish_plan_facts(window).join(&separator),
+				Style::Muted,
+				color
+			),
+		));
+		if verbose {
+			lines.push(format!(
+				"    {}",
+				paint_text(&window.notes, Style::Muted, color)
+			));
+		}
+		let batches = plan
+			.batches
+			.iter()
+			.filter(|batch| batch.registry == window.registry && batch.total_batches > 1)
+			.map(|batch| publish_plan_batch(batch, &separator));
+		lines.extend(
+			batches.map(|batch| format!("    {}", paint_text(&batch, Style::Muted, color))),
+		);
+	}
+
+	lines
+}
+
+/// What one registry's plan line says, such as `3 pending`, `1 batch`,
+/// `limit 12 per 24h`, and `medium confidence`.
+fn publish_plan_facts(window: &RegistryRateLimitWindowPlan) -> [String; 4] {
+	let limit = window.limit.map_or_else(
+		|| "no documented limit".to_string(),
+		|limit| {
+			format!(
+				"limit {limit} per {}",
+				render_rate_limit_window(window.window_seconds)
+			)
+		},
+	);
+	let confidence = format!("{:?}", window.confidence).to_lowercase();
+	[
+		format!("{} pending", window.pending),
+		plural(window.batches_required, "batch", "batches"),
+		limit,
+		format!("{confidence} confidence"),
+	]
+}
+
+fn publish_plan_batch(batch: &PublishRateLimitBatch, separator: &str) -> String {
+	let mut line = format!(
+		"batch {}/{}: {}",
+		batch.batch_index,
+		batch.total_batches,
+		batch.packages.join(", ")
+	);
+	if let Some(wait_seconds) = batch.recommended_wait_seconds {
+		let _ = write!(line, "{separator}wait {wait_seconds}s first");
+	}
+	line
 }
 
 /// Human label for a step: its configured `name`, or a readable description
