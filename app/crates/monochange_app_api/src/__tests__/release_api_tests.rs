@@ -20,6 +20,8 @@ use rsa::rand_core::OsRng;
 use rstest::rstest;
 use tower::ServiceExt;
 
+use super::Caller;
+use super::authorize;
 use super::commit_release_files;
 use super::release_commit_error_status;
 use super::validate_branch_names;
@@ -434,49 +436,112 @@ async fn release_commit_endpoint_requires_the_configured_api_token(
 #[tokio::test]
 async fn release_commit_endpoint_reads_bodies_larger_than_the_axum_default() {
 	// A grouped release rewrites every changelog; monochange's own already
-	// exceed axum's 2 MiB default, which used to reject the request with
-	// `413 Payload Too Large` before authentication ran.
+	// exceed axum's 2 MiB default.
 	let github = MockServer::start();
 	let state = release_api_state(&github, API_TOKEN).await;
 	let mut request = request_with_path("crates/core/CHANGELOG.md");
 	request.files[0].content = Some("- release note\n".repeat(256 * 1024));
+	request.dry_run = true;
 
-	let (status, body) = post_release_commit(&state, "not-the-api-token", &request).await;
+	let (status, body) = post_release_commit(&state, API_TOKEN, &request).await;
 
-	assert_eq!(status, StatusCode::UNAUTHORIZED, "{body}");
-	assert_eq!(body["message"], "invalid MONOCHANGE_TOKEN");
+	assert_eq!(status, StatusCode::OK, "{body}");
+	assert_eq!(body["status"], "dry_run");
 }
 
-#[tokio::test]
-async fn release_commit_endpoint_rejects_bodies_over_the_release_limit() {
-	let github = MockServer::start();
-	let state = release_api_state(&github, API_TOKEN).await;
-
-	let response = api_router(state)
-		.oneshot(
-			Request::builder()
-				.method("POST")
-				.uri("/api/release-commits")
-				.header("authorization", format!("Bearer {API_TOKEN}"))
-				.header("content-type", "application/json")
-				.body(Body::from(vec![b' '; RELEASE_COMMIT_BODY_LIMIT + 1]))
-				.unwrap(),
-		)
+async fn post_raw_release_commit(
+	state: &AppState,
+	authorization: Option<&str>,
+	body: Vec<u8>,
+) -> (StatusCode, serde_json::Value) {
+	let mut builder = Request::builder()
+		.method("POST")
+		.uri("/api/release-commits")
+		.header("content-type", "application/json");
+	if let Some(authorization) = authorization {
+		builder = builder.header("authorization", authorization);
+	}
+	let response = api_router(state.clone())
+		.oneshot(builder.body(Body::from(body)).unwrap())
 		.await
 		.unwrap();
-
-	// The handler reports every body rejection as a bad request.
-	assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+	let status = response.status();
 	let body = axum::body::to_bytes(response.into_body(), usize::MAX)
 		.await
 		.unwrap();
-	let body: serde_json::Value = serde_json::from_slice(&body).unwrap();
-	assert!(
-		body["message"]
-			.as_str()
-			.is_some_and(|message| message.contains("length limit exceeded")),
-		"{body}"
-	);
+	(status, serde_json::from_slice(&body).unwrap())
+}
+
+#[rstest]
+#[case::over_the_limit(
+	Some("Bearer test-only-api-token"),
+	vec![b' '; RELEASE_COMMIT_BODY_LIMIT + 1],
+	StatusCode::PAYLOAD_TOO_LARGE,
+	"request body is larger than the 8388608-byte limit or could not be read"
+)]
+#[case::not_json(
+	Some("Bearer test-only-api-token"),
+	b"not json".to_vec(),
+	StatusCode::BAD_REQUEST,
+	"invalid request body: expected ident at line 1 column 2"
+)]
+#[case::unauthenticated_over_the_limit(
+	Some("Bearer not-the-api-token"),
+	vec![b' '; RELEASE_COMMIT_BODY_LIMIT + 1],
+	StatusCode::UNAUTHORIZED,
+	"invalid MONOCHANGE_TOKEN"
+)]
+#[case::missing_authorization(
+	None,
+	vec![b' '; RELEASE_COMMIT_BODY_LIMIT + 1],
+	StatusCode::UNAUTHORIZED,
+	"set an Authorization: Bearer header to a GitHub Actions OIDC token or MONOCHANGE_TOKEN"
+)]
+#[case::malformed_oidc_token(
+	Some("Bearer not.a.jwt"),
+	vec![b' '; RELEASE_COMMIT_BODY_LIMIT + 1],
+	StatusCode::UNAUTHORIZED,
+	"OIDC verification failed: OIDC token is missing or malformed: Base64 error: Invalid last symbol 116, offset 2."
+)]
+#[tokio::test]
+async fn release_commit_endpoint_checks_credentials_before_the_body(
+	#[case] authorization: Option<&str>,
+	#[case] body: Vec<u8>,
+	#[case] expected_status: StatusCode,
+	#[case] message: &str,
+) {
+	let github = MockServer::start();
+	let state = release_api_state(&github, API_TOKEN).await;
+
+	let (status, body) = post_raw_release_commit(&state, authorization, body).await;
+
+	assert_eq!(status, expected_status, "{body}");
+	assert_eq!(body["message"], message);
+}
+
+#[rstest]
+#[case::matching_oidc_repository("acme/actions", true)]
+#[case::other_oidc_repository("acme/other", false)]
+fn oidc_callers_may_only_act_on_their_own_repository(#[case] claimed: &str, #[case] allowed: bool) {
+	let caller = Caller::ActionsRun {
+		repository: claimed.to_string(),
+	};
+
+	let result = authorize(&caller, "acme/actions");
+
+	assert_eq!(result.is_ok(), allowed);
+	if let Err((status, body)) = result {
+		assert_eq!(status, StatusCode::FORBIDDEN);
+		assert_eq!(
+			body.0.message,
+			"OIDC token is for repository `acme/other` but the request targets `acme/actions`"
+		);
+	}
+}
+
+#[test]
+fn api_token_callers_may_act_on_any_connected_repository() {
+	assert!(authorize(&Caller::ApiToken, "acme/actions").is_ok());
 }
 
 #[rstest]
