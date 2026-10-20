@@ -23,7 +23,6 @@ pub mod webhooks;
 use std::sync::Arc;
 
 use axum::Router;
-use axum::extract::DefaultBodyLimit;
 use axum::http::StatusCode;
 use axum::routing::get;
 use axum::routing::post;
@@ -68,10 +67,14 @@ pub fn load_app_secrets(
 
 /// Largest hosted release commit request body the app accepts.
 ///
-/// A release commit carries the full content of every file it changes. A
-/// grouped release rewrites every package changelog, which already exceeds
-/// axum's 2 MiB default for large workspaces such as monochange itself.
-pub const RELEASE_COMMIT_BODY_LIMIT: usize = 32 * 1024 * 1024;
+/// A request that uploads file contents carries the whole text of every file
+/// the release changes; monochange's own grouped release is about 3 MiB. The
+/// body is only read after the caller's credentials are verified.
+pub const RELEASE_COMMIT_BODY_LIMIT: usize = 8 * 1024 * 1024;
+
+/// Largest hosted release pull request body the app accepts, matching
+/// axum's default.
+pub const RELEASE_REQUEST_BODY_LIMIT: usize = 2 * 1024 * 1024;
 
 /// The machine-to-machine API routes served by the app.
 ///
@@ -82,8 +85,7 @@ pub fn api_router(state: AppState) -> Router<()> {
 		.route("/api/github/webhooks", post(webhooks::github_webhook))
 		.route(
 			"/api/release-commits",
-			post(release_api::create_release_commit)
-				.layer(DefaultBodyLimit::max(RELEASE_COMMIT_BODY_LIMIT)),
+			post(release_api::create_release_commit),
 		)
 		.route(
 			"/api/release-requests",
@@ -169,6 +171,9 @@ pub struct AppState {
 	pub github_app: Option<github_app::GitHubAppAuth>,
 	/// OIDC audience required in GitHub Actions tokens.
 	pub oidc_audience: String,
+	/// Verifier for GitHub Actions OIDC tokens, shared so the JWKS it fetches
+	/// is cached across requests.
+	pub oidc: Arc<oidc::OidcVerifier>,
 	/// `MONOCHANGE_TOKEN` accepted by the hosted release endpoints; `None`
 	/// requires GitHub Actions OIDC.
 	pub api_token: Option<String>,
@@ -221,6 +226,7 @@ impl AppState {
 			github_callback_url,
 			github_api_origin: "https://api.github.com".to_string(),
 			github_app,
+			oidc: Arc::new(oidc::OidcVerifier::new(&oidc_audience)),
 			oidc_audience,
 			api_token,
 			http,
