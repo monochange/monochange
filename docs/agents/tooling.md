@@ -60,12 +60,12 @@ Use `--model`/`MONOCHANGE_EVAL_MODEL`, `--agent-bin`/`MONOCHANGE_EVAL_AGENT_BIN`
 
 ### Readability and complexity
 
-- `lint:monostyle`: score the repository with monostyle and fail below 75 overall.
+- `lint:monostyle`: score the repository with monostyle and fail when either the readability or the complexity score drops below 80. CI runs it in the `lint` job.
 - `fix:monostyle`: apply monostyle's autofixable whitespace fixes.
 - `monostyle check <path> --units`: list the worst-scoring functions in a path as a worklist.
 - `monostyle rules`: list every rule and its threshold.
 
-Scores come from `monostyle.toml` at the repository root; only set fields override monostyle's defaults, and generated or vendored trees are ignored through `[rules.ignore]`. `lint:monostyle` runs as part of `lint:all`, and `fix:monostyle` runs as part of `fix:all`. The fixes are whitespace-only and deliberately do not conflict with rustfmt, dprint, or oxfmt.
+The 80 threshold is a project-wide score, passed as `--fail-under 80`; a `fail-under` key in `monostyle.toml` would instead set a floor for every individual file. Scores come from `monostyle.toml` at the repository root; only set fields override monostyle's defaults, and generated or vendored trees are ignored through `[rules.ignore]`. `lint:monostyle` runs as part of `lint:all`, and `fix:monostyle` runs as part of `fix:all`. The fixes are whitespace-only and deliberately do not conflict with rustfmt, dprint, or oxfmt.
 
 ### Autofix
 

@@ -70,7 +70,6 @@ use crate::cli_runtime::render_retarget_release_report;
 use crate::cli_runtime::retarget_operation_label;
 use crate::cli_runtime::should_execute_cli_step;
 use crate::cli_runtime::template_value_to_input_values;
-use crate::command_path_from_matches;
 use crate::discover_workspace;
 use crate::git_support::read_git_commit_message;
 use crate::git_support::run_git_capture;
@@ -17362,19 +17361,6 @@ fn snapshot_rendering_reports_missing_subtrees() {
 		error
 			.to_string()
 			.contains("snapshot command path not found: missing")
-	);
-}
-
-#[test]
-fn command_path_from_matches_collects_nested_subcommands() {
-	let matches = Command::new("monochange")
-		.subcommand(Command::new("step").subcommand(Command::new("discover")))
-		.try_get_matches_from(["monochange", "step", "discover"])
-		.unwrap_or_else(|error| panic!("matches: {error}"));
-
-	assert_eq!(
-		command_path_from_matches(&matches),
-		vec!["step", "discover"]
 	);
 }
 
