@@ -16,7 +16,6 @@ use crate::repository_filter::count_matches;
 use crate::repository_filter::repository_count as repository_count_label;
 use crate::server_fns::auth::SessionUser;
 use crate::server_fns::auth::get_session;
-use crate::server_fns::installation::PendingPermissionView;
 use crate::server_fns::installation::PermissionUpdate;
 use crate::server_fns::installation::RepositoryConnectionStatus;
 use crate::server_fns::installation::permission_updates;
@@ -248,7 +247,7 @@ fn PermissionUpdateNotice(
 					<ul>
 						{updates.into_iter().map(|update| view! {
 							<li>
-								<div><h3>{update.account}</h3><p>{update.permissions.iter().map(PendingPermissionView::label).collect::<Vec<_>>().join(", ")}</p></div>
+								<div><h3>{update.account}</h3><p>{update.missing}</p></div>
 								<a href=update.review_url rel="external" class="button button-quiet">"Review on GitHub"</a>
 							</li>
 						}).collect::<Vec<_>>()}

@@ -136,18 +136,7 @@ async fn installations_waiting_for_new_permissions_link_to_github() {
 			account: "acme".to_owned(),
 			review_url: "https://github.com/organizations/acme/settings/installations/22"
 				.to_owned(),
-			permissions: vec![
-				PendingPermissionView {
-					name: "actions".to_owned(),
-					requested: "write".to_owned(),
-					granted: None,
-				},
-				PendingPermissionView {
-					name: "pull_requests".to_owned(),
-					requested: "write".to_owned(),
-					granted: Some("read".to_owned()),
-				},
-			],
+			missing: "Actions: write (now none), Pull requests: write (now read)".to_owned(),
 		}],
 	)
 	.await;

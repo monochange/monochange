@@ -24,7 +24,6 @@ use rsa::pkcs1::EncodeRsaPrivateKey;
 use rsa::pkcs1::LineEnding;
 use rsa::rand_core::OsRng;
 
-use super::PendingPermissionView;
 use super::PermissionUpdate;
 use super::RepositoryConnectionStatus;
 use super::permission_updates;
@@ -301,7 +300,7 @@ fn mock_app(server: &MockServer, status: u16) -> httpmock::Mock<'_> {
 		when.method(Method::GET).path("/app");
 		then.status(status).json_body(serde_json::json!({
 			"slug": "test-app",
-			"permissions": {"actions": "write", "checks": "write", "contents": "write", "metadata": "read"},
+			"permissions": {"actions": "write", "checks": "write", "contents": "write", "metadata": "read", "pull_requests": "write"},
 		}));
 	})
 }
@@ -340,13 +339,13 @@ async fn installations_behind_the_app_permissions_link_to_their_review_page() {
 		&server,
 		11,
 		200,
-		&serde_json::json!({"checks": "read", "contents": "write", "metadata": "read"}),
+		&serde_json::json!({"checks": "read", "contents": "write", "metadata": "read", "pull_requests": "read"}),
 	);
 	let organization = mock_installation(
 		&server,
 		22,
 		200,
-		&serde_json::json!({"actions": "write", "checks": "write", "contents": "write", "metadata": "read"}),
+		&serde_json::json!({"actions": "write", "checks": "write", "contents": "write", "metadata": "read", "pull_requests": "write"}),
 	);
 	let membership = server.mock(|when, then| {
 		when.method(Method::GET)
@@ -364,18 +363,8 @@ async fn installations_behind_the_app_permissions_link_to_their_review_page() {
 		vec![PermissionUpdate {
 			account: "alice".to_string(),
 			review_url: "https://github.com/settings/installations/11".to_string(),
-			permissions: vec![
-				PendingPermissionView {
-					name: "actions".to_string(),
-					requested: "write".to_string(),
-					granted: None,
-				},
-				PendingPermissionView {
-					name: "checks".to_string(),
-					requested: "write".to_string(),
-					granted: Some("read".to_string()),
-				},
-			],
+			missing: "Actions: write (now none), Checks: write (now read), Pull requests: write (now read)"
+				.to_string(),
 		}],
 	);
 	app.assert_calls(1);
@@ -450,23 +439,4 @@ async fn permission_updates_are_empty_when_nothing_can_be_checked() {
 	assert!(updates(state, true).await.is_empty());
 	app.assert_calls(1);
 	installation.assert_calls(0);
-}
-
-#[test]
-fn pending_permission_labels_read_as_plain_words() {
-	let label = |name: &str, granted: Option<&str>| {
-		PendingPermissionView {
-			name: name.to_string(),
-			requested: "write".to_string(),
-			granted: granted.map(str::to_string),
-		}
-		.label()
-	};
-
-	assert_eq!(
-		label("pull_requests", Some("read")),
-		"Pull requests: write (now read)"
-	);
-	assert_eq!(label("actions", None), "Actions: write (now none)");
-	assert_eq!(label("", None), ": write (now none)");
 }

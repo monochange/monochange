@@ -72,34 +72,6 @@ pub async fn repository_connection() -> Result<RepositoryConnectionStatus, serve
 	})
 }
 
-/// One permission the app requests above what an installation accepted.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct PendingPermissionView {
-	/// GitHub's permission name, such as `actions` or `pull_requests`.
-	pub name: String,
-	/// The level the app now requests: `read`, `write`, or `admin`.
-	pub requested: String,
-	/// The level the installation accepted, or `None` without access.
-	pub granted: Option<String>,
-}
-
-impl PendingPermissionView {
-	/// A short label such as `Pull requests: write (now read)`.
-	#[must_use]
-	pub fn label(&self) -> String {
-		let mut name = self.name.replace('_', " ");
-		if let Some(first) = name.get_mut(..1) {
-			first.make_ascii_uppercase();
-		}
-
-		format!(
-			"{name}: {} (now {})",
-			self.requested,
-			self.granted.as_deref().unwrap_or("none")
-		)
-	}
-}
-
 /// A connected account whose GitHub App installation hasn't approved the
 /// app's current permissions.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -108,7 +80,8 @@ pub struct PermissionUpdate {
 	pub account: String,
 	/// GitHub page where an owner of the account reviews the request.
 	pub review_url: String,
-	pub permissions: Vec<PendingPermissionView>,
+	/// The missing access, e.g. `Actions: write (now none), Checks: write (now read)`.
+	pub missing: String,
 }
 
 /// Connected accounts whose installation still runs on older permissions.
@@ -173,26 +146,20 @@ pub async fn permission_updates() -> Result<Vec<PermissionUpdate>, server_fn::Se
 				continue;
 			}
 		};
-		let permissions: Vec<PendingPermissionView> =
+		let missing: Vec<String> =
 			monochange_app_api::github_app::pending_permissions(&requested, &granted)
-				.into_iter()
-				.map(|pending| {
-					PendingPermissionView {
-						name: pending.name,
-						requested: pending.requested,
-						granted: pending.granted,
-					}
-				})
+				.iter()
+				.map(permission_label)
 				.collect();
 
-		if permissions.is_empty() {
+		if missing.is_empty() {
 			continue;
 		}
 
 		updates.push(PermissionUpdate {
 			review_url: installation_settings_url(&account, personal, installation_id),
 			account,
-			permissions,
+			missing: missing.join(", "),
 		});
 	}
 
@@ -211,4 +178,20 @@ fn installation_settings_url(account: &str, personal: bool, installation_id: i64
 			urlencoding::encode(account)
 		)
 	}
+}
+
+/// A short label such as `Pull requests: write (now read)`. Built on the
+/// server so the dashboard's browser code only renders text.
+#[cfg(not(target_arch = "wasm32"))]
+fn permission_label(permission: &monochange_app_api::github_app::PendingPermission) -> String {
+	let mut name = permission.name.replace('_', " ");
+	if let Some(first) = name.get_mut(..1) {
+		first.make_ascii_uppercase();
+	}
+
+	format!(
+		"{name}: {} (now {})",
+		permission.requested,
+		permission.granted.as_deref().unwrap_or("none")
+	)
 }
