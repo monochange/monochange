@@ -4,6 +4,8 @@
 
 `PublishReadiness` checks package-registry publishing readiness without publishing packages.
 
+Run it from the command line with `monochange publish readiness`. `monochange step publish-readiness` runs the same step with the same inputs and remains supported for compatibility, but prefer `monochange publish readiness` in CI, scripts, and docs.
+
 It reads package publications from a release commit, compares them with the current workspace configuration and target registries, and reports which packages are ready, already published, or unsupported by built-in publishing.
 
 ## Why use it
@@ -41,7 +43,7 @@ For every package with `publish.trusted_publishing = true`, the step verifies th
 - the GitHub trust context (repository, workflow, optional environment) resolves from `monochange.toml`, the source configuration, or the CI environment
 - the referenced workflow file exists under `.github/workflows/`
 - the current environment can verify the CI/OIDC identity when a supported CI provider is detected
-- the package exists on npm, crates.io, or pub.dev, because those registries only accept trusted publishing for existing packages; unpublished packages are blocked with guidance to run `monochange step placeholder-publish` first
+- the package exists on npm, crates.io, or pub.dev, because those registries only accept trusted publishing for existing packages; unpublished packages are blocked with guidance to run `monochange publish placeholder` first
 
 Findings are recorded per package as `disabled`, `verified`, `manual_verification_required`, or `blocked`. Registry-side trusted publisher entries cannot be read back without registry credentials, so existing packages surface as `manual_verification_required` with the registry setup URL instead of a hard block. Network lookup failures also stay non-blocking, keeping the step usable offline.
 
@@ -52,9 +54,9 @@ The step validates the planned publish order against the workspace dependency gr
 ## Example
 
 ```bash
-monochange step publish-readiness --from HEAD
-monochange step publish-readiness --from HEAD --output .monochange/local/readiness.json
-monochange step publish-readiness --from v1.2.3 --package core --format json
+monochange publish readiness --from HEAD
+monochange publish readiness --from HEAD --output .monochange/local/readiness.json
+monochange publish readiness --from v1.2.3 --package core --format json
 ```
 
 A readiness-backed rate-limit plan can then consume the artifact:

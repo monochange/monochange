@@ -69,4 +69,4 @@ jobs:
 
       - name: publish packages
         if: steps.release_record.outputs.is_release_commit == 'true'
-        run: monochange step publish-packages
+        run: monochange publish packages

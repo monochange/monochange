@@ -434,11 +434,11 @@ Built-in publishing targets only the canonical public registry for each supporte
 - Python packages → `pypi`
 - Go modules → `go_proxy` via VCS tags
 
-Private registries and custom publication flows are still external. For those packages, set `mode = "external"` and handle release publication outside monochange. Placeholder publishing (`monochange step placeholder-publish`) still works for external-mode packages because it is a bootstrap utility, not a release publishing step.
+Private registries and custom publication flows are still external. For those packages, set `mode = "external"` and handle release publication outside monochange. Placeholder publishing (`monochange publish placeholder`) still works for external-mode packages because it is a bootstrap utility, not a release publishing step.
 
 ### Placeholder publishing
 
-`monochange step placeholder-publish` exists for the bootstrap case where a package must already exist in the registry before you can finish automation setup such as trusted publishing.
+`monochange publish placeholder` exists for the bootstrap case where a package must already exist in the registry before you can finish automation setup such as trusted publishing.
 
 Placeholder publishing works for all packages with `publish.enabled = true`, including those set to `publish.mode = "external"`. The `mode` field controls who handles **release** publishing (monochange's built-in publisher vs your own CI/scripts); it does not affect placeholder publishing because that is a one-time bootstrap utility, not a release step. To opt out of placeholder publishing entirely, set `publish.enabled = false`.
 
@@ -480,7 +480,7 @@ dependency_fields = ["dependencies", "optional-dependencies", "group.dependencie
 dependency_fields = []
 ```
 
-The same resolved policy is used by `monochange step plan-publish-rate-limits` and `monochange step publish-packages`.
+The same resolved policy is used by `monochange step plan-publish-rate-limits` and `monochange publish packages`.
 
 ### Trusted publishing
 
@@ -505,7 +505,7 @@ trusted_publishing = false
 When `trusted_publishing` is enabled:
 
 - npm package publishing must run from a verifiable CI/OIDC identity and must not use long-lived npm token environment variables
-- npm trusted-publisher enrollment is manual or external: monochange can render the expected `npm trust github ...` repair command and verify the GitHub workflow context, but `monochange step publish-packages` does not run `npm trust` automatically
+- npm trusted-publisher enrollment is manual or external: monochange can render the expected `npm trust github ...` repair command and verify the GitHub workflow context, but `monochange publish packages` does not run `npm trust` automatically
 - pnpm workspaces publish with `pnpm publish` (pnpm 11.1.3 or later is required for trusted publishing) so `workspace:` ranges are rewritten on publish; other npm-family workspaces publish with the `npm` CLI
 - Cargo, `jsr`, `pub.dev`, and `PyPI` also require manual trusted-publishing setup; monochange reports the setup URL and blocks built-in release publishing until trust is configured
 

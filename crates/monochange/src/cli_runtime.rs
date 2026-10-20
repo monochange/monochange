@@ -3265,7 +3265,7 @@ fn render_github_actions_publish_batches(
 		"      - name: publish planned batch".to_string(),
 		"        run: |".to_string(),
 		"          # For batches after the first, trigger a later workflow run instead of sleeping in CI.".to_string(),
-		"          monochange step publish-packages ${{ matrix.packages }} --format json".to_string(),
+		"          monochange publish packages ${{ matrix.packages }} --format json".to_string(),
 	]);
 	lines.join("\n")
 }
@@ -3303,7 +3303,7 @@ fn render_gitlab_ci_publish_batches(report: &monochange_core::PublishRateLimitRe
 	lines.extend([
 		"  script:".to_string(),
 		"    - '# For batches after the first, run a later pipeline instead of sleeping inside CI.'".to_string(),
-		"    - monochange step publish-packages $PACKAGES --format json".to_string(),
+		"    - monochange publish packages $PACKAGES --format json".to_string(),
 	]);
 	lines.join("\n")
 }
@@ -3392,7 +3392,7 @@ fn optional_path_input(
 
 	if trimmed.is_empty() {
 		let message = match name {
-			"readiness" => "`--readiness <PATH>` must not be blank; run `monochange step publish-readiness --from HEAD --output <PATH>` first".to_string(),
+			"readiness" => "`--readiness <PATH>` must not be blank; run `monochange publish readiness --from HEAD --output <PATH>` first".to_string(),
 			_ => format!("`{step_name}` received a blank `{name}` path"),
 		};
 
@@ -3664,7 +3664,7 @@ fn package_publish_detail_item(package: &package_publish::PackagePublishOutcome)
 
 	if let Some(setup_url) = &package.trusted_publishing.setup_url {
 		lines.push(format!("setup: {setup_url}"));
-		lines.push("next: open the setup URL, configure trusted publishing for this package, then rerun `monochange step publish-packages`".to_string());
+		lines.push("next: open the setup URL, configure trusted publishing for this package, then rerun `monochange publish packages`".to_string());
 	}
 
 	lines.join("\n")
@@ -4029,7 +4029,7 @@ fn render_package_publish_report_markdown(
 		if let Some(setup_url) = &package.trusted_publishing.setup_url {
 			lines.push(format!("- **Setup:** `{setup_url}`"));
 			lines.push(
-				"- **Next:** open the setup URL, configure trusted publishing for this package, then rerun `monochange step publish-packages`"
+				"- **Next:** open the setup URL, configure trusted publishing for this package, then rerun `monochange publish packages`"
 					.to_string(),
 			);
 		}

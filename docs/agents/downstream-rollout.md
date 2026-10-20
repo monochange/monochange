@@ -67,7 +67,7 @@ for c in monochange_classification monochange_some_new_crate; do
 done
 ```
 
-`404` means the name is unregistered. Run `monochange step placeholder-publish` (it is a manual step — see [release prerequisites](release-checklist.md)) and re-check until every name resolves, **before** merging the release PR.
+`404` means the name is unregistered. Run `monochange publish placeholder` (it is a manual step — see [release prerequisites](release-checklist.md)) and re-check until every name resolves, **before** merging the release PR.
 
 ### Recovering a partial publish
 

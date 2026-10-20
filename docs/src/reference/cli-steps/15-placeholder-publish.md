@@ -4,6 +4,8 @@
 
 `PlaceholderPublish` publishes minimal `0.0.0` placeholder versions for packages that do not yet exist in their target registries.
 
+Run it from the command line with `monochange publish placeholder`. `monochange step placeholder-publish` runs the same step with the same inputs and remains supported for compatibility, but prefer `monochange publish placeholder` in CI, scripts, and docs.
+
 This is useful when you need to:
 
 - reserve a package name before the first real release

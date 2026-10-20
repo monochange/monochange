@@ -86,7 +86,7 @@ fn validate_readiness_artifact_status(report: &PublishReadinessReport) -> Monoch
 	}
 
 	Err(MonochangeError::Config(
-		"publish readiness artifact is blocked; rerun `monochange step publish-readiness` and resolve blockers before `monochange step publish-packages`".to_string(),
+		"publish readiness artifact is blocked; rerun `monochange publish readiness` and resolve blockers before `monochange publish packages`".to_string(),
 	))
 }
 
@@ -96,7 +96,7 @@ fn validate_readiness_current_status(report: &PublishReadinessReport) -> Monocha
 	}
 
 	Err(MonochangeError::Config(
-		"current publish readiness is blocked; rerun `monochange step publish-readiness` and resolve blockers before `monochange step publish-packages`".to_string(),
+		"current publish readiness is blocked; rerun `monochange publish readiness` and resolve blockers before `monochange publish packages`".to_string(),
 	))
 }
 
@@ -1324,7 +1324,7 @@ async fn build_report_blocks_packages_when_trusted_publishing_readiness_blocks()
 	assert_eq!(readiness.status, PublishReadinessGlobalStatus::Blocked);
 	let package = &readiness.packages[0];
 	assert_eq!(package.status, PublishReadinessPackageStatus::Blocked);
-	assert!(package.message.contains("placeholder-publish"));
+	assert!(package.message.contains("monochange publish placeholder"));
 	let trust = package.trusted_publishing.as_ref().unwrap();
 	assert_eq!(
 		trust.status,

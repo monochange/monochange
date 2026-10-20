@@ -1804,7 +1804,7 @@ fn render_package_publish_reports_include_manual_registry_guidance() {
 	assert!(text.contains("trust message: configure trusted publishing manually for `pkg`"));
 	assert!(text.contains("setup: https://crates.io/crates/pkg"));
 	assert!(text.contains(
-		"next: open the setup URL, configure trusted publishing for this package, then rerun `monochange step publish-packages`"
+		"next: open the setup URL, configure trusted publishing for this package, then rerun `monochange publish packages`"
 	));
 
 	let markdown = render_package_publish_report_markdown(&report, true).join("\n");
@@ -1813,7 +1813,7 @@ fn render_package_publish_reports_include_manual_registry_guidance() {
 		markdown.contains("**Trust message:** configure trusted publishing manually for `pkg`")
 	);
 	assert!(markdown.contains("**Setup:** `https://crates.io/crates/pkg`"));
-	assert!(markdown.contains("**Next:** open the setup URL, configure trusted publishing for this package, then rerun `monochange step publish-packages`"));
+	assert!(markdown.contains("**Next:** open the setup URL, configure trusted publishing for this package, then rerun `monochange publish packages`"));
 }
 
 #[test]
@@ -2064,7 +2064,7 @@ fn resolve_command_output_supports_publish_rate_limit_reports_without_release_st
 		.unwrap_or_else(|error| panic!("rate limit github snippet: {error}"));
 	assert!(github.contains("jobs:"));
 	assert!(github.contains("wait_seconds: 86400"));
-	assert!(github.contains("monochange step publish-packages"));
+	assert!(github.contains("monochange publish packages"));
 
 	context.last_step_inputs = BTreeMap::from([("ci".to_string(), vec!["gitlab-ci".to_string()])]);
 	let gitlab = resolve_command_output(&cli_command, &context, true, None)
@@ -3695,7 +3695,7 @@ fn optional_publish_plan_readiness_artifact_path_trims_and_rejects_blank_values(
 	assert!(
 		blank_error
 			.to_string()
-			.contains("monochange step publish-readiness")
+			.contains("monochange publish readiness")
 	);
 }
 

@@ -1290,10 +1290,18 @@ pub(crate) fn build_step_subcommand() -> Command {
 			steps: vec![step],
 			dry_run: false,
 		};
-		command = command.subcommand(build_cli_command_subcommand_with_prefix(
-			&synthetic,
-			"monochange step",
-		));
+		let mut subcommand =
+			build_cli_command_subcommand_with_prefix(&synthetic, "monochange step");
+		if let Some(publish) = PUBLISH_STEP_SUBCOMMANDS
+			.iter()
+			.find(|publish| publish.step == synthetic.name)
+		{
+			subcommand = subcommand.after_help(format!(
+				"Prefer `monochange publish {}`, which runs this step with the same inputs.",
+				publish.command
+			));
+		}
+		command = command.subcommand(subcommand);
 	}
 
 	command
@@ -1381,7 +1389,7 @@ fn build_publish_subcommand() -> Command {
 	let mut command = Command::new("publish")
 		.about("Publish packages and inspect registry publishing state")
 		.after_help(
-			"Examples:\n  monochange publish readiness --from HEAD --output readiness.json\n  monochange publish packages --output publish.json\n  monochange publish placeholder --format json\n\nEach subcommand accepts the same inputs as the matching built-in step:\n  monochange publish packages     -> monochange step publish-packages\n  monochange publish readiness    -> monochange step publish-readiness\n  monochange publish placeholder  -> monochange step placeholder-publish",
+			"Examples:\n  monochange publish readiness --from HEAD --output readiness.json\n  monochange publish packages --output publish.json\n  monochange publish placeholder --format json\n\nPrefer these commands over the matching built-in steps. Each subcommand runs the same step with the same inputs:\n  monochange publish packages     -> monochange step publish-packages\n  monochange publish readiness    -> monochange step publish-readiness\n  monochange publish placeholder  -> monochange step placeholder-publish",
 		)
 		.subcommand_required(true)
 		.arg_required_else_help(true)
@@ -1539,8 +1547,8 @@ Typical release flow:
 
 Related commands:
   monochange help step prepare-release
-  monochange help step publish-readiness
-  monochange help step publish-packages",
+  monochange help publish readiness
+  monochange help publish packages",
 			)
 		}
 		"step prepare-release" => {

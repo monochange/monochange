@@ -154,7 +154,7 @@ The generated inventory above is deliberately literal: it lists the command lite
 | `monochange publish readiness`                 | `monochange step publish-readiness`                | Registry readiness without publishing.                                                                                 |
 | `monochange publish placeholder`               | `monochange step placeholder-publish`              | First-time placeholder versions.                                                                                       |
 
-Each alias accepts exactly the flags of its step equivalent, so `monochange discover --format json` and `monochange step discover --format json` are interchangeable. Steps with no short command (`validate`, `commit-release`, `verify-release-branch`, `publish-release`, `plan-publish-rate-limits`, `open-release-request`, `comment-released-issues`, `release-record`, `tag-release`, `retarget-release`) are only reachable as `monochange step <name>`.
+Prefer the short command in docs, CI, scripts, and suggestions, especially `monochange publish packages`, `monochange publish readiness`, and `monochange publish placeholder` over their `monochange step` publish forms. Each alias accepts exactly the flags of its step equivalent, so `monochange discover --format json` and `monochange step discover --format json` are interchangeable. Steps with no short command (`validate`, `commit-release`, `verify-release-branch`, `publish-release`, `plan-publish-rate-limits`, `open-release-request`, `comment-released-issues`, `release-record`, `tag-release`, `retarget-release`) are only reachable as `monochange step <name>`.
 
 Preferred order when choosing a command:
 
@@ -211,8 +211,6 @@ Run `cargo xtask skill commands check` before changing this file. Run `cargo xta
 | `monochange mcp`                      | Start the stdio MCP server.                                                                    |
 | `monochange step validate`            | Validate `monochange.toml` and changesets.                                                     |
 | `monochange help`                     | Show detailed help for a command, including configured workflow commands.                      |
-| `monochange step publish-readiness`   | Check package registry publishing readiness without publishing packages.                       |
-| `monochange step placeholder-publish` | Publish first-time placeholder package versions for a release record.                          |
 
 Global flags include `--quiet`, `--verbose` (full lists and logs, every step timing, and progress notes), `--progress-format <auto|unicode|ascii|json>`, `--color <auto|always|never>` (`auto` styles terminals and honors `NO_COLOR`, `CLICOLOR`, and `CLICOLOR_FORCE`), and `--jq <expression>` for JSON output filtering. Usage errors exit with status `2`; other failures exit with `1`, and `--progress-format json` reports them as a `diagnostic` event.
 
@@ -223,7 +221,7 @@ A few built-ins are deliberately narrow:
 - `monochange step validate` is the cheapest correctness check for configuration and changeset targets.
 - Validation can succeed without `monochange.toml`; check its presence separately during adoption. Neither validation nor `monochange check` rejects cross-stream changesets; a release preview verifies that invariant.
 - `monochange check` adds manifest linting and is the better pre-merge/pre-release check.
-- `monochange step publish-readiness` and `monochange step placeholder-publish` operate from an existing release record, so run them after a release has been prepared and committed.
+- `monochange publish readiness` and `monochange publish placeholder` operate from an existing release record, so run them after a release has been prepared and committed.
 - `monochange step release-record` is useful when debugging publish jobs because it tells you which packages and versions a commit or tag is supposed to release.
 
 ## Internal dependency version sync

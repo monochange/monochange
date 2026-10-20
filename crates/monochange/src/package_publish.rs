@@ -607,7 +607,7 @@ fn enforce_release_trust_prerequisites(
 			return Ok(());
 		}
 		return Err(MonochangeError::Config(format!(
-			"`{}` requires trusted publishing from a verifiable CI/OIDC identity before built-in release publishing can continue; local/manual publishing is not allowed when `publish.trusted_publishing = true`. {capability_message} Run `monochange step publish-packages` from the configured CI workflow, set `publish.trusted_publishing.mode = \"preferred\"` to fall back to local credentials when no CI identity is available, or set `publish.trusted_publishing = false` to opt out.",
+			"`{}` requires trusted publishing from a verifiable CI/OIDC identity before built-in release publishing can continue; local/manual publishing is not allowed when `publish.trusted_publishing = true`. {capability_message} Run `monochange publish packages` from the configured CI workflow, set `publish.trusted_publishing.mode = \"preferred\"` to fall back to local credentials when no CI identity is available, or set `publish.trusted_publishing = false` to opt out.",
 			request.package_id,
 		)));
 	}

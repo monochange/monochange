@@ -91,7 +91,7 @@ monochange step publish-readiness --from v1.0.1 --format json
   `monochange publish readiness`) runs a dry-run and never publishes. For the fictional
   `@acme/api` it reports top-level `status: "blocked"` and per-package
   `status: "blocked"` with the message that the package has never been published to npm and
-  suggests `monochange step placeholder-publish`. Scenario checks should expect `blocked`
+  suggests `monochange publish placeholder`. Scenario checks should expect `blocked`
   (or assert on `resolved_commit` / `record_commit` / `package_set_fingerprint`), not `ready`.
 - `monochange step tag-release --from v1.0.0` deliberately fails: `no monochange release
   record found in first-parent ancestry from v1.0.0`, because the import tag is not a release

@@ -278,11 +278,11 @@ monochange step publish-release --dry-run --format json
 monochange step open-release-request --dry-run --format json
 monochange step release-record --from v1.2.3
 monochange step tag-release --from HEAD --dry-run --format json
-monochange step publish-readiness --from HEAD --output .monochange/readiness.json
-monochange step placeholder-publish
-monochange step publish-readiness --from HEAD --output .monochange/readiness.json
+monochange publish readiness --from HEAD --output .monochange/readiness.json
+monochange publish placeholder
+monochange publish readiness --from HEAD --output .monochange/readiness.json
 monochange step plan-publish-rate-limits --readiness .monochange/readiness.json --format json
-monochange step publish-packages --output .monochange/publish-result.json
+monochange publish packages --output .monochange/publish-result.json
 monochange step retarget-release --from v1.2.3 --target HEAD --dry-run
 monochange run release
 ```

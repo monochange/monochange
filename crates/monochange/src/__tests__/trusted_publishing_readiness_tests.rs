@@ -368,7 +368,7 @@ async fn never_published_package_blocks_trusted_publishing() {
 			.await;
 
 	assert_eq!(readiness.status, TrustedPublishingReadinessStatus::Blocked);
-	assert!(readiness.message.contains("placeholder-publish"));
+	assert!(readiness.message.contains("monochange publish placeholder"));
 	server
 		.join()
 		.unwrap_or_else(|_| panic!("registry mock thread"));
@@ -450,7 +450,7 @@ async fn local_run_still_blocks_never_published_packages() {
 	.await;
 
 	assert_eq!(readiness.status, TrustedPublishingReadinessStatus::Blocked);
-	assert!(readiness.message.contains("placeholder-publish"));
+	assert!(readiness.message.contains("monochange publish placeholder"));
 	server
 		.join()
 		.unwrap_or_else(|_| panic!("registry mock thread"));
