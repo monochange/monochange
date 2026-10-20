@@ -430,6 +430,9 @@ in
     "lint:push" = {
       exec = ''
         set -euo pipefail
+        # Git runs this hook with the caller's PATH, which lacks the devenv
+        # profile when the push starts outside the shell.
+        export PATH="${currentDir}/.devenv/profile/bin:$PATH"
 
         run_step() {
           local name="$1"
