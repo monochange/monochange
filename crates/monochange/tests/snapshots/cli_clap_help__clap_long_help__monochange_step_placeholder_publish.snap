@@ -53,3 +53,5 @@ Publish placeholder package versions for missing registry packages
 
       [93m--snapshot[0m
           Print a normalized JSON snapshot for this command subtree
+
+Prefer `monochange publish placeholder`, which runs this step with the same inputs.

@@ -40,7 +40,7 @@
 		{
 			"id": "readiness-reports-blocked-without-publishing",
 			"kind": "command",
-			"command": "monochange step publish-readiness --from v1.0.1 --format json > .ready.out 2>&1; rc=$?; grep -q '\"status\": \"blocked\"' .ready.out; a=$?; grep -q 'monochange step placeholder-publish' .ready.out; b=$?; rm -f .ready.out; test $rc -eq 0 -a $a -eq 0 -a $b -eq 0",
+			"command": "monochange step publish-readiness --from v1.0.1 --format json > .ready.out 2>&1; rc=$?; grep -q '\"status\": \"blocked\"' .ready.out; a=$?; grep -q 'monochange publish placeholder' .ready.out; b=$?; rm -f .ready.out; test $rc -eq 0 -a $a -eq 0 -a $b -eq 0",
 			"why": "Readiness must run to completion without touching a registry, and for a package that has never published it must say `blocked` and name the bootstrap remedy rather than claiming readiness."
 		}
 	]

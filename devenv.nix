@@ -172,7 +172,7 @@ in
     "publish:check" = {
       exec = ''
         set -euo pipefail
-        monochange step publish-packages --dry-run
+        monochange publish packages --dry-run
       '';
       description = "Check that publication is valid for this project";
       binary = "bash";

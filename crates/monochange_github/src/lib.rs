@@ -2542,7 +2542,7 @@ pub fn trusted_publishing_identity_error(
 	reason: impl std::fmt::Display,
 ) -> MonochangeError {
 	MonochangeError::Config(format!(
-		"`{}` requires trusted publishing from the configured GitHub Actions OIDC identity, but the current context does not match: {reason}. Run `monochange step publish-packages` from the configured CI workflow or set `publish.trusted_publishing = false` to opt out.",
+		"`{}` requires trusted publishing from the configured GitHub Actions OIDC identity, but the current context does not match: {reason}. Run `monochange publish packages` from the configured CI workflow or set `publish.trusted_publishing = false` to opt out.",
 		request.package_id,
 	))
 }

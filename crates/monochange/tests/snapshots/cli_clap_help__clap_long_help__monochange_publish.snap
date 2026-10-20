@@ -46,7 +46,7 @@ Examples:
   monochange publish packages --output publish.json
   monochange publish placeholder --format json
 
-Each subcommand accepts the same inputs as the matching built-in step:
+Prefer these commands over the matching built-in steps. Each subcommand runs the same step with the same inputs:
   monochange publish packages     -> monochange step publish-packages
   monochange publish readiness    -> monochange step publish-readiness
   monochange publish placeholder  -> monochange step placeholder-publish

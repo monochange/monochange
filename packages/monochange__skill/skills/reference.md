@@ -63,7 +63,7 @@ monochange step plan-publish-rate-limits --readiness readiness.json --format jso
 monochange publish packages --output publish-result.json
 ```
 
-`monochange publish readiness`, `monochange publish placeholder`, and `monochange publish packages` are short forms of `monochange step publish-readiness`, `monochange step placeholder-publish`, and `monochange step publish-packages`. `monochange step plan-publish-rate-limits` has no short form, and all four steps are built in. Repositories may define shorter workflow aliases such as `monochange run publish-plan` or `monochange run publish`, but those names are not universal.
+Prefer `monochange publish readiness`, `monochange publish placeholder`, and `monochange publish packages` over `monochange step publish-readiness`, `monochange step placeholder-publish`, and `monochange step publish-packages`; both spellings run the same step with the same inputs. `monochange step plan-publish-rate-limits` has no short form, and all four steps are built in. Repositories may define shorter workflow aliases such as `monochange run publish-plan` or `monochange run publish`, but those names are not universal.
 
 Use `mode = "external"` for private/custom registries or when existing CI handles package publication.
 

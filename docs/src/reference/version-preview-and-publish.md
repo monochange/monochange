@@ -86,7 +86,7 @@ monochange publish packages --output publish.json
 monochange publish placeholder --format json
 ```
 
-The `monochange step *` forms remain supported and behave identically; the grouped commands exist for readability and tab completion. Any `[cli.*]` workflow you define in `monochange.toml` is unaffected, because config-defined commands run under `monochange run <name>`.
+Prefer the grouped `monochange publish` commands in CI, scripts, and docs. The `monochange step *` forms remain supported and behave identically, but they exist for compatibility rather than as the recommended spelling. Any `[cli.*]` workflow you define in `monochange.toml` is unaffected, because config-defined commands run under `monochange run <name>`.
 
 Typical first-time registry bootstrap:
 

@@ -23,7 +23,7 @@ Publishing is the only release phase that cannot be rolled back. A broken releas
 Run a dry-run publish check before anything mutates:
 
 ```bash
-monochange step publish-packages --dry-run
+monochange publish packages --dry-run
 ```
 
 The dry run resolves the same publish set and dependency-aware batches as a real publish, checks each selected version against its registry, and validates the configured publishing flow without mutating any registry. Repositories commonly expose it through a configured workflow command such as `monochange run publish-check` or through a lint script.

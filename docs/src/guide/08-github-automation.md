@@ -117,8 +117,8 @@ Avoid indexing `tagResults[0]` for workflow control. `tagResults` remains the au
 
 Package publishing is separate from provider release publishing:
 
-- `monochange step publish-readiness --from HEAD --output <path>` checks package registries before mutation
-- `monochange step publish-packages` handles package registries such as `crates.io`, `npm`, `jsr`, and `pub.dev`
+- `monochange publish readiness --from HEAD --output <path>` checks package registries before mutation
+- `monochange publish packages` handles package registries such as `crates.io`, `npm`, `jsr`, and `pub.dev`
 - `monochange step publish-release` handles hosted source-provider releases such as GitHub releases
 
 When `publish.trusted_publishing` is enabled, monochange can derive GitHub trust metadata from the workflow runtime and the configured `[source]` block. npm packages get the richest built-in diagnostics:
@@ -126,7 +126,7 @@ When `publish.trusted_publishing` is enabled, monochange can derive GitHub trust
 - monochange rejects long-lived npm token environment variables for trusted-publishing runs
 - monochange verifies that the current GitHub Actions OIDC context matches the configured trusted-publisher context
 - if npm trust needs repair, monochange reports the exact `npm trust github ...` command to run manually or in separate tooling
-- real `monochange step publish-packages` runs do not execute `npm trust` or `npm trust list`; trusted-publishing npm publishes use the `npm` CLI directly
+- real `monochange publish packages` runs do not execute `npm trust` or `npm trust list`; trusted-publishing npm publishes use the `npm` CLI directly
 
 For `crates.io`, `jsr`, and `pub.dev`, monochange reports the setup URL for the package and requires manual trusted-publishing setup before the next built-in release publish. Placeholder publishing can still proceed so the package exists before that manual step.
 
@@ -297,7 +297,7 @@ type = "AffectedPackages"
 monochange includes a release workflow modeled around long-running release PR refresh plus post-merge tagging:
 
 - `.github/workflows/release.yml` refreshes the dedicated release PR branch on normal `main` pushes
-- the same workflow detects when `HEAD` is already a merged monochange release commit, runs `monochange step tag-release --from HEAD`, runs `monochange step publish-readiness --from HEAD --output <path>`, and then runs `monochange step publish-packages`
+- the same workflow detects when `HEAD` is already a merged monochange release commit, runs `monochange step tag-release --from HEAD`, runs `monochange publish readiness --from HEAD --output <path>`, and then runs `monochange publish packages`
 - tag-triggered or downstream workflows can then build archives, create hosted releases, publish additional assets from the pushed tags, or run a separate `monochange step publish-release` job when you still want manifest-driven hosted-release publication
 
 That split keeps tag creation on the default branch side of the merge and lets downstream automation consume the exact durable release metadata that monochange stored in git history.

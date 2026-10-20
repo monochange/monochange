@@ -670,7 +670,7 @@ fn build_recommendations(signals: &[MigrationAuditSignal]) -> Vec<MigrationAudit
 		recommendations.push(MigrationAuditRecommendation {
 			id: "replace-ci-workflows".to_string(),
 			title: "Replace release workflows incrementally".to_string(),
-			detail: "Update CI to run `monochange check`, release planning, `monochange step publish-readiness`, and trusted publishing setup before deleting the legacy workflow.".to_string(),
+			detail: "Update CI to run `monochange check`, release planning, `monochange publish readiness`, and trusted publishing setup before deleting the legacy workflow.".to_string(),
 		});
 	}
 
