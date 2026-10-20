@@ -8,12 +8,18 @@ use leptos_router::hooks::use_params_map;
 use leptos_router::lazy_route;
 
 use crate::components::arrow::ArrowIcon;
+use crate::components::repository_list::RepositoryFilters;
+use crate::components::repository_list::RepositoryPager;
+use crate::components::repository_list::RepositoryPicker;
+use crate::components::repository_list::use_repository_filter;
 use crate::pages::dashboard::organization_avatar;
 use crate::projects::MAX_DESCRIPTION_CHARS;
 use crate::projects::MAX_NAME_CHARS;
+use crate::repository_filter::count_matches;
 use crate::server_fns::organizations::CreateProject;
 use crate::server_fns::organizations::OrganizationSummary;
 use crate::server_fns::organizations::organization_overview;
+use crate::server_fns::organizations::organization_path;
 use crate::server_fns::organizations::project_path;
 
 /// The message to show for a failed server action.
@@ -79,6 +85,9 @@ fn OrganizationContent(organization: OrganizationSummary) -> impl IntoView {
 	};
 
 	let login = organization.login.clone();
+	let filter = use_repository_filter();
+	let total = organization.repositories.len();
+	let searchable = StoredValue::new(organization.repositories.clone());
 	view! {
 		<nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/dashboard">"Workspace"</a><span aria-hidden="true">"/"</span><span aria-current="page">{login.clone()}</span></nav>
 		<div class="workspace-heading">
@@ -111,13 +120,13 @@ fn OrganizationContent(organization: OrganizationSummary) -> impl IntoView {
 			}}
 
 		</section>
-		<section class="repository-section" aria-labelledby="repositories-title">
-			<div class="repository-heading"><h2 id="repositories-title">"Repositories"</h2><p>{organization.repositories.len()} " connected"</p></div>
-			<ul class="repository-list">
-				{organization.repositories.into_iter().map(|repo| view! {
-					<li><div><h3>{repo.github_full_name}</h3><p>{if repo.github_private { "Private" } else { "Public" }}{if repo.installation_suspended { " · Installation suspended" } else { "" }}</p></div></li>
-				}).collect::<Vec<_>>()}
-			</ul>
+		<section class="repository-section" id="repositories" aria-labelledby="repositories-title">
+			<div class="repository-heading"><h2 id="repositories-title">"Repositories"</h2><p aria-live="polite">{move || {
+				let search = filter.get().search;
+				if search.trim().is_empty() { format!("{total} connected") } else { format!("{} of {total} match", count_matches(&searchable.read_value(), &search)) }
+			}}</p></div>
+			<RepositoryFilters filter=filter path=organization_path(&login) organizations=Vec::new() />
+			<RepositoryPager repositories=organization.repositories search=Signal::derive(move || filter.get().search) label=format!("{login} repositories") />
 		</section>
 	}
 }
@@ -138,17 +147,14 @@ fn NewProjectForm(organization: OrganizationSummary) -> impl IntoView {
 				<label class="field"><span>"Name"</span><input name="name" required maxlength=MAX_NAME_CHARS autocomplete="off" aria-describedby="project-address-hint" /></label>
 				<p class="field-hint" id="project-address-hint">"Its address comes from the name: “Invoices” lives at " {example}</p>
 				<label class="field"><span>"Description " <small>"(optional)"</small></span><textarea name="description" rows="2" maxlength=MAX_DESCRIPTION_CHARS></textarea></label>
-				<fieldset class="field">
-					<legend>"Repositories"</legend>
-					<div class="checkbox-list">
-						{organization.repositories.into_iter().map(|repo| view! {
-							<label><input type="checkbox" name="repositories[]" value=repo.github_full_name.clone() /><span>{repo.github_full_name.clone()}</span><small>{if repo.github_private { "Private" } else { "Public" }}</small></label>
-						}).collect::<Vec<_>>()}
-					</div>
-				</fieldset>
+				<RepositoryPicker repositories=organization.repositories />
 				{move || create.value().get().and_then(Result::err).map(|error| view! { <p class="form-error" role="alert">{action_error(&error)}</p> })}
 				<button type="submit" class="button button-brand" disabled=move || create.pending().get()>{move || if create.pending().get() { "Creating…" } else { "Create project" }}</button>
 			</ActionForm>
 		</details>
 	}
 }
+
+#[cfg(test)]
+#[path = "__tests__/organization_tests.rs"]
+mod tests;

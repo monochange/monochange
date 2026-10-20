@@ -6,7 +6,14 @@ use leptos_router::LazyRoute;
 use leptos_router::lazy_route;
 
 use crate::components::arrow::ArrowIcon;
+use crate::components::repository_list::ChevronIcon;
+use crate::components::repository_list::RepositoryFilters;
+use crate::components::repository_list::RepositoryPager;
+use crate::components::repository_list::use_repository_filter;
 use crate::links::BOOK_URL;
+use crate::repository_filter::RepositoryFilter;
+use crate::repository_filter::count_matches;
+use crate::repository_filter::repository_count as repository_count_label;
 use crate::server_fns::auth::SessionUser;
 use crate::server_fns::auth::get_session;
 use crate::server_fns::installation::RepositoryConnectionStatus;
@@ -74,10 +81,39 @@ fn DashboardContent(
 	organizations: Vec<OrganizationSummary>,
 	connection: Resource<Result<RepositoryConnectionStatus, server_fn::ServerFnError>>,
 ) -> impl IntoView {
+	let filter = use_repository_filter();
 	let repository_count: usize = organizations
 		.iter()
 		.map(|organization| organization.repositories.len())
 		.sum();
+	// Only accounts and repository names are needed to count matches.
+	let searchable = StoredValue::new(
+		organizations
+			.iter()
+			.map(|organization| {
+				(
+					organization.login.clone(),
+					organization.repositories.clone(),
+				)
+			})
+			.collect::<Vec<_>>(),
+	);
+	let matches = Memo::new(move |_| {
+		let filter = filter.get();
+		searchable.with_value(|accounts| {
+			accounts
+				.iter()
+				.filter(|(login, _)| filter.includes_organization(login))
+				.map(|(_, repositories)| count_matches(repositories, &filter.search))
+				.sum::<usize>()
+		})
+	});
+	let logins: Vec<String> = organizations
+		.iter()
+		.map(|organization| organization.login.clone())
+		.collect();
+	let open_by_default = organizations.len() == 1;
+
 	view! {
 		<div>
 			<div class="workspace-heading">
@@ -85,8 +121,8 @@ fn DashboardContent(
 				<div><h1>"Welcome, " {user.github_login}</h1><p>"Your free monochange workspace."</p></div>
 			</div>
 			<RepositoryConnectionPanel connection=connection />
-			<section class="repository-section" aria-labelledby="organizations-title">
-				<div class="repository-heading"><h2 id="organizations-title">"Organisations"</h2><p>{repository_count} " repositories connected"</p></div>
+			<section class="repository-section" id="organizations" aria-labelledby="organizations-title">
+				<div class="repository-heading"><h2 id="organizations-title">"Organisations"</h2><p aria-live="polite">{move || if filter.get().is_active() { format!("{} of {} match", matches.get(), repository_count_label(repository_count)) } else { format!("{} connected", repository_count_label(repository_count)) }}</p></div>
 
 				{if organizations.is_empty() {
 					view! {
@@ -94,9 +130,11 @@ fn DashboardContent(
 					}.into_any()
 				} else {
 					view! {
+						<RepositoryFilters filter=filter path="/dashboard".to_owned() organizations=logins />
 						<ul class="organization-list">
-							{organizations.into_iter().map(|organization| view! { <OrganizationCard organization=organization /> }).collect::<Vec<_>>()}
+							{organizations.into_iter().map(|organization| view! { <OrganizationCard organization=organization filter=filter open_by_default=open_by_default /> }).collect::<Vec<_>>()}
 						</ul>
+						<div class="repository-empty" hidden=move || matches.get() != 0><h3>"No repositories match"</h3><p>"Try a shorter name, or look in every account."</p><a href="/dashboard" class="button button-quiet">"Clear filters"</a></div>
 					}.into_any()
 				}}
 
@@ -106,10 +144,18 @@ fn DashboardContent(
 	}
 }
 
-/// An organisation with its repositories, linking to its projects.
+/// An organisation that folds open to its repositories, which follow the
+/// dashboard's filters.
 #[component]
-fn OrganizationCard(organization: OrganizationSummary) -> impl IntoView {
+fn OrganizationCard(
+	organization: OrganizationSummary,
+	filter: Memo<RepositoryFilter>,
+	/// Open without a filter, for a workspace with a single account.
+	open_by_default: bool,
+) -> impl IntoView {
 	let path = organization.path();
+	let login = organization.login.clone();
+	let total = organization.repositories.len();
 	let kind = if organization.personal {
 		"Personal account"
 	} else {
@@ -120,19 +166,47 @@ fn OrganizationCard(organization: OrganizationSummary) -> impl IntoView {
 		1 => "1 project".to_string(),
 		count => format!("{count} projects"),
 	};
+	let searchable = StoredValue::new(organization.repositories.clone());
+	let account = login.clone();
+	let matches = Memo::new(move |_| {
+		let filter = filter.get();
+		if filter.includes_organization(&account) {
+			searchable.with_value(|repositories| count_matches(repositories, &filter.search))
+		} else {
+			0
+		}
+	});
+	let summary = move || {
+		if filter.get().is_active() {
+			format!(
+				"{kind} · {} of {} match",
+				matches.get(),
+				repository_count_label(total)
+			)
+		} else {
+			format!("{kind} · {} · {projects}", repository_count_label(total))
+		}
+	};
+	let search = Signal::derive(move || filter.get().search);
+	// A filter opens the card to show its matches. Clearing the filter leaves
+	// it open, so the list doesn't fold away under the reader.
+	let open = Memo::new(move |was_open: Option<&bool>| {
+		open_by_default || filter.get().is_active() || was_open.copied().unwrap_or(false)
+	});
 
 	view! {
-		<li class="organization-card">
-			<a href=path class="organization-link">
-				{organization_avatar(&organization.login, organization.avatar_url.clone())}
-				<div><h3>{organization.login.clone()}</h3><p>{kind} " · " {projects}</p></div>
-				<ArrowIcon />
-			</a>
-			<ul class="repository-list">
-				{organization.repositories.into_iter().map(|repo| view! {
-					<li><div><h3>{repo.github_full_name}</h3><p>{if repo.github_private { "Private" } else { "Public" }} " · " {if repo.installation_suspended { "Installation suspended".to_string() } else { format!("Connected via {}", repo.installation_login) }}</p></div><span>"Free"</span></li>
-				}).collect::<Vec<_>>()}
-			</ul>
+		<li class="organization-card" hidden=move || matches.get() == 0>
+			<details open=move || open.get()>
+				<summary class="organization-summary">
+					{organization_avatar(&login, organization.avatar_url.clone())}
+					<div><h3>{login.clone()}</h3><p>{summary}</p></div>
+					<ChevronIcon />
+				</summary>
+				<div class="organization-body">
+					<RepositoryPager repositories=organization.repositories search=search label=format!("{login} repositories") />
+					<a href=path class="text-link">"Open " {login.clone()} " to manage projects" <ArrowIcon /></a>
+				</div>
+			</details>
 		</li>
 	}
 }

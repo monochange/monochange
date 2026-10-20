@@ -6,6 +6,7 @@ use leptos_router::LazyRoute;
 use leptos_router::hooks::use_params_map;
 use leptos_router::lazy_route;
 
+use crate::components::repository_list::RepositoryPicker;
 use crate::pages::organization::Unavailable;
 use crate::pages::organization::action_error;
 use crate::projects::MAX_DESCRIPTION_CHARS;
@@ -129,17 +130,7 @@ fn EditProjectForm(details: ProjectDetails) -> impl IntoView {
 				<input type="hidden" name="project" value=details.project.slug.clone() />
 				<label class="field"><span>"Name"</span><input name="name" required maxlength=MAX_NAME_CHARS value=details.project.name.clone() autocomplete="off" /></label>
 				<label class="field"><span>"Description " <small>"(optional)"</small></span><textarea name="description" rows="2" maxlength=MAX_DESCRIPTION_CHARS>{details.project.description.clone()}</textarea></label>
-				<fieldset class="field">
-					<legend>"Repositories"</legend>
-					<div class="checkbox-list">
-						{details.available.into_iter().map(|repo| {
-							let checked = selected.contains(&repo.github_full_name.to_ascii_lowercase());
-							view! {
-								<label><input type="checkbox" name="repositories[]" value=repo.github_full_name.clone() checked=checked /><span>{repo.github_full_name.clone()}</span><small>{if repo.github_private { "Private" } else { "Public" }}</small></label>
-							}
-						}).collect::<Vec<_>>()}
-					</div>
-				</fieldset>
+				<RepositoryPicker repositories=details.available selected=selected />
 				{move || update.value().get().and_then(Result::err).map(|error| view! { <p class="form-error" role="alert">{action_error(&error)}</p> })}
 				<button type="submit" class="button button-brand" disabled=move || update.pending().get()>"Save changes"</button>
 			</ActionForm>
@@ -163,3 +154,7 @@ fn DeleteProjectForm(organization: String, project: String) -> impl IntoView {
 		</details>
 	}
 }
+
+#[cfg(test)]
+#[path = "__tests__/project_tests.rs"]
+mod tests;
