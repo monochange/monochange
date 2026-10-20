@@ -422,9 +422,9 @@ steps = [
 
 The workflow still computes the release locally. For the commit and the pull request, the CLI calls the monochange app, which commits through the app installation: the commit is created by the monochange bot, is verified by GitHub, triggers your workflows, and satisfies verified-commit branch protection.
 
-Grant `id-token: write` in the workflow `permissions` so the CLI can authenticate with a GitHub Actions OIDC token. On CI systems without OIDC, store a monochange API token as the `MONOCHANGE_TOKEN` secret instead. No personal token, deploy key, or commit-identity configuration is required.
+Grant `id-token: write` in the workflow `permissions` so the CLI can authenticate with a GitHub Actions OIDC token. No personal token, deploy key, repository secret, or commit-identity configuration is required, and the job only needs `contents: read`.
 
-Repositories must install the monochange GitHub App so the app can act on them; the dashboard at [monochange.dev](https://monochange.dev) lists connected repositories after the install.
+Repositories must install the monochange GitHub App so the app can act on them; the dashboard at [monochange.dev](https://monochange.dev) lists connected repositories after the install. See [GitHub App installation](./github-app.md) for the installation steps, a complete GitHub Actions job, and the limits on which branches and files the bot writes.
 
 ## Supported providers
 
