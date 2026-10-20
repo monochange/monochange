@@ -5439,13 +5439,76 @@ fn build_changelog_settings(raw: RawChangelogSettings) -> ChangelogSettings {
 	}
 }
 
+/// Validates the `[changelog]` table against the packages and groups it can target.
+///
+/// Each part of the table has its own helper and fails on the first problem it finds, so the error
+/// a user sees names the earliest offending key in the order the table is usually written:
+/// templates, keys, thresholds, types, outputs, then per-target exclusions.
 fn validate_changelog_configuration(
 	contents: &str,
 	changelog: &RawChangelogSettings,
 	packages: &[PackageDefinition],
 	groups: &[GroupDefinition],
 ) -> MonochangeResult<()> {
-	for template in &changelog.templates {
+	validate_changelog_templates(&changelog.templates)?;
+	validate_changelog_keys(contents, "section", &changelog.sections)?;
+	validate_changelog_keys(contents, "type", &changelog.types)?;
+	validate_changelog_keys(contents, "stream", &changelog.streams)?;
+	validate_changelog_keys(contents, "output", &changelog.outputs)?;
+
+	if changelog.section_thresholds.ignored < changelog.section_thresholds.collapse {
+		return Err(MonochangeError::Config(
+			"[changelog].section_thresholds.ignored must be greater than or equal to [changelog].section_thresholds.collapse".to_string(),
+		));
+	}
+
+	validate_changelog_types(contents, changelog)?;
+
+	let configured_targets = packages
+		.iter()
+		.map(|package| package.id.as_str())
+		.chain(groups.iter().map(|group| group.id.as_str()))
+		.collect::<BTreeSet<_>>();
+
+	for (output_key, output) in &changelog.outputs {
+		validate_changelog_output(output_key, output, changelog, &configured_targets)?;
+	}
+
+	// Validate excluded_changelog_types reference existing type keys. The
+	// vocabulary a target may exclude from is the merged set, so a built-in type
+	// stays excludable even when the repository never restates it.
+	let built_in_types = ChangelogSettings::defaults().types;
+
+	for package in packages {
+		let scope = format!("package `{}`", package.id);
+
+		validate_append_changelog_format(&scope, package.changelog.as_ref())?;
+		validate_excluded_changelog_types(
+			&scope,
+			&package.excluded_changelog_types,
+			changelog,
+			&built_in_types,
+		)?;
+	}
+
+	for group in groups {
+		let scope = format!("group `{}`", group.id);
+
+		validate_append_changelog_format(&scope, group.changelog.as_ref())?;
+		validate_excluded_changelog_types(
+			&scope,
+			&group.excluded_changelog_types,
+			changelog,
+			&built_in_types,
+		)?;
+	}
+
+	Ok(())
+}
+
+/// Rejects empty change templates and templates that use variables the renderer does not supply.
+fn validate_changelog_templates(templates: &[String]) -> MonochangeResult<()> {
+	for template in templates {
 		if template.trim().is_empty() {
 			return Err(MonochangeError::Config(
 				"[changelog].templates must not include empty templates".to_string(),
@@ -5468,34 +5531,31 @@ fn validate_changelog_configuration(
 		}
 	}
 
-	validate_changelog_keys(contents, "section", &changelog.sections)?;
-	validate_changelog_keys(contents, "type", &changelog.types)?;
-	validate_changelog_keys(contents, "stream", &changelog.streams)?;
-	validate_changelog_keys(contents, "output", &changelog.outputs)?;
+	Ok(())
+}
 
-	if changelog.section_thresholds.ignored < changelog.section_thresholds.collapse {
-		return Err(MonochangeError::Config(
-			"[changelog].section_thresholds.ignored must be greater than or equal to [changelog].section_thresholds.collapse".to_string(),
-		));
+/// Validates that each declared type sets a bump and names a section and stream that exist.
+///
+/// The bump check reads the raw TOML because the parsed type fills in a default, which would hide a
+/// type that never declared one.
+fn validate_changelog_types(
+	contents: &str,
+	changelog: &RawChangelogSettings,
+) -> MonochangeResult<()> {
+	if changelog.types.is_empty() {
+		return Ok(());
 	}
-	let config_document = if changelog.types.is_empty() {
-		None
-	} else {
-		Some(toml::from_str::<toml::Value>(contents).map_err(|error| {
-			MonochangeError::Config(format!("failed to parse monochange.toml: {error}"))
-		})?)
-	};
+
+	let config_document = toml::from_str::<toml::Value>(contents).map_err(|error| {
+		MonochangeError::Config(format!("failed to parse monochange.toml: {error}"))
+	})?;
 
 	// Types and sections inherit the built-in set, so a declared type may name
 	// either a section it declares itself or a built-in one.
 	let built_in_sections = ChangelogSettings::defaults().sections;
-	let built_in_types = ChangelogSettings::defaults().types;
-	// Validate that each type declares a semantic bump and references an existing section
+
 	for (type_key, typ) in &changelog.types {
-		if config_document
-			.as_ref()
-			.is_some_and(|document| !raw_changelog_type_has_field(document, type_key, "bump"))
-		{
+		if !raw_changelog_type_has_field(&config_document, type_key, "bump") {
 			return Err(MonochangeError::Config(format!(
 				"[changelog].types.{type_key} must declare a `bump` default (`none`, `patch`, `minor`, or `major`)"
 			)));
@@ -5520,123 +5580,120 @@ fn validate_changelog_configuration(
 		}
 	}
 
-	let configured_targets = packages
-		.iter()
-		.map(|package| package.id.as_str())
-		.chain(groups.iter().map(|group| group.id.as_str()))
-		.collect::<BTreeSet<_>>();
+	Ok(())
+}
 
-	for (output_key, output) in &changelog.outputs {
-		if output_key == monochange_core::DEFAULT_CHANGELOG_OUTPUT {
-			return Err(MonochangeError::Config(
-				"[changelog].outputs.default is reserved for existing changelog configuration"
-					.to_string(),
-			));
-		}
+/// Validates one `[changelog.outputs.<key>]` entry: its stream, path template, targets, and mode.
+fn validate_changelog_output(
+	output_key: &str,
+	output: &monochange_core::ChangelogOutputDefinition,
+	changelog: &RawChangelogSettings,
+	configured_targets: &BTreeSet<&str>,
+) -> MonochangeResult<()> {
+	if output_key == monochange_core::DEFAULT_CHANGELOG_OUTPUT {
+		return Err(MonochangeError::Config(
+			"[changelog].outputs.default is reserved for existing changelog configuration"
+				.to_string(),
+		));
+	}
 
-		if output.stream != monochange_core::DEFAULT_CHANGELOG_STREAM
-			&& !changelog.streams.contains_key(&output.stream)
-		{
+	if output.stream != monochange_core::DEFAULT_CHANGELOG_STREAM
+		&& !changelog.streams.contains_key(&output.stream)
+	{
+		return Err(MonochangeError::Config(format!(
+			"[changelog].outputs.{output_key} references stream `{}` which does not exist in [changelog.streams]",
+			output.stream
+		)));
+	}
+
+	if output.path.trim().is_empty() {
+		return Err(MonochangeError::Config(format!(
+			"[changelog].outputs.{output_key}.path must not be empty"
+		)));
+	}
+
+	let unsupported_variables = change_template_variables(&output.path)
+		.into_iter()
+		.filter(|variable| !matches!(variable.as_str(), "path" | "id" | "version"))
+		.collect::<Vec<_>>();
+
+	if !unsupported_variables.is_empty() {
+		return Err(MonochangeError::Config(format!(
+			"[changelog].outputs.{output_key}.path uses unsupported variables: {}",
+			unsupported_variables.join(", ")
+		)));
+	}
+
+	validate_changelog_output_targets(output_key, &output.targets, configured_targets)?;
+
+	if output.mode == monochange_core::ChangelogOutputMode::Append
+		&& matches!(output.format, ChangelogFormat::Json | ChangelogFormat::Text)
+	{
+		let format = if output.format == ChangelogFormat::Json {
+			"json"
+		} else {
+			"text"
+		};
+
+		return Err(MonochangeError::Config(format!(
+			"[changelog].outputs.{output_key} must use `mode = \"release\"` with format `{format}`"
+		)));
+	}
+
+	if output.mode == monochange_core::ChangelogOutputMode::Release
+		&& output.initial_header.is_some()
+	{
+		return Err(MonochangeError::Config(format!(
+			"[changelog].outputs.{output_key}.initial_header is only supported with `mode = \"append\"`"
+		)));
+	}
+
+	Ok(())
+}
+
+/// Requires an output to name at least one configured package or group, each only once.
+fn validate_changelog_output_targets(
+	output_key: &str,
+	targets: &[String],
+	configured_targets: &BTreeSet<&str>,
+) -> MonochangeResult<()> {
+	if targets.is_empty() {
+		return Err(MonochangeError::Config(format!(
+			"[changelog].outputs.{output_key}.targets must include at least one package or group id"
+		)));
+	}
+
+	let mut seen_targets = BTreeSet::new();
+
+	for target in targets {
+		if !seen_targets.insert(target) {
 			return Err(MonochangeError::Config(format!(
-				"[changelog].outputs.{output_key} references stream `{}` which does not exist in [changelog.streams]",
-				output.stream
+				"[changelog].outputs.{output_key}.targets contains duplicate target `{target}`"
 			)));
 		}
 
-		if output.path.trim().is_empty() {
+		if !configured_targets.contains(target.as_str()) {
 			return Err(MonochangeError::Config(format!(
-				"[changelog].outputs.{output_key}.path must not be empty"
-			)));
-		}
-
-		let unsupported_variables = change_template_variables(&output.path)
-			.into_iter()
-			.filter(|variable| !matches!(variable.as_str(), "path" | "id" | "version"))
-			.collect::<Vec<_>>();
-
-		if !unsupported_variables.is_empty() {
-			return Err(MonochangeError::Config(format!(
-				"[changelog].outputs.{output_key}.path uses unsupported variables: {}",
-				unsupported_variables.join(", ")
-			)));
-		}
-
-		if output.targets.is_empty() {
-			return Err(MonochangeError::Config(format!(
-				"[changelog].outputs.{output_key}.targets must include at least one package or group id"
-			)));
-		}
-
-		let mut seen_targets = BTreeSet::new();
-
-		for target in &output.targets {
-			if !seen_targets.insert(target) {
-				return Err(MonochangeError::Config(format!(
-					"[changelog].outputs.{output_key}.targets contains duplicate target `{target}`"
-				)));
-			}
-
-			if !configured_targets.contains(target.as_str()) {
-				return Err(MonochangeError::Config(format!(
-					"[changelog].outputs.{output_key} references unknown package or group `{target}`"
-				)));
-			}
-		}
-
-		if output.mode == monochange_core::ChangelogOutputMode::Append
-			&& matches!(output.format, ChangelogFormat::Json | ChangelogFormat::Text)
-		{
-			let format = if output.format == ChangelogFormat::Json {
-				"json"
-			} else {
-				"text"
-			};
-			return Err(MonochangeError::Config(format!(
-				"[changelog].outputs.{output_key} must use `mode = \"release\"` with format `{format}`"
-			)));
-		}
-
-		if output.mode == monochange_core::ChangelogOutputMode::Release
-			&& output.initial_header.is_some()
-		{
-			return Err(MonochangeError::Config(format!(
-				"[changelog].outputs.{output_key}.initial_header is only supported with `mode = \"append\"`"
+				"[changelog].outputs.{output_key} references unknown package or group `{target}`"
 			)));
 		}
 	}
 
-	// Validate excluded_changelog_types reference existing type keys. The
-	// vocabulary a target may exclude from is the merged set, so a built-in type
-	// stays excludable even when the repository never restates it.
-	for package in packages {
-		validate_append_changelog_format(
-			&format!("package `{}`", package.id),
-			package.changelog.as_ref(),
-		)?;
+	Ok(())
+}
 
-		for excluded in &package.excluded_changelog_types {
-			if !changelog.types.contains_key(excluded) && !built_in_types.contains_key(excluded) {
-				return Err(MonochangeError::Config(format!(
-					"package `{}` excludes changelog type `{}` which does not exist in [changelog.types]",
-					package.id, excluded
-				)));
-			}
-		}
-	}
-
-	for group in groups {
-		validate_append_changelog_format(
-			&format!("group `{}`", group.id),
-			group.changelog.as_ref(),
-		)?;
-
-		for excluded in &group.excluded_changelog_types {
-			if !changelog.types.contains_key(excluded) && !built_in_types.contains_key(excluded) {
-				return Err(MonochangeError::Config(format!(
-					"group `{}` excludes changelog type `{}` which does not exist in [changelog.types]",
-					group.id, excluded
-				)));
-			}
+/// Requires every changelog type a package or group excludes to exist, declared or built in.
+fn validate_excluded_changelog_types<T>(
+	scope: &str,
+	excluded_types: &[String],
+	changelog: &RawChangelogSettings,
+	built_in_types: &BTreeMap<String, T>,
+) -> MonochangeResult<()> {
+	for excluded in excluded_types {
+		if !changelog.types.contains_key(excluded) && !built_in_types.contains_key(excluded) {
+			return Err(MonochangeError::Config(format!(
+				"{scope} excludes changelog type `{excluded}` which does not exist in [changelog.types]"
+			)));
 		}
 	}
 

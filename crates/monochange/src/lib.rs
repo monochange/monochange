@@ -1320,159 +1320,36 @@ async fn run_with_args_in_dir_with_progress(
 	.await
 }
 
+/// Runs one CLI invocation from raw arguments to rendered output.
+///
+/// Dispatch happens in three stages, each in its own helper so the order of decisions reads top to
+/// bottom: requests that never need the workspace (version, built-in help, snapshots) are answered
+/// first, then the configuration is loaded so commands defined in `monochange.toml` can be parsed,
+/// and finally the selected subcommand runs and its output is shaped by `--quiet`, `--jq`, and the
+/// output format.
 async fn dispatch_cli_args(
 	bin_name: &'static str,
 	args: Vec<OsString>,
 	root: &Path,
 	progress: &mut output::ProgressReporter,
 ) -> MonochangeResult<String> {
-	let root_help_requested = is_root_help_request(&args);
-
-	if root_help_requested {
-		let cli = cli_commands_for_root(root);
-
-		return Ok(render_clap_long_help(bin_name, &cli, &[]));
+	if let Some(rendered) = render_config_free_request(bin_name, &args, root)? {
+		return Ok(rendered);
 	}
 
-	if help_command_requested(&args) {
-		let cli = cli_commands_for_root(root);
-
-		return Ok(render_help_command(bin_name, &args, &cli));
-	}
-
-	if let Some(snapshot_request) = parse_snapshot_request(&args) {
-		let configuration = load_workspace_configuration(root);
-		let cli = cli_commands_from_config(&configuration);
-		let command = cli::build_snapshot_command(bin_name, &cli, &snapshot_request.path);
-
-		return render_snapshot_request(&command, &snapshot_request);
-	}
-
-	if let Some(output) = render_cli_snapshot_classification(&args)? {
-		return Ok(output);
-	}
-
-	// Fast path: parse config-free command shapes before any workspace loading.
-	// This keeps version and root help responsive even in repositories with costly
-	// package or glob validation.
-	let base_command = build_command_with_cli(bin_name, &monochange_core::default_cli_commands());
-
-	if let Err(error) = base_command.try_get_matches_from(args.clone()) {
-		if matches!(error.kind(), ErrorKind::DisplayVersion) {
-			return Ok(format_clap_error(&error, output::color::stdout_color()));
-		}
-
-		if matches!(error.kind(), ErrorKind::DisplayHelp)
-			&& !command_help_request(&args)
-				.is_some_and(command_help_requires_workspace_configuration)
-		{
-			let cli = cli_commands_for_root(root);
-
-			if is_root_help_request(&args) {
-				return Ok(render_clap_long_help(bin_name, &cli, &[]));
-			}
-
-			if let Err(help_error) =
-				build_command_with_cli(bin_name, &cli).try_get_matches_from(args.clone())
-				&& matches!(help_error.kind(), ErrorKind::DisplayHelp)
-			{
-				return Ok(format_clap_error(
-					&help_error,
-					output::color::stdout_color(),
-				));
-			}
-		}
-
-		if let Some(command_name) = command_help_request(&args)
-			&& !command_help_requires_workspace_configuration(command_name)
-		{
-			let cli = cli_commands_for_root(root);
-
-			if let Err(help_error) =
-				build_command_with_cli(bin_name, &cli).try_get_matches_from(args.clone())
-				&& matches!(help_error.kind(), ErrorKind::DisplayHelp)
-			{
-				return Ok(format_clap_error(
-					&help_error,
-					output::color::stdout_color(),
-				));
-			}
-		}
-	}
-
-	// Slow path: load workspace configuration for command execution.
-	let configuration_started = std::time::Instant::now();
-	let show_configuration_progress = command_help_request(&args).is_none();
-
-	if show_configuration_progress {
-		progress.phase_started("Loading workspace configuration");
-	}
-
-	let configuration = load_workspace_configuration(root);
-
-	if show_configuration_progress {
-		match &configuration {
-			Ok(_) => {
-				progress.phase_finished(
-					"Loaded workspace configuration",
-					configuration_started.elapsed(),
-				);
-			}
-			Err(error) => {
-				progress.phase_failed(
-					"Load workspace configuration",
-					configuration_started.elapsed(),
-					&error.render(),
-				);
-			}
-		}
-	}
-
+	let configuration = load_configuration_with_progress(root, &args, progress);
 	let cli = cli_commands_from_config(&configuration);
 	let quiet = extract_quiet_from_args(args.iter().cloned());
 
 	let matches = match build_command_with_cli(bin_name, &cli).try_get_matches_from(args.clone()) {
 		Ok(matches) => matches,
-		Err(error)
-			if matches!(
-				error.kind(),
-				ErrorKind::DisplayHelp | ErrorKind::DisplayVersion
-			) =>
-		{
-			if root_help_requested && matches!(error.kind(), ErrorKind::DisplayHelp) {
-				return Ok(render_clap_long_help(bin_name, &cli, &[]));
-			}
-
-			return Ok(format_clap_error(&error, output::color::stdout_color()));
-		}
-		Err(error) => {
-			if matches!(error.kind(), ErrorKind::UnknownArgument)
-				&& let Some(command_name) = custom_command_name_from_args(&args, &cli)
-				&& let Some(cli_command) = cli.iter().find(|command| command.name == command_name)
-			{
-				return Err(MonochangeError::Diagnostic(
-					render_custom_command_argument_error(
-						&error,
-						cli_command,
-						output::color::stderr_color(),
-					),
-				));
-			}
-			// Commands defined in monochange.toml cannot be parsed while the
-			// file is broken, so the configuration error is the real cause.
-			if let Err(configuration_error) = configuration {
-				return Err(configuration_error);
-			}
-			return Err(clap_usage_error(
-				&error,
-				cli_diagnostic_command(&args).as_deref(),
-			));
-		}
+		Err(error) => return render_clap_parse_failure(&error, &args, &cli, configuration),
 	};
 
 	if matches.get_flag("snapshot") {
 		let command = build_command_with_cli(bin_name, &cli);
 		let path = command_path_from_matches(&matches);
+
 		return render_snapshot_request(
 			&command,
 			&SnapshotRequest {
@@ -1488,276 +1365,331 @@ async fn dispatch_cli_args(
 
 	let jq_expression = matches.get_one::<String>("jq").cloned();
 
-	if jq_expression.is_some()
-		&& !matches.get_flag("snapshot")
+	validate_jq_output_format(jq_expression.is_some(), &matches)?;
+
+	let context = SubcommandContext {
+		bin_name,
+		root,
+		cli: &cli,
+		quiet,
+	};
+	// Boxed: every subcommand's future is held inline by the match, which puts
+	// the dispatcher past clippy's large-futures budget.
+	let rendered = Box::pin(run_cli_subcommand(
+		&context,
+		&matches,
+		configuration,
+		progress,
+	))
+	.await?;
+
+	finish_cli_output(rendered, quiet, jq_expression, &matches)
+}
+
+/// Answers the requests that never need the workspace configuration.
+///
+/// Version output and help for built-in commands are parsed against the default command set before
+/// any workspace loading, which keeps them responsive in repositories with costly package or glob
+/// validation. `None` means the request needs the configuration.
+fn render_config_free_request(
+	bin_name: &'static str,
+	args: &[OsString],
+	root: &Path,
+) -> MonochangeResult<Option<String>> {
+	if is_root_help_request(args) {
+		let cli = cli_commands_for_root(root);
+
+		return Ok(Some(render_clap_long_help(bin_name, &cli, &[])));
+	}
+
+	if help_command_requested(args) {
+		let cli = cli_commands_for_root(root);
+
+		return Ok(Some(render_help_command(bin_name, args, &cli)));
+	}
+
+	if let Some(snapshot_request) = parse_snapshot_request(args) {
+		let configuration = load_workspace_configuration(root);
+		let cli = cli_commands_from_config(&configuration);
+		let command = cli::build_snapshot_command(bin_name, &cli, &snapshot_request.path);
+
+		return render_snapshot_request(&command, &snapshot_request).map(Some);
+	}
+
+	if let Some(rendered) = render_cli_snapshot_classification(args)? {
+		return Ok(Some(rendered));
+	}
+
+	let base_command = build_command_with_cli(bin_name, &monochange_core::default_cli_commands());
+
+	Ok(base_command
+		.try_get_matches_from(args.iter().cloned())
+		.err()
+		.and_then(|error| render_config_free_clap_output(bin_name, args, root, &error)))
+}
+
+/// Renders version or command help that does not depend on the workspace configuration.
+///
+/// Help is rendered against the commands available at `root` rather than the default set, so a
+/// configured command still shows its own inputs. Help for a command that reads the release
+/// configuration is left to the slow path, which reports configuration errors properly.
+fn render_config_free_clap_output(
+	bin_name: &'static str,
+	args: &[OsString],
+	root: &Path,
+	error: &clap::Error,
+) -> Option<String> {
+	if matches!(error.kind(), ErrorKind::DisplayVersion) {
+		return Some(format_clap_error(error, output::color::stdout_color()));
+	}
+
+	let help_command = command_help_request(args);
+	let needs_configuration =
+		help_command.is_some_and(command_help_requires_workspace_configuration);
+	let help_requested = matches!(error.kind(), ErrorKind::DisplayHelp) || help_command.is_some();
+
+	if needs_configuration || !help_requested {
+		return None;
+	}
+
+	let cli = cli_commands_for_root(root);
+
+	build_command_with_cli(bin_name, &cli)
+		.try_get_matches_from(args.iter().cloned())
+		.err()
+		.filter(|help_error| matches!(help_error.kind(), ErrorKind::DisplayHelp))
+		.map(|help_error| format_clap_error(&help_error, output::color::stdout_color()))
+}
+
+/// Loads the workspace configuration, reporting it as a progress phase unless help was requested.
+fn load_configuration_with_progress(
+	root: &Path,
+	args: &[OsString],
+	progress: &mut output::ProgressReporter,
+) -> MonochangeResult<monochange_core::WorkspaceConfiguration> {
+	let configuration_started = std::time::Instant::now();
+	let show_configuration_progress = command_help_request(args).is_none();
+
+	if show_configuration_progress {
+		progress.phase_started("Loading workspace configuration");
+	}
+
+	let configuration = load_workspace_configuration(root);
+
+	if show_configuration_progress {
+		report_configuration_phase(progress, &configuration, configuration_started.elapsed());
+	}
+
+	configuration
+}
+
+/// Closes the configuration progress phase with its outcome.
+fn report_configuration_phase(
+	progress: &mut output::ProgressReporter,
+	configuration: &MonochangeResult<monochange_core::WorkspaceConfiguration>,
+	elapsed: Duration,
+) {
+	match configuration {
+		Ok(_) => progress.phase_finished("Loaded workspace configuration", elapsed),
+		Err(error) => {
+			progress.phase_failed("Load workspace configuration", elapsed, &error.render());
+		}
+	}
+}
+
+/// Turns a failed parse against the configured commands into help output or a diagnostic.
+fn render_clap_parse_failure(
+	error: &clap::Error,
+	args: &[OsString],
+	cli: &[CliCommandDefinition],
+	configuration: MonochangeResult<monochange_core::WorkspaceConfiguration>,
+) -> MonochangeResult<String> {
+	if matches!(
+		error.kind(),
+		ErrorKind::DisplayHelp | ErrorKind::DisplayVersion
+	) {
+		return Ok(format_clap_error(error, output::color::stdout_color()));
+	}
+
+	if matches!(error.kind(), ErrorKind::UnknownArgument)
+		&& let Some(command_name) = custom_command_name_from_args(args, cli)
+		&& let Some(cli_command) = cli.iter().find(|command| command.name == command_name)
+	{
+		return Err(MonochangeError::Diagnostic(
+			render_custom_command_argument_error(error, cli_command, output::color::stderr_color()),
+		));
+	}
+
+	// Commands defined in monochange.toml cannot be parsed while the
+	// file is broken, so the configuration error is the real cause.
+	configuration?;
+
+	Err(clap_usage_error(
+		error,
+		cli_diagnostic_command(args).as_deref(),
+	))
+}
+
+/// Rejects `--jq` unless the command was asked for JSON output, because the filter reads JSON.
+fn validate_jq_output_format(
+	jq_requested: bool,
+	matches: &clap::ArgMatches,
+) -> MonochangeResult<()> {
+	let rejects_jq = jq_requested
 		&& !matches!(matches.subcommand_name(), Some("snapshot"))
 		&& !matches!(
-			selected_cli_output_format(&matches)?,
+			selected_cli_output_format(matches)?,
 			OutputFormat::Json | OutputFormat::JsonMin
-		) {
+		);
+
+	if rejects_jq {
 		return Err(MonochangeError::Config(
 			"--jq requires explicit JSON output; add `--format json` or `--format json-min`"
 				.to_string(),
 		));
 	}
 
-	let output = match matches.subcommand() {
-		Some(("snapshot", snapshot_matches)) => {
-			if snapshot_matches.get_flag("list") {
-				monochange_classification::cli_surface::list_registered_clis(root)
-			} else if let Some(package_id) = snapshot_matches.get_one::<String>("package") {
-				let save = snapshot_matches.get_flag("save");
-				let view = snapshot_matches
-					.get_one::<String>("view")
-					.map_or(monochange_snapshot::SnapshotView::Full, |value| {
-						snapshot_view(value)
-					});
-				monochange_classification::cli_surface::run_package_snapshot(
-					root, package_id, save, view,
-				)
-			} else {
-				let view = snapshot_matches
-					.get_one::<String>("view")
-					.map_or(monochange_snapshot::SnapshotView::Full, |value| {
-						snapshot_view(value)
-					});
-				let path = snapshot_matches
-					.get_many::<String>("command")
-					.into_iter()
-					.flatten()
-					.cloned()
-					.collect::<Vec<_>>();
-				render_snapshot_request(
-					&cli::build_snapshot_command(bin_name, &cli, &path),
-					&SnapshotRequest { path, view },
-				)
-			}
-		}
+	Ok(())
+}
+
+/// Applies the output options shared by every command: `--quiet`, `--jq`, and Markdown output.
+fn finish_cli_output(
+	rendered: String,
+	quiet: bool,
+	jq_expression: Option<String>,
+	matches: &clap::ArgMatches,
+) -> MonochangeResult<String> {
+	if quiet {
+		return Ok(String::new());
+	}
+
+	if let Some(expression) = jq_expression {
+		return jq_filter::apply_jq_filter(&rendered, &expression);
+	}
+
+	// Markdown is meant to be pasted or rendered elsewhere, so it never
+	// carries terminal styling, even when stdout is a terminal.
+	if matches!(
+		selected_cli_output_format(matches),
+		Ok(OutputFormat::Markdown)
+	) {
+		return Ok(output::strip_terminal_controls(&rendered));
+	}
+
+	Ok(rendered)
+}
+
+/// What every subcommand handler needs from the dispatcher.
+struct SubcommandContext<'context> {
+	bin_name: &'static str,
+	root: &'context Path,
+	cli: &'context [CliCommandDefinition],
+	quiet: bool,
+}
+
+/// Runs the parsed subcommand and returns its unshaped output.
+///
+/// `--quiet` is applied once by [`finish_cli_output`], so a handler only checks it when rendering
+/// has a side effect of its own. The configuration is only unwrapped by the commands that read it,
+/// which is what lets `init`, `help`, and the other workspace-free commands run in a repository
+/// whose `monochange.toml` is broken.
+async fn run_cli_subcommand(
+	context: &SubcommandContext<'_>,
+	matches: &clap::ArgMatches,
+	configuration: MonochangeResult<monochange_core::WorkspaceConfiguration>,
+	progress: &mut output::ProgressReporter,
+) -> MonochangeResult<String> {
+	let root = context.root;
+
+	match matches.subcommand() {
+		Some(("snapshot", snapshot_matches)) => run_snapshot_subcommand(context, snapshot_matches),
 		Some(("help", help_matches)) => {
-			let path = help_matches
-				.get_many::<String>("command")
-				.into_iter()
-				.flatten()
-				.cloned()
-				.collect::<Vec<_>>();
-			Ok(render_clap_long_help(bin_name, &cli, &path))
+			let path = command_values(help_matches);
+
+			Ok(render_clap_long_help(context.bin_name, context.cli, &path))
 		}
 		Some(("init", init_matches)) => {
 			let provider = init_matches
 				.get_one::<String>("provider")
 				.map(String::as_str);
-			let result = init_workspace(root, init_matches.get_flag("force"), provider)?;
-			if quiet {
-				Ok(String::new())
-			} else {
-				Ok(result.summary())
-			}
+
+			init_workspace(root, init_matches.get_flag("force"), provider)
+				.map(|result| result.summary())
 		}
 		Some(("populate", _)) => {
-			let result = populate_workspace(root)?;
-			if quiet {
-				Ok(String::new())
-			} else {
-				Ok(format_populate_workspace_result(&result))
-			}
+			populate_workspace(root).map(|result| format_populate_workspace_result(&result))
 		}
-		Some(("command", _)) => run_command_wizard_for_cli(root, quiet),
-		Some(("skill", skill_matches)) => {
-			let outcome = run_skill(skill_action_from_matches(skill_matches))?;
-			if quiet {
-				Ok(String::new())
-			} else {
-				render_skill_outcome(outcome)
-			}
-		}
-		Some(("subagents", subagent_matches)) => {
-			let targets = if subagent_matches.get_flag("all") {
-				SubagentTarget::all()
-			} else {
-				parse_subagent_targets(subagent_matches.get_many::<String>("target"))?
-			};
-
-			let format = parse_subagent_output_format_or_default(
-				subagent_matches.get_one::<String>("format"),
-			);
-			let options = SubagentOptions {
-				targets,
-				force: subagent_matches.get_flag("force"),
-				dry_run: subagent_matches.get_flag("dry-run"),
-				format,
-				generate_mcp: !subagent_matches.get_flag("no-mcp"),
-			};
-			let output = run_subagents(root, &options)?;
-			if quiet { Ok(String::new()) } else { Ok(output) }
-		}
+		Some(("command", _)) => run_command_wizard_for_cli(root, context.quiet),
+		Some(("skill", skill_matches)) => run_skill_subcommand(context.quiet, skill_matches),
+		Some(("subagents", subagent_matches)) => run_subagents_subcommand(root, subagent_matches),
 		Some(("change", change_matches)) => {
-			let Some(("classify", classify_matches)) = change_matches.subcommand() else {
-				return Err(MonochangeError::Config(
-					"Usage: monochange change classify [OPTIONS]".to_string(),
-				));
-			};
-			let options = classify_options_from_matches(classify_matches)?;
-			let output = render_change_classification(root, &options)?;
-			if quiet { Ok(String::new()) } else { Ok(output) }
+			let classify_matches = required_subcommand(
+				change_matches,
+				"classify",
+				"Usage: monochange change classify [OPTIONS]",
+			)?;
+
+			render_change_classification(root, &classify_options_from_matches(classify_matches)?)
 		}
 		Some(("api", api_matches)) => {
-			let Some(("diff", diff_matches)) = api_matches.subcommand() else {
-				return Err(MonochangeError::Config(
-					"Usage: monochange api diff [OPTIONS]".to_string(),
-				));
-			};
-			let options = classify_options_from_matches(diff_matches)?;
-			let output = render_change_classification(root, &options)?;
-			if quiet { Ok(String::new()) } else { Ok(output) }
+			let diff_matches =
+				required_subcommand(api_matches, "diff", "Usage: monochange api diff [OPTIONS]")?;
+
+			render_change_classification(root, &classify_options_from_matches(diff_matches)?)
 		}
 		Some(("changeset", changeset_matches)) => {
-			let Some(("validate", validate_matches)) = changeset_matches.subcommand() else {
-				return Err(MonochangeError::Config(
-					"Usage: monochange changeset validate --api [OPTIONS]".to_string(),
-				));
-			};
-			let options = classify_options_from_matches(validate_matches)?;
-			let output = render_changeset_api_validation(root, &options)?;
-			if quiet { Ok(String::new()) } else { Ok(output) }
-		}
-		Some(("analyze", analyze_matches)) => {
-			let package = analyze_matches
-				.get_one::<String>("package")
-				.map(String::as_str)
-				.ok_or_else(|| MonochangeError::Config("missing analyze package".to_string()))?;
-			let release_ref = analyze_matches
-				.get_one::<String>("release-ref")
-				.map(String::as_str);
-			let main_ref = analyze_matches
-				.get_one::<String>("main-ref")
-				.map(String::as_str);
-			let head_ref = analyze_matches
-				.get_one::<String>("head-ref")
-				.map(String::as_str);
-			let detection_level = analyze_matches
-				.get_one::<String>("detection-level")
-				.map_or("signature", String::as_str);
-			let format = analyze_matches
-				.get_one::<String>("format")
-				.map_or(Ok(OutputFormat::Text), |value| parse_output_format(value))?;
-			render_analyze_report(
-				root,
-				package,
-				release_ref,
-				main_ref,
-				head_ref,
-				detection_level,
-				format,
-			)
-			.await
-		}
-		Some(("notes", notes_matches)) => {
-			let configuration = configuration?;
-			let output = notes_matches
-				.get_one::<String>("output")
-				.expect("the required notes output is present")
-				.as_str();
-			let target = notes_matches
-				.get_one::<String>("target")
-				.map(String::as_str);
-			let file = notes_matches.get_one::<String>("file").map(Path::new);
-			let rendered = notes::render_notes(root, &configuration, output, target, file).await?;
-			if quiet {
-				Ok(String::new())
-			} else {
-				Ok(rendered)
-			}
-		}
-		Some(("migrate", migrate_matches)) => run_migration_command(root, quiet, migrate_matches),
-		#[cfg(feature = "mcp")]
-		Some(("mcp", _)) => run_mcp_command_with(quiet, mcp::run_server).await,
+			let validate_matches = required_subcommand(
+				changeset_matches,
+				"validate",
+				"Usage: monochange changeset validate --api [OPTIONS]",
+			)?;
 
+			render_changeset_api_validation(root, &classify_options_from_matches(validate_matches)?)
+		}
+		Some(("analyze", analyze_matches)) => run_analyze_subcommand(root, analyze_matches).await,
+		Some(("notes", notes_matches)) => {
+			run_notes_subcommand(root, &configuration?, notes_matches).await
+		}
+		Some(("migrate", migrate_matches)) => {
+			run_migration_command(root, context.quiet, migrate_matches)
+		}
+		#[cfg(feature = "mcp")]
+		Some(("mcp", _)) => run_mcp_command_with(context.quiet, mcp::run_server).await,
 		Some(("check", check_matches)) => {
-			let configuration = configuration?;
-			progress.configure_named_command("check");
-			let fix = check_matches.get_flag("fix");
-			let verbose = check_matches.get_flag("verbose");
-			let format = check_matches
-				.get_one::<String>("format")
-				.map_or(Ok(OutputFormat::Text), |value| parse_output_format(value))?;
-			let ecosystems: Vec<String> = check_matches
-				.get_many::<String>("ecosystem")
-				.map(|values| values.map(String::as_str).map(String::from).collect())
-				.unwrap_or_default();
-			let only_rules: Vec<String> = check_matches
-				.get_many::<String>("only")
-				.map(|values| values.map(String::as_str).map(String::from).collect())
-				.unwrap_or_default();
-			lint::run_check_command_with_configuration(
-				root,
-				&configuration,
-				fix,
-				&ecosystems,
-				&only_rules,
-				format,
-				verbose,
-				progress,
-			)
+			run_check_subcommand(root, &configuration?, check_matches, progress)
 		}
 		Some(("lint", lint_matches)) => lint::handle_lint_subcommand(root, lint_matches),
-
-		Some(("versions", versions_matches)) => {
-			match versions_matches.subcommand() {
-				Some(("list", list_matches)) => {
-					let format_str = list_matches
-						.get_one::<String>("format")
-						.map_or("text", String::as_str);
-					let format = sync::parse_versions_output_format(format_str)?;
-					let inventory = sync::list_workspace_versions(root)?;
-
-					Ok(sync::format_version_inventory_for_cli(&inventory, format)?)
-				}
-				Some(("sync", sync_matches)) => run_versions_sync(root, sync_matches, false),
-				Some((name, _)) => {
-					Err(MonochangeError::Config(format!(
-						"unknown versions subcommand `{name}`"
-					)))
-				}
-				None => run_versions_sync(root, versions_matches, true),
-			}
-		}
-
+		Some(("versions", versions_matches)) => run_versions_subcommand(root, versions_matches),
 		Some(("publish", publish_matches)) => {
 			let (publish_command, publish_command_matches) = publish_matches
 				.subcommand()
 				.expect("clap requires a publish subcommand");
 			let configuration = configuration?;
 			let synthetic = cli::publish_step_command_definition(publish_command)?;
-			let inputs = collect_cli_command_inputs(&synthetic, publish_command_matches);
-			let dry_run = publish_command_matches.get_flag("dry-run");
-			execute_cli_command_with_progress(
-				root,
+
+			run_synthetic_command(
+				context,
 				&configuration,
 				&synthetic,
-				dry_run,
-				quiet,
-				inputs,
+				publish_command_matches,
+				false,
 				progress,
 			)
 			.await
 		}
 		Some(("step", step_matches)) => {
-			let Some((step_name, step_command_matches)) = step_matches.subcommand() else {
-				return Err(MonochangeError::Config(
-					"Usage: monochange step <command>".to_string(),
-				));
-			};
+			let (step_name, step_command_matches) = step_matches.subcommand().ok_or_else(|| {
+				MonochangeError::Config("Usage: monochange step <command>".to_string())
+			})?;
 			let configuration = configuration?;
 			let synthetic = synthetic_step_command_definition(step_name)?;
-			let inputs = collect_cli_command_inputs(&synthetic, step_command_matches);
-			let dry_run = step_command_matches.get_flag("dry-run");
-			execute_cli_command_with_progress(
-				root,
+
+			run_synthetic_command(
+				context,
 				&configuration,
 				&synthetic,
-				dry_run,
-				quiet,
-				inputs,
+				step_command_matches,
+				false,
 				progress,
 			)
 			.await
@@ -1770,70 +1702,280 @@ async fn dispatch_cli_args(
 			let configuration = configuration?;
 			let synthetic = cli::top_level_step_alias_command_definition(alias)
 				.expect("top-level step alias target exists");
-			let inputs = collect_cli_command_inputs(&synthetic, cli_command_matches);
-			let dry_run = alias.force_dry_run || cli_command_matches.get_flag("dry-run");
-			execute_cli_command_with_progress(
-				root,
+
+			run_synthetic_command(
+				context,
 				&configuration,
 				&synthetic,
-				dry_run,
-				quiet,
-				inputs,
+				cli_command_matches,
+				alias.force_dry_run,
 				progress,
 			)
 			.await
 		}
 		Some(("run", run_matches)) => {
-			let Some((cli_command_name, cli_command_matches)) = run_matches.subcommand() else {
-				return Err(MonochangeError::Config(
-					"Usage: monochange run <command>".to_string(),
-				));
-			};
-			let configuration = configuration?;
-			// Boxed: the step-dispatch future grew past clippy's large-futures
-			// budget once the hosted release backends joined the match.
-			Box::pin(execute_matches_with_progress(
-				root,
-				&configuration,
+			let (cli_command_name, cli_command_matches) =
+				run_matches.subcommand().ok_or_else(|| {
+					MonochangeError::Config("Usage: monochange run <command>".to_string())
+				})?;
+
+			run_configured_command(
+				context,
+				&configuration?,
 				cli_command_name,
 				cli_command_matches,
-				quiet,
-				Some(progress),
-			))
+				progress,
+			)
 			.await
 		}
 		// Commands defined in monochange.toml, invoked as `monochange <name>`.
 		Some((cli_command_name, cli_command_matches)) => {
-			let configuration = configuration?;
-			// Boxed: the step-dispatch future grew past clippy's large-futures
-			// budget once the hosted release backends joined the match.
-			Box::pin(execute_matches_with_progress(
-				root,
-				&configuration,
+			run_configured_command(
+				context,
+				&configuration?,
 				cli_command_name,
 				cli_command_matches,
-				quiet,
-				Some(progress),
-			))
+				progress,
+			)
 			.await
 		}
 		None => Err(MonochangeError::Config("Usage: monochange".to_string())),
-	}?;
+	}
+}
+
+/// Returns the matches of the nested subcommand `name`, or a usage error when it is missing.
+fn required_subcommand<'matches>(
+	matches: &'matches clap::ArgMatches,
+	name: &str,
+	usage: &str,
+) -> MonochangeResult<&'matches clap::ArgMatches> {
+	matches
+		.subcommand_matches(name)
+		.ok_or_else(|| MonochangeError::Config(usage.to_string()))
+}
+
+/// Collects the repeated `command` path argument shared by `help` and `snapshot`.
+fn command_values(matches: &clap::ArgMatches) -> Vec<String> {
+	matches
+		.get_many::<String>("command")
+		.into_iter()
+		.flatten()
+		.cloned()
+		.collect()
+}
+
+/// Reads the `--view` argument, defaulting to the full snapshot.
+fn snapshot_view_from_matches(matches: &clap::ArgMatches) -> monochange_snapshot::SnapshotView {
+	matches
+		.get_one::<String>("view")
+		.map_or(monochange_snapshot::SnapshotView::Full, |value| {
+			snapshot_view(value)
+		})
+}
+
+/// Lists, saves, or renders a CLI surface snapshot.
+fn run_snapshot_subcommand(
+	context: &SubcommandContext<'_>,
+	matches: &clap::ArgMatches,
+) -> MonochangeResult<String> {
+	if matches.get_flag("list") {
+		return monochange_classification::cli_surface::list_registered_clis(context.root);
+	}
+
+	let view = snapshot_view_from_matches(matches);
+
+	if let Some(package_id) = matches.get_one::<String>("package") {
+		return monochange_classification::cli_surface::run_package_snapshot(
+			context.root,
+			package_id,
+			matches.get_flag("save"),
+			view,
+		);
+	}
+
+	let path = command_values(matches);
+
+	render_snapshot_request(
+		&cli::build_snapshot_command(context.bin_name, context.cli, &path),
+		&SnapshotRequest { path, view },
+	)
+}
+
+/// Runs a skill action; reading a topic writes it directly, so `--quiet` must skip rendering.
+fn run_skill_subcommand(quiet: bool, matches: &clap::ArgMatches) -> MonochangeResult<String> {
+	let outcome = run_skill(skill_action_from_matches(matches))?;
 
 	if quiet {
-		Ok(String::new())
-	} else if let Some(expression) = jq_expression {
-		jq_filter::apply_jq_filter(&output, &expression)
-	} else if matches!(
-		selected_cli_output_format(&matches),
-		Ok(OutputFormat::Markdown)
-	) {
-		// Markdown is meant to be pasted or rendered elsewhere, so it never
-		// carries terminal styling, even when stdout is a terminal.
-		Ok(output::strip_terminal_controls(&output))
-	} else {
-		Ok(output)
+		return Ok(String::new());
 	}
+
+	render_skill_outcome(outcome)
+}
+
+/// Generates subagent definitions for the selected targets.
+fn run_subagents_subcommand(root: &Path, matches: &clap::ArgMatches) -> MonochangeResult<String> {
+	let targets = if matches.get_flag("all") {
+		SubagentTarget::all()
+	} else {
+		parse_subagent_targets(matches.get_many::<String>("target"))?
+	};
+
+	let options = SubagentOptions {
+		targets,
+		force: matches.get_flag("force"),
+		dry_run: matches.get_flag("dry-run"),
+		format: parse_subagent_output_format_or_default(matches.get_one::<String>("format")),
+		generate_mcp: !matches.get_flag("no-mcp"),
+	};
+
+	run_subagents(root, &options)
+}
+
+/// Analyzes one package's API between release, main, and head refs.
+async fn run_analyze_subcommand(
+	root: &Path,
+	matches: &clap::ArgMatches,
+) -> MonochangeResult<String> {
+	let package = matches
+		.get_one::<String>("package")
+		.map(String::as_str)
+		.ok_or_else(|| MonochangeError::Config("missing analyze package".to_string()))?;
+	let release_ref = matches.get_one::<String>("release-ref").map(String::as_str);
+	let main_ref = matches.get_one::<String>("main-ref").map(String::as_str);
+	let head_ref = matches.get_one::<String>("head-ref").map(String::as_str);
+	let detection_level = matches
+		.get_one::<String>("detection-level")
+		.map_or("signature", String::as_str);
+	let format = matches
+		.get_one::<String>("format")
+		.map_or(Ok(OutputFormat::Text), |value| parse_output_format(value))?;
+
+	render_analyze_report(
+		root,
+		package,
+		release_ref,
+		main_ref,
+		head_ref,
+		detection_level,
+		format,
+	)
+	.await
+}
+
+/// Renders one configured release-note output without changing any files.
+async fn run_notes_subcommand(
+	root: &Path,
+	configuration: &monochange_core::WorkspaceConfiguration,
+	matches: &clap::ArgMatches,
+) -> MonochangeResult<String> {
+	let notes_output = matches
+		.get_one::<String>("output")
+		.expect("the required notes output is present")
+		.as_str();
+	let target = matches.get_one::<String>("target").map(String::as_str);
+	let file = matches.get_one::<String>("file").map(Path::new);
+
+	notes::render_notes(root, configuration, notes_output, target, file).await
+}
+
+/// Collects every value of a repeated string argument.
+fn string_values(matches: &clap::ArgMatches, name: &str) -> Vec<String> {
+	matches
+		.get_many::<String>(name)
+		.map(|values| values.cloned().collect())
+		.unwrap_or_default()
+}
+
+/// Runs the workspace lint rules, optionally fixing what they find.
+fn run_check_subcommand(
+	root: &Path,
+	configuration: &monochange_core::WorkspaceConfiguration,
+	matches: &clap::ArgMatches,
+	progress: &mut output::ProgressReporter,
+) -> MonochangeResult<String> {
+	progress.configure_named_command("check");
+
+	let format = matches
+		.get_one::<String>("format")
+		.map_or(Ok(OutputFormat::Text), |value| parse_output_format(value))?;
+
+	lint::run_check_command_with_configuration(
+		root,
+		configuration,
+		matches.get_flag("fix"),
+		&string_values(matches, "ecosystem"),
+		&string_values(matches, "only"),
+		format,
+		matches.get_flag("verbose"),
+		progress,
+	)
+}
+
+/// Lists or synchronizes workspace versions; a bare `versions` checks them.
+fn run_versions_subcommand(root: &Path, matches: &clap::ArgMatches) -> MonochangeResult<String> {
+	match matches.subcommand() {
+		Some(("list", list_matches)) => {
+			let format_name = list_matches
+				.get_one::<String>("format")
+				.map_or("text", String::as_str);
+			let format = sync::parse_versions_output_format(format_name)?;
+			let inventory = sync::list_workspace_versions(root)?;
+
+			Ok(sync::format_version_inventory_for_cli(&inventory, format)?)
+		}
+		Some(("sync", sync_matches)) => run_versions_sync(root, sync_matches, false),
+		Some((name, _)) => {
+			Err(MonochangeError::Config(format!(
+				"unknown versions subcommand `{name}`"
+			)))
+		}
+		None => run_versions_sync(root, matches, true),
+	}
+}
+
+/// Runs a built-in step command (`publish`, `step`, or a top-level alias) with its parsed inputs.
+async fn run_synthetic_command(
+	context: &SubcommandContext<'_>,
+	configuration: &monochange_core::WorkspaceConfiguration,
+	synthetic: &CliCommandDefinition,
+	command_matches: &clap::ArgMatches,
+	force_dry_run: bool,
+	progress: &mut output::ProgressReporter,
+) -> MonochangeResult<String> {
+	let inputs = collect_cli_command_inputs(synthetic, command_matches);
+	let dry_run = force_dry_run || command_matches.get_flag("dry-run");
+
+	execute_cli_command_with_progress(
+		context.root,
+		configuration,
+		synthetic,
+		dry_run,
+		context.quiet,
+		inputs,
+		progress,
+	)
+	.await
+}
+
+/// Runs a command defined in `monochange.toml`.
+async fn run_configured_command(
+	context: &SubcommandContext<'_>,
+	configuration: &monochange_core::WorkspaceConfiguration,
+	cli_command_name: &str,
+	cli_command_matches: &clap::ArgMatches,
+	progress: &mut output::ProgressReporter,
+) -> MonochangeResult<String> {
+	// Boxed: the step-dispatch future grew past clippy's large-futures
+	// budget once the hosted release backends joined the match.
+	Box::pin(execute_matches_with_progress(
+		context.root,
+		configuration,
+		cli_command_name,
+		cli_command_matches,
+		context.quiet,
+		Some(progress),
+	))
+	.await
 }
 
 #[coverage(off)]

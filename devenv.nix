@@ -488,7 +488,7 @@ in
     "lint:monostyle" = {
       exec = ''
         set -euo pipefail
-        monostyle check . --fail-under 75
+        monostyle check . --fail-under 80
       '';
       description = "Check code readability and complexity with monostyle.";
       binary = "bash";
