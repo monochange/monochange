@@ -1,5 +1,6 @@
 ---
 monochange: fix
+monochange_publish: fix
 ---
 
 # Publish pnpm workspaces with pnpm under trusted publishing
