@@ -506,7 +506,7 @@ When `trusted_publishing` is enabled:
 
 - npm package publishing must run from a verifiable CI/OIDC identity and must not use long-lived npm token environment variables
 - npm trusted-publisher enrollment is manual or external: monochange can render the expected `npm trust github ...` repair command and verify the GitHub workflow context, but `monochange step publish-packages` does not run `npm trust` automatically
-- trusted npm publishing uses the `npm` CLI directly; pnpm workspaces still use pnpm for non-trusted npm publishing paths
+- pnpm workspaces publish with `pnpm publish` (pnpm 11.1.3 or later is required for trusted publishing) so `workspace:` ranges are rewritten on publish; other npm-family workspaces publish with the `npm` CLI
 - Cargo, `jsr`, `pub.dev`, and `PyPI` also require manual trusted-publishing setup; monochange reports the setup URL and blocks built-in release publishing until trust is configured
 
 ### Attestation policy

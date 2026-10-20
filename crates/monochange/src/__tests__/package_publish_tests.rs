@@ -967,7 +967,11 @@ fn build_publish_command_covers_all_supported_registries() {
 		None,
 		false,
 	);
-	assert_eq!(trusted_pnpm.program, "npm");
+	assert_eq!(trusted_pnpm.program, "pnpm");
+	assert_eq!(
+		trusted_pnpm.args.last().map(String::as_str),
+		Some("--no-git-checks")
+	);
 	let cargo_placeholder = build_publish_command(
 		&sample_request(RegistryKind::CratesIo),
 		PackagePublishRunMode::Placeholder,

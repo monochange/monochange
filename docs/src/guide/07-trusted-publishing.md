@@ -308,7 +308,9 @@ permissions:
 - Real package publishing does not execute `npm trust` or `npm trust list` automatically.
 - monochange verifies the configured GitHub Actions OIDC context before trusted npm publishing.
 - If trust needs repair, monochange reports the exact `npm trust github ...` command to run manually or from separate tooling.
-- Trusted npm publishing uses the `npm` CLI directly. pnpm workspaces can still use `pnpm exec npm trust ...` for manual setup commands, and non-trusted pnpm publishing paths continue to use pnpm.
+- pnpm workspaces publish with `pnpm publish`, including under trusted publishing, so `workspace:` dependency ranges are rewritten to real versions in the published tarball. Other npm-family workspaces publish with the `npm` CLI. Manual trust setup in a pnpm workspace still uses `pnpm exec npm trust ...`.
+- Trusted publishing from a pnpm workspace requires pnpm 11.1.3 or later. pnpm 11 performs the npm OIDC exchange natively; pnpm 10 delegates to the npm CLI and does not reliably complete it. Pin the publish job's pnpm, for example with `pnpm/action-setup` and `version: 11`.
+- pnpm publishes run with `--no-git-checks`: monochange validates the release commit itself, and release jobs usually run from a detached tag checkout that pnpm's branch and clean-tree checks would reject.
 
 ## crates.io
 
