@@ -29,7 +29,6 @@ pub struct DashboardRoute {
 	user: Resource<Result<Option<SessionUser>, server_fn::ServerFnError>>,
 	organizations: Resource<Result<Vec<OrganizationSummary>, server_fn::ServerFnError>>,
 	connection: Resource<Result<RepositoryConnectionStatus, server_fn::ServerFnError>>,
-	permissions: Resource<Result<Vec<PermissionUpdate>, server_fn::ServerFnError>>,
 }
 
 /// Dashboard page shown after login, split into its own WASM chunk.
@@ -40,8 +39,6 @@ impl LazyRoute for DashboardRoute {
 			user: Resource::new_blocking(|| (), |()| get_session()),
 			organizations: Resource::new_blocking(|| (), |()| list_organizations()),
 			connection: Resource::new_blocking(|| (), |()| repository_connection()),
-			// GitHub lookups per installation stream in after the page.
-			permissions: Resource::new(|| (), |()| permission_updates()),
 		}
 	}
 
@@ -50,8 +47,9 @@ impl LazyRoute for DashboardRoute {
 			user,
 			organizations,
 			connection,
-			permissions,
 		} = this;
+		// GitHub lookups per installation stream in after the page.
+		let permissions = Resource::new(|| (), |()| permission_updates());
 		view! {
 			<Title text="Your workspace — monochange" />
 			<section class="site-width dashboard-section">
