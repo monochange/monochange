@@ -1,0 +1,8 @@
+---
+source: crates/monochange_integration_tests/tests/hosted_release_commit.rs
+expression: "serde_json::json!({ \"tree\": commit[\"tree\"], \"files\": commit.get(\"files\"), })"
+---
+{
+  "files": null,
+  "tree": "release_tree"
+}

@@ -234,6 +234,25 @@ fn validate_commit_paths(request: &HostedCommitRequest) -> Result<(), String> {
 	Ok(())
 }
 
+/// Require exactly one source for the release commit's tree: uploaded file
+/// contents, or a tree the workflow already created with its own token.
+///
+/// A tree request carries no paths to check here; the commit step compares
+/// the tree's `.github/workflows` with the base commit's before committing.
+fn validate_commit_contents(request: &HostedCommitRequest) -> Result<(), String> {
+	match (&request.tree, request.files.is_empty()) {
+		(Some(_), false) => Err("send either release `files` or a `tree`, not both".to_string()),
+		(None, true) => Err("the release commit has no files and no `tree`".to_string()),
+		(Some(tree), true)
+			if !matches!(tree.len(), 40 | 64)
+				|| !tree.bytes().all(|byte| byte.is_ascii_hexdigit()) =>
+		{
+			Err(format!("`tree` must be a git object id, received `{tree}`"))
+		}
+		_ => Ok(()),
+	}
+}
+
 /// Reject branch names that are not plausible Git refs.
 ///
 /// Branch names are interpolated into GitHub API paths and queries, so
@@ -273,13 +292,15 @@ fn validate_branch_names(branch: &str, base_branch: Option<&str>) -> Result<(), 
 /// Map a release commit failure to its HTTP status.
 ///
 /// A moved release or base branch is a conflict the caller resolves by
-/// rerunning from the current base; everything else is a GitHub failure.
+/// rerunning from the current base, and a tree that changes workflows is a
+/// rejected request; everything else is a GitHub failure.
 fn release_commit_error_status(error: &github_app::GitHubAppError) -> StatusCode {
 	match error {
 		github_app::GitHubAppError::BranchMoved(..) | github_app::GitHubAppError::BaseMoved(..) => {
 			StatusCode::CONFLICT
 		}
 		github_app::GitHubAppError::NotConfigured => StatusCode::SERVICE_UNAVAILABLE,
+		github_app::GitHubAppError::WorkflowsChanged => StatusCode::UNPROCESSABLE_ENTITY,
 		_ => StatusCode::BAD_GATEWAY,
 	}
 }
@@ -310,6 +331,7 @@ pub async fn create_release_commit(
 	}
 
 	validate_branch_names(&request.branch, request.base_branch.as_deref())
+		.and_then(|()| validate_commit_contents(&request))
 		.and_then(|()| validate_commit_paths(&request))
 		.map_err(|message| (StatusCode::BAD_REQUEST, Json(ApiError::new(message))))?;
 

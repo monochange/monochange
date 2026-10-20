@@ -51,6 +51,10 @@ pub enum GitHubAppError {
 		"GitHub created the release commit `{0}` but reported it as unverified ({1}); the release branch was not moved"
 	)]
 	UnverifiedCommit(String, String),
+	#[error(
+		"the release tree changes `.github/workflows`; release commits must not modify GitHub workflows"
+	)]
+	WorkflowsChanged,
 	#[error("invalid webhook signature")]
 	WebhookSignature,
 	#[error("invalid GitHub app slug")]
@@ -328,6 +332,22 @@ struct CommitRequest<'a> {
 	message: String,
 	tree: &'a str,
 	parents: Vec<&'a str>,
+}
+
+#[derive(Debug, Deserialize)]
+struct GitTreeListing {
+	tree: Vec<GitTreeListingEntry>,
+}
+
+#[derive(Debug, Deserialize)]
+struct GitTreeListingEntry {
+	path: String,
+	sha: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct GitCommitTree {
+	tree: TreeResponse,
 }
 
 #[derive(Debug, Deserialize)]
@@ -622,25 +642,17 @@ async fn plan_release_branch_update(
 	Ok(ReleaseBranchUpdate::Regenerate)
 }
 
-/// Create the release commit through the GitHub Git Database API.
-///
-/// Commits created by a GitHub App with the Git Database API are signed by
-/// GitHub and report `verification.verified = true`, which satisfies
-/// verified-commit branch protection and triggers repository workflows.
-pub async fn create_release_commit(
+/// Upload the request's file contents as blobs and build a tree on top of
+/// the prepared base commit.
+async fn create_release_tree(
 	http: &reqwest::Client,
 	api_url: &str,
 	installation_token: &str,
 	request: &HostedCommitRequest,
-) -> Result<(String, bool, Option<String>), GitHubAppError> {
+) -> Result<String, GitHubAppError> {
 	let owner = &request.owner;
 	let repo = &request.repository;
 	let base_commit = &request.base_commit;
-
-	// 1. Decide how the release branch moves before writing anything.
-	let update = plan_release_branch_update(http, api_url, installation_token, request).await?;
-
-	// 2. Blobs for every file with content.
 	let mut tree = Vec::new();
 
 	for file in &request.files {
@@ -683,7 +695,7 @@ pub async fn create_release_commit(
 		}
 	}
 
-	// 3. Tree on top of the prepared base commit.
+	// Tree on top of the prepared base commit.
 	let response = http
 		.post(format!("{api_url}/repos/{owner}/{repo}/git/trees"))
 		.bearer_auth(installation_token)
@@ -704,6 +716,143 @@ pub async fn create_release_commit(
 
 	let tree_response: TreeResponse = response.json().await?;
 
+	Ok(tree_response.sha)
+}
+
+/// GET a Git Database object from the repository.
+async fn read_git_object<T: serde::de::DeserializeOwned>(
+	http: &reqwest::Client,
+	api_url: &str,
+	token: &str,
+	request: &HostedCommitRequest,
+	object: &str,
+	operation: &'static str,
+) -> Result<T, GitHubAppError> {
+	let response = http
+		.get(format!(
+			"{api_url}/repos/{}/{}/git/{object}",
+			request.owner, request.repository
+		))
+		.bearer_auth(token)
+		.header("Accept", "application/vnd.github+json")
+		.send()
+		.await?;
+
+	if !response.status().is_success() {
+		let status = response.status();
+		let body = response.text().await.unwrap_or_default();
+
+		return Err(api_error(operation, status, body));
+	}
+
+	Ok(response.json().await?)
+}
+
+/// The object id of the entry `name` directly inside `tree`, if any.
+async fn tree_child(
+	http: &reqwest::Client,
+	api_url: &str,
+	token: &str,
+	request: &HostedCommitRequest,
+	tree: Option<&str>,
+	name: &str,
+) -> Result<Option<String>, GitHubAppError> {
+	let Some(tree) = tree else {
+		return Ok(None);
+	};
+	let listing: GitTreeListing = read_git_object(
+		http,
+		api_url,
+		token,
+		request,
+		&format!("trees/{tree}"),
+		"read release tree",
+	)
+	.await?;
+
+	Ok(listing
+		.tree
+		.into_iter()
+		.find(|entry| entry.path == name)
+		.map(|entry| entry.sha))
+}
+
+/// Refuse a tree built by the workflow when it changes `.github/workflows`.
+///
+/// Uploaded files are checked by path before anything is written; a tree
+/// carries no paths, so its `.github/workflows` entry is compared with the
+/// base commit's instead, one directory level at a time.
+async fn ensure_tree_keeps_workflows(
+	http: &reqwest::Client,
+	api_url: &str,
+	token: &str,
+	request: &HostedCommitRequest,
+	tree: &str,
+) -> Result<(), GitHubAppError> {
+	let base: GitCommitTree = read_git_object(
+		http,
+		api_url,
+		token,
+		request,
+		&format!("commits/{}", request.base_commit),
+		"read base commit",
+	)
+	.await?;
+	let mut base_entry = Some(base.tree.sha);
+	let mut release_entry = Some(tree.to_string());
+
+	for name in [".github", "workflows"] {
+		if base_entry == release_entry {
+			return Ok(());
+		}
+
+		base_entry = tree_child(http, api_url, token, request, base_entry.as_deref(), name).await?;
+		release_entry = tree_child(
+			http,
+			api_url,
+			token,
+			request,
+			release_entry.as_deref(),
+			name,
+		)
+		.await?;
+	}
+
+	if base_entry == release_entry {
+		Ok(())
+	} else {
+		Err(GitHubAppError::WorkflowsChanged)
+	}
+}
+
+/// Create the release commit through the GitHub Git Database API.
+///
+/// Commits created by a GitHub App with the Git Database API are signed by
+/// GitHub and report `verification.verified = true`, which satisfies
+/// verified-commit branch protection and triggers repository workflows.
+pub async fn create_release_commit(
+	http: &reqwest::Client,
+	api_url: &str,
+	installation_token: &str,
+	request: &HostedCommitRequest,
+) -> Result<(String, bool, Option<String>), GitHubAppError> {
+	let owner = &request.owner;
+	let repo = &request.repository;
+	let base_commit = &request.base_commit;
+
+	// 1. Decide how the release branch moves before writing anything.
+	let update = plan_release_branch_update(http, api_url, installation_token, request).await?;
+
+	// 2. The tree: either the one the workflow already built with its own
+	// token, or blobs and a tree created here from the uploaded contents.
+	let tree_sha = match &request.tree {
+		Some(tree) => {
+			ensure_tree_keeps_workflows(http, api_url, installation_token, request, tree).await?;
+			tree.clone()
+		}
+		None => create_release_tree(http, api_url, installation_token, request).await?,
+	};
+
 	// 4. Commit with the prepared base as its only parent.
 	let message = if request.body.is_empty() {
 		request.subject.clone()
@@ -717,7 +866,7 @@ pub async fn create_release_commit(
 		.header("Accept", "application/vnd.github+json")
 		.json(&CommitRequest {
 			message,
-			tree: &tree_response.sha,
+			tree: &tree_sha,
 			parents: vec![base_commit],
 		})
 		.send()

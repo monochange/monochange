@@ -30,6 +30,17 @@ fn fixture_path(relative: &str) -> PathBuf {
 		.join(relative)
 }
 
+/// The monochange CLI without the runner's GitHub token, so release files are
+/// sent to the mocked app unless a test opts into building a release tree.
+fn monochange_command() -> Command {
+	let mut command = Command::new(get_cargo_bin("monochange"));
+	command
+		.env_remove("GITHUB_TOKEN")
+		.env_remove("GH_TOKEN")
+		.env_remove("GITHUB_API_URL");
+	command
+}
+
 fn setup_hosted_fixture() -> TempDir {
 	let tempdir = TempDir::new().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
@@ -49,7 +60,16 @@ fn setup_hosted_fixture() -> TempDir {
 
 /// Run `monochange run release` in the fixture with the hosted app mocked.
 fn run_hosted_release(root: &Path, server: &MockServer, dry_run: bool) -> std::process::Output {
-	let mut command = Command::new(get_cargo_bin("monochange"));
+	run_hosted_release_with(root, server, dry_run, &[])
+}
+
+fn run_hosted_release_with(
+	root: &Path,
+	server: &MockServer,
+	dry_run: bool,
+	envs: &[(&str, &str)],
+) -> std::process::Output {
+	let mut command = monochange_command();
 	command
 		.current_dir(root)
 		.env("NO_COLOR", "1")
@@ -65,6 +85,7 @@ fn run_hosted_release(root: &Path, server: &MockServer, dry_run: bool) -> std::p
 		.env_remove("ACTIONS_ID_TOKEN_REQUEST_TOKEN")
 		.env_remove("GITHUB_HEAD_REF")
 		.env("MONOCHANGE_TOKEN", "monochange-token")
+		.envs(envs.iter().copied())
 		.arg("run")
 		.arg("release")
 		.arg("--format")
@@ -190,7 +211,7 @@ fn hosted_release_reports_missing_github_repository() {
 	mock_release_commit(&server);
 	mock_release_request(&server);
 
-	let output = Command::new(get_cargo_bin("monochange"))
+	let output = monochange_command()
 		.current_dir(tempdir.path())
 		.env("NO_COLOR", "1")
 		.env_remove("RUST_LOG")
@@ -241,7 +262,7 @@ fn hosted_release_authenticates_with_github_actions_oidc() {
 	});
 	let request_mock = mock_release_request_as(&server, "oidc-jwt");
 
-	let output = Command::new(get_cargo_bin("monochange"))
+	let output = monochange_command()
 		.current_dir(tempdir.path())
 		.env("NO_COLOR", "1")
 		.env_remove("RUST_LOG")
@@ -279,7 +300,7 @@ fn hosted_release_reports_missing_credentials() {
 	mock_release_commit(&server);
 	mock_release_request(&server);
 
-	let output = Command::new(get_cargo_bin("monochange"))
+	let output = monochange_command()
 		.current_dir(tempdir.path())
 		.env("NO_COLOR", "1")
 		.env_remove("RUST_LOG")
@@ -305,6 +326,81 @@ fn hosted_release_reports_missing_credentials() {
 		stderr.contains("MONOCHANGE_TOKEN"),
 		"error names the missing secret: {stderr}"
 	);
+}
+
+#[test]
+fn hosted_release_commits_a_tree_built_with_the_workflow_token() {
+	let tempdir = setup_hosted_fixture();
+	let root = tempdir.path();
+
+	let server = MockServer::start();
+	let base_commit = server.mock(|when, then| {
+		when.method(Method::GET)
+			.path_includes("/repos/acme/actions/git/commits/")
+			.header("Authorization", "Bearer workflow-token");
+		then.status(200).json_body(serde_json::json!({
+			"sha": "base",
+			"message": "initial",
+			"tree": { "sha": "base_tree" },
+			"parents": [],
+			"verification": { "verified": false, "reason": "unsigned" },
+		}));
+	});
+	let blobs = server.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/git/blobs")
+			.body_includes("\"encoding\":\"base64\"");
+		then.status(201)
+			.json_body(serde_json::json!({ "sha": "release_blob" }));
+	});
+	let tree = server.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/git/trees")
+			.body_includes("\"base_tree\":\"base_tree\"");
+		then.status(201)
+			.json_body(serde_json::json!({ "sha": "release_tree" }));
+	});
+	let commit_body = CapturedBody::default();
+	let commit_mock = server.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/api/release-commits")
+			.header("Authorization", "Bearer monochange-token")
+			.is_true(capture_body(&commit_body));
+		then.status(200).json_body(serde_json::json!({
+			"commit": "hosted-commit-sha",
+			"verified": true,
+			"status": "completed",
+		}));
+	});
+	let request_mock = mock_release_request(&server);
+	let api_url = server.base_url();
+
+	let output = run_hosted_release_with(
+		root,
+		&server,
+		false,
+		&[
+			("GITHUB_TOKEN", "workflow-token"),
+			("GITHUB_API_URL", api_url.as_str()),
+		],
+	);
+	assert!(
+		output.status.success(),
+		"hosted release failed\nstdout:\n{}\nstderr:\n{}",
+		String::from_utf8_lossy(&output.stdout),
+		String::from_utf8_lossy(&output.stderr)
+	);
+
+	base_commit.assert();
+	assert!(blobs.calls() > 0, "release files are uploaded as blobs");
+	tree.assert();
+	commit_mock.assert();
+	request_mock.assert();
+	let commit = captured(&commit_body);
+	assert_json_snapshot!(serde_json::json!({
+		"tree": commit["tree"],
+		"files": commit.get("files"),
+	}));
 }
 
 /// Last JSON body a mock received, captured for snapshot assertions.
@@ -335,7 +431,17 @@ fn captured(body: &CapturedBody) -> serde_json::Value {
 /// `main`: `GITHUB_HEAD_REF` is empty and `MONOCHANGE_HOSTED_URL` points at
 /// an unreachable host, so only the command-line flags can reach the app.
 fn run_hosted_step(root: &Path, server: &MockServer, step: &str, args: &[&str]) -> String {
-	let output = Command::new(get_cargo_bin("monochange"))
+	run_hosted_step_with(root, server, step, args, &[])
+}
+
+fn run_hosted_step_with(
+	root: &Path,
+	server: &MockServer,
+	step: &str,
+	args: &[&str],
+	envs: &[(&str, &str)],
+) -> String {
+	let output = monochange_command()
 		.current_dir(root)
 		.env("NO_COLOR", "1")
 		.env_remove("RUST_LOG")
@@ -349,6 +455,8 @@ fn run_hosted_step(root: &Path, server: &MockServer, step: &str, args: &[&str]) 
 		.env_remove("MONOCHANGE_TOKEN")
 		.env("ACTIONS_ID_TOKEN_REQUEST_URL", server.url("/oidc"))
 		.env("ACTIONS_ID_TOKEN_REQUEST_TOKEN", "runner-token")
+		.env_remove("MONOCHANGE_RELEASE_BACKEND")
+		.envs(envs.iter().copied())
 		.arg("step")
 		.arg(step)
 		.args(args)
@@ -463,6 +571,61 @@ fn hosted_step_commands_target_the_release_branch_with_command_line_settings() {
 	assert_json_snapshot!(hosted_requests);
 }
 
+#[test]
+fn release_backend_environment_moves_built_in_steps_to_the_app() {
+	let tempdir = setup_hosted_fixture();
+	let root = tempdir.path();
+
+	let server = MockServer::start();
+	server.mock(|when, then| {
+		when.method(Method::GET).path("/oidc");
+		then.status(200)
+			.json_body(serde_json::json!({ "value": "oidc-jwt" }));
+	});
+	let commit_mock = server.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/api/release-commits")
+			.header("Authorization", "Bearer oidc-jwt");
+		then.status(200).json_body(serde_json::json!({
+			"commit": "hosted-commit-sha",
+			"verified": true,
+			"status": "completed",
+		}));
+	});
+	let request_mock = server.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/api/release-requests")
+			.header("Authorization", "Bearer oidc-jwt");
+		then.status(200).json_body(serde_json::json!({
+			"number": 42,
+			"operation": "created",
+			"url": "https://github.com/acme/actions/pull/42",
+			"head_branch": "monochange/release/release",
+		}));
+	});
+
+	let hosted_url = server.base_url();
+	let hosted_flags = ["--hosted-auth", "oidc", "--hosted-url", hosted_url.as_str()];
+	let backend = [("MONOCHANGE_RELEASE_BACKEND", "hosted")];
+	run_hosted_step(root, &server, "prepare-release", &[]);
+	run_hosted_step_with(root, &server, "commit-release", &hosted_flags, &backend);
+	run_hosted_step_with(
+		root,
+		&server,
+		"open-release-request",
+		&hosted_flags,
+		&backend,
+	);
+
+	commit_mock.assert();
+	request_mock.assert();
+	assert_eq!(
+		git_output(root, &["log", "-1", "--pretty=%s"]).trim(),
+		"initial",
+		"the hosted backend must not create a local release commit"
+	);
+}
+
 #[rstest]
 #[case::commit_release("commit-invalid-auth")]
 #[case::open_release_request("request-invalid-auth")]
@@ -472,7 +635,7 @@ fn hosted_steps_reject_unsupported_hosted_auth_inputs(#[case] command: &str) {
 	let commit_mock = mock_release_commit(&server);
 	let request_mock = mock_release_request(&server);
 
-	let output = Command::new(get_cargo_bin("monochange"))
+	let output = monochange_command()
 		.current_dir(tempdir.path())
 		.env("NO_COLOR", "1")
 		.env_remove("RUST_LOG")
@@ -516,7 +679,7 @@ fn hosted_stage_all_commits_carry_every_workspace_change() {
 	// The fixture's `release-stage-all` command regenerates a lockfile,
 	// stages a schema, edits a source file, and writes build output that
 	// `.gitignore` excludes before committing through the hosted app.
-	let output = Command::new(get_cargo_bin("monochange"))
+	let output = monochange_command()
 		.current_dir(root)
 		.env("NO_COLOR", "1")
 		.env_remove("RUST_LOG")

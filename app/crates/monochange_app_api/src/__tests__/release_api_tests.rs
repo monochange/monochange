@@ -25,6 +25,7 @@ use super::authorize;
 use super::commit_release_files;
 use super::release_commit_error_status;
 use super::validate_branch_names;
+use super::validate_commit_contents;
 use super::validate_commit_paths;
 use crate::AppSecrets;
 use crate::AppState;
@@ -49,6 +50,7 @@ fn request_with_path(path: &str) -> HostedCommitRequest {
 		}],
 		dry_run: false,
 		idempotency_key: None,
+		tree: None,
 	}
 }
 
@@ -375,6 +377,218 @@ async fn release_commit_endpoint_refreshes_an_existing_release_branch() {
 		})
 	);
 	update.assert();
+}
+
+/// Mock `GET git/trees/{tree}` listing the given `(path, sha)` entries.
+fn mock_tree_listing(github: &MockServer, tree: &str, entries: &[(&str, &str)]) {
+	let entries = entries
+		.iter()
+		.map(
+			|(path, sha)| serde_json::json!({ "path": path, "mode": "040000", "type": "tree", "sha": sha }),
+		)
+		.collect::<Vec<_>>();
+	github.mock(|when, then| {
+		when.method(Method::GET)
+			.path(format!("/repos/acme/actions/git/trees/{tree}"));
+		then.status(200)
+			.json_body(serde_json::json!({ "sha": tree, "tree": entries, "truncated": false }));
+	});
+}
+
+/// Trees on either side of a workflow-built release commit: the base tree
+/// and its `.github`/`workflows` entries, then the same for the release tree.
+struct WorkflowTrees {
+	base: &'static str,
+	base_github: Option<&'static str>,
+	base_workflows: Option<&'static str>,
+	release_github: Option<&'static str>,
+	release_workflows: Option<&'static str>,
+}
+
+fn mock_workflow_trees(github: &MockServer, trees: &WorkflowTrees) {
+	github.mock(|when, then| {
+		when.method(Method::GET)
+			.path("/repos/acme/actions/git/commits/base-sha");
+		then.status(200).json_body(serde_json::json!({
+			"sha": "base-sha",
+			"tree": { "sha": trees.base },
+		}));
+	});
+	let listing = |github_entry: Option<&'static str>| {
+		github_entry.map_or_else(Vec::new, |sha| vec![(".github", sha), ("src", "src-tree")])
+	};
+	mock_tree_listing(github, trees.base, &listing(trees.base_github));
+	mock_tree_listing(github, WORKFLOW_TREE, &listing(trees.release_github));
+	for (github_tree, workflows) in [
+		(trees.base_github, trees.base_workflows),
+		(trees.release_github, trees.release_workflows),
+	] {
+		if let Some(github_tree) = github_tree {
+			let entries = workflows.map_or_else(Vec::new, |sha| vec![("workflows", sha)]);
+			mock_tree_listing(github, github_tree, &entries);
+		}
+	}
+}
+
+#[rstest]
+#[case::same_tree(WorkflowTrees {
+	base: WORKFLOW_TREE,
+	base_github: None,
+	base_workflows: None,
+	release_github: None,
+	release_workflows: None,
+}, StatusCode::OK)]
+#[case::same_github_directory(WorkflowTrees {
+	base: "base-tree",
+	base_github: Some("github-tree"),
+	base_workflows: Some("workflows-tree"),
+	release_github: Some("github-tree"),
+	release_workflows: Some("workflows-tree"),
+}, StatusCode::OK)]
+#[case::other_github_files_changed(WorkflowTrees {
+	base: "base-tree",
+	base_github: Some("github-tree"),
+	base_workflows: Some("workflows-tree"),
+	release_github: Some("release-github-tree"),
+	release_workflows: Some("workflows-tree"),
+}, StatusCode::OK)]
+#[case::workflows_changed(WorkflowTrees {
+	base: "base-tree",
+	base_github: Some("github-tree"),
+	base_workflows: Some("workflows-tree"),
+	release_github: Some("release-github-tree"),
+	release_workflows: Some("release-workflows-tree"),
+}, StatusCode::UNPROCESSABLE_ENTITY)]
+#[case::github_directory_removed(WorkflowTrees {
+	base: "base-tree",
+	base_github: Some("github-tree"),
+	base_workflows: Some("workflows-tree"),
+	release_github: None,
+	release_workflows: None,
+}, StatusCode::UNPROCESSABLE_ENTITY)]
+#[tokio::test]
+async fn release_commit_endpoint_commits_a_tree_built_by_the_workflow(
+	#[case] trees: WorkflowTrees,
+	#[case] expected: StatusCode,
+) {
+	let github = MockServer::start();
+	let state = release_api_state(&github, API_TOKEN).await;
+	mock_branch(&github, "main", "base-sha");
+	github.mock(|when, then| {
+		when.method(Method::GET)
+			.path("/repos/acme/actions/git/ref/heads/monochange/release/release");
+		then.status(404);
+	});
+	mock_workflow_trees(&github, &trees);
+	let blobs = github.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/git/blobs");
+		then.status(201)
+			.json_body(serde_json::json!({ "sha": "blob-sha" }));
+	});
+	let commit = github.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/git/commits")
+			.json_body_includes(serde_json::json!({ "tree": WORKFLOW_TREE }).to_string());
+		then.status(201).json_body(serde_json::json!({
+			"sha": "release-sha",
+			"verification": { "verified": true, "reason": "valid" },
+		}));
+	});
+	let create = github.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/git/refs");
+		then.status(201)
+			.json_body(serde_json::json!({ "object": { "sha": "release-sha" } }));
+	});
+	let mut request = request_with_path("crates/core/Cargo.toml");
+	request.files.clear();
+	request.tree = Some(WORKFLOW_TREE.to_string());
+
+	let (status, body) = post_release_commit(&state, API_TOKEN, &request).await;
+
+	assert_eq!(status, expected, "{body}");
+	blobs.assert_calls(0);
+	if expected == StatusCode::OK {
+		assert_eq!(body["commit"], "release-sha");
+		commit.assert();
+		create.assert();
+	} else {
+		assert_eq!(
+			body["message"],
+			"the release tree changes `.github/workflows`; release commits must not modify GitHub workflows"
+		);
+		commit.assert_calls(0);
+		create.assert_calls(0);
+	}
+}
+
+#[tokio::test]
+async fn release_commit_endpoint_reports_unreadable_workflow_trees() {
+	let github = MockServer::start();
+	let state = release_api_state(&github, API_TOKEN).await;
+	mock_branch(&github, "main", "base-sha");
+	github.mock(|when, then| {
+		when.method(Method::GET)
+			.path("/repos/acme/actions/git/ref/heads/monochange/release/release");
+		then.status(404);
+	});
+	github.mock(|when, then| {
+		when.method(Method::GET)
+			.path("/repos/acme/actions/git/commits/base-sha");
+		then.status(404).body("Not Found");
+	});
+	let mut request = request_with_path("crates/core/Cargo.toml");
+	request.files.clear();
+	request.tree = Some(WORKFLOW_TREE.to_string());
+
+	let (status, body) = post_release_commit(&state, API_TOKEN, &request).await;
+
+	assert_eq!(status, StatusCode::BAD_GATEWAY, "{body}");
+	assert!(
+		body["message"]
+			.as_str()
+			.is_some_and(|message| message.contains("read base commit")),
+		"{body}"
+	);
+}
+
+const WORKFLOW_TREE: &str = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
+
+#[rstest]
+#[case::files_only(false, None, Ok(()))]
+#[case::tree_only(true, Some(WORKFLOW_TREE), Ok(()))]
+#[case::both(
+	false,
+	Some(WORKFLOW_TREE),
+	Err("send either release `files` or a `tree`, not both")
+)]
+#[case::neither(true, None, Err("the release commit has no files and no `tree`"))]
+#[case::not_an_object_id(
+	true,
+	Some("main"),
+	Err("`tree` must be a git object id, received `main`")
+)]
+#[case::not_hex(
+	true,
+	Some("zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"),
+	Err("`tree` must be a git object id, received `zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz`")
+)]
+fn release_commits_need_exactly_one_tree_source(
+	#[case] clear_files: bool,
+	#[case] tree: Option<&str>,
+	#[case] expected: Result<(), &str>,
+) {
+	let mut request = request_with_path("crates/core/Cargo.toml");
+	if clear_files {
+		request.files.clear();
+	}
+	request.tree = tree.map(String::from);
+
+	assert_eq!(
+		validate_commit_contents(&request),
+		expected.map_err(String::from)
+	);
 }
 
 #[rstest]

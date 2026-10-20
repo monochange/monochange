@@ -217,6 +217,7 @@ fn release_commit_request(branch: &str, base_branch: Option<&str>) -> HostedComm
 		],
 		dry_run: false,
 		idempotency_key: None,
+		tree: None,
 	}
 }
 
