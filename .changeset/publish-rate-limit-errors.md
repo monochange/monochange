@@ -1,6 +1,5 @@
 ---
 monochange: feat
-monochange_publish: feat
 ---
 
 # Explain registry rate limits when publishing stops
@@ -23,5 +22,4 @@ error[publish.rate_limited]: crates.io rate limit stopped publishing at canvist_
 
 - Rate-limit rejections from crates.io, npm (`E429`), PyPI, JSR, and pub.dev are recognised from their 429 or "rate limit exceeded" wording. The retry time is read from `try again after <date>`, `Retry-After: <seconds>`, or `try again in <n> minutes`, and shown in UTC with the remaining wait.
 - The diagnostic code is `publish.rate_limited` instead of `publish.failed`, and its hint tells you when to rerun.
-- `PackagePublishOutcome` has a new optional `rate_limit` field (`PublishRateLimitHit { reason, retry_at, docs_url }`, with `retry_at` as an RFC 3339 UTC timestamp), so `--format json` reports and publish artifacts carry the same details. The tool's full output stays in the outcome's `stdout` and `stderr`.
-- `monochange_publish` exports `detect_rate_limit_hit`, `registry_display_name`, `PublishRateLimitHit`, and `CRATES_IO_RATE_LIMIT_DOCS`.
+- `--format json` reports and publish artifacts add a `rate_limit` object (`reason`, `retry_at` as an RFC 3339 UTC timestamp, `docs_url`) to the rate-limited package. The tool's full output stays in that package's `stdout` and `stderr`.
