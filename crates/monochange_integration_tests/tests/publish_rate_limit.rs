@@ -49,6 +49,7 @@ fn placeholder_publish(
 		.current_dir(workspace)
 		.env("NO_COLOR", "1")
 		.env_remove("RUST_LOG")
+		.env_remove("GITHUB_ACTIONS")
 		.env("PATH", format!("{}:{path}", stub_dir.display()))
 		.env("RATE_LIMIT_STUB_STATE", workspace.join("stub-state"))
 		.env("MONOCHANGE_CRATES_IO_INDEX_URL", server.base_url())
