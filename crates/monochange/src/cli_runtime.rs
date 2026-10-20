@@ -1554,9 +1554,8 @@ async fn execute_commit_release_step(
 		.unwrap_or(defaults.update_release_json);
 	let stage_all =
 		parse_boolean_step_input(state.step_inputs, "stage_all")?.unwrap_or(defaults.stage_all);
-	let commit_backend = string_step_input(state.step_inputs, "commit_backend")
-		.and_then(|value| value.parse::<ReleaseBackend>().ok())
-		.unwrap_or(defaults.commit_backend);
+	let commit_backend =
+		resolve_release_backend(state.step_inputs, "commit_backend", defaults.commit_backend)?;
 
 	let release_commit_report = match commit_backend {
 		ReleaseBackend::Local => {
@@ -1636,9 +1635,7 @@ async fn execute_open_release_request_step(
 		parse_boolean_step_input(state.step_inputs, "no_verify")?.unwrap_or(no_verify_default);
 	let stage_all =
 		parse_boolean_step_input(state.step_inputs, "stage_all")?.unwrap_or(stage_all_default);
-	let backend = string_step_input(state.step_inputs, "backend")
-		.and_then(|value| value.parse::<ReleaseBackend>().ok())
-		.unwrap_or(backend_default);
+	let backend = resolve_release_backend(state.step_inputs, "backend", backend_default)?;
 
 	let result = match backend {
 		ReleaseBackend::Local => {
@@ -3471,6 +3468,44 @@ pub(crate) fn parse_boolean_step_input(
 }
 
 /// Read the first string value of a step input, when it was provided.
+/// Resolve the backend of a `CommitRelease` or `OpenReleaseRequest` step.
+///
+/// An explicit step input wins, then `MONOCHANGE_RELEASE_BACKEND`, then the
+/// step definition. The environment variable lets a workflow move every
+/// release step to the hosted backend without editing `monochange.toml`.
+fn resolve_release_backend(
+	inputs: &BTreeMap<String, Vec<String>>,
+	name: &str,
+	default: ReleaseBackend,
+) -> MonochangeResult<ReleaseBackend> {
+	select_release_backend(
+		string_step_input(inputs, name).as_deref(),
+		std::env::var("MONOCHANGE_RELEASE_BACKEND").ok().as_deref(),
+		default,
+	)
+}
+
+/// Pick a release backend from the step input, the environment override,
+/// and the configured default, in that order.
+pub(crate) fn select_release_backend(
+	input: Option<&str>,
+	environment: Option<&str>,
+	default: ReleaseBackend,
+) -> MonochangeResult<ReleaseBackend> {
+	if let Some(backend) = input.and_then(|value| value.parse::<ReleaseBackend>().ok()) {
+		return Ok(backend);
+	}
+
+	match environment.map(str::trim) {
+		Some(value) if !value.is_empty() => {
+			value.parse::<ReleaseBackend>().map_err(|error| {
+				MonochangeError::Config(format!("MONOCHANGE_RELEASE_BACKEND: {error}"))
+			})
+		}
+		_ => Ok(default),
+	}
+}
+
 pub(crate) fn string_step_input(
 	inputs: &BTreeMap<String, Vec<String>>,
 	name: &str,

@@ -33,27 +33,27 @@ You can change the selected repositories, suspend access, or uninstall the app i
 
 ## Connect the release workflow
 
-Configure the release workflow's commit and pull-request steps to use the hosted backend:
+Run the release workflow's commit and pull-request steps on the hosted backend. The simplest way is to set `MONOCHANGE_RELEASE_BACKEND=hosted` on the release job, which moves every `CommitRelease` and `OpenReleaseRequest` step to the hosted backend without editing `monochange.toml`. Local runs and pull-request preflight jobs keep the configured backend:
 
 ```toml
 [cli.release]
 steps = [
 	{ type = "PrepareRelease", name = "plan release", allow_empty_changesets = true },
-	{ type = "CommitRelease", name = "commit release", inputs = { stage_all = true, commit_backend = "hosted" } },
-	{ type = "OpenReleaseRequest", name = "open release request", inputs = { backend = "hosted" } },
+	{ type = "CommitRelease", name = "commit release", inputs = { stage_all = true } },
+	{ type = "OpenReleaseRequest", name = "open release request" },
 ]
 ```
 
 When `CommitRelease` sets `stage_all = true`, the hosted commit also carries every other changed, added, or deleted file in the workspace, such as lockfiles or generated files that earlier `Command` steps rewrote, matching the local backend's `git add --all`. Files that `.gitignore` excludes are left out.
 
-Then grant `id-token: write` to the GitHub Actions job that runs the workflow. The job no longer needs `contents: write`, a personal access token, `gh auth setup-git`, or a `git config user.name` step:
+Then give the job `id-token: write`, `contents: write`, and the workflow's `GITHUB_TOKEN`:
 
 ```yaml
 jobs:
   release-pr:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       pull-requests: read
       id-token: write
     steps:
@@ -64,16 +64,23 @@ jobs:
       - run: npm install --global @monochange/cli
       - run: monochange run release
         env:
+          MONOCHANGE_RELEASE_BACKEND: hosted
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-`GH_TOKEN` is only used for read-only lookups, such as linking changelog entries to their pull requests. The hosted backend authenticates with the job's OIDC token, so a job without `id-token: write` fails with `hosted CommitRelease token auth requires MONOCHANGE_TOKEN`. The `MONOCHANGE_TOKEN` fallback is for deployments that configure an API token; monochange.dev does not issue per-user tokens, so use GitHub Actions for hosted release commits.
+The job no longer needs a personal access token, `gh auth setup-git`, or a `git config user.name` step. The hosted backend authenticates with the job's OIDC token, so a job without `id-token: write` fails with `hosted CommitRelease token auth requires MONOCHANGE_TOKEN`. The `MONOCHANGE_TOKEN` fallback is for deployments that configure an API token; monochange.dev does not issue per-user tokens, so use GitHub Actions for hosted release commits.
+
+### How the release commit is built
+
+The CLI uploads the release files to the repository as git blobs and a tree with `GITHUB_TOKEN` (or `GH_TOKEN`), then sends monochange.dev only the tree id, the base commit, and the commit message. monochange.dev creates the commit on that tree through the app installation and moves the release branch, so the commit is verified and belongs to the bot. `contents: write` is what lets `GITHUB_TOKEN` create blobs and trees. Blobs and trees are not commits: uploading them pushes no branch and starts no workflow, and nothing in the repository refers to them until the bot commits. The token is also used for read-only lookups, such as linking changelog entries to their pull requests.
+
+Without a token, or when the token lacks `contents: write`, the CLI prints a warning and sends the file contents to monochange.dev instead, which creates the blobs and the tree itself. That fallback only accepts UTF-8 text files and requests up to 8 MiB, so grant `contents: write` for binary files or very large changelogs.
+
+To keep the backend in `monochange.toml` instead of the environment, set `commit_backend = "hosted"` on `CommitRelease` and `backend = "hosted"` on `OpenReleaseRequest`. A step input or command-line flag, such as `--commit-backend local`, still wins over `MONOCHANGE_RELEASE_BACKEND`.
 
 The release branch only exists on GitHub after a hosted run. A later step that reads it, such as `monochange step release-record --from monochange/release/release`, must fetch it first with `git fetch origin "+refs/heads/monochange/release/release:refs/heads/monochange/release/release"`.
 
-If pull-request preflight jobs or local runs use the same `[cli.release]` command, declare a `backend` choice input that defaults to `local`, pass `commit_backend = "{{ inputs.backend }}"` and `backend = "{{ inputs.backend }}"` to the two steps, and run `monochange run release --backend hosted` only from the release job.
-
-Every run rebuilds the release pull request branch from `[source.pull_requests].base` and the bot replaces the previous release commit, so each push refreshes the open release pull request. A run whose base branch moved while it was preparing the release fails with a conflict and leaves the refresh to the run for the newer commit. The bot only replaces monochange release branches: the branch must be named `<branch_prefix>/release`, which `monochange step commit-release`, `monochange step open-release-request`, and a `[cli.release]` workflow produce, and it must not be the repository's default branch. Workflows with other names, such as `[cli.release-pr]`, get `<branch_prefix>/release-pr`; the first run creates that branch, but later runs fail with a conflict until the branch is deleted. The bot never writes files under `.git` or `.github/workflows`.
+Every run rebuilds the release pull request branch from `[source.pull_requests].base` and the bot replaces the previous release commit, so each push refreshes the open release pull request. A run whose base branch moved while it was preparing the release fails with a conflict and leaves the refresh to the run for the newer commit. The bot only replaces monochange release branches: the branch must be named `<branch_prefix>/release`, which `monochange step commit-release`, `monochange step open-release-request`, and a `[cli.release]` workflow produce, and it must not be the repository's default branch. Workflows with other names, such as `[cli.release-pr]`, get `<branch_prefix>/release-pr`; the first run creates that branch, but later runs fail with a conflict until the branch is deleted. The bot never writes files under `.git` or `.github/workflows`: monochange.dev refuses uploaded paths there and refuses a tree whose `.github/workflows` differs from the base commit's.
 
 Keep your repository's branch protection and required checks enabled. Review and merge the bot's release pull request through your normal process; registry publishing remains a separate workflow.
 {% endraw %}

@@ -2062,8 +2062,10 @@ pub(crate) async fn hosted_commit_release(
 	prepared.tracked_paths = hosted_commit_paths(root, &prepared.tracked_paths, stage_all).await?;
 	let body = prepared.message.body.clone().unwrap_or_default();
 	let branches = hosted_commit_branches(source, &manifest.command);
-	let request = build_hosted_commit_request(root, &prepared, context.dry_run, &branches).await?;
+	let mut request =
+		build_hosted_commit_request(root, &prepared, context.dry_run, &branches).await?;
 	let response = if context.dry_run {
+		attach_hosted_commit_files(root, &mut request, &prepared.tracked_paths)?;
 		HostedCommitResponse {
 			commit: None,
 			verified: false,
@@ -2071,6 +2073,8 @@ pub(crate) async fn hosted_commit_release(
 			message: None,
 		}
 	} else {
+		let api_url = source.and_then(|source| source.api_url.as_deref());
+		attach_hosted_commit_contents(root, &mut request, &prepared.tracked_paths, api_url).await?;
 		let token = hosted_commit_bearer_token(options).await?;
 		send_hosted_commit_request(&request, options, &token).await?
 	};
@@ -2177,11 +2181,6 @@ async fn build_hosted_commit_request_for_github(
 	let (owner, repository) = repository.split_once('/').ok_or_else(|| {
 		MonochangeError::Config("GITHUB_REPOSITORY must use `owner/repo` format".to_string())
 	})?;
-	let files = prepared
-		.tracked_paths
-		.iter()
-		.map(|path| hosted_commit_file(root, path))
-		.collect::<MonochangeResult<Vec<_>>>()?;
 	Ok(HostedCommitRequest {
 		provider: "github".to_string(),
 		owner: owner.to_string(),
@@ -2191,10 +2190,73 @@ async fn build_hosted_commit_request_for_github(
 		base_commit: git_head_commit(root).await?,
 		subject: prepared.message.subject.clone(),
 		body: prepared.message.body.clone().unwrap_or_default(),
-		files,
+		files: Vec::new(),
 		dry_run,
 		idempotency_key: hosted_commit_idempotency_key(),
+		tree: None,
 	})
+}
+
+/// Give the hosted commit request its contents, preferring a tree the
+/// workflow builds itself.
+///
+/// The release files are uploaded as blobs and layered on `base_commit` with
+/// the workflow's own `GITHUB_TOKEN`, so the request carries only the tree id
+/// and the monochange app never receives file contents. Without a token that
+/// can write git objects the contents are sent instead, as before.
+#[cfg(feature = "github")]
+async fn attach_hosted_commit_contents(
+	root: &Path,
+	request: &mut HostedCommitRequest,
+	paths: &[PathBuf],
+	api_url: Option<&str>,
+) -> MonochangeResult<()> {
+	let files = monochange_github::read_release_tree_files(root, paths)?;
+	match monochange_github::create_release_tree(
+		api_url,
+		&request.owner,
+		&request.repository,
+		&request.base_commit,
+		&files,
+	)
+	.await?
+	{
+		monochange_github::ReleaseTree::Created(tree) => {
+			request.tree = Some(tree);
+			Ok(())
+		}
+		monochange_github::ReleaseTree::Unavailable(reason) => {
+			tracing::warn!(
+				"sending release file contents to the monochange app because the release tree could not be built: {reason}"
+			);
+			attach_hosted_commit_files(root, request, paths)
+		}
+	}
+}
+
+/// Builds without the GitHub provider cannot create a tree, so they always
+/// send the release file contents.
+#[cfg(not(feature = "github"))]
+async fn attach_hosted_commit_contents(
+	root: &Path,
+	request: &mut HostedCommitRequest,
+	paths: &[PathBuf],
+	_api_url: Option<&str>,
+) -> MonochangeResult<()> {
+	attach_hosted_commit_files(root, request, paths)
+}
+
+/// Send the release file contents with the hosted commit request.
+fn attach_hosted_commit_files(
+	root: &Path,
+	request: &mut HostedCommitRequest,
+	paths: &[PathBuf],
+) -> MonochangeResult<()> {
+	request.files = paths
+		.iter()
+		.map(|path| hosted_commit_file(root, path))
+		.collect::<MonochangeResult<Vec<_>>>()?;
+	Ok(())
 }
 
 /// Build a retry-safe idempotency key from the current GitHub Actions run.

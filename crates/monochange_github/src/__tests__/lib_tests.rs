@@ -4508,3 +4508,246 @@ fn github_client_from_env_errors_when_gh_cli_spawn_fails() {
 		"error should mention `gh auth token`: {error}"
 	);
 }
+
+#[test]
+fn read_release_tree_files_keeps_bytes_modes_and_deletions() {
+	use std::os::unix::fs::PermissionsExt;
+
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	fs::create_dir(root.join("skipped_dir")).unwrap();
+	fs::write(root.join("logo.bin"), [0xff, 0x00]).unwrap();
+	fs::write(root.join("run.sh"), "#!/bin/sh").unwrap();
+	let mut permissions = fs::metadata(root.join("run.sh")).unwrap().permissions();
+	permissions.set_mode(0o755);
+	fs::set_permissions(root.join("run.sh"), permissions).unwrap();
+	std::os::unix::fs::symlink("logo.bin", root.join("link")).unwrap();
+
+	let files = read_release_tree_files(
+		root,
+		&[
+			PathBuf::from("skipped_dir"),
+			root.join("logo.bin"),
+			PathBuf::from("run.sh"),
+			PathBuf::from("link"),
+			PathBuf::from(".changeset/old.md"),
+		],
+	)
+	.unwrap_or_else(|error| panic!("read release tree files: {error}"));
+
+	assert_eq!(
+		files,
+		vec![
+			ReleaseTreeFile {
+				path: "logo.bin".to_string(),
+				content: Some(vec![0xff, 0x00]),
+				mode: "100644",
+			},
+			ReleaseTreeFile {
+				path: "run.sh".to_string(),
+				content: Some(b"#!/bin/sh".to_vec()),
+				mode: "100755",
+			},
+			ReleaseTreeFile {
+				path: "link".to_string(),
+				content: Some(b"logo.bin".to_vec()),
+				mode: "120000",
+			},
+			ReleaseTreeFile {
+				path: ".changeset/old.md".to_string(),
+				content: None,
+				mode: "100644",
+			},
+		]
+	);
+}
+
+#[test]
+fn read_release_tree_files_reports_unreadable_files() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	// A socket exists but cannot be read as a file, even by root.
+	let _listener = std::os::unix::net::UnixListener::bind(root.join("release.sock")).unwrap();
+
+	let error = read_release_tree_files(root, &[PathBuf::from("release.sock")])
+		.err()
+		.map(|error| error.to_string())
+		.unwrap_or_default();
+
+	assert!(
+		error.contains("read release file `release.sock`"),
+		"error names the file: {error}"
+	);
+}
+
+fn release_tree_files() -> Vec<ReleaseTreeFile> {
+	vec![
+		ReleaseTreeFile {
+			path: "changelog.md".to_string(),
+			content: Some(b"hello".to_vec()),
+			mode: "100644",
+		},
+		ReleaseTreeFile {
+			path: "logo.bin".to_string(),
+			content: Some(vec![0xff, 0x00]),
+			mode: "100644",
+		},
+		ReleaseTreeFile {
+			path: ".changeset/old.md".to_string(),
+			content: None,
+			mode: "100644",
+		},
+	]
+}
+
+fn mock_release_tree_base_commit(server: &MockServer) -> httpmock::Mock<'_> {
+	server.mock(|when, then| {
+		when.method(GET)
+			.path("/repos/acme/widgets/git/commits/base123")
+			.header("authorization", "Bearer workflow-token");
+		then.status(200).json_body(json!({
+			"sha": "base123",
+			"message": "base",
+			"tree": { "sha": "base_tree" },
+			"parents": [],
+			"verification": { "verified": true, "reason": "valid" },
+		}));
+	})
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn create_release_tree_uploads_base64_blobs_on_the_base_tree() {
+	let server = MockServer::start();
+	let base_commit = mock_release_tree_base_commit(&server);
+	let text_blob = server.mock(|when, then| {
+		when.method(POST)
+			.path("/repos/acme/widgets/git/blobs")
+			.json_body(json!({ "content": "aGVsbG8=", "encoding": "base64" }));
+		then.status(201).json_body(json!({ "sha": "blob_text" }));
+	});
+	let binary_blob = server.mock(|when, then| {
+		when.method(POST)
+			.path("/repos/acme/widgets/git/blobs")
+			.json_body(json!({ "content": "/wA=", "encoding": "base64" }));
+		then.status(201).json_body(json!({ "sha": "blob_binary" }));
+	});
+	let tree = server.mock(|when, then| {
+		when.method(POST)
+			.path("/repos/acme/widgets/git/trees")
+			.json_body(json!({
+				"base_tree": "base_tree",
+				"tree": [
+					{ "path": "changelog.md", "mode": "100644", "type": "blob", "sha": "blob_text" },
+					{ "path": "logo.bin", "mode": "100644", "type": "blob", "sha": "blob_binary" },
+					{ "path": ".changeset/old.md", "mode": "100644", "type": "blob", "sha": null },
+				],
+			}));
+		then.status(201).json_body(json!({ "sha": "release_tree" }));
+	});
+	let base_url = server.base_url();
+
+	let result = temp_env::async_with_vars(
+		[
+			("GITHUB_TOKEN", None),
+			("GH_TOKEN", Some("workflow-token")),
+			("GITHUB_API_URL", Some(base_url.as_str())),
+		],
+		create_release_tree(None, "acme", "widgets", "base123", &release_tree_files()),
+	)
+	.await;
+
+	base_commit.assert();
+	text_blob.assert();
+	binary_blob.assert();
+	tree.assert();
+	assert_eq!(
+		result.unwrap_or_else(|error| panic!("create release tree: {error}")),
+		ReleaseTree::Created("release_tree".to_string())
+	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn create_release_tree_is_unavailable_without_a_workflow_token() {
+	let result = temp_env::async_with_vars(
+		[("GITHUB_TOKEN", None::<&str>), ("GH_TOKEN", None)],
+		create_release_tree(None, "acme", "widgets", "base123", &release_tree_files()),
+	)
+	.await;
+
+	assert_eq!(
+		result.unwrap_or_else(|error| panic!("create release tree: {error}")),
+		ReleaseTree::Unavailable("neither GITHUB_TOKEN nor GH_TOKEN is set".to_string())
+	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn create_release_tree_is_unavailable_when_the_token_cannot_write_contents() {
+	let server = MockServer::start();
+	let base_commit = mock_release_tree_base_commit(&server);
+	let blob = server.mock(|when, then| {
+		when.method(POST).path("/repos/acme/widgets/git/blobs");
+		then.status(403).json_body(json!({
+			"message": "Resource not accessible by integration",
+			"documentation_url": "https://docs.github.com/rest/git/blobs#create-a-blob",
+		}));
+	});
+	let base_url = server.base_url();
+
+	let result = temp_env::async_with_vars(
+		[("GITHUB_TOKEN", Some("workflow-token"))],
+		create_release_tree(
+			Some(base_url.as_str()),
+			"acme",
+			"widgets",
+			"base123",
+			&release_tree_files(),
+		),
+	)
+	.await;
+
+	base_commit.assert();
+	blob.assert();
+	assert_eq!(
+		result.unwrap_or_else(|error| panic!("create release tree: {error}")),
+		ReleaseTree::Unavailable(
+			"the token cannot create git objects in acme/widgets (Resource not accessible by integration); grant the job `contents: write`".to_string()
+		)
+	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn create_release_tree_reports_other_blob_failures() {
+	let server = MockServer::start();
+	let base_commit = mock_release_tree_base_commit(&server);
+	let blob = server.mock(|when, then| {
+		when.method(POST).path("/repos/acme/widgets/git/blobs");
+		then.status(422).json_body(json!({
+			"message": "Invalid request",
+			"documentation_url": "https://docs.github.com/rest/git/blobs#create-a-blob",
+		}));
+	});
+	let base_url = server.base_url();
+
+	let result = temp_env::async_with_vars(
+		[("GITHUB_TOKEN", Some("workflow-token"))],
+		create_release_tree(
+			Some(base_url.as_str()),
+			"acme",
+			"widgets",
+			"base123",
+			&release_tree_files(),
+		),
+	)
+	.await;
+
+	base_commit.assert();
+	blob.assert();
+	let error = result
+		.err()
+		.map(|error| error.to_string())
+		.unwrap_or_default();
+	assert!(
+		error.contains("/repos/acme/widgets/git/blobs") && error.contains("Invalid request"),
+		"error names the request and GitHub's message: {error}"
+	);
+}

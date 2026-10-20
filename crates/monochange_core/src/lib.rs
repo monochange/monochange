@@ -7253,10 +7253,11 @@ pub struct SourceChangeRequestOutcome {
 /// A request for the monochange app to create a release commit through the
 /// monochange GitHub App installation on the caller's repository.
 ///
-/// The CLI still computes the release locally: it reads every tracked release
-/// file, resolves the target branch and the commit the files were prepared
-/// against, and posts this compact request so the server can recreate the
-/// commit remotely without a local checkout.
+/// The CLI still computes the release locally: it uploads the release files
+/// as a git tree with the workflow's own token (or, without one, sends their
+/// contents in `files`), resolves the target branch and the commit the files
+/// were prepared against, and posts this compact request so the server can
+/// create the commit remotely without a local checkout.
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -7285,7 +7286,21 @@ pub struct HostedCommitRequest {
 	#[serde(default)]
 	pub body: String,
 	/// Release-managed files to commit. A `None` content deletes the path.
+	///
+	/// Empty when [`tree`](Self::tree) is set: the files were already
+	/// uploaded to the repository by the workflow. Servers that predate
+	/// `tree` require this field, so they reject a tree request instead of
+	/// committing an empty change.
+	#[serde(default, skip_serializing_if = "Vec::is_empty")]
 	pub files: Vec<HostedCommitFile>,
+	/// Git tree the workflow already created in the repository with its own
+	/// `GITHUB_TOKEN`, layered on `base_commit`.
+	///
+	/// When set, the server skips uploading blobs and building a tree and
+	/// only creates the commit and moves the release branch, so the request
+	/// carries no file contents.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub tree: Option<String>,
 	/// Whether this request is a dry run; the server validates without writing.
 	#[serde(default)]
 	pub dry_run: bool,

@@ -409,20 +409,18 @@ After publishing, verify npm provenance from the package page or with npm's prov
 
 Release pull requests created with `GITHUB_TOKEN` do not trigger your workflows, so the release PR never runs its own checks. The usual workaround is a personal access token, which is user-bound, needs workflow-scoped permissions, and produces commits that are not verified.
 
-Install the monochange GitHub App instead. monochange keeps the app credentials; your workflow only decides to use the hosted backend:
+Install the monochange GitHub App instead. monochange keeps the app credentials; your release job only decides to use the hosted backend by setting `MONOCHANGE_RELEASE_BACKEND=hosted`, which moves every `CommitRelease` and `OpenReleaseRequest` step to the app without editing `monochange.toml`:
 
-```toml
-[cli.release]
-steps = [
-	{ type = "PrepareRelease", name = "plan release", allow_empty_changesets = true },
-	{ type = "CommitRelease", name = "create release commit", commit_backend = "hosted" },
-	{ type = "OpenReleaseRequest", name = "create the pr", backend = "hosted" },
-]
+```yaml
+- run: monochange run release
+  env:
+    MONOCHANGE_RELEASE_BACKEND: hosted
+    GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-The workflow still computes the release locally. For the commit and the pull request, the CLI calls the monochange app, which commits through the app installation: the commit is created by the monochange bot, is verified by GitHub, triggers your workflows, and satisfies verified-commit branch protection.
+The workflow still computes the release locally. The CLI uploads the release files as git blobs and a tree with the workflow's own token, then asks the monochange app to commit that tree through the app installation: the commit is created by the monochange bot, is verified by GitHub, triggers your workflows, and satisfies verified-commit branch protection. The request to the app carries only the tree id, not the files.
 
-Grant `id-token: write` in the workflow `permissions` so the CLI can authenticate with a GitHub Actions OIDC token. No personal token, deploy key, repository secret, or commit-identity configuration is required, and the job only needs `contents: read`.
+Grant `id-token: write` so the CLI can authenticate with a GitHub Actions OIDC token, and `contents: write` so `GITHUB_TOKEN` can upload the blobs and the tree. No personal token, deploy key, repository secret, or commit-identity configuration is required.
 
 Repositories must install the monochange GitHub App so the app can act on them; the dashboard at [monochange.dev](https://monochange.dev) lists connected repositories after the install. See [GitHub App installation](./github-app.md) for the installation steps, a complete GitHub Actions job, and the limits on which branches and files the bot writes.
 
