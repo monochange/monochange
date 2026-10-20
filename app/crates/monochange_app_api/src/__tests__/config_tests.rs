@@ -96,7 +96,8 @@ async fn uses_resolved_pem_and_webhook_secret_without_environment_export() {
 	let request = server.mock(|when, then| {
 		when.method(Method::POST)
 			.path("/app/installations/456/access_tokens")
-			.header_exists("authorization");
+			.header_exists("authorization")
+			.header("user-agent", "monochange");
 		then.status(201)
 			.json_body(serde_json::json!({"token": "installation-test-token"}));
 	});

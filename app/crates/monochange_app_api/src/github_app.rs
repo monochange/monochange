@@ -198,6 +198,7 @@ impl GitHubAppAuth {
 			.post(url)
 			.bearer_auth(jwt)
 			.header("Accept", "application/vnd.github+json")
+			.header("User-Agent", "monochange")
 			.send()
 			.await?;
 

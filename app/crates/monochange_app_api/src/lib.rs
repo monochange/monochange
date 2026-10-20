@@ -211,7 +211,9 @@ impl AppState {
 			.monochange_token
 			.clone()
 			.filter(|token| !token.is_empty());
+		// GitHub rejects API requests without a User-Agent header with 403.
 		let http = reqwest::Client::builder()
+			.user_agent("monochange")
 			.connect_timeout(std::time::Duration::from_secs(10))
 			.timeout(std::time::Duration::from_secs(30))
 			.build()?;
