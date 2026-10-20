@@ -259,7 +259,8 @@ async fn release_api_state(github: &MockServer, api_token: &str) -> AppState {
 	));
 	github.mock(|when, then| {
 		when.method(Method::POST)
-			.path("/app/installations/1001/access_tokens");
+			.path("/app/installations/1001/access_tokens")
+			.header("user-agent", "monochange");
 		then.status(201)
 			.json_body(serde_json::json!({ "token": "installation-token" }));
 	});
@@ -344,7 +345,8 @@ async fn release_commit_endpoint_refreshes_an_existing_release_branch() {
 	});
 	github.mock(|when, then| {
 		when.method(Method::POST)
-			.path("/repos/acme/actions/git/commits");
+			.path("/repos/acme/actions/git/commits")
+			.header("user-agent", "monochange");
 		then.status(201).json_body(serde_json::json!({
 			"sha": "release-sha",
 			"verification": { "verified": true, "reason": "valid" },
