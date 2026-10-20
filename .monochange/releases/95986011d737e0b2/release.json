@@ -1,0 +1,2731 @@
+{
+	"schema_version": "0.10",
+	"kind": "monochange.releaseRecord",
+	"created_at": "2026-10-20T07:50:21Z",
+	"command": "release",
+	"version": null,
+	"versions": {
+		"main": "0.19.1",
+		"monochange_app": "0.3.1",
+		"monochange_classification": "0.4.5"
+	},
+	"release_targets": [
+		{
+			"id": "main",
+			"kind": "group",
+			"version": "0.19.1",
+			"version_format": "primary",
+			"tag": true,
+			"release": true,
+			"tag_name": "v0.19.1",
+			"rendered_title": "v0.19.1 (2026-10-20)",
+			"rendered_changelog_title": "[0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)",
+			"members": [
+				"@monochange/cli",
+				"@monochange/cli-darwin-arm64",
+				"@monochange/cli-darwin-x64",
+				"@monochange/cli-linux-arm64-gnu",
+				"@monochange/cli-linux-arm64-musl",
+				"@monochange/cli-linux-x64-gnu",
+				"@monochange/cli-linux-x64-musl",
+				"@monochange/cli-win32-arm64-msvc",
+				"@monochange/cli-win32-x64-msvc",
+				"@monochange/skill",
+				"monochange",
+				"monochange_analysis",
+				"monochange_cargo",
+				"monochange_changelog",
+				"monochange_config",
+				"monochange_core",
+				"monochange_dart",
+				"monochange_deno",
+				"monochange_ecmascript",
+				"monochange_forgejo",
+				"monochange_gitea",
+				"monochange_github",
+				"monochange_gitlab",
+				"monochange_go",
+				"monochange_graph",
+				"monochange_hosting",
+				"monochange_lint",
+				"monochange_linting",
+				"monochange_npm",
+				"monochange_publish",
+				"monochange_python",
+				"monochange_semver",
+				"monochange_telemetry",
+				"monochange_test_helpers"
+			]
+		},
+		{
+			"id": "monochange_app",
+			"kind": "package",
+			"version": "0.3.1",
+			"version_format": "namespaced",
+			"tag": true,
+			"release": true,
+			"tag_name": "monochange_app/v0.3.1",
+			"rendered_title": "monochange.dev 0.3.1",
+			"rendered_changelog_title": "0.3.1",
+			"members": [
+				"monochange_app"
+			]
+		},
+		{
+			"id": "monochange_classification",
+			"kind": "package",
+			"version": "0.4.5",
+			"version_format": "namespaced",
+			"tag": true,
+			"release": false,
+			"tag_name": "monochange_classification/v0.4.5",
+			"rendered_title": "monochange_classification v0.4.5 (2026-10-20)",
+			"rendered_changelog_title": "monochange_classification [0.4.5](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.4.5) (2026-10-20)",
+			"members": [
+				"monochange_classification"
+			]
+		}
+	],
+	"released_packages": [
+		"@monochange/cli",
+		"@monochange/cli-darwin-arm64",
+		"@monochange/cli-darwin-x64",
+		"@monochange/cli-linux-arm64-gnu",
+		"@monochange/cli-linux-arm64-musl",
+		"@monochange/cli-linux-x64-gnu",
+		"@monochange/cli-linux-x64-musl",
+		"@monochange/cli-win32-arm64-msvc",
+		"@monochange/cli-win32-x64-msvc",
+		"@monochange/skill",
+		"monochange",
+		"monochange_analysis",
+		"monochange_app",
+		"monochange_cargo",
+		"monochange_changelog",
+		"monochange_classification",
+		"monochange_config",
+		"monochange_core",
+		"monochange_dart",
+		"monochange_deno",
+		"monochange_ecmascript",
+		"monochange_forgejo",
+		"monochange_gitea",
+		"monochange_github",
+		"monochange_gitlab",
+		"monochange_go",
+		"monochange_graph",
+		"monochange_hosting",
+		"monochange_lint",
+		"monochange_linting",
+		"monochange_npm",
+		"monochange_publish",
+		"monochange_python",
+		"monochange_semver",
+		"monochange_telemetry",
+		"monochange_test_helpers"
+	],
+	"changed_files": [
+		"Cargo.lock",
+		"Cargo.toml",
+		"app/Cargo.lock",
+		"app/Cargo.toml",
+		"app/changelog.md",
+		"app/crates/monochange_app/Cargo.toml",
+		"app/developer-changelog.md",
+		"app/public/releases/0.3.1.json",
+		"changelog.md",
+		"crates/monochange/Cargo.toml",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/Cargo.toml",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/Cargo.toml",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/Cargo.toml",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_classification/Cargo.toml",
+		"crates/monochange_classification/changelog.md",
+		"crates/monochange_config/Cargo.toml",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/Cargo.toml",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/Cargo.toml",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/Cargo.toml",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/Cargo.toml",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/Cargo.toml",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/Cargo.toml",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/Cargo.toml",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/Cargo.toml",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/Cargo.toml",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_graph/Cargo.toml",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/Cargo.toml",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/Cargo.toml",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/Cargo.toml",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/Cargo.toml",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/Cargo.toml",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/Cargo.toml",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_semver/Cargo.toml",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_telemetry/Cargo.toml",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/Cargo.toml",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli/package.json",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-arm64/package.json",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-darwin-x64/package.json",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/package.json",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/package.json",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/package.json",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/package.json",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/package.json",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/package.json",
+		"packages/monochange__skill/changelog.md",
+		"packages/monochange__skill/package.json",
+		"pnpm-lock.yaml"
+	],
+	"package_publications": [
+		{
+			"package": "@monochange/cli",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.19.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-arm64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.19.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-x64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.19.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.19.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.19.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.19.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.19.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-arm64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.19.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-x64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.19.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/skill",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.19.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_analysis",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_cargo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_changelog",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_classification",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.4.5",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_config",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_core",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_dart",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_deno",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_ecmascript",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_forgejo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitea",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_github",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitlab",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_go",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_graph",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_hosting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_lint",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_linting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_npm",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_publish",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_python",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_semver",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_telemetry",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_test_helpers",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.19.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		}
+	],
+	"updated_changelogs": [
+		"app/changelog.md",
+		"app/developer-changelog.md",
+		"app/public/releases/0.3.1.json",
+		"changelog.md",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_classification/changelog.md",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__skill/changelog.md"
+	],
+	"deleted_changesets": [
+		".changeset/api-rate-limits-developer.md",
+		".changeset/api-rate-limits-website.md",
+		".changeset/dashboard-repository-search-developer.md",
+		".changeset/dashboard-repository-search-website.md",
+		".changeset/hosted-commit-body-limit.md",
+		".changeset/hosted-commit-stage-all.md",
+		".changeset/hosted-release-setup-guide.md",
+		".changeset/monostyle-score-80.md",
+		".changeset/pnpm-trusted-publishing-docs.md",
+		".changeset/pnpm-trusted-publishing.md"
+	],
+	"changesets": [
+		{
+			"path": ".changeset/api-rate-limits-developer.md",
+			"summary": "Rate limit the API per client",
+			"details": "The new `monochange_app::rate_limit` module limits Leptos server functions and the REST endpoints under `/api` with [`governor`](https://docs.rs/governor) GCRA buckets. Requests with a valid session cookie count against the signed-in user's bucket (300 a minute, burst 100); every other request counts against its client address (60 a minute, burst 30), with IPv6 addresses grouped by their /64. Pages, `/pkg` assets, `/health`, and `/api/github/webhooks` are not limited.\n\n`X-Forwarded-For` is read from the right and only when the peer is a loopback or private address, which is Caddy in the production deployment. The server now runs with `into_make_service_with_connect_info::<SocketAddr>()` so the middleware sees the peer address.\n\nLimited responses carry `RateLimit-Policy` and `RateLimit` fields, and a `429 Too Many Requests` adds `Retry-After`. Server function rejections use the `ServerFnError` encoding (`ServerError|Too many requests. Try again in 12 seconds.`); REST rejections use the endpoints' `{\"message\": ...}` JSON body.\n\nOverride the limits with environment variables; a value that isn't a whole number above zero stops startup:\n\n```bash\nMONOCHANGE_RATE_LIMIT_ANONYMOUS_PER_MINUTE=60\nMONOCHANGE_RATE_LIMIT_ANONYMOUS_BURST=30\nMONOCHANGE_RATE_LIMIT_AUTHENTICATED_PER_MINUTE=300\nMONOCHANGE_RATE_LIMIT_AUTHENTICATED_BURST=100\n```",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "feat"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "7f804e9c4c0087d10390c115409ddc8f1c5da746",
+						"short_sha": "7f804e9",
+						"url": "https://github.com/monochange/monochange/commit/7f804e9c4c0087d10390c115409ddc8f1c5da746",
+						"authored_at": "2026-10-20T07:44:01+01:00",
+						"committed_at": "2026-10-20T07:44:01+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#807",
+						"title": "feat(app): rate limit the API per client with governor",
+						"url": "https://github.com/monochange/monochange/pull/807",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "7f804e9c4c0087d10390c115409ddc8f1c5da746",
+						"short_sha": "7f804e9",
+						"url": "https://github.com/monochange/monochange/commit/7f804e9c4c0087d10390c115409ddc8f1c5da746",
+						"authored_at": "2026-10-20T07:44:01+01:00",
+						"committed_at": "2026-10-20T07:44:01+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#807",
+						"title": "feat(app): rate limit the API per client with governor",
+						"url": "https://github.com/monochange/monochange/pull/807",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/api-rate-limits-website.md",
+			"summary": "Fair use limits for the monochange.dev API",
+			"details": "monochange.dev now limits how quickly one client can call its API, so a single script can't slow the site down for everyone else. Normal browsing never comes close to the limit. Signed-in users get five times the allowance of anonymous visitors.\n\nIf you do hit the limit, the site tells you how many seconds to wait before trying again. Scripts that read the public task API get a `429 Too Many Requests` response with a `Retry-After` header, and every API response reports how many requests remain.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "website_feature"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "7f804e9c4c0087d10390c115409ddc8f1c5da746",
+						"short_sha": "7f804e9",
+						"url": "https://github.com/monochange/monochange/commit/7f804e9c4c0087d10390c115409ddc8f1c5da746",
+						"authored_at": "2026-10-20T07:44:01+01:00",
+						"committed_at": "2026-10-20T07:44:01+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#807",
+						"title": "feat(app): rate limit the API per client with governor",
+						"url": "https://github.com/monochange/monochange/pull/807",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "7f804e9c4c0087d10390c115409ddc8f1c5da746",
+						"short_sha": "7f804e9",
+						"url": "https://github.com/monochange/monochange/commit/7f804e9c4c0087d10390c115409ddc8f1c5da746",
+						"authored_at": "2026-10-20T07:44:01+01:00",
+						"committed_at": "2026-10-20T07:44:01+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#807",
+						"title": "feat(app): rate limit the API per client with governor",
+						"url": "https://github.com/monochange/monochange/pull/807",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/dashboard-repository-search-developer.md",
+			"summary": "Filter and paginate repository lists",
+			"details": "The new `monochange_app::repository_filter` module holds the dashboard's list rules: `RepositoryFilter` reads the `q` (name search) and `org` (account) query keys and builds links with `href`, `matches_search` matches a repository's name (or `owner/name` when the search contains `/`), and `repository_page` returns one `REPOSITORIES_PER_PAGE` (20) page with its position and page count.\n\nThe new `components::repository_list` module renders them: `RepositoryFilters` (a GET search form that updates the URL in place after hydration), `RepositoryPager` (one list's pages), and `RepositoryPicker` (project-form checkboxes with a name filter that only hides rows, so hidden selections still submit). `RepoInfo` now derives `PartialEq` and `Eq`.\n\n```text\n/dashboard?q=web&org=acme\n```",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "feat"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "54ad0578d090b8116c7cd4cc0f37e629a9df7f7a",
+						"short_sha": "54ad057",
+						"url": "https://github.com/monochange/monochange/commit/54ad0578d090b8116c7cd4cc0f37e629a9df7f7a",
+						"authored_at": "2026-10-20T01:32:23+01:00",
+						"committed_at": "2026-10-20T01:32:23+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#804",
+						"title": "feat(app): search, filter, and page the dashboard's repository lists",
+						"url": "https://github.com/monochange/monochange/pull/804",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "54ad0578d090b8116c7cd4cc0f37e629a9df7f7a",
+						"short_sha": "54ad057",
+						"url": "https://github.com/monochange/monochange/commit/54ad0578d090b8116c7cd4cc0f37e629a9df7f7a",
+						"authored_at": "2026-10-20T01:32:23+01:00",
+						"committed_at": "2026-10-20T01:32:23+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#804",
+						"title": "feat(app): search, filter, and page the dashboard's repository lists",
+						"url": "https://github.com/monochange/monochange/pull/804",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/dashboard-repository-search-website.md",
+			"summary": "Search, filter, and page through your repositories",
+			"details": "The dashboard no longer lists every connected repository at once. Each account folds open to its repositories, 20 to a page, in a list that scrolls inside the window. Search by repository name, or pick one account, to narrow every list; the search stays in the address so you can reload or share the filtered view. An organisation's page gets the same search and pages, and the repository checkboxes when you create or edit a project can be filtered by name.\n\nThe \"Free\" label beside each repository is gone; each row now shows whether the repository is public or private.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "website_feature"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "54ad0578d090b8116c7cd4cc0f37e629a9df7f7a",
+						"short_sha": "54ad057",
+						"url": "https://github.com/monochange/monochange/commit/54ad0578d090b8116c7cd4cc0f37e629a9df7f7a",
+						"authored_at": "2026-10-20T01:32:23+01:00",
+						"committed_at": "2026-10-20T01:32:23+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#804",
+						"title": "feat(app): search, filter, and page the dashboard's repository lists",
+						"url": "https://github.com/monochange/monochange/pull/804",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "54ad0578d090b8116c7cd4cc0f37e629a9df7f7a",
+						"short_sha": "54ad057",
+						"url": "https://github.com/monochange/monochange/commit/54ad0578d090b8116c7cd4cc0f37e629a9df7f7a",
+						"authored_at": "2026-10-20T01:32:23+01:00",
+						"committed_at": "2026-10-20T01:32:23+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#804",
+						"title": "feat(app): search, filter, and page the dashboard's repository lists",
+						"url": "https://github.com/monochange/monochange/pull/804",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/hosted-commit-body-limit.md",
+			"summary": "Accept hosted release commits larger than 2 MiB",
+			"details": "`POST /api/release-commits` now accepts request bodies up to 32 MiB (`monochange_app_api::RELEASE_COMMIT_BODY_LIMIT`). Before this change, the route used axum's 2 MiB default, so a grouped release that rewrote many changelogs was rejected with `400 Bad Request` (`length limit exceeded`) before it was authenticated. monochange's own release commits already send about 3 MiB of changelog content.\n\nOther API routes keep the 2 MiB default. No configuration change is needed; deploy the new app version before switching a large repository's release workflow to `commit_backend = \"hosted\"`.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "8aeb10ac3402d46ce6fd5e38446a398009f7f21d",
+						"short_sha": "8aeb10a",
+						"url": "https://github.com/monochange/monochange/commit/8aeb10ac3402d46ce6fd5e38446a398009f7f21d",
+						"authored_at": "2026-10-19T22:31:32+01:00",
+						"committed_at": "2026-10-19T22:31:32+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#803",
+						"title": "fix(release): make hosted release commits match the local commit",
+						"url": "https://github.com/monochange/monochange/pull/803",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "8aeb10ac3402d46ce6fd5e38446a398009f7f21d",
+						"short_sha": "8aeb10a",
+						"url": "https://github.com/monochange/monochange/commit/8aeb10ac3402d46ce6fd5e38446a398009f7f21d",
+						"authored_at": "2026-10-19T22:31:32+01:00",
+						"committed_at": "2026-10-19T22:31:32+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#803",
+						"title": "fix(release): make hosted release commits match the local commit",
+						"url": "https://github.com/monochange/monochange/pull/803",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/hosted-commit-stage-all.md",
+			"summary": "Make hosted release commits match the files a local release commit stages",
+			"details": "`CommitRelease` with `commit_backend = \"hosted\"` now honors `stage_all = true`. Before this change, the hosted backend ignored the setting and sent only the files monochange tracks itself (changelogs, manifests, consumed changesets, and the release record), so files that earlier `Command` steps rewrote, such as `Cargo.lock`, `pnpm-lock.yaml`, generated schemas, or CLI snapshots, were missing from the bot's release commit.\n\nWith `stage_all = true`, the hosted request now also carries every path `git add --all` would stage: modified and staged tracked files, untracked files that `.gitignore` does not exclude, and deleted files (sent without content so the release commit removes them). Workflows that leave `stage_all` unset still send only the release-managed files.\n\nThe hosted backend now also filters release-managed files the way the local backend does before `git add`. It no longer sends `.monochange/local/release-manifest.json` or other ignored local artifacts, which previously landed on the release branch, and it only sends a missing path as a deletion when git tracks it.\n\n```toml\n[[cli.release.steps]]\ntype = \"CommitRelease\"\ncommit_backend = \"hosted\"\ninputs = { stage_all = true }\n```",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "8aeb10ac3402d46ce6fd5e38446a398009f7f21d",
+						"short_sha": "8aeb10a",
+						"url": "https://github.com/monochange/monochange/commit/8aeb10ac3402d46ce6fd5e38446a398009f7f21d",
+						"authored_at": "2026-10-19T22:31:32+01:00",
+						"committed_at": "2026-10-19T22:31:32+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#803",
+						"title": "fix(release): make hosted release commits match the local commit",
+						"url": "https://github.com/monochange/monochange/pull/803",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "8aeb10ac3402d46ce6fd5e38446a398009f7f21d",
+						"short_sha": "8aeb10a",
+						"url": "https://github.com/monochange/monochange/commit/8aeb10ac3402d46ce6fd5e38446a398009f7f21d",
+						"authored_at": "2026-10-19T22:31:32+01:00",
+						"committed_at": "2026-10-19T22:31:32+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#803",
+						"title": "fix(release): make hosted release commits match the local commit",
+						"url": "https://github.com/monochange/monochange/pull/803",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/hosted-release-setup-guide.md",
+			"summary": "Set up bot release pull requests without a token",
+			"details": "The GitHub App guide now walks through using monochange.dev to create release commits and release pull requests: why the app replaces `GITHUB_TOKEN` and personal access tokens, what to approve when installing the app, the `monochange.toml` change, and a complete GitHub Actions job that only needs `id-token: write`. It no longer says hosted releases need a separate rollout, and it explains that monochange.dev does not issue per-user `MONOCHANGE_TOKEN` values, so hosted release commits run from GitHub Actions.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "website_fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "fcf4db68e4b9ccfebc003e04f98c9198494817e3",
+						"short_sha": "fcf4db6",
+						"url": "https://github.com/monochange/monochange/commit/fcf4db68e4b9ccfebc003e04f98c9198494817e3",
+						"authored_at": "2026-10-20T07:54:50+01:00",
+						"committed_at": "2026-10-20T07:54:50+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#806",
+						"title": "docs(app): explain how to set up monochange.dev as the release commit signer",
+						"url": "https://github.com/monochange/monochange/pull/806",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "fcf4db68e4b9ccfebc003e04f98c9198494817e3",
+						"short_sha": "fcf4db6",
+						"url": "https://github.com/monochange/monochange/commit/fcf4db68e4b9ccfebc003e04f98c9198494817e3",
+						"authored_at": "2026-10-20T07:54:50+01:00",
+						"committed_at": "2026-10-20T07:54:50+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#806",
+						"title": "docs(app): explain how to set up monochange.dev as the release commit signer",
+						"url": "https://github.com/monochange/monochange/pull/806",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/monostyle-score-80.md",
+			"summary": "Split the CLI dispatcher and changelog validation into focused helpers",
+			"details": "`dispatch_cli_args` held every config-free fast path, configuration loading, clap error handling, `--jq` validation, and all subcommand arms in one function, and monostyle scored it at a cognitive complexity of 364, the largest complexity penalty in the repository. It is now a short sequence of calls: `render_config_free_request` answers version and built-in help before the workspace loads, `load_configuration_with_progress` reports the loading phase, `render_clap_parse_failure` turns parse errors into help or diagnostics, `run_cli_subcommand` dispatches the parsed subcommand to one helper per command, and `finish_cli_output` applies `--quiet`, `--jq`, and Markdown output once. Branches that could never run are removed: the second root-help checks, the post-parse `--snapshot` flag and `help` subcommand handling (both are always answered before parsing), and the usage errors for `step`, `run`, `change`, `api`, and `changeset`, whose nested subcommands clap already requires. The per-command `--quiet` checks collapse into the final step except for `skill`, which writes topic content directly. The now-unused `command_path_from_matches` helper is deleted.\n\n`validate_changelog_configuration` in `monochange_config` is split the same way, into template, type, output, output-target, and excluded-type validators that keep the original checks, error messages, and order.\n\nBehavior is unchanged. The repository's monostyle complexity score rises from 79.5 to 80.8, and `lint:monostyle` now fails below 80 for readability or complexity and runs in the CI `lint` job.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "refactor"
+				},
+				{
+					"id": "monochange_config",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "refactor"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "44e3573fa720db224a4e1d4028366e48bac942da",
+						"short_sha": "44e3573",
+						"url": "https://github.com/monochange/monochange/commit/44e3573fa720db224a4e1d4028366e48bac942da",
+						"authored_at": "2026-10-20T08:16:07+01:00",
+						"committed_at": "2026-10-20T08:16:07+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#808",
+						"title": "refactor: hold monostyle readability and complexity at 80 in CI",
+						"url": "https://github.com/monochange/monochange/pull/808",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "44e3573fa720db224a4e1d4028366e48bac942da",
+						"short_sha": "44e3573",
+						"url": "https://github.com/monochange/monochange/commit/44e3573fa720db224a4e1d4028366e48bac942da",
+						"authored_at": "2026-10-20T08:16:07+01:00",
+						"committed_at": "2026-10-20T08:16:07+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#808",
+						"title": "refactor: hold monostyle readability and complexity at 80 in CI",
+						"url": "https://github.com/monochange/monochange/pull/808",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/pnpm-trusted-publishing-docs.md",
+			"summary": "Document pnpm trusted publishing",
+			"details": "The trusted-publishing and configuration guides now explain that pnpm workspaces publish with `pnpm publish`, including under trusted publishing, that this requires pnpm 11.1.3 or later on the publishing runner, and why monochange passes `--no-git-checks` to pnpm.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "93a3389eb45b6be283e01ef487fede53ab45d2fd",
+						"short_sha": "93a3389",
+						"url": "https://github.com/monochange/monochange/commit/93a3389eb45b6be283e01ef487fede53ab45d2fd",
+						"authored_at": "2026-10-20T08:19:54+01:00",
+						"committed_at": "2026-10-20T08:19:54+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#809",
+						"title": "fix(publish): publish pnpm workspaces with pnpm under trusted publishing",
+						"url": "https://github.com/monochange/monochange/pull/809",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "93a3389eb45b6be283e01ef487fede53ab45d2fd",
+						"short_sha": "93a3389",
+						"url": "https://github.com/monochange/monochange/commit/93a3389eb45b6be283e01ef487fede53ab45d2fd",
+						"authored_at": "2026-10-20T08:19:54+01:00",
+						"committed_at": "2026-10-20T08:19:54+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#809",
+						"title": "fix(publish): publish pnpm workspaces with pnpm under trusted publishing",
+						"url": "https://github.com/monochange/monochange/pull/809",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/pnpm-trusted-publishing.md",
+			"summary": "Publish pnpm workspaces with pnpm under trusted publishing",
+			"details": "npm-registry packages in a pnpm workspace now always publish with `pnpm publish`, including when `publish.trusted_publishing` is enabled. Before this change, trusted publishing switched these packages to `npm publish`. npm does not understand the `workspace:` protocol, so any internal dependency declared as `workspace:*` or `workspace:^` was published verbatim and broke installs for consumers. pnpm rewrites those ranges to real versions when it packs.\n\npnpm 11 performs npm's OIDC trusted-publishing exchange natively, so trusted publishing from a pnpm workspace now requires pnpm 11.1.3 or later on the publishing runner:\n\n```yaml\n- uses: pnpm/action-setup@v6\n  with:\n    version: 11\n```\n\npnpm publish and placeholder commands also pass `--no-git-checks`. monochange validates the release commit itself, and release jobs usually run from a detached tag checkout with build outputs in the tree, which pnpm's branch and clean-tree checks would reject. npm, Yarn, and Bun workspaces keep publishing with the `npm` CLI.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				},
+				{
+					"id": "monochange_publish",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "93a3389eb45b6be283e01ef487fede53ab45d2fd",
+						"short_sha": "93a3389",
+						"url": "https://github.com/monochange/monochange/commit/93a3389eb45b6be283e01ef487fede53ab45d2fd",
+						"authored_at": "2026-10-20T08:19:54+01:00",
+						"committed_at": "2026-10-20T08:19:54+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#809",
+						"title": "fix(publish): publish pnpm workspaces with pnpm under trusted publishing",
+						"url": "https://github.com/monochange/monochange/pull/809",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "93a3389eb45b6be283e01ef487fede53ab45d2fd",
+						"short_sha": "93a3389",
+						"url": "https://github.com/monochange/monochange/commit/93a3389eb45b6be283e01ef487fede53ab45d2fd",
+						"authored_at": "2026-10-20T08:19:54+01:00",
+						"committed_at": "2026-10-20T08:19:54+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#809",
+						"title": "fix(publish): publish pnpm workspaces with pnpm under trusted publishing",
+						"url": "https://github.com/monochange/monochange/pull/809",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		}
+	],
+	"changelogs": [
+		{
+			"owner_id": "monochange_app",
+			"owner_kind": "package",
+			"output": "website",
+			"stream": "website",
+			"path": "app/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "0.3.1",
+				"summary": [],
+				"sections": [
+					{
+						"title": "New",
+						"collapsed": false,
+						"entries": [
+							"#### Fair use limits for the monochange.dev API\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #807](https://github.com/monochange/monochange/pull/807)\n\nmonochange.dev now limits how quickly one client can call its API, so a single script can't slow the site down for everyone else. Normal browsing never comes close to the limit. Signed-in users get five times the allowance of anonymous visitors.\n\nIf you do hit the limit, the site tells you how many seconds to wait before trying again. Scripts that read the public task API get a `429 Too Many Requests` response with a `Retry-After` header, and every API response reports how many requests remain.",
+							"#### Search, filter, and page through your repositories\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #804](https://github.com/monochange/monochange/pull/804)\n\nThe dashboard no longer lists every connected repository at once. Each account folds open to its repositories, 20 to a page, in a list that scrolls inside the window. Search by repository name, or pick one account, to narrow every list; the search stays in the address so you can reload or share the filtered view. An organisation's page gets the same search and pages, and the repository checkboxes when you create or edit a project can be filtered by name.\n\nThe \"Free\" label beside each repository is gone; each row now shows whether the repository is public or private."
+						]
+					},
+					{
+						"title": "Improved",
+						"collapsed": false,
+						"entries": [
+							"- **Set up bot release pull requests without a token.** The GitHub App guide now walks through using monochange.dev to create release commits and release pull requests: why the app replaces `GITHUB_TOKEN` and personal access tokens, what to approve when installing the app, the `monochange.toml` change, and a complete GitHub Actions job that only needs `id-token: write`. It no longer says hosted releases need a separate rollout, and it explains that monochange.dev does not issue per-user `MONOCHANGE_TOKEN` values, so hosted release commits run from GitHub Actions.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #806](https://github.com/monochange/monochange/pull/806)"
+						]
+					}
+				]
+			},
+			"rendered": "## 0.3.1\n\n### New\n\n#### Fair use limits for the monochange.dev API\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #807](https://github.com/monochange/monochange/pull/807)\n\nmonochange.dev now limits how quickly one client can call its API, so a single script can't slow the site down for everyone else. Normal browsing never comes close to the limit. Signed-in users get five times the allowance of anonymous visitors.\n\nIf you do hit the limit, the site tells you how many seconds to wait before trying again. Scripts that read the public task API get a `429 Too Many Requests` response with a `Retry-After` header, and every API response reports how many requests remain.\n\n#### Search, filter, and page through your repositories\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #804](https://github.com/monochange/monochange/pull/804)\n\nThe dashboard no longer lists every connected repository at once. Each account folds open to its repositories, 20 to a page, in a list that scrolls inside the window. Search by repository name, or pick one account, to narrow every list; the search stays in the address so you can reload or share the filtered view. An organisation's page gets the same search and pages, and the repository checkboxes when you create or edit a project can be filtered by name.\n\nThe \"Free\" label beside each repository is gone; each row now shows whether the repository is public or private.\n\n### Improved\n\n- **Set up bot release pull requests without a token.** The GitHub App guide now walks through using monochange.dev to create release commits and release pull requests: why the app replaces `GITHUB_TOKEN` and personal access tokens, what to approve when installing the app, the `monochange.toml` change, and a complete GitHub Actions job that only needs `id-token: write`. It no longer says hosted releases need a separate rollout, and it explains that monochange.dev does not issue per-user `MONOCHANGE_TOKEN` values, so hosted release commits run from GitHub Actions.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #806](https://github.com/monochange/monochange/pull/806)"
+		},
+		{
+			"owner_id": "monochange_app",
+			"owner_kind": "package",
+			"output": "website_developer",
+			"stream": "default",
+			"path": "app/developer-changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "0.3.1",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Rate limit the API per client\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #807](https://github.com/monochange/monochange/pull/807)\n\nThe new `monochange_app::rate_limit` module limits Leptos server functions and the REST endpoints under `/api` with [`governor`](https://docs.rs/governor) GCRA buckets. Requests with a valid session cookie count against the signed-in user's bucket (300 a minute, burst 100); every other request counts against its client address (60 a minute, burst 30), with IPv6 addresses grouped by their /64. Pages, `/pkg` assets, `/health`, and `/api/github/webhooks` are not limited.\n\n`X-Forwarded-For` is read from the right and only when the peer is a loopback or private address, which is Caddy in the production deployment. The server now runs with `into_make_service_with_connect_info::<SocketAddr>()` so the middleware sees the peer address.\n\nLimited responses carry `RateLimit-Policy` and `RateLimit` fields, and a `429 Too Many Requests` adds `Retry-After`. Server function rejections use the `ServerFnError` encoding (`ServerError|Too many requests. Try again in 12 seconds.`); REST rejections use the endpoints' `{\"message\": ...}` JSON body.\n\nOverride the limits with environment variables; a value that isn't a whole number above zero stops startup:\n\n```bash\nMONOCHANGE_RATE_LIMIT_ANONYMOUS_PER_MINUTE=60\nMONOCHANGE_RATE_LIMIT_ANONYMOUS_BURST=30\nMONOCHANGE_RATE_LIMIT_AUTHENTICATED_PER_MINUTE=300\nMONOCHANGE_RATE_LIMIT_AUTHENTICATED_BURST=100\n```",
+							"#### Filter and paginate repository lists\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #804](https://github.com/monochange/monochange/pull/804)\n\nThe new `monochange_app::repository_filter` module holds the dashboard's list rules: `RepositoryFilter` reads the `q` (name search) and `org` (account) query keys and builds links with `href`, `matches_search` matches a repository's name (or `owner/name` when the search contains `/`), and `repository_page` returns one `REPOSITORIES_PER_PAGE` (20) page with its position and page count.\n\nThe new `components::repository_list` module renders them: `RepositoryFilters` (a GET search form that updates the URL in place after hydration), `RepositoryPager` (one list's pages), and `RepositoryPicker` (project-form checkboxes with a name filter that only hides rows, so hidden selections still submit). `RepoInfo` now derives `PartialEq` and `Eq`.\n\n```text\n/dashboard?q=web&org=acme\n```"
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Accept hosted release commits larger than 2 MiB\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #803](https://github.com/monochange/monochange/pull/803)\n\n`POST /api/release-commits` now accepts request bodies up to 32 MiB (`monochange_app_api::RELEASE_COMMIT_BODY_LIMIT`). Before this change, the route used axum's 2 MiB default, so a grouped release that rewrote many changelogs was rejected with `400 Bad Request` (`length limit exceeded`) before it was authenticated. monochange's own release commits already send about 3 MiB of changelog content.\n\nOther API routes keep the 2 MiB default. No configuration change is needed; deploy the new app version before switching a large repository's release workflow to `commit_backend = \"hosted\"`.",
+							"- **Document pnpm trusted publishing.** The trusted-publishing and configuration guides now explain that pnpm workspaces publish with `pnpm publish`, including under trusted publishing, that this requires pnpm 11.1.3 or later on the publishing runner, and why monochange passes `--no-git-checks` to pnpm.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #809](https://github.com/monochange/monochange/pull/809)"
+						]
+					}
+				]
+			},
+			"rendered": "## 0.3.1\n\n### 🚀 Feature\n\n#### Rate limit the API per client\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #807](https://github.com/monochange/monochange/pull/807)\n\nThe new `monochange_app::rate_limit` module limits Leptos server functions and the REST endpoints under `/api` with [`governor`](https://docs.rs/governor) GCRA buckets. Requests with a valid session cookie count against the signed-in user's bucket (300 a minute, burst 100); every other request counts against its client address (60 a minute, burst 30), with IPv6 addresses grouped by their /64. Pages, `/pkg` assets, `/health`, and `/api/github/webhooks` are not limited.\n\n`X-Forwarded-For` is read from the right and only when the peer is a loopback or private address, which is Caddy in the production deployment. The server now runs with `into_make_service_with_connect_info::<SocketAddr>()` so the middleware sees the peer address.\n\nLimited responses carry `RateLimit-Policy` and `RateLimit` fields, and a `429 Too Many Requests` adds `Retry-After`. Server function rejections use the `ServerFnError` encoding (`ServerError|Too many requests. Try again in 12 seconds.`); REST rejections use the endpoints' `{\"message\": ...}` JSON body.\n\nOverride the limits with environment variables; a value that isn't a whole number above zero stops startup:\n\n```bash\nMONOCHANGE_RATE_LIMIT_ANONYMOUS_PER_MINUTE=60\nMONOCHANGE_RATE_LIMIT_ANONYMOUS_BURST=30\nMONOCHANGE_RATE_LIMIT_AUTHENTICATED_PER_MINUTE=300\nMONOCHANGE_RATE_LIMIT_AUTHENTICATED_BURST=100\n```\n\n#### Filter and paginate repository lists\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #804](https://github.com/monochange/monochange/pull/804)\n\nThe new `monochange_app::repository_filter` module holds the dashboard's list rules: `RepositoryFilter` reads the `q` (name search) and `org` (account) query keys and builds links with `href`, `matches_search` matches a repository's name (or `owner/name` when the search contains `/`), and `repository_page` returns one `REPOSITORIES_PER_PAGE` (20) page with its position and page count.\n\nThe new `components::repository_list` module renders them: `RepositoryFilters` (a GET search form that updates the URL in place after hydration), `RepositoryPager` (one list's pages), and `RepositoryPicker` (project-form checkboxes with a name filter that only hides rows, so hidden selections still submit). `RepoInfo` now derives `PartialEq` and `Eq`.\n\n```text\n/dashboard?q=web&org=acme\n```\n\n### 🐛 Fixed\n\n#### Accept hosted release commits larger than 2 MiB\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #803](https://github.com/monochange/monochange/pull/803)\n\n`POST /api/release-commits` now accepts request bodies up to 32 MiB (`monochange_app_api::RELEASE_COMMIT_BODY_LIMIT`). Before this change, the route used axum's 2 MiB default, so a grouped release that rewrote many changelogs was rejected with `400 Bad Request` (`length limit exceeded`) before it was authenticated. monochange's own release commits already send about 3 MiB of changelog content.\n\nOther API routes keep the 2 MiB default. No configuration change is needed; deploy the new app version before switching a large repository's release workflow to `commit_backend = \"hosted\"`.\n\n- **Document pnpm trusted publishing.** The trusted-publishing and configuration guides now explain that pnpm workspaces publish with `pnpm publish`, including under trusted publishing, that this requires pnpm 11.1.3 or later on the publishing runner, and why monochange passes `--no-git-checks` to pnpm.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #809](https://github.com/monochange/monochange/pull/809)"
+		},
+		{
+			"owner_id": "monochange_app",
+			"owner_kind": "package",
+			"output": "website_json",
+			"stream": "website",
+			"path": "app/public/releases/0.3.1.json",
+			"format": "json",
+			"notes": {
+				"title": "0.3.1",
+				"summary": [],
+				"sections": [
+					{
+						"title": "New",
+						"collapsed": false,
+						"entries": [
+							"#### Fair use limits for the monochange.dev API\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #807](https://github.com/monochange/monochange/pull/807)\n\nmonochange.dev now limits how quickly one client can call its API, so a single script can't slow the site down for everyone else. Normal browsing never comes close to the limit. Signed-in users get five times the allowance of anonymous visitors.\n\nIf you do hit the limit, the site tells you how many seconds to wait before trying again. Scripts that read the public task API get a `429 Too Many Requests` response with a `Retry-After` header, and every API response reports how many requests remain.",
+							"#### Search, filter, and page through your repositories\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #804](https://github.com/monochange/monochange/pull/804)\n\nThe dashboard no longer lists every connected repository at once. Each account folds open to its repositories, 20 to a page, in a list that scrolls inside the window. Search by repository name, or pick one account, to narrow every list; the search stays in the address so you can reload or share the filtered view. An organisation's page gets the same search and pages, and the repository checkboxes when you create or edit a project can be filtered by name.\n\nThe \"Free\" label beside each repository is gone; each row now shows whether the repository is public or private."
+						]
+					},
+					{
+						"title": "Improved",
+						"collapsed": false,
+						"entries": [
+							"- **Set up bot release pull requests without a token.** The GitHub App guide now walks through using monochange.dev to create release commits and release pull requests: why the app replaces `GITHUB_TOKEN` and personal access tokens, what to approve when installing the app, the `monochange.toml` change, and a complete GitHub Actions job that only needs `id-token: write`. It no longer says hosted releases need a separate rollout, and it explains that monochange.dev does not issue per-user `MONOCHANGE_TOKEN` values, so hosted release commits run from GitHub Actions.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #806](https://github.com/monochange/monochange/pull/806)"
+						]
+					}
+				]
+			},
+			"rendered": "{\n  \"title\": \"0.3.1\",\n  \"summary\": [],\n  \"sections\": [\n    {\n      \"title\": \"New\",\n      \"collapsed\": false,\n      \"entries\": [\n        {\n          \"summary\": \"Fair use limits for the monochange.dev API\",\n          \"details_markdown\": \"monochange.dev now limits how quickly one client can call its API, so a single script can't slow the site down for everyone else. Normal browsing never comes close to the limit. Signed-in users get five times the allowance of anonymous visitors.\\n\\nIf you do hit the limit, the site tells you how many seconds to wait before trying again. Scripts that read the public task API get a `429 Too Many Requests` response with a `Retry-After` header, and every API response reports how many requests remain.\",\n          \"change_type\": \"website_feature\",\n          \"bump\": \"minor\",\n          \"stream\": \"website\",\n          \"style\": \"expanded\",\n          \"provenance\": {\n            \"source_path\": \".changeset/api-rate-limits-website.md\",\n            \"changeset_path\": \".changeset/api-rate-limits-website.md\",\n            \"change_owner\": {\n              \"label\": \"@ifiokjr\",\n              \"url\": \"https://github.com/ifiokjr\"\n            },\n            \"review_request\": {\n              \"label\": \"PR #807\",\n              \"url\": \"https://github.com/monochange/monochange/pull/807\"\n            },\n            \"introduced_commit\": {\n              \"label\": \"7f804e9\",\n              \"url\": \"https://github.com/monochange/monochange/commit/7f804e9c4c0087d10390c115409ddc8f1c5da746\"\n            }\n          }\n        },\n        {\n          \"summary\": \"Search, filter, and page through your repositories\",\n          \"details_markdown\": \"The dashboard no longer lists every connected repository at once. Each account folds open to its repositories, 20 to a page, in a list that scrolls inside the window. Search by repository name, or pick one account, to narrow every list; the search stays in the address so you can reload or share the filtered view. An organisation's page gets the same search and pages, and the repository checkboxes when you create or edit a project can be filtered by name.\\n\\nThe \\\"Free\\\" label beside each repository is gone; each row now shows whether the repository is public or private.\",\n          \"change_type\": \"website_feature\",\n          \"bump\": \"minor\",\n          \"stream\": \"website\",\n          \"style\": \"expanded\",\n          \"provenance\": {\n            \"source_path\": \".changeset/dashboard-repository-search-website.md\",\n            \"changeset_path\": \".changeset/dashboard-repository-search-website.md\",\n            \"change_owner\": {\n              \"label\": \"@ifiokjr\",\n              \"url\": \"https://github.com/ifiokjr\"\n            },\n            \"review_request\": {\n              \"label\": \"PR #804\",\n              \"url\": \"https://github.com/monochange/monochange/pull/804\"\n            },\n            \"introduced_commit\": {\n              \"label\": \"54ad057\",\n              \"url\": \"https://github.com/monochange/monochange/commit/54ad0578d090b8116c7cd4cc0f37e629a9df7f7a\"\n            }\n          }\n        }\n      ]\n    },\n    {\n      \"title\": \"Improved\",\n      \"collapsed\": false,\n      \"entries\": [\n        {\n          \"summary\": \"Set up bot release pull requests without a token\",\n          \"details_markdown\": \"The GitHub App guide now walks through using monochange.dev to create release commits and release pull requests: why the app replaces `GITHUB_TOKEN` and personal access tokens, what to approve when installing the app, the `monochange.toml` change, and a complete GitHub Actions job that only needs `id-token: write`. It no longer says hosted releases need a separate rollout, and it explains that monochange.dev does not issue per-user `MONOCHANGE_TOKEN` values, so hosted release commits run from GitHub Actions.\",\n          \"change_type\": \"website_fix\",\n          \"bump\": \"patch\",\n          \"stream\": \"website\",\n          \"style\": \"compact\",\n          \"provenance\": {\n            \"source_path\": \".changeset/hosted-release-setup-guide.md\",\n            \"changeset_path\": \".changeset/hosted-release-setup-guide.md\",\n            \"change_owner\": {\n              \"label\": \"@ifiokjr\",\n              \"url\": \"https://github.com/ifiokjr\"\n            },\n            \"review_request\": {\n              \"label\": \"PR #806\",\n              \"url\": \"https://github.com/monochange/monochange/pull/806\"\n            },\n            \"introduced_commit\": {\n              \"label\": \"fcf4db6\",\n              \"url\": \"https://github.com/monochange/monochange/commit/fcf4db68e4b9ccfebc003e04f98c9198494817e3\"\n            }\n          }\n        }\n      ]\n    }\n  ]\n}"
+		},
+		{
+			"owner_id": "main",
+			"owner_kind": "group",
+			"output": "default",
+			"stream": "default",
+			"path": "changelog.md",
+			"format": "monochange",
+			"notes": {
+				"title": "[0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)",
+				"summary": [
+					"Grouped release for `main`."
+				],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Make hosted release commits match the files a local release commit stages\n\n_Packages:_ 🟢 _monochange_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #803](https://github.com/monochange/monochange/pull/803)\n\n`CommitRelease` with `commit_backend = \"hosted\"` now honors `stage_all = true`. Before this change, the hosted backend ignored the setting and sent only the files monochange tracks itself (changelogs, manifests, consumed changesets, and the release record), so files that earlier `Command` steps rewrote, such as `Cargo.lock`, `pnpm-lock.yaml`, generated schemas, or CLI snapshots, were missing from the bot's release commit.\n\nWith `stage_all = true`, the hosted request now also carries every path `git add --all` would stage: modified and staged tracked files, untracked files that `.gitignore` does not exclude, and deleted files (sent without content so the release commit removes them). Workflows that leave `stage_all` unset still send only the release-managed files.\n\nThe hosted backend now also filters release-managed files the way the local backend does before `git add`. It no longer sends `.monochange/local/release-manifest.json` or other ignored local artifacts, which previously landed on the release branch, and it only sends a missing path as a deletion when git tracks it.\n\n```toml\n[[cli.release.steps]]\ntype = \"CommitRelease\"\ncommit_backend = \"hosted\"\ninputs = { stage_all = true }\n```",
+							"#### Publish pnpm workspaces with pnpm under trusted publishing\n\n_Packages:_ 🟢 _monochange_, 🟢 _monochange_publish_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #809](https://github.com/monochange/monochange/pull/809)\n\nnpm-registry packages in a pnpm workspace now always publish with `pnpm publish`, including when `publish.trusted_publishing` is enabled. Before this change, trusted publishing switched these packages to `npm publish`. npm does not understand the `workspace:` protocol, so any internal dependency declared as `workspace:*` or `workspace:^` was published verbatim and broke installs for consumers. pnpm rewrites those ranges to real versions when it packs.\n\npnpm 11 performs npm's OIDC trusted-publishing exchange natively, so trusted publishing from a pnpm workspace now requires pnpm 11.1.3 or later on the publishing runner:\n\n```yaml\n- uses: pnpm/action-setup@v6\n  with:\n    version: 11\n```\n\npnpm publish and placeholder commands also pass `--no-git-checks`. monochange validates the release commit itself, and release jobs usually run from a detached tag checkout with build outputs in the tree, which pnpm's branch and clean-tree checks would reject. npm, Yarn, and Bun workspaces keep publishing with the `npm` CLI."
+						]
+					},
+					{
+						"title": "🔨 Refactor",
+						"collapsed": true,
+						"entries": [
+							"#### Split the CLI dispatcher and changelog validation into focused helpers\n\n_Packages:_ 🟢 _monochange_, 🟢 _monochange_config_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #808](https://github.com/monochange/monochange/pull/808)\n\n`dispatch_cli_args` held every config-free fast path, configuration loading, clap error handling, `--jq` validation, and all subcommand arms in one function, and monostyle scored it at a cognitive complexity of 364, the largest complexity penalty in the repository. It is now a short sequence of calls: `render_config_free_request` answers version and built-in help before the workspace loads, `load_configuration_with_progress` reports the loading phase, `render_clap_parse_failure` turns parse errors into help or diagnostics, `run_cli_subcommand` dispatches the parsed subcommand to one helper per command, and `finish_cli_output` applies `--quiet`, `--jq`, and Markdown output once. Branches that could never run are removed: the second root-help checks, the post-parse `--snapshot` flag and `help` subcommand handling (both are always answered before parsing), and the usage errors for `step`, `run`, `change`, `api`, and `changeset`, whose nested subcommands clap already requires. The per-command `--quiet` checks collapse into the final step except for `skill`, which writes topic content directly. The now-unused `command_path_from_matches` helper is deleted.\n\n`validate_changelog_configuration` in `monochange_config` is split the same way, into template, type, output, output-target, and excluded-type validators that keep the original checks, error messages, and order.\n\nBehavior is unchanged. The repository's monostyle complexity score rises from 79.5 to 80.8, and `lint:monostyle` now fails below 80 for readability or complexity and runs in the CI `lint` job."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)\n\nGrouped release for `main`.\n\n### 🐛 Fixed\n\n#### Make hosted release commits match the files a local release commit stages\n\n_Packages:_ 🟢 _monochange_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #803](https://github.com/monochange/monochange/pull/803)\n\n`CommitRelease` with `commit_backend = \"hosted\"` now honors `stage_all = true`. Before this change, the hosted backend ignored the setting and sent only the files monochange tracks itself (changelogs, manifests, consumed changesets, and the release record), so files that earlier `Command` steps rewrote, such as `Cargo.lock`, `pnpm-lock.yaml`, generated schemas, or CLI snapshots, were missing from the bot's release commit.\n\nWith `stage_all = true`, the hosted request now also carries every path `git add --all` would stage: modified and staged tracked files, untracked files that `.gitignore` does not exclude, and deleted files (sent without content so the release commit removes them). Workflows that leave `stage_all` unset still send only the release-managed files.\n\nThe hosted backend now also filters release-managed files the way the local backend does before `git add`. It no longer sends `.monochange/local/release-manifest.json` or other ignored local artifacts, which previously landed on the release branch, and it only sends a missing path as a deletion when git tracks it.\n\n```toml\n[[cli.release.steps]]\ntype = \"CommitRelease\"\ncommit_backend = \"hosted\"\ninputs = { stage_all = true }\n```\n\n#### Publish pnpm workspaces with pnpm under trusted publishing\n\n_Packages:_ 🟢 _monochange_, 🟢 _monochange_publish_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #809](https://github.com/monochange/monochange/pull/809)\n\nnpm-registry packages in a pnpm workspace now always publish with `pnpm publish`, including when `publish.trusted_publishing` is enabled. Before this change, trusted publishing switched these packages to `npm publish`. npm does not understand the `workspace:` protocol, so any internal dependency declared as `workspace:*` or `workspace:^` was published verbatim and broke installs for consumers. pnpm rewrites those ranges to real versions when it packs.\n\npnpm 11 performs npm's OIDC trusted-publishing exchange natively, so trusted publishing from a pnpm workspace now requires pnpm 11.1.3 or later on the publishing runner:\n\n```yaml\n- uses: pnpm/action-setup@v6\n  with:\n    version: 11\n```\n\npnpm publish and placeholder commands also pass `--no-git-checks`. monochange validates the release commit itself, and release jobs usually run from a detached tag checkout with build outputs in the tree, which pnpm's branch and clean-tree checks would reject. npm, Yarn, and Bun workspaces keep publishing with the `npm` CLI.\n\n<details>\n<summary><strong>🔨 Refactor</strong></summary>\n\n#### Split the CLI dispatcher and changelog validation into focused helpers\n\n_Packages:_ 🟢 _monochange_, 🟢 _monochange_config_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #808](https://github.com/monochange/monochange/pull/808)\n\n`dispatch_cli_args` held every config-free fast path, configuration loading, clap error handling, `--jq` validation, and all subcommand arms in one function, and monostyle scored it at a cognitive complexity of 364, the largest complexity penalty in the repository. It is now a short sequence of calls: `render_config_free_request` answers version and built-in help before the workspace loads, `load_configuration_with_progress` reports the loading phase, `render_clap_parse_failure` turns parse errors into help or diagnostics, `run_cli_subcommand` dispatches the parsed subcommand to one helper per command, and `finish_cli_output` applies `--quiet`, `--jq`, and Markdown output once. Branches that could never run are removed: the second root-help checks, the post-parse `--snapshot` flag and `help` subcommand handling (both are always answered before parsing), and the usage errors for `step`, `run`, `change`, `api`, and `changeset`, whose nested subcommands clap already requires. The per-command `--quiet` checks collapse into the final step except for `skill`, which writes topic content directly. The now-unused `command_path_from_matches` helper is deleted.\n\n`validate_changelog_configuration` in `monochange_config` is split the same way, into template, type, output, output-target, and excluded-type validators that keep the original checks, error messages, and order.\n\nBehavior is unchanged. The repository's monostyle complexity score rises from 79.5 to 80.8, and `lint:monostyle` now fails below 80 for readability or complexity and runs in the CI `lint` job.\n</details>"
+		},
+		{
+			"owner_id": "monochange",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Make hosted release commits match the files a local release commit stages\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #803](https://github.com/monochange/monochange/pull/803)\n\n`CommitRelease` with `commit_backend = \"hosted\"` now honors `stage_all = true`. Before this change, the hosted backend ignored the setting and sent only the files monochange tracks itself (changelogs, manifests, consumed changesets, and the release record), so files that earlier `Command` steps rewrote, such as `Cargo.lock`, `pnpm-lock.yaml`, generated schemas, or CLI snapshots, were missing from the bot's release commit.\n\nWith `stage_all = true`, the hosted request now also carries every path `git add --all` would stage: modified and staged tracked files, untracked files that `.gitignore` does not exclude, and deleted files (sent without content so the release commit removes them). Workflows that leave `stage_all` unset still send only the release-managed files.\n\nThe hosted backend now also filters release-managed files the way the local backend does before `git add`. It no longer sends `.monochange/local/release-manifest.json` or other ignored local artifacts, which previously landed on the release branch, and it only sends a missing path as a deletion when git tracks it.\n\n```toml\n[[cli.release.steps]]\ntype = \"CommitRelease\"\ncommit_backend = \"hosted\"\ninputs = { stage_all = true }\n```",
+							"#### Publish pnpm workspaces with pnpm under trusted publishing\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #809](https://github.com/monochange/monochange/pull/809)\n\nnpm-registry packages in a pnpm workspace now always publish with `pnpm publish`, including when `publish.trusted_publishing` is enabled. Before this change, trusted publishing switched these packages to `npm publish`. npm does not understand the `workspace:` protocol, so any internal dependency declared as `workspace:*` or `workspace:^` was published verbatim and broke installs for consumers. pnpm rewrites those ranges to real versions when it packs.\n\npnpm 11 performs npm's OIDC trusted-publishing exchange natively, so trusted publishing from a pnpm workspace now requires pnpm 11.1.3 or later on the publishing runner:\n\n```yaml\n- uses: pnpm/action-setup@v6\n  with:\n    version: 11\n```\n\npnpm publish and placeholder commands also pass `--no-git-checks`. monochange validates the release commit itself, and release jobs usually run from a detached tag checkout with build outputs in the tree, which pnpm's branch and clean-tree checks would reject. npm, Yarn, and Bun workspaces keep publishing with the `npm` CLI."
+						]
+					},
+					{
+						"title": "🔨 Refactor",
+						"collapsed": true,
+						"entries": [
+							"#### Split the CLI dispatcher and changelog validation into focused helpers\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #808](https://github.com/monochange/monochange/pull/808)\n\n`dispatch_cli_args` held every config-free fast path, configuration loading, clap error handling, `--jq` validation, and all subcommand arms in one function, and monostyle scored it at a cognitive complexity of 364, the largest complexity penalty in the repository. It is now a short sequence of calls: `render_config_free_request` answers version and built-in help before the workspace loads, `load_configuration_with_progress` reports the loading phase, `render_clap_parse_failure` turns parse errors into help or diagnostics, `run_cli_subcommand` dispatches the parsed subcommand to one helper per command, and `finish_cli_output` applies `--quiet`, `--jq`, and Markdown output once. Branches that could never run are removed: the second root-help checks, the post-parse `--snapshot` flag and `help` subcommand handling (both are always answered before parsing), and the usage errors for `step`, `run`, `change`, `api`, and `changeset`, whose nested subcommands clap already requires. The per-command `--quiet` checks collapse into the final step except for `skill`, which writes topic content directly. The now-unused `command_path_from_matches` helper is deleted.\n\n`validate_changelog_configuration` in `monochange_config` is split the same way, into template, type, output, output-target, and excluded-type validators that keep the original checks, error messages, and order.\n\nBehavior is unchanged. The repository's monostyle complexity score rises from 79.5 to 80.8, and `lint:monostyle` now fails below 80 for readability or complexity and runs in the CI `lint` job."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)\n\n### 🐛 Fixed\n\n#### Make hosted release commits match the files a local release commit stages\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #803](https://github.com/monochange/monochange/pull/803)\n\n`CommitRelease` with `commit_backend = \"hosted\"` now honors `stage_all = true`. Before this change, the hosted backend ignored the setting and sent only the files monochange tracks itself (changelogs, manifests, consumed changesets, and the release record), so files that earlier `Command` steps rewrote, such as `Cargo.lock`, `pnpm-lock.yaml`, generated schemas, or CLI snapshots, were missing from the bot's release commit.\n\nWith `stage_all = true`, the hosted request now also carries every path `git add --all` would stage: modified and staged tracked files, untracked files that `.gitignore` does not exclude, and deleted files (sent without content so the release commit removes them). Workflows that leave `stage_all` unset still send only the release-managed files.\n\nThe hosted backend now also filters release-managed files the way the local backend does before `git add`. It no longer sends `.monochange/local/release-manifest.json` or other ignored local artifacts, which previously landed on the release branch, and it only sends a missing path as a deletion when git tracks it.\n\n```toml\n[[cli.release.steps]]\ntype = \"CommitRelease\"\ncommit_backend = \"hosted\"\ninputs = { stage_all = true }\n```\n\n#### Publish pnpm workspaces with pnpm under trusted publishing\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #809](https://github.com/monochange/monochange/pull/809)\n\nnpm-registry packages in a pnpm workspace now always publish with `pnpm publish`, including when `publish.trusted_publishing` is enabled. Before this change, trusted publishing switched these packages to `npm publish`. npm does not understand the `workspace:` protocol, so any internal dependency declared as `workspace:*` or `workspace:^` was published verbatim and broke installs for consumers. pnpm rewrites those ranges to real versions when it packs.\n\npnpm 11 performs npm's OIDC trusted-publishing exchange natively, so trusted publishing from a pnpm workspace now requires pnpm 11.1.3 or later on the publishing runner:\n\n```yaml\n- uses: pnpm/action-setup@v6\n  with:\n    version: 11\n```\n\npnpm publish and placeholder commands also pass `--no-git-checks`. monochange validates the release commit itself, and release jobs usually run from a detached tag checkout with build outputs in the tree, which pnpm's branch and clean-tree checks would reject. npm, Yarn, and Bun workspaces keep publishing with the `npm` CLI.\n\n<details>\n<summary><strong>🔨 Refactor</strong></summary>\n\n#### Split the CLI dispatcher and changelog validation into focused helpers\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #808](https://github.com/monochange/monochange/pull/808)\n\n`dispatch_cli_args` held every config-free fast path, configuration loading, clap error handling, `--jq` validation, and all subcommand arms in one function, and monostyle scored it at a cognitive complexity of 364, the largest complexity penalty in the repository. It is now a short sequence of calls: `render_config_free_request` answers version and built-in help before the workspace loads, `load_configuration_with_progress` reports the loading phase, `render_clap_parse_failure` turns parse errors into help or diagnostics, `run_cli_subcommand` dispatches the parsed subcommand to one helper per command, and `finish_cli_output` applies `--quiet`, `--jq`, and Markdown output once. Branches that could never run are removed: the second root-help checks, the post-parse `--snapshot` flag and `help` subcommand handling (both are always answered before parsing), and the usage errors for `step`, `run`, `change`, `api`, and `changeset`, whose nested subcommands clap already requires. The per-command `--quiet` checks collapse into the final step except for `skill`, which writes topic content directly. The now-unused `command_path_from_matches` helper is deleted.\n\n`validate_changelog_configuration` in `monochange_config` is split the same way, into template, type, output, output-target, and excluded-type validators that keep the original checks, error messages, and order.\n\nBehavior is unchanged. The repository's monostyle complexity score rises from 79.5 to 80.8, and `lint:monostyle` now fails below 80 for readability or complexity and runs in the CI `lint` job.\n</details>"
+		},
+		{
+			"owner_id": "monochange_analysis",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_analysis/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_analysis` was updated to 0.19.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_analysis` was updated to 0.19.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_cargo",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_cargo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_cargo` was updated to 0.19.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_cargo` was updated to 0.19.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_changelog",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_changelog/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_changelog` was updated to 0.19.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_changelog` was updated to 0.19.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_classification",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_classification/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "monochange_classification [0.4.5](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.4.5) (2026-10-20)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_classification` was updated to 0.4.5.**"
+						]
+					}
+				]
+			},
+			"rendered": "## monochange_classification [0.4.5](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.4.5) (2026-10-20)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_classification` was updated to 0.4.5.**"
+		},
+		{
+			"owner_id": "monochange_config",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_config/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🔨 Refactor",
+						"collapsed": true,
+						"entries": [
+							"#### Split the CLI dispatcher and changelog validation into focused helpers\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #808](https://github.com/monochange/monochange/pull/808)\n\n`dispatch_cli_args` held every config-free fast path, configuration loading, clap error handling, `--jq` validation, and all subcommand arms in one function, and monostyle scored it at a cognitive complexity of 364, the largest complexity penalty in the repository. It is now a short sequence of calls: `render_config_free_request` answers version and built-in help before the workspace loads, `load_configuration_with_progress` reports the loading phase, `render_clap_parse_failure` turns parse errors into help or diagnostics, `run_cli_subcommand` dispatches the parsed subcommand to one helper per command, and `finish_cli_output` applies `--quiet`, `--jq`, and Markdown output once. Branches that could never run are removed: the second root-help checks, the post-parse `--snapshot` flag and `help` subcommand handling (both are always answered before parsing), and the usage errors for `step`, `run`, `change`, `api`, and `changeset`, whose nested subcommands clap already requires. The per-command `--quiet` checks collapse into the final step except for `skill`, which writes topic content directly. The now-unused `command_path_from_matches` helper is deleted.\n\n`validate_changelog_configuration` in `monochange_config` is split the same way, into template, type, output, output-target, and excluded-type validators that keep the original checks, error messages, and order.\n\nBehavior is unchanged. The repository's monostyle complexity score rises from 79.5 to 80.8, and `lint:monostyle` now fails below 80 for readability or complexity and runs in the CI `lint` job."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)\n\n<details>\n<summary><strong>🔨 Refactor</strong></summary>\n\n#### Split the CLI dispatcher and changelog validation into focused helpers\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #808](https://github.com/monochange/monochange/pull/808)\n\n`dispatch_cli_args` held every config-free fast path, configuration loading, clap error handling, `--jq` validation, and all subcommand arms in one function, and monostyle scored it at a cognitive complexity of 364, the largest complexity penalty in the repository. It is now a short sequence of calls: `render_config_free_request` answers version and built-in help before the workspace loads, `load_configuration_with_progress` reports the loading phase, `render_clap_parse_failure` turns parse errors into help or diagnostics, `run_cli_subcommand` dispatches the parsed subcommand to one helper per command, and `finish_cli_output` applies `--quiet`, `--jq`, and Markdown output once. Branches that could never run are removed: the second root-help checks, the post-parse `--snapshot` flag and `help` subcommand handling (both are always answered before parsing), and the usage errors for `step`, `run`, `change`, `api`, and `changeset`, whose nested subcommands clap already requires. The per-command `--quiet` checks collapse into the final step except for `skill`, which writes topic content directly. The now-unused `command_path_from_matches` helper is deleted.\n\n`validate_changelog_configuration` in `monochange_config` is split the same way, into template, type, output, output-target, and excluded-type validators that keep the original checks, error messages, and order.\n\nBehavior is unchanged. The repository's monostyle complexity score rises from 79.5 to 80.8, and `lint:monostyle` now fails below 80 for readability or complexity and runs in the CI `lint` job.\n</details>"
+		},
+		{
+			"owner_id": "monochange_core",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_core/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_core` was updated to 0.19.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_core` was updated to 0.19.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_dart",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_dart/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_dart` was updated to 0.19.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_dart` was updated to 0.19.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_deno",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_deno/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_deno` was updated to 0.19.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_deno` was updated to 0.19.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_ecmascript",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_ecmascript/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_ecmascript` was updated to 0.19.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_ecmascript` was updated to 0.19.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_forgejo",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_forgejo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_forgejo` was updated to 0.19.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_forgejo` was updated to 0.19.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_gitea",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_gitea/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_gitea` was updated to 0.19.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_gitea` was updated to 0.19.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_github",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_github/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_github` was updated to 0.19.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_github` was updated to 0.19.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_gitlab",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_gitlab/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_gitlab` was updated to 0.19.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_gitlab` was updated to 0.19.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_go",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_go/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_go` was updated to 0.19.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_go` was updated to 0.19.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_graph",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_graph/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_graph` was updated to 0.19.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_graph` was updated to 0.19.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_hosting",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_hosting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_hosting` was updated to 0.19.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_hosting` was updated to 0.19.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_lint",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_lint/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_lint` was updated to 0.19.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_lint` was updated to 0.19.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_linting",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_linting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_linting` was updated to 0.19.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_linting` was updated to 0.19.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_npm",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_npm/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_npm` was updated to 0.19.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_npm` was updated to 0.19.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_publish",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_publish/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Publish pnpm workspaces with pnpm under trusted publishing\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #809](https://github.com/monochange/monochange/pull/809)\n\nnpm-registry packages in a pnpm workspace now always publish with `pnpm publish`, including when `publish.trusted_publishing` is enabled. Before this change, trusted publishing switched these packages to `npm publish`. npm does not understand the `workspace:` protocol, so any internal dependency declared as `workspace:*` or `workspace:^` was published verbatim and broke installs for consumers. pnpm rewrites those ranges to real versions when it packs.\n\npnpm 11 performs npm's OIDC trusted-publishing exchange natively, so trusted publishing from a pnpm workspace now requires pnpm 11.1.3 or later on the publishing runner:\n\n```yaml\n- uses: pnpm/action-setup@v6\n  with:\n    version: 11\n```\n\npnpm publish and placeholder commands also pass `--no-git-checks`. monochange validates the release commit itself, and release jobs usually run from a detached tag checkout with build outputs in the tree, which pnpm's branch and clean-tree checks would reject. npm, Yarn, and Bun workspaces keep publishing with the `npm` CLI."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)\n\n### 🐛 Fixed\n\n#### Publish pnpm workspaces with pnpm under trusted publishing\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #809](https://github.com/monochange/monochange/pull/809)\n\nnpm-registry packages in a pnpm workspace now always publish with `pnpm publish`, including when `publish.trusted_publishing` is enabled. Before this change, trusted publishing switched these packages to `npm publish`. npm does not understand the `workspace:` protocol, so any internal dependency declared as `workspace:*` or `workspace:^` was published verbatim and broke installs for consumers. pnpm rewrites those ranges to real versions when it packs.\n\npnpm 11 performs npm's OIDC trusted-publishing exchange natively, so trusted publishing from a pnpm workspace now requires pnpm 11.1.3 or later on the publishing runner:\n\n```yaml\n- uses: pnpm/action-setup@v6\n  with:\n    version: 11\n```\n\npnpm publish and placeholder commands also pass `--no-git-checks`. monochange validates the release commit itself, and release jobs usually run from a detached tag checkout with build outputs in the tree, which pnpm's branch and clean-tree checks would reject. npm, Yarn, and Bun workspaces keep publishing with the `npm` CLI."
+		},
+		{
+			"owner_id": "monochange_python",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_python/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_python` was updated to 0.19.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_python` was updated to 0.19.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_semver",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_semver/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_semver` was updated to 0.19.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_semver` was updated to 0.19.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_telemetry",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_telemetry/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_telemetry` was updated to 0.19.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_telemetry` was updated to 0.19.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_test_helpers",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_test_helpers/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.19.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.19.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli` was updated to 0.19.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli` was updated to 0.19.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-arm64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-darwin-arm64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.19.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.19.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-x64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-darwin-x64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.19.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.19.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-arm64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.19.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.19.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-arm64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.19.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.19.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-x64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.19.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.19.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-x64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.19.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.19.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-win32-arm64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-win32-arm64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.19.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.19.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-win32-x64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-win32-x64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.19.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.19.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/skill",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__skill/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/skill` was updated to 0.19.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/skill` was updated to 0.19.1 as part of group `main`.**"
+		}
+	],
+	"provider": {
+		"kind": "github",
+		"owner": "monochange",
+		"repo": "monochange",
+		"host": null
+	}
+}

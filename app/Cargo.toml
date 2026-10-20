@@ -3,7 +3,7 @@ members = ["crates/*"]
 resolver = "2"
 
 [workspace.package]
-version = "0.3.0"
+version = "0.3.1"
 authors = ["Ifiok Jr. <ifiokotung@gmail.com>"]
 edition = "2024"
 license = "Unlicense"
@@ -89,9 +89,9 @@ monochange_app_db = { path = "crates/monochange_app_db" }
 monochange_app_feedback = { path = "crates/monochange_app_feedback" }
 
 # monochange crates (path deps from parent workspace)
-monochange_core = { path = "../crates/monochange_core", version = "0.19.0" }
-monochange_github = { path = "../crates/monochange_github", version = "0.19.0" }
-monochange_hosting = { path = "../crates/monochange_hosting", version = "0.19.0" }
+monochange_core = { path = "../crates/monochange_core", version = "0.19.1" }
+monochange_github = { path = "../crates/monochange_github", version = "0.19.1" }
+monochange_hosting = { path = "../crates/monochange_hosting", version = "0.19.1" }
 
 # cargo-leptos metadata
 [workspace.metadata.leptos]
