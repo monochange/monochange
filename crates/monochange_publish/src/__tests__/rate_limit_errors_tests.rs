@@ -42,6 +42,21 @@ fn crates_io_rejections_keep_the_reason_retry_time_and_limits_page() {
 }
 
 #[test]
+fn crates_io_rejections_without_a_link_point_at_the_limits_page() {
+	let now = at("2026-10-20T10:53:00Z");
+	let hit = detect_rate_limit_hit(
+		RegistryKind::CratesIo,
+		"error: failed to publish to registry at https://crates.io\n\nCaused by:\n  the remote \
+		 server responded with an error (status 429 Too Many Requests)",
+		now,
+	)
+	.unwrap_or_else(|| panic!("crates.io 429 should be recognised"));
+
+	assert_eq!(hit.docs_url.as_deref(), Some(CRATES_IO_RATE_LIMIT_DOCS));
+	assert_eq!(hit.retry_at, None);
+}
+
+#[test]
 fn other_registries_are_recognised_from_their_429_wording() {
 	let now = at("2026-10-20T10:00:00Z");
 
