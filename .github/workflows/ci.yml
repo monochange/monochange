@@ -76,6 +76,10 @@ jobs:
         run: lint:js:types
         shell: devenv shell -- bash -e {0}
 
+      - name: check devenv environment allowlist
+        run: lint:devenv-env
+        shell: devenv shell -- bash -e {0}
+
       - name: cargo deny
         run: deny:check
         shell: devenv shell -- bash -e {0}
