@@ -296,6 +296,28 @@ Releases before the Monosecret migration read one 1Password item per secret, tit
 
 To roll back before step 7, restore the previous Compose file and redeploy the previous image; the old items are still in place. After step 7, rolling back to a SecretSpec image requires recreating those items.
 
+## API rate limits
+
+The app limits its API, the Leptos server functions and the REST endpoints under `/api`, per client. Pages, `/pkg` assets, `/health`, and `/api/github/webhooks` are never limited: GitHub doesn't redeliver a dropped webhook on its own, and each delivery is already authenticated by its signature.
+
+| Client                    | Counted by                       | Sustained      | Burst |
+| ------------------------- | -------------------------------- | -------------- | ----- |
+| Signed in (valid session) | user id                          | 300 per minute | 100   |
+| Anyone else, including CI | client address (IPv6 by its /64) | 60 per minute  | 30    |
+
+Each limit is a GCRA bucket from the [`governor`](https://docs.rs/governor) crate: a client may spend the burst at once, then it refills at the sustained rate. Limited responses carry the IETF [`RateLimit-Policy` and `RateLimit`](https://datatracker.ietf.org/doc/draft-ietf-httpapi-ratelimit-headers/) fields, and a `429 Too Many Requests` adds `Retry-After` in seconds. Server functions reject with an encoded `ServerFnError`, so the site shows the message; REST endpoints reject with their usual `{"message": ...}` JSON body.
+
+Override any limit with an environment variable on the `app` service; each must be a whole number above zero, and the app refuses to start otherwise.
+
+| Variable                                         | Default |
+| ------------------------------------------------ | ------- |
+| `MONOCHANGE_RATE_LIMIT_ANONYMOUS_PER_MINUTE`     | `60`    |
+| `MONOCHANGE_RATE_LIMIT_ANONYMOUS_BURST`          | `30`    |
+| `MONOCHANGE_RATE_LIMIT_AUTHENTICATED_PER_MINUTE` | `300`   |
+| `MONOCHANGE_RATE_LIMIT_AUTHENTICATED_BURST`      | `100`   |
+
+The client address comes from `X-Forwarded-For` only when the connecting peer is a loopback or private address, which in this deployment is Caddy on the Docker network. Caddy [drops the `X-Forwarded-For` a client sends](https://caddyserver.com/docs/caddyfile/directives/reverse_proxy#defaults) and writes the real address, and the app reads the header from the right, so a client can't pick its own bucket. If another proxy or load balancer ever sits in front of Caddy, configure Caddy's `trusted_proxies` for it, or every client will share that proxy's address. Limits live in memory, so a restart resets them and each app instance counts on its own.
+
 ## path to lower downtime
 
 A separate block volume is not the path to lower downtime for SQLite. Safe next steps:

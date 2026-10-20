@@ -31,6 +31,8 @@ axum = { version = "0.8", features = ["tokio"] }
 tokio = { version = "=1.53.1", features = ["rt", "rt-multi-thread", "signal", "macros", "time"] }
 tower = "0.5"
 tower-http = { version = "0.6", features = ["fs", "cors", "trace"] }
+# Rate limiting (GCRA). Jitter is off: it pulls in `rand` and we have no use for it.
+governor = { version = "0.10", default-features = false, features = ["std", "dashmap", "quanta"] }
 
 # Database
 sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite", "chrono", "uuid"] }

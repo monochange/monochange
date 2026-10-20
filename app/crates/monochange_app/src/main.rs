@@ -116,6 +116,17 @@ async fn main() -> Result<(), MonochangeError> {
 		AppState::new(pool, secrets).map_err(|error| MonochangeError::Server(error.to_string()))?,
 	);
 
+	// Limit the API per client: signed-in users by user id, everyone else by
+	// address. Server function paths reject in the Leptos error encoding.
+	let rate_limit = monochange_app::rate_limit::RateLimit::new(
+		monochange_app::rate_limit::RateLimitConfig::from_env()
+			.map_err(|error| MonochangeError::Server(error.to_string()))?,
+		app_state.jwt_secret.clone(),
+		server_fn::axum::server_fn_paths().map(|(path, _)| path),
+	);
+	let _rate_limit_cleanup =
+		rate_limit.spawn_cleanup(monochange_app::rate_limit::CLEANUP_INTERVAL);
+
 	// Leptos configuration
 	let conf = get_configuration(None).map_err(|e| MonochangeError::Server(e.to_string()))?;
 	let leptos_options = conf.leptos_options.clone();
@@ -170,6 +181,10 @@ async fn main() -> Result<(), MonochangeError> {
 		.merge(ssr_router)
 		.layer(axum::middleware::from_fn(
 			monochange_app::public_routes::pkg_cache_control,
+		))
+		.layer(axum::middleware::from_fn_with_state(
+			rate_limit,
+			monochange_app::rate_limit::limit,
 		));
 
 	let addr = std::env::var("PORT")
@@ -181,9 +196,13 @@ async fn main() -> Result<(), MonochangeError> {
 	let listener = tokio::net::TcpListener::bind(&addr)
 		.await
 		.map_err(|e| MonochangeError::Server(e.to_string()))?;
-	axum::serve(listener, app)
-		.await
-		.map_err(|e| MonochangeError::Server(e.to_string()))?;
+	// Anonymous clients are rate limited by address, which needs the peer.
+	axum::serve(
+		listener,
+		app.into_make_service_with_connect_info::<std::net::SocketAddr>(),
+	)
+	.await
+	.map_err(|e| MonochangeError::Server(e.to_string()))?;
 
 	Ok(())
 }
