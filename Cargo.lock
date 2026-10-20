@@ -2477,6 +2477,7 @@ name = "monochange_github"
 version = "0.19.1"
 dependencies = [
  "async-trait",
+ "base64 0.22.1",
  "etest",
  "httpmock",
  "insta",

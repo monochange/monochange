@@ -4331,3 +4331,35 @@ fn publish_results_keep_rate_limit_warnings_but_not_the_plan() {
 		"warning: needs 2 batches\n\nPublished (1)\n  @scope/pkg  1.2.3  npm\n\n✔ Published 1 package"
 	);
 }
+
+#[test]
+fn release_backend_prefers_the_step_input_then_the_environment() {
+	use monochange_core::ReleaseBackend;
+
+	let select =
+		|input, environment| select_release_backend(input, environment, ReleaseBackend::Local);
+
+	assert_eq!(
+		select(Some("hosted"), Some("local")).ok(),
+		Some(ReleaseBackend::Hosted)
+	);
+	assert_eq!(
+		select(Some("bogus"), Some("hosted")).ok(),
+		Some(ReleaseBackend::Hosted)
+	);
+	assert_eq!(
+		select(None, Some(" hosted ")).ok(),
+		Some(ReleaseBackend::Hosted)
+	);
+	assert_eq!(select(None, Some("")).ok(), Some(ReleaseBackend::Local));
+	assert_eq!(select(None, None).ok(), Some(ReleaseBackend::Local));
+
+	let error = select(None, Some("remote"))
+		.err()
+		.map(|error| error.to_string())
+		.unwrap_or_default();
+	assert!(
+		error.contains("MONOCHANGE_RELEASE_BACKEND") && error.contains("`remote`"),
+		"error names the variable and the value: {error}"
+	);
+}

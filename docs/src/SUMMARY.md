@@ -28,6 +28,7 @@
 # Migration guides
 
 - [About migration guides](guide/migrations/index.md)
+- [Upgrading to 0.20](guide/migrations/0.20.md)
 - [Upgrading to 0.19](guide/migrations/0.19.md)
 - [Upgrading to 0.11](guide/migrations/0.11.md)
 - [Upgrading to 0.9: the nested command API](guide/migrations/0.9-cli-command-api.md)

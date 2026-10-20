@@ -3453,7 +3453,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_app_api"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "axum",
  "axum-extra",
@@ -3488,7 +3488,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_app_automation"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "async-trait",
  "chrono",
@@ -3504,7 +3504,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_app_db"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "chrono",
  "rstest",
@@ -3521,7 +3521,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_app_feedback"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -3530,7 +3530,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_core"
-version = "0.19.0"
+version = "0.19.1"
 dependencies = [
  "async-trait",
  "glob",
@@ -3547,9 +3547,10 @@ dependencies = [
 
 [[package]]
 name = "monochange_github"
-version = "0.19.0"
+version = "0.19.1"
 dependencies = [
  "async-trait",
+ "base64 0.22.1",
  "monochange_core",
  "monochange_hosting",
  "monochange_publish",
@@ -3567,7 +3568,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_hosting"
-version = "0.19.0"
+version = "0.19.1"
 dependencies = [
  "monochange_core",
  "reqwest",
@@ -3577,7 +3578,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_publish"
-version = "0.19.0"
+version = "0.19.1"
 dependencies = [
  "monochange_core",
  "reqwest",

@@ -2047,14 +2047,102 @@ fn build_hosted_commit_request_for_github_targets_the_release_branch() {
 	assert_eq!(request.base_branch.as_deref(), Some("main"));
 	assert_eq!(request.subject, "chore(release): prepare release");
 	assert_eq!(request.body, "release body");
-	assert_eq!(request.files.len(), 1);
-
-	assert_eq!(request.files[0].path, "changelog.md");
-	assert_eq!(request.files[0].content.as_deref(), Some("notes"));
+	assert!(request.files.is_empty(), "contents are attached separately");
+	assert_eq!(request.tree, None);
 	assert_eq!(
 		request.base_commit,
 		hosted_test_git(root.path(), &["rev-parse", "HEAD"])
 	);
+}
+
+fn hosted_tree_request(root: &std::path::Path) -> HostedCommitRequest {
+	HostedCommitRequest {
+		owner: "acme".to_string(),
+		repository: "widgets".to_string(),
+		base_commit: hosted_test_git(root, &["rev-parse", "HEAD"]),
+		files: Vec::new(),
+		..hosted_request_fixture()
+	}
+}
+
+#[test]
+fn hosted_commit_contents_use_a_tree_built_with_the_workflow_token() {
+	let root = git_repo_with_commit();
+	fs::write(root.path().join("changelog.md"), "notes").expect("write changelog");
+	let mut request = hosted_tree_request(root.path());
+	let base_commit = request.base_commit.clone();
+	let server = MockServer::start();
+	let commit = server.mock(|when, then| {
+		when.method(httpmock::Method::GET)
+			.path(format!("/repos/acme/widgets/git/commits/{base_commit}"));
+		then.status(200).json_body(serde_json::json!({
+			"sha": base_commit,
+			"message": "initial",
+			"tree": { "sha": "base_tree" },
+			"parents": [],
+			"verification": { "verified": false, "reason": "unsigned" },
+		}));
+	});
+	let blob = server.mock(|when, then| {
+		when.method(httpmock::Method::POST)
+			.path("/repos/acme/widgets/git/blobs")
+			.json_body(serde_json::json!({ "content": "bm90ZXM=", "encoding": "base64" }));
+		then.status(201)
+			.json_body(serde_json::json!({ "sha": "blob_notes" }));
+	});
+	let tree = server.mock(|when, then| {
+		when.method(httpmock::Method::POST)
+			.path("/repos/acme/widgets/git/trees")
+			.json_body_includes(r#"{"base_tree":"base_tree"}"#);
+		then.status(201)
+			.json_body(serde_json::json!({ "sha": "release_tree" }));
+	});
+	let _env_lock = TEST_ENV_LOCK
+		.lock()
+		.unwrap_or_else(std::sync::PoisonError::into_inner);
+
+	crate::tests::block_on_in_context(temp_env::async_with_vars(
+		[("GITHUB_TOKEN", Some("workflow-token"))],
+		attach_hosted_commit_contents(
+			root.path(),
+			&mut request,
+			&[std::path::PathBuf::from("changelog.md")],
+			Some(&server.base_url()),
+		),
+	))
+	.unwrap_or_else(|error| panic!("attach hosted commit contents: {error}"));
+
+	commit.assert();
+	blob.assert();
+	tree.assert();
+	assert_eq!(request.tree.as_deref(), Some("release_tree"));
+	assert!(request.files.is_empty(), "no file contents are sent");
+}
+
+#[test]
+fn hosted_commit_contents_fall_back_to_files_without_a_workflow_token() {
+	let root = git_repo_with_commit();
+	fs::write(root.path().join("changelog.md"), "notes").expect("write changelog");
+	let mut request = hosted_tree_request(root.path());
+	let _env_lock = TEST_ENV_LOCK
+		.lock()
+		.unwrap_or_else(std::sync::PoisonError::into_inner);
+
+	crate::tests::block_on_in_context(temp_env::async_with_vars(
+		[("GITHUB_TOKEN", None::<&str>), ("GH_TOKEN", None)],
+		attach_hosted_commit_contents(
+			root.path(),
+			&mut request,
+			&[std::path::PathBuf::from("changelog.md")],
+			None,
+		),
+	))
+	.unwrap_or_else(|error| panic!("attach hosted commit contents: {error}"));
+
+	assert_eq!(request.tree, None);
+	assert_eq!(request.files.len(), 1);
+	assert_eq!(request.files[0].path, "changelog.md");
+	assert_eq!(request.files[0].content.as_deref(), Some("notes"));
 }
 
 #[test]
@@ -2194,6 +2282,7 @@ fn hosted_request_fixture() -> HostedCommitRequest {
 		}],
 		dry_run: false,
 		idempotency_key: Some("monochange/monochange:1:1:CommitRelease".to_string()),
+		tree: None,
 	}
 }
 

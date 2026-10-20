@@ -12,6 +12,7 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::sync::OnceLock;
 
+use base64::Engine as _;
 use monochange_core::CommitMessage;
 use monochange_core::DiscoveryPathFilter;
 use monochange_core::GITHUB_PULL_REQUEST_BODY_LIMIT;
@@ -1639,6 +1640,156 @@ fn github_head_ref_update_path(request: &GitHubPullRequestRequest) -> String {
 		"/repos/{}/{}/git/refs/heads/{}",
 		request.owner, request.repo, request.head_branch
 	)
+}
+
+/// One file of a release tree that [`create_release_tree`] uploads.
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct ReleaseTreeFile {
+	/// Repository-relative path with forward slashes.
+	pub path: String,
+	/// File contents, or `None` to delete the path.
+	pub content: Option<Vec<u8>>,
+	/// Git file mode: `100644`, `100755`, or `120000` for a symlink.
+	pub mode: &'static str,
+}
+
+/// The outcome of building a release tree with the workflow's own token.
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum ReleaseTree {
+	/// The tree GitHub created on top of the base commit's tree.
+	Created(String),
+	/// The workflow token cannot write git objects; the reason says why.
+	Unavailable(String),
+}
+
+/// Read release files for [`create_release_tree`].
+///
+/// A missing path is a deletion and directories are skipped. Symlinks keep
+/// their target as content, and the executable bit picks the file mode, so
+/// the tree matches what `git add` would stage.
+pub fn read_release_tree_files(
+	root: &Path,
+	paths: &[PathBuf],
+) -> MonochangeResult<Vec<ReleaseTreeFile>> {
+	let mut files = Vec::with_capacity(paths.len());
+
+	for path in paths {
+		let path = path.strip_prefix(root).unwrap_or(path);
+		let absolute_path = root.join(path);
+		let relative_path = path.to_string_lossy().replace('\\', "/");
+		let read_error = |error: std::io::Error| {
+			MonochangeError::Io(format!("read release file `{}`: {error}", path.display()))
+		};
+		let Ok(metadata) = fs::symlink_metadata(&absolute_path) else {
+			files.push(ReleaseTreeFile {
+				path: relative_path,
+				content: None,
+				mode: "100644",
+			});
+			continue;
+		};
+
+		if metadata.is_dir() {
+			continue;
+		}
+
+		let (content, mode) = if metadata.is_symlink() {
+			let target = fs::read_link(&absolute_path).map_err(read_error)?;
+			(target.to_string_lossy().into_owned().into_bytes(), "120000")
+		} else {
+			(
+				fs::read(&absolute_path).map_err(read_error)?,
+				git_blob_mode(&metadata),
+			)
+		};
+
+		files.push(ReleaseTreeFile {
+			path: relative_path,
+			content: Some(content),
+			mode,
+		});
+	}
+
+	Ok(files)
+}
+
+/// Upload release files as blobs and create a tree on top of `base_commit`
+/// with the workflow's `GITHUB_TOKEN` (or `GH_TOKEN`).
+///
+/// Blobs and trees carry no author and pushing them triggers nothing, so the
+/// monochange GitHub App can then create the release commit from this tree
+/// without receiving any file contents. Returns
+/// [`ReleaseTree::Unavailable`] instead of an error when no token is set or
+/// the token lacks `contents: write`, so callers can fall back to sending the
+/// contents.
+pub async fn create_release_tree(
+	api_url: Option<&str>,
+	owner: &str,
+	repo: &str,
+	base_commit: &str,
+	files: &[ReleaseTreeFile],
+) -> MonochangeResult<ReleaseTree> {
+	let Ok(token) = env::var("GITHUB_TOKEN").or_else(|_| env::var("GH_TOKEN")) else {
+		return Ok(ReleaseTree::Unavailable(
+			"neither GITHUB_TOKEN nor GH_TOKEN is set".to_string(),
+		));
+	};
+	let env_api_url = env::var("GITHUB_API_URL").ok();
+	let client = build_github_client(&token, api_url.or(env_api_url.as_deref()))?;
+	let commit_path = format!("/repos/{owner}/{repo}/git/commits/{base_commit}");
+	let base: GitHubGitCommitResponse = get_json(&client, &commit_path).await?;
+	let blob_path = format!("/repos/{owner}/{repo}/git/blobs");
+	let mut tree = Vec::with_capacity(files.len());
+
+	for file in files {
+		let sha = match &file.content {
+			Some(content) => {
+				let payload = GitHubCreateBlobPayload {
+					content: base64::engine::general_purpose::STANDARD.encode(content),
+					encoding: "base64",
+				};
+				match client
+					.post::<_, GitHubCreateBlobResponse>(&blob_path, Some(&payload))
+					.await
+				{
+					Ok(blob) => Some(blob.sha),
+					Err(octocrab::Error::GitHub { source, .. })
+						if source.status_code.as_u16() == 403 =>
+					{
+						return Ok(ReleaseTree::Unavailable(format!(
+							"the token cannot create git objects in {owner}/{repo} ({}); grant the job `contents: write`",
+							source.message
+						)));
+					}
+					Err(error) => {
+						return Err(MonochangeError::Config(format_github_api_error(
+							"POST", &blob_path, &error,
+						)));
+					}
+				}
+			}
+			None => None,
+		};
+		tree.push(GitHubCreateTreeEntry {
+			path: file.path.clone(),
+			mode: file.mode,
+			entry_type: "blob",
+			sha,
+		});
+	}
+
+	let tree_path = format!("/repos/{owner}/{repo}/git/trees");
+	let created: GitHubCreateTreeResponse = post_json(
+		&client,
+		&tree_path,
+		&GitHubCreateTreePayload {
+			base_tree: Some(&base.tree.sha),
+			tree,
+		},
+	)
+	.await?;
+
+	Ok(ReleaseTree::Created(created.sha))
 }
 
 /// Sync existing GitHub releases so retargeted tags point at the new commits.

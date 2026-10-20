@@ -11,7 +11,6 @@ mod tests;
 
 use axum::Json;
 use axum::extract::State;
-use axum::extract::rejection::JsonRejection;
 use axum::http::StatusCode;
 use axum::http::header::AUTHORIZATION;
 use monochange_core::HostedCommitRequest;
@@ -22,8 +21,9 @@ use serde::Serialize;
 use sqlx::Row;
 
 use crate::AppState;
+use crate::RELEASE_COMMIT_BODY_LIMIT;
+use crate::RELEASE_REQUEST_BODY_LIMIT;
 use crate::github_app;
-use crate::oidc;
 
 /// A repository row joined with its installation.
 #[derive(Debug)]
@@ -58,26 +58,29 @@ async fn find_connected_repository(
 }
 
 /// The caller identity accepted by the hosted endpoints.
+#[derive(Debug, PartialEq, Eq)]
 enum Caller {
-	/// A GitHub Actions run for the repository, proven by an OIDC token.
-	ActionsRun,
+	/// A GitHub Actions run, proven by an OIDC token for this repository.
+	ActionsRun { repository: String },
 	/// A `MONOCHANGE_TOKEN` API token.
 	ApiToken,
 }
 
-/// Extract and validate the bearer credentials of a hosted endpoint call.
-async fn resolve_caller(
+/// Validate the bearer credentials of a hosted endpoint call.
+///
+/// This runs before the request body is read, so a caller without valid
+/// credentials can never make the server buffer a release payload.
+async fn authenticate(
 	state: &AppState,
 	headers: &axum::http::HeaderMap,
-	repository: &str,
-) -> Result<Caller, (StatusCode, String)> {
+) -> Result<Caller, (StatusCode, Json<ApiError>)> {
+	let reject = |status: StatusCode, message: String| (status, Json(ApiError::new(message)));
 	let authorization = headers
 		.get(AUTHORIZATION)
 		.and_then(|value| value.to_str().ok())
 		.and_then(|value| value.strip_prefix("Bearer "))
-		.map(ToString::to_string)
 		.ok_or_else(|| {
-			(
+			reject(
 				StatusCode::UNAUTHORIZED,
 				"set an Authorization: Bearer header to a GitHub Actions OIDC token or MONOCHANGE_TOKEN"
 					.to_string(),
@@ -86,29 +89,66 @@ async fn resolve_caller(
 
 	// API tokens are long random strings; OIDC tokens are JWTs with dots.
 	if authorization.split('.').count() == 3 {
-		let verifier = oidc::OidcVerifier::new(&state.oidc_audience);
-		let claims = verifier.verify(&authorization).await.map_err(|error| {
-			(
+		let claims = state.oidc.verify(authorization).await.map_err(|error| {
+			reject(
 				StatusCode::UNAUTHORIZED,
 				format!("OIDC verification failed: {error}"),
 			)
 		})?;
 
-		if claims.repository != repository {
-			return Err((
-				StatusCode::FORBIDDEN,
-				format!(
-					"OIDC token is for repository `{}` but the request targets `{repository}`",
-					claims.repository
-				),
-			));
-		}
-
-		Ok(Caller::ActionsRun)
+		Ok(Caller::ActionsRun {
+			repository: claims.repository,
+		})
 	} else {
-		validate_api_token(state.api_token.as_deref(), &authorization)?;
+		validate_api_token(state.api_token.as_deref(), authorization)
+			.map_err(|(status, message)| reject(status, message))?;
 		Ok(Caller::ApiToken)
 	}
+}
+
+/// Check that an authenticated caller may act on `repository`.
+///
+/// An OIDC token only grants access to the repository whose workflow minted
+/// it; the API token is deployment-wide.
+fn authorize(caller: &Caller, repository: &str) -> Result<(), (StatusCode, Json<ApiError>)> {
+	match caller {
+		Caller::ActionsRun {
+			repository: claimed,
+		} if claimed != repository => {
+			Err((
+				StatusCode::FORBIDDEN,
+				Json(ApiError::new(format!(
+					"OIDC token is for repository `{claimed}` but the request targets `{repository}`"
+				))),
+			))
+		}
+		_ => Ok(()),
+	}
+}
+
+/// Read and parse a JSON request body of at most `limit` bytes.
+///
+/// Called only after [`authenticate`] succeeds, so unauthenticated callers
+/// never make the server buffer their body.
+async fn read_json_body<T: serde::de::DeserializeOwned>(
+	body: axum::body::Body,
+	limit: usize,
+) -> Result<T, (StatusCode, Json<ApiError>)> {
+	let bytes = axum::body::to_bytes(body, limit).await.map_err(|_| {
+		(
+			StatusCode::PAYLOAD_TOO_LARGE,
+			Json(ApiError::new(format!(
+				"request body is larger than the {limit}-byte limit or could not be read"
+			))),
+		)
+	})?;
+
+	serde_json::from_slice(&bytes).map_err(|error| {
+		(
+			StatusCode::BAD_REQUEST,
+			Json(ApiError::new(format!("invalid request body: {error}"))),
+		)
+	})
 }
 
 /// Validate a `MONOCHANGE_TOKEN` against the token configured through the
@@ -194,6 +234,25 @@ fn validate_commit_paths(request: &HostedCommitRequest) -> Result<(), String> {
 	Ok(())
 }
 
+/// Require exactly one source for the release commit's tree: uploaded file
+/// contents, or a tree the workflow already created with its own token.
+///
+/// A tree request carries no paths to check here; the commit step compares
+/// the tree's `.github/workflows` with the base commit's before committing.
+fn validate_commit_contents(request: &HostedCommitRequest) -> Result<(), String> {
+	match (&request.tree, request.files.is_empty()) {
+		(Some(_), false) => Err("send either release `files` or a `tree`, not both".to_string()),
+		(None, true) => Err("the release commit has no files and no `tree`".to_string()),
+		(Some(tree), true)
+			if !matches!(tree.len(), 40 | 64)
+				|| !tree.bytes().all(|byte| byte.is_ascii_hexdigit()) =>
+		{
+			Err(format!("`tree` must be a git object id, received `{tree}`"))
+		}
+		_ => Ok(()),
+	}
+}
+
 /// Reject branch names that are not plausible Git refs.
 ///
 /// Branch names are interpolated into GitHub API paths and queries, so
@@ -233,13 +292,15 @@ fn validate_branch_names(branch: &str, base_branch: Option<&str>) -> Result<(), 
 /// Map a release commit failure to its HTTP status.
 ///
 /// A moved release or base branch is a conflict the caller resolves by
-/// rerunning from the current base; everything else is a GitHub failure.
+/// rerunning from the current base, and a tree that changes workflows is a
+/// rejected request; everything else is a GitHub failure.
 fn release_commit_error_status(error: &github_app::GitHubAppError) -> StatusCode {
 	match error {
 		github_app::GitHubAppError::BranchMoved(..) | github_app::GitHubAppError::BaseMoved(..) => {
 			StatusCode::CONFLICT
 		}
 		github_app::GitHubAppError::NotConfigured => StatusCode::SERVICE_UNAVAILABLE,
+		github_app::GitHubAppError::WorkflowsChanged => StatusCode::UNPROCESSABLE_ENTITY,
 		_ => StatusCode::BAD_GATEWAY,
 	}
 }
@@ -254,14 +315,10 @@ fn release_commit_error_status(error: &github_app::GitHubAppError) -> StatusCode
 pub async fn create_release_commit(
 	State(state): State<AppState>,
 	headers: axum::http::HeaderMap,
-	payload: Result<Json<HostedCommitRequest>, JsonRejection>,
+	body: axum::body::Body,
 ) -> Result<Json<HostedCommitResponse>, (StatusCode, Json<ApiError>)> {
-	let Json(request) = payload.map_err(|error| {
-		(
-			StatusCode::BAD_REQUEST,
-			Json(ApiError::new(format!("invalid request body: {error}"))),
-		)
-	})?;
+	let caller = authenticate(&state, &headers).await?;
+	let request: HostedCommitRequest = read_json_body(body, RELEASE_COMMIT_BODY_LIMIT).await?;
 
 	if request.provider != "github" {
 		return Err((
@@ -274,10 +331,12 @@ pub async fn create_release_commit(
 	}
 
 	validate_branch_names(&request.branch, request.base_branch.as_deref())
+		.and_then(|()| validate_commit_contents(&request))
 		.and_then(|()| validate_commit_paths(&request))
 		.map_err(|message| (StatusCode::BAD_REQUEST, Json(ApiError::new(message))))?;
 
 	let full_name = format!("{}/{}", request.owner, request.repository);
+	authorize(&caller, &full_name)?;
 	let repository = find_connected_repository(&state, &full_name)
 		.await
 		.map_err(|message| (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiError::new(message))))?
@@ -298,9 +357,6 @@ pub async fn create_release_commit(
 			Json(ApiError::new("repository mismatch")),
 		));
 	}
-	resolve_caller(&state, &headers, &full_name)
-		.await
-		.map_err(|(status, message)| (status, Json(ApiError::new(message))))?;
 
 	let app = state
 		.github_app
@@ -373,18 +429,15 @@ async fn commit_release_files(
 pub async fn publish_release_request(
 	State(state): State<AppState>,
 	headers: axum::http::HeaderMap,
-	payload: Result<Json<HostedReleaseRequest>, JsonRejection>,
+	body: axum::body::Body,
 ) -> Result<Json<HostedReleaseResponse>, (StatusCode, Json<ApiError>)> {
-	let Json(payload) = payload.map_err(|error| {
-		(
-			StatusCode::BAD_REQUEST,
-			Json(ApiError::new(format!("invalid request body: {error}"))),
-		)
-	})?;
+	let caller = authenticate(&state, &headers).await?;
+	let payload: HostedReleaseRequest = read_json_body(body, RELEASE_REQUEST_BODY_LIMIT).await?;
 	let request = &payload.request;
 	validate_branch_names(&request.head_branch, Some(&request.base_branch))
 		.map_err(|message| (StatusCode::BAD_REQUEST, Json(ApiError::new(message))))?;
 	let full_name = format!("{}/{}", request.owner, request.repo);
+	authorize(&caller, &full_name)?;
 
 	let repository = find_connected_repository(&state, &full_name)
 		.await
@@ -402,9 +455,6 @@ pub async fn publish_release_request(
 				))),
 			)
 		})?;
-	resolve_caller(&state, &headers, &full_name)
-		.await
-		.map_err(|(status, message)| (status, Json(ApiError::new(message))))?;
 
 	let app = state
 		.github_app

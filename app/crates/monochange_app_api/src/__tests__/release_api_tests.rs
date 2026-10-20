@@ -20,9 +20,12 @@ use rsa::rand_core::OsRng;
 use rstest::rstest;
 use tower::ServiceExt;
 
+use super::Caller;
+use super::authorize;
 use super::commit_release_files;
 use super::release_commit_error_status;
 use super::validate_branch_names;
+use super::validate_commit_contents;
 use super::validate_commit_paths;
 use crate::AppSecrets;
 use crate::AppState;
@@ -47,6 +50,7 @@ fn request_with_path(path: &str) -> HostedCommitRequest {
 		}],
 		dry_run: false,
 		idempotency_key: None,
+		tree: None,
 	}
 }
 
@@ -375,6 +379,218 @@ async fn release_commit_endpoint_refreshes_an_existing_release_branch() {
 	update.assert();
 }
 
+/// Mock `GET git/trees/{tree}` listing the given `(path, sha)` entries.
+fn mock_tree_listing(github: &MockServer, tree: &str, entries: &[(&str, &str)]) {
+	let entries = entries
+		.iter()
+		.map(
+			|(path, sha)| serde_json::json!({ "path": path, "mode": "040000", "type": "tree", "sha": sha }),
+		)
+		.collect::<Vec<_>>();
+	github.mock(|when, then| {
+		when.method(Method::GET)
+			.path(format!("/repos/acme/actions/git/trees/{tree}"));
+		then.status(200)
+			.json_body(serde_json::json!({ "sha": tree, "tree": entries, "truncated": false }));
+	});
+}
+
+/// Trees on either side of a workflow-built release commit: the base tree
+/// and its `.github`/`workflows` entries, then the same for the release tree.
+struct WorkflowTrees {
+	base: &'static str,
+	base_github: Option<&'static str>,
+	base_workflows: Option<&'static str>,
+	release_github: Option<&'static str>,
+	release_workflows: Option<&'static str>,
+}
+
+fn mock_workflow_trees(github: &MockServer, trees: &WorkflowTrees) {
+	github.mock(|when, then| {
+		when.method(Method::GET)
+			.path("/repos/acme/actions/git/commits/base-sha");
+		then.status(200).json_body(serde_json::json!({
+			"sha": "base-sha",
+			"tree": { "sha": trees.base },
+		}));
+	});
+	let listing = |github_entry: Option<&'static str>| {
+		github_entry.map_or_else(Vec::new, |sha| vec![(".github", sha), ("src", "src-tree")])
+	};
+	mock_tree_listing(github, trees.base, &listing(trees.base_github));
+	mock_tree_listing(github, WORKFLOW_TREE, &listing(trees.release_github));
+	for (github_tree, workflows) in [
+		(trees.base_github, trees.base_workflows),
+		(trees.release_github, trees.release_workflows),
+	] {
+		if let Some(github_tree) = github_tree {
+			let entries = workflows.map_or_else(Vec::new, |sha| vec![("workflows", sha)]);
+			mock_tree_listing(github, github_tree, &entries);
+		}
+	}
+}
+
+#[rstest]
+#[case::same_tree(WorkflowTrees {
+	base: WORKFLOW_TREE,
+	base_github: None,
+	base_workflows: None,
+	release_github: None,
+	release_workflows: None,
+}, StatusCode::OK)]
+#[case::same_github_directory(WorkflowTrees {
+	base: "base-tree",
+	base_github: Some("github-tree"),
+	base_workflows: Some("workflows-tree"),
+	release_github: Some("github-tree"),
+	release_workflows: Some("workflows-tree"),
+}, StatusCode::OK)]
+#[case::other_github_files_changed(WorkflowTrees {
+	base: "base-tree",
+	base_github: Some("github-tree"),
+	base_workflows: Some("workflows-tree"),
+	release_github: Some("release-github-tree"),
+	release_workflows: Some("workflows-tree"),
+}, StatusCode::OK)]
+#[case::workflows_changed(WorkflowTrees {
+	base: "base-tree",
+	base_github: Some("github-tree"),
+	base_workflows: Some("workflows-tree"),
+	release_github: Some("release-github-tree"),
+	release_workflows: Some("release-workflows-tree"),
+}, StatusCode::UNPROCESSABLE_ENTITY)]
+#[case::github_directory_removed(WorkflowTrees {
+	base: "base-tree",
+	base_github: Some("github-tree"),
+	base_workflows: Some("workflows-tree"),
+	release_github: None,
+	release_workflows: None,
+}, StatusCode::UNPROCESSABLE_ENTITY)]
+#[tokio::test]
+async fn release_commit_endpoint_commits_a_tree_built_by_the_workflow(
+	#[case] trees: WorkflowTrees,
+	#[case] expected: StatusCode,
+) {
+	let github = MockServer::start();
+	let state = release_api_state(&github, API_TOKEN).await;
+	mock_branch(&github, "main", "base-sha");
+	github.mock(|when, then| {
+		when.method(Method::GET)
+			.path("/repos/acme/actions/git/ref/heads/monochange/release/release");
+		then.status(404);
+	});
+	mock_workflow_trees(&github, &trees);
+	let blobs = github.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/git/blobs");
+		then.status(201)
+			.json_body(serde_json::json!({ "sha": "blob-sha" }));
+	});
+	let commit = github.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/git/commits")
+			.json_body_includes(serde_json::json!({ "tree": WORKFLOW_TREE }).to_string());
+		then.status(201).json_body(serde_json::json!({
+			"sha": "release-sha",
+			"verification": { "verified": true, "reason": "valid" },
+		}));
+	});
+	let create = github.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/git/refs");
+		then.status(201)
+			.json_body(serde_json::json!({ "object": { "sha": "release-sha" } }));
+	});
+	let mut request = request_with_path("crates/core/Cargo.toml");
+	request.files.clear();
+	request.tree = Some(WORKFLOW_TREE.to_string());
+
+	let (status, body) = post_release_commit(&state, API_TOKEN, &request).await;
+
+	assert_eq!(status, expected, "{body}");
+	blobs.assert_calls(0);
+	if expected == StatusCode::OK {
+		assert_eq!(body["commit"], "release-sha");
+		commit.assert();
+		create.assert();
+	} else {
+		assert_eq!(
+			body["message"],
+			"the release tree changes `.github/workflows`; release commits must not modify GitHub workflows"
+		);
+		commit.assert_calls(0);
+		create.assert_calls(0);
+	}
+}
+
+#[tokio::test]
+async fn release_commit_endpoint_reports_unreadable_workflow_trees() {
+	let github = MockServer::start();
+	let state = release_api_state(&github, API_TOKEN).await;
+	mock_branch(&github, "main", "base-sha");
+	github.mock(|when, then| {
+		when.method(Method::GET)
+			.path("/repos/acme/actions/git/ref/heads/monochange/release/release");
+		then.status(404);
+	});
+	github.mock(|when, then| {
+		when.method(Method::GET)
+			.path("/repos/acme/actions/git/commits/base-sha");
+		then.status(404).body("Not Found");
+	});
+	let mut request = request_with_path("crates/core/Cargo.toml");
+	request.files.clear();
+	request.tree = Some(WORKFLOW_TREE.to_string());
+
+	let (status, body) = post_release_commit(&state, API_TOKEN, &request).await;
+
+	assert_eq!(status, StatusCode::BAD_GATEWAY, "{body}");
+	assert!(
+		body["message"]
+			.as_str()
+			.is_some_and(|message| message.contains("read base commit")),
+		"{body}"
+	);
+}
+
+const WORKFLOW_TREE: &str = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
+
+#[rstest]
+#[case::files_only(false, None, Ok(()))]
+#[case::tree_only(true, Some(WORKFLOW_TREE), Ok(()))]
+#[case::both(
+	false,
+	Some(WORKFLOW_TREE),
+	Err("send either release `files` or a `tree`, not both")
+)]
+#[case::neither(true, None, Err("the release commit has no files and no `tree`"))]
+#[case::not_an_object_id(
+	true,
+	Some("main"),
+	Err("`tree` must be a git object id, received `main`")
+)]
+#[case::not_hex(
+	true,
+	Some("zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"),
+	Err("`tree` must be a git object id, received `zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz`")
+)]
+fn release_commits_need_exactly_one_tree_source(
+	#[case] clear_files: bool,
+	#[case] tree: Option<&str>,
+	#[case] expected: Result<(), &str>,
+) {
+	let mut request = request_with_path("crates/core/Cargo.toml");
+	if clear_files {
+		request.files.clear();
+	}
+	request.tree = tree.map(String::from);
+
+	assert_eq!(
+		validate_commit_contents(&request),
+		expected.map_err(String::from)
+	);
+}
+
 #[rstest]
 #[case::stale_base(Some("main"), "base branch `main` moved to `newer-base-sha`")]
 #[case::client_without_base_branch(None, "release branch `monochange/release/release` moved")]
@@ -434,49 +650,112 @@ async fn release_commit_endpoint_requires_the_configured_api_token(
 #[tokio::test]
 async fn release_commit_endpoint_reads_bodies_larger_than_the_axum_default() {
 	// A grouped release rewrites every changelog; monochange's own already
-	// exceed axum's 2 MiB default, which used to reject the request with
-	// `413 Payload Too Large` before authentication ran.
+	// exceed axum's 2 MiB default.
 	let github = MockServer::start();
 	let state = release_api_state(&github, API_TOKEN).await;
 	let mut request = request_with_path("crates/core/CHANGELOG.md");
 	request.files[0].content = Some("- release note\n".repeat(256 * 1024));
+	request.dry_run = true;
 
-	let (status, body) = post_release_commit(&state, "not-the-api-token", &request).await;
+	let (status, body) = post_release_commit(&state, API_TOKEN, &request).await;
 
-	assert_eq!(status, StatusCode::UNAUTHORIZED, "{body}");
-	assert_eq!(body["message"], "invalid MONOCHANGE_TOKEN");
+	assert_eq!(status, StatusCode::OK, "{body}");
+	assert_eq!(body["status"], "dry_run");
 }
 
-#[tokio::test]
-async fn release_commit_endpoint_rejects_bodies_over_the_release_limit() {
-	let github = MockServer::start();
-	let state = release_api_state(&github, API_TOKEN).await;
-
-	let response = api_router(state)
-		.oneshot(
-			Request::builder()
-				.method("POST")
-				.uri("/api/release-commits")
-				.header("authorization", format!("Bearer {API_TOKEN}"))
-				.header("content-type", "application/json")
-				.body(Body::from(vec![b' '; RELEASE_COMMIT_BODY_LIMIT + 1]))
-				.unwrap(),
-		)
+async fn post_raw_release_commit(
+	state: &AppState,
+	authorization: Option<&str>,
+	body: Vec<u8>,
+) -> (StatusCode, serde_json::Value) {
+	let mut builder = Request::builder()
+		.method("POST")
+		.uri("/api/release-commits")
+		.header("content-type", "application/json");
+	if let Some(authorization) = authorization {
+		builder = builder.header("authorization", authorization);
+	}
+	let response = api_router(state.clone())
+		.oneshot(builder.body(Body::from(body)).unwrap())
 		.await
 		.unwrap();
-
-	// The handler reports every body rejection as a bad request.
-	assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+	let status = response.status();
 	let body = axum::body::to_bytes(response.into_body(), usize::MAX)
 		.await
 		.unwrap();
-	let body: serde_json::Value = serde_json::from_slice(&body).unwrap();
-	assert!(
-		body["message"]
-			.as_str()
-			.is_some_and(|message| message.contains("length limit exceeded")),
-		"{body}"
-	);
+	(status, serde_json::from_slice(&body).unwrap())
+}
+
+#[rstest]
+#[case::over_the_limit(
+	Some("Bearer test-only-api-token"),
+	vec![b' '; RELEASE_COMMIT_BODY_LIMIT + 1],
+	StatusCode::PAYLOAD_TOO_LARGE,
+	"request body is larger than the 8388608-byte limit or could not be read"
+)]
+#[case::not_json(
+	Some("Bearer test-only-api-token"),
+	b"not json".to_vec(),
+	StatusCode::BAD_REQUEST,
+	"invalid request body: expected ident at line 1 column 2"
+)]
+#[case::unauthenticated_over_the_limit(
+	Some("Bearer not-the-api-token"),
+	vec![b' '; RELEASE_COMMIT_BODY_LIMIT + 1],
+	StatusCode::UNAUTHORIZED,
+	"invalid MONOCHANGE_TOKEN"
+)]
+#[case::missing_authorization(
+	None,
+	vec![b' '; RELEASE_COMMIT_BODY_LIMIT + 1],
+	StatusCode::UNAUTHORIZED,
+	"set an Authorization: Bearer header to a GitHub Actions OIDC token or MONOCHANGE_TOKEN"
+)]
+#[case::malformed_oidc_token(
+	Some("Bearer not.a.jwt"),
+	vec![b' '; RELEASE_COMMIT_BODY_LIMIT + 1],
+	StatusCode::UNAUTHORIZED,
+	"OIDC verification failed: OIDC token is missing or malformed: Base64 error: Invalid last symbol 116, offset 2."
+)]
+#[tokio::test]
+async fn release_commit_endpoint_checks_credentials_before_the_body(
+	#[case] authorization: Option<&str>,
+	#[case] body: Vec<u8>,
+	#[case] expected_status: StatusCode,
+	#[case] message: &str,
+) {
+	let github = MockServer::start();
+	let state = release_api_state(&github, API_TOKEN).await;
+
+	let (status, body) = post_raw_release_commit(&state, authorization, body).await;
+
+	assert_eq!(status, expected_status, "{body}");
+	assert_eq!(body["message"], message);
+}
+
+#[rstest]
+#[case::matching_oidc_repository("acme/actions", true)]
+#[case::other_oidc_repository("acme/other", false)]
+fn oidc_callers_may_only_act_on_their_own_repository(#[case] claimed: &str, #[case] allowed: bool) {
+	let caller = Caller::ActionsRun {
+		repository: claimed.to_string(),
+	};
+
+	let result = authorize(&caller, "acme/actions");
+
+	assert_eq!(result.is_ok(), allowed);
+	if let Err((status, body)) = result {
+		assert_eq!(status, StatusCode::FORBIDDEN);
+		assert_eq!(
+			body.0.message,
+			"OIDC token is for repository `acme/other` but the request targets `acme/actions`"
+		);
+	}
+}
+
+#[test]
+fn api_token_callers_may_act_on_any_connected_repository() {
+	assert!(authorize(&Caller::ApiToken, "acme/actions").is_ok());
 }
 
 #[rstest]
