@@ -475,6 +475,49 @@ fn build_npm_release_publish_command_uses_pnpm_for_staged_pnpm_workspaces() {
 }
 
 #[test]
+fn build_npm_release_publish_command_uses_pnpm_for_trusted_pnpm_workspaces() {
+	let mut request = sample_publish_request_for_registry(RegistryKind::Npm);
+	request.package_manager = Some("pnpm".to_string());
+	request.trusted_publishing.enabled = true;
+	request.attestations.require_registry_provenance = true;
+
+	let command = build_npm_release_publish_command(&request);
+
+	assert_eq!(command.program, "pnpm");
+	assert_eq!(
+		command.args.iter().map(String::as_str).collect::<Vec<_>>(),
+		vec![
+			"publish",
+			"--access",
+			"public",
+			"--provenance",
+			"--no-git-checks"
+		]
+	);
+}
+
+#[test]
+fn build_npm_placeholder_publish_command_skips_git_checks_for_pnpm_workspaces() {
+	let mut request = sample_publish_request_for_registry(RegistryKind::Npm);
+	request.package_manager = Some("pnpm".to_string());
+	let placeholder_path = Path::new("/tmp/placeholder");
+
+	let command = build_npm_placeholder_publish_command(&request, placeholder_path);
+
+	assert_eq!(command.program, "pnpm");
+	assert_eq!(
+		command.args.iter().map(String::as_str).collect::<Vec<_>>(),
+		vec![
+			"publish",
+			"/tmp/placeholder",
+			"--access",
+			"public",
+			"--no-git-checks"
+		]
+	);
+}
+
+#[test]
 fn build_npm_release_publish_command_appends_dry_run_after_stage_args() {
 	let mut request = sample_publish_request_for_registry(RegistryKind::Npm);
 	request.flow = PublishFlow::Staged;

@@ -2763,14 +2763,17 @@ pub fn build_npm_placeholder_publish_command(
 	request: &PublishRequest,
 	placeholder_path: &Path,
 ) -> CommandSpec {
+	let mut args = vec![
+		"publish".to_string(),
+		placeholder_path.display().to_string(),
+		"--access".to_string(),
+		"public".to_string(),
+	];
+	append_pnpm_publish_args(request, &mut args);
+
 	CommandSpec {
 		program: npm_publish_program(request).to_string(),
-		args: vec![
-			"publish".to_string(),
-			placeholder_path.display().to_string(),
-			"--access".to_string(),
-			"public".to_string(),
-		],
+		args,
 		cwd: request.package_root.clone(),
 		env: npm_publish_env(request),
 		timeout: None,
@@ -2794,6 +2797,8 @@ pub fn build_npm_release_publish_command(request: &PublishRequest) -> CommandSpe
 		args.push("--provenance".to_string());
 	}
 
+	append_pnpm_publish_args(request, &mut args);
+
 	CommandSpec {
 		program: npm_publish_program(request).to_string(),
 		args,
@@ -2803,15 +2808,29 @@ pub fn build_npm_release_publish_command(request: &PublishRequest) -> CommandSpe
 	}
 }
 
+/// Pick the CLI that publishes an npm-registry package.
+///
+/// pnpm workspaces always publish with pnpm, including under trusted
+/// publishing: pnpm 11 performs the npm OIDC exchange natively, and only
+/// pnpm rewrites `workspace:` dependency ranges into real versions when it
+/// packs. Publishing a pnpm workspace with the npm CLI would ship those
+/// ranges verbatim and break installs for consumers.
 fn npm_publish_program(request: &PublishRequest) -> &'static str {
-	if request.trusted_publishing.enabled {
-		return "npm";
-	}
-
 	if uses_pnpm_publish_manager(request) {
 		"pnpm"
 	} else {
 		"npm"
+	}
+}
+
+/// Skip pnpm's git checks for publishes monochange runs.
+///
+/// monochange validates the release commit before it publishes, and release
+/// jobs routinely run from a detached tag checkout with build outputs in the
+/// tree, which pnpm's clean-tree and publish-branch checks would reject.
+fn append_pnpm_publish_args(request: &PublishRequest, args: &mut Vec<String>) {
+	if uses_pnpm_publish_manager(request) {
+		args.push("--no-git-checks".to_string());
 	}
 }
 
