@@ -170,6 +170,14 @@
 .repository-list { margin-top: 1.5rem; }
 .repository-list li { display: flex; gap: 1rem; justify-content: space-between; padding-block: 1.5rem; border-top: 1px solid var(--rule); overflow-wrap: anywhere; }
 .repository-list p { font-size: .9rem; }
+/* Installations waiting for an owner to approve new app permissions. */
+.permission-update { margin-bottom: 2rem; padding: 1.25rem 1.5rem; border: 1.5px solid var(--accent); border-radius: 16px; background: var(--surface); }
+.permission-update h2 { font-size: 1.35rem; }
+.permission-update > p { color: var(--muted); margin-block: .5rem 1rem; max-width: 65ch; }
+.permission-update li { display: flex; flex-wrap: wrap; gap: .5rem 1rem; align-items: center; justify-content: space-between; padding-block: .75rem; border-top: 1px solid var(--rule); }
+.permission-update li > div { min-width: 0; }
+.permission-update h3 { font-size: 1.1rem; font-weight: 700; overflow-wrap: anywhere; }
+.permission-update li p { color: var(--muted); font-size: .9rem; overflow-wrap: anywhere; }
 .workspace-guide { padding-top: 3rem; }
 .workspace-guide p { max-width: 65ch; margin-block: 1rem; }
 /* Organisations and projects extend the workspace's ruled lists. */

@@ -71,3 +71,127 @@ pub async fn repository_connection() -> Result<RepositoryConnectionStatus, serve
 		installation_url: installation_url.into(),
 	})
 }
+
+/// A connected account whose GitHub App installation hasn't approved the
+/// app's current permissions.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PermissionUpdate {
+	/// The GitHub account login, e.g. `monochange`.
+	pub account: String,
+	/// GitHub page where an owner of the account reviews the request.
+	pub review_url: String,
+	/// The missing access, e.g. `Actions: write (now none), Checks: write (now read)`.
+	pub missing: String,
+}
+
+/// Connected accounts whose installation still runs on older permissions.
+///
+/// GitHub keeps every installation on the permissions it accepted until an
+/// owner of the account approves the app's new request. Signed-in users don't
+/// need to sign in again: their access follows the installation once it is
+/// approved. A failed GitHub lookup leaves the account out instead of failing
+/// the dashboard.
+///
+/// # Errors
+/// Returns an error for an invalid session or an unverifiable organisation.
+#[server]
+pub async fn permission_updates() -> Result<Vec<PermissionUpdate>, server_fn::ServerFnError> {
+	use std::sync::Arc;
+
+	use leptos::prelude::expect_context;
+
+	let state: Arc<monochange_app_api::AppState> = expect_context();
+	let Some(app) = state.github_app.as_ref() else {
+		return Ok(vec![]);
+	};
+	let Some(user_id) = super::repos::signed_in_user_id(&state).await? else {
+		return Ok(vec![]);
+	};
+	let mut installations: Vec<(i64, String, bool)> =
+		super::repos::accessible_repositories(&state, user_id)
+			.await?
+			.into_iter()
+			.map(|repository| {
+				(
+					repository.github_installation_id,
+					repository.info.installation_login,
+					repository.account_type == "User",
+				)
+			})
+			.collect();
+	installations.sort();
+	installations.dedup();
+
+	if installations.is_empty() {
+		return Ok(vec![]);
+	}
+
+	let requested = match app.requested_permissions(&state.http).await {
+		Ok(requested) => requested,
+		Err(error) => {
+			tracing::warn!(%error, "app permission lookup failed");
+			return Ok(vec![]);
+		}
+	};
+	let mut updates = Vec::new();
+
+	for (installation_id, account, personal) in installations {
+		let granted = match app
+			.installation_permissions(&state.http, installation_id)
+			.await
+		{
+			Ok(granted) => granted,
+			Err(error) => {
+				tracing::warn!(%error, installation = installation_id, "installation permission lookup failed");
+				continue;
+			}
+		};
+		let missing: Vec<String> =
+			monochange_app_api::github_app::pending_permissions(&requested, &granted)
+				.iter()
+				.map(permission_label)
+				.collect();
+
+		if missing.is_empty() {
+			continue;
+		}
+
+		updates.push(PermissionUpdate {
+			review_url: installation_settings_url(&account, personal, installation_id),
+			account,
+			missing: missing.join(", "),
+		});
+	}
+
+	Ok(updates)
+}
+
+/// The GitHub page where an account owner reviews an installation's
+/// permission request.
+#[cfg(not(target_arch = "wasm32"))]
+fn installation_settings_url(account: &str, personal: bool, installation_id: i64) -> String {
+	if personal {
+		format!("https://github.com/settings/installations/{installation_id}")
+	} else {
+		format!(
+			"https://github.com/organizations/{}/settings/installations/{installation_id}",
+			urlencoding::encode(account)
+		)
+	}
+}
+
+/// A short label such as `Pull requests: write (now read)`. Built on the
+/// server so the dashboard's browser code only renders text.
+#[cfg(not(target_arch = "wasm32"))]
+fn permission_label(permission: &monochange_app_api::github_app::PendingPermission) -> String {
+	let mut name = permission.name.replace('_', " ");
+	if let Some(first) = name.get_mut(..1) {
+		first.make_ascii_uppercase();
+	}
+
+	format!(
+		"{name}: {} (now {})",
+		permission.requested,
+		permission.granted.as_deref().unwrap_or("none")
+	)
+}

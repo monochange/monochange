@@ -26,12 +26,16 @@ When the dashboard offers repository connection:
 1. Sign in and choose **Connect repositories on GitHub** in the dashboard.
 2. Select the GitHub account or organization that owns the repository. An organization owner may need to approve the installation.
 3. Choose **All repositories** for that account, or **Only select repositories** for a smaller selection. Repeat installation for another account or organization when needed.
-4. Review the requested access. Metadata read access connects the repository. Contents and pull-request write access let the bot create release commits and release pull requests. The app does not request Actions, Administration, or Workflows access.
+4. Review the requested access. Metadata read access connects the repository. Contents, pull-request, and issue write access let the bot create release commits, release pull requests, and issues for accepted feedback. Actions and checks access let monochange follow the builds agents run in your CI, re-run or cancel them, and report its own checks, and commit-status read access covers CI that reports statuses. Organization members read access confirms that you still own an organization installation. The app does not request Administration, Secrets, or Workflows access, so it can't change your repository settings or workflow files.
 5. Complete installation and return to the dashboard. Refresh the repository list after GitHub delivers the installation webhook. A repository that is not listed cannot use the hosted backend yet.
 
 Personal installations belong to the account owner. Organization installations appear for the user who installed the app while GitHub confirms they remain an organization owner; the dashboard does not automatically share them with every organization member.
 
 You can change the selected repositories, suspend access, or uninstall the app in GitHub's installed-app settings. Installing the bot does not publish packages automatically.
+
+## When the app asks for more access
+
+When monochange starts requesting a new permission, GitHub emails the owner of each account where the app is installed and keeps that installation on the access it already approved until an owner accepts the request. The dashboard lists every connected account that is still waiting, with the permissions it is missing and a **Review on GitHub** link to the installation's settings, where an owner accepts the request. Signing in to monochange again is not needed: the bot's access comes from the installation, and your sign-in follows it once the request is approved.
 
 ## Connect the release workflow
 
