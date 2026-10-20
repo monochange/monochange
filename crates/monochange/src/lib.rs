@@ -860,18 +860,6 @@ fn skill_action_from_matches(matches: &clap::ArgMatches) -> SkillAction {
 	}
 }
 
-fn command_path_from_matches(matches: &clap::ArgMatches) -> Vec<String> {
-	let mut path = Vec::new();
-	let mut current = matches;
-
-	while let Some((name, child)) = current.subcommand() {
-		path.push(name.to_string());
-		current = child;
-	}
-
-	path
-}
-
 fn cli_snapshot_required_value(
 	args: &[OsString],
 	index: usize,
@@ -1346,19 +1334,6 @@ async fn dispatch_cli_args(
 		Err(error) => return render_clap_parse_failure(&error, &args, &cli, configuration),
 	};
 
-	if matches.get_flag("snapshot") {
-		let command = build_command_with_cli(bin_name, &cli);
-		let path = command_path_from_matches(&matches);
-
-		return render_snapshot_request(
-			&command,
-			&SnapshotRequest {
-				path,
-				view: monochange_snapshot::SnapshotView::Full,
-			},
-		);
-	}
-
 	if let Some(warning) = missing_configuration_warning(matches.subcommand_name(), root) {
 		progress.warning(warning);
 	}
@@ -1589,8 +1564,9 @@ struct SubcommandContext<'context> {
 
 /// Runs the parsed subcommand and returns its unshaped output.
 ///
-/// `--quiet` is applied once by [`finish_cli_output`], so a handler only checks it when rendering
-/// has a side effect of its own. The configuration is only unwrapped by the commands that read it,
+/// `help` and `--snapshot` never reach this point, because [`render_config_free_request`] answers
+/// any request that names them before the arguments are parsed. `--quiet` is applied once by
+/// [`finish_cli_output`], so a handler only checks it when rendering has a side effect of its own. The configuration is only unwrapped by the commands that read it,
 /// which is what lets `init`, `help`, and the other workspace-free commands run in a repository
 /// whose `monochange.toml` is broken.
 async fn run_cli_subcommand(
@@ -1603,11 +1579,6 @@ async fn run_cli_subcommand(
 
 	match matches.subcommand() {
 		Some(("snapshot", snapshot_matches)) => run_snapshot_subcommand(context, snapshot_matches),
-		Some(("help", help_matches)) => {
-			let path = command_values(help_matches);
-
-			Ok(render_clap_long_help(context.bin_name, context.cli, &path))
-		}
 		Some(("init", init_matches)) => {
 			let provider = init_matches
 				.get_one::<String>("provider")
@@ -1623,26 +1594,23 @@ async fn run_cli_subcommand(
 		Some(("skill", skill_matches)) => run_skill_subcommand(context.quiet, skill_matches),
 		Some(("subagents", subagent_matches)) => run_subagents_subcommand(root, subagent_matches),
 		Some(("change", change_matches)) => {
-			let classify_matches = required_subcommand(
-				change_matches,
-				"classify",
-				"Usage: monochange change classify [OPTIONS]",
-			)?;
+			let classify_matches = change_matches
+				.subcommand_matches("classify")
+				.expect("clap requires the change classify subcommand");
 
 			render_change_classification(root, &classify_options_from_matches(classify_matches)?)
 		}
 		Some(("api", api_matches)) => {
-			let diff_matches =
-				required_subcommand(api_matches, "diff", "Usage: monochange api diff [OPTIONS]")?;
+			let diff_matches = api_matches
+				.subcommand_matches("diff")
+				.expect("clap requires the api diff subcommand");
 
 			render_change_classification(root, &classify_options_from_matches(diff_matches)?)
 		}
 		Some(("changeset", changeset_matches)) => {
-			let validate_matches = required_subcommand(
-				changeset_matches,
-				"validate",
-				"Usage: monochange changeset validate --api [OPTIONS]",
-			)?;
+			let validate_matches = changeset_matches
+				.subcommand_matches("validate")
+				.expect("clap requires the changeset validate subcommand");
 
 			render_changeset_api_validation(root, &classify_options_from_matches(validate_matches)?)
 		}
@@ -1678,9 +1646,9 @@ async fn run_cli_subcommand(
 			.await
 		}
 		Some(("step", step_matches)) => {
-			let (step_name, step_command_matches) = step_matches.subcommand().ok_or_else(|| {
-				MonochangeError::Config("Usage: monochange step <command>".to_string())
-			})?;
+			let (step_name, step_command_matches) = step_matches
+				.subcommand()
+				.expect("clap requires a step subcommand");
 			let configuration = configuration?;
 			let synthetic = synthetic_step_command_definition(step_name)?;
 
@@ -1714,10 +1682,9 @@ async fn run_cli_subcommand(
 			.await
 		}
 		Some(("run", run_matches)) => {
-			let (cli_command_name, cli_command_matches) =
-				run_matches.subcommand().ok_or_else(|| {
-					MonochangeError::Config("Usage: monochange run <command>".to_string())
-				})?;
+			let (cli_command_name, cli_command_matches) = run_matches
+				.subcommand()
+				.expect("clap requires a run subcommand");
 
 			run_configured_command(
 				context,
@@ -1743,18 +1710,7 @@ async fn run_cli_subcommand(
 	}
 }
 
-/// Returns the matches of the nested subcommand `name`, or a usage error when it is missing.
-fn required_subcommand<'matches>(
-	matches: &'matches clap::ArgMatches,
-	name: &str,
-	usage: &str,
-) -> MonochangeResult<&'matches clap::ArgMatches> {
-	matches
-		.subcommand_matches(name)
-		.ok_or_else(|| MonochangeError::Config(usage.to_string()))
-}
-
-/// Collects the repeated `command` path argument shared by `help` and `snapshot`.
+/// Collects the repeated `command` path argument of `snapshot`.
 fn command_values(matches: &clap::ArgMatches) -> Vec<String> {
 	matches
 		.get_many::<String>("command")
@@ -1923,12 +1879,8 @@ fn run_versions_subcommand(root: &Path, matches: &clap::ArgMatches) -> Monochang
 
 			Ok(sync::format_version_inventory_for_cli(&inventory, format)?)
 		}
-		Some(("sync", sync_matches)) => run_versions_sync(root, sync_matches, false),
-		Some((name, _)) => {
-			Err(MonochangeError::Config(format!(
-				"unknown versions subcommand `{name}`"
-			)))
-		}
+		// `sync` is the only other subcommand clap defines for `versions`.
+		Some((_, sync_matches)) => run_versions_sync(root, sync_matches, false),
 		None => run_versions_sync(root, matches, true),
 	}
 }
