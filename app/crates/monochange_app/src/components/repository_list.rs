@@ -74,13 +74,27 @@ pub fn RepositoryFilters(
 	};
 	// patch-coverage:ignore-end
 	let apply_organization = apply.clone();
+	let input = NodeRef::<leptos::html::Input>::new();
+	// The URL can change under the field, as "Clear filters" does. Setting the
+	// value directly rather than with `prop:value` keeps tachys' property
+	// closure out of the lazy chunks, where wasm-bindgen can't process it.
+	// patch-coverage:ignore-start -- effects only run in the browser after hydration; the value comes from `use_repository_filter`, covered by the render tests.
+	Effect::new(move || {
+		let search = filter.get().search;
+		if let Some(input) = input.get()
+			&& input.value() != search
+		{
+			input.set_value(&search);
+		}
+	});
+	// patch-coverage:ignore-end
 
 	view! {
 		<form method="get" action=path role="search" class="repository-filters" on:submit=|event| event.prevent_default()>
 			<label class="filter-search">
 				<span class="sr-only">"Search repositories by name"</span>
 				<SearchIcon />
-				<input type="search" name=SEARCH_KEY placeholder="Search repositories" autocomplete="off" spellcheck="false" value=filter.get_untracked().search prop:value=move || filter.get().search on:input=move |event| apply(filter.get_untracked().with_search(event_target_value(&event))) />
+				<input type="search" name=SEARCH_KEY placeholder="Search repositories" autocomplete="off" spellcheck="false" value=filter.get_untracked().search node_ref=input on:input=move |event| apply(filter.get_untracked().with_search(event_target_value(&event))) />
 			</label>
 			{(organizations.len() > 1).then(|| view! {
 				<label class="filter-account">
