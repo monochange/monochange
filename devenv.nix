@@ -33,7 +33,7 @@ in
       mdbook
       nixfmt
       openssh
-      pnpm
+      custom.pnpm
       nodejs_24
       python3
       rustup
