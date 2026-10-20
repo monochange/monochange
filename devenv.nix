@@ -33,7 +33,7 @@ in
       mdbook
       nixfmt
       openssh
-      pnpm
+      custom.pnpm
       nodejs_24
       python3
       rustup
@@ -430,6 +430,9 @@ in
     "lint:push" = {
       exec = ''
         set -euo pipefail
+        # Git runs this hook with the caller's PATH, which lacks the devenv
+        # profile when the push starts outside the shell.
+        export PATH="${currentDir}/.devenv/profile/bin:$PATH"
 
         run_step() {
           local name="$1"
