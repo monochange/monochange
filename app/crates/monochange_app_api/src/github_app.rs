@@ -13,6 +13,8 @@
 #[path = "__tests__/github_app_tests.rs"]
 mod tests;
 
+use std::collections::BTreeMap;
+
 use hmac::Hmac;
 use hmac::Mac;
 use jsonwebtoken::EncodingKey;
@@ -154,22 +156,7 @@ impl GitHubAppAuth {
 	/// # Errors
 	/// Returns an error if app signing, the GitHub request, or slug validation fails.
 	pub async fn installation_url(&self, http: &reqwest::Client) -> Result<String, GitHubAppError> {
-		let response = http
-			.get(format!("{}/app", self.api_url))
-			.bearer_auth(self.app_jwt()?)
-			.header("Accept", "application/vnd.github+json")
-			.header("User-Agent", "monochange")
-			.send()
-			.await?;
-
-		if !response.status().is_success() {
-			let status = response.status();
-			let body = response.text().await?;
-
-			return Err(GitHubAppError::Status("read app metadata", status, body));
-		}
-
-		let metadata: AppMetadata = response.json().await?;
+		let metadata: AppMetadata = self.app_get(http, "/app", "read app metadata").await?;
 		let slug = metadata.slug;
 
 		if slug.is_empty()
@@ -227,11 +214,62 @@ impl GitHubAppAuth {
 		http: &reqwest::Client,
 		installation_id: i64,
 	) -> Result<monochange_app_db::projects::AccountIdentity, GitHubAppError> {
+		let installation: InstallationResponse = self
+			.app_get(
+				http,
+				&format!("/app/installations/{installation_id}"),
+				"read installation",
+			)
+			.await?;
+		Ok(monochange_app_db::projects::AccountIdentity {
+			provider: monochange_app_db::projects::GITHUB.to_owned(),
+			external_id: installation.account.id,
+			login: installation.account.login,
+			account_type: installation.account.account_type,
+			avatar_url: installation.account.avatar_url,
+		})
+	}
+
+	/// The permissions the app registration currently requests.
+	///
+	/// # Errors
+	/// Returns an error if app signing or the GitHub request fails.
+	pub async fn requested_permissions(
+		&self,
+		http: &reqwest::Client,
+	) -> Result<PermissionLevels, GitHubAppError> {
+		let metadata: AppMetadata = self.app_get(http, "/app", "read app metadata").await?;
+		Ok(metadata.permissions)
+	}
+
+	/// The permissions one installation has accepted.
+	///
+	/// # Errors
+	/// Returns an error if app signing or the GitHub request fails.
+	pub async fn installation_permissions(
+		&self,
+		http: &reqwest::Client,
+		installation_id: i64,
+	) -> Result<PermissionLevels, GitHubAppError> {
+		let installation: InstallationResponse = self
+			.app_get(
+				http,
+				&format!("/app/installations/{installation_id}"),
+				"read installation",
+			)
+			.await?;
+		Ok(installation.permissions)
+	}
+
+	/// Read one app-authenticated GitHub API resource.
+	async fn app_get<T: serde::de::DeserializeOwned>(
+		&self,
+		http: &reqwest::Client,
+		path: &str,
+		action: &'static str,
+	) -> Result<T, GitHubAppError> {
 		let response = http
-			.get(format!(
-				"{}/app/installations/{installation_id}",
-				self.api_url
-			))
+			.get(format!("{}{path}", self.api_url))
 			.bearer_auth(self.app_jwt()?)
 			.header("Accept", "application/vnd.github+json")
 			.header("User-Agent", "monochange")
@@ -242,17 +280,60 @@ impl GitHubAppAuth {
 			let status = response.status();
 			let body = response.text().await.unwrap_or_default();
 
-			return Err(GitHubAppError::Status("read installation", status, body));
+			return Err(GitHubAppError::Status(action, status, body));
 		}
 
-		let installation: InstallationResponse = response.json().await?;
-		Ok(monochange_app_db::projects::AccountIdentity {
-			provider: monochange_app_db::projects::GITHUB.to_owned(),
-			external_id: installation.account.id,
-			login: installation.account.login,
-			account_type: installation.account.account_type,
-			avatar_url: installation.account.avatar_url,
+		Ok(response.json().await?)
+	}
+}
+
+/// GitHub permission names mapped to their access level (`read`, `write`, or
+/// `admin`), as the app and installation endpoints report them.
+pub type PermissionLevels = BTreeMap<String, String>;
+
+/// A permission the app requests at a higher level than an installation has
+/// accepted.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PendingPermission {
+	/// GitHub's permission name, such as `actions` or `checks`.
+	pub name: String,
+	/// The level the app now requests.
+	pub requested: String,
+	/// The level the installation accepted, or `None` without access.
+	pub granted: Option<String>,
+}
+
+/// Permissions the app requests that an installation hasn't accepted yet.
+///
+/// GitHub keeps an installation on its old permissions until an owner of the
+/// account approves the app's new request, so any entry here means the
+/// installation is waiting for that approval.
+#[must_use]
+pub fn pending_permissions(
+	requested: &PermissionLevels,
+	granted: &PermissionLevels,
+) -> Vec<PendingPermission> {
+	requested
+		.iter()
+		.filter(|(name, level)| {
+			access_rank(level) > granted.get(*name).map_or(0, |level| access_rank(level))
 		})
+		.map(|(name, level)| {
+			PendingPermission {
+				name: name.clone(),
+				requested: level.clone(),
+				granted: granted.get(name).cloned(),
+			}
+		})
+		.collect()
+}
+
+fn access_rank(level: &str) -> u8 {
+	match level {
+		"read" => 1,
+		"write" => 2,
+		"admin" => 3,
+		_ => 0,
 	}
 }
 
@@ -279,11 +360,15 @@ fn webhook_signature(secret: &str, payload: &[u8]) -> String {
 #[derive(Debug, Deserialize)]
 struct AppMetadata {
 	slug: String,
+	#[serde(default)]
+	permissions: PermissionLevels,
 }
 
 #[derive(Debug, Deserialize)]
 struct InstallationResponse {
 	account: InstallationAccountResponse,
+	#[serde(default)]
+	permissions: PermissionLevels,
 }
 
 #[derive(Debug, Deserialize)]

@@ -24,7 +24,10 @@ use rsa::pkcs1::EncodeRsaPrivateKey;
 use rsa::pkcs1::LineEnding;
 use rsa::rand_core::OsRng;
 
+use super::PendingPermissionView;
+use super::PermissionUpdate;
 use super::RepositoryConnectionStatus;
+use super::permission_updates;
 use super::repository_connection;
 
 async fn state(server: Option<&MockServer>) -> Arc<AppState> {
@@ -60,6 +63,7 @@ async fn state(server: Option<&MockServer>) -> Arc<AppState> {
 			"test-only-webhook-secret",
 			&server.base_url(),
 		));
+		state.github_api_origin = server.base_url();
 	}
 
 	Arc::new(state)
@@ -262,4 +266,207 @@ async fn invalid_app_metadata_is_an_error_for_the_dashboard() {
 
 	assert!(error.contains("could not be loaded"));
 	metadata.assert();
+}
+
+// ── Permission updates ──
+
+async fn connect(state: &AppState, installation_id: i64, login: &str, account_type: &str) {
+	let installation: i32 = sqlx::query_scalar(
+		"INSERT INTO installations (user_id, github_installation_id, github_account_login, github_account_type, target_type)
+		 VALUES (1, $1, $2, $3, 'selected') RETURNING id",
+	)
+	.bind(installation_id)
+	.bind(login)
+	.bind(account_type)
+	.fetch_one(&state.db)
+	.await
+	.unwrap();
+
+	for repository in ["one", "two"] {
+		sqlx::query(
+			"INSERT INTO repositories (installation_id, github_repo_id, github_full_name, github_private, created_at, updated_at)
+			 VALUES ($1, $2, $3, 0, '2026-10-20T00:00:00Z', '2026-10-20T00:00:00Z')",
+		)
+		.bind(installation)
+		.bind(installation_id * 10 + i64::from(repository == "two"))
+		.bind(format!("{login}/{repository}"))
+		.execute(&state.db)
+		.await
+		.unwrap();
+	}
+}
+
+fn mock_app(server: &MockServer, status: u16) -> httpmock::Mock<'_> {
+	server.mock(|when, then| {
+		when.method(Method::GET).path("/app");
+		then.status(status).json_body(serde_json::json!({
+			"slug": "test-app",
+			"permissions": {"actions": "write", "checks": "write", "contents": "write", "metadata": "read"},
+		}));
+	})
+}
+
+fn mock_installation<'a>(
+	server: &'a MockServer,
+	installation_id: i64,
+	status: u16,
+	permissions: &serde_json::Value,
+) -> httpmock::Mock<'a> {
+	server.mock(|when, then| {
+		when.method(Method::GET)
+			.path(format!("/app/installations/{installation_id}"));
+		then.status(status).json_body(serde_json::json!({
+			"id": installation_id,
+			"account": {"id": installation_id, "login": "account", "type": "User"},
+			"permissions": permissions,
+		}));
+	})
+}
+
+async fn updates(state: Arc<AppState>, signed_in: bool) -> Vec<PermissionUpdate> {
+	let cookie = signed_in.then(|| session(&state, 1));
+	let (owner, _) = context(state, cookie);
+	owner
+		.with(|| ScopedFuture::new(permission_updates()))
+		.await
+		.unwrap()
+}
+
+#[tokio::test]
+async fn installations_behind_the_app_permissions_link_to_their_review_page() {
+	let server = MockServer::start();
+	let app = mock_app(&server, 200);
+	let personal = mock_installation(
+		&server,
+		11,
+		200,
+		&serde_json::json!({"checks": "read", "contents": "write", "metadata": "read"}),
+	);
+	let organization = mock_installation(
+		&server,
+		22,
+		200,
+		&serde_json::json!({"actions": "write", "checks": "write", "contents": "write", "metadata": "read"}),
+	);
+	let membership = server.mock(|when, then| {
+		when.method(Method::GET)
+			.path("/user/memberships/orgs/acme")
+			.header("authorization", "Bearer test-only-token");
+		then.status(200)
+			.json_body(serde_json::json!({"state": "active", "role": "admin"}));
+	});
+	let state = state(Some(&server)).await;
+	connect(&state, 11, "alice", "User").await;
+	connect(&state, 22, "acme", "Organization").await;
+
+	assert_eq!(
+		updates(state, true).await,
+		vec![PermissionUpdate {
+			account: "alice".to_string(),
+			review_url: "https://github.com/settings/installations/11".to_string(),
+			permissions: vec![
+				PendingPermissionView {
+					name: "actions".to_string(),
+					requested: "write".to_string(),
+					granted: None,
+				},
+				PendingPermissionView {
+					name: "checks".to_string(),
+					requested: "write".to_string(),
+					granted: Some("read".to_string()),
+				},
+			],
+		}],
+	);
+	app.assert_calls(1);
+	personal.assert_calls(1);
+	organization.assert_calls(1);
+	membership.assert_calls(1);
+}
+
+#[tokio::test]
+async fn organization_installations_review_on_the_organization_settings_page() {
+	let server = MockServer::start();
+	mock_app(&server, 200);
+	mock_installation(&server, 22, 200, &serde_json::json!({"metadata": "read"}));
+	server.mock(|when, then| {
+		when.method(Method::GET).path("/user/memberships/orgs/acme");
+		then.status(200)
+			.json_body(serde_json::json!({"state": "active", "role": "admin"}));
+	});
+	let state = state(Some(&server)).await;
+	connect(&state, 22, "acme", "Organization").await;
+
+	let updates = updates(state, true).await;
+	assert_eq!(updates.len(), 1);
+	assert_eq!(
+		updates[0].review_url,
+		"https://github.com/organizations/acme/settings/installations/22"
+	);
+}
+
+#[tokio::test]
+async fn failed_installation_lookups_leave_only_that_account_out() {
+	let server = MockServer::start();
+	mock_app(&server, 200);
+	mock_installation(&server, 11, 404, &serde_json::json!({}));
+	mock_installation(&server, 33, 200, &serde_json::json!({"metadata": "read"}));
+	let state = state(Some(&server)).await;
+	connect(&state, 11, "alice", "User").await;
+	connect(&state, 33, "alice-two", "User").await;
+
+	let updates = updates(state, true).await;
+	assert_eq!(
+		updates
+			.iter()
+			.map(|update| update.account.as_str())
+			.collect::<Vec<_>>(),
+		vec!["alice-two"]
+	);
+}
+
+#[tokio::test]
+async fn permission_updates_are_empty_when_nothing_can_be_checked() {
+	// No configured app.
+	let unconfigured = state(None).await;
+	connect(&unconfigured, 11, "alice", "User").await;
+	assert!(updates(unconfigured, true).await.is_empty());
+
+	// Signed out, and signed in without installations, never ask GitHub.
+	let server = MockServer::start();
+	let app = mock_app(&server, 200);
+	let signed_out = state(Some(&server)).await;
+	connect(&signed_out, 11, "alice", "User").await;
+	assert!(updates(signed_out, false).await.is_empty());
+	assert!(updates(state(Some(&server)).await, true).await.is_empty());
+	app.assert_calls(0);
+
+	// A failed app lookup hides the notice instead of failing the dashboard.
+	let failing = MockServer::start();
+	let app = mock_app(&failing, 500);
+	let installation = mock_installation(&failing, 11, 200, &serde_json::json!({}));
+	let state = state(Some(&failing)).await;
+	connect(&state, 11, "alice", "User").await;
+	assert!(updates(state, true).await.is_empty());
+	app.assert_calls(1);
+	installation.assert_calls(0);
+}
+
+#[test]
+fn pending_permission_labels_read_as_plain_words() {
+	let label = |name: &str, granted: Option<&str>| {
+		PendingPermissionView {
+			name: name.to_string(),
+			requested: "write".to_string(),
+			granted: granted.map(str::to_string),
+		}
+		.label()
+	};
+
+	assert_eq!(
+		label("pull_requests", Some("read")),
+		"Pull requests: write (now read)"
+	);
+	assert_eq!(label("actions", None), "Actions: write (now none)");
+	assert_eq!(label("", None), ": write (now none)");
 }

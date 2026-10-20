@@ -58,10 +58,26 @@ fn organization(login: &str, personal: bool, names: &[&str]) -> OrganizationSumm
 }
 
 async fn dashboard(uri: &'static str, organizations: Vec<OrganizationSummary>) -> String {
+	dashboard_with_updates(uri, organizations, Vec::new()).await
+}
+
+async fn dashboard_with_updates(
+	uri: &'static str,
+	organizations: Vec<OrganizationSummary>,
+	updates: Vec<PermissionUpdate>,
+) -> String {
 	crate::tests::render_at(uri, move || {
 		let connection = Resource::new_blocking(
 			|| (),
 			|()| async { Ok(RepositoryConnectionStatus::Unavailable) },
+		);
+		let updates = updates.clone();
+		let permissions = Resource::new_blocking(
+			|| (),
+			move |()| {
+				let updates = updates.clone();
+				async move { Ok(updates) }
+			},
 		);
 		let user = SessionUser {
 			github_id: 101,
@@ -69,7 +85,7 @@ async fn dashboard(uri: &'static str, organizations: Vec<OrganizationSummary>) -
 			github_avatar_url: None,
 			plan_tier: "free".to_owned(),
 		};
-		view! { <DashboardContent user=user organizations=organizations.clone() connection=connection /> }
+		view! { <DashboardContent user=user organizations=organizations.clone() connection=connection permissions=permissions /> }
 	})
 	.await
 }
@@ -109,6 +125,53 @@ async fn organisations_start_folded_with_their_counts() {
 		"{html}"
 	);
 	assert!(!html.contains("Free</span>"), "{html}");
+}
+
+#[tokio::test]
+async fn installations_waiting_for_new_permissions_link_to_github() {
+	let html = dashboard_with_updates(
+		"/dashboard",
+		workspace(),
+		vec![PermissionUpdate {
+			account: "acme".to_owned(),
+			review_url: "https://github.com/organizations/acme/settings/installations/22"
+				.to_owned(),
+			permissions: vec![
+				PendingPermissionView {
+					name: "actions".to_owned(),
+					requested: "write".to_owned(),
+					granted: None,
+				},
+				PendingPermissionView {
+					name: "pull_requests".to_owned(),
+					requested: "write".to_owned(),
+					granted: Some("read".to_owned()),
+				},
+			],
+		}],
+	)
+	.await;
+
+	assert!(
+		html.contains("Approve monochange&#x27;s new GitHub permissions")
+			|| html.contains("Approve monochange's new GitHub permissions"),
+		"{html}"
+	);
+	assert!(
+		html.contains("Actions: write (now none), Pull requests: write (now read)"),
+		"{html}"
+	);
+	assert!(
+		html.contains("href=\"https://github.com/organizations/acme/settings/installations/22\""),
+		"{html}"
+	);
+}
+
+#[tokio::test]
+async fn no_permission_notice_when_every_installation_is_current() {
+	let html = dashboard("/dashboard", workspace()).await;
+
+	assert!(!html.contains("permission-update"), "{html}");
 }
 
 #[tokio::test]

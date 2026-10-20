@@ -22,7 +22,10 @@ use rstest::rstest;
 
 use super::GitHubAppAuth;
 use super::GitHubAppError;
+use super::PendingPermission;
+use super::PermissionLevels;
 use super::create_release_commit;
+use super::pending_permissions;
 
 fn auth(server: &MockServer) -> GitHubAppAuth {
 	static TEST_KEY: OnceLock<String> = OnceLock::new();
@@ -188,6 +191,113 @@ async fn installation_account_failures_keep_github_status() {
 		error,
 		GitHubAppError::Status("read installation", status, _) if status == reqwest::StatusCode::NOT_FOUND
 	));
+}
+
+// ── Permission updates ──
+fn levels(entries: &[(&str, &str)]) -> PermissionLevels {
+	entries
+		.iter()
+		.map(|(name, level)| ((*name).to_string(), (*level).to_string()))
+		.collect()
+}
+
+#[tokio::test]
+async fn requested_and_installation_permissions_come_from_github() {
+	let server = MockServer::start();
+	let app = server.mock(|when, then| {
+		when.method(Method::GET)
+			.path("/app")
+			.header_exists("authorization");
+		then.status(200).json_body(serde_json::json!({
+			"slug": "monochange",
+			"permissions": {"actions": "write", "contents": "write", "metadata": "read"},
+		}));
+	});
+	let installation = server.mock(|when, then| {
+		when.method(Method::GET)
+			.path("/app/installations/1001")
+			.header_exists("authorization");
+		then.status(200).json_body(serde_json::json!({
+			"id": 1001,
+			"account": {"id": 5001, "login": "acme", "type": "Organization"},
+			"permissions": {"contents": "write", "metadata": "read"},
+		}));
+	});
+	let auth = auth(&server);
+	let http = reqwest::Client::new();
+
+	assert_eq!(
+		auth.requested_permissions(&http).await.unwrap(),
+		levels(&[
+			("actions", "write"),
+			("contents", "write"),
+			("metadata", "read")
+		]),
+	);
+	assert_eq!(
+		auth.installation_permissions(&http, 1001).await.unwrap(),
+		levels(&[("contents", "write"), ("metadata", "read")]),
+	);
+	app.assert();
+	installation.assert();
+}
+
+#[tokio::test]
+async fn installation_permission_failures_keep_github_status() {
+	let server = MockServer::start();
+	server.mock(|when, then| {
+		when.method(Method::GET).path("/app/installations/404");
+		then.status(404).body("Not Found");
+	});
+
+	assert!(matches!(
+		auth(&server)
+			.installation_permissions(&reqwest::Client::new(), 404)
+			.await,
+		Err(GitHubAppError::Status("read installation", status, _))
+			if status == reqwest::StatusCode::NOT_FOUND
+	));
+}
+
+#[test]
+fn pending_permissions_lists_new_and_raised_access_only() {
+	let requested = levels(&[
+		("actions", "write"),
+		("checks", "read"),
+		("contents", "write"),
+		("issues", "write"),
+		("metadata", "read"),
+		("future", "someday"),
+	]);
+	let granted = levels(&[
+		("checks", "write"),
+		("contents", "write"),
+		("issues", "read"),
+		("metadata", "read"),
+	]);
+
+	assert_eq!(
+		pending_permissions(&requested, &granted),
+		vec![
+			PendingPermission {
+				name: "actions".to_string(),
+				requested: "write".to_string(),
+				granted: None,
+			},
+			PendingPermission {
+				name: "issues".to_string(),
+				requested: "write".to_string(),
+				granted: Some("read".to_string()),
+			},
+		],
+	);
+	assert!(
+		pending_permissions(
+			&levels(&[("administration", "admin")]),
+			&levels(&[("administration", "admin")])
+		)
+		.is_empty()
+	);
 }
 
 // ── Hosted release commits ──

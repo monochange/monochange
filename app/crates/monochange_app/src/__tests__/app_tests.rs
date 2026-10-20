@@ -513,7 +513,17 @@ async fn configured_dashboard_connects_to_verified_app_and_shows_suspended_repos
 	let metadata = server
 		.mock_async(|when, then| {
 			when.method(GET).path("/app").header_exists("authorization");
-			then.json_body(serde_json::json!({"slug":"test-app"}));
+			then.json_body(
+				serde_json::json!({"slug":"test-app","permissions":{"checks":"write","metadata":"read"}}),
+			);
+		})
+		.await;
+	let installation = server
+		.mock_async(|when, then| {
+			when.method(GET)
+				.path("/app/installations/1001")
+				.header_exists("authorization");
+			then.json_body(serde_json::json!({"id":1001,"account":{"id":101,"login":"alice","type":"User"},"permissions":{"metadata":"read"}}));
 		})
 		.await;
 	let state = configured_state(&server).await;
@@ -538,7 +548,14 @@ async fn configured_dashboard_connects_to_verified_app_and_shows_suspended_repos
 	assert!(body.contains("alice/private"));
 	assert!(body.contains("Installation suspended"));
 	assert!(!body.contains("Repository connection is unavailable"));
-	metadata.assert_async().await;
+	// The installation still lacks checks access, so the dashboard links to
+	// its GitHub settings page for approval.
+	assert!(body.contains("Checks: write (now none)"), "{body}");
+	assert!(body.contains("href=\"https://github.com/settings/installations/1001\""));
+	// Once for the installation link, once for the requested permissions.
+	metadata.assert_calls_async(2).await;
+	// Once to link the legacy installation's account, once for its permissions.
+	installation.assert_calls_async(2).await;
 }
 
 #[tokio::test]

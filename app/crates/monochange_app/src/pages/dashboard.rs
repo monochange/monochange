@@ -16,7 +16,10 @@ use crate::repository_filter::count_matches;
 use crate::repository_filter::repository_count as repository_count_label;
 use crate::server_fns::auth::SessionUser;
 use crate::server_fns::auth::get_session;
+use crate::server_fns::installation::PendingPermissionView;
+use crate::server_fns::installation::PermissionUpdate;
 use crate::server_fns::installation::RepositoryConnectionStatus;
+use crate::server_fns::installation::permission_updates;
 use crate::server_fns::installation::repository_connection;
 use crate::server_fns::organizations::OrganizationSummary;
 use crate::server_fns::organizations::list_organizations;
@@ -26,6 +29,7 @@ pub struct DashboardRoute {
 	user: Resource<Result<Option<SessionUser>, server_fn::ServerFnError>>,
 	organizations: Resource<Result<Vec<OrganizationSummary>, server_fn::ServerFnError>>,
 	connection: Resource<Result<RepositoryConnectionStatus, server_fn::ServerFnError>>,
+	permissions: Resource<Result<Vec<PermissionUpdate>, server_fn::ServerFnError>>,
 }
 
 /// Dashboard page shown after login, split into its own WASM chunk.
@@ -36,6 +40,8 @@ impl LazyRoute for DashboardRoute {
 			user: Resource::new_blocking(|| (), |()| get_session()),
 			organizations: Resource::new_blocking(|| (), |()| list_organizations()),
 			connection: Resource::new_blocking(|| (), |()| repository_connection()),
+			// GitHub lookups per installation stream in after the page.
+			permissions: Resource::new(|| (), |()| permission_updates()),
 		}
 	}
 
@@ -44,6 +50,7 @@ impl LazyRoute for DashboardRoute {
 			user,
 			organizations,
 			connection,
+			permissions,
 		} = this;
 		view! {
 			<Title text="Your workspace — monochange" />
@@ -51,7 +58,7 @@ impl LazyRoute for DashboardRoute {
 				<Suspense fallback=|| view! { <p role="status">"Loading your workspace…"</p> }>
 					{move || user.get().map(|result| match result {
 						Ok(Some(session)) => organizations.get().map(|result| match result {
-							Ok(organizations) => view! { <DashboardContent user=session organizations=organizations connection=connection /> }.into_any(),
+							Ok(organizations) => view! { <DashboardContent user=session organizations=organizations connection=connection permissions=permissions /> }.into_any(),
 							Err(_) => view! { <DashboardNotice title="Repositories couldn't be loaded" message="Please reload the page to try again." /> }.into_any(),
 						}).into_any(),
 
@@ -80,6 +87,7 @@ fn DashboardContent(
 	user: crate::server_fns::auth::SessionUser,
 	organizations: Vec<OrganizationSummary>,
 	connection: Resource<Result<RepositoryConnectionStatus, server_fn::ServerFnError>>,
+	permissions: Resource<Result<Vec<PermissionUpdate>, server_fn::ServerFnError>>,
 ) -> impl IntoView {
 	let filter = use_repository_filter();
 	let repository_count: usize = organizations
@@ -120,6 +128,7 @@ fn DashboardContent(
 				{user.github_avatar_url.map(|url| view! { <img src=url alt="" width="56" height="56" /> })}
 				<div><h1>"Welcome, " {user.github_login}</h1><p>"Your free monochange workspace."</p></div>
 			</div>
+			<PermissionUpdateNotice permissions=permissions />
 			<RepositoryConnectionPanel connection=connection />
 			<section class="repository-section" id="organizations" aria-labelledby="organizations-title">
 				<div class="repository-heading"><h2 id="organizations-title">"Organisations"</h2><p aria-live="polite">{move || if filter.get().is_active() { format!("{} of {} match", matches.get(), repository_count_label(repository_count)) } else { format!("{} connected", repository_count_label(repository_count)) }}</p></div>
@@ -224,6 +233,32 @@ pub fn organization_avatar(login: &str, avatar_url: Option<String>) -> AnyView {
 		.map_or('?', |character| character.to_ascii_uppercase());
 	view! { <span class="organization-avatar" aria-hidden="true">{initial.to_string()}</span> }
 		.into_any()
+}
+
+/// Accounts whose installation is waiting for an owner to approve the app's
+/// new permissions. Hidden while loading, on error, and when none are waiting.
+#[component]
+fn PermissionUpdateNotice(
+	permissions: Resource<Result<Vec<PermissionUpdate>, server_fn::ServerFnError>>,
+) -> impl IntoView {
+	view! {
+		<Suspense fallback=|| ()>
+			{move || permissions.get().and_then(Result::ok).filter(|updates| !updates.is_empty()).map(|updates| view! {
+				<section class="permission-update" aria-labelledby="permission-update-title">
+					<h2 id="permission-update-title">"Approve monochange's new GitHub permissions"</h2>
+					<p>"monochange now asks GitHub for more access. Until an owner of each account below approves the request, monochange keeps the access it has today. You don't need to sign in again."</p>
+					<ul>
+						{updates.into_iter().map(|update| view! {
+							<li>
+								<div><h3>{update.account}</h3><p>{update.permissions.iter().map(PendingPermissionView::label).collect::<Vec<_>>().join(", ")}</p></div>
+								<a href=update.review_url rel="external" class="button button-quiet">"Review on GitHub"</a>
+							</li>
+						}).collect::<Vec<_>>()}
+					</ul>
+				</section>
+			})}
+		</Suspense>
+	}
 }
 
 #[component]
