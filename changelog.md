@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.20.1](https://github.com/monochange/monochange/releases/tag/v0.20.1) (2026-10-21)
+
+Grouped release for `main`.
+
+### 🐛 Fixed
+
+#### Run the npm-installed binary when it lost its executable bit
+
+_Packages:_ 🟢 _@monochange/cli_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #824](https://github.com/monochange/monochange/pull/824)
+
+Every `@monochange/cli` 0.20.0 platform package (`@monochange/cli-linux-x64-gnu`, `@monochange/cli-darwin-arm64`, and the rest) shipped `bin/monochange` with mode `0644`, so `npx @monochange/cli`, `npm install -g @monochange/cli`, and `pnpm exec monochange` failed on Linux and macOS with:
+
+```text
+Unable to find a compatible monochange binary in the installed npm packages.
+@monochange/cli-linux-x64-gnu: spawnSync …/bin/monochange EACCES
+```
+
+The `monochange` launcher now checks the platform binary before running it. When the executable bit is missing, it restores it in place, or, when the install directory belongs to another user, runs a private executable copy from the temporary directory and removes it afterwards. Upgrade to this release; no configuration change is needed.
+
 ## [0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)
 
 Grouped release for `main`.
