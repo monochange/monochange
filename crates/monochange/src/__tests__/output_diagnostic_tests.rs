@@ -187,6 +187,64 @@ fn steps_follow_the_command_context_or_lead_without_one() {
 }
 
 #[test]
+fn hosted_request_failures_are_not_reported_as_config_errors() {
+	let oidc = CliDiagnostic::from_error(
+		&MonochangeError::Config(
+			"hosted CommitRelease OIDC token request failed with status 503 Service Unavailable \
+			 after 4 attempts. GitHub Actions could not issue the job's OIDC token, which is a \
+			 GitHub outage rather than a problem with this workspace; rerun the job."
+				.to_string(),
+		),
+		None,
+	)
+	.render(false);
+	assert!(
+		oidc.starts_with("error[hosted.request_failed]: hosted CommitRelease OIDC token"),
+		"{oidc}"
+	);
+	assert!(!oidc.contains("monochange.toml"), "{oidc}");
+
+	let conflict = CliDiagnostic::from_error(
+		&MonochangeError::Config(
+			"hosted CommitRelease failed with HTTP 409 Conflict: base branch moved".to_string(),
+		),
+		None,
+	)
+	.render(false);
+	assert_eq!(
+		conflict,
+		"error[hosted.request_failed]: hosted CommitRelease failed with HTTP 409 Conflict: base \
+		 branch moved"
+	);
+
+	let unreachable = CliDiagnostic::from_error(
+		&MonochangeError::Config(
+			"hosted CommitRelease request failed: connection refused".to_string(),
+		),
+		None,
+	)
+	.render(false);
+	assert_eq!(
+		unreachable,
+		"error[hosted.request_failed]: hosted CommitRelease request failed: connection \
+		 refused\n  help: Rerun the job. If it fails again, check that the job grants \
+		 `id-token: write` and that the monochange GitHub App is installed on the repository."
+	);
+
+	let missing_token = CliDiagnostic::from_error(
+		&MonochangeError::Config(
+			"hosted CommitRelease token auth requires MONOCHANGE_TOKEN".to_string(),
+		),
+		None,
+	)
+	.render(false);
+	assert!(
+		missing_token.starts_with("error[config.invalid]"),
+		"{missing_token}"
+	);
+}
+
+#[test]
 fn diagnostics_cover_every_error_category_and_sanitize_terminal_controls() {
 	let parse_source = serde_json::from_str::<serde_json::Value>("{")
 		.expect_err("invalid JSON should create a parse error");

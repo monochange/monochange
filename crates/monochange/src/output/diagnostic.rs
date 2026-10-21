@@ -274,6 +274,26 @@ fn classify(error: &MonochangeError) -> (&'static str, String, Vec<String>) {
 		MonochangeError::Config(message) if is_usage_error(message) => {
 			("cli.usage", message.clone(), Vec::new())
 		}
+		// The hosted backend's own reason, such as a release branch conflict,
+		// follows the HTTP status, so it needs no generic hint.
+		MonochangeError::Config(message)
+			if message.starts_with("hosted ") && message.contains(" failed with HTTP ") =>
+		{
+			("hosted.request_failed", message.clone(), Vec::new())
+		}
+		MonochangeError::Config(message)
+			if message.starts_with("hosted ") && message.contains(" request failed") =>
+		{
+			(
+				"hosted.request_failed",
+				message.clone(),
+				generic_hint(
+					message,
+					"Rerun the job. If it fails again, check that the job grants `id-token: \
+					 write` and that the monochange GitHub App is installed on the repository.",
+				),
+			)
+		}
 		MonochangeError::Config(message) => {
 			(
 				"config.invalid",
