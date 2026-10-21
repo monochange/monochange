@@ -2142,7 +2142,7 @@ dependencies = [
 
 [[package]]
 name = "monochange"
-version = "0.20.0"
+version = "0.20.1"
 dependencies = [
  "anstyle",
  "chrono",
@@ -2208,7 +2208,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_analysis"
-version = "0.20.0"
+version = "0.20.1"
 dependencies = [
  "insta",
  "monochange_cargo",
@@ -2230,7 +2230,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_book"
-version = "0.20.0"
+version = "0.20.1"
 dependencies = [
  "clap",
  "doc-comment",
@@ -2265,7 +2265,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_cargo"
-version = "0.20.0"
+version = "0.20.1"
 dependencies = [
  "insta",
  "monochange_config",
@@ -2294,7 +2294,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_changelog"
-version = "0.20.0"
+version = "0.20.1"
 dependencies = [
  "insta",
  "minijinja",
@@ -2309,7 +2309,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_classification"
-version = "0.4.6"
+version = "0.4.7"
 dependencies = [
  "insta",
  "monochange_analysis",
@@ -2328,7 +2328,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_config"
-version = "0.20.0"
+version = "0.20.1"
 dependencies = [
  "glob",
  "ignore",
@@ -2354,7 +2354,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_core"
-version = "0.20.0"
+version = "0.20.1"
 dependencies = [
  "async-trait",
  "glob",
@@ -2379,7 +2379,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_dart"
-version = "0.20.0"
+version = "0.20.1"
 dependencies = [
  "insta",
  "monochange_config",
@@ -2401,7 +2401,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_deno"
-version = "0.20.0"
+version = "0.20.1"
 dependencies = [
  "insta",
  "monochange_core",
@@ -2421,7 +2421,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_ecmascript"
-version = "0.20.0"
+version = "0.20.1"
 dependencies = [
  "monochange_core",
  "oxc_allocator",
@@ -2432,7 +2432,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_forgejo"
-version = "0.20.0"
+version = "0.20.1"
 dependencies = [
  "async-trait",
  "etest",
@@ -2453,7 +2453,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_gitea"
-version = "0.20.0"
+version = "0.20.1"
 dependencies = [
  "async-trait",
  "etest",
@@ -2474,7 +2474,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_github"
-version = "0.20.0"
+version = "0.20.1"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -2501,7 +2501,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_gitlab"
-version = "0.20.0"
+version = "0.20.1"
 dependencies = [
  "async-trait",
  "etest",
@@ -2522,7 +2522,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_go"
-version = "0.20.0"
+version = "0.20.1"
 dependencies = [
  "insta",
  "monochange_core",
@@ -2539,7 +2539,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_graph"
-version = "0.20.0"
+version = "0.20.1"
 dependencies = [
  "insta",
  "monochange_core",
@@ -2553,7 +2553,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_hosting"
-version = "0.20.0"
+version = "0.20.1"
 dependencies = [
  "httpmock",
  "monochange_core",
@@ -2593,7 +2593,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_lint"
-version = "0.20.0"
+version = "0.20.1"
 dependencies = [
  "glob",
  "ignore",
@@ -2606,14 +2606,14 @@ dependencies = [
 
 [[package]]
 name = "monochange_linting"
-version = "0.20.0"
+version = "0.20.1"
 dependencies = [
  "monochange_core",
 ]
 
 [[package]]
 name = "monochange_npm"
-version = "0.20.0"
+version = "0.20.1"
 dependencies = [
  "insta",
  "monochange_config",
@@ -2639,7 +2639,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_publish"
-version = "0.20.0"
+version = "0.20.1"
 dependencies = [
  "chrono",
  "insta",
@@ -2657,7 +2657,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_python"
-version = "0.20.0"
+version = "0.20.1"
 dependencies = [
  "insta",
  "monochange_core",
@@ -2686,7 +2686,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_semver"
-version = "0.20.0"
+version = "0.20.1"
 dependencies = [
  "insta",
  "monochange_core",
@@ -2710,7 +2710,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_telemetry"
-version = "0.20.0"
+version = "0.20.1"
 dependencies = [
  "monochange_core",
  "monochange_test_helpers",
@@ -2724,7 +2724,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_test_helpers"
-version = "0.20.0"
+version = "0.20.1"
 dependencies = [
  "insta",
  "monochange_core",
@@ -5447,7 +5447,7 @@ checksum = "3ad82d2a33cdc9674dc7465672f271e096168fcdbe0f799d9e6db8c5892679dc"
 
 [[package]]
 name = "xtask"
-version = "0.20.0"
+version = "0.20.1"
 dependencies = [
  "clap",
  "monochange_classification",
