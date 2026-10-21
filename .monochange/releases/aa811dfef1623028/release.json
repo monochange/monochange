@@ -1,0 +1,3431 @@
+{
+	"schema_version": "0.10",
+	"kind": "monochange.releaseRecord",
+	"created_at": "2026-10-21T08:55:29Z",
+	"command": "release",
+	"version": null,
+	"versions": {
+		"main": "0.20.0",
+		"monochange_app": "0.3.2",
+		"monochange_classification": "0.4.6"
+	},
+	"release_targets": [
+		{
+			"id": "main",
+			"kind": "group",
+			"version": "0.20.0",
+			"version_format": "primary",
+			"tag": true,
+			"release": true,
+			"tag_name": "v0.20.0",
+			"rendered_title": "v0.20.0 (2026-10-21)",
+			"rendered_changelog_title": "[0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)",
+			"members": [
+				"@monochange/cli",
+				"@monochange/cli-darwin-arm64",
+				"@monochange/cli-darwin-x64",
+				"@monochange/cli-linux-arm64-gnu",
+				"@monochange/cli-linux-arm64-musl",
+				"@monochange/cli-linux-x64-gnu",
+				"@monochange/cli-linux-x64-musl",
+				"@monochange/cli-win32-arm64-msvc",
+				"@monochange/cli-win32-x64-msvc",
+				"@monochange/skill",
+				"monochange",
+				"monochange_analysis",
+				"monochange_cargo",
+				"monochange_changelog",
+				"monochange_config",
+				"monochange_core",
+				"monochange_dart",
+				"monochange_deno",
+				"monochange_ecmascript",
+				"monochange_forgejo",
+				"monochange_gitea",
+				"monochange_github",
+				"monochange_gitlab",
+				"monochange_go",
+				"monochange_graph",
+				"monochange_hosting",
+				"monochange_lint",
+				"monochange_linting",
+				"monochange_npm",
+				"monochange_publish",
+				"monochange_python",
+				"monochange_semver",
+				"monochange_telemetry",
+				"monochange_test_helpers"
+			]
+		},
+		{
+			"id": "monochange_app",
+			"kind": "package",
+			"version": "0.3.2",
+			"version_format": "namespaced",
+			"tag": true,
+			"release": true,
+			"tag_name": "monochange_app/v0.3.2",
+			"rendered_title": "monochange.dev 0.3.2",
+			"rendered_changelog_title": "0.3.2",
+			"members": [
+				"monochange_app"
+			]
+		},
+		{
+			"id": "monochange_classification",
+			"kind": "package",
+			"version": "0.4.6",
+			"version_format": "namespaced",
+			"tag": true,
+			"release": false,
+			"tag_name": "monochange_classification/v0.4.6",
+			"rendered_title": "monochange_classification v0.4.6 (2026-10-21)",
+			"rendered_changelog_title": "monochange_classification [0.4.6](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.4.6) (2026-10-21)",
+			"members": [
+				"monochange_classification"
+			]
+		}
+	],
+	"released_packages": [
+		"@monochange/cli",
+		"@monochange/cli-darwin-arm64",
+		"@monochange/cli-darwin-x64",
+		"@monochange/cli-linux-arm64-gnu",
+		"@monochange/cli-linux-arm64-musl",
+		"@monochange/cli-linux-x64-gnu",
+		"@monochange/cli-linux-x64-musl",
+		"@monochange/cli-win32-arm64-msvc",
+		"@monochange/cli-win32-x64-msvc",
+		"@monochange/skill",
+		"monochange",
+		"monochange_analysis",
+		"monochange_app",
+		"monochange_cargo",
+		"monochange_changelog",
+		"monochange_classification",
+		"monochange_config",
+		"monochange_core",
+		"monochange_dart",
+		"monochange_deno",
+		"monochange_ecmascript",
+		"monochange_forgejo",
+		"monochange_gitea",
+		"monochange_github",
+		"monochange_gitlab",
+		"monochange_go",
+		"monochange_graph",
+		"monochange_hosting",
+		"monochange_lint",
+		"monochange_linting",
+		"monochange_npm",
+		"monochange_publish",
+		"monochange_python",
+		"monochange_semver",
+		"monochange_telemetry",
+		"monochange_test_helpers"
+	],
+	"changed_files": [
+		"Cargo.lock",
+		"Cargo.toml",
+		"app/Cargo.lock",
+		"app/Cargo.toml",
+		"app/changelog.md",
+		"app/crates/monochange_app/Cargo.toml",
+		"app/developer-changelog.md",
+		"app/public/releases/0.3.2.json",
+		"changelog.md",
+		"crates/monochange/Cargo.toml",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/Cargo.toml",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/Cargo.toml",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/Cargo.toml",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_classification/Cargo.toml",
+		"crates/monochange_classification/changelog.md",
+		"crates/monochange_config/Cargo.toml",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/Cargo.toml",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/Cargo.toml",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/Cargo.toml",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/Cargo.toml",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/Cargo.toml",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/Cargo.toml",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/Cargo.toml",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/Cargo.toml",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/Cargo.toml",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_graph/Cargo.toml",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/Cargo.toml",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/Cargo.toml",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/Cargo.toml",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/Cargo.toml",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/Cargo.toml",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/Cargo.toml",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_semver/Cargo.toml",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_telemetry/Cargo.toml",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/Cargo.toml",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli/package.json",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-arm64/package.json",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-darwin-x64/package.json",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/package.json",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/package.json",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/package.json",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/package.json",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/package.json",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/package.json",
+		"packages/monochange__skill/changelog.md",
+		"packages/monochange__skill/package.json",
+		"pnpm-lock.yaml"
+	],
+	"package_publications": [
+		{
+			"package": "@monochange/cli",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.20.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-arm64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.20.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-x64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.20.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.20.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.20.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.20.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.20.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-arm64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.20.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-x64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.20.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/skill",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.20.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.20.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_analysis",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.20.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_cargo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.20.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_changelog",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.20.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_classification",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.4.6",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_config",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.20.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_core",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.20.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_dart",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.20.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_deno",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.20.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_ecmascript",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.20.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_forgejo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.20.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitea",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.20.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_github",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.20.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitlab",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.20.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_go",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.20.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_graph",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.20.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_hosting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.20.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_lint",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.20.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_linting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.20.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_npm",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.20.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_publish",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.20.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_python",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.20.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_semver",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.20.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_telemetry",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.20.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_test_helpers",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.20.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		}
+	],
+	"updated_changelogs": [
+		"app/changelog.md",
+		"app/developer-changelog.md",
+		"app/public/releases/0.3.2.json",
+		"changelog.md",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_classification/changelog.md",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__skill/changelog.md"
+	],
+	"deleted_changesets": [
+		".changeset/app-installation-token-user-agent.md",
+		".changeset/cli-output-summary-last-docs.md",
+		".changeset/cli-output-summary-last.md",
+		".changeset/dashboard-repository-scroll.md",
+		".changeset/hosted-api-auth-before-body.md",
+		".changeset/hosted-commit-request-tree.md",
+		".changeset/hosted-release-tree-app.md",
+		".changeset/hosted-release-tree-docs.md",
+		".changeset/hosted-release-tree.md",
+		".changeset/installation-permission-updates-website.md",
+		".changeset/installation-permission-updates.md",
+		".changeset/prefer-publish-parent-command-docs.md",
+		".changeset/prefer-publish-parent-command.md",
+		".changeset/publish-rate-limit-errors-api.md",
+		".changeset/publish-rate-limit-errors.md",
+		".changeset/release-backend-environment.md"
+	],
+	"changesets": [
+		{
+			"path": ".changeset/app-installation-token-user-agent.md",
+			"summary": "Send a User-Agent when the app calls the GitHub API",
+			"details": "Hosted release commits failed with `502` and \"failed to mint installation token\" because `POST /app/installations/{id}/access_tokens` went out without a `User-Agent` header, which GitHub rejects with `403 Forbidden`. The shared `reqwest::Client` built in `AppState::new` now sets `User-Agent: monochange`, so installation token, tree, commit, ref and pull request calls all identify the app. No configuration change is needed; redeploy monochange.dev to pick it up.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "29cbf5aa96dd18a61dc6668d59f7ebb1007ddefa",
+						"short_sha": "29cbf5a",
+						"url": "https://github.com/monochange/monochange/commit/29cbf5aa96dd18a61dc6668d59f7ebb1007ddefa",
+						"authored_at": "2026-10-20T15:27:55+01:00",
+						"committed_at": "2026-10-20T15:27:55+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#818",
+						"title": "fix(app): send a User-Agent when calling the GitHub API",
+						"url": "https://github.com/monochange/monochange/pull/818",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "29cbf5aa96dd18a61dc6668d59f7ebb1007ddefa",
+						"short_sha": "29cbf5a",
+						"url": "https://github.com/monochange/monochange/commit/29cbf5aa96dd18a61dc6668d59f7ebb1007ddefa",
+						"authored_at": "2026-10-20T15:27:55+01:00",
+						"committed_at": "2026-10-20T15:27:55+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#818",
+						"title": "fix(app): send a User-Agent when calling the GitHub API",
+						"url": "https://github.com/monochange/monochange/pull/818",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/cli-output-summary-last-docs.md",
+			"summary": "Document how command output is ordered",
+			"details": "The progress output reference now explains the order every multi-line command follows: the plan, its details, the log, the detailed results, and a closing summary line. It includes a placeholder publish example and lists the new `publish_plan` JSON progress event.\n\nThe `PublishPackages` and `PlaceholderPublish` step references now say that results end with their summary line, and describe how a registry rate limit is reported and resumed.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "cb6cfaba48513504a55be54548ecf26cd41135e5",
+						"short_sha": "cb6cfab",
+						"url": "https://github.com/monochange/monochange/commit/cb6cfaba48513504a55be54548ecf26cd41135e5",
+						"authored_at": "2026-10-20T14:46:32+01:00",
+						"committed_at": "2026-10-20T14:46:32+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#813",
+						"title": "feat(cli): end every text result with its summary line",
+						"url": "https://github.com/monochange/monochange/pull/813",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "cb6cfaba48513504a55be54548ecf26cd41135e5",
+						"short_sha": "cb6cfab",
+						"url": "https://github.com/monochange/monochange/commit/cb6cfaba48513504a55be54548ecf26cd41135e5",
+						"authored_at": "2026-10-20T14:46:32+01:00",
+						"committed_at": "2026-10-20T14:46:32+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#813",
+						"title": "feat(cli): end every text result with its summary line",
+						"url": "https://github.com/monochange/monochange/pull/813",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/cli-output-summary-last.md",
+			"summary": "End every text result with its summary line",
+			"details": "Long-running commands such as `monochange publish`, `monochange publish placeholder`, `monochange prepare`, and `monochange check` now read from top to bottom: the plan and its details first, then the log of the work, then the detailed results, and finally one summary line. The answer to \"what happened?\" is always the last line in the terminal instead of being buried above tables and rate-limit notes.\n\n- Every text result moves its summary line (for example `✔ Published 8 placeholder packages · 16 already published`) from the top of stdout to the bottom. Sections are ordered from supporting detail to the rows that need attention, so failures, blocked packages, lint errors, and policy errors sit right above the summary.\n- Publishing prints the rate-limit plan on stderr directly under the run's opening line, before any package is published. Each registry shows its pending packages, batches, and documented limit; batch membership is listed only when a registry needs more than one batch. The publish result no longer repeats the plan and keeps only rate-limit warnings. `monochange step plan-publish-rate-limits` still prints the full plan as its result.\n- Publish results group packages under `Would publish`, `Published`, `Staged awaiting approval`, `Blocked`, and `Failed` headings, and the separate `Checked N packages…` sentence is folded into the summary line.\n- `--progress-format json` emits a `publish_plan` event with the rate-limit report right after `publish_run_started`.\n- `monochange lint explain <id>` keeps its title at the top because it describes a rule rather than reporting a run.\n\n```text\n$ monochange publish placeholder\n▶ Publishing 24 packages (Placeholder) across 📦 npm, 🎯 dart\n  › npm      5 pending · 1 batch · no documented limit · low confidence\n  › pub_dev  3 pending · 1 batch · limit 12 per 24h · medium confidence\n✔ 📦 npm @skribble.dev/react published 0.0.0 to npm\n…\n✓ Publish complete: 8 published, 16 skipped\n✔ publish placeholder packages  29.5s\n\nPublished (8)\n  @skribble.dev/react  0.0.0  npm\n  …\n\n✔ Published 8 placeholder packages · 16 already published\n```\n\nScripts that read the first line of a text result should read the last line instead, or switch to `--format json`, which is unchanged.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "change"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "cb6cfaba48513504a55be54548ecf26cd41135e5",
+						"short_sha": "cb6cfab",
+						"url": "https://github.com/monochange/monochange/commit/cb6cfaba48513504a55be54548ecf26cd41135e5",
+						"authored_at": "2026-10-20T14:46:32+01:00",
+						"committed_at": "2026-10-20T14:46:32+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#813",
+						"title": "feat(cli): end every text result with its summary line",
+						"url": "https://github.com/monochange/monochange/pull/813",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "cb6cfaba48513504a55be54548ecf26cd41135e5",
+						"short_sha": "cb6cfab",
+						"url": "https://github.com/monochange/monochange/commit/cb6cfaba48513504a55be54548ecf26cd41135e5",
+						"authored_at": "2026-10-20T14:46:32+01:00",
+						"committed_at": "2026-10-20T14:46:32+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#813",
+						"title": "feat(cli): end every text result with its summary line",
+						"url": "https://github.com/monochange/monochange/pull/813",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/dashboard-repository-scroll.md",
+			"summary": "Scroll the dashboard with the mouse over a repository list",
+			"details": "The dashboard and project pages scroll normally again while the pointer is over a list of repositories. The list used to sit in its own scroll box that held on to the mouse wheel, so the page stopped moving once that box reached its end. Repository lists now scroll with the rest of the page, still 20 repositories per page.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "website_fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "2582d0f1e84c5deb0c0fa2eabac7a3810d63cce5",
+						"short_sha": "2582d0f",
+						"url": "https://github.com/monochange/monochange/commit/2582d0f1e84c5deb0c0fa2eabac7a3810d63cce5",
+						"authored_at": "2026-10-21T09:42:32+01:00",
+						"committed_at": "2026-10-21T09:42:32+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#822",
+						"title": "fix(app): let the page scroll over repository lists",
+						"url": "https://github.com/monochange/monochange/pull/822",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "2582d0f1e84c5deb0c0fa2eabac7a3810d63cce5",
+						"short_sha": "2582d0f",
+						"url": "https://github.com/monochange/monochange/commit/2582d0f1e84c5deb0c0fa2eabac7a3810d63cce5",
+						"authored_at": "2026-10-21T09:42:32+01:00",
+						"committed_at": "2026-10-21T09:42:32+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#822",
+						"title": "fix(app): let the page scroll over repository lists",
+						"url": "https://github.com/monochange/monochange/pull/822",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/hosted-api-auth-before-body.md",
+			"summary": "Check hosted release credentials before reading the request body",
+			"details": "`POST /api/release-commits` and `POST /api/release-requests` now verify the `Authorization` bearer token (GitHub Actions OIDC or `MONOCHANGE_TOKEN`) before reading the request body. A caller without valid credentials gets `401` without the server buffering its payload. Previously the JSON body, up to 32 MiB for release commits, was read and parsed before authentication.\n\nThe release commit body limit drops from 32 MiB to 8 MiB, which still fits monochange's own grouped release (about 3 MiB). A body over the limit now returns `413 Payload Too Large` instead of `400`, and the release request endpoint keeps a 2 MiB limit. An OIDC token for one repository still gets `403` when the request targets another, now before the repository lookup.\n\n`AppState` gains `oidc: Arc<OidcVerifier>`, so the GitHub Actions JWKS is cached across requests instead of being fetched on every call.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "249bba78f5c3a4fb440dbba9991afadd5d4345a2",
+						"short_sha": "249bba7",
+						"url": "https://github.com/monochange/monochange/commit/249bba78f5c3a4fb440dbba9991afadd5d4345a2",
+						"authored_at": "2026-10-20T10:21:15+01:00",
+						"committed_at": "2026-10-20T10:21:15+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#810",
+						"title": "fix(app): check hosted release credentials before reading the request body",
+						"url": "https://github.com/monochange/monochange/pull/810",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "249bba78f5c3a4fb440dbba9991afadd5d4345a2",
+						"short_sha": "249bba7",
+						"url": "https://github.com/monochange/monochange/commit/249bba78f5c3a4fb440dbba9991afadd5d4345a2",
+						"authored_at": "2026-10-20T10:21:15+01:00",
+						"committed_at": "2026-10-20T10:21:15+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#810",
+						"title": "fix(app): check hosted release credentials before reading the request body",
+						"url": "https://github.com/monochange/monochange/pull/810",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/hosted-commit-request-tree.md",
+			"summary": "Add a workflow-built tree to `HostedCommitRequest`",
+			"details": "**Breaking change:** `monochange_core::HostedCommitRequest` gains `tree: Option<String>`, the git tree the workflow already created in the repository with its own `GITHUB_TOKEN`. When `tree` is set, `files` is empty and the monochange app only creates the commit and moves the release branch.\n\nStruct literals must add the field:\n\n```rust\nlet request = HostedCommitRequest {\n\t// existing fields…\n\ttree: None,\n};\n```\n\n`files` now defaults to empty when deserializing and is omitted when empty, so a tree request carries no file contents. Servers that predate `tree` still require `files`, so they reject a tree request instead of committing an empty change. See `docs/src/guide/migrations/0.20.md`.",
+			"targets": [
+				{
+					"id": "monochange_core",
+					"kind": "package",
+					"bump": "major",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "breaking"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "efc9383f960db229d4e7052974f56e4008010198",
+						"short_sha": "efc9383",
+						"url": "https://github.com/monochange/monochange/commit/efc9383f960db229d4e7052974f56e4008010198",
+						"authored_at": "2026-10-20T11:29:31+01:00",
+						"committed_at": "2026-10-20T11:29:31+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#812",
+						"title": "feat(hosted): build hosted release commits from a tree the workflow uploads",
+						"url": "https://github.com/monochange/monochange/pull/812",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "efc9383f960db229d4e7052974f56e4008010198",
+						"short_sha": "efc9383",
+						"url": "https://github.com/monochange/monochange/commit/efc9383f960db229d4e7052974f56e4008010198",
+						"authored_at": "2026-10-20T11:29:31+01:00",
+						"committed_at": "2026-10-20T11:29:31+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#812",
+						"title": "feat(hosted): build hosted release commits from a tree the workflow uploads",
+						"url": "https://github.com/monochange/monochange/pull/812",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/hosted-release-tree-app.md",
+			"summary": "Commit release trees built by the workflow",
+			"details": "`POST /api/release-commits` accepts a `tree` instead of `files`. The server checks that the request names exactly one of them and that `tree` is a git object id, then creates the release commit on that tree without uploading any blobs. A tree whose `.github/workflows` differs from the base commit's is refused with `422 Unprocessable Entity` before anything is written, keeping the rule that the bot never changes GitHub workflows.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "feat"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "efc9383f960db229d4e7052974f56e4008010198",
+						"short_sha": "efc9383",
+						"url": "https://github.com/monochange/monochange/commit/efc9383f960db229d4e7052974f56e4008010198",
+						"authored_at": "2026-10-20T11:29:31+01:00",
+						"committed_at": "2026-10-20T11:29:31+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#812",
+						"title": "feat(hosted): build hosted release commits from a tree the workflow uploads",
+						"url": "https://github.com/monochange/monochange/pull/812",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "efc9383f960db229d4e7052974f56e4008010198",
+						"short_sha": "efc9383",
+						"url": "https://github.com/monochange/monochange/commit/efc9383f960db229d4e7052974f56e4008010198",
+						"authored_at": "2026-10-20T11:29:31+01:00",
+						"committed_at": "2026-10-20T11:29:31+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#812",
+						"title": "feat(hosted): build hosted release commits from a tree the workflow uploads",
+						"url": "https://github.com/monochange/monochange/pull/812",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/hosted-release-tree-docs.md",
+			"summary": "Simpler hosted release setup",
+			"details": "The GitHub App guide now shows a release job that switches to the hosted backend with one environment variable, `MONOCHANGE_RELEASE_BACKEND=hosted`, instead of editing `monochange.toml`. It also explains why the job needs `contents: write`: the CLI uploads the release files with the job's own token, and monochange.dev only receives a reference to them.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "website_fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "efc9383f960db229d4e7052974f56e4008010198",
+						"short_sha": "efc9383",
+						"url": "https://github.com/monochange/monochange/commit/efc9383f960db229d4e7052974f56e4008010198",
+						"authored_at": "2026-10-20T11:29:31+01:00",
+						"committed_at": "2026-10-20T11:29:31+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#812",
+						"title": "feat(hosted): build hosted release commits from a tree the workflow uploads",
+						"url": "https://github.com/monochange/monochange/pull/812",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "efc9383f960db229d4e7052974f56e4008010198",
+						"short_sha": "efc9383",
+						"url": "https://github.com/monochange/monochange/commit/efc9383f960db229d4e7052974f56e4008010198",
+						"authored_at": "2026-10-20T11:29:31+01:00",
+						"committed_at": "2026-10-20T11:29:31+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#812",
+						"title": "feat(hosted): build hosted release commits from a tree the workflow uploads",
+						"url": "https://github.com/monochange/monochange/pull/812",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/hosted-release-tree.md",
+			"summary": "Build hosted release commits from a tree the workflow uploads",
+			"details": "Hosted `CommitRelease` no longer sends the release files to the monochange app. The CLI uploads them to the repository as git blobs and a tree with the workflow's `GITHUB_TOKEN` (or `GH_TOKEN`), then sends only the tree id, the base commit, and the commit message. The app commits that tree through the GitHub App installation, so the commit is still verified and still triggers workflows, and the request carries the commit message instead of every changelog in full. Binary files and executable or symlink modes now survive hosted commits, because blobs are uploaded as base64 with the file mode `git add` would use.\n\nGive the release job `contents: write` so `GITHUB_TOKEN` can create blobs and trees. Uploading them pushes no branch and starts no workflow:\n\n```yaml\npermissions:\n  contents: write\n  pull-requests: read\n  id-token: write\n```\n\nWithout a token, or when the token gets `403` from the blob API, the CLI prints a warning and falls back to sending the file contents, as before.\n\n`monochange_github` adds `read_release_tree_files` and `create_release_tree`, which return `ReleaseTree::Created(tree)` or `ReleaseTree::Unavailable(reason)` so callers can fall back instead of failing.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "feat"
+				},
+				{
+					"id": "monochange_github",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "feat"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "efc9383f960db229d4e7052974f56e4008010198",
+						"short_sha": "efc9383",
+						"url": "https://github.com/monochange/monochange/commit/efc9383f960db229d4e7052974f56e4008010198",
+						"authored_at": "2026-10-20T11:29:31+01:00",
+						"committed_at": "2026-10-20T11:29:31+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#812",
+						"title": "feat(hosted): build hosted release commits from a tree the workflow uploads",
+						"url": "https://github.com/monochange/monochange/pull/812",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "efc9383f960db229d4e7052974f56e4008010198",
+						"short_sha": "efc9383",
+						"url": "https://github.com/monochange/monochange/commit/efc9383f960db229d4e7052974f56e4008010198",
+						"authored_at": "2026-10-20T11:29:31+01:00",
+						"committed_at": "2026-10-20T11:29:31+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#812",
+						"title": "feat(hosted): build hosted release commits from a tree the workflow uploads",
+						"url": "https://github.com/monochange/monochange/pull/812",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/installation-permission-updates-website.md",
+			"summary": "See which accounts need to approve new GitHub access",
+			"details": "When monochange asks GitHub for more access, the dashboard now lists each connected account that hasn't approved the request yet, with the access it is missing and a **Review on GitHub** link where an owner of that account accepts it. Until then, monochange keeps the access the account already approved. You don't need to sign in again.\n\nThe GitHub App guide now explains each permission the app requests and what happens when the app asks for more.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "website_feature"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "c4f80601d23a94de2f70f2b1e4ce9edbe3813a66",
+						"short_sha": "c4f8060",
+						"url": "https://github.com/monochange/monochange/commit/c4f80601d23a94de2f70f2b1e4ce9edbe3813a66",
+						"authored_at": "2026-10-20T16:43:54+01:00",
+						"committed_at": "2026-10-20T16:43:54+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#819",
+						"title": "feat(app): show installations waiting to approve new GitHub permissions",
+						"url": "https://github.com/monochange/monochange/pull/819",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "c4f80601d23a94de2f70f2b1e4ce9edbe3813a66",
+						"short_sha": "c4f8060",
+						"url": "https://github.com/monochange/monochange/commit/c4f80601d23a94de2f70f2b1e4ce9edbe3813a66",
+						"authored_at": "2026-10-20T16:43:54+01:00",
+						"committed_at": "2026-10-20T16:43:54+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#819",
+						"title": "feat(app): show installations waiting to approve new GitHub permissions",
+						"url": "https://github.com/monochange/monochange/pull/819",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/installation-permission-updates.md",
+			"summary": "Report installations that haven't approved the app's new permissions",
+			"details": "GitHub keeps each GitHub App installation on the permissions it approved until an owner of the account accepts the app's newer request. The new `permission_updates` server function compares the app registration's permissions (`GET /app`) with each of the signed-in user's installations (`GET /app/installations/{id}`) and returns the accounts that are behind, the missing permissions, and the GitHub settings page where an owner reviews the request. The dashboard shows them in a notice above the repository connection panel.\n\n`monochange_app_api::github_app` gains `GitHubAppAuth::requested_permissions`, `GitHubAppAuth::installation_permissions`, and `pending_permissions`, which lists permissions the app requests above the installation's level:\n\n```rust\nlet requested = app.requested_permissions(&http).await?;\nlet granted = app.installation_permissions(&http, installation_id).await?;\nlet missing = monochange_app_api::github_app::pending_permissions(&requested, &granted);\n```\n\nA failed GitHub lookup leaves that account out of the list instead of failing the dashboard. No configuration changes are needed.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "feat"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "c4f80601d23a94de2f70f2b1e4ce9edbe3813a66",
+						"short_sha": "c4f8060",
+						"url": "https://github.com/monochange/monochange/commit/c4f80601d23a94de2f70f2b1e4ce9edbe3813a66",
+						"authored_at": "2026-10-20T16:43:54+01:00",
+						"committed_at": "2026-10-20T16:43:54+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#819",
+						"title": "feat(app): show installations waiting to approve new GitHub permissions",
+						"url": "https://github.com/monochange/monochange/pull/819",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "c4f80601d23a94de2f70f2b1e4ce9edbe3813a66",
+						"short_sha": "c4f8060",
+						"url": "https://github.com/monochange/monochange/commit/c4f80601d23a94de2f70f2b1e4ce9edbe3813a66",
+						"authored_at": "2026-10-20T16:43:54+01:00",
+						"committed_at": "2026-10-20T16:43:54+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#819",
+						"title": "feat(app): show installations waiting to approve new GitHub permissions",
+						"url": "https://github.com/monochange/monochange/pull/819",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/prefer-publish-parent-command-docs.md",
+			"summary": "Recommend `monochange publish` commands in the docs",
+			"details": "The guides, CLI step reference, and readme now use `monochange publish packages`, `monochange publish readiness`, and `monochange publish placeholder` in examples and instructions, and say that the matching `monochange step` commands remain supported for compatibility.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "89352c890786d71396d90aac10d0979b9293728a",
+						"short_sha": "89352c8",
+						"url": "https://github.com/monochange/monochange/commit/89352c890786d71396d90aac10d0979b9293728a",
+						"authored_at": "2026-10-20T13:44:24+01:00",
+						"committed_at": "2026-10-20T13:44:24+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#811",
+						"title": "docs: prefer `monochange publish` subcommands over `monochange step` publish steps",
+						"url": "https://github.com/monochange/monochange/pull/811",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "89352c890786d71396d90aac10d0979b9293728a",
+						"short_sha": "89352c8",
+						"url": "https://github.com/monochange/monochange/commit/89352c890786d71396d90aac10d0979b9293728a",
+						"authored_at": "2026-10-20T13:44:24+01:00",
+						"committed_at": "2026-10-20T13:44:24+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#811",
+						"title": "docs: prefer `monochange publish` subcommands over `monochange step` publish steps",
+						"url": "https://github.com/monochange/monochange/pull/811",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/prefer-publish-parent-command.md",
+			"summary": "Suggest `monochange publish` subcommands instead of `monochange step` publish steps",
+			"details": "Diagnostics, generated files, and help text now point at the `monochange publish` parent command instead of the equivalent `monochange step` publish steps:\n\n- The npm one-time-password recovery hint now reads `monochange publish placeholder --otp <CODE>` instead of `monochange step placeholder-publish --otp <CODE>`.\n- Trusted-publishing, readiness, and resume diagnostics suggest `monochange publish packages` and `monochange publish readiness`.\n- `monochange init --provider github` writes a release workflow that runs `monochange publish packages`, and the GitHub Actions and GitLab CI batch snippets rendered by `monochange step plan-publish-rate-limits` call `monochange publish packages`.\n- `monochange help step publish-packages`, `step publish-readiness`, and `step placeholder-publish` point at the preferred `monochange publish` subcommand.\n- The bundled agent skill and the `@monochange/cli` readme recommend the `monochange publish` subcommands, so agents stop suggesting the `monochange step` publish forms.\n\nThe `monochange step publish-packages`, `step publish-readiness`, and `step placeholder-publish` commands still work and accept the same inputs, so existing workflows need no change. To adopt the preferred spelling in CI:\n\n```yaml\n- run: monochange publish readiness --from HEAD --output .monochange/readiness.json\n- run: monochange publish packages --output .monochange/publish-result.json\n```",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				},
+				{
+					"id": "monochange_publish",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				},
+				{
+					"id": "monochange_github",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				},
+				{
+					"id": "@monochange/cli",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				},
+				{
+					"id": "@monochange/skill",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "89352c890786d71396d90aac10d0979b9293728a",
+						"short_sha": "89352c8",
+						"url": "https://github.com/monochange/monochange/commit/89352c890786d71396d90aac10d0979b9293728a",
+						"authored_at": "2026-10-20T13:44:24+01:00",
+						"committed_at": "2026-10-20T13:44:24+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#811",
+						"title": "docs: prefer `monochange publish` subcommands over `monochange step` publish steps",
+						"url": "https://github.com/monochange/monochange/pull/811",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "89352c890786d71396d90aac10d0979b9293728a",
+						"short_sha": "89352c8",
+						"url": "https://github.com/monochange/monochange/commit/89352c890786d71396d90aac10d0979b9293728a",
+						"authored_at": "2026-10-20T13:44:24+01:00",
+						"committed_at": "2026-10-20T13:44:24+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#811",
+						"title": "docs: prefer `monochange publish` subcommands over `monochange step` publish steps",
+						"url": "https://github.com/monochange/monochange/pull/811",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/publish-rate-limit-errors-api.md",
+			"summary": "Record registry rate-limit rejections on publish outcomes",
+			"details": "> Constructing `PackagePublishOutcome` outside this crate now requires the new `rate_limit` field.\n\n`PackagePublishOutcome` gained `rate_limit: Option<PublishRateLimitHit>`, set when a registry refused the upload because of its rate limit. `PublishRateLimitHit` carries the registry's `reason`, `retry_at` (an RFC 3339 UTC timestamp), and `docs_url`. The field is skipped in JSON when it is `None`, so existing serialized reports still deserialize.\n\nAdd the field to every struct literal:\n\n```rust\nPackagePublishOutcome {\n\t// ...existing fields\n\tstderr: None,\n\trate_limit: None,\n}\n```\n\nNew exports: `detect_rate_limit_hit(registry, output, now)` recognises a 429 or \"rate limit exceeded\" response in publish command output, `PublishRateLimitHit::render_message` and `render_retry_at` format it for people, `registry_display_name` maps `crates_io` to `crates.io` and similar, and `CRATES_IO_RATE_LIMIT_DOCS` links crates.io's limits page. `ensure_publish_report_succeeded` reports a rate-limited run as `<registry> rate limit stopped publishing at <package> <version>: …` with the reason, retry time, limits page, and a `help:` line.",
+			"targets": [
+				{
+					"id": "monochange_publish",
+					"kind": "package",
+					"bump": "major",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "major"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "cb6cfaba48513504a55be54548ecf26cd41135e5",
+						"short_sha": "cb6cfab",
+						"url": "https://github.com/monochange/monochange/commit/cb6cfaba48513504a55be54548ecf26cd41135e5",
+						"authored_at": "2026-10-20T14:46:32+01:00",
+						"committed_at": "2026-10-20T14:46:32+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#813",
+						"title": "feat(cli): end every text result with its summary line",
+						"url": "https://github.com/monochange/monochange/pull/813",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "cb6cfaba48513504a55be54548ecf26cd41135e5",
+						"short_sha": "cb6cfab",
+						"url": "https://github.com/monochange/monochange/commit/cb6cfaba48513504a55be54548ecf26cd41135e5",
+						"authored_at": "2026-10-20T14:46:32+01:00",
+						"committed_at": "2026-10-20T14:46:32+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#813",
+						"title": "feat(cli): end every text result with its summary line",
+						"url": "https://github.com/monochange/monochange/pull/813",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/publish-rate-limit-errors.md",
+			"summary": "Explain registry rate limits when publishing stops",
+			"details": "When a registry refuses an upload with HTTP 429, `monochange publish` and `monochange publish placeholder` now say which registry stopped the run, why, when it accepts uploads again, and how to resume, instead of printing the tool's packaging log twice.\n\n```text\n✖ 🦀 cargo canvist_layout failed: rate limited by crates.io until 10:59:10 UTC (in 6 minutes). You have published too many new crates in a short period of time.\n○ 🦀 cargo canvist_model not attempted because publishing canvist_layout 0.0.0 failed earlier in this run\n✖ Publish complete: 11 published, 1 failed, 3 skipped\nerror[publish.rate_limited]: crates.io rate limit stopped publishing at canvist_layout 0.0.0: 11 of 15 packages published\n\n    crates.io: You have published too many new crates in a short period of time.\n    retry after: 10:59:10 UTC (in 6 minutes)\n    limits: https://crates.io/docs/rate-limits\n\n  command: monochange publish placeholder\n  help:    Wait until 10:59:10 UTC (in 6 minutes), then rerun the same command. Versions that are already published are skipped, so publishing resumes with canvist_layout (4 packages left).\n```\n\n- Rate-limit rejections from crates.io, npm (`E429`), PyPI, JSR, and pub.dev are recognised from their 429 or \"rate limit exceeded\" wording. The retry time is read from `try again after <date>`, `Retry-After: <seconds>`, or `try again in <n> minutes`, and shown in UTC with the remaining wait.\n- The diagnostic code is `publish.rate_limited` instead of `publish.failed`, and its hint tells you when to rerun.\n- `--format json` reports and publish artifacts add a `rate_limit` object (`reason`, `retry_at` as an RFC 3339 UTC timestamp, `docs_url`) to the rate-limited package. The tool's full output stays in that package's `stdout` and `stderr`.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "feat"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "cb6cfaba48513504a55be54548ecf26cd41135e5",
+						"short_sha": "cb6cfab",
+						"url": "https://github.com/monochange/monochange/commit/cb6cfaba48513504a55be54548ecf26cd41135e5",
+						"authored_at": "2026-10-20T14:46:32+01:00",
+						"committed_at": "2026-10-20T14:46:32+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#813",
+						"title": "feat(cli): end every text result with its summary line",
+						"url": "https://github.com/monochange/monochange/pull/813",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "cb6cfaba48513504a55be54548ecf26cd41135e5",
+						"short_sha": "cb6cfab",
+						"url": "https://github.com/monochange/monochange/commit/cb6cfaba48513504a55be54548ecf26cd41135e5",
+						"authored_at": "2026-10-20T14:46:32+01:00",
+						"committed_at": "2026-10-20T14:46:32+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#813",
+						"title": "feat(cli): end every text result with its summary line",
+						"url": "https://github.com/monochange/monochange/pull/813",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/release-backend-environment.md",
+			"summary": "Switch release steps to the hosted backend with `MONOCHANGE_RELEASE_BACKEND`",
+			"details": "`MONOCHANGE_RELEASE_BACKEND=hosted` moves every `CommitRelease` and `OpenReleaseRequest` step to the hosted backend without editing `monochange.toml`, so a release job can opt in while local runs and pull-request preflight jobs keep the configured backend:\n\n```yaml\n- run: monochange run release\n  env:\n    MONOCHANGE_RELEASE_BACKEND: hosted\n    GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}\n```\n\nA step input or command-line flag such as `--commit-backend local` still wins over the variable. `local` is also accepted, and any other value fails the step with an error naming the variable.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "feat"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "efc9383f960db229d4e7052974f56e4008010198",
+						"short_sha": "efc9383",
+						"url": "https://github.com/monochange/monochange/commit/efc9383f960db229d4e7052974f56e4008010198",
+						"authored_at": "2026-10-20T11:29:31+01:00",
+						"committed_at": "2026-10-20T11:29:31+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#812",
+						"title": "feat(hosted): build hosted release commits from a tree the workflow uploads",
+						"url": "https://github.com/monochange/monochange/pull/812",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "efc9383f960db229d4e7052974f56e4008010198",
+						"short_sha": "efc9383",
+						"url": "https://github.com/monochange/monochange/commit/efc9383f960db229d4e7052974f56e4008010198",
+						"authored_at": "2026-10-20T11:29:31+01:00",
+						"committed_at": "2026-10-20T11:29:31+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#812",
+						"title": "feat(hosted): build hosted release commits from a tree the workflow uploads",
+						"url": "https://github.com/monochange/monochange/pull/812",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		}
+	],
+	"changelogs": [
+		{
+			"owner_id": "monochange_app",
+			"owner_kind": "package",
+			"output": "website",
+			"stream": "website",
+			"path": "app/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "0.3.2",
+				"summary": [],
+				"sections": [
+					{
+						"title": "New",
+						"collapsed": false,
+						"entries": [
+							"#### See which accounts need to approve new GitHub access\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #819](https://github.com/monochange/monochange/pull/819)\n\nWhen monochange asks GitHub for more access, the dashboard now lists each connected account that hasn't approved the request yet, with the access it is missing and a **Review on GitHub** link where an owner of that account accepts it. Until then, monochange keeps the access the account already approved. You don't need to sign in again.\n\nThe GitHub App guide now explains each permission the app requests and what happens when the app asks for more."
+						]
+					},
+					{
+						"title": "Improved",
+						"collapsed": false,
+						"entries": [
+							"- **Scroll the dashboard with the mouse over a repository list.** The dashboard and project pages scroll normally again while the pointer is over a list of repositories. The list used to sit in its own scroll box that held on to the mouse wheel, so the page stopped moving once that box reached its end. Repository lists now scroll with the rest of the page, still 20 repositories per page.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #822](https://github.com/monochange/monochange/pull/822)",
+							"- **Simpler hosted release setup.** The GitHub App guide now shows a release job that switches to the hosted backend with one environment variable, `MONOCHANGE_RELEASE_BACKEND=hosted`, instead of editing `monochange.toml`. It also explains why the job needs `contents: write`: the CLI uploads the release files with the job's own token, and monochange.dev only receives a reference to them.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #812](https://github.com/monochange/monochange/pull/812)"
+						]
+					}
+				]
+			},
+			"rendered": "## 0.3.2\n\n### New\n\n#### See which accounts need to approve new GitHub access\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #819](https://github.com/monochange/monochange/pull/819)\n\nWhen monochange asks GitHub for more access, the dashboard now lists each connected account that hasn't approved the request yet, with the access it is missing and a **Review on GitHub** link where an owner of that account accepts it. Until then, monochange keeps the access the account already approved. You don't need to sign in again.\n\nThe GitHub App guide now explains each permission the app requests and what happens when the app asks for more.\n\n### Improved\n\n- **Scroll the dashboard with the mouse over a repository list.** The dashboard and project pages scroll normally again while the pointer is over a list of repositories. The list used to sit in its own scroll box that held on to the mouse wheel, so the page stopped moving once that box reached its end. Repository lists now scroll with the rest of the page, still 20 repositories per page.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #822](https://github.com/monochange/monochange/pull/822)\n- **Simpler hosted release setup.** The GitHub App guide now shows a release job that switches to the hosted backend with one environment variable, `MONOCHANGE_RELEASE_BACKEND=hosted`, instead of editing `monochange.toml`. It also explains why the job needs `contents: write`: the CLI uploads the release files with the job's own token, and monochange.dev only receives a reference to them.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #812](https://github.com/monochange/monochange/pull/812)"
+		},
+		{
+			"owner_id": "monochange_app",
+			"owner_kind": "package",
+			"output": "website_developer",
+			"stream": "default",
+			"path": "app/developer-changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "0.3.2",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"- **Commit release trees built by the workflow.** `POST /api/release-commits` accepts a `tree` instead of `files`. The server checks that the request names exactly one of them and that `tree` is a git object id, then creates the release commit on that tree without uploading any blobs. A tree whose `.github/workflows` differs from the base commit's is refused with `422 Unprocessable Entity` before anything is written, keeping the rule that the bot never changes GitHub workflows.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #812](https://github.com/monochange/monochange/pull/812)",
+							"#### Report installations that haven't approved the app's new permissions\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #819](https://github.com/monochange/monochange/pull/819)\n\nGitHub keeps each GitHub App installation on the permissions it approved until an owner of the account accepts the app's newer request. The new `permission_updates` server function compares the app registration's permissions (`GET /app`) with each of the signed-in user's installations (`GET /app/installations/{id}`) and returns the accounts that are behind, the missing permissions, and the GitHub settings page where an owner reviews the request. The dashboard shows them in a notice above the repository connection panel.\n\n`monochange_app_api::github_app` gains `GitHubAppAuth::requested_permissions`, `GitHubAppAuth::installation_permissions`, and `pending_permissions`, which lists permissions the app requests above the installation's level:\n\n```rust\nlet requested = app.requested_permissions(&http).await?;\nlet granted = app.installation_permissions(&http, installation_id).await?;\nlet missing = monochange_app_api::github_app::pending_permissions(&requested, &granted);\n```\n\nA failed GitHub lookup leaves that account out of the list instead of failing the dashboard. No configuration changes are needed."
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"- **Send a User-Agent when the app calls the GitHub API.** Hosted release commits failed with `502` and \"failed to mint installation token\" because `POST /app/installations/{id}/access_tokens` went out without a `User-Agent` header, which GitHub rejects with `403 Forbidden`. The shared `reqwest::Client` built in `AppState::new` now sets `User-Agent: monochange`, so installation token, tree, commit, ref and pull request calls all identify the app. No configuration change is needed; redeploy monochange.dev to pick it up.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #818](https://github.com/monochange/monochange/pull/818)",
+							"#### Document how command output is ordered\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #813](https://github.com/monochange/monochange/pull/813)\n\nThe progress output reference now explains the order every multi-line command follows: the plan, its details, the log, the detailed results, and a closing summary line. It includes a placeholder publish example and lists the new `publish_plan` JSON progress event.\n\nThe `PublishPackages` and `PlaceholderPublish` step references now say that results end with their summary line, and describe how a registry rate limit is reported and resumed.",
+							"#### Check hosted release credentials before reading the request body\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #810](https://github.com/monochange/monochange/pull/810)\n\n`POST /api/release-commits` and `POST /api/release-requests` now verify the `Authorization` bearer token (GitHub Actions OIDC or `MONOCHANGE_TOKEN`) before reading the request body. A caller without valid credentials gets `401` without the server buffering its payload. Previously the JSON body, up to 32 MiB for release commits, was read and parsed before authentication.\n\nThe release commit body limit drops from 32 MiB to 8 MiB, which still fits monochange's own grouped release (about 3 MiB). A body over the limit now returns `413 Payload Too Large` instead of `400`, and the release request endpoint keeps a 2 MiB limit. An OIDC token for one repository still gets `403` when the request targets another, now before the repository lookup.\n\n`AppState` gains `oidc: Arc<OidcVerifier>`, so the GitHub Actions JWKS is cached across requests instead of being fetched on every call.",
+							"- **Recommend `monochange publish` commands in the docs.** The guides, CLI step reference, and readme now use `monochange publish packages`, `monochange publish readiness`, and `monochange publish placeholder` in examples and instructions, and say that the matching `monochange step` commands remain supported for compatibility.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #811](https://github.com/monochange/monochange/pull/811)"
+						]
+					}
+				]
+			},
+			"rendered": "## 0.3.2\n\n### 🚀 Feature\n\n- **Commit release trees built by the workflow.** `POST /api/release-commits` accepts a `tree` instead of `files`. The server checks that the request names exactly one of them and that `tree` is a git object id, then creates the release commit on that tree without uploading any blobs. A tree whose `.github/workflows` differs from the base commit's is refused with `422 Unprocessable Entity` before anything is written, keeping the rule that the bot never changes GitHub workflows.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #812](https://github.com/monochange/monochange/pull/812)\n#### Report installations that haven't approved the app's new permissions\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #819](https://github.com/monochange/monochange/pull/819)\n\nGitHub keeps each GitHub App installation on the permissions it approved until an owner of the account accepts the app's newer request. The new `permission_updates` server function compares the app registration's permissions (`GET /app`) with each of the signed-in user's installations (`GET /app/installations/{id}`) and returns the accounts that are behind, the missing permissions, and the GitHub settings page where an owner reviews the request. The dashboard shows them in a notice above the repository connection panel.\n\n`monochange_app_api::github_app` gains `GitHubAppAuth::requested_permissions`, `GitHubAppAuth::installation_permissions`, and `pending_permissions`, which lists permissions the app requests above the installation's level:\n\n```rust\nlet requested = app.requested_permissions(&http).await?;\nlet granted = app.installation_permissions(&http, installation_id).await?;\nlet missing = monochange_app_api::github_app::pending_permissions(&requested, &granted);\n```\n\nA failed GitHub lookup leaves that account out of the list instead of failing the dashboard. No configuration changes are needed.\n\n### 🐛 Fixed\n\n- **Send a User-Agent when the app calls the GitHub API.** Hosted release commits failed with `502` and \"failed to mint installation token\" because `POST /app/installations/{id}/access_tokens` went out without a `User-Agent` header, which GitHub rejects with `403 Forbidden`. The shared `reqwest::Client` built in `AppState::new` now sets `User-Agent: monochange`, so installation token, tree, commit, ref and pull request calls all identify the app. No configuration change is needed; redeploy monochange.dev to pick it up.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #818](https://github.com/monochange/monochange/pull/818)\n#### Document how command output is ordered\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #813](https://github.com/monochange/monochange/pull/813)\n\nThe progress output reference now explains the order every multi-line command follows: the plan, its details, the log, the detailed results, and a closing summary line. It includes a placeholder publish example and lists the new `publish_plan` JSON progress event.\n\nThe `PublishPackages` and `PlaceholderPublish` step references now say that results end with their summary line, and describe how a registry rate limit is reported and resumed.\n\n#### Check hosted release credentials before reading the request body\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #810](https://github.com/monochange/monochange/pull/810)\n\n`POST /api/release-commits` and `POST /api/release-requests` now verify the `Authorization` bearer token (GitHub Actions OIDC or `MONOCHANGE_TOKEN`) before reading the request body. A caller without valid credentials gets `401` without the server buffering its payload. Previously the JSON body, up to 32 MiB for release commits, was read and parsed before authentication.\n\nThe release commit body limit drops from 32 MiB to 8 MiB, which still fits monochange's own grouped release (about 3 MiB). A body over the limit now returns `413 Payload Too Large` instead of `400`, and the release request endpoint keeps a 2 MiB limit. An OIDC token for one repository still gets `403` when the request targets another, now before the repository lookup.\n\n`AppState` gains `oidc: Arc<OidcVerifier>`, so the GitHub Actions JWKS is cached across requests instead of being fetched on every call.\n\n- **Recommend `monochange publish` commands in the docs.** The guides, CLI step reference, and readme now use `monochange publish packages`, `monochange publish readiness`, and `monochange publish placeholder` in examples and instructions, and say that the matching `monochange step` commands remain supported for compatibility.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #811](https://github.com/monochange/monochange/pull/811)"
+		},
+		{
+			"owner_id": "monochange_app",
+			"owner_kind": "package",
+			"output": "website_json",
+			"stream": "website",
+			"path": "app/public/releases/0.3.2.json",
+			"format": "json",
+			"notes": {
+				"title": "0.3.2",
+				"summary": [],
+				"sections": [
+					{
+						"title": "New",
+						"collapsed": false,
+						"entries": [
+							"#### See which accounts need to approve new GitHub access\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #819](https://github.com/monochange/monochange/pull/819)\n\nWhen monochange asks GitHub for more access, the dashboard now lists each connected account that hasn't approved the request yet, with the access it is missing and a **Review on GitHub** link where an owner of that account accepts it. Until then, monochange keeps the access the account already approved. You don't need to sign in again.\n\nThe GitHub App guide now explains each permission the app requests and what happens when the app asks for more."
+						]
+					},
+					{
+						"title": "Improved",
+						"collapsed": false,
+						"entries": [
+							"- **Scroll the dashboard with the mouse over a repository list.** The dashboard and project pages scroll normally again while the pointer is over a list of repositories. The list used to sit in its own scroll box that held on to the mouse wheel, so the page stopped moving once that box reached its end. Repository lists now scroll with the rest of the page, still 20 repositories per page.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #822](https://github.com/monochange/monochange/pull/822)",
+							"- **Simpler hosted release setup.** The GitHub App guide now shows a release job that switches to the hosted backend with one environment variable, `MONOCHANGE_RELEASE_BACKEND=hosted`, instead of editing `monochange.toml`. It also explains why the job needs `contents: write`: the CLI uploads the release files with the job's own token, and monochange.dev only receives a reference to them.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #812](https://github.com/monochange/monochange/pull/812)"
+						]
+					}
+				]
+			},
+			"rendered": "{\n  \"title\": \"0.3.2\",\n  \"summary\": [],\n  \"sections\": [\n    {\n      \"title\": \"New\",\n      \"collapsed\": false,\n      \"entries\": [\n        {\n          \"summary\": \"See which accounts need to approve new GitHub access\",\n          \"details_markdown\": \"When monochange asks GitHub for more access, the dashboard now lists each connected account that hasn't approved the request yet, with the access it is missing and a **Review on GitHub** link where an owner of that account accepts it. Until then, monochange keeps the access the account already approved. You don't need to sign in again.\\n\\nThe GitHub App guide now explains each permission the app requests and what happens when the app asks for more.\",\n          \"change_type\": \"website_feature\",\n          \"bump\": \"minor\",\n          \"stream\": \"website\",\n          \"style\": \"expanded\",\n          \"provenance\": {\n            \"source_path\": \".changeset/installation-permission-updates-website.md\",\n            \"changeset_path\": \".changeset/installation-permission-updates-website.md\",\n            \"change_owner\": {\n              \"label\": \"@ifiokjr\",\n              \"url\": \"https://github.com/ifiokjr\"\n            },\n            \"review_request\": {\n              \"label\": \"PR #819\",\n              \"url\": \"https://github.com/monochange/monochange/pull/819\"\n            },\n            \"introduced_commit\": {\n              \"label\": \"c4f8060\",\n              \"url\": \"https://github.com/monochange/monochange/commit/c4f80601d23a94de2f70f2b1e4ce9edbe3813a66\"\n            }\n          }\n        }\n      ]\n    },\n    {\n      \"title\": \"Improved\",\n      \"collapsed\": false,\n      \"entries\": [\n        {\n          \"summary\": \"Scroll the dashboard with the mouse over a repository list\",\n          \"details_markdown\": \"The dashboard and project pages scroll normally again while the pointer is over a list of repositories. The list used to sit in its own scroll box that held on to the mouse wheel, so the page stopped moving once that box reached its end. Repository lists now scroll with the rest of the page, still 20 repositories per page.\",\n          \"change_type\": \"website_fix\",\n          \"bump\": \"patch\",\n          \"stream\": \"website\",\n          \"style\": \"compact\",\n          \"provenance\": {\n            \"source_path\": \".changeset/dashboard-repository-scroll.md\",\n            \"changeset_path\": \".changeset/dashboard-repository-scroll.md\",\n            \"change_owner\": {\n              \"label\": \"@ifiokjr\",\n              \"url\": \"https://github.com/ifiokjr\"\n            },\n            \"review_request\": {\n              \"label\": \"PR #822\",\n              \"url\": \"https://github.com/monochange/monochange/pull/822\"\n            },\n            \"introduced_commit\": {\n              \"label\": \"2582d0f\",\n              \"url\": \"https://github.com/monochange/monochange/commit/2582d0f1e84c5deb0c0fa2eabac7a3810d63cce5\"\n            }\n          }\n        },\n        {\n          \"summary\": \"Simpler hosted release setup\",\n          \"details_markdown\": \"The GitHub App guide now shows a release job that switches to the hosted backend with one environment variable, `MONOCHANGE_RELEASE_BACKEND=hosted`, instead of editing `monochange.toml`. It also explains why the job needs `contents: write`: the CLI uploads the release files with the job's own token, and monochange.dev only receives a reference to them.\",\n          \"change_type\": \"website_fix\",\n          \"bump\": \"patch\",\n          \"stream\": \"website\",\n          \"style\": \"compact\",\n          \"provenance\": {\n            \"source_path\": \".changeset/hosted-release-tree-docs.md\",\n            \"changeset_path\": \".changeset/hosted-release-tree-docs.md\",\n            \"change_owner\": {\n              \"label\": \"@ifiokjr\",\n              \"url\": \"https://github.com/ifiokjr\"\n            },\n            \"review_request\": {\n              \"label\": \"PR #812\",\n              \"url\": \"https://github.com/monochange/monochange/pull/812\"\n            },\n            \"introduced_commit\": {\n              \"label\": \"efc9383\",\n              \"url\": \"https://github.com/monochange/monochange/commit/efc9383f960db229d4e7052974f56e4008010198\"\n            }\n          }\n        }\n      ]\n    }\n  ]\n}"
+		},
+		{
+			"owner_id": "main",
+			"owner_kind": "group",
+			"output": "default",
+			"stream": "default",
+			"path": "changelog.md",
+			"format": "monochange",
+			"notes": {
+				"title": "[0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)",
+				"summary": [
+					"Grouped release for `main`."
+				],
+				"sections": [
+					{
+						"title": "💥 Breaking Change",
+						"collapsed": false,
+						"entries": [
+							"#### Add a workflow-built tree to `HostedCommitRequest`\n\n_Packages:_ 🔴 _monochange_core_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #812](https://github.com/monochange/monochange/pull/812)\n\n**Breaking change:** `monochange_core::HostedCommitRequest` gains `tree: Option<String>`, the git tree the workflow already created in the repository with its own `GITHUB_TOKEN`. When `tree` is set, `files` is empty and the monochange app only creates the commit and moves the release branch.\n\nStruct literals must add the field:\n\n```rust\nlet request = HostedCommitRequest {\n\t// existing fields…\n\ttree: None,\n};\n```\n\n`files` now defaults to empty when deserializing and is omitted when empty, so a tree request carries no file contents. Servers that predate `tree` still require `files`, so they reject a tree request instead of committing an empty change. See `docs/src/guide/migrations/0.20.md`.",
+							"#### Record registry rate-limit rejections on publish outcomes\n\n_Packages:_ 🔴 _monochange_publish_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #813](https://github.com/monochange/monochange/pull/813)\n\n> Constructing `PackagePublishOutcome` outside this crate now requires the new `rate_limit` field.\n\n`PackagePublishOutcome` gained `rate_limit: Option<PublishRateLimitHit>`, set when a registry refused the upload because of its rate limit. `PublishRateLimitHit` carries the registry's `reason`, `retry_at` (an RFC 3339 UTC timestamp), and `docs_url`. The field is skipped in JSON when it is `None`, so existing serialized reports still deserialize.\n\nAdd the field to every struct literal:\n\n```rust\nPackagePublishOutcome {\n\t// ...existing fields\n\tstderr: None,\n\trate_limit: None,\n}\n```\n\nNew exports: `detect_rate_limit_hit(registry, output, now)` recognises a 429 or \"rate limit exceeded\" response in publish command output, `PublishRateLimitHit::render_message` and `render_retry_at` format it for people, `registry_display_name` maps `crates_io` to `crates.io` and similar, and `CRATES_IO_RATE_LIMIT_DOCS` links crates.io's limits page. `ensure_publish_report_succeeded` reports a rate-limited run as `<registry> rate limit stopped publishing at <package> <version>: …` with the reason, retry time, limits page, and a `help:` line."
+						]
+					},
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Build hosted release commits from a tree the workflow uploads\n\n_Packages:_ 🟠 _monochange_, 🟠 _monochange_github_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #812](https://github.com/monochange/monochange/pull/812)\n\nHosted `CommitRelease` no longer sends the release files to the monochange app. The CLI uploads them to the repository as git blobs and a tree with the workflow's `GITHUB_TOKEN` (or `GH_TOKEN`), then sends only the tree id, the base commit, and the commit message. The app commits that tree through the GitHub App installation, so the commit is still verified and still triggers workflows, and the request carries the commit message instead of every changelog in full. Binary files and executable or symlink modes now survive hosted commits, because blobs are uploaded as base64 with the file mode `git add` would use.\n\nGive the release job `contents: write` so `GITHUB_TOKEN` can create blobs and trees. Uploading them pushes no branch and starts no workflow:\n\n```yaml\npermissions:\n  contents: write\n  pull-requests: read\n  id-token: write\n```\n\nWithout a token, or when the token gets `403` from the blob API, the CLI prints a warning and falls back to sending the file contents, as before.\n\n`monochange_github` adds `read_release_tree_files` and `create_release_tree`, which return `ReleaseTree::Created(tree)` or `ReleaseTree::Unavailable(reason)` so callers can fall back instead of failing.",
+							"#### Explain registry rate limits when publishing stops\n\n_Packages:_ 🟠 _monochange_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #813](https://github.com/monochange/monochange/pull/813)\n\nWhen a registry refuses an upload with HTTP 429, `monochange publish` and `monochange publish placeholder` now say which registry stopped the run, why, when it accepts uploads again, and how to resume, instead of printing the tool's packaging log twice.\n\n```text\n✖ 🦀 cargo canvist_layout failed: rate limited by crates.io until 10:59:10 UTC (in 6 minutes). You have published too many new crates in a short period of time.\n○ 🦀 cargo canvist_model not attempted because publishing canvist_layout 0.0.0 failed earlier in this run\n✖ Publish complete: 11 published, 1 failed, 3 skipped\nerror[publish.rate_limited]: crates.io rate limit stopped publishing at canvist_layout 0.0.0: 11 of 15 packages published\n\n    crates.io: You have published too many new crates in a short period of time.\n    retry after: 10:59:10 UTC (in 6 minutes)\n    limits: https://crates.io/docs/rate-limits\n\n  command: monochange publish placeholder\n  help:    Wait until 10:59:10 UTC (in 6 minutes), then rerun the same command. Versions that are already published are skipped, so publishing resumes with canvist_layout (4 packages left).\n```\n\n- Rate-limit rejections from crates.io, npm (`E429`), PyPI, JSR, and pub.dev are recognised from their 429 or \"rate limit exceeded\" wording. The retry time is read from `try again after <date>`, `Retry-After: <seconds>`, or `try again in <n> minutes`, and shown in UTC with the remaining wait.\n- The diagnostic code is `publish.rate_limited` instead of `publish.failed`, and its hint tells you when to rerun.\n- `--format json` reports and publish artifacts add a `rate_limit` object (`reason`, `retry_at` as an RFC 3339 UTC timestamp, `docs_url`) to the rate-limited package. The tool's full output stays in that package's `stdout` and `stderr`.",
+							"#### Switch release steps to the hosted backend with `MONOCHANGE_RELEASE_BACKEND`\n\n_Packages:_ 🟠 _monochange_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #812](https://github.com/monochange/monochange/pull/812)\n\n`MONOCHANGE_RELEASE_BACKEND=hosted` moves every `CommitRelease` and `OpenReleaseRequest` step to the hosted backend without editing `monochange.toml`, so a release job can opt in while local runs and pull-request preflight jobs keep the configured backend:\n\n```yaml\n- run: monochange run release\n  env:\n    MONOCHANGE_RELEASE_BACKEND: hosted\n    GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}\n```\n\nA step input or command-line flag such as `--commit-backend local` still wins over the variable. `local` is also accepted, and any other value fails the step with an error naming the variable."
+						]
+					},
+					{
+						"title": "📝 Changed",
+						"collapsed": false,
+						"entries": [
+							"#### End every text result with its summary line\n\n_Packages:_ 🟠 _monochange_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #813](https://github.com/monochange/monochange/pull/813)\n\nLong-running commands such as `monochange publish`, `monochange publish placeholder`, `monochange prepare`, and `monochange check` now read from top to bottom: the plan and its details first, then the log of the work, then the detailed results, and finally one summary line. The answer to \"what happened?\" is always the last line in the terminal instead of being buried above tables and rate-limit notes.\n\n- Every text result moves its summary line (for example `✔ Published 8 placeholder packages · 16 already published`) from the top of stdout to the bottom. Sections are ordered from supporting detail to the rows that need attention, so failures, blocked packages, lint errors, and policy errors sit right above the summary.\n- Publishing prints the rate-limit plan on stderr directly under the run's opening line, before any package is published. Each registry shows its pending packages, batches, and documented limit; batch membership is listed only when a registry needs more than one batch. The publish result no longer repeats the plan and keeps only rate-limit warnings. `monochange step plan-publish-rate-limits` still prints the full plan as its result.\n- Publish results group packages under `Would publish`, `Published`, `Staged awaiting approval`, `Blocked`, and `Failed` headings, and the separate `Checked N packages…` sentence is folded into the summary line.\n- `--progress-format json` emits a `publish_plan` event with the rate-limit report right after `publish_run_started`.\n- `monochange lint explain <id>` keeps its title at the top because it describes a rule rather than reporting a run.\n\n```text\n$ monochange publish placeholder\n▶ Publishing 24 packages (Placeholder) across 📦 npm, 🎯 dart\n  › npm      5 pending · 1 batch · no documented limit · low confidence\n  › pub_dev  3 pending · 1 batch · limit 12 per 24h · medium confidence\n✔ 📦 npm @skribble.dev/react published 0.0.0 to npm\n…\n✓ Publish complete: 8 published, 16 skipped\n✔ publish placeholder packages  29.5s\n\nPublished (8)\n  @skribble.dev/react  0.0.0  npm\n  …\n\n✔ Published 8 placeholder packages · 16 already published\n```\n\nScripts that read the first line of a text result should read the last line instead, or switch to `--format json`, which is unchanged."
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Suggest `monochange publish` subcommands instead of `monochange step` publish steps\n\n_Packages:_ 🟢 _@monochange/cli_, 🟢 _@monochange/skill_, 🟢 _monochange_, 🟢 _monochange_github_, 🟢 _monochange_publish_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #811](https://github.com/monochange/monochange/pull/811)\n\nDiagnostics, generated files, and help text now point at the `monochange publish` parent command instead of the equivalent `monochange step` publish steps:\n\n- The npm one-time-password recovery hint now reads `monochange publish placeholder --otp <CODE>` instead of `monochange step placeholder-publish --otp <CODE>`.\n- Trusted-publishing, readiness, and resume diagnostics suggest `monochange publish packages` and `monochange publish readiness`.\n- `monochange init --provider github` writes a release workflow that runs `monochange publish packages`, and the GitHub Actions and GitLab CI batch snippets rendered by `monochange step plan-publish-rate-limits` call `monochange publish packages`.\n- `monochange help step publish-packages`, `step publish-readiness`, and `step placeholder-publish` point at the preferred `monochange publish` subcommand.\n- The bundled agent skill and the `@monochange/cli` readme recommend the `monochange publish` subcommands, so agents stop suggesting the `monochange step` publish forms.\n\nThe `monochange step publish-packages`, `step publish-readiness`, and `step placeholder-publish` commands still work and accept the same inputs, so existing workflows need no change. To adopt the preferred spelling in CI:\n\n```yaml\n- run: monochange publish readiness --from HEAD --output .monochange/readiness.json\n- run: monochange publish packages --output .monochange/publish-result.json\n```"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)\n\nGrouped release for `main`.\n\n### 💥 Breaking Change\n\n#### Add a workflow-built tree to `HostedCommitRequest`\n\n_Packages:_ 🔴 _monochange_core_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #812](https://github.com/monochange/monochange/pull/812)\n\n**Breaking change:** `monochange_core::HostedCommitRequest` gains `tree: Option<String>`, the git tree the workflow already created in the repository with its own `GITHUB_TOKEN`. When `tree` is set, `files` is empty and the monochange app only creates the commit and moves the release branch.\n\nStruct literals must add the field:\n\n```rust\nlet request = HostedCommitRequest {\n\t// existing fields…\n\ttree: None,\n};\n```\n\n`files` now defaults to empty when deserializing and is omitted when empty, so a tree request carries no file contents. Servers that predate `tree` still require `files`, so they reject a tree request instead of committing an empty change. See `docs/src/guide/migrations/0.20.md`.\n\n#### Record registry rate-limit rejections on publish outcomes\n\n_Packages:_ 🔴 _monochange_publish_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #813](https://github.com/monochange/monochange/pull/813)\n\n> Constructing `PackagePublishOutcome` outside this crate now requires the new `rate_limit` field.\n\n`PackagePublishOutcome` gained `rate_limit: Option<PublishRateLimitHit>`, set when a registry refused the upload because of its rate limit. `PublishRateLimitHit` carries the registry's `reason`, `retry_at` (an RFC 3339 UTC timestamp), and `docs_url`. The field is skipped in JSON when it is `None`, so existing serialized reports still deserialize.\n\nAdd the field to every struct literal:\n\n```rust\nPackagePublishOutcome {\n\t// ...existing fields\n\tstderr: None,\n\trate_limit: None,\n}\n```\n\nNew exports: `detect_rate_limit_hit(registry, output, now)` recognises a 429 or \"rate limit exceeded\" response in publish command output, `PublishRateLimitHit::render_message` and `render_retry_at` format it for people, `registry_display_name` maps `crates_io` to `crates.io` and similar, and `CRATES_IO_RATE_LIMIT_DOCS` links crates.io's limits page. `ensure_publish_report_succeeded` reports a rate-limited run as `<registry> rate limit stopped publishing at <package> <version>: …` with the reason, retry time, limits page, and a `help:` line.\n\n### 🚀 Feature\n\n#### Build hosted release commits from a tree the workflow uploads\n\n_Packages:_ 🟠 _monochange_, 🟠 _monochange_github_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #812](https://github.com/monochange/monochange/pull/812)\n\nHosted `CommitRelease` no longer sends the release files to the monochange app. The CLI uploads them to the repository as git blobs and a tree with the workflow's `GITHUB_TOKEN` (or `GH_TOKEN`), then sends only the tree id, the base commit, and the commit message. The app commits that tree through the GitHub App installation, so the commit is still verified and still triggers workflows, and the request carries the commit message instead of every changelog in full. Binary files and executable or symlink modes now survive hosted commits, because blobs are uploaded as base64 with the file mode `git add` would use.\n\nGive the release job `contents: write` so `GITHUB_TOKEN` can create blobs and trees. Uploading them pushes no branch and starts no workflow:\n\n```yaml\npermissions:\n  contents: write\n  pull-requests: read\n  id-token: write\n```\n\nWithout a token, or when the token gets `403` from the blob API, the CLI prints a warning and falls back to sending the file contents, as before.\n\n`monochange_github` adds `read_release_tree_files` and `create_release_tree`, which return `ReleaseTree::Created(tree)` or `ReleaseTree::Unavailable(reason)` so callers can fall back instead of failing.\n\n#### Explain registry rate limits when publishing stops\n\n_Packages:_ 🟠 _monochange_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #813](https://github.com/monochange/monochange/pull/813)\n\nWhen a registry refuses an upload with HTTP 429, `monochange publish` and `monochange publish placeholder` now say which registry stopped the run, why, when it accepts uploads again, and how to resume, instead of printing the tool's packaging log twice.\n\n```text\n✖ 🦀 cargo canvist_layout failed: rate limited by crates.io until 10:59:10 UTC (in 6 minutes). You have published too many new crates in a short period of time.\n○ 🦀 cargo canvist_model not attempted because publishing canvist_layout 0.0.0 failed earlier in this run\n✖ Publish complete: 11 published, 1 failed, 3 skipped\nerror[publish.rate_limited]: crates.io rate limit stopped publishing at canvist_layout 0.0.0: 11 of 15 packages published\n\n    crates.io: You have published too many new crates in a short period of time.\n    retry after: 10:59:10 UTC (in 6 minutes)\n    limits: https://crates.io/docs/rate-limits\n\n  command: monochange publish placeholder\n  help:    Wait until 10:59:10 UTC (in 6 minutes), then rerun the same command. Versions that are already published are skipped, so publishing resumes with canvist_layout (4 packages left).\n```\n\n- Rate-limit rejections from crates.io, npm (`E429`), PyPI, JSR, and pub.dev are recognised from their 429 or \"rate limit exceeded\" wording. The retry time is read from `try again after <date>`, `Retry-After: <seconds>`, or `try again in <n> minutes`, and shown in UTC with the remaining wait.\n- The diagnostic code is `publish.rate_limited` instead of `publish.failed`, and its hint tells you when to rerun.\n- `--format json` reports and publish artifacts add a `rate_limit` object (`reason`, `retry_at` as an RFC 3339 UTC timestamp, `docs_url`) to the rate-limited package. The tool's full output stays in that package's `stdout` and `stderr`.\n\n#### Switch release steps to the hosted backend with `MONOCHANGE_RELEASE_BACKEND`\n\n_Packages:_ 🟠 _monochange_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #812](https://github.com/monochange/monochange/pull/812)\n\n`MONOCHANGE_RELEASE_BACKEND=hosted` moves every `CommitRelease` and `OpenReleaseRequest` step to the hosted backend without editing `monochange.toml`, so a release job can opt in while local runs and pull-request preflight jobs keep the configured backend:\n\n```yaml\n- run: monochange run release\n  env:\n    MONOCHANGE_RELEASE_BACKEND: hosted\n    GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}\n```\n\nA step input or command-line flag such as `--commit-backend local` still wins over the variable. `local` is also accepted, and any other value fails the step with an error naming the variable.\n\n### 📝 Changed\n\n#### End every text result with its summary line\n\n_Packages:_ 🟠 _monochange_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #813](https://github.com/monochange/monochange/pull/813)\n\nLong-running commands such as `monochange publish`, `monochange publish placeholder`, `monochange prepare`, and `monochange check` now read from top to bottom: the plan and its details first, then the log of the work, then the detailed results, and finally one summary line. The answer to \"what happened?\" is always the last line in the terminal instead of being buried above tables and rate-limit notes.\n\n- Every text result moves its summary line (for example `✔ Published 8 placeholder packages · 16 already published`) from the top of stdout to the bottom. Sections are ordered from supporting detail to the rows that need attention, so failures, blocked packages, lint errors, and policy errors sit right above the summary.\n- Publishing prints the rate-limit plan on stderr directly under the run's opening line, before any package is published. Each registry shows its pending packages, batches, and documented limit; batch membership is listed only when a registry needs more than one batch. The publish result no longer repeats the plan and keeps only rate-limit warnings. `monochange step plan-publish-rate-limits` still prints the full plan as its result.\n- Publish results group packages under `Would publish`, `Published`, `Staged awaiting approval`, `Blocked`, and `Failed` headings, and the separate `Checked N packages…` sentence is folded into the summary line.\n- `--progress-format json` emits a `publish_plan` event with the rate-limit report right after `publish_run_started`.\n- `monochange lint explain <id>` keeps its title at the top because it describes a rule rather than reporting a run.\n\n```text\n$ monochange publish placeholder\n▶ Publishing 24 packages (Placeholder) across 📦 npm, 🎯 dart\n  › npm      5 pending · 1 batch · no documented limit · low confidence\n  › pub_dev  3 pending · 1 batch · limit 12 per 24h · medium confidence\n✔ 📦 npm @skribble.dev/react published 0.0.0 to npm\n…\n✓ Publish complete: 8 published, 16 skipped\n✔ publish placeholder packages  29.5s\n\nPublished (8)\n  @skribble.dev/react  0.0.0  npm\n  …\n\n✔ Published 8 placeholder packages · 16 already published\n```\n\nScripts that read the first line of a text result should read the last line instead, or switch to `--format json`, which is unchanged.\n\n### 🐛 Fixed\n\n#### Suggest `monochange publish` subcommands instead of `monochange step` publish steps\n\n_Packages:_ 🟢 _@monochange/cli_, 🟢 _@monochange/skill_, 🟢 _monochange_, 🟢 _monochange_github_, 🟢 _monochange_publish_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #811](https://github.com/monochange/monochange/pull/811)\n\nDiagnostics, generated files, and help text now point at the `monochange publish` parent command instead of the equivalent `monochange step` publish steps:\n\n- The npm one-time-password recovery hint now reads `monochange publish placeholder --otp <CODE>` instead of `monochange step placeholder-publish --otp <CODE>`.\n- Trusted-publishing, readiness, and resume diagnostics suggest `monochange publish packages` and `monochange publish readiness`.\n- `monochange init --provider github` writes a release workflow that runs `monochange publish packages`, and the GitHub Actions and GitLab CI batch snippets rendered by `monochange step plan-publish-rate-limits` call `monochange publish packages`.\n- `monochange help step publish-packages`, `step publish-readiness`, and `step placeholder-publish` point at the preferred `monochange publish` subcommand.\n- The bundled agent skill and the `@monochange/cli` readme recommend the `monochange publish` subcommands, so agents stop suggesting the `monochange step` publish forms.\n\nThe `monochange step publish-packages`, `step publish-readiness`, and `step placeholder-publish` commands still work and accept the same inputs, so existing workflows need no change. To adopt the preferred spelling in CI:\n\n```yaml\n- run: monochange publish readiness --from HEAD --output .monochange/readiness.json\n- run: monochange publish packages --output .monochange/publish-result.json\n```"
+		},
+		{
+			"owner_id": "monochange",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Build hosted release commits from a tree the workflow uploads\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #812](https://github.com/monochange/monochange/pull/812)\n\nHosted `CommitRelease` no longer sends the release files to the monochange app. The CLI uploads them to the repository as git blobs and a tree with the workflow's `GITHUB_TOKEN` (or `GH_TOKEN`), then sends only the tree id, the base commit, and the commit message. The app commits that tree through the GitHub App installation, so the commit is still verified and still triggers workflows, and the request carries the commit message instead of every changelog in full. Binary files and executable or symlink modes now survive hosted commits, because blobs are uploaded as base64 with the file mode `git add` would use.\n\nGive the release job `contents: write` so `GITHUB_TOKEN` can create blobs and trees. Uploading them pushes no branch and starts no workflow:\n\n```yaml\npermissions:\n  contents: write\n  pull-requests: read\n  id-token: write\n```\n\nWithout a token, or when the token gets `403` from the blob API, the CLI prints a warning and falls back to sending the file contents, as before.\n\n`monochange_github` adds `read_release_tree_files` and `create_release_tree`, which return `ReleaseTree::Created(tree)` or `ReleaseTree::Unavailable(reason)` so callers can fall back instead of failing.",
+							"#### Explain registry rate limits when publishing stops\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #813](https://github.com/monochange/monochange/pull/813)\n\nWhen a registry refuses an upload with HTTP 429, `monochange publish` and `monochange publish placeholder` now say which registry stopped the run, why, when it accepts uploads again, and how to resume, instead of printing the tool's packaging log twice.\n\n```text\n✖ 🦀 cargo canvist_layout failed: rate limited by crates.io until 10:59:10 UTC (in 6 minutes). You have published too many new crates in a short period of time.\n○ 🦀 cargo canvist_model not attempted because publishing canvist_layout 0.0.0 failed earlier in this run\n✖ Publish complete: 11 published, 1 failed, 3 skipped\nerror[publish.rate_limited]: crates.io rate limit stopped publishing at canvist_layout 0.0.0: 11 of 15 packages published\n\n    crates.io: You have published too many new crates in a short period of time.\n    retry after: 10:59:10 UTC (in 6 minutes)\n    limits: https://crates.io/docs/rate-limits\n\n  command: monochange publish placeholder\n  help:    Wait until 10:59:10 UTC (in 6 minutes), then rerun the same command. Versions that are already published are skipped, so publishing resumes with canvist_layout (4 packages left).\n```\n\n- Rate-limit rejections from crates.io, npm (`E429`), PyPI, JSR, and pub.dev are recognised from their 429 or \"rate limit exceeded\" wording. The retry time is read from `try again after <date>`, `Retry-After: <seconds>`, or `try again in <n> minutes`, and shown in UTC with the remaining wait.\n- The diagnostic code is `publish.rate_limited` instead of `publish.failed`, and its hint tells you when to rerun.\n- `--format json` reports and publish artifacts add a `rate_limit` object (`reason`, `retry_at` as an RFC 3339 UTC timestamp, `docs_url`) to the rate-limited package. The tool's full output stays in that package's `stdout` and `stderr`.",
+							"#### Switch release steps to the hosted backend with `MONOCHANGE_RELEASE_BACKEND`\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #812](https://github.com/monochange/monochange/pull/812)\n\n`MONOCHANGE_RELEASE_BACKEND=hosted` moves every `CommitRelease` and `OpenReleaseRequest` step to the hosted backend without editing `monochange.toml`, so a release job can opt in while local runs and pull-request preflight jobs keep the configured backend:\n\n```yaml\n- run: monochange run release\n  env:\n    MONOCHANGE_RELEASE_BACKEND: hosted\n    GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}\n```\n\nA step input or command-line flag such as `--commit-backend local` still wins over the variable. `local` is also accepted, and any other value fails the step with an error naming the variable."
+						]
+					},
+					{
+						"title": "📝 Changed",
+						"collapsed": false,
+						"entries": [
+							"#### End every text result with its summary line\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #813](https://github.com/monochange/monochange/pull/813)\n\nLong-running commands such as `monochange publish`, `monochange publish placeholder`, `monochange prepare`, and `monochange check` now read from top to bottom: the plan and its details first, then the log of the work, then the detailed results, and finally one summary line. The answer to \"what happened?\" is always the last line in the terminal instead of being buried above tables and rate-limit notes.\n\n- Every text result moves its summary line (for example `✔ Published 8 placeholder packages · 16 already published`) from the top of stdout to the bottom. Sections are ordered from supporting detail to the rows that need attention, so failures, blocked packages, lint errors, and policy errors sit right above the summary.\n- Publishing prints the rate-limit plan on stderr directly under the run's opening line, before any package is published. Each registry shows its pending packages, batches, and documented limit; batch membership is listed only when a registry needs more than one batch. The publish result no longer repeats the plan and keeps only rate-limit warnings. `monochange step plan-publish-rate-limits` still prints the full plan as its result.\n- Publish results group packages under `Would publish`, `Published`, `Staged awaiting approval`, `Blocked`, and `Failed` headings, and the separate `Checked N packages…` sentence is folded into the summary line.\n- `--progress-format json` emits a `publish_plan` event with the rate-limit report right after `publish_run_started`.\n- `monochange lint explain <id>` keeps its title at the top because it describes a rule rather than reporting a run.\n\n```text\n$ monochange publish placeholder\n▶ Publishing 24 packages (Placeholder) across 📦 npm, 🎯 dart\n  › npm      5 pending · 1 batch · no documented limit · low confidence\n  › pub_dev  3 pending · 1 batch · limit 12 per 24h · medium confidence\n✔ 📦 npm @skribble.dev/react published 0.0.0 to npm\n…\n✓ Publish complete: 8 published, 16 skipped\n✔ publish placeholder packages  29.5s\n\nPublished (8)\n  @skribble.dev/react  0.0.0  npm\n  …\n\n✔ Published 8 placeholder packages · 16 already published\n```\n\nScripts that read the first line of a text result should read the last line instead, or switch to `--format json`, which is unchanged."
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Suggest `monochange publish` subcommands instead of `monochange step` publish steps\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #811](https://github.com/monochange/monochange/pull/811)\n\nDiagnostics, generated files, and help text now point at the `monochange publish` parent command instead of the equivalent `monochange step` publish steps:\n\n- The npm one-time-password recovery hint now reads `monochange publish placeholder --otp <CODE>` instead of `monochange step placeholder-publish --otp <CODE>`.\n- Trusted-publishing, readiness, and resume diagnostics suggest `monochange publish packages` and `monochange publish readiness`.\n- `monochange init --provider github` writes a release workflow that runs `monochange publish packages`, and the GitHub Actions and GitLab CI batch snippets rendered by `monochange step plan-publish-rate-limits` call `monochange publish packages`.\n- `monochange help step publish-packages`, `step publish-readiness`, and `step placeholder-publish` point at the preferred `monochange publish` subcommand.\n- The bundled agent skill and the `@monochange/cli` readme recommend the `monochange publish` subcommands, so agents stop suggesting the `monochange step` publish forms.\n\nThe `monochange step publish-packages`, `step publish-readiness`, and `step placeholder-publish` commands still work and accept the same inputs, so existing workflows need no change. To adopt the preferred spelling in CI:\n\n```yaml\n- run: monochange publish readiness --from HEAD --output .monochange/readiness.json\n- run: monochange publish packages --output .monochange/publish-result.json\n```"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)\n\n### 🚀 Feature\n\n#### Build hosted release commits from a tree the workflow uploads\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #812](https://github.com/monochange/monochange/pull/812)\n\nHosted `CommitRelease` no longer sends the release files to the monochange app. The CLI uploads them to the repository as git blobs and a tree with the workflow's `GITHUB_TOKEN` (or `GH_TOKEN`), then sends only the tree id, the base commit, and the commit message. The app commits that tree through the GitHub App installation, so the commit is still verified and still triggers workflows, and the request carries the commit message instead of every changelog in full. Binary files and executable or symlink modes now survive hosted commits, because blobs are uploaded as base64 with the file mode `git add` would use.\n\nGive the release job `contents: write` so `GITHUB_TOKEN` can create blobs and trees. Uploading them pushes no branch and starts no workflow:\n\n```yaml\npermissions:\n  contents: write\n  pull-requests: read\n  id-token: write\n```\n\nWithout a token, or when the token gets `403` from the blob API, the CLI prints a warning and falls back to sending the file contents, as before.\n\n`monochange_github` adds `read_release_tree_files` and `create_release_tree`, which return `ReleaseTree::Created(tree)` or `ReleaseTree::Unavailable(reason)` so callers can fall back instead of failing.\n\n#### Explain registry rate limits when publishing stops\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #813](https://github.com/monochange/monochange/pull/813)\n\nWhen a registry refuses an upload with HTTP 429, `monochange publish` and `monochange publish placeholder` now say which registry stopped the run, why, when it accepts uploads again, and how to resume, instead of printing the tool's packaging log twice.\n\n```text\n✖ 🦀 cargo canvist_layout failed: rate limited by crates.io until 10:59:10 UTC (in 6 minutes). You have published too many new crates in a short period of time.\n○ 🦀 cargo canvist_model not attempted because publishing canvist_layout 0.0.0 failed earlier in this run\n✖ Publish complete: 11 published, 1 failed, 3 skipped\nerror[publish.rate_limited]: crates.io rate limit stopped publishing at canvist_layout 0.0.0: 11 of 15 packages published\n\n    crates.io: You have published too many new crates in a short period of time.\n    retry after: 10:59:10 UTC (in 6 minutes)\n    limits: https://crates.io/docs/rate-limits\n\n  command: monochange publish placeholder\n  help:    Wait until 10:59:10 UTC (in 6 minutes), then rerun the same command. Versions that are already published are skipped, so publishing resumes with canvist_layout (4 packages left).\n```\n\n- Rate-limit rejections from crates.io, npm (`E429`), PyPI, JSR, and pub.dev are recognised from their 429 or \"rate limit exceeded\" wording. The retry time is read from `try again after <date>`, `Retry-After: <seconds>`, or `try again in <n> minutes`, and shown in UTC with the remaining wait.\n- The diagnostic code is `publish.rate_limited` instead of `publish.failed`, and its hint tells you when to rerun.\n- `--format json` reports and publish artifacts add a `rate_limit` object (`reason`, `retry_at` as an RFC 3339 UTC timestamp, `docs_url`) to the rate-limited package. The tool's full output stays in that package's `stdout` and `stderr`.\n\n#### Switch release steps to the hosted backend with `MONOCHANGE_RELEASE_BACKEND`\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #812](https://github.com/monochange/monochange/pull/812)\n\n`MONOCHANGE_RELEASE_BACKEND=hosted` moves every `CommitRelease` and `OpenReleaseRequest` step to the hosted backend without editing `monochange.toml`, so a release job can opt in while local runs and pull-request preflight jobs keep the configured backend:\n\n```yaml\n- run: monochange run release\n  env:\n    MONOCHANGE_RELEASE_BACKEND: hosted\n    GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}\n```\n\nA step input or command-line flag such as `--commit-backend local` still wins over the variable. `local` is also accepted, and any other value fails the step with an error naming the variable.\n\n### 📝 Changed\n\n#### End every text result with its summary line\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #813](https://github.com/monochange/monochange/pull/813)\n\nLong-running commands such as `monochange publish`, `monochange publish placeholder`, `monochange prepare`, and `monochange check` now read from top to bottom: the plan and its details first, then the log of the work, then the detailed results, and finally one summary line. The answer to \"what happened?\" is always the last line in the terminal instead of being buried above tables and rate-limit notes.\n\n- Every text result moves its summary line (for example `✔ Published 8 placeholder packages · 16 already published`) from the top of stdout to the bottom. Sections are ordered from supporting detail to the rows that need attention, so failures, blocked packages, lint errors, and policy errors sit right above the summary.\n- Publishing prints the rate-limit plan on stderr directly under the run's opening line, before any package is published. Each registry shows its pending packages, batches, and documented limit; batch membership is listed only when a registry needs more than one batch. The publish result no longer repeats the plan and keeps only rate-limit warnings. `monochange step plan-publish-rate-limits` still prints the full plan as its result.\n- Publish results group packages under `Would publish`, `Published`, `Staged awaiting approval`, `Blocked`, and `Failed` headings, and the separate `Checked N packages…` sentence is folded into the summary line.\n- `--progress-format json` emits a `publish_plan` event with the rate-limit report right after `publish_run_started`.\n- `monochange lint explain <id>` keeps its title at the top because it describes a rule rather than reporting a run.\n\n```text\n$ monochange publish placeholder\n▶ Publishing 24 packages (Placeholder) across 📦 npm, 🎯 dart\n  › npm      5 pending · 1 batch · no documented limit · low confidence\n  › pub_dev  3 pending · 1 batch · limit 12 per 24h · medium confidence\n✔ 📦 npm @skribble.dev/react published 0.0.0 to npm\n…\n✓ Publish complete: 8 published, 16 skipped\n✔ publish placeholder packages  29.5s\n\nPublished (8)\n  @skribble.dev/react  0.0.0  npm\n  …\n\n✔ Published 8 placeholder packages · 16 already published\n```\n\nScripts that read the first line of a text result should read the last line instead, or switch to `--format json`, which is unchanged.\n\n### 🐛 Fixed\n\n#### Suggest `monochange publish` subcommands instead of `monochange step` publish steps\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #811](https://github.com/monochange/monochange/pull/811)\n\nDiagnostics, generated files, and help text now point at the `monochange publish` parent command instead of the equivalent `monochange step` publish steps:\n\n- The npm one-time-password recovery hint now reads `monochange publish placeholder --otp <CODE>` instead of `monochange step placeholder-publish --otp <CODE>`.\n- Trusted-publishing, readiness, and resume diagnostics suggest `monochange publish packages` and `monochange publish readiness`.\n- `monochange init --provider github` writes a release workflow that runs `monochange publish packages`, and the GitHub Actions and GitLab CI batch snippets rendered by `monochange step plan-publish-rate-limits` call `monochange publish packages`.\n- `monochange help step publish-packages`, `step publish-readiness`, and `step placeholder-publish` point at the preferred `monochange publish` subcommand.\n- The bundled agent skill and the `@monochange/cli` readme recommend the `monochange publish` subcommands, so agents stop suggesting the `monochange step` publish forms.\n\nThe `monochange step publish-packages`, `step publish-readiness`, and `step placeholder-publish` commands still work and accept the same inputs, so existing workflows need no change. To adopt the preferred spelling in CI:\n\n```yaml\n- run: monochange publish readiness --from HEAD --output .monochange/readiness.json\n- run: monochange publish packages --output .monochange/publish-result.json\n```"
+		},
+		{
+			"owner_id": "monochange_analysis",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_analysis/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_analysis` was updated to 0.20.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_analysis` was updated to 0.20.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_cargo",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_cargo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_cargo` was updated to 0.20.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_cargo` was updated to 0.20.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_changelog",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_changelog/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_changelog` was updated to 0.20.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_changelog` was updated to 0.20.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_classification",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_classification/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "monochange_classification [0.4.6](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.4.6) (2026-10-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_classification` was updated to 0.4.6.**"
+						]
+					}
+				]
+			},
+			"rendered": "## monochange_classification [0.4.6](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.4.6) (2026-10-21)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_classification` was updated to 0.4.6.**"
+		},
+		{
+			"owner_id": "monochange_config",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_config/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_config` was updated to 0.20.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_config` was updated to 0.20.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_core",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_core/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "💥 Breaking Change",
+						"collapsed": false,
+						"entries": [
+							"#### Add a workflow-built tree to `HostedCommitRequest`\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #812](https://github.com/monochange/monochange/pull/812)\n\n**Breaking change:** `monochange_core::HostedCommitRequest` gains `tree: Option<String>`, the git tree the workflow already created in the repository with its own `GITHUB_TOKEN`. When `tree` is set, `files` is empty and the monochange app only creates the commit and moves the release branch.\n\nStruct literals must add the field:\n\n```rust\nlet request = HostedCommitRequest {\n\t// existing fields…\n\ttree: None,\n};\n```\n\n`files` now defaults to empty when deserializing and is omitted when empty, so a tree request carries no file contents. Servers that predate `tree` still require `files`, so they reject a tree request instead of committing an empty change. See `docs/src/guide/migrations/0.20.md`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)\n\n### 💥 Breaking Change\n\n#### Add a workflow-built tree to `HostedCommitRequest`\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #812](https://github.com/monochange/monochange/pull/812)\n\n**Breaking change:** `monochange_core::HostedCommitRequest` gains `tree: Option<String>`, the git tree the workflow already created in the repository with its own `GITHUB_TOKEN`. When `tree` is set, `files` is empty and the monochange app only creates the commit and moves the release branch.\n\nStruct literals must add the field:\n\n```rust\nlet request = HostedCommitRequest {\n\t// existing fields…\n\ttree: None,\n};\n```\n\n`files` now defaults to empty when deserializing and is omitted when empty, so a tree request carries no file contents. Servers that predate `tree` still require `files`, so they reject a tree request instead of committing an empty change. See `docs/src/guide/migrations/0.20.md`."
+		},
+		{
+			"owner_id": "monochange_dart",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_dart/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_dart` was updated to 0.20.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_dart` was updated to 0.20.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_deno",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_deno/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_deno` was updated to 0.20.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_deno` was updated to 0.20.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_ecmascript",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_ecmascript/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_ecmascript` was updated to 0.20.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_ecmascript` was updated to 0.20.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_forgejo",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_forgejo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_forgejo` was updated to 0.20.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_forgejo` was updated to 0.20.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_gitea",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_gitea/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_gitea` was updated to 0.20.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_gitea` was updated to 0.20.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_github",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_github/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Build hosted release commits from a tree the workflow uploads\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #812](https://github.com/monochange/monochange/pull/812)\n\nHosted `CommitRelease` no longer sends the release files to the monochange app. The CLI uploads them to the repository as git blobs and a tree with the workflow's `GITHUB_TOKEN` (or `GH_TOKEN`), then sends only the tree id, the base commit, and the commit message. The app commits that tree through the GitHub App installation, so the commit is still verified and still triggers workflows, and the request carries the commit message instead of every changelog in full. Binary files and executable or symlink modes now survive hosted commits, because blobs are uploaded as base64 with the file mode `git add` would use.\n\nGive the release job `contents: write` so `GITHUB_TOKEN` can create blobs and trees. Uploading them pushes no branch and starts no workflow:\n\n```yaml\npermissions:\n  contents: write\n  pull-requests: read\n  id-token: write\n```\n\nWithout a token, or when the token gets `403` from the blob API, the CLI prints a warning and falls back to sending the file contents, as before.\n\n`monochange_github` adds `read_release_tree_files` and `create_release_tree`, which return `ReleaseTree::Created(tree)` or `ReleaseTree::Unavailable(reason)` so callers can fall back instead of failing."
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Suggest `monochange publish` subcommands instead of `monochange step` publish steps\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #811](https://github.com/monochange/monochange/pull/811)\n\nDiagnostics, generated files, and help text now point at the `monochange publish` parent command instead of the equivalent `monochange step` publish steps:\n\n- The npm one-time-password recovery hint now reads `monochange publish placeholder --otp <CODE>` instead of `monochange step placeholder-publish --otp <CODE>`.\n- Trusted-publishing, readiness, and resume diagnostics suggest `monochange publish packages` and `monochange publish readiness`.\n- `monochange init --provider github` writes a release workflow that runs `monochange publish packages`, and the GitHub Actions and GitLab CI batch snippets rendered by `monochange step plan-publish-rate-limits` call `monochange publish packages`.\n- `monochange help step publish-packages`, `step publish-readiness`, and `step placeholder-publish` point at the preferred `monochange publish` subcommand.\n- The bundled agent skill and the `@monochange/cli` readme recommend the `monochange publish` subcommands, so agents stop suggesting the `monochange step` publish forms.\n\nThe `monochange step publish-packages`, `step publish-readiness`, and `step placeholder-publish` commands still work and accept the same inputs, so existing workflows need no change. To adopt the preferred spelling in CI:\n\n```yaml\n- run: monochange publish readiness --from HEAD --output .monochange/readiness.json\n- run: monochange publish packages --output .monochange/publish-result.json\n```"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)\n\n### 🚀 Feature\n\n#### Build hosted release commits from a tree the workflow uploads\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #812](https://github.com/monochange/monochange/pull/812)\n\nHosted `CommitRelease` no longer sends the release files to the monochange app. The CLI uploads them to the repository as git blobs and a tree with the workflow's `GITHUB_TOKEN` (or `GH_TOKEN`), then sends only the tree id, the base commit, and the commit message. The app commits that tree through the GitHub App installation, so the commit is still verified and still triggers workflows, and the request carries the commit message instead of every changelog in full. Binary files and executable or symlink modes now survive hosted commits, because blobs are uploaded as base64 with the file mode `git add` would use.\n\nGive the release job `contents: write` so `GITHUB_TOKEN` can create blobs and trees. Uploading them pushes no branch and starts no workflow:\n\n```yaml\npermissions:\n  contents: write\n  pull-requests: read\n  id-token: write\n```\n\nWithout a token, or when the token gets `403` from the blob API, the CLI prints a warning and falls back to sending the file contents, as before.\n\n`monochange_github` adds `read_release_tree_files` and `create_release_tree`, which return `ReleaseTree::Created(tree)` or `ReleaseTree::Unavailable(reason)` so callers can fall back instead of failing.\n\n### 🐛 Fixed\n\n#### Suggest `monochange publish` subcommands instead of `monochange step` publish steps\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #811](https://github.com/monochange/monochange/pull/811)\n\nDiagnostics, generated files, and help text now point at the `monochange publish` parent command instead of the equivalent `monochange step` publish steps:\n\n- The npm one-time-password recovery hint now reads `monochange publish placeholder --otp <CODE>` instead of `monochange step placeholder-publish --otp <CODE>`.\n- Trusted-publishing, readiness, and resume diagnostics suggest `monochange publish packages` and `monochange publish readiness`.\n- `monochange init --provider github` writes a release workflow that runs `monochange publish packages`, and the GitHub Actions and GitLab CI batch snippets rendered by `monochange step plan-publish-rate-limits` call `monochange publish packages`.\n- `monochange help step publish-packages`, `step publish-readiness`, and `step placeholder-publish` point at the preferred `monochange publish` subcommand.\n- The bundled agent skill and the `@monochange/cli` readme recommend the `monochange publish` subcommands, so agents stop suggesting the `monochange step` publish forms.\n\nThe `monochange step publish-packages`, `step publish-readiness`, and `step placeholder-publish` commands still work and accept the same inputs, so existing workflows need no change. To adopt the preferred spelling in CI:\n\n```yaml\n- run: monochange publish readiness --from HEAD --output .monochange/readiness.json\n- run: monochange publish packages --output .monochange/publish-result.json\n```"
+		},
+		{
+			"owner_id": "monochange_gitlab",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_gitlab/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_gitlab` was updated to 0.20.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_gitlab` was updated to 0.20.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_go",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_go/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_go` was updated to 0.20.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_go` was updated to 0.20.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_graph",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_graph/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_graph` was updated to 0.20.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_graph` was updated to 0.20.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_hosting",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_hosting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_hosting` was updated to 0.20.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_hosting` was updated to 0.20.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_lint",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_lint/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_lint` was updated to 0.20.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_lint` was updated to 0.20.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_linting",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_linting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_linting` was updated to 0.20.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_linting` was updated to 0.20.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_npm",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_npm/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_npm` was updated to 0.20.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_npm` was updated to 0.20.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_publish",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_publish/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "💥 Breaking Change",
+						"collapsed": false,
+						"entries": [
+							"#### Record registry rate-limit rejections on publish outcomes\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #813](https://github.com/monochange/monochange/pull/813)\n\n> Constructing `PackagePublishOutcome` outside this crate now requires the new `rate_limit` field.\n\n`PackagePublishOutcome` gained `rate_limit: Option<PublishRateLimitHit>`, set when a registry refused the upload because of its rate limit. `PublishRateLimitHit` carries the registry's `reason`, `retry_at` (an RFC 3339 UTC timestamp), and `docs_url`. The field is skipped in JSON when it is `None`, so existing serialized reports still deserialize.\n\nAdd the field to every struct literal:\n\n```rust\nPackagePublishOutcome {\n\t// ...existing fields\n\tstderr: None,\n\trate_limit: None,\n}\n```\n\nNew exports: `detect_rate_limit_hit(registry, output, now)` recognises a 429 or \"rate limit exceeded\" response in publish command output, `PublishRateLimitHit::render_message` and `render_retry_at` format it for people, `registry_display_name` maps `crates_io` to `crates.io` and similar, and `CRATES_IO_RATE_LIMIT_DOCS` links crates.io's limits page. `ensure_publish_report_succeeded` reports a rate-limited run as `<registry> rate limit stopped publishing at <package> <version>: …` with the reason, retry time, limits page, and a `help:` line."
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Suggest `monochange publish` subcommands instead of `monochange step` publish steps\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #811](https://github.com/monochange/monochange/pull/811)\n\nDiagnostics, generated files, and help text now point at the `monochange publish` parent command instead of the equivalent `monochange step` publish steps:\n\n- The npm one-time-password recovery hint now reads `monochange publish placeholder --otp <CODE>` instead of `monochange step placeholder-publish --otp <CODE>`.\n- Trusted-publishing, readiness, and resume diagnostics suggest `monochange publish packages` and `monochange publish readiness`.\n- `monochange init --provider github` writes a release workflow that runs `monochange publish packages`, and the GitHub Actions and GitLab CI batch snippets rendered by `monochange step plan-publish-rate-limits` call `monochange publish packages`.\n- `monochange help step publish-packages`, `step publish-readiness`, and `step placeholder-publish` point at the preferred `monochange publish` subcommand.\n- The bundled agent skill and the `@monochange/cli` readme recommend the `monochange publish` subcommands, so agents stop suggesting the `monochange step` publish forms.\n\nThe `monochange step publish-packages`, `step publish-readiness`, and `step placeholder-publish` commands still work and accept the same inputs, so existing workflows need no change. To adopt the preferred spelling in CI:\n\n```yaml\n- run: monochange publish readiness --from HEAD --output .monochange/readiness.json\n- run: monochange publish packages --output .monochange/publish-result.json\n```"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)\n\n### 💥 Breaking Change\n\n#### Record registry rate-limit rejections on publish outcomes\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #813](https://github.com/monochange/monochange/pull/813)\n\n> Constructing `PackagePublishOutcome` outside this crate now requires the new `rate_limit` field.\n\n`PackagePublishOutcome` gained `rate_limit: Option<PublishRateLimitHit>`, set when a registry refused the upload because of its rate limit. `PublishRateLimitHit` carries the registry's `reason`, `retry_at` (an RFC 3339 UTC timestamp), and `docs_url`. The field is skipped in JSON when it is `None`, so existing serialized reports still deserialize.\n\nAdd the field to every struct literal:\n\n```rust\nPackagePublishOutcome {\n\t// ...existing fields\n\tstderr: None,\n\trate_limit: None,\n}\n```\n\nNew exports: `detect_rate_limit_hit(registry, output, now)` recognises a 429 or \"rate limit exceeded\" response in publish command output, `PublishRateLimitHit::render_message` and `render_retry_at` format it for people, `registry_display_name` maps `crates_io` to `crates.io` and similar, and `CRATES_IO_RATE_LIMIT_DOCS` links crates.io's limits page. `ensure_publish_report_succeeded` reports a rate-limited run as `<registry> rate limit stopped publishing at <package> <version>: …` with the reason, retry time, limits page, and a `help:` line.\n\n### 🐛 Fixed\n\n#### Suggest `monochange publish` subcommands instead of `monochange step` publish steps\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #811](https://github.com/monochange/monochange/pull/811)\n\nDiagnostics, generated files, and help text now point at the `monochange publish` parent command instead of the equivalent `monochange step` publish steps:\n\n- The npm one-time-password recovery hint now reads `monochange publish placeholder --otp <CODE>` instead of `monochange step placeholder-publish --otp <CODE>`.\n- Trusted-publishing, readiness, and resume diagnostics suggest `monochange publish packages` and `monochange publish readiness`.\n- `monochange init --provider github` writes a release workflow that runs `monochange publish packages`, and the GitHub Actions and GitLab CI batch snippets rendered by `monochange step plan-publish-rate-limits` call `monochange publish packages`.\n- `monochange help step publish-packages`, `step publish-readiness`, and `step placeholder-publish` point at the preferred `monochange publish` subcommand.\n- The bundled agent skill and the `@monochange/cli` readme recommend the `monochange publish` subcommands, so agents stop suggesting the `monochange step` publish forms.\n\nThe `monochange step publish-packages`, `step publish-readiness`, and `step placeholder-publish` commands still work and accept the same inputs, so existing workflows need no change. To adopt the preferred spelling in CI:\n\n```yaml\n- run: monochange publish readiness --from HEAD --output .monochange/readiness.json\n- run: monochange publish packages --output .monochange/publish-result.json\n```"
+		},
+		{
+			"owner_id": "monochange_python",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_python/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_python` was updated to 0.20.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_python` was updated to 0.20.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_semver",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_semver/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_semver` was updated to 0.20.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_semver` was updated to 0.20.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_telemetry",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_telemetry/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_telemetry` was updated to 0.20.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_telemetry` was updated to 0.20.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_test_helpers",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_test_helpers/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.20.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.20.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Suggest `monochange publish` subcommands instead of `monochange step` publish steps\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #811](https://github.com/monochange/monochange/pull/811)\n\nDiagnostics, generated files, and help text now point at the `monochange publish` parent command instead of the equivalent `monochange step` publish steps:\n\n- The npm one-time-password recovery hint now reads `monochange publish placeholder --otp <CODE>` instead of `monochange step placeholder-publish --otp <CODE>`.\n- Trusted-publishing, readiness, and resume diagnostics suggest `monochange publish packages` and `monochange publish readiness`.\n- `monochange init --provider github` writes a release workflow that runs `monochange publish packages`, and the GitHub Actions and GitLab CI batch snippets rendered by `monochange step plan-publish-rate-limits` call `monochange publish packages`.\n- `monochange help step publish-packages`, `step publish-readiness`, and `step placeholder-publish` point at the preferred `monochange publish` subcommand.\n- The bundled agent skill and the `@monochange/cli` readme recommend the `monochange publish` subcommands, so agents stop suggesting the `monochange step` publish forms.\n\nThe `monochange step publish-packages`, `step publish-readiness`, and `step placeholder-publish` commands still work and accept the same inputs, so existing workflows need no change. To adopt the preferred spelling in CI:\n\n```yaml\n- run: monochange publish readiness --from HEAD --output .monochange/readiness.json\n- run: monochange publish packages --output .monochange/publish-result.json\n```"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)\n\n### 🐛 Fixed\n\n#### Suggest `monochange publish` subcommands instead of `monochange step` publish steps\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #811](https://github.com/monochange/monochange/pull/811)\n\nDiagnostics, generated files, and help text now point at the `monochange publish` parent command instead of the equivalent `monochange step` publish steps:\n\n- The npm one-time-password recovery hint now reads `monochange publish placeholder --otp <CODE>` instead of `monochange step placeholder-publish --otp <CODE>`.\n- Trusted-publishing, readiness, and resume diagnostics suggest `monochange publish packages` and `monochange publish readiness`.\n- `monochange init --provider github` writes a release workflow that runs `monochange publish packages`, and the GitHub Actions and GitLab CI batch snippets rendered by `monochange step plan-publish-rate-limits` call `monochange publish packages`.\n- `monochange help step publish-packages`, `step publish-readiness`, and `step placeholder-publish` point at the preferred `monochange publish` subcommand.\n- The bundled agent skill and the `@monochange/cli` readme recommend the `monochange publish` subcommands, so agents stop suggesting the `monochange step` publish forms.\n\nThe `monochange step publish-packages`, `step publish-readiness`, and `step placeholder-publish` commands still work and accept the same inputs, so existing workflows need no change. To adopt the preferred spelling in CI:\n\n```yaml\n- run: monochange publish readiness --from HEAD --output .monochange/readiness.json\n- run: monochange publish packages --output .monochange/publish-result.json\n```"
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-arm64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-darwin-arm64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.20.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.20.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-x64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-darwin-x64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.20.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.20.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-arm64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.20.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.20.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-arm64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.20.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.20.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-x64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.20.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.20.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-x64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.20.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.20.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-win32-arm64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-win32-arm64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.20.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.20.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-win32-x64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-win32-x64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.20.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.20.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/skill",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__skill/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Suggest `monochange publish` subcommands instead of `monochange step` publish steps\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #811](https://github.com/monochange/monochange/pull/811)\n\nDiagnostics, generated files, and help text now point at the `monochange publish` parent command instead of the equivalent `monochange step` publish steps:\n\n- The npm one-time-password recovery hint now reads `monochange publish placeholder --otp <CODE>` instead of `monochange step placeholder-publish --otp <CODE>`.\n- Trusted-publishing, readiness, and resume diagnostics suggest `monochange publish packages` and `monochange publish readiness`.\n- `monochange init --provider github` writes a release workflow that runs `monochange publish packages`, and the GitHub Actions and GitLab CI batch snippets rendered by `monochange step plan-publish-rate-limits` call `monochange publish packages`.\n- `monochange help step publish-packages`, `step publish-readiness`, and `step placeholder-publish` point at the preferred `monochange publish` subcommand.\n- The bundled agent skill and the `@monochange/cli` readme recommend the `monochange publish` subcommands, so agents stop suggesting the `monochange step` publish forms.\n\nThe `monochange step publish-packages`, `step publish-readiness`, and `step placeholder-publish` commands still work and accept the same inputs, so existing workflows need no change. To adopt the preferred spelling in CI:\n\n```yaml\n- run: monochange publish readiness --from HEAD --output .monochange/readiness.json\n- run: monochange publish packages --output .monochange/publish-result.json\n```"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)\n\n### 🐛 Fixed\n\n#### Suggest `monochange publish` subcommands instead of `monochange step` publish steps\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #811](https://github.com/monochange/monochange/pull/811)\n\nDiagnostics, generated files, and help text now point at the `monochange publish` parent command instead of the equivalent `monochange step` publish steps:\n\n- The npm one-time-password recovery hint now reads `monochange publish placeholder --otp <CODE>` instead of `monochange step placeholder-publish --otp <CODE>`.\n- Trusted-publishing, readiness, and resume diagnostics suggest `monochange publish packages` and `monochange publish readiness`.\n- `monochange init --provider github` writes a release workflow that runs `monochange publish packages`, and the GitHub Actions and GitLab CI batch snippets rendered by `monochange step plan-publish-rate-limits` call `monochange publish packages`.\n- `monochange help step publish-packages`, `step publish-readiness`, and `step placeholder-publish` point at the preferred `monochange publish` subcommand.\n- The bundled agent skill and the `@monochange/cli` readme recommend the `monochange publish` subcommands, so agents stop suggesting the `monochange step` publish forms.\n\nThe `monochange step publish-packages`, `step publish-readiness`, and `step placeholder-publish` commands still work and accept the same inputs, so existing workflows need no change. To adopt the preferred spelling in CI:\n\n```yaml\n- run: monochange publish readiness --from HEAD --output .monochange/readiness.json\n- run: monochange publish packages --output .monochange/publish-result.json\n```"
+		}
+	],
+	"provider": {
+		"kind": "github",
+		"owner": "monochange",
+		"repo": "monochange",
+		"host": null
+	}
+}

@@ -1,0 +1,90 @@
+{
+	"title": "0.3.2",
+	"summary": [],
+	"sections": [
+		{
+			"title": "New",
+			"collapsed": false,
+			"entries": [
+				{
+					"summary": "See which accounts need to approve new GitHub access",
+					"details_markdown": "When monochange asks GitHub for more access, the dashboard now lists each connected account that hasn't approved the request yet, with the access it is missing and a **Review on GitHub** link where an owner of that account accepts it. Until then, monochange keeps the access the account already approved. You don't need to sign in again.\n\nThe GitHub App guide now explains each permission the app requests and what happens when the app asks for more.",
+					"change_type": "website_feature",
+					"bump": "minor",
+					"stream": "website",
+					"style": "expanded",
+					"provenance": {
+						"source_path": ".changeset/installation-permission-updates-website.md",
+						"changeset_path": ".changeset/installation-permission-updates-website.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #819",
+							"url": "https://github.com/monochange/monochange/pull/819"
+						},
+						"introduced_commit": {
+							"label": "c4f8060",
+							"url": "https://github.com/monochange/monochange/commit/c4f80601d23a94de2f70f2b1e4ce9edbe3813a66"
+						}
+					}
+				}
+			]
+		},
+		{
+			"title": "Improved",
+			"collapsed": false,
+			"entries": [
+				{
+					"summary": "Scroll the dashboard with the mouse over a repository list",
+					"details_markdown": "The dashboard and project pages scroll normally again while the pointer is over a list of repositories. The list used to sit in its own scroll box that held on to the mouse wheel, so the page stopped moving once that box reached its end. Repository lists now scroll with the rest of the page, still 20 repositories per page.",
+					"change_type": "website_fix",
+					"bump": "patch",
+					"stream": "website",
+					"style": "compact",
+					"provenance": {
+						"source_path": ".changeset/dashboard-repository-scroll.md",
+						"changeset_path": ".changeset/dashboard-repository-scroll.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #822",
+							"url": "https://github.com/monochange/monochange/pull/822"
+						},
+						"introduced_commit": {
+							"label": "2582d0f",
+							"url": "https://github.com/monochange/monochange/commit/2582d0f1e84c5deb0c0fa2eabac7a3810d63cce5"
+						}
+					}
+				},
+				{
+					"summary": "Simpler hosted release setup",
+					"details_markdown": "The GitHub App guide now shows a release job that switches to the hosted backend with one environment variable, `MONOCHANGE_RELEASE_BACKEND=hosted`, instead of editing `monochange.toml`. It also explains why the job needs `contents: write`: the CLI uploads the release files with the job's own token, and monochange.dev only receives a reference to them.",
+					"change_type": "website_fix",
+					"bump": "patch",
+					"stream": "website",
+					"style": "compact",
+					"provenance": {
+						"source_path": ".changeset/hosted-release-tree-docs.md",
+						"changeset_path": ".changeset/hosted-release-tree-docs.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #812",
+							"url": "https://github.com/monochange/monochange/pull/812"
+						},
+						"introduced_commit": {
+							"label": "efc9383",
+							"url": "https://github.com/monochange/monochange/commit/efc9383f960db229d4e7052974f56e4008010198"
+						}
+					}
+				}
+			]
+		}
+	]
+}

@@ -4,6 +4,50 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)
+
+### 🚀 Feature
+
+#### Build hosted release commits from a tree the workflow uploads
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #812](https://github.com/monochange/monochange/pull/812)
+
+Hosted `CommitRelease` no longer sends the release files to the monochange app. The CLI uploads them to the repository as git blobs and a tree with the workflow's `GITHUB_TOKEN` (or `GH_TOKEN`), then sends only the tree id, the base commit, and the commit message. The app commits that tree through the GitHub App installation, so the commit is still verified and still triggers workflows, and the request carries the commit message instead of every changelog in full. Binary files and executable or symlink modes now survive hosted commits, because blobs are uploaded as base64 with the file mode `git add` would use.
+
+Give the release job `contents: write` so `GITHUB_TOKEN` can create blobs and trees. Uploading them pushes no branch and starts no workflow:
+
+```yaml
+permissions:
+  contents: write
+  pull-requests: read
+  id-token: write
+```
+
+Without a token, or when the token gets `403` from the blob API, the CLI prints a warning and falls back to sending the file contents, as before.
+
+`monochange_github` adds `read_release_tree_files` and `create_release_tree`, which return `ReleaseTree::Created(tree)` or `ReleaseTree::Unavailable(reason)` so callers can fall back instead of failing.
+
+### 🐛 Fixed
+
+#### Suggest `monochange publish` subcommands instead of `monochange step` publish steps
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #811](https://github.com/monochange/monochange/pull/811)
+
+Diagnostics, generated files, and help text now point at the `monochange publish` parent command instead of the equivalent `monochange step` publish steps:
+
+- The npm one-time-password recovery hint now reads `monochange publish placeholder --otp <CODE>` instead of `monochange step placeholder-publish --otp <CODE>`.
+- Trusted-publishing, readiness, and resume diagnostics suggest `monochange publish packages` and `monochange publish readiness`.
+- `monochange init --provider github` writes a release workflow that runs `monochange publish packages`, and the GitHub Actions and GitLab CI batch snippets rendered by `monochange step plan-publish-rate-limits` call `monochange publish packages`.
+- `monochange help step publish-packages`, `step publish-readiness`, and `step placeholder-publish` point at the preferred `monochange publish` subcommand.
+- The bundled agent skill and the `@monochange/cli` readme recommend the `monochange publish` subcommands, so agents stop suggesting the `monochange step` publish forms.
+
+The `monochange step publish-packages`, `step publish-readiness`, and `step placeholder-publish` commands still work and accept the same inputs, so existing workflows need no change. To adopt the preferred spelling in CI:
+
+```yaml
+- run: monochange publish readiness --from HEAD --output .monochange/readiness.json
+- run: monochange publish packages --output .monochange/publish-result.json
+```
+
 ## [0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)
 
 ### Changed

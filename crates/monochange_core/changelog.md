@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)
+
+### 💥 Breaking Change
+
+#### Add a workflow-built tree to `HostedCommitRequest`
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #812](https://github.com/monochange/monochange/pull/812)
+
+**Breaking change:** `monochange_core::HostedCommitRequest` gains `tree: Option<String>`, the git tree the workflow already created in the repository with its own `GITHUB_TOKEN`. When `tree` is set, `files` is empty and the monochange app only creates the commit and moves the release branch.
+
+Struct literals must add the field:
+
+```rust
+let request = HostedCommitRequest {
+	// existing fields…
+	tree: None,
+};
+```
+
+`files` now defaults to empty when deserializing and is omitted when empty, so a tree request carries no file contents. Servers that predate `tree` still require `files`, so they reject a tree request instead of committing an empty change. See `docs/src/guide/migrations/0.20.md`.
+
 ## [0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)
 
 ### Changed

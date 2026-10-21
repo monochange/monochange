@@ -4,6 +4,51 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)
+
+### 💥 Breaking Change
+
+#### Record registry rate-limit rejections on publish outcomes
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #813](https://github.com/monochange/monochange/pull/813)
+
+> Constructing `PackagePublishOutcome` outside this crate now requires the new `rate_limit` field.
+
+`PackagePublishOutcome` gained `rate_limit: Option<PublishRateLimitHit>`, set when a registry refused the upload because of its rate limit. `PublishRateLimitHit` carries the registry's `reason`, `retry_at` (an RFC 3339 UTC timestamp), and `docs_url`. The field is skipped in JSON when it is `None`, so existing serialized reports still deserialize.
+
+Add the field to every struct literal:
+
+```rust
+PackagePublishOutcome {
+	// ...existing fields
+	stderr: None,
+	rate_limit: None,
+}
+```
+
+New exports: `detect_rate_limit_hit(registry, output, now)` recognises a 429 or "rate limit exceeded" response in publish command output, `PublishRateLimitHit::render_message` and `render_retry_at` format it for people, `registry_display_name` maps `crates_io` to `crates.io` and similar, and `CRATES_IO_RATE_LIMIT_DOCS` links crates.io's limits page. `ensure_publish_report_succeeded` reports a rate-limited run as `<registry> rate limit stopped publishing at <package> <version>: …` with the reason, retry time, limits page, and a `help:` line.
+
+### 🐛 Fixed
+
+#### Suggest `monochange publish` subcommands instead of `monochange step` publish steps
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #811](https://github.com/monochange/monochange/pull/811)
+
+Diagnostics, generated files, and help text now point at the `monochange publish` parent command instead of the equivalent `monochange step` publish steps:
+
+- The npm one-time-password recovery hint now reads `monochange publish placeholder --otp <CODE>` instead of `monochange step placeholder-publish --otp <CODE>`.
+- Trusted-publishing, readiness, and resume diagnostics suggest `monochange publish packages` and `monochange publish readiness`.
+- `monochange init --provider github` writes a release workflow that runs `monochange publish packages`, and the GitHub Actions and GitLab CI batch snippets rendered by `monochange step plan-publish-rate-limits` call `monochange publish packages`.
+- `monochange help step publish-packages`, `step publish-readiness`, and `step placeholder-publish` point at the preferred `monochange publish` subcommand.
+- The bundled agent skill and the `@monochange/cli` readme recommend the `monochange publish` subcommands, so agents stop suggesting the `monochange step` publish forms.
+
+The `monochange step publish-packages`, `step publish-readiness`, and `step placeholder-publish` commands still work and accept the same inputs, so existing workflows need no change. To adopt the preferred spelling in CI:
+
+```yaml
+- run: monochange publish readiness --from HEAD --output .monochange/readiness.json
+- run: monochange publish packages --output .monochange/publish-result.json
+```
+
 ## [0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)
 
 ### 🐛 Fixed

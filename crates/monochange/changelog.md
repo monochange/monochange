@@ -4,6 +4,122 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)
+
+### 🚀 Feature
+
+#### Build hosted release commits from a tree the workflow uploads
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #812](https://github.com/monochange/monochange/pull/812)
+
+Hosted `CommitRelease` no longer sends the release files to the monochange app. The CLI uploads them to the repository as git blobs and a tree with the workflow's `GITHUB_TOKEN` (or `GH_TOKEN`), then sends only the tree id, the base commit, and the commit message. The app commits that tree through the GitHub App installation, so the commit is still verified and still triggers workflows, and the request carries the commit message instead of every changelog in full. Binary files and executable or symlink modes now survive hosted commits, because blobs are uploaded as base64 with the file mode `git add` would use.
+
+Give the release job `contents: write` so `GITHUB_TOKEN` can create blobs and trees. Uploading them pushes no branch and starts no workflow:
+
+```yaml
+permissions:
+  contents: write
+  pull-requests: read
+  id-token: write
+```
+
+Without a token, or when the token gets `403` from the blob API, the CLI prints a warning and falls back to sending the file contents, as before.
+
+`monochange_github` adds `read_release_tree_files` and `create_release_tree`, which return `ReleaseTree::Created(tree)` or `ReleaseTree::Unavailable(reason)` so callers can fall back instead of failing.
+
+#### Explain registry rate limits when publishing stops
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #813](https://github.com/monochange/monochange/pull/813)
+
+When a registry refuses an upload with HTTP 429, `monochange publish` and `monochange publish placeholder` now say which registry stopped the run, why, when it accepts uploads again, and how to resume, instead of printing the tool's packaging log twice.
+
+```text
+✖ 🦀 cargo canvist_layout failed: rate limited by crates.io until 10:59:10 UTC (in 6 minutes). You have published too many new crates in a short period of time.
+○ 🦀 cargo canvist_model not attempted because publishing canvist_layout 0.0.0 failed earlier in this run
+✖ Publish complete: 11 published, 1 failed, 3 skipped
+error[publish.rate_limited]: crates.io rate limit stopped publishing at canvist_layout 0.0.0: 11 of 15 packages published
+
+    crates.io: You have published too many new crates in a short period of time.
+    retry after: 10:59:10 UTC (in 6 minutes)
+    limits: https://crates.io/docs/rate-limits
+
+  command: monochange publish placeholder
+  help:    Wait until 10:59:10 UTC (in 6 minutes), then rerun the same command. Versions that are already published are skipped, so publishing resumes with canvist_layout (4 packages left).
+```
+
+- Rate-limit rejections from crates.io, npm (`E429`), PyPI, JSR, and pub.dev are recognised from their 429 or "rate limit exceeded" wording. The retry time is read from `try again after <date>`, `Retry-After: <seconds>`, or `try again in <n> minutes`, and shown in UTC with the remaining wait.
+- The diagnostic code is `publish.rate_limited` instead of `publish.failed`, and its hint tells you when to rerun.
+- `--format json` reports and publish artifacts add a `rate_limit` object (`reason`, `retry_at` as an RFC 3339 UTC timestamp, `docs_url`) to the rate-limited package. The tool's full output stays in that package's `stdout` and `stderr`.
+
+#### Switch release steps to the hosted backend with `MONOCHANGE_RELEASE_BACKEND`
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #812](https://github.com/monochange/monochange/pull/812)
+
+`MONOCHANGE_RELEASE_BACKEND=hosted` moves every `CommitRelease` and `OpenReleaseRequest` step to the hosted backend without editing `monochange.toml`, so a release job can opt in while local runs and pull-request preflight jobs keep the configured backend:
+
+```yaml
+- run: monochange run release
+  env:
+    MONOCHANGE_RELEASE_BACKEND: hosted
+    GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+A step input or command-line flag such as `--commit-backend local` still wins over the variable. `local` is also accepted, and any other value fails the step with an error naming the variable.
+
+### 📝 Changed
+
+#### End every text result with its summary line
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #813](https://github.com/monochange/monochange/pull/813)
+
+Long-running commands such as `monochange publish`, `monochange publish placeholder`, `monochange prepare`, and `monochange check` now read from top to bottom: the plan and its details first, then the log of the work, then the detailed results, and finally one summary line. The answer to "what happened?" is always the last line in the terminal instead of being buried above tables and rate-limit notes.
+
+- Every text result moves its summary line (for example `✔ Published 8 placeholder packages · 16 already published`) from the top of stdout to the bottom. Sections are ordered from supporting detail to the rows that need attention, so failures, blocked packages, lint errors, and policy errors sit right above the summary.
+- Publishing prints the rate-limit plan on stderr directly under the run's opening line, before any package is published. Each registry shows its pending packages, batches, and documented limit; batch membership is listed only when a registry needs more than one batch. The publish result no longer repeats the plan and keeps only rate-limit warnings. `monochange step plan-publish-rate-limits` still prints the full plan as its result.
+- Publish results group packages under `Would publish`, `Published`, `Staged awaiting approval`, `Blocked`, and `Failed` headings, and the separate `Checked N packages…` sentence is folded into the summary line.
+- `--progress-format json` emits a `publish_plan` event with the rate-limit report right after `publish_run_started`.
+- `monochange lint explain <id>` keeps its title at the top because it describes a rule rather than reporting a run.
+
+```text
+$ monochange publish placeholder
+▶ Publishing 24 packages (Placeholder) across 📦 npm, 🎯 dart
+  › npm      5 pending · 1 batch · no documented limit · low confidence
+  › pub_dev  3 pending · 1 batch · limit 12 per 24h · medium confidence
+✔ 📦 npm @skribble.dev/react published 0.0.0 to npm
+…
+✓ Publish complete: 8 published, 16 skipped
+✔ publish placeholder packages  29.5s
+
+Published (8)
+  @skribble.dev/react  0.0.0  npm
+  …
+
+✔ Published 8 placeholder packages · 16 already published
+```
+
+Scripts that read the first line of a text result should read the last line instead, or switch to `--format json`, which is unchanged.
+
+### 🐛 Fixed
+
+#### Suggest `monochange publish` subcommands instead of `monochange step` publish steps
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #811](https://github.com/monochange/monochange/pull/811)
+
+Diagnostics, generated files, and help text now point at the `monochange publish` parent command instead of the equivalent `monochange step` publish steps:
+
+- The npm one-time-password recovery hint now reads `monochange publish placeholder --otp <CODE>` instead of `monochange step placeholder-publish --otp <CODE>`.
+- Trusted-publishing, readiness, and resume diagnostics suggest `monochange publish packages` and `monochange publish readiness`.
+- `monochange init --provider github` writes a release workflow that runs `monochange publish packages`, and the GitHub Actions and GitLab CI batch snippets rendered by `monochange step plan-publish-rate-limits` call `monochange publish packages`.
+- `monochange help step publish-packages`, `step publish-readiness`, and `step placeholder-publish` point at the preferred `monochange publish` subcommand.
+- The bundled agent skill and the `@monochange/cli` readme recommend the `monochange publish` subcommands, so agents stop suggesting the `monochange step` publish forms.
+
+The `monochange step publish-packages`, `step publish-readiness`, and `step placeholder-publish` commands still work and accept the same inputs, so existing workflows need no change. To adopt the preferred spelling in CI:
+
+```yaml
+- run: monochange publish readiness --from HEAD --output .monochange/readiness.json
+- run: monochange publish packages --output .monochange/publish-result.json
+```
+
 ## [0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)
 
 ### 🐛 Fixed

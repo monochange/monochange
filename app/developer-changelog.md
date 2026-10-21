@@ -2,6 +2,52 @@
 
 Release notes for website developers and operators.
 
+## 0.3.2
+
+### 🚀 Feature
+
+- **Commit release trees built by the workflow.** `POST /api/release-commits` accepts a `tree` instead of `files`. The server checks that the request names exactly one of them and that `tree` is a git object id, then creates the release commit on that tree without uploading any blobs. A tree whose `.github/workflows` differs from the base commit's is refused with `422 Unprocessable Entity` before anything is written, keeping the rule that the bot never changes GitHub workflows. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #812](https://github.com/monochange/monochange/pull/812)
+
+#### Report installations that haven't approved the app's new permissions
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #819](https://github.com/monochange/monochange/pull/819)
+
+GitHub keeps each GitHub App installation on the permissions it approved until an owner of the account accepts the app's newer request. The new `permission_updates` server function compares the app registration's permissions (`GET /app`) with each of the signed-in user's installations (`GET /app/installations/{id}`) and returns the accounts that are behind, the missing permissions, and the GitHub settings page where an owner reviews the request. The dashboard shows them in a notice above the repository connection panel.
+
+`monochange_app_api::github_app` gains `GitHubAppAuth::requested_permissions`, `GitHubAppAuth::installation_permissions`, and `pending_permissions`, which lists permissions the app requests above the installation's level:
+
+```rust
+let requested = app.requested_permissions(&http).await?;
+let granted = app.installation_permissions(&http, installation_id).await?;
+let missing = monochange_app_api::github_app::pending_permissions(&requested, &granted);
+```
+
+A failed GitHub lookup leaves that account out of the list instead of failing the dashboard. No configuration changes are needed.
+
+### 🐛 Fixed
+
+- **Send a User-Agent when the app calls the GitHub API.** Hosted release commits failed with `502` and "failed to mint installation token" because `POST /app/installations/{id}/access_tokens` went out without a `User-Agent` header, which GitHub rejects with `403 Forbidden`. The shared `reqwest::Client` built in `AppState::new` now sets `User-Agent: monochange`, so installation token, tree, commit, ref and pull request calls all identify the app. No configuration change is needed; redeploy monochange.dev to pick it up. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #818](https://github.com/monochange/monochange/pull/818)
+
+#### Document how command output is ordered
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #813](https://github.com/monochange/monochange/pull/813)
+
+The progress output reference now explains the order every multi-line command follows: the plan, its details, the log, the detailed results, and a closing summary line. It includes a placeholder publish example and lists the new `publish_plan` JSON progress event.
+
+The `PublishPackages` and `PlaceholderPublish` step references now say that results end with their summary line, and describe how a registry rate limit is reported and resumed.
+
+#### Check hosted release credentials before reading the request body
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #810](https://github.com/monochange/monochange/pull/810)
+
+`POST /api/release-commits` and `POST /api/release-requests` now verify the `Authorization` bearer token (GitHub Actions OIDC or `MONOCHANGE_TOKEN`) before reading the request body. A caller without valid credentials gets `401` without the server buffering its payload. Previously the JSON body, up to 32 MiB for release commits, was read and parsed before authentication.
+
+The release commit body limit drops from 32 MiB to 8 MiB, which still fits monochange's own grouped release (about 3 MiB). A body over the limit now returns `413 Payload Too Large` instead of `400`, and the release request endpoint keeps a 2 MiB limit. An OIDC token for one repository still gets `403` when the request targets another, now before the repository lookup.
+
+`AppState` gains `oidc: Arc<OidcVerifier>`, so the GitHub Actions JWKS is cached across requests instead of being fetched on every call.
+
+- **Recommend `monochange publish` commands in the docs.** The guides, CLI step reference, and readme now use `monochange publish packages`, `monochange publish readiness`, and `monochange publish placeholder` in examples and instructions, and say that the matching `monochange step` commands remain supported for compatibility. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #811](https://github.com/monochange/monochange/pull/811)
+
 ## 0.3.1
 
 ### 🚀 Feature
