@@ -195,8 +195,9 @@
 details[open] > .organization-summary .chevron { transform: rotate(180deg); }
 .organization-body { border-top: 1px solid var(--rule); }
 .organization-body > .text-link { margin-top: .25rem; }
-/* Long repository lists: a search, an account filter, and pages that scroll
-   inside a box shorter than the viewport. */
+/* Long repository lists: a search, an account filter, and pages of 20. The
+   pages scroll with the page rather than in a box of their own, so the mouse
+   wheel never gets caught over a list. */
 .repository-filters { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1.5rem; }
 .filter-search, .filter-account { position: relative; display: flex; align-items: center; }
 .filter-search { flex: 1 1 18rem; }
@@ -209,12 +210,11 @@ details[open] > .organization-summary .chevron { transform: rotate(180deg); }
 .filter-search input::placeholder { color: var(--muted); }
 .filter-account select { appearance: none; padding: .7rem 2.6rem .7rem .9rem; cursor: pointer; }
 .filter-search input:focus, .filter-account select:focus { border-color: var(--accent); outline: none; }
-.repository-scroll { max-height: max(18rem, calc(100vh - 16rem)); max-height: max(18rem, calc(100dvh - 16rem)); overflow-y: auto; overscroll-behavior: contain; }
-.repository-scroll li:first-child { border-top: 0; }
+.repository-page li:first-child { border-top: 0; }
 .repository-list li { align-items: center; }
 .repository-list h3 { min-width: 0; }
 .organization-card .repository-list li { padding-block: .85rem; }
-.repository-section > .repository-scroll { margin-top: 1rem; border-top: 1px solid var(--rule); }
+.repository-section > .repository-page { margin-top: 1rem; border-top: 1px solid var(--rule); }
 .repository-none { color: var(--muted); padding-block: 1.25rem; }
 .organization-list + .repository-empty { margin-top: 0; }
 .pager { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; padding-block: .75rem; border-top: 1px solid var(--rule); }

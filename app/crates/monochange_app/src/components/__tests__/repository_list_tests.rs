@@ -88,6 +88,10 @@ async fn long_lists_show_the_first_page() {
 	assert!(html.contains("repo-020"), "{html}");
 	assert!(!html.contains("repo-021"), "{html}");
 	assert!(
+		html.contains("class=\"repository-list repository-page\""),
+		"{html}"
+	);
+	assert!(
 		html.contains("aria-label=\"acme repositories pages\""),
 		"{html}"
 	);
@@ -97,6 +101,24 @@ async fn long_lists_show_the_first_page() {
 	assert!(html.contains(">Private</span>"), "{html}");
 	assert!(html.contains(">Public</span>"), "{html}");
 	assert!(html.contains("title=\"acme/repo-001\""), "{html}");
+}
+
+#[test]
+fn lists_scroll_with_the_page() {
+	let stylesheet = include_str!("../../../style/input.css");
+	let page_rules = stylesheet
+		.lines()
+		.filter(|line| line.contains(".repository-page"))
+		.collect::<Vec<_>>();
+
+	assert!(!page_rules.is_empty(), "{stylesheet}");
+	for rule in page_rules {
+		assert!(!rule.contains("max-height"), "{rule}");
+		assert!(!rule.contains("overflow"), "{rule}");
+	}
+	// Containment keeps the wheel from reaching the page at an inner
+	// scroller's edge, so no scroller on the site may use it.
+	assert!(!stylesheet.contains("overscroll-behavior"), "{stylesheet}");
 }
 
 #[tokio::test]
