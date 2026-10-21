@@ -19,12 +19,115 @@ pub struct SessionUser {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Default, Deserialize)]
 struct GitHubUserTokenResponse {
 	access_token: Option<String>,
+	#[serde(default, deserialize_with = "lenient_seconds")]
 	expires_in: Option<i64>,
 	refresh_token: Option<String>,
+	#[serde(default, deserialize_with = "lenient_seconds")]
 	refresh_token_expires_in: Option<i64>,
+	error: Option<String>,
+	error_description: Option<String>,
+}
+
+/// Accept lifetimes as JSON numbers or as the strings a form-encoded reply carries.
+#[cfg(not(target_arch = "wasm32"))]
+fn lenient_seconds<'de, D>(deserializer: D) -> Result<Option<i64>, D::Error>
+where
+	D: serde::Deserializer<'de>,
+{
+	#[derive(Deserialize)]
+	#[serde(untagged)]
+	enum Seconds {
+		Number(i64),
+		Text(String),
+	}
+
+	match Option::<Seconds>::deserialize(deserializer)? {
+		None => Ok(None),
+		Some(Seconds::Number(seconds)) => Ok(Some(seconds)),
+		Some(Seconds::Text(seconds)) => seconds.parse().map(Some).map_err(serde::de::Error::custom),
+	}
+}
+
+/// Read GitHub's token endpoint reply, keeping GitHub's own explanation when it
+/// carries no token.
+#[cfg(not(target_arch = "wasm32"))]
+async fn read_token_response(
+	response: reqwest::Response,
+) -> Result<GitHubUserToken, server_fn::ServerFnError> {
+	let status = response.status().as_u16();
+	let content_type = response
+		.headers()
+		.get(reqwest::header::CONTENT_TYPE)
+		.and_then(|value| value.to_str().ok())
+		.unwrap_or_default()
+		.to_owned();
+	let body = response
+		.text()
+		.await
+		.map_err(|error| server_fn::ServerFnError::new(format!("Token response: {error}")))?;
+
+	parse_token_response(status, &content_type, &body)
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn parse_token_response(
+	status: u16,
+	content_type: &str,
+	body: &str,
+) -> Result<GitHubUserToken, server_fn::ServerFnError> {
+	let parsed = serde_json::from_str::<GitHubUserTokenResponse>(body).or_else(|error| {
+		if !content_type.contains("x-www-form-urlencoded") {
+			return Err(error);
+		}
+
+		let fields = url::form_urlencoded::parse(body.as_bytes())
+			.map(|(key, value)| {
+				(
+					key.into_owned(),
+					serde_json::Value::String(value.into_owned()),
+				)
+			})
+			.collect::<serde_json::Map<_, _>>();
+		serde_json::from_value(serde_json::Value::Object(fields))
+	});
+	let Ok(parsed) = parsed else {
+		let content_type = if content_type.is_empty() {
+			"no content type"
+		} else {
+			content_type
+		};
+		tracing::warn!(status, content_type, body = %describe_body(body), "unreadable GitHub token response");
+		return Err(server_fn::ServerFnError::new(format!(
+			"GitHub returned an unreadable token response (HTTP {status}, {content_type}): {}",
+			describe_body(body),
+		)));
+	};
+
+	parsed.into_token()
+}
+
+/// A short, single-line summary of an unexpected response body.
+#[cfg(not(target_arch = "wasm32"))]
+fn describe_body(body: &str) -> String {
+	const LIMIT: usize = 200;
+
+	let title = body
+		.split_once("<title>")
+		.and_then(|(_, rest)| rest.split_once("</title>"))
+		.map_or(body, |(title, _)| title);
+	let summary = title.split_whitespace().collect::<Vec<_>>().join(" ");
+
+	if summary.is_empty() {
+		return "empty body".to_owned();
+	}
+
+	match summary.char_indices().nth(LIMIT) {
+		Some((end, _)) => format!("{}…", &summary[..end]),
+		None => summary,
+	}
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -42,12 +145,16 @@ type StoredGitHubUserToken = (String, Option<String>, Option<i64>, Option<i64>);
 #[cfg(not(target_arch = "wasm32"))]
 impl GitHubUserTokenResponse {
 	fn into_token(self) -> Result<GitHubUserToken, server_fn::ServerFnError> {
-		let access_token = self
-			.access_token
-			.filter(|token| !token.is_empty())
-			.ok_or_else(|| {
-				server_fn::ServerFnError::new("GitHub did not return an access token")
-			})?;
+		let Some(access_token) = self.access_token.filter(|token| !token.is_empty()) else {
+			let message = match (self.error, self.error_description) {
+				(Some(error), Some(description)) => {
+					format!("GitHub rejected the sign-in: {description} ({error})")
+				}
+				(Some(error), None) => format!("GitHub rejected the sign-in: {error}"),
+				(None, _) => "GitHub did not return an access token".to_owned(),
+			};
+			return Err(server_fn::ServerFnError::new(message));
+		};
 		let now = chrono::Utc::now().timestamp();
 		let access_token_expires_at = self.expires_in.map(|seconds| now + seconds);
 		let refresh_token = self.refresh_token.filter(|token| !token.is_empty());
@@ -202,11 +309,8 @@ pub async fn exchange_code(
 		.form(&token_form)
 		.send()
 		.await
-		.map_err(|e| server_fn::ServerFnError::new(format!("Token: {e}")))?
-		.json::<GitHubUserTokenResponse>()
-		.await
-		.map_err(|e| server_fn::ServerFnError::new(format!("Token response: {e}")))?
-		.into_token()?;
+		.map_err(|e| server_fn::ServerFnError::new(format!("Token: {e}")))?;
+	let token_response = read_token_response(token_response).await?;
 
 	let gh_user: serde_json::Value = state
 		.http
@@ -337,17 +441,11 @@ pub(crate) async fn github_user_access_token(
 		.map_err(|error| {
 			tracing::warn!(%error, "GitHub user token refresh failed");
 			server_fn::ServerFnError::new("please sign in again to verify organization access")
-		})?
-		.json::<GitHubUserTokenResponse>()
-		.await
-		.map_err(|error| {
-			tracing::warn!(%error, "GitHub user token refresh response was invalid");
-			server_fn::ServerFnError::new("please sign in again to verify organization access")
-		})?
-		.into_token()
-		.map_err(|_| {
-			server_fn::ServerFnError::new("please sign in again to verify organization access")
 		})?;
+	let refreshed = read_token_response(refreshed).await.map_err(|error| {
+		tracing::warn!(%error, "GitHub user token refresh response was invalid");
+		server_fn::ServerFnError::new("please sign in again to verify organization access")
+	})?;
 
 	sqlx::query(
 		"UPDATE users SET github_access_token = $1, github_refresh_token = $2,

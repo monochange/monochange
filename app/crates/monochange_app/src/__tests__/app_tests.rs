@@ -810,6 +810,7 @@ async fn callback_failure_does_not_create_a_session_and_consumes_the_pending_log
 		.collect();
 	let body = html(response).await;
 	assert!(body.contains("Sign in failed"));
+	assert!(body.contains("GitHub rejected the sign-in: bad_verification_code"));
 
 	assert!(
 		!cookies
