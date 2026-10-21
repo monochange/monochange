@@ -149,6 +149,7 @@ pub async fn permission_updates() -> Result<Vec<PermissionUpdate>, server_fn::Se
 		let missing: Vec<String> =
 			monochange_app_api::github_app::pending_permissions(&requested, &granted)
 				.iter()
+				.filter(|pending| !personal || !is_organization_permission(&pending.name))
 				.map(permission_label)
 				.collect();
 
@@ -178,6 +179,14 @@ fn installation_settings_url(account: &str, personal: bool, installation_id: i64
 			urlencoding::encode(account)
 		)
 	}
+}
+
+/// Organization permissions such as `members` only apply to installations on
+/// organizations; GitHub never grants them to a personal account, so a
+/// personal installation can't be behind on them.
+#[cfg(not(target_arch = "wasm32"))]
+fn is_organization_permission(name: &str) -> bool {
+	name == "members" || name.starts_with("organization_")
 }
 
 /// A short label such as `Pull requests: write (now read)`. Built on the
