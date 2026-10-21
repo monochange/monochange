@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { cpSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "vitest";
@@ -26,7 +26,15 @@ function createRoot(root) {
 	cpSync(launcherPath, join(root, "bin", "monochange.js"));
 }
 
-function createPackage(root, pkgName, binaryContent) {
+function hostPackageName() {
+	return process.platform === "darwin"
+		? `@monochange/cli-darwin-${process.arch}`
+		: process.platform === "linux"
+			? `@monochange/cli-linux-${process.arch === "arm64" ? "arm64" : "x64"}-gnu`
+			: `@monochange/cli-win32-${process.arch === "arm64" ? "arm64" : "x64"}-msvc`;
+}
+
+function createPackage(root, pkgName, binaryContent, mode = 0o755) {
 	const packageDir = join(root, "node_modules", ...pkgName.split("/"));
 	const binDir = join(packageDir, "bin");
 	mkdirSync(binDir, { recursive: true });
@@ -38,8 +46,10 @@ function createPackage(root, pkgName, binaryContent) {
 	if (process.platform === "win32") {
 		writeFileSync(join(binDir, "monochange.exe"), binaryContent);
 	} else {
-		writeFileSync(join(binDir, "monochange"), binaryContent, { mode: 0o755 });
+		writeFileSync(join(binDir, "monochange"), binaryContent, { mode });
 	}
+
+	return join(binDir, process.platform === "win32" ? "monochange.exe" : "monochange");
 }
 
 function runLauncher(root, args = []) {
@@ -52,12 +62,7 @@ function runLauncher(root, args = []) {
 test("launcher executes the installed platform binary", () => {
 	const root = createSandbox();
 	createRoot(root);
-	const pkgName =
-		process.platform === "darwin"
-			? `@monochange/cli-darwin-${process.arch}`
-			: process.platform === "linux"
-				? `@monochange/cli-linux-${process.arch === "arm64" ? "arm64" : "x64"}-gnu`
-				: `@monochange/cli-win32-${process.arch === "arm64" ? "arm64" : "x64"}-msvc`;
+	const pkgName = hostPackageName();
 	const binary =
 		process.platform === "win32"
 			? "@echo off\r\necho launcher-ok %*\r\n"
@@ -77,3 +82,22 @@ test("launcher reports a clear error when no compatible binary is installed", ()
 	assert.notEqual(result.status, 0);
 	assert.match(result.stderr, /Unable to find a compatible monochange binary/);
 });
+
+test.skipIf(process.platform === "win32")(
+	"launcher restores a missing executable bit before running the binary",
+	() => {
+		const root = createSandbox();
+		createRoot(root);
+		const binaryPath = createPackage(
+			root,
+			hostPackageName(),
+			'#!/bin/sh\necho launcher-ok "$@"\n',
+			0o644,
+		);
+
+		const result = runLauncher(root, ["--version"]);
+		assert.equal(result.status, 0, result.stderr);
+		assert.match(result.stdout, /launcher-ok --version/);
+		assert.equal(statSync(binaryPath).mode & 0o111, 0o111);
+	},
+);

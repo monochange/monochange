@@ -2,6 +2,7 @@
 "use strict";
 
 const fs = require("node:fs");
+const os = require("node:os");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 
@@ -39,6 +40,44 @@ function resolveBinary(pkgName) {
 	}
 
 	return null;
+}
+
+function isExecutable(filePath) {
+	try {
+		fs.accessSync(filePath, fs.constants.X_OK);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+// A platform package whose binary lost its executable bit (as every
+// @monochange/cli 0.20.0 platform package did) would otherwise fail with
+// EACCES. Restore the bit in place, or run a private executable copy when the
+// install directory belongs to another user.
+function prepareBinary(binaryPath) {
+	if (process.platform === "win32" || isExecutable(binaryPath)) {
+		return { binaryPath, cleanup() {} };
+	}
+
+	try {
+		fs.chmodSync(binaryPath, 0o755);
+		return { binaryPath, cleanup() {} };
+	} catch {
+		// The install directory is read-only for this user.
+	}
+
+	const copyDir = fs.mkdtempSync(path.join(os.tmpdir(), "monochange-"));
+	const copyPath = path.join(copyDir, path.basename(binaryPath));
+	fs.copyFileSync(binaryPath, copyPath);
+	fs.chmodSync(copyPath, 0o755);
+
+	return {
+		binaryPath: copyPath,
+		cleanup() {
+			fs.rmSync(copyDir, { recursive: true, force: true });
+		},
+	};
 }
 
 function shouldTryNextPackage(result) {
@@ -85,11 +124,13 @@ function main() {
 			continue;
 		}
 
-		const result = spawnSync(binaryPath, process.argv.slice(2), {
+		const prepared = prepareBinary(binaryPath);
+		const result = spawnSync(prepared.binaryPath, process.argv.slice(2), {
 			encoding: "utf8",
 			stdio: ["inherit", "pipe", "pipe"],
 			windowsHide: false,
 		});
+		prepared.cleanup();
 
 		if (shouldTryNextPackage(result)) {
 			const detail = result.error?.message ?? result.stderr?.trim() ?? "failed to launch";
