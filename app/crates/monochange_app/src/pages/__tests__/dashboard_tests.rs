@@ -154,6 +154,10 @@ async fn installations_waiting_for_new_permissions_link_to_github() {
 		html.contains("href=\"https://github.com/organizations/acme/settings/installations/22\""),
 		"{html}"
 	);
+	assert!(
+		html.contains("target=\"_blank\" rel=\"external noopener noreferrer\""),
+		"{html}"
+	);
 }
 
 #[tokio::test]

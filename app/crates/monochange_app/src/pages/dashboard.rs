@@ -248,7 +248,7 @@ fn PermissionUpdateNotice(
 						{updates.into_iter().map(|update| view! {
 							<li>
 								<div><h3>{update.account}</h3><p>{update.missing}</p></div>
-								<a href=update.review_url rel="external" class="button button-quiet">"Review on GitHub"</a>
+								<a href=update.review_url target="_blank" rel="external noopener noreferrer" class="button button-quiet">"Review on GitHub"</a>
 							</li>
 						}).collect::<Vec<_>>()}
 					</ul>
