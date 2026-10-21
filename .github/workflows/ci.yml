@@ -708,21 +708,39 @@ jobs:
     permissions:
       # Dispatch the publish dry run against the release PR branch.
       actions: write
-      contents: read
-      # The monochange.dev GitHub App writes the release commit and pull
-      # request; this run proves its repository with an OIDC token.
-      id-token: write
+      contents: write
+      pull-requests: write
     steps:
       - name: checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          token: ${{ secrets.RELEASE_PR_MERGE_TOKEN }}
           persist-credentials: false
 
       - name: setup
         uses: $/.github/actions/devenv
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.RELEASE_PR_MERGE_TOKEN }}
+
+      - name: configure git
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PR_MERGE_TOKEN }}
+        run: |
+          set -euo pipefail
+          if user_info="$(gh api user --jq '{id: .id, login: .login, name: .name}')"; then
+            user_id="$(echo "$user_info" | jq -r '.id')"
+            user_login="$(echo "$user_info" | jq -r '.login')"
+            user_name="$(echo "$user_info" | jq -r '.name // .login')"
+          else
+            user_id="41898282"
+            user_login="github-actions[bot]"
+            user_name="github-actions[bot]"
+          fi
+
+          git config user.name "$user_name"
+          git config user.email "${user_id}+${user_login}@users.noreply.github.com"
+        shell: devenv shell -- bash -e {0}
 
       - name: refresh tags from origin
         run: git fetch --force --tags origin
@@ -765,14 +783,14 @@ jobs:
       - name: refresh release pull request
         if: steps.release_record.outputs.is_release_commit != 'true'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # monochange.dev's GitHub App creates a verified release commit and
-          # opens the release pull request as the monochange bot, so the pull
-          # request's own workflows run without a personal access token. With
-          # `contents: read` the CLI cannot upload a release tree and sends
-          # the prepared files instead.
-          MONOCHANGE_RELEASE_BACKEND: hosted
-        run: monochange run release --commit --create-pr
+          GH_TOKEN: ${{ secrets.RELEASE_PR_MERGE_TOKEN }}
+          GITHUB_COMMIT_TOKEN: ${{ secrets.RELEASE_PR_MERGE_TOKEN }}
+        run: |
+          set -euo pipefail
+          export GIT_CONFIG_COUNT=1
+          export GIT_CONFIG_KEY_0=http.https://github.com/.extraheader
+          export GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GITHUB_COMMIT_TOKEN" | base64 -w 0)"
+          monochange run release --commit --create-pr
         shell: devenv shell -- bash -e {0}
 
       - name: dispatch publish dry run
@@ -785,9 +803,6 @@ jobs:
           # dry run builds every release artifact and validates the release,
           # but creates no tag, no draft release, and publishes nothing.
           release_branch="monochange/release/release"
-          # The release commit was created remotely; fetch it before reading
-          # its release record.
-          git fetch --no-tags origin "+refs/heads/${release_branch}:refs/heads/${release_branch}"
           tag="$(cargo run --quiet --package monochange --bin monochange -- step release-record --from "$release_branch" --format json \
             | jq -r '.record.release_targets[] | select(.tag == true) | .tag_name' \
             | head -1)"
@@ -911,6 +926,6 @@ jobs:
         if: steps.tag_release.outputs.is_release_commit == 'true'
         continue-on-error: true
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.RELEASE_PR_MERGE_TOKEN }}
         run: monochange step comment-released-issues --from-ref="HEAD" --auto-close-issues
         shell: devenv shell -- bash -e {0}
