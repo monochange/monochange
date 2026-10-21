@@ -168,7 +168,7 @@ pub fn RepositoryPager(
 			let (previous, next) = (page.page - 1, page.page + 1);
 			let (has_previous, has_next) = (page.has_previous(), page.has_next());
 			view! {
-				<ul class="repository-list repository-scroll" aria-label=label.clone()>
+				<ul class="repository-list repository-page" aria-label=label.clone()>
 					{page.repositories.iter().cloned().map(|repository| view! { <RepositoryRow repository=repository /> }).collect::<Vec<_>>()}
 				</ul>
 				{(page.page_count > 1).then(|| view! {
