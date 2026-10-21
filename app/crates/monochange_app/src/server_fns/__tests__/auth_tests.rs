@@ -27,6 +27,7 @@ use super::get_login_url;
 use super::get_session;
 use super::github_user_access_token;
 use super::logout;
+use super::parse_token_response;
 
 async fn state() -> Arc<AppState> {
 	let db = monochange_app_db::create_pool("sqlite::memory:")
@@ -114,8 +115,7 @@ fn expiring_user_tokens_require_complete_refresh_credentials() {
 	let incomplete = GitHubUserTokenResponse {
 		access_token: Some("access".to_string()),
 		expires_in: Some(28_800),
-		refresh_token: None,
-		refresh_token_expires_in: None,
+		..GitHubUserTokenResponse::default()
 	};
 	assert!(
 		incomplete
@@ -128,8 +128,7 @@ fn expiring_user_tokens_require_complete_refresh_credentials() {
 	let legacy = GitHubUserTokenResponse {
 		access_token: Some("legacy-access".to_string()),
 		expires_in: None,
-		refresh_token: None,
-		refresh_token_expires_in: None,
+		..GitHubUserTokenResponse::default()
 	}
 	.into_token()
 	.unwrap();
@@ -224,6 +223,175 @@ async fn valid_state_is_consumed_even_when_the_code_exchange_fails() {
 	assert_eq!(cleared.max_age(), Some(time::Duration::ZERO));
 
 	assert_eq!(cleared.secure(), Some(true));
+}
+
+#[test]
+fn github_token_errors_explain_why_sign_in_failed() {
+	let described = parse_token_response(
+		200,
+		"application/json; charset=utf-8",
+		r#"{"error":"bad_verification_code","error_description":"The code passed is incorrect or expired.","error_uri":"https://docs.github.com"}"#,
+	)
+	.unwrap_err();
+	assert_eq!(
+		described.to_string(),
+		"error running server function: GitHub rejected the sign-in: The code passed is \
+		 incorrect or expired. (bad_verification_code)"
+	);
+
+	let bare = parse_token_response(
+		200,
+		"application/json",
+		r#"{"error":"incorrect_client_credentials"}"#,
+	)
+	.unwrap_err();
+	assert_eq!(
+		bare.to_string(),
+		"error running server function: GitHub rejected the sign-in: incorrect_client_credentials"
+	);
+
+	let missing = parse_token_response(200, "application/json", "{}").unwrap_err();
+	assert!(
+		missing
+			.to_string()
+			.contains("GitHub did not return an access token")
+	);
+}
+
+#[test]
+fn form_encoded_token_replies_are_accepted() {
+	let token = parse_token_response(
+		200,
+		"application/x-www-form-urlencoded; charset=utf-8",
+		"access_token=form-access&expires_in=28800&refresh_token=form-refresh&refresh_token_expires_in=15897600&scope=&token_type=bearer",
+	)
+	.unwrap();
+	assert_eq!(token.access_token, "form-access");
+	assert_eq!(token.refresh_token.as_deref(), Some("form-refresh"));
+	assert!(token.refresh_token_expires_at > token.access_token_expires_at);
+
+	let rejected = parse_token_response(
+		200,
+		"application/x-www-form-urlencoded",
+		"error=bad_verification_code&error_description=The+code+passed+is+incorrect+or+expired.",
+	)
+	.unwrap_err();
+	assert!(
+		rejected
+			.to_string()
+			.ends_with("The code passed is incorrect or expired. (bad_verification_code)")
+	);
+
+	let malformed_lifetime = parse_token_response(
+		200,
+		"application/x-www-form-urlencoded",
+		"access_token=form-access&expires_in=soon",
+	)
+	.unwrap_err();
+	assert!(
+		malformed_lifetime
+			.to_string()
+			.contains("unreadable token response (HTTP 200, application/x-www-form-urlencoded)")
+	);
+}
+
+#[test]
+fn null_token_lifetimes_mean_the_token_does_not_expire() {
+	let token = parse_token_response(
+		200,
+		"application/json",
+		r#"{"access_token":"legacy","expires_in":null,"refresh_token_expires_in":null}"#,
+	)
+	.unwrap();
+	assert_eq!(token.access_token, "legacy");
+	assert!(token.access_token_expires_at.is_none());
+	assert!(token.refresh_token_expires_at.is_none());
+}
+
+#[test]
+fn unreadable_token_replies_report_what_github_sent() {
+	let html = parse_token_response(
+		503,
+		"text/html; charset=utf-8",
+		"<!DOCTYPE html><html><head><title>Unicorn! &middot;\n  GitHub</title></head><body>No server is currently available.</body></html>",
+	)
+	.unwrap_err();
+	assert_eq!(
+		html.to_string(),
+		"error running server function: GitHub returned an unreadable token response (HTTP 503, \
+		 text/html; charset=utf-8): Unicorn! &middot; GitHub"
+	);
+
+	let empty = parse_token_response(502, "", "  \n").unwrap_err();
+	assert!(
+		empty
+			.to_string()
+			.ends_with("(HTTP 502, no content type): empty body")
+	);
+
+	let long = parse_token_response(500, "text/plain", &"x".repeat(300)).unwrap_err();
+	assert!(
+		long.to_string()
+			.ends_with(&format!(": {}…", "x".repeat(200)))
+	);
+}
+
+#[tokio::test]
+async fn sign_in_shows_github_html_errors_instead_of_a_decoding_failure() {
+	let server = MockServer::start();
+	let exchange = server.mock(|when, then| {
+		when.method(POST).path("/login/oauth/access_token");
+		then.status(429)
+			.header("content-type", "text/html")
+			.body("<html><head><title>Too Many Requests</title></head></html>");
+	});
+	let state = state_with_server(&server).await;
+	let pending = oauth::login_state(&state.jwt_secret).unwrap();
+	let (owner, _response) = context(state, Some(pending.cookie.to_string()));
+
+	let error = owner
+		.with(|| ScopedFuture::new(exchange_code("rate-limited".to_string(), pending.state)))
+		.await
+		.unwrap_err();
+
+	assert_eq!(
+		error.to_string(),
+		"error running server function: GitHub returned an unreadable token response (HTTP 429, \
+		 text/html): Too Many Requests"
+	);
+	exchange.assert_calls(1);
+}
+
+#[tokio::test]
+async fn interrupted_token_replies_report_the_read_failure() {
+	let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+	let address = listener.local_addr().unwrap();
+	let github = tokio::spawn(async move {
+		use tokio::io::AsyncReadExt;
+		use tokio::io::AsyncWriteExt;
+
+		let (mut socket, _) = listener.accept().await.unwrap();
+		let mut request = [0_u8; 4096];
+		let _ = socket.read(&mut request).await.unwrap();
+		socket
+			.write_all(b"HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: 64\r\n\r\n{\"access")
+			.await
+			.unwrap();
+	});
+	let server = MockServer::start();
+	let state = state_with_server(&server).await;
+	let mut state = (*state).clone();
+	state.github_oauth_origin = format!("http://{address}");
+	let pending = oauth::login_state(&state.jwt_secret).unwrap();
+	let (owner, _response) = context(Arc::new(state), Some(pending.cookie.to_string()));
+
+	let error = owner
+		.with(|| ScopedFuture::new(exchange_code("interrupted".to_string(), pending.state)))
+		.await
+		.unwrap_err();
+
+	assert!(error.to_string().contains("Token response:"));
+	github.await.unwrap();
 }
 
 #[tokio::test]
