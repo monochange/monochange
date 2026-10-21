@@ -2429,6 +2429,15 @@ struct GithubActionsOidcResponse {
 	value: String,
 }
 
+/// Waits between attempts at GitHub's OIDC endpoint. It answers with a short
+/// burst of 5xx statuses during incidents, so the token request retries like
+/// `getIDToken` in `@actions/core` before the release fails.
+const HOSTED_OIDC_RETRY_DELAYS: [Duration; 3] = [
+	Duration::from_secs(2),
+	Duration::from_secs(5),
+	Duration::from_secs(10),
+];
+
 /// Request a GitHub Actions OIDC token for the configured audience.
 async fn hosted_github_actions_oidc_token(
 	options: &HostedCommitOptions,
@@ -2445,22 +2454,53 @@ async fn hosted_github_actions_oidc_token(
 	})?;
 	let audience = &options.oidc_audience;
 	let separator = if request_url.contains('?') { '&' } else { '?' };
-	let client = monochange_hosting::build_http_client("monochange app")?;
-	let response = client
-		.get(format!("{request_url}{separator}audience={audience}"))
-		.bearer_auth(request_token)
-		.send()
-		.await
-		.map_err(|error| {
-			MonochangeError::Config(format!(
-				"hosted CommitRelease OIDC token request failed: {error}"
-			))
-		})?;
+	request_github_actions_oidc_token(
+		&format!("{request_url}{separator}audience={audience}"),
+		&request_token,
+		&HOSTED_OIDC_RETRY_DELAYS,
+	)
+	.await
+}
 
-	if !response.status().is_success() {
+/// Fetch the OIDC token, retrying connection failures and 5xx statuses after
+/// each of `retry_delays`.
+async fn request_github_actions_oidc_token(
+	url: &str,
+	request_token: &str,
+	retry_delays: &[Duration],
+) -> MonochangeResult<String> {
+	let client = monochange_hosting::build_http_client("monochange app")?;
+	let attempts = retry_delays.len() + 1;
+	let mut delays = retry_delays.iter();
+	let response = loop {
+		let result = client.get(url).bearer_auth(request_token).send().await;
+		let retryable = result
+			.as_ref()
+			.map_or(true, |response| response.status().is_server_error());
+		match delays.next() {
+			Some(delay) if retryable => tokio::time::sleep(*delay).await,
+			_ => break result,
+		}
+	};
+	let response = response.map_err(|error| {
+		MonochangeError::Config(format!(
+			"hosted CommitRelease OIDC token request failed after {attempts} attempts: {error}. \
+			 GitHub Actions could not issue the job's OIDC token; rerun the job."
+		))
+	})?;
+
+	let status = response.status();
+	if status.is_server_error() {
 		return Err(MonochangeError::Config(format!(
-			"hosted CommitRelease OIDC token request failed with status {}",
-			response.status()
+			"hosted CommitRelease OIDC token request failed with status {status} after \
+			 {attempts} attempts. GitHub Actions could not issue the job's OIDC token, which \
+			 is a GitHub outage rather than a problem with this workspace; rerun the job."
+		)));
+	}
+	if !status.is_success() {
+		return Err(MonochangeError::Config(format!(
+			"hosted CommitRelease OIDC token request failed with status {status}. Check that \
+			 the job grants `permissions: id-token: write`, then rerun it."
 		)));
 	}
 

@@ -2563,6 +2563,10 @@ fn hosted_oidc_token_reports_error_statuses() {
 					error.to_string().contains("403"),
 					"error should include the status: {error}"
 				);
+				assert!(
+					error.to_string().contains("id-token: write"),
+					"a client error should point at the job permission: {error}"
+				);
 			},
 		));
 	});
@@ -2635,31 +2639,94 @@ fn hosted_oidc_token_errors_without_request_token() {
 
 #[test]
 fn hosted_oidc_token_reports_connection_failures() {
-	with_test_env_lock(|| {
-		crate::tests::block_on_in_context(temp_env::async_with_vars(
-			[
-				(
-					"ACTIONS_ID_TOKEN_REQUEST_URL",
-					Some("http://127.0.0.1:9/oidc"),
-				),
-				("ACTIONS_ID_TOKEN_REQUEST_TOKEN", Some("runner-token")),
-			],
-			async {
-				let options = resolve_hosted_commit_options(
-					monochange_core::HostedCommitAuth::Oidc,
-					None,
-					None,
-				);
-				let error = hosted_commit_bearer_token(&options)
-					.await
-					.expect_err("unreachable oidc endpoint must fail");
-				assert!(
-					error.to_string().contains("OIDC token request failed"),
-					"error should explain the oidc request failure: {error}"
-				);
-			},
-		));
+	let error = crate::tests::block_on_in_context(request_github_actions_oidc_token(
+		"http://127.0.0.1:9/oidc",
+		"runner-token",
+		&[std::time::Duration::ZERO],
+	))
+	.expect_err("unreachable oidc endpoint must fail");
+	let message = error.to_string();
+	assert!(
+		message.contains("OIDC token request failed after 2 attempts"),
+		"error should explain the oidc request failure: {message}"
+	);
+	assert!(
+		message.contains("rerun the job"),
+		"error should say what to do: {message}"
+	);
+}
+
+#[test]
+fn hosted_oidc_token_retries_server_errors() {
+	let server = MockServer::start();
+	let unavailable = server.mock(|when, then| {
+		when.method(httpmock::Method::GET)
+			.path("/oidc")
+			.header("Authorization", "Bearer runner-token");
+		then.status(503);
 	});
+	let error = crate::tests::block_on_in_context(request_github_actions_oidc_token(
+		&server.url("/oidc"),
+		"runner-token",
+		&[std::time::Duration::ZERO, std::time::Duration::ZERO],
+	))
+	.expect_err("an endpoint that stays unavailable must fail");
+	unavailable.assert_calls(3);
+	let message = error.to_string();
+	assert!(
+		message.contains("status 503 Service Unavailable after 3 attempts"),
+		"error should report the status and the attempts: {message}"
+	);
+	assert!(
+		message.contains("GitHub outage"),
+		"error should blame GitHub rather than the workspace: {message}"
+	);
+}
+
+#[test]
+fn hosted_oidc_token_recovers_after_a_server_error() {
+	use std::io::Read;
+	use std::io::Write;
+
+	// httpmock answers every request the same way, so a raw listener serves
+	// one 503 and then the token, closing each connection between them.
+	let listener =
+		std::net::TcpListener::bind("127.0.0.1:0").unwrap_or_else(|error| panic!("bind: {error}"));
+	let address = listener
+		.local_addr()
+		.unwrap_or_else(|error| panic!("address: {error}"));
+	let server = std::thread::spawn(move || {
+		let body = r#"{"value":"oidc-jwt"}"#;
+		let responses = [
+			"HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+				.to_string(),
+			format!(
+				"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\
+				 Connection: close\r\n\r\n{body}",
+				body.len()
+			),
+		];
+		for response in responses {
+			let (mut stream, _) = listener
+				.accept()
+				.unwrap_or_else(|error| panic!("accept: {error}"));
+			let mut request = [0_u8; 4096];
+			let _ = stream.read(&mut request);
+			stream
+				.write_all(response.as_bytes())
+				.unwrap_or_else(|error| panic!("write: {error}"));
+		}
+	});
+	let token = crate::tests::block_on_in_context(request_github_actions_oidc_token(
+		&format!("http://{address}/oidc"),
+		"runner-token",
+		&[std::time::Duration::ZERO],
+	))
+	.unwrap_or_else(|error| panic!("token after one retry: {error}"));
+	assert_eq!(token, "oidc-jwt");
+	server
+		.join()
+		.unwrap_or_else(|_| panic!("server thread panicked"));
 }
 
 #[test]
