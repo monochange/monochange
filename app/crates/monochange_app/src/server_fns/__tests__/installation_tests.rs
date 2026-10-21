@@ -300,7 +300,7 @@ fn mock_app(server: &MockServer, status: u16) -> httpmock::Mock<'_> {
 		when.method(Method::GET).path("/app");
 		then.status(status).json_body(serde_json::json!({
 			"slug": "test-app",
-			"permissions": {"actions": "write", "checks": "write", "contents": "write", "metadata": "read", "pull_requests": "write"},
+			"permissions": {"actions": "write", "checks": "write", "contents": "write", "members": "read", "metadata": "read", "organization_projects": "read", "pull_requests": "write"},
 		}));
 	})
 }
@@ -345,7 +345,7 @@ async fn installations_behind_the_app_permissions_link_to_their_review_page() {
 		&server,
 		22,
 		200,
-		&serde_json::json!({"actions": "write", "checks": "write", "contents": "write", "metadata": "read", "pull_requests": "write"}),
+		&serde_json::json!({"actions": "write", "checks": "write", "contents": "write", "members": "read", "metadata": "read", "organization_projects": "read", "pull_requests": "write"}),
 	);
 	let membership = server.mock(|when, then| {
 		when.method(Method::GET)
@@ -391,6 +391,11 @@ async fn organization_installations_review_on_the_organization_settings_page() {
 	assert_eq!(
 		updates[0].review_url,
 		"https://github.com/organizations/acme/settings/installations/22"
+	);
+	assert!(
+		updates[0].missing.contains("Members: read (now none)"),
+		"{}",
+		updates[0].missing
 	);
 }
 
