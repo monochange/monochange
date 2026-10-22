@@ -1,0 +1,8 @@
+---
+source: crates/monochange_integration_tests/tests/native_release_planning.rs
+expression: "fs::read_to_string(root.join(\"android/gradle.properties\")).unwrap_or_else(|error|\npanic!(\"gradle properties: {error}\"))"
+---
+GROUP=dev.canvist
+POM_ARTIFACT_ID : native-android
+VERSION_NAME = 1.2.3
+CUSTOM_VERSION: 1.2.3

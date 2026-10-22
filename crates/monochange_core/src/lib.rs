@@ -455,7 +455,7 @@ pub fn default_registry_kind_for_ecosystem(ecosystem: Ecosystem) -> Option<Regis
 		Ecosystem::Python => Some(RegistryKind::Pypi),
 		Ecosystem::Go => Some(RegistryKind::GoProxy),
 		// Swift packages release through repository tags and provider releases:
-		// the Swift Package Manager has no registry to publish to.
+		// this adapter uses source-control distribution rather than a Swift package registry.
 		Ecosystem::Swift => None,
 		Ecosystem::CocoaPods => Some(RegistryKind::CocoaPodsTrunk),
 		Ecosystem::Gradle => Some(RegistryKind::MavenCentral),
@@ -7551,8 +7551,11 @@ pub struct WorkspaceConfiguration {
 	pub dart: EcosystemSettings,
 	pub python: EcosystemSettings,
 	pub go: EcosystemSettings,
+	#[serde(default)]
 	pub swift: EcosystemSettings,
+	#[serde(default)]
 	pub cocoapods: EcosystemSettings,
+	#[serde(default)]
 	pub gradle: EcosystemSettings,
 }
 

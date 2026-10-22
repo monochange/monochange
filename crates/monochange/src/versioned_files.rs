@@ -74,6 +74,8 @@ pub(crate) enum VersionedFileKind {
 	CocoaPods(monochange_cocoapods::CocoaPodsVersionedFileKind),
 	#[cfg(feature = "gradle")]
 	Gradle(monochange_gradle::GradleVersionedFileKind),
+	#[cfg(feature = "swift")]
+	Swift,
 }
 
 pub(crate) fn versioned_file_kind(
@@ -113,6 +115,10 @@ pub(crate) fn versioned_file_kind(
 		#[cfg(feature = "gradle")]
 		monochange_core::EcosystemType::Gradle => {
 			monochange_gradle::supported_versioned_file_kind(path).map(VersionedFileKind::Gradle)
+		}
+		#[cfg(feature = "swift")]
+		monochange_core::EcosystemType::Swift => {
+			monochange_swift::supported_versioned_file_kind(path).map(|_| VersionedFileKind::Swift)
 		}
 		_ => None,
 	}
@@ -849,6 +855,13 @@ pub(crate) fn read_cached_document(
 			};
 			Ok(CachedDocument::Text(contents))
 		}
+		#[cfg(feature = "swift")]
+		VersionedFileKind::Swift => {
+			let contents = text_contents.ok_or_else(|| {
+				MonochangeError::Config(format!("failed to parse {} as text", path.display()))
+			})?;
+			Ok(CachedDocument::Text(contents))
+		}
 		#[cfg(feature = "dart")]
 		VersionedFileKind::Dart(monochange_dart::DartVersionedFileKind::Manifest) => {
 			let Some(contents) = text_contents else {
@@ -1301,7 +1314,6 @@ fn render_versioned_template(template: &str, name: Option<&str>, version: &str) 
 fn update_env_key(contents: &str, key: &str, version: &str) -> MonochangeResult<String> {
 	let mut found = false;
 	let mut output = String::with_capacity(contents.len());
-
 	for line in contents.split_inclusive('\n') {
 		let (body, ending) = line
 			.strip_suffix('\n')
@@ -1314,6 +1326,7 @@ fn update_env_key(contents: &str, key: &str, version: &str) -> MonochangeResult<
 		let Some((candidate, _old_value)) = assignment.split_once('=') else {
 			output.push_str(body);
 			output.push_str(ending);
+
 			continue;
 		};
 
@@ -1744,7 +1757,8 @@ pub(crate) fn apply_versioned_file_definition_to_paths<N: AsRef<str>>(
 	// Only update the version field if 'version' is explicitly in the fields configuration.
 	// This applies to ALL versioned files (both package-level and group-level).
 	// Gradle properties name their version field `VERSION_NAME`.
-	let update_version = fields.contains(&"version") || fields.contains(&"VERSION_NAME");
+	let update_version = fields.contains(&"version")
+		|| (ecosystem_type == monochange_core::EcosystemType::Gradle && !fields.is_empty());
 	let effective_owner_version = if update_version {
 		Some(owner_version)
 	} else {
@@ -1999,6 +2013,8 @@ pub(crate) fn apply_versioned_file_definition_to_paths<N: AsRef<str>>(
 					);
 				}
 			}
+			#[cfg(feature = "swift")]
+			(CachedDocument::Text(_), VersionedFileKind::Swift) => {}
 			#[cfg(feature = "python")]
 			(CachedDocument::Text(contents), VersionedFileKind::Python(kind)) => {
 				*contents = monochange_python::update_versioned_file_text(

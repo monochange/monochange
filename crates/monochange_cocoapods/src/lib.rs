@@ -4,8 +4,38 @@
 )]
 #![deny(clippy::all)]
 #![forbid(clippy::indexing_slicing)]
-#![doc = include_str!("crate_docs.md")]
-
+//! <!-- {=monochangeCocoaPodsCrateDocs|trim|linePrefix:"//! ":true} -->
+//! `monochange_cocoapods` discovers `CocoaPods` pods from `.podspec` manifests for the shared planner and publishes them to the `CocoaPods` trunk.
+//!
+//! Reach for this crate when you need to scan podspecs, keep pod versions in lockstep with the rest of a monorepo, and run `pod trunk push` as part of a planned release.
+//!
+//! ## Why use it?
+//!
+//! - discover pods through Ruby and JSON podspecs
+//! - read pod names and versions from `s.name` and `s.version` declarations
+//! - publish releases to the `CocoaPods` trunk with `pod trunk push`
+//! - validate a push ahead of time with `pod spec lint` during dry runs
+//!
+//! ## Best for
+//!
+//! - scanning Apple platform pods into normalized workspace records
+//! - versioning pods together with the Swift packages and native libraries they ship
+//! - publishing pods whose source is available at the released tag
+//!
+//! ## Public entry points
+//!
+//! - `discover_pods(root)` discovers podspecs under a repository root
+//! - `parse_podspec(path, root)` parses one podspec into package metadata
+//! - `update_podspec_version(contents, version)` rewrites the `s.version` declaration
+//!
+//! ## Scope
+//!
+//! - `.podspec` and `.podspec.json` name and version parsing
+//! - trunk publishing through `pod trunk push <podspec> --allow-warnings`
+//! - trunk API metadata for duplicate-version detection
+//! - no placeholder publishing: trunk validation requires real, downloadable pod sources
+//! - no trusted publishing: the trunk authenticates through per-machine session tokens
+//! <!-- {/monochangeCocoaPodsCrateDocs} -->
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
@@ -18,7 +48,6 @@ use monochange_core::MonochangeResult;
 use monochange_core::PackageRecord;
 use monochange_core::PublishState;
 use monochange_core::normalize_path;
-use monochange_publish::PublishRequest;
 use regex::Regex;
 use semver::Version;
 use walkdir::DirEntry;
@@ -181,6 +210,15 @@ pub fn parse_cocoapods_version(version: &str) -> Option<Version> {
 }
 
 fn capture_podspec_attribute(contents: &str, attribute: &str) -> Option<String> {
+	if contents.trim_start().starts_with('{') {
+		return serde_json::from_str::<serde_json::Value>(contents)
+			.ok()?
+			.get(attribute)?
+			.as_str()
+			.filter(|value| !value.is_empty())
+			.map(str::to_string);
+	}
+
 	let pattern = Regex::new(&format!(
 		r#"(?:^|\n)\s*[A-Za-z_][A-Za-z0-9_]*\.{attribute}\s*=\s*['"]([^'"]+)['"]"#
 	))
@@ -207,11 +245,12 @@ fn capture_podspec_attribute(contents: &str, attribute: &str) -> Option<String> 
 #[must_use]
 pub fn update_podspec_version(contents: &str, version: &str) -> String {
 	// patch-coverage:ignore-start -- the pattern literal is compile-time valid; the fallback only exists because Regex::new returns a Result.
-	let Ok(pattern) = Regex::new(r#"(\.version\s*=\s*)(['"])([^'"]+)(['"])"#) else {
+	let Ok(pattern) = Regex::new(
+		r#"(?m)^([\t ]*[A-Za-z_][A-Za-z0-9_]*\.version[\t ]*=[\t ]*)(['"])([^'"\r\n]+)(['"])"#,
+	) else {
 		return contents.to_string();
 	};
 	// patch-coverage:ignore-end
-
 	pattern
 		.replace(contents, |capture: &regex::Captures<'_>| {
 			let prefix = capture.get(1).map_or(".version = ", |found| found.as_str());
@@ -223,34 +262,11 @@ pub fn update_podspec_version(contents: &str, version: &str) -> String {
 		.into_owned()
 }
 
-/// Write a minimal placeholder podspec so placeholder publishing can reserve a
-/// pod name on the `CocoaPods` trunk.
-pub fn write_cocoapods_placeholder_manifest(
-	dir: &Path,
-	request: &PublishRequest,
-) -> MonochangeResult<()> {
-	let summary = format!("{} placeholder package", request.package_name);
-	let contents = format!(
-		"Pod::Spec.new do |s|\n  s.name = '{}'\n  s.version = '{}'\n  s.summary = '{summary}'\n  \
-		 s.homepage = 'https://github.com/monochange/monochange'\n  s.license = {{ type: 'Unlicense' }}\n  \
-		 s.authors = {{ 'monochange' => 'support@monochange.dev' }}\n  \
-		 s.source = {{ git: \
-		 'https://github.com/monochange/monochange-placeholder.git', tag: 's.version' }}\nend\n",
-		request.package_name, request.version,
-	);
-
-	fs::write(
-		dir.join(format!("{}.podspec", request.package_name)),
-		contents,
-	)
-	.map_err(|error| MonochangeError::Io(format!("failed to write placeholder podspec: {error}")))
-}
-
 /// Validate that a podspec versioned file contains a readable version field.
 pub fn validate_versioned_file(
 	full_path: &Path,
 	_display_path: &str,
-	_custom_fields: Option<&[String]>,
+	custom_fields: Option<&[String]>,
 ) -> MonochangeResult<()> {
 	let contents = fs::read_to_string(full_path).map_err(|error| {
 		MonochangeError::Io(format!("failed to read {}: {error}", full_path.display()))
@@ -263,15 +279,29 @@ pub fn validate_versioned_file(
 		)));
 	}
 
+	if custom_fields.is_some_and(|fields| fields.iter().any(|field| field == "version"))
+		&& capture_podspec_attribute(&contents, "version").is_none()
+	{
+		return Err(MonochangeError::Config(format!(
+			"podspec {} has no literal `version` declaration; version the source of a computed version instead",
+			full_path.display()
+		)));
+	}
+
 	Ok(())
 }
 
-fn find_podspec_in(package_path: &Path) -> Option<PathBuf> {
-	fs::read_dir(package_path)
+/// Locate the first podspec in a package directory in a stable filename order.
+#[must_use]
+pub fn find_podspec_in(package_path: &Path) -> Option<PathBuf> {
+	let mut paths = fs::read_dir(package_path)
 		.ok()?
 		.filter_map(Result::ok)
 		.map(|entry| entry.path())
-		.find(|path| path.is_file() && supported_versioned_file_kind(path).is_some())
+		.filter(|path| path.is_file() && supported_versioned_file_kind(path).is_some())
+		.collect::<Vec<_>>();
+	paths.sort();
+	paths.into_iter().next()
 }
 
 fn find_all_podspec_files(root: &Path) -> Vec<PathBuf> {

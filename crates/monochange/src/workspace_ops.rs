@@ -1062,15 +1062,7 @@ fn render_annotated_init_config(
 		let pkg_type = package_type_for_ecosystem(package.ecosystem);
 		let changelog = detect_default_changelog(root, &manifest_dir);
 
-		let type_str = match pkg_type {
-			PackageType::Cargo => "cargo",
-			PackageType::Npm => "npm",
-			PackageType::Deno => "deno",
-			PackageType::Dart => "dart",
-			PackageType::Python => "python",
-			PackageType::Go => "go",
-			_ => unreachable!(),
-		};
+		let type_str = pkg_type.as_str();
 
 		let mut entry = BTreeMap::new();
 		entry.insert("id", json!(id));
@@ -1221,22 +1213,6 @@ fn package_type_for_ecosystem(ecosystem: Ecosystem) -> PackageType {
 }
 
 #[test]
-fn package_type_for_ecosystem_maps_native_ecosystems() {
-	assert_eq!(
-		package_type_for_ecosystem(Ecosystem::Swift),
-		PackageType::Swift
-	);
-	assert_eq!(
-		package_type_for_ecosystem(Ecosystem::CocoaPods),
-		PackageType::CocoaPods
-	);
-	assert_eq!(
-		package_type_for_ecosystem(Ecosystem::Gradle),
-		PackageType::Gradle
-	);
-}
-
-#[test]
 fn package_type_for_ecosystem_maps_python() {
 	assert_eq!(
 		package_type_for_ecosystem(Ecosystem::Python),
@@ -1353,6 +1329,21 @@ pub(crate) fn build_lockfile_command_executions(
 	executions.extend(python_executions);
 	#[cfg(feature = "go")]
 	executions.extend(go_executions);
+
+	for (ecosystem, settings) in [
+		(Ecosystem::Swift, &configuration.swift),
+		(Ecosystem::CocoaPods, &configuration.cocoapods),
+		(Ecosystem::Gradle, &configuration.gradle),
+	] {
+		executions.extend(resolve_lockfile_command_executions(
+			root,
+			&settings.lockfile_commands,
+			packages.iter().any(|package| {
+				package.ecosystem == ecosystem && released_versions.contains_key(&package.id)
+			}),
+		)?);
+	}
+
 	Ok((dedup_lockfile_command_executions(executions), warnings))
 }
 // patch-coverage:ignore-end

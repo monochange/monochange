@@ -1892,8 +1892,10 @@ fn versioned_file_kind_maps_native_ecosystem_files() {
 			monochange_gradle::GradleVersionedFileKind::GradleProperties
 		))
 	));
-	// Package.swift carries no version field, so Swift has no writable kind.
-	assert!(versioned_file_kind(EcosystemType::Swift, Path::new("swift/Package.swift")).is_none());
+	assert!(matches!(
+		versioned_file_kind(EcosystemType::Swift, Path::new("swift/Package.swift")),
+		Some(super::VersionedFileKind::Swift)
+	));
 }
 
 #[test]
@@ -2129,10 +2131,18 @@ fn typed_swift_and_gradle_versioned_file_globs_report_mismatches() {
 fn native_cached_documents_reject_non_utf8_files() {
 	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
-	std::fs::write(root.join("Canvist.podspec"), [0xff, 0xfe])
-		.unwrap_or_else(|error| panic!("write invalid podspec: {error}"));
-	std::fs::write(root.join("gradle.properties"), [0xff, 0xfe])
-		.unwrap_or_else(|error| panic!("write invalid gradle.properties: {error}"));
+	std::fs::write(
+		root.join("Canvist.podspec"),
+		include_bytes!("../../../../fixtures/tests/native-adapters/invalid-utf8"),
+	)
+	.unwrap_or_else(|error| panic!("write invalid podspec: {error}"));
+	std::fs::write(
+		root.join("gradle.properties"),
+		include_bytes!("../../../../fixtures/tests/native-adapters/invalid-utf8"),
+	)
+	.unwrap_or_else(|error| panic!("write invalid gradle.properties: {error}"));
+	std::fs::copy(root.join("gradle.properties"), root.join("Package.swift"))
+		.expect("copy invalid Swift manifest");
 	let configuration =
 		monochange_config::load_workspace_configuration(&fixture_path("monochange/release-base"))
 			.unwrap_or_else(|error| panic!("configuration: {error}"));
@@ -2141,6 +2151,7 @@ fn native_cached_documents_reject_non_utf8_files() {
 	for (ecosystem_type, path) in [
 		(EcosystemType::CocoaPods, "Canvist.podspec"),
 		(EcosystemType::Gradle, "gradle.properties"),
+		(EcosystemType::Swift, "Package.swift"),
 	] {
 		let definition = monochange_core::VersionedFileDefinition {
 			path: path.to_string(),

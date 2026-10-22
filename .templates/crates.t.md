@@ -630,7 +630,7 @@ Reach for this crate when you need to scan Swift packages, resolve their version
 ## Why use it?
 
 - discover Swift packages through `Package.swift` manifests
-- model Swift Package Manager releases as repository tags, the only distribution channel SPM resolves
+- model source-control Swift Package Manager releases as repository tags
 - plan lockstep releases across Swift, Rust, npm, and the other supported ecosystems
 
 ## Best for
@@ -670,20 +670,20 @@ Reach for this crate when you need to scan podspecs, keep pod versions in lockst
 
 - scanning Apple platform pods into normalized workspace records
 - versioning pods together with the Swift packages and native libraries they ship
-- reserving pod names with a placeholder podspec publish
+- publishing pods whose source is available at the released tag
 
 ## Public entry points
 
 - `discover_pods(root)` discovers podspecs under a repository root
 - `parse_podspec(path, root)` parses one podspec into package metadata
 - `update_podspec_version(contents, version)` rewrites the `s.version` declaration
-- `write_cocoapods_placeholder_manifest(dir, request)` writes a minimal placeholder podspec
 
 ## Scope
 
 - `.podspec` and `.podspec.json` name and version parsing
 - trunk publishing through `pod trunk push <podspec> --allow-warnings`
 - trunk API metadata for duplicate-version detection
+- no placeholder publishing: trunk validation requires real, downloadable pod sources
 - no trusted publishing: the trunk authenticates through per-machine session tokens
 
 <!-- {/monochangeCocoaPodsCrateDocs} -->
@@ -700,12 +700,13 @@ Reach for this crate when you need to scan Kotlin and Java libraries, keep `VERS
 - read Maven coordinates from `GROUP`/`POM_GROUP_ID` and `POM_ARTIFACT_ID` properties
 - publish releases to Maven Central through the Sonatype Central Portal
 - detect already-published versions from Maven Central metadata
+- inspect the publishing task graph without executing tasks during dry runs
 
 ## Best for
 
 - scanning Android and JVM libraries into normalized workspace records
 - versioning Kotlin bindings together with the native libraries they wrap
-- releasing to Maven Central with the `com.vanniktech.maven-publish` task set
+- releasing to Maven Central with the `com.vanniktech.maven.publish` task set
 
 ## Public entry points
 

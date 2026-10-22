@@ -4,8 +4,35 @@
 )]
 #![deny(clippy::all)]
 #![forbid(clippy::indexing_slicing)]
-#![doc = include_str!("crate_docs.md")]
-
+//! <!-- {=monochangeSwiftCrateDocs|trim|linePrefix:"//! ":true} -->
+//! `monochange_swift` discovers Swift Package Manager packages from `Package.swift` manifests for the shared planner.
+//!
+//! Reach for this crate when you need to scan Swift packages, resolve their versions from repository tags, and keep them releasing in lockstep with the rest of a mixed-language monorepo.
+//!
+//! ## Why use it?
+//!
+//! - discover Swift packages through `Package.swift` manifests
+//! - model source-control Swift Package Manager releases as repository tags
+//! - plan lockstep releases across Swift, Rust, npm, and the other supported ecosystems
+//!
+//! ## Best for
+//!
+//! - scanning Swift packages into normalized workspace records
+//! - versioning Apple platform bindings together with the core libraries they wrap
+//! - releasing Swift packages through tag-based group releases and provider release notes
+//!
+//! ## Public entry points
+//!
+//! - `discover_swift_packages(root)` discovers Swift packages under a repository root
+//! - `parse_package_swift(path, root)` parses one `Package.swift` manifest into package metadata
+//! - `parse_package_name(contents)` extracts the package name from manifest text
+//!
+//! ## Scope
+//!
+//! - `Package.swift` name parsing
+//! - tag-based version resolution with no manifest version field
+//! - no registry publish target: Swift packages are consumed from repository tags
+//! <!-- {/monochangeSwiftCrateDocs} -->
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
@@ -157,22 +184,15 @@ pub fn parse_package_swift(
 /// let package = Package(name: "Canvist", platforms: [.iOS(.v17)])
 /// ```
 pub fn parse_package_name(contents: &str) -> Option<String> {
-	let name_pattern = Regex::new(r#"\bname\s*:\s*"([^"]+)""#).ok()?;
-
-	for line in contents.lines() {
-		for capture in name_pattern.captures_iter(line) {
-			let match_start = capture.get(0).map_or(0, |found| found.start());
-
-			// A `//` earlier on the line comments the match out.
-			if line[..match_start].contains("//") {
-				continue;
-			}
-
-			return capture.get(1).map(|name| name.as_str().to_string());
-		}
-	}
-
-	None
+	let contents = monochange_core::strip_json_comments(contents);
+	// patch-coverage:ignore-start -- the fixed regex literal is valid; an invalid literal is a programming error.
+	let name_pattern = Regex::new(r#"\bPackage\s*\(\s*name\s*:\s*"([^"]+)""#)
+		.unwrap_or_else(|error| panic!("invalid package name regex: {error}"));
+	// patch-coverage:ignore-end
+	name_pattern
+		.captures(&contents)?
+		.get(1)
+		.map(|name| name.as_str().to_string())
 }
 
 fn find_all_package_swift_files(root: &Path) -> Vec<PathBuf> {

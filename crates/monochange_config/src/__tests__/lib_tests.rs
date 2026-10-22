@@ -104,8 +104,6 @@ use monochange_core::VersionFormat;
 
 use crate::apply_version_groups;
 use crate::cli_input_kind_matches_step_input;
-use crate::extract_package_swift_name;
-use crate::extract_properties_key;
 use crate::frontmatter_span_for_line_column;
 use crate::line_and_column_for_offset;
 use crate::line_index_for_offset;
@@ -1920,35 +1918,33 @@ type = "gradle"
 #[test]
 fn extract_manifest_name_reads_native_manifests() {
 	assert_eq!(
-		extract_package_swift_name(
+		monochange_swift::parse_package_name(
 			"// name: \"Commented\"\nlet package = Package(name: \"Canvist\")"
 		),
 		Some("Canvist".to_string())
 	);
 	assert_eq!(
-		extract_package_swift_name("name = \"Solo\""),
-		Some("Solo".to_string())
-	);
-	assert_eq!(extract_package_swift_name("products: []"), None);
-	assert_eq!(
-		extract_package_swift_name("// name: \"Only Commented\""),
+		monochange_swift::parse_package_name("name = \"Solo\""),
 		None
 	);
-	assert_eq!(extract_package_swift_name("name: \"\""), None);
+	assert_eq!(monochange_swift::parse_package_name("products: []"), None);
+	assert_eq!(
+		monochange_swift::parse_package_name("// name: \"Only Commented\""),
+		None
+	);
+	assert_eq!(monochange_swift::parse_package_name("name: \"\""), None);
 
 	assert_eq!(
-		extract_properties_key(
-			"VERSION_NAME=1.0\nPOM_ARTIFACT_ID=canvist\n",
-			"POM_ARTIFACT_ID"
-		),
+		monochange_gradle::parse_properties("VERSION_NAME=1.0\nPOM_ARTIFACT_ID=canvist\n")
+			.remove("POM_ARTIFACT_ID"),
 		Some("canvist".to_string())
 	);
 	assert_eq!(
-		extract_properties_key("POM_ARTIFACT_ID=\"quoted\"", "POM_ARTIFACT_ID"),
+		monochange_gradle::parse_properties("POM_ARTIFACT_ID=\"quoted\"").remove("POM_ARTIFACT_ID"),
 		Some("quoted".to_string())
 	);
 	assert_eq!(
-		extract_properties_key("OTHER=value", "POM_ARTIFACT_ID"),
+		monochange_gradle::parse_properties("OTHER=value").remove("POM_ARTIFACT_ID"),
 		None
 	);
 }
@@ -10055,12 +10051,54 @@ fn extract_manifest_name_routes_native_ecosystems() {
 	);
 	assert_eq!(
 		crate::extract_manifest_name("s.name = 'Canvist'", EcosystemType::CocoaPods),
-		None
+		Some("Canvist".to_string())
 	);
 }
 
 #[test]
 fn extract_package_swift_name_skips_malformed_lines() {
-	assert_eq!(extract_package_swift_name("name\n"), None);
-	assert_eq!(extract_package_swift_name("name: \"unterminated\n"), None);
+	assert_eq!(monochange_swift::parse_package_name("name\n"), None);
+	assert_eq!(
+		monochange_swift::parse_package_name("name: \"unterminated\n"),
+		None
+	);
+}
+
+#[test]
+fn native_auto_discovery_maps_types_and_inherits_versioned_files() {
+	let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/tests/native-audit");
+	let configuration = load_workspace_configuration(&root)
+		.unwrap_or_else(|error| panic!("load native auto-discovery: {error}"));
+	assert_eq!(configuration.packages.len(), 3);
+
+	for package in &configuration.packages {
+		assert!(matches!(
+			package.package_type,
+			PackageType::Swift | PackageType::CocoaPods | PackageType::Gradle
+		));
+		assert_eq!(package.versioned_files.len(), 1);
+	}
+}
+
+#[test]
+fn configured_native_packages_inherit_ecosystem_versioned_files() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("temporary workspace: {error}"));
+	let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/tests/native-audit");
+	monochange_test_helpers::copy_directory(&fixture, tempdir.path());
+	fs::copy(
+		fixture.join("explicit.toml"),
+		tempdir.path().join("monochange.toml"),
+	)
+	.unwrap_or_else(|error| panic!("explicit config: {error}"));
+	let configuration = load_workspace_configuration(tempdir.path())
+		.unwrap_or_else(|error| panic!("load native packages: {error}"));
+
+	for package in &configuration.packages {
+		assert_eq!(
+			package.versioned_files.len(),
+			1,
+			"{} inherits versioned files",
+			package.id
+		);
+	}
 }

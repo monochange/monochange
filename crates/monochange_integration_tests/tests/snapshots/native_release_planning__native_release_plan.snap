@@ -22,13 +22,13 @@ expression: plan_summary(&manifest)
   ],
   "groups": [
     {
-      "group": null,
+      "group": "sdk",
       "members": [
         "swift:swift/Package.swift",
         "cocoapods:pod/Canvist.podspec",
         "gradle:android/gradle.properties"
       ],
-      "version": null
+      "version": "0.1.1"
     }
   ],
   "targets": [

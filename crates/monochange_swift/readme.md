@@ -28,7 +28,7 @@ Reach for this crate when you need to scan Swift packages, resolve their version
 ## Why use it?
 
 - discover Swift packages through `Package.swift` manifests
-- model Swift Package Manager releases as repository tags, the only distribution channel SPM resolves
+- model source-control Swift Package Manager releases as repository tags
 - plan lockstep releases across Swift, Rust, npm, and the other supported ecosystems
 
 ## Best for

@@ -275,6 +275,8 @@ version_format = "primary"
 
 CocoaPods support targets pods declared by `.podspec` (Ruby) or `.podspec.json` manifests and publishes them to the CocoaPods trunk.
 
+CocoaPods plans a read-only trunk trial for November 1–7, 2026 and a permanent switch on December 2, 2026. See the [official trunk read-only plan](https://blog.cocoapods.org/CocoaPods-Specs-Repo/) for schedule changes. Discovery, release planning, and podspec updates remain useful after trunk stops accepting publications; choose an external publishing flow for a different distribution service.
+
 Use CocoaPods support when your repository has:
 
 - pods consumed through a `Podfile`, including React Native and Lynx apps that autolink native pods
@@ -286,6 +288,7 @@ CocoaPods behavior:
 - `type = "cocoapods"` versioned-file entries rewrite `s.version` (or the JSON `version` field), preserving the original quote style
 - built-in publishing runs `pod trunk push <podspec> --allow-warnings`; dry runs swap to `pod spec lint` so the same validation runs without mutating the trunk
 - duplicate-version detection queries the trunk API (`trunk.cocoapods.org/api/v1/pods/<name>`)
+- placeholder name reservation is unsupported because trunk validation needs real, downloadable pod sources
 - the trunk authenticates through per-machine session tokens rather than trusted publishing: set `trusted_publishing = false` and export `COCOAPODS_TRUNK_TOKEN` from a registered trunk session in CI
 
 Example CocoaPods package configuration:
@@ -315,8 +318,8 @@ Gradle behavior:
 
 - a project qualifies when its `gradle.properties` declares `VERSION_NAME`; build-only properties files are ignored, as are `build/` outputs
 - package names are the Maven coordinate `group:artifact` when `GROUP` (or `POM_GROUP_ID`) is set, with the artifact id taken from `POM_ARTIFACT_ID`, the `rootProject.name` of the settings script, or the directory name
-- `type = "gradle"` versioned-file entries rewrite listed keys such as `VERSION_NAME`, preserving separators and comments
-- built-in publishing runs `./gradlew publishAndReleaseToMavenCentral`, the `com.vanniktech.maven-publish` task that uploads and releases a Central Portal deployment in one run
+- `type = "gradle"` versioned-file entries rewrite listed keys such as `VERSION_NAME`, preserving indentation, separators, line endings, and unrelated lines
+- built-in publishing runs `./gradlew publishAndReleaseToMavenCentral`, the `com.vanniktech.maven.publish` task that uploads and releases a Central Portal deployment in one run; dry runs append `--dry-run` to display the task graph without executing tasks
 - duplicate-version detection reads `maven-metadata.xml` from `repo1.maven.org` for the resolved coordinate
 - Maven Central has no trusted publishing: set `trusted_publishing = false` and provide a Central Portal user token (`ORG_GRADLE_PROJECT_mavenCentralUsername` / `ORG_GRADLE_PROJECT_mavenCentralPassword`) plus an in-memory signing key in CI
 

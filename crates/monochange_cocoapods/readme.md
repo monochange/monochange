@@ -36,20 +36,20 @@ Reach for this crate when you need to scan podspecs, keep pod versions in lockst
 
 - scanning Apple platform pods into normalized workspace records
 - versioning pods together with the Swift packages and native libraries they ship
-- reserving pod names with a placeholder podspec publish
+- publishing pods whose source is available at the released tag
 
 ## Public entry points
 
 - `discover_pods(root)` discovers podspecs under a repository root
 - `parse_podspec(path, root)` parses one podspec into package metadata
 - `update_podspec_version(contents, version)` rewrites the `s.version` declaration
-- `write_cocoapods_placeholder_manifest(dir, request)` writes a minimal placeholder podspec
 
 ## Scope
 
 - `.podspec` and `.podspec.json` name and version parsing
 - trunk publishing through `pod trunk push <podspec> --allow-warnings`
 - trunk API metadata for duplicate-version detection
+- no placeholder publishing: trunk validation requires real, downloadable pod sources
 - no trusted publishing: the trunk authenticates through per-machine session tokens
 
 <!-- {/monochangeCocoaPodsCrateDocs} -->

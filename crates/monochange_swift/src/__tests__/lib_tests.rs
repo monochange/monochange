@@ -14,6 +14,12 @@ use crate::load_configured_swift_package;
 use crate::parse_package_name;
 use crate::parse_package_swift;
 
+#[test]
+fn package_name_comes_from_package_initializer() {
+	let contents = include_str!("../../../../fixtures/tests/native-audit/swift/Package.swift");
+	assert_eq!(parse_package_name(contents).as_deref(), Some("NativeSwift"));
+}
+
 // -- adapter --
 #[test]
 fn adapter_reports_swift_ecosystem() {
@@ -46,7 +52,7 @@ fn adapter_validates_any_versioned_file_and_reports_kinds() {
 fn adapter_validate_versioned_file_accepts_any_file() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let path = tempdir.path().join("Package.swift");
-	fs::write(&path, "// swift-tools-version: 6.0\n")
+	fs::write(&path, include_str!("../../../../fixtures/tests/native-adapters/swift/adapter_validate_versioned_file_accepts_any_file-1.txt"))
 		.unwrap_or_else(|error| panic!("write Package.swift: {error}"));
 
 	SwiftAdapter
@@ -61,14 +67,7 @@ fn discover_swift_packages_finds_named_manifests() {
 	let root = tempdir.path();
 	fs::write(
 		root.join("Package.swift"),
-		r#"// swift-tools-version: 6.0
-import PackageDescription
-
-let package = Package(
-    name: "Canvist",
-    platforms: [.iOS(.v17)]
-)
-"#,
+		include_str!("../../../../fixtures/tests/native-adapters/swift/discover_swift_packages_finds_named_manifests-2.txt"),
 	)
 	.unwrap_or_else(|error| panic!("write Package.swift: {error}"));
 
@@ -89,9 +88,9 @@ fn discover_swift_packages_skips_build_directories_and_nameless_manifests() {
 	let root = tempdir.path();
 	fs::create_dir_all(root.join(".build/checkouts"))
 		.unwrap_or_else(|error| panic!("mkdir .build: {error}"));
-	fs::write(root.join(".build/Package.swift"), "name: \"Nested\"\n")
+	fs::write(root.join(".build/Package.swift"), include_str!("../../../../fixtures/tests/native-adapters/swift/discover_swift_packages_skips_build_directories_and_nameless_manifests-3.txt"))
 		.unwrap_or_else(|error| panic!("write nested Package.swift: {error}"));
-	fs::write(root.join("Package.swift"), "// no name label here\n")
+	fs::write(root.join("Package.swift"), include_str!("../../../../fixtures/tests/native-adapters/swift/discover_swift_packages_skips_build_directories_and_nameless_manifests-4.txt"))
 		.unwrap_or_else(|error| panic!("write Package.swift: {error}"));
 
 	let discovery =
@@ -109,8 +108,11 @@ fn discover_swift_packages_reports_warnings_for_unreadable_manifests() {
 	std::os::unix::fs::symlink(root.join("missing-package"), root.join("Package.swift"))
 		.unwrap_or_else(|error| panic!("symlink Package.swift: {error}"));
 	#[cfg(not(unix))]
-	fs::write(root.join("Package.swift"), [0xff, 0xfe])
-		.unwrap_or_else(|error| panic!("write invalid Package.swift: {error}"));
+	fs::write(
+		root.join("Package.swift"),
+		include_bytes!("../../../../fixtures/tests/native-adapters/invalid-utf8"),
+	)
+	.unwrap_or_else(|error| panic!("write invalid Package.swift: {error}"));
 
 	let discovery =
 		discover_swift_packages(root).unwrap_or_else(|error| panic!("swift discovery: {error}"));
@@ -127,7 +129,7 @@ fn load_configured_swift_package_reads_the_manifest() {
 	fs::create_dir_all(&package_dir).unwrap_or_else(|error| panic!("mkdir apple: {error}"));
 	fs::write(
 		package_dir.join("Package.swift"),
-		"let package = Package(name: \"Canvist\")",
+		include_str!("../../../../fixtures/tests/native-adapters/swift/load_configured_swift_package_reads_the_manifest-5.txt"),
 	)
 	.unwrap_or_else(|error| panic!("write Package.swift: {error}"));
 
@@ -156,10 +158,7 @@ let package = Package(
 
 #[test]
 fn parse_package_name_reads_multiline_and_inline_declarations() {
-	assert_eq!(
-		parse_package_name("name: \"Solo\"\n"),
-		Some("Solo".to_string())
-	);
+	assert_eq!(parse_package_name("name: \"Solo\"\n"), None);
 	assert_eq!(
 		parse_package_name("let package = Package(name: \"Inline\", products: [])"),
 		Some("Inline".to_string())
@@ -182,8 +181,12 @@ fn parse_package_swift_resolves_versions_from_tags_not_the_manifest() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
 	let manifest = root.join("Package.swift");
-	fs::write(&manifest, "name: \"Canvist\"")
-		.unwrap_or_else(|error| panic!("write Package.swift: {error}"));
+	fs::copy(
+		Path::new(env!("CARGO_MANIFEST_DIR"))
+			.join("../../fixtures/tests/native-release/swift/Package.swift"),
+		&manifest,
+	)
+	.unwrap_or_else(|error| panic!("write Package.swift: {error}"));
 
 	let record = parse_package_swift(&manifest, root)
 		.unwrap_or_else(|error| panic!("parse Package.swift: {error}"))

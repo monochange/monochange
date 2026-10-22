@@ -1,0 +1,10 @@
+---
+source: crates/monochange_integration_tests/tests/native_release_planning.rs
+expression: "serde_json::json!({\n    \"status\": package[\"status\"], \"registry\": package[\"registry\"], \"version\":\n    package[\"version\"], \"command\": package[\"command\"],\n})"
+---
+{
+  "command": "./gradlew publishAndReleaseToMavenCentral --dry-run",
+  "registry": "maven_central",
+  "status": "planned",
+  "version": "1.2.3"
+}

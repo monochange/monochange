@@ -31,12 +31,13 @@ Reach for this crate when you need to scan Kotlin and Java libraries, keep `VERS
 - read Maven coordinates from `GROUP`/`POM_GROUP_ID` and `POM_ARTIFACT_ID` properties
 - publish releases to Maven Central through the Sonatype Central Portal
 - detect already-published versions from Maven Central metadata
+- inspect the publishing task graph without executing tasks during dry runs
 
 ## Best for
 
 - scanning Android and JVM libraries into normalized workspace records
 - versioning Kotlin bindings together with the native libraries they wrap
-- releasing to Maven Central with the `com.vanniktech.maven-publish` task set
+- releasing to Maven Central with the `com.vanniktech.maven.publish` task set
 
 ## Public entry points
 

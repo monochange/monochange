@@ -1,13 +1,10 @@
-use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
-use std::path::PathBuf;
 
 use monochange_core::Ecosystem;
 use monochange_core::EcosystemAdapter;
 use monochange_core::MonochangeError;
 use monochange_core::PublishState;
-use monochange_publish::PublishRequest;
 use semver::Version;
 use tempfile::tempdir;
 
@@ -21,37 +18,9 @@ use crate::parse_podspec;
 use crate::parse_podspec_name;
 use crate::parse_podspec_version;
 use crate::update_podspec_version;
-use crate::write_cocoapods_placeholder_manifest;
 
-fn publish_request(name: &str, version: &str) -> PublishRequest {
-	PublishRequest {
-		package_id: format!("cocoapods:{name}"),
-		package_name: name.to_string(),
-		ecosystem: Ecosystem::CocoaPods,
-		manifest_path: PathBuf::from(format!("{name}.podspec")),
-		package_root: PathBuf::from("."),
-		registry: monochange_core::RegistryKind::CocoaPodsTrunk,
-		package_manager: None,
-		package_metadata: BTreeMap::new(),
-		mode: monochange_core::PublishMode::Builtin,
-		flow: monochange_core::PublishFlow::Direct,
-		version: version.to_string(),
-		placeholder: false,
-		trusted_publishing: monochange_core::TrustedPublishingSettings::default(),
-		attestations: monochange_core::PublishAttestationSettings::default(),
-		timeout: monochange_core::PublishTimeoutSettings::default(),
-		fail_on_duplicate: false,
-		placeholder_readme: String::new(),
-	}
-}
-
-const CANVIST_PODSPEC: &str = r#"
-Pod::Spec.new do |s|
-  s.name = "Canvist"
-  s.version = "0.2.0"
-  s.summary = "canvist editor for iOS"
-end
-"#;
+const CANVIST_PODSPEC: &str =
+	include_str!("../../../../fixtures/tests/native-adapters/cocoapods/canvist_podspec.txt");
 
 // -- adapter --
 #[test]
@@ -85,7 +54,7 @@ fn discover_pods_finds_podspecs_with_names() {
 	let root = tempdir.path();
 	fs::write(root.join("Canvist.podspec"), CANVIST_PODSPEC)
 		.unwrap_or_else(|error| panic!("write podspec: {error}"));
-	fs::write(root.join("Empty.podspec"), "# no declarations\n")
+	fs::write(root.join("Empty.podspec"), include_str!("../../../../fixtures/tests/native-adapters/cocoapods/discover_pods_finds_podspecs_with_names-6.txt"))
 		.unwrap_or_else(|error| panic!("write empty podspec: {error}"));
 
 	let discovery = discover_pods(root).unwrap_or_else(|error| panic!("pod discovery: {error}"));
@@ -104,14 +73,17 @@ fn discover_pods_skips_pods_directories_and_reports_unreadable_podspecs() {
 	let root = tempdir.path();
 	fs::create_dir_all(root.join("Pods/Canvist"))
 		.unwrap_or_else(|error| panic!("mkdir Pods: {error}"));
-	fs::write(root.join("Pods/Canvist.podspec"), "s.name = 'Nested'\n")
+	fs::write(root.join("Pods/Canvist.podspec"), include_str!("../../../../fixtures/tests/native-adapters/cocoapods/discover_pods_skips_pods_directories_and_reports_unreadable_podspecs-7.txt"))
 		.unwrap_or_else(|error| panic!("write nested podspec: {error}"));
 	#[cfg(unix)]
 	std::os::unix::fs::symlink(root.join("missing"), root.join("Broken.podspec"))
 		.unwrap_or_else(|error| panic!("symlink podspec: {error}"));
 	#[cfg(not(unix))]
-	fs::write(root.join("Broken.podspec"), [0xff, 0xfe])
-		.unwrap_or_else(|error| panic!("write invalid podspec: {error}"));
+	fs::write(
+		root.join("Broken.podspec"),
+		include_bytes!("../../../../fixtures/tests/native-adapters/invalid-utf8"),
+	)
+	.unwrap_or_else(|error| panic!("write invalid podspec: {error}"));
 
 	let discovery = discover_pods(root).unwrap_or_else(|error| panic!("pod discovery: {error}"));
 
@@ -144,7 +116,7 @@ fn parse_podspec_resolves_derived_versions_to_none() {
 	let podspec = root.join("Derived.podspec");
 	fs::write(
 		&podspec,
-		"version = File.read('Cargo.toml')\nPod::Spec.new do |s|\n  s.name = 'Derived'\nend\n",
+		include_str!("../../../../fixtures/tests/native-adapters/cocoapods/parse_podspec_resolves_derived_versions_to_none-8.txt"),
 	)
 	.unwrap_or_else(|error| panic!("write podspec: {error}"));
 
@@ -209,21 +181,6 @@ fn update_podspec_version_preserves_quote_style() {
 	assert_eq!(update_podspec_version(unchanged, "1.0.0"), unchanged);
 }
 
-// -- placeholder manifest --
-#[test]
-fn write_cocoapods_placeholder_manifest_writes_a_complete_podspec() {
-	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	let dir = tempdir.path();
-	write_cocoapods_placeholder_manifest(dir, &publish_request("Canvist", "0.0.0"))
-		.unwrap_or_else(|error| panic!("write placeholder podspec: {error}"));
-
-	let contents = fs::read_to_string(dir.join("Canvist.podspec"))
-		.unwrap_or_else(|error| panic!("read placeholder podspec: {error}"));
-
-	assert!(contents.contains("s.name = 'Canvist'"));
-	assert!(contents.contains("s.version = '0.0.0'"));
-}
-
 // -- validation --
 #[test]
 fn validate_versioned_file_requires_a_name_declaration() {
@@ -236,7 +193,7 @@ fn validate_versioned_file_requires_a_name_declaration() {
 		.unwrap_or_else(|error| panic!("validate podspec: {error}"));
 
 	let nameless = tempdir.path().join("Nameless.podspec");
-	fs::write(&nameless, "  s.version = '1.0.0'\n")
+	fs::write(&nameless, include_str!("../../../../fixtures/tests/native-adapters/cocoapods/validate_versioned_file_requires_a_name_declaration-9.txt"))
 		.unwrap_or_else(|error| panic!("write nameless podspec: {error}"));
 
 	let error = CocoaPodsAdapter
@@ -252,6 +209,46 @@ fn validate_versioned_file_requires_a_name_declaration() {
 fn dependency_defaults_are_empty() {
 	assert_eq!(crate::default_dependency_version_prefix(), "");
 	assert!(crate::default_dependency_fields().is_empty());
+}
+
+#[test]
+fn json_podspecs_expose_name_and_version() {
+	let contents =
+		include_str!("../../../../fixtures/tests/native-audit/json/Canvist.podspec.json");
+	assert_eq!(parse_podspec_name(contents).as_deref(), Some("CanvistJson"));
+	assert_eq!(parse_podspec_version(contents), Some(Version::new(1, 2, 3)));
+	let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+		.join("../../fixtures/tests/native-audit/json/Canvist.podspec.json");
+	let package = parse_podspec(&path, path.parent().expect("parent"))
+		.unwrap_or_else(|error| panic!("parse json podspec: {error}"))
+		.expect("pod record");
+	assert_eq!(package.name, "CanvistJson");
+	CocoaPodsAdapter
+		.validate_versioned_file(
+			&path,
+			"Canvist.podspec.json",
+			Some(&["version".to_string()]),
+		)
+		.unwrap_or_else(|error| panic!("validate json versioned file: {error}"));
+}
+
+#[test]
+fn typed_podspec_updates_reject_computed_versions() {
+	let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+		.join("../../fixtures/tests/native-audit-errors/Derived.podspec");
+	let error = CocoaPodsAdapter
+		.validate_versioned_file(&path, "Derived.podspec", Some(&["version".to_string()]))
+		.expect_err("computed version cannot be rewritten as a literal");
+	assert!(matches!(error, MonochangeError::Config(_)));
+}
+
+#[test]
+fn podspec_updates_skip_comments_and_unrelated_attributes() {
+	let contents = "# s.version = '0.0.0'\n  s.swift_version = '5.0'\n  s.version = '1.2.3'\n";
+	assert_eq!(
+		update_podspec_version(contents, "1.4.0"),
+		"# s.version = '0.0.0'\n  s.swift_version = '5.0'\n  s.version = '1.4.0'\n"
+	);
 }
 
 #[test]

@@ -4170,7 +4170,7 @@ fn cocoapods_dry_run_lints_the_podspec_instead_of_pushing() {
 
 	assert_eq!(
 		args.iter().map(String::as_str).collect::<Vec<_>>(),
-		vec!["spec", "lint"]
+		vec!["spec", "lint", "Canvist.podspec", "--allow-warnings"]
 	);
 }
 
@@ -4181,7 +4181,14 @@ fn gradle_release_publish_runs_the_wrapper_release_task() {
 
 	let command = build_publish_command(&request, PackagePublishRunMode::Release, None, false);
 
-	assert_eq!(command.program, "./gradlew");
+	assert_eq!(
+		command.program,
+		if cfg!(windows) {
+			"gradlew.bat"
+		} else {
+			"./gradlew"
+		}
+	);
 	assert_eq!(
 		command.args.iter().map(String::as_str).collect::<Vec<_>>(),
 		vec!["publishAndReleaseToMavenCentral"]
@@ -4469,6 +4476,17 @@ fn manual_setup_url_opens_the_native_registry_pages() {
 		maven,
 		"https://central.sonatype.com/artifact/dev.canvist/canvist-android"
 	);
+	assert_eq!(
+		manual_setup_url(&gradle_publish_request(
+			"dev.canvist:canvist-android",
+			"1.0.0"
+		)),
+		maven
+	);
+	assert_eq!(
+		manual_setup_url(&gradle_publish_request("unknown", "1.0.0")),
+		"https://central.sonatype.com/"
+	);
 }
 
 #[test]
@@ -4487,11 +4505,11 @@ fn cocoapods_adapter_covers_every_publish_method_directly() {
 		.expect("cocoapods adapter");
 	let request = cocoapods_publish_request("Canvist", "1.2.3");
 
-	let placeholder = adapter
-		.build_placeholder_command(&request, Path::new("/tmp/placeholder"))
-		.expect("placeholder command");
-	assert_eq!(placeholder.program, "pod");
-	assert_eq!(placeholder.cwd, Path::new("/tmp/placeholder"));
+	assert!(
+		adapter
+			.build_placeholder_command(&request, Path::new("/tmp/placeholder"))
+			.is_none()
+	);
 
 	let release = adapter
 		.build_release_command(&request)
@@ -4506,7 +4524,7 @@ fn cocoapods_adapter_covers_every_publish_method_directly() {
 	adapter.append_dry_run_args(&mut args);
 	assert_eq!(
 		args.iter().map(String::as_str).collect::<Vec<_>>(),
-		vec!["spec", "lint"]
+		vec!["spec", "lint", "Canvist.podspec"]
 	);
 
 	assert_eq!(
@@ -4529,11 +4547,18 @@ fn gradle_adapter_covers_every_publish_method_directly() {
 	let release = adapter
 		.build_release_command(&request)
 		.expect("release command");
-	assert_eq!(release.program, "./gradlew");
+	assert_eq!(
+		release.program,
+		if cfg!(windows) {
+			"gradlew.bat"
+		} else {
+			"./gradlew"
+		}
+	);
 
 	let mut args = vec!["publishAndReleaseToMavenCentral".to_string()];
 	adapter.append_dry_run_args(&mut args);
-	assert_eq!(args.len(), 1);
+	assert_eq!(args, ["publishAndReleaseToMavenCentral", "--dry-run"]);
 
 	assert_eq!(
 		adapter.registry_setup_url(),
@@ -4545,12 +4570,54 @@ fn gradle_adapter_covers_every_publish_method_directly() {
 }
 
 #[test]
-fn append_publish_dry_run_args_leaves_maven_central_commands_alone() {
+fn append_publish_dry_run_args_disables_maven_central_task_execution() {
 	let mut args = vec!["publishAndReleaseToMavenCentral".to_string()];
 
 	append_publish_dry_run_args(&mut args, RegistryKind::MavenCentral, true);
 
-	assert_eq!(args.len(), 1);
+	assert_eq!(args, ["publishAndReleaseToMavenCentral", "--dry-run"]);
+}
+
+#[test]
+fn gradle_release_dry_run_disables_task_execution() {
+	let request = gradle_publish_request("dev.canvist:canvist-android", "0.2.0");
+	let command = build_publish_command(&request, PackagePublishRunMode::Release, None, true);
+	assert_eq!(
+		command.args,
+		["publishAndReleaseToMavenCentral", "--dry-run"]
+	);
+}
+
+#[test]
+fn native_publish_order_uses_each_ecosystems_configuration() {
+	let mut configuration = empty_configuration(Path::new("."));
+	configuration.swift.publish_order.dependency_fields =
+		Some(vec!["swift-dependencies".to_string()]);
+	configuration.cocoapods.publish_order.dependency_fields =
+		Some(vec!["pod-dependencies".to_string()]);
+	configuration.gradle.publish_order.dependency_fields =
+		Some(vec!["gradle-dependencies".to_string()]);
+	for (ecosystem, field) in [
+		(Ecosystem::Swift, "swift-dependencies"),
+		(Ecosystem::CocoaPods, "pod-dependencies"),
+		(Ecosystem::Gradle, "gradle-dependencies"),
+	] {
+		assert_eq!(
+			publish_order_dependency_fields(&configuration, ecosystem),
+			BTreeSet::from([field.to_string()])
+		);
+	}
+}
+
+#[test]
+fn cocoapods_release_dry_run_keeps_the_selected_json_podspec() {
+	let mut request = cocoapods_publish_request("Canvist", "0.2.0");
+	request.manifest_path = PathBuf::from("Canvist.podspec.json");
+	let command = build_publish_command(&request, PackagePublishRunMode::Release, None, true);
+	assert_eq!(
+		command.args,
+		["spec", "lint", "Canvist.podspec.json", "--allow-warnings"]
+	);
 }
 
 #[tokio::test(flavor = "multi_thread")]

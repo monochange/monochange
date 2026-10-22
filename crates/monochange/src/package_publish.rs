@@ -5,7 +5,6 @@ use std::path::Path;
 use monochange_cargo::cargo_publish_readiness_blockers;
 use monochange_cargo::publish_blocked_message;
 use monochange_cargo::write_cargo_placeholder_manifest;
-use monochange_cocoapods::write_cocoapods_placeholder_manifest;
 use monochange_core::Ecosystem;
 use monochange_core::MonochangeError;
 use monochange_core::MonochangeResult;
@@ -796,12 +795,6 @@ pub(crate) fn placeholder_manifest_writer_registry() -> PlaceholderManifestWrite
 			RegistryKind::GoProxy,
 			Box::new(|placeholder_dir, request, _root, _source| {
 				write_go_placeholder_manifest(placeholder_dir, request)
-			}),
-		)
-		.with_writer(
-			RegistryKind::CocoaPodsTrunk,
-			Box::new(|placeholder_dir, request, _root, _source| {
-				write_cocoapods_placeholder_manifest(placeholder_dir, request)
 			}),
 		)
 }

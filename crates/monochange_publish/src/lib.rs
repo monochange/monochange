@@ -631,16 +631,9 @@ pub fn manual_setup_url(request: &PublishRequest) -> String {
 	} else if request.registry == RegistryKind::CocoaPodsTrunk {
 		format!("https://cocoapods.org/pods/{}", request.package_name)
 	} else if request.registry == RegistryKind::MavenCentral {
-		format!(
-			"https://central.sonatype.com/artifact/{}/{}",
-			request
-				.package_metadata
-				.get("group_id")
-				.map_or(request.package_name.as_str(), String::as_str),
-			request
-				.package_metadata
-				.get("artifact_id")
-				.map_or(request.package_name.as_str(), String::as_str)
+		maven_central_coordinate(request).map_or_else(
+			|| "https://central.sonatype.com/".to_string(),
+			|(group, artifact)| format!("https://central.sonatype.com/artifact/{group}/{artifact}"),
 		)
 	} else {
 		format!(
@@ -870,6 +863,11 @@ impl PlaceholderManifestWriterRegistry {
 		self.writers.push((registry, writer));
 	}
 
+	/// Write a placeholder manifest through the registered ecosystem writer.
+	///
+	/// # Errors
+	/// Returns an error when the registry does not support placeholder publishing
+	/// or when the selected writer cannot create its manifest.
 	pub fn write_manifest(
 		&self,
 		placeholder_dir: &Path,
@@ -881,7 +879,12 @@ impl PlaceholderManifestWriterRegistry {
 			.writers
 			.iter()
 			.find(|(registry, _)| *registry == request.registry)
-			.expect("unsupported built-in publish registry");
+			.ok_or_else(|| {
+				MonochangeError::Config(format!(
+					"placeholder publishing is unsupported for registry `{}`",
+					request.registry
+				))
+			})?;
 		writer(placeholder_dir, request, root, source)
 	}
 }
@@ -2770,10 +2773,10 @@ impl PublishAdapter for CocoaPodsPublishAdapter {
 
 	fn build_placeholder_command(
 		&self,
-		request: &PublishRequest,
-		placeholder_path: &Path,
+		_request: &PublishRequest,
+		_placeholder_path: &Path,
 	) -> Option<CommandSpec> {
-		Some(build_cocoapods_publish_command(request, placeholder_path))
+		None
 	}
 
 	fn build_release_command(&self, request: &PublishRequest) -> Option<CommandSpec> {
@@ -2786,9 +2789,7 @@ impl PublishAdapter for CocoaPodsPublishAdapter {
 	fn append_dry_run_args(&self, args: &mut Vec<String>) {
 		// `pod trunk push` has no dry-run flag; `pod spec lint` runs the same
 		// validation locally without mutating the trunk.
-		args.clear();
-		args.push("spec".to_string());
-		args.push("lint".to_string());
+		append_publish_dry_run_args(args, RegistryKind::CocoaPodsTrunk, true);
 	}
 
 	fn registry_setup_url(&self) -> Option<&'static str> {
@@ -2824,7 +2825,9 @@ impl PublishAdapter for GradlePublishAdapter {
 		Some(build_gradle_publish_command(request))
 	}
 
-	fn append_dry_run_args(&self, _args: &mut Vec<String>) {}
+	fn append_dry_run_args(&self, args: &mut Vec<String>) {
+		append_publish_dry_run_args(args, RegistryKind::MavenCentral, true);
+	}
 
 	fn registry_setup_url(&self) -> Option<&'static str> {
 		Some("https://central.sonatype.org/publish/publish-portal/")
@@ -2877,17 +2880,14 @@ pub fn append_publish_dry_run_args(args: &mut Vec<String>, registry: RegistryKin
 		return;
 	}
 
-	if registry == RegistryKind::Pypi
-		|| registry == RegistryKind::GoProxy
-		|| registry == RegistryKind::MavenCentral
-	{
+	if registry == RegistryKind::Pypi || registry == RegistryKind::GoProxy {
 		return;
 	}
 
 	if registry == RegistryKind::CocoaPodsTrunk {
-		args.clear();
-		args.push("spec".to_string());
-		args.push("lint".to_string());
+		for (arg, replacement) in args.iter_mut().take(2).zip(["spec", "lint"]) {
+			*arg = replacement.to_string();
+		}
 
 		return;
 	}
@@ -3138,7 +3138,12 @@ fn build_gradle_publish_command(request: &PublishRequest) -> CommandSpec {
 		// The Gradle wrapper resolves the project's publishing setup; the
 		// vanniktech plugin's `publishAndReleaseToMavenCentral` task uploads
 		// and releases the deployment in one run.
-		program: "./gradlew".to_string(),
+		program: if cfg!(windows) {
+			"gradlew.bat"
+		} else {
+			"./gradlew"
+		}
+		.to_string(),
 		args: vec!["publishAndReleaseToMavenCentral".to_string()],
 		cwd: request.package_root.clone(),
 		env: BTreeMap::new(),
@@ -3176,10 +3181,10 @@ pub fn maven_central_coordinate(request: &PublishRequest) -> Option<(String, Str
 		(Some(group), Some(artifact)) if !group.is_empty() && !artifact.is_empty() => {
 			Some((group, artifact))
 		}
+
 		_ => None,
 	}
 }
-
 /// Render the Maven repository path for a group and artifact pair.
 ///
 /// `dev.canvist` with artifact `canvist-android` becomes
@@ -3690,6 +3695,9 @@ fn ecosystem_settings(
 		Ecosystem::Dart => &configuration.dart,
 		Ecosystem::Python => &configuration.python,
 		Ecosystem::Go => &configuration.go,
+		Ecosystem::Swift => &configuration.swift,
+		Ecosystem::CocoaPods => &configuration.cocoapods,
+		Ecosystem::Gradle => &configuration.gradle,
 		_ => &configuration.npm,
 	}
 }

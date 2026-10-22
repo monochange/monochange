@@ -5931,8 +5931,7 @@ async fn plan_publish_rate_limits_includes_packages_outside_discovery_tree() {
 }
 
 #[test]
-fn cocoapods_placeholder_writer_writes_the_podspec_into_the_placeholder_directory()
--> Result<(), Box<dyn std::error::Error>> {
+fn cocoapods_placeholder_writer_rejects_unsupported_name_reservation() {
 	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let placeholder_dir = tempdir.path().join("placeholder");
 	std::fs::create_dir_all(&placeholder_dir)
@@ -5943,15 +5942,8 @@ fn cocoapods_placeholder_writer_writes_the_podspec_into_the_placeholder_director
 	request.package_name = "Canvist".to_string();
 	request.version = "0.0.0".to_string();
 
-	crate::package_publish::placeholder_manifest_writer_registry().write_manifest(
-		&placeholder_dir,
-		&request,
-		tempdir.path(),
-		None,
-	)?;
-
-	let contents = std::fs::read_to_string(placeholder_dir.join("Canvist.podspec"))?;
-	assert!(contents.contains("s.name = 'Canvist'"));
-
-	Ok(())
+	let error = crate::package_publish::placeholder_manifest_writer_registry()
+		.write_manifest(&placeholder_dir, &request, tempdir.path(), None)
+		.expect_err("placeholder pods require real source releases");
+	assert!(matches!(error, MonochangeError::Config(_)));
 }

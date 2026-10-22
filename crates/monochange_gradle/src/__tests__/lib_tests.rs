@@ -21,7 +21,46 @@ use crate::project_name_from_settings;
 use crate::update_gradle_properties_text;
 
 const CANVIST_PROPERTIES: &str =
-	"org.gradle.jvmargs=-Xmx4g\nandroid.useAndroidX=true\nVERSION_NAME=0.1.0\n";
+	include_str!("../../../../fixtures/tests/native-adapters/gradle/canvist_properties.txt");
+
+#[test]
+fn properties_split_before_colons_in_whitespace_separated_values() {
+	let properties = parse_properties("COORDINATE dev.canvist:android\nVERSION_NAME 1.2.3\n");
+	assert_eq!(
+		properties.get("COORDINATE").map(String::as_str),
+		Some("dev.canvist:android")
+	);
+}
+
+#[test]
+fn properties_updates_preserve_separators_line_endings_and_other_keys() {
+	let contents = "  VERSION_NAME \t = 1.2.3\r\nCUSTOM_VERSION: 1.2.3\r\nother=a:b\r\n";
+	assert_eq!(
+		update_gradle_properties_text(contents, &["VERSION_NAME", "CUSTOM_VERSION"], "1.4.0"),
+		"  VERSION_NAME \t = 1.4.0\r\nCUSTOM_VERSION: 1.4.0\r\nother=a:b\r\n"
+	);
+	assert_eq!(
+		update_gradle_properties_text("VERSION_NAME 1.2.3", &["VERSION_NAME"], "1.4.0"),
+		"VERSION_NAME 1.4.0"
+	);
+}
+
+#[test]
+fn versioned_properties_validate_the_selected_custom_keys() {
+	let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+		.join("../../fixtures/tests/native-audit-errors/gradle.properties");
+	GradleAdapter
+		.validate_versioned_file(
+			&path,
+			"gradle.properties",
+			Some(&["CUSTOM_VERSION".to_string()]),
+		)
+		.unwrap_or_else(|error| panic!("custom version property: {error}"));
+	let error = GradleAdapter
+		.validate_versioned_file(&path, "gradle.properties", Some(&["MISSING".to_string()]))
+		.expect_err("missing property");
+	assert!(matches!(error, MonochangeError::Config(_)));
+}
 
 // -- adapter --
 #[test]
@@ -53,11 +92,11 @@ fn discover_gradle_projects_finds_versioned_properties() {
 	fs::create_dir_all(&android).unwrap_or_else(|error| panic!("mkdir android: {error}"));
 	fs::write(android.join("gradle.properties"), CANVIST_PROPERTIES)
 		.unwrap_or_else(|error| panic!("write gradle.properties: {error}"));
-	fs::write(root.join("local.properties"), "VERSION_NAME=9.9.9\n")
+	fs::write(root.join("local.properties"), include_str!("../../../../fixtures/tests/native-adapters/gradle/discover_gradle_projects_finds_versioned_properties-10.txt"))
 		.unwrap_or_else(|error| panic!("write local.properties: {error}"));
 	fs::create_dir_all(root.join("build/outputs"))
 		.unwrap_or_else(|error| panic!("mkdir build: {error}"));
-	fs::write(root.join("build/gradle.properties"), "VERSION_NAME=8.8.8\n")
+	fs::write(root.join("build/gradle.properties"), include_str!("../../../../fixtures/tests/native-adapters/gradle/discover_gradle_projects_finds_versioned_properties-11.txt"))
 		.unwrap_or_else(|error| panic!("write build gradle.properties: {error}"));
 
 	let discovery =
@@ -75,7 +114,7 @@ fn discover_gradle_projects_finds_versioned_properties() {
 fn discover_gradle_projects_skips_properties_without_a_version() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
-	fs::write(root.join("gradle.properties"), "org.gradle.caching=true\n")
+	fs::write(root.join("gradle.properties"), include_str!("../../../../fixtures/tests/native-adapters/gradle/discover_gradle_projects_skips_properties_without_a_version-12.txt"))
 		.unwrap_or_else(|error| panic!("write gradle.properties: {error}"));
 
 	let discovery =
@@ -92,8 +131,11 @@ fn discover_gradle_projects_reports_warnings_for_unreadable_properties() {
 	std::os::unix::fs::symlink(root.join("missing"), root.join("gradle.properties"))
 		.unwrap_or_else(|error| panic!("symlink gradle.properties: {error}"));
 	#[cfg(not(unix))]
-	fs::write(root.join("gradle.properties"), [0xff, 0xfe])
-		.unwrap_or_else(|error| panic!("write invalid gradle.properties: {error}"));
+	fs::write(
+		root.join("gradle.properties"),
+		include_bytes!("../../../../fixtures/tests/native-adapters/invalid-utf8"),
+	)
+	.unwrap_or_else(|error| panic!("write invalid gradle.properties: {error}"));
 
 	let discovery =
 		discover_gradle_projects(root).unwrap_or_else(|error| panic!("gradle discovery: {error}"));
@@ -110,7 +152,7 @@ fn load_configured_gradle_project_reads_the_manifest() {
 	fs::create_dir_all(&android).unwrap_or_else(|error| panic!("mkdir android: {error}"));
 	fs::write(
 		android.join("gradle.properties"),
-		"GROUP=dev.canvist\nPOM_ARTIFACT_ID=canvist-android\nVERSION_NAME=0.2.0\n",
+		include_str!("../../../../fixtures/tests/native-adapters/gradle/load_configured_gradle_project_reads_the_manifest-13.txt"),
 	)
 	.unwrap_or_else(|error| panic!("write gradle.properties: {error}"));
 
@@ -140,11 +182,11 @@ fn parse_gradle_properties_falls_back_to_settings_and_directory_names() {
 	let root = tempdir.path();
 	let android = root.join("android");
 	fs::create_dir_all(&android).unwrap_or_else(|error| panic!("mkdir android: {error}"));
-	fs::write(android.join("gradle.properties"), "VERSION_NAME=1.0.0\n")
+	fs::write(android.join("gradle.properties"), include_str!("../../../../fixtures/tests/native-adapters/gradle/parse_gradle_properties_falls_back_to_settings_and_directory_names-14.txt"))
 		.unwrap_or_else(|error| panic!("write gradle.properties: {error}"));
 	fs::write(
 		android.join("settings.gradle.kts"),
-		"rootProject.name = \"canvist-android\"\n",
+		include_str!("../../../../fixtures/tests/native-adapters/gradle/parse_gradle_properties_falls_back_to_settings_and_directory_names-15.txt"),
 	)
 	.unwrap_or_else(|error| panic!("write settings.gradle.kts: {error}"));
 
@@ -157,7 +199,7 @@ fn parse_gradle_properties_falls_back_to_settings_and_directory_names() {
 
 	let nameless = root.join("nameless");
 	fs::create_dir_all(&nameless).unwrap_or_else(|error| panic!("mkdir nameless: {error}"));
-	fs::write(nameless.join("gradle.properties"), "VERSION_NAME=1.0.0\n")
+	fs::write(nameless.join("gradle.properties"), include_str!("../../../../fixtures/tests/native-adapters/gradle/parse_gradle_properties_falls_back_to_settings_and_directory_names-16.txt"))
 		.unwrap_or_else(|error| panic!("write gradle.properties: {error}"));
 
 	let record = parse_gradle_properties(&nameless.join("gradle.properties"), root)
@@ -172,7 +214,7 @@ fn parse_gradle_properties_falls_back_to_settings_and_directory_names() {
 fn parse_gradle_properties_reports_invalid_versions_as_none() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
-	fs::write(root.join("gradle.properties"), "VERSION_NAME=1.0\n")
+	fs::write(root.join("gradle.properties"), include_str!("../../../../fixtures/tests/native-adapters/gradle/parse_gradle_properties_reports_invalid_versions_as_none-17.txt"))
 		.unwrap_or_else(|error| panic!("write gradle.properties: {error}"));
 
 	let record = parse_gradle_properties(&root.join("gradle.properties"), root)
@@ -220,7 +262,7 @@ fn parse_root_project_name_reads_both_settings_dialects() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let dir = tempdir.path();
 	assert_eq!(project_name_from_settings(dir), None);
-	fs::write(dir.join("settings.gradle"), "rootProject.name = \"kts\"\n")
+	fs::write(dir.join("settings.gradle"), include_str!("../../../../fixtures/tests/native-adapters/gradle/parse_root_project_name_reads_both_settings_dialects-18.txt"))
 		.unwrap_or_else(|error| panic!("write settings.gradle: {error}"));
 	assert_eq!(project_name_from_settings(dir), Some("kts".to_string()));
 }
@@ -274,7 +316,7 @@ fn validate_versioned_file_requires_version_name() {
 		.unwrap_or_else(|error| panic!("validate properties: {error}"));
 
 	let versionless = tempdir.path().join("other.properties");
-	fs::write(&versionless, "org.gradle.caching=true\n")
+	fs::write(&versionless, include_str!("../../../../fixtures/tests/native-adapters/gradle/validate_versioned_file_requires_version_name-19.txt"))
 		.unwrap_or_else(|error| panic!("write versionless properties: {error}"));
 
 	let error = GradleAdapter
@@ -314,7 +356,7 @@ fn parse_properties_skips_lines_without_key_value_pairs() {
 fn project_name_from_settings_ignores_scripts_without_root_project_name() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let dir = tempdir.path();
-	fs::write(dir.join("settings.gradle.kts"), "include(\":app\")\n")
+	fs::write(dir.join("settings.gradle.kts"), include_str!("../../../../fixtures/tests/native-adapters/gradle/project_name_from_settings_ignores_scripts_without_root_project_name-20.txt"))
 		.unwrap_or_else(|error| panic!("write settings.gradle.kts: {error}"));
 
 	assert_eq!(project_name_from_settings(dir), None);

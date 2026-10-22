@@ -17,8 +17,12 @@ fn fixture_path(relative: &str) -> PathBuf {
 }
 
 fn setup_native_release_fixture(tempdir: &TempDir) {
+	setup_fixture(tempdir, "native-release");
+}
+
+fn setup_fixture(tempdir: &TempDir, fixture: &str) {
 	let root = tempdir.path();
-	copy_directory(&fixture_path("native-release"), root);
+	copy_directory(&fixture_path(fixture), root);
 	git(root, &["init"]);
 	git(root, &["config", "user.name", "monochange-tests"]);
 	git(
@@ -27,6 +31,86 @@ fn setup_native_release_fixture(tempdir: &TempDir) {
 	);
 	git(root, &["add", "."]);
 	git(root, &["commit", "-m", "initial"]);
+}
+
+#[test]
+fn native_auto_discovery_prepares_json_podspecs_and_inherited_properties() {
+	let tempdir = TempDir::new().unwrap_or_else(|error| panic!("temporary workspace: {error}"));
+	setup_fixture(&tempdir, "native-audit");
+	let root = tempdir.path();
+	let manifest = prepare_release(root);
+	assert_json_snapshot!("native_auto_discovery_plan", plan_summary(&manifest));
+	insta::assert_snapshot!(
+		"native_json_podspec",
+		fs::read_to_string(root.join("json/Canvist.podspec.json"))
+			.unwrap_or_else(|error| panic!("json podspec: {error}"))
+	);
+	insta::assert_snapshot!(
+		"native_inherited_gradle_properties",
+		fs::read_to_string(root.join("android/gradle.properties"))
+			.unwrap_or_else(|error| panic!("gradle properties: {error}"))
+	);
+}
+
+#[cfg(unix)]
+#[test]
+fn gradle_cli_dry_run_disables_release_task_execution() {
+	use std::os::unix::fs::PermissionsExt;
+
+	let tempdir = TempDir::new().unwrap_or_else(|error| panic!("temporary workspace: {error}"));
+	setup_fixture(&tempdir, "native-audit");
+	let root = tempdir.path();
+	fs::set_permissions(
+		root.join("android/gradlew"),
+		fs::Permissions::from_mode(0o755),
+	)
+	.unwrap_or_else(|error| panic!("wrapper permissions: {error}"));
+	let server = httpmock::MockServer::start();
+	let lookup = server.mock(|when, then| {
+		when.method(httpmock::Method::GET)
+			.path("/dev/canvist/native-android/maven-metadata.xml");
+		then.status(404);
+	});
+	let output = Command::new(get_cargo_bin("monochange"))
+		.current_dir(root)
+		.env("NO_COLOR", "1")
+		.env_remove("RUST_LOG")
+		.env("MONOCHANGE_NO_PROGRESS", "1")
+		.env("MONOCHANGE_MAVEN_CENTRAL_URL", server.base_url())
+		.args([
+			"step",
+			"publish-packages",
+			"--all",
+			"--package",
+			"android",
+			"--dry-run",
+			"--format",
+			"json",
+		])
+		.output()
+		.unwrap_or_else(|error| panic!("run Gradle dry run: {error}"));
+	assert!(
+		output.status.success(),
+		"{}\n{}",
+		String::from_utf8_lossy(&output.stdout),
+		String::from_utf8_lossy(&output.stderr)
+	);
+
+	let report: Value = serde_json::from_slice(&output.stdout)
+		.unwrap_or_else(|error| panic!("publish report: {error}"));
+	let package = &report["package_publish"]["packages"][0];
+	assert_json_snapshot!(
+		"gradle_cli_dry_run",
+		serde_json::json!({
+			"status": package["status"], "registry": package["registry"],
+			"version": package["version"], "command": package["command"],
+		})
+	);
+	insta::assert_snapshot!(
+		"gradle_cli_dry_run_stdout",
+		package["stdout"].as_str().expect("wrapper output")
+	);
+	lookup.assert_calls(2);
 }
 
 fn prepare_release(root: &Path) -> Value {
@@ -85,8 +169,8 @@ fn plan_summary(manifest: &Value) -> Value {
 				.iter()
 				.map(|group| {
 					serde_json::json!({
-						"group": group["group"],
-						"version": group["version"],
+						"group": group["id"],
+						"version": group["planned_version"],
 						"members": group["members"],
 					})
 				})

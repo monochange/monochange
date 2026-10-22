@@ -1,0 +1,29 @@
+[ecosystems.swift]
+versioned_files = [{ path = "Package.swift", type = "swift", fields = [] }]
+
+[ecosystems.swift.auto_discover]
+include = ["swift"]
+id = "apple"
+
+[ecosystems.cocoapods]
+versioned_files = [{ path = "*.podspec.json", type = "cocoapods", fields = ["version"] }]
+
+[ecosystems.cocoapods.auto_discover]
+include = ["json"]
+id = "pod"
+
+[ecosystems.gradle]
+versioned_files = [{ path = "gradle.properties", type = "gradle", fields = ["VERSION_NAME", "CUSTOM_VERSION"] }]
+
+[ecosystems.gradle.auto_discover]
+include = ["android"]
+id = "android"
+
+[ecosystems.gradle.publish]
+enabled = true
+mode = "builtin"
+trusted_publishing = false
+
+[group.sdk]
+packages = ["apple", "pod", "android"]
+version_format = "primary"

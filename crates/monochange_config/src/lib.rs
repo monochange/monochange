@@ -1313,57 +1313,13 @@ fn extract_manifest_name(contents: &str, ecosystem_type: EcosystemType) -> Optio
 		EcosystemType::Npm | EcosystemType::Deno => extract_json_name_field(contents),
 		EcosystemType::Dart => extract_yaml_name_field(contents),
 		EcosystemType::Python => extract_toml_table_field(contents, "project", "name"),
-		EcosystemType::Swift => extract_package_swift_name(contents),
-		EcosystemType::Gradle => extract_properties_key(contents, "POM_ARTIFACT_ID"),
+		EcosystemType::Swift => monochange_swift::parse_package_name(contents),
+		EcosystemType::CocoaPods => monochange_cocoapods::parse_podspec_name(contents),
+		EcosystemType::Gradle => {
+			monochange_gradle::parse_properties(contents).remove("POM_ARTIFACT_ID")
+		}
 		_ => None,
 	}
-}
-
-/// Extract the package name from a `Package.swift` manifest.
-///
-/// Matches the first `name: "…"` argument of the `Package(…)` initializer on a
-/// line the match is not commented out of.
-fn extract_package_swift_name(contents: &str) -> Option<String> {
-	for line in contents.lines() {
-		let Some(position) = line.find("name") else {
-			continue;
-		};
-		let Some(start) = line[position..]
-			.find('"')
-			.map(|offset| position + offset + 1)
-		else {
-			continue;
-		};
-		let Some(end) = line[start..].find('"').map(|offset| start + offset) else {
-			continue;
-		};
-		let name = &line[start..end];
-
-		if name.is_empty() || line[..position].contains("//") {
-			continue;
-		}
-
-		return Some(name.to_string());
-	}
-
-	None
-}
-
-/// Extract a `KEY=VALUE` property from Java properties text.
-fn extract_properties_key(contents: &str, key: &str) -> Option<String> {
-	let prefix = format!("{key}=");
-
-	for line in contents.lines() {
-		let trimmed = line.trim();
-
-		if let Some(value) = trimmed.strip_prefix(&prefix) {
-			let value = value.trim().strip_prefix('"').unwrap_or(value);
-
-			return Some(value.strip_suffix('"').unwrap_or(value).to_string());
-		}
-	}
-
-	None
 }
 
 /// Extract a `name = "value"` field from a TOML `[section]` block.
@@ -1522,6 +1478,9 @@ fn ecosystem_name(ecosystem_type: EcosystemType) -> &'static str {
 		EcosystemType::Dart => "dart",
 		EcosystemType::Python => "python",
 		EcosystemType::Go => "go",
+		EcosystemType::Swift => "swift",
+		EcosystemType::CocoaPods => "cocoapods",
+		EcosystemType::Gradle => "gradle",
 		// patch-coverage:ignore-start -- future-proof fallback for non-exhaustive external enum.
 		_ => "unknown",
 		// patch-coverage:ignore-end
@@ -1556,7 +1515,7 @@ pub(crate) fn discover_packages_from_ecosystem(
 ) -> MonochangeResult<Vec<DiscoveredPackage>> {
 	let manifest_filenames = manifest_file_for_ecosystem(ecosystem_type);
 	// patch-coverage:ignore-start -- defensive branch for future non-exhaustive ecosystem variants.
-	if manifest_filenames.is_empty() {
+	if manifest_filenames.is_empty() && ecosystem_type != EcosystemType::CocoaPods {
 		return Ok(Vec::new());
 	}
 
@@ -1633,9 +1592,18 @@ pub(crate) fn discover_packages_from_ecosystem(
 				continue;
 			}
 
-			for manifest_name in manifest_filenames {
-				let manifest_path = path.join(manifest_name);
+			let manifest_paths = if ecosystem_type == EcosystemType::CocoaPods {
+				monochange_cocoapods::find_podspec_in(path)
+					.into_iter()
+					.collect::<Vec<_>>()
+			} else {
+				manifest_filenames
+					.iter()
+					.map(|name| path.join(name))
+					.collect()
+			};
 
+			for manifest_path in manifest_paths {
 				if !manifest_path.is_file() {
 					continue;
 				}
@@ -2042,6 +2010,9 @@ fn build_package_definitions(
 					EcosystemType::Dart => dart_ecosystem.versioned_files.clone(),
 					EcosystemType::Python => python_ecosystem.versioned_files.clone(),
 					EcosystemType::Go => go_ecosystem.versioned_files.clone(),
+					EcosystemType::Swift => swift_ecosystem.versioned_files.clone(),
+					EcosystemType::CocoaPods => cocoapods_ecosystem.versioned_files.clone(),
+					EcosystemType::Gradle => gradle_ecosystem.versioned_files.clone(),
 					_ => Vec::new(),
 				}
 			};
@@ -2408,6 +2379,9 @@ fn ecosystem_type_to_package_type(ecosystem_type: EcosystemType) -> PackageType 
 		EcosystemType::Python => PackageType::Python,
 		EcosystemType::Go => PackageType::Go,
 		EcosystemType::Cargo => PackageType::Cargo,
+		EcosystemType::Swift => PackageType::Swift,
+		EcosystemType::CocoaPods => PackageType::CocoaPods,
+		EcosystemType::Gradle => PackageType::Gradle,
 		// patch-coverage:ignore-start -- future-proof fallback for non-exhaustive external enum.
 		_ => unreachable!("unsupported ecosystem type"),
 		// patch-coverage:ignore-end
@@ -2479,7 +2453,6 @@ pub fn load_workspace_configuration(root: &Path) -> MonochangeResult<WorkspaceCo
 		ecosystems.gradle,
 	)?;
 	// patch-coverage:ignore-end
-
 	let defaults_changelog_policy = defaults
 		.changelog
 		.as_ref()
@@ -4853,6 +4826,11 @@ fn path_is_supported_for_ecosystem(path: &Path, ecosystem_type: EcosystemType) -
 		EcosystemType::Deno => matches!(file_name, "deno.json" | "deno.jsonc" | "deno.lock"),
 		EcosystemType::Dart => matches!(file_name, "pubspec.yaml" | "pubspec.yml" | "pubspec.lock"),
 		EcosystemType::Python => matches!(file_name, "pyproject.toml" | "uv.lock" | "poetry.lock"),
+		EcosystemType::Swift => monochange_swift::supported_versioned_file_kind(path).is_some(),
+		EcosystemType::CocoaPods => {
+			monochange_cocoapods::supported_versioned_file_kind(path).is_some()
+		}
+		EcosystemType::Gradle => monochange_gradle::supported_versioned_file_kind(path).is_some(),
 		_ => matches!(file_name, "go.mod" | "go.sum"),
 	}
 }

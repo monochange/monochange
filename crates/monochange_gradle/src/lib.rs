@@ -4,8 +4,39 @@
 )]
 #![deny(clippy::all)]
 #![forbid(clippy::indexing_slicing)]
-#![doc = include_str!("crate_docs.md")]
-
+//! <!-- {=monochangeGradleCrateDocs|trim|linePrefix:"//! ":true} -->
+//! `monochange_gradle` discovers Gradle projects from `gradle.properties` manifests for the shared planner and publishes their libraries to Maven Central.
+//!
+//! Reach for this crate when you need to scan Kotlin and Java libraries, keep `VERSION_NAME` in lockstep with the rest of a monorepo, and run `./gradlew publishAndReleaseToMavenCentral` as part of a planned release.
+//!
+//! ## Why use it?
+//!
+//! - discover publishable Gradle projects through the `VERSION_NAME` convention
+//! - read Maven coordinates from `GROUP`/`POM_GROUP_ID` and `POM_ARTIFACT_ID` properties
+//! - publish releases to Maven Central through the Sonatype Central Portal
+//! - detect already-published versions from Maven Central metadata
+//! - inspect the publishing task graph without executing tasks during dry runs
+//!
+//! ## Best for
+//!
+//! - scanning Android and JVM libraries into normalized workspace records
+//! - versioning Kotlin bindings together with the native libraries they wrap
+//! - releasing to Maven Central with the `com.vanniktech.maven.publish` task set
+//!
+//! ## Public entry points
+//!
+//! - `discover_gradle_projects(root)` discovers Gradle projects under a repository root
+//! - `parse_gradle_properties(path, root)` parses one `gradle.properties` manifest into package metadata
+//! - `parse_properties(contents)` parses Java properties text into an ordered map
+//! - `maven_central_metadata_path(group_id, artifact_id)` renders the repository path for a coordinate
+//!
+//! ## Scope
+//!
+//! - `gradle.properties` `VERSION_NAME` parsing with properties-file quoting rules
+//! - Maven coordinate resolution from Android publishing conventions
+//! - `rootProject.name` fallback names from `settings.gradle` and `settings.gradle.kts`
+//! - no trusted publishing: Maven Central authenticates through portal user tokens and GPG keys
+//! <!-- {/monochangeGradleCrateDocs} -->
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
@@ -218,13 +249,12 @@ pub fn parse_properties(contents: &str) -> BTreeMap<String, String> {
 }
 
 fn split_property_line(line: &str) -> Option<(&str, &str)> {
-	let separator = line
-		.find(['=', ':'])
-		.or_else(|| line.find(char::is_whitespace))?;
-
+	let separator = line.find(|ch: char| ch == '=' || ch == ':' || ch.is_whitespace())?;
 	let key = &line[..separator];
-	let value = line[separator + 1..].trim_start_matches(['=', ':']).trim();
-
+	let value = line[separator..]
+		.trim_start()
+		.trim_start_matches(['=', ':'])
+		.trim();
 	Some((key.trim(), value))
 }
 
@@ -250,10 +280,12 @@ pub fn project_name_from_settings(manifest_dir: &Path) -> Option<String> {
 		let Ok(contents) = fs::read_to_string(&settings_path) else {
 			continue;
 		};
+
 		if let Some(name) = parse_root_project_name(&contents) {
 			return Some(name);
 		}
 	}
+
 	// patch-coverage:ignore-start -- the loop-exit None return carries a zero-count region attributed to the closing brace.
 	None
 	// patch-coverage:ignore-end
@@ -286,17 +318,25 @@ pub fn maven_central_metadata_path(group_id: &str, artifact_id: &str) -> String 
 pub fn validate_versioned_file(
 	full_path: &Path,
 	_display_path: &str,
-	_custom_fields: Option<&[String]>,
+	custom_fields: Option<&[String]>,
 ) -> MonochangeResult<()> {
 	let contents = fs::read_to_string(full_path).map_err(|error| {
 		MonochangeError::Io(format!("failed to read {}: {error}", full_path.display()))
 	})?;
 
-	if !parse_properties(&contents).contains_key(VERSION_NAME_KEY) {
-		return Err(MonochangeError::Config(format!(
-			"gradle properties file {} has no `{VERSION_NAME_KEY}` property",
-			full_path.display()
-		)));
+	let properties = parse_properties(&contents);
+	let fields = custom_fields.map_or_else(
+		|| vec![VERSION_NAME_KEY],
+		|fields| fields.iter().map(String::as_str).collect(),
+	);
+
+	for field in fields {
+		if !properties.contains_key(field) {
+			return Err(MonochangeError::Config(format!(
+				"gradle properties file {} has no `{field}` property",
+				full_path.display()
+			)));
+		}
 	}
 
 	Ok(())
@@ -305,8 +345,8 @@ pub fn validate_versioned_file(
 /// Rewrite version-bearing property keys in `gradle.properties` text.
 ///
 /// Each listed key (for example `VERSION_NAME`) is rewritten to the new
-/// version, preserving the line's indentation, separator spelling, and any
-/// trailing comment. Unlisted keys are left untouched.
+/// version, preserving indentation, separator spelling, and line endings.
+/// Unlisted keys and comment lines are left untouched.
 #[must_use]
 pub fn update_gradle_properties_text(contents: &str, fields: &[&str], version: &str) -> String {
 	if fields.is_empty() {
@@ -315,27 +355,31 @@ pub fn update_gradle_properties_text(contents: &str, fields: &[&str], version: &
 
 	let mut result = String::with_capacity(contents.len());
 
-	for line in contents.lines() {
+	for line in contents.split_inclusive('\n') {
 		let trimmed = line.trim();
-		let key = split_property_line(trimmed).map_or("", |(key, _)| key);
 
-		if fields.contains(&key) {
-			let indent = &line[..line.len() - line.trim_start().len()];
-			let separator = if trimmed.contains('=') { "=" } else { ":" };
-			result.push_str(indent);
-			result.push_str(key);
-			result.push_str(separator);
+		if let Some((key, value)) = split_property_line(trimmed)
+			&& fields.contains(&key)
+		{
+			let prefix_length = line.len() - line.trim_start().len() + trimmed.len() - value.len();
+			let prefix = line
+				.get(..prefix_length)
+				.expect("property prefix ends at a character boundary");
+			let ending = if line.ends_with("\r\n") {
+				"\r\n"
+			} else if line.ends_with('\n') {
+				"\n"
+			} else {
+				""
+			};
+
+			result.push_str(prefix);
 			result.push_str(version);
-			result.push('\n');
+			result.push_str(ending);
 			continue;
 		}
 
 		result.push_str(line);
-		result.push('\n');
-	}
-
-	if !contents.ends_with('\n') && result.ends_with('\n') {
-		result.pop();
 	}
 
 	result
