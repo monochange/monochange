@@ -1,0 +1,60 @@
+{
+	"title": "0.3.3",
+	"summary": [],
+	"sections": [
+		{
+			"title": "Improved",
+			"collapsed": false,
+			"entries": [
+				{
+					"summary": "Show why GitHub sign-in failed",
+					"details_markdown": "When GitHub refuses a sign-in, the error page now shows GitHub's own reason, such as an expired or already used authorization code, instead of \"error decoding response body\". If GitHub answers with something that is not a token at all, such as an outage or rate-limit page, the page names the HTTP status and the page title so you know whether to retry.",
+					"change_type": "website_fix",
+					"bump": "patch",
+					"stream": "website",
+					"style": "compact",
+					"provenance": {
+						"source_path": ".changeset/github-sign-in-token-errors.md",
+						"changeset_path": ".changeset/github-sign-in-token-errors.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #828",
+							"url": "https://github.com/monochange/monochange/pull/828"
+						},
+						"introduced_commit": {
+							"label": "86e820f",
+							"url": "https://github.com/monochange/monochange/commit/86e820f0ecd11c56113f3dcc47b0dd1cc7977a7e"
+						}
+					}
+				},
+				{
+					"summary": "Review GitHub access requests in a new tab",
+					"details_markdown": "The **Review on GitHub** link in the dashboard's new-permissions notice now opens GitHub in a new tab, so the dashboard stays open while you accept the request.\n\nPersonal accounts no longer show organization-only access, such as Members, as missing. GitHub never grants that access to personal accounts, so the notice could never go away for them.",
+					"change_type": "website_fix",
+					"bump": "patch",
+					"stream": "website",
+					"style": "expanded",
+					"provenance": {
+						"source_path": ".changeset/permission-review-new-tab.md",
+						"changeset_path": ".changeset/permission-review-new-tab.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #826",
+							"url": "https://github.com/monochange/monochange/pull/826"
+						},
+						"introduced_commit": {
+							"label": "55fb8bc",
+							"url": "https://github.com/monochange/monochange/commit/55fb8bc76a35b07a13eb0e7599235fe9c0ec22e3"
+						}
+					}
+				}
+			]
+		}
+	]
+}
