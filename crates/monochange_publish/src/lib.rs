@@ -628,6 +628,20 @@ pub fn manual_setup_url(request: &PublishRequest) -> String {
 		)
 	} else if request.registry == RegistryKind::GoProxy {
 		format!("https://pkg.go.dev/{}", go_module_path(request))
+	} else if request.registry == RegistryKind::CocoaPodsTrunk {
+		format!("https://cocoapods.org/pods/{}", request.package_name)
+	} else if request.registry == RegistryKind::MavenCentral {
+		format!(
+			"https://central.sonatype.com/artifact/{}/{}",
+			request
+				.package_metadata
+				.get("group_id")
+				.map_or(request.package_name.as_str(), String::as_str),
+			request
+				.package_metadata
+				.get("artifact_id")
+				.map_or(request.package_name.as_str(), String::as_str)
+		)
 	} else {
 		format!(
 			"https://www.npmjs.com/package/{}/access",
@@ -2535,6 +2549,8 @@ pub fn build_publish_command_builder() -> PublishCommandBuilder {
 		.with_adapter(Box::new(JsrPublishAdapter))
 		.with_adapter(Box::new(PythonPublishAdapter))
 		.with_adapter(Box::new(GoPublishAdapter))
+		.with_adapter(Box::new(CocoaPodsPublishAdapter))
+		.with_adapter(Box::new(GradlePublishAdapter))
 }
 
 struct NpmPublishAdapter;
@@ -2745,6 +2761,83 @@ impl PublishAdapter for PythonPublishAdapter {
 	}
 }
 
+struct CocoaPodsPublishAdapter;
+
+impl PublishAdapter for CocoaPodsPublishAdapter {
+	fn registry_kind(&self) -> RegistryKind {
+		RegistryKind::CocoaPodsTrunk
+	}
+
+	fn build_placeholder_command(
+		&self,
+		request: &PublishRequest,
+		placeholder_path: &Path,
+	) -> Option<CommandSpec> {
+		Some(build_cocoapods_publish_command(request, placeholder_path))
+	}
+
+	fn build_release_command(&self, request: &PublishRequest) -> Option<CommandSpec> {
+		Some(build_cocoapods_publish_command(
+			request,
+			&request.package_root,
+		))
+	}
+
+	fn append_dry_run_args(&self, args: &mut Vec<String>) {
+		// `pod trunk push` has no dry-run flag; `pod spec lint` runs the same
+		// validation locally without mutating the trunk.
+		args.clear();
+		args.push("spec".to_string());
+		args.push("lint".to_string());
+	}
+
+	fn registry_setup_url(&self) -> Option<&'static str> {
+		Some("https://guides.cocoapods.org/making/getting-setup-with-trunk.html")
+	}
+
+	fn registry_notes(&self) -> Vec<String> {
+		vec![
+			"the CocoaPods trunk authenticates through per-machine session tokens, not trusted publishing".to_string(),
+			"set `publish.trusted_publishing = false` and export COCOAPODS_TRUNK_TOKEN from a registered trunk session in CI".to_string(),
+		]
+	}
+}
+
+struct GradlePublishAdapter;
+
+impl PublishAdapter for GradlePublishAdapter {
+	fn registry_kind(&self) -> RegistryKind {
+		RegistryKind::MavenCentral
+	}
+
+	fn build_placeholder_command(
+		&self,
+		_request: &PublishRequest,
+		_placeholder_path: &Path,
+	) -> Option<CommandSpec> {
+		// Placeholder publishing would burn the namespace verification a
+		// Maven Central deployment needs; first releases publish for real.
+		None
+	}
+
+	fn build_release_command(&self, request: &PublishRequest) -> Option<CommandSpec> {
+		Some(build_gradle_publish_command(request))
+	}
+
+	fn append_dry_run_args(&self, _args: &mut Vec<String>) {}
+
+	fn registry_setup_url(&self) -> Option<&'static str> {
+		Some("https://central.sonatype.org/publish/publish-portal/")
+	}
+
+	fn registry_notes(&self) -> Vec<String> {
+		vec![
+			"Maven Central has no trusted publishing: authenticate with a Central Portal user token through Gradle".to_string(),
+			"set `publish.trusted_publishing = false` and provide mavenCentralUsername and mavenCentralPassword gradle properties (ORG_GRADLE_PROJECT_ environment variables) plus a signing key in CI".to_string(),
+		]
+	}
+}
+
 struct GoPublishAdapter;
 
 impl PublishAdapter for GoPublishAdapter {
@@ -2784,7 +2877,18 @@ pub fn append_publish_dry_run_args(args: &mut Vec<String>, registry: RegistryKin
 		return;
 	}
 
-	if registry == RegistryKind::Pypi || registry == RegistryKind::GoProxy {
+	if registry == RegistryKind::Pypi
+		|| registry == RegistryKind::GoProxy
+		|| registry == RegistryKind::MavenCentral
+	{
+		return;
+	}
+
+	if registry == RegistryKind::CocoaPodsTrunk {
+		args.clear();
+		args.push("spec".to_string());
+		args.push("lint".to_string());
+
 		return;
 	}
 
@@ -3001,6 +3105,87 @@ fn fallback_go_tag_prefix(request: &PublishRequest) -> String {
 		.unwrap_or_else(|| request.package_root.clone())
 		.to_string_lossy()
 		.to_string()
+}
+
+fn build_cocoapods_publish_command(request: &PublishRequest, cwd: &Path) -> CommandSpec {
+	let podspec_path = request
+		.package_metadata
+		.get("podspec_path")
+		.cloned()
+		.unwrap_or_else(|| {
+			request.manifest_path.file_name().map_or_else(
+				|| request.manifest_path.display().to_string(),
+				|name| name.to_string_lossy().into_owned(),
+			)
+		});
+
+	CommandSpec {
+		program: "pod".to_string(),
+		args: vec![
+			"trunk".to_string(),
+			"push".to_string(),
+			podspec_path,
+			"--allow-warnings".to_string(),
+		],
+		cwd: cwd.to_path_buf(),
+		env: BTreeMap::new(),
+		timeout: None,
+	}
+}
+
+fn build_gradle_publish_command(request: &PublishRequest) -> CommandSpec {
+	CommandSpec {
+		// The Gradle wrapper resolves the project's publishing setup; the
+		// vanniktech plugin's `publishAndReleaseToMavenCentral` task uploads
+		// and releases the deployment in one run.
+		program: "./gradlew".to_string(),
+		args: vec!["publishAndReleaseToMavenCentral".to_string()],
+		cwd: request.package_root.clone(),
+		env: BTreeMap::new(),
+		timeout: None,
+	}
+}
+
+/// The Maven coordinate a Gradle publish request targets.
+///
+/// Prefers the `group_id` and `artifact_id` metadata the Gradle adapter
+/// records; falls back to a `group:artifact` package name.
+pub fn maven_central_coordinate(request: &PublishRequest) -> Option<(String, String)> {
+	let group = request
+		.package_metadata
+		.get("group_id")
+		.cloned()
+		.or_else(|| {
+			request
+				.package_name
+				.split_once(':')
+				.map(|(group, _)| group.to_string())
+		});
+	let artifact = request
+		.package_metadata
+		.get("artifact_id")
+		.cloned()
+		.or_else(|| {
+			request
+				.package_name
+				.split_once(':')
+				.map(|(_, artifact)| artifact.to_string())
+		});
+
+	match (group, artifact) {
+		(Some(group), Some(artifact)) if !group.is_empty() && !artifact.is_empty() => {
+			Some((group, artifact))
+		}
+		_ => None,
+	}
+}
+
+/// Render the Maven repository path for a group and artifact pair.
+///
+/// `dev.canvist` with artifact `canvist-android` becomes
+/// `dev/canvist/canvist-android`.
+fn maven_central_metadata_path(group_id: &str, artifact_id: &str) -> String {
+	format!("{}/{artifact_id}", group_id.replace('.', "/"))
 }
 
 pub fn go_module_path(request: &PublishRequest) -> &str {
@@ -3892,6 +4077,8 @@ pub struct RegistryEndpoints {
 	pub jsr_base: String,
 	pub pypi_api: String,
 	pub go_proxy: String,
+	pub cocoapods_trunk_api: String,
+	pub maven_central: String,
 }
 
 impl RegistryEndpoints {
@@ -3911,6 +4098,10 @@ impl RegistryEndpoints {
 				.unwrap_or_else(|_| "https://pypi.org/pypi".to_string()),
 			go_proxy: env::var("MONOCHANGE_GO_PROXY_URL")
 				.unwrap_or_else(|_| "https://proxy.golang.org".to_string()),
+			cocoapods_trunk_api: env::var("MONOCHANGE_COCOAPODS_TRUNK_API_URL")
+				.unwrap_or_else(|_| "https://trunk.cocoapods.org/api/v1".to_string()),
+			maven_central: env::var("MONOCHANGE_MAVEN_CENTRAL_URL")
+				.unwrap_or_else(|_| "https://repo1.maven.org/maven2".to_string()),
 		}
 	}
 }
@@ -4180,6 +4371,78 @@ pub async fn registry_version_exists(
 				request.placeholder && !releases.is_empty()
 					|| releases.contains_key(&request.version)
 			});
+
+		return Ok(exists);
+	}
+
+	if request.registry == RegistryKind::CocoaPodsTrunk {
+		let url = format!(
+			"{}/pods/{}",
+			endpoints.cocoapods_trunk_api.trim_end_matches('/'),
+			encode(&request.package_name)
+		);
+		let response = client
+			.get(url)
+			.send()
+			.await
+			.map_err(http_error("cocoapods trunk lookup"))?;
+
+		if response.status() == StatusCode::NOT_FOUND {
+			return Ok(false);
+		}
+
+		let response = response
+			.error_for_status()
+			.map_err(http_error("cocoapods trunk lookup"))?;
+		let json = response
+			.json::<JsonValue>()
+			.await
+			.map_err(http_error("cocoapods trunk decode"))?;
+		let exists = json
+			.get("versions")
+			.and_then(JsonValue::as_array)
+			.is_some_and(|versions| {
+				request.placeholder && !versions.is_empty()
+					|| versions.iter().any(|version| {
+						version.get("name").and_then(JsonValue::as_str)
+							== Some(request.version.as_str())
+					})
+			});
+
+		return Ok(exists);
+	}
+
+	if request.registry == RegistryKind::MavenCentral {
+		let Some((group, artifact)) = maven_central_coordinate(request) else {
+			return Err(MonochangeError::Config(format!(
+				"gradle package `{}` has no Maven coordinate; set `GROUP` (or `POM_GROUP_ID`) and `POM_ARTIFACT_ID` in gradle.properties",
+				request.package_name
+			)));
+		};
+		let url = format!(
+			"{}/{}/maven-metadata.xml",
+			endpoints.maven_central.trim_end_matches('/'),
+			maven_central_metadata_path(&group, &artifact)
+		);
+		let response = client
+			.get(url)
+			.send()
+			.await
+			.map_err(http_error("maven central lookup"))?;
+
+		if response.status() == StatusCode::NOT_FOUND {
+			return Ok(false);
+		}
+
+		let response = response
+			.error_for_status()
+			.map_err(http_error("maven central lookup"))?;
+		let body = response
+			.text()
+			.await
+			.map_err(http_error("maven central decode"))?;
+		let needle = format!("<version>{}</version>", request.version);
+		let exists = request.placeholder && body.contains("<version>") || body.contains(&needle);
 
 		return Ok(exists);
 	}

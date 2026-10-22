@@ -361,6 +361,8 @@ fn sample_endpoints(base_url: &str) -> RegistryEndpoints {
 		jsr_base: base_url.to_string(),
 		pypi_api: base_url.to_string(),
 		go_proxy: base_url.to_string(),
+		cocoapods_trunk_api: base_url.to_string(),
+		maven_central: base_url.to_string(),
 	}
 }
 
@@ -506,6 +508,9 @@ fn sample_configuration(
 		dart: monochange_core::EcosystemSettings::default(),
 		python: monochange_core::EcosystemSettings::default(),
 		go: monochange_core::EcosystemSettings::default(),
+		swift: monochange_core::EcosystemSettings::default(),
+		cocoapods: monochange_core::EcosystemSettings::default(),
+		gradle: monochange_core::EcosystemSettings::default(),
 		version_schemes: BTreeMap::new(),
 	}
 }
@@ -1363,6 +1368,8 @@ async fn registry_version_exists_parses_all_supported_registry_shapes() {
 		jsr_base: server.base_url(),
 		pypi_api: server.base_url(),
 		go_proxy: server.base_url(),
+		cocoapods_trunk_api: server.base_url(),
+		maven_central: server.base_url(),
 	};
 
 	assert!(
@@ -1653,6 +1660,8 @@ async fn registry_version_exists_returns_false_for_missing_packages() {
 		jsr_base: server.base_url(),
 		pypi_api: server.base_url(),
 		go_proxy: server.base_url(),
+		cocoapods_trunk_api: server.base_url(),
+		maven_central: server.base_url(),
 	};
 	let request = sample_request(RegistryKind::Npm);
 	let request = PublishRequest {
@@ -3943,6 +3952,8 @@ async fn execute_publish_requests_skips_external_and_existing_versions() {
 		jsr_base: server.base_url(),
 		pypi_api: server.base_url(),
 		go_proxy: server.base_url(),
+		cocoapods_trunk_api: server.base_url(),
+		maven_central: server.base_url(),
 	};
 	let request = PublishRequest {
 		mode: PublishMode::External,
@@ -5917,4 +5928,30 @@ async fn plan_publish_rate_limits_includes_packages_outside_discovery_tree() {
 			},
 		);
 	});
+}
+
+#[test]
+fn cocoapods_placeholder_writer_writes_the_podspec_into_the_placeholder_directory()
+-> Result<(), Box<dyn std::error::Error>> {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let placeholder_dir = tempdir.path().join("placeholder");
+	std::fs::create_dir_all(&placeholder_dir)
+		.unwrap_or_else(|error| panic!("create placeholder dir: {error}"));
+
+	let mut request = sample_request(monochange_core::RegistryKind::CocoaPodsTrunk);
+	request.ecosystem = monochange_core::Ecosystem::CocoaPods;
+	request.package_name = "Canvist".to_string();
+	request.version = "0.0.0".to_string();
+
+	crate::package_publish::placeholder_manifest_writer_registry().write_manifest(
+		&placeholder_dir,
+		&request,
+		tempdir.path(),
+		None,
+	)?;
+
+	let contents = std::fs::read_to_string(placeholder_dir.join("Canvist.podspec"))?;
+	assert!(contents.contains("s.name = 'Canvist'"));
+
+	Ok(())
 }

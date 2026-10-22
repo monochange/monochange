@@ -288,6 +288,9 @@ fn workspace_configuration_with_lockfile_commands() -> WorkspaceConfiguration {
 		dart: monochange_core::EcosystemSettings::default(),
 		python: monochange_core::EcosystemSettings::default(),
 		go: monochange_core::EcosystemSettings::default(),
+		swift: monochange_core::EcosystemSettings::default(),
+		cocoapods: monochange_core::EcosystemSettings::default(),
+		gradle: monochange_core::EcosystemSettings::default(),
 		version_schemes: BTreeMap::new(),
 	}
 }
@@ -596,6 +599,9 @@ fn validate_and_discover_release_workspace_cover_fallback_and_errors() {
 		dart: monochange_core::EcosystemSettings::default(),
 		python: monochange_core::EcosystemSettings::default(),
 		go: monochange_core::EcosystemSettings::default(),
+		swift: monochange_core::EcosystemSettings::default(),
+		cocoapods: monochange_core::EcosystemSettings::default(),
+		gradle: monochange_core::EcosystemSettings::default(),
 		version_schemes: BTreeMap::new(),
 	};
 	let undetected_error = discover_release_workspace(undetected_root.path(), &undetected)
@@ -658,6 +664,9 @@ fn validate_and_discover_release_workspace_cover_fallback_and_errors() {
 		dart: monochange_core::EcosystemSettings::default(),
 		python: monochange_core::EcosystemSettings::default(),
 		go: monochange_core::EcosystemSettings::default(),
+		swift: monochange_core::EcosystemSettings::default(),
+		cocoapods: monochange_core::EcosystemSettings::default(),
+		gradle: monochange_core::EcosystemSettings::default(),
 		version_schemes: BTreeMap::new(),
 	};
 	let missing_manifest_error =

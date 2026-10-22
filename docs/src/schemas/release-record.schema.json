@@ -127,7 +127,10 @@
 				"deno",
 				"dart",
 				"python",
-				"go"
+				"go",
+				"swift",
+				"cocoapods",
+				"gradle"
 			],
 			"type": "string"
 		},
@@ -658,7 +661,9 @@
 				"jsr",
 				"pub_dev",
 				"pypi",
-				"go_proxy"
+				"go_proxy",
+				"cocoapods_trunk",
+				"maven_central"
 			],
 			"type": "string"
 		},

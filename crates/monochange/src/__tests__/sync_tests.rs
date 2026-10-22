@@ -1805,3 +1805,32 @@ fn detect_go_changes_with_version_not_in_map_skips() {
 	.unwrap_or_else(|error| panic!("detect_go_changes: {error}"));
 	assert!(result.is_empty());
 }
+
+#[test]
+fn native_ecosystems_sync_is_a_noop_without_prefixes() {
+	use monochange_core::Ecosystem;
+	use monochange_core::VersionStrategy;
+
+	for ecosystem in [Ecosystem::Swift, Ecosystem::CocoaPods, Ecosystem::Gradle] {
+		assert_eq!(
+			sync::version_prefix_for_strategy(ecosystem, VersionStrategy::Caret),
+			""
+		);
+	}
+
+	let changes = sync::detect_native_changes(
+		"",
+		&std::collections::BTreeMap::new(),
+		&std::collections::BTreeSet::new(),
+		&std::collections::BTreeMap::new(),
+		VersionStrategy::Default,
+	)
+	.unwrap_or_else(|error| panic!("detect native changes: {error}"));
+	assert!(changes.is_empty());
+
+	assert_eq!(
+		sync::apply_native_changes("contents", &[])
+			.unwrap_or_else(|error| panic!("apply native changes: {error}")),
+		"contents"
+	);
+}

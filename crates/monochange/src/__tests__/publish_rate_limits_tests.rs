@@ -756,6 +756,8 @@ async fn plan_publish_rate_limits_summarizes_pending_publications_and_batches() 
 		jsr_base: server.base_url(),
 		pypi_api: server.base_url(),
 		go_proxy: server.base_url(),
+		cocoapods_trunk_api: server.base_url(),
+		maven_central: server.base_url(),
 	};
 	let requests = build_release_plan_requests_with_transport(
 		tempdir.path(),
@@ -888,6 +890,9 @@ async fn plan_publish_rate_limits_skips_private_and_disabled_packages_from_relea
 		dart: monochange_core::EcosystemSettings::default(),
 		python: monochange_core::EcosystemSettings::default(),
 		go: monochange_core::EcosystemSettings::default(),
+		swift: monochange_core::EcosystemSettings::default(),
+		cocoapods: monochange_core::EcosystemSettings::default(),
+		gradle: monochange_core::EcosystemSettings::default(),
 		version_schemes: BTreeMap::new(),
 	};
 	let packages = vec![
@@ -1082,6 +1087,8 @@ async fn plan_publish_rate_limits_skips_versions_that_are_already_published() {
 		jsr_base: server.base_url(),
 		pypi_api: server.base_url(),
 		go_proxy: server.base_url(),
+		cocoapods_trunk_api: server.base_url(),
+		maven_central: server.base_url(),
 	};
 	let requests = build_release_plan_requests_with_transport(
 		tempdir.path(),
@@ -1156,6 +1163,8 @@ async fn build_placeholder_plan_requests_skips_packages_when_any_registry_versio
 		jsr_base: server.base_url(),
 		pypi_api: server.base_url(),
 		go_proxy: server.base_url(),
+		cocoapods_trunk_api: server.base_url(),
+		maven_central: server.base_url(),
 	};
 	let requests = build_placeholder_plan_requests_with_transport(
 		tempdir.path(),
@@ -1269,6 +1278,8 @@ async fn plan_publish_rate_limits_supports_placeholder_mode_and_skips_external_r
 		jsr_base: server.base_url(),
 		pypi_api: server.base_url(),
 		go_proxy: server.base_url(),
+		cocoapods_trunk_api: server.base_url(),
+		maven_central: server.base_url(),
 	};
 	let requests = build_placeholder_plan_requests_with_transport(
 		tempdir.path(),
@@ -1409,6 +1420,9 @@ async fn enforce_publish_rate_limits_returns_ok_when_enforcement_is_not_triggere
 		dart: monochange_core::EcosystemSettings::default(),
 		python: monochange_core::EcosystemSettings::default(),
 		go: monochange_core::EcosystemSettings::default(),
+		swift: monochange_core::EcosystemSettings::default(),
+		cocoapods: monochange_core::EcosystemSettings::default(),
+		gradle: monochange_core::EcosystemSettings::default(),
 		version_schemes: BTreeMap::new(),
 	};
 	let unenforced = PublishRateLimitReport {
@@ -1540,6 +1554,9 @@ async fn enforce_publish_rate_limits_blocks_multi_batch_runs_when_enabled() {
 		dart: monochange_core::EcosystemSettings::default(),
 		python: monochange_core::EcosystemSettings::default(),
 		go: monochange_core::EcosystemSettings::default(),
+		swift: monochange_core::EcosystemSettings::default(),
+		cocoapods: monochange_core::EcosystemSettings::default(),
+		gradle: monochange_core::EcosystemSettings::default(),
 		version_schemes: BTreeMap::new(),
 	};
 	let error = enforce_publish_rate_limits(&configuration, &report, PublishRateLimitMode::Publish)

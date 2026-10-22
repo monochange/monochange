@@ -264,7 +264,10 @@
 				"deno",
 				"dart",
 				"python",
-				"go"
+				"go",
+				"swift",
+				"cocoapods",
+				"gradle"
 			],
 			"type": "string"
 		},

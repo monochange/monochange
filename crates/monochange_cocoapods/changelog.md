@@ -1,0 +1,573 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+This changelog is managed by [monochange](https://github.com/monochange/monochange).
+
+## [0.20.1](https://github.com/monochange/monochange/releases/tag/v0.20.1) (2026-10-21)
+
+### Changed
+
+- **No package-specific changes were recorded; `monochange_cocoapods` was updated to 0.20.1 as part of group `main`.**
+
+## [0.20.0](https://github.com/monochange/monochange/releases/tag/v0.20.0) (2026-10-21)
+
+### Changed
+
+#### No package-specific changes were recorded; `monochange_cocoapods` was updated to 0.20.0 as part of group `main`.
+
+## [0.19.1](https://github.com/monochange/monochange/releases/tag/v0.19.1) (2026-10-20)
+
+### Changed
+
+- **No package-specific changes were recorded; `monochange_cocoapods` was updated to 0.19.1 as part of group `main`.**
+
+## [0.19.0](https://github.com/monochange/monochange/releases/tag/v0.19.0) (2026-10-19)
+
+### Changed
+
+#### No package-specific changes were recorded; `monochange_cocoapods` was updated to 0.19.0 as part of group `main`.
+
+## [0.18.0](https://github.com/monochange/monochange/releases/tag/v0.18.0) (2026-10-08)
+
+### Changed
+
+#### No package-specific changes were recorded; `monochange_cocoapods` was updated to 0.18.0 as part of group `main`.
+
+## [0.17.1](https://github.com/monochange/monochange/releases/tag/v0.17.1) (2026-10-07)
+
+### Changed
+
+- **No package-specific changes were recorded; `monochange_cocoapods` was updated to 0.17.1 as part of group `main`.**
+
+## [0.17.0](https://github.com/monochange/monochange/releases/tag/v0.17.0) (2026-10-06)
+
+### 🐛 Fixed
+
+#### Use the coloured monochange identity in documentation
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #749](https://github.com/monochange/monochange/pull/749)
+
+The README, crate documentation, and guide now use the selected flowing monochange mark in violet and indigo, with matching light and dark wordmarks. Square mark-only images keep the identity readable in organization avatars, Rust documentation navigation, and browser tabs.
+
+Existing Rust documentation image URLs remain valid and receive the new artwork when this change reaches the default branch. No API, configuration, or release behavior changes.
+
+## [0.16.0](https://github.com/monochange/monochange/releases/tag/v0.16.0) (2026-09-30)
+
+### Changed
+
+#### No package-specific changes were recorded; `monochange_cocoapods` was updated to 0.16.0 as part of group `main`.
+
+## [0.15.0](https://github.com/monochange/monochange/releases/tag/v0.15.0) (2026-09-28)
+
+### 🚀 Feature
+
+#### Rewrite internal Go `require` directives during release preparation
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #732](https://github.com/monochange/monochange/pull/732)
+
+A Go monorepo could release an internal module while its dependents kept requiring a version that no longer existed. `monochange prepare` rewrote internal dependency constraints for cargo, npm, deno, and dart workspaces, but a `require github.com/acme/core v1.2.0` line in `service/go.mod` stayed stale after `core` moved to `v1.3.0`.
+
+A Go module is identified by the full path its own `go.mod` declares, so the rewrite now reads each workspace package's `module` directive and resolves a `require` against those paths exactly. Rewrites carry Go's `v` prefix, preserve `replace` directives, quoted module paths, and trailing comments, and handle `/v2`-style major suffixes.
+
+Matching by anything looser is unsafe: resolving a `require` on its last path segment alone rewrites an unrelated third-party module that happens to share it, so `github.com/other/core` would receive the workspace's version while `github.com/acme/core` was the intended target. A `require` that no workspace module path resolves exactly is left untouched rather than guessed at.
+
+`monochange versions sync` had the same matching defect, and on a pure Go workspace it never reported anything because tag-versioned packages carry no manifest version for the version map. The sync plan now seeds canonical versions for tag-versioned packages from release tags — the same baselines release planning resolves — before detecting stale constraints, and reports changes keyed by the full module path (`github.com/acme/core`), matching what `apply` rewrites.
+
+## [0.14.0](https://github.com/monochange/monochange/releases/tag/v0.14.0) (2026-09-19)
+
+### Changed
+
+#### No package-specific changes were recorded; `monochange_cocoapods` was updated to 0.14.0 as part of group `main`.
+
+## [0.13.0](https://github.com/monochange/monochange/releases/tag/v0.13.0) (2026-09-13)
+
+### Changed
+
+#### No package-specific changes were recorded; `monochange_cocoapods` was updated to 0.13.0 as part of group `main`.
+
+## [0.12.0](https://github.com/monochange/monochange/releases/tag/v0.12.0) (2026-09-12)
+
+### 🚀 Feature
+
+#### Release GitHub Actions repositories and tag-versioned packages
+
+Repositories that release by git tag plus provider release — GitHub Actions above all — could not be modeled: every package needed a registry ecosystem, and moving tag aliases had to be maintained by hand.
+
+- `PackageType` gains `github_actions` (aliases `github_actions` and `actions`). The type preset implies `version_source = "tag"`, `tag = true`, `release = true`, publishing disabled, and `initial_version = "0.1.0"`. Discovery accepts a package directory containing `action.yml` or `action.yaml` and syncs a sibling `package.json` version field when present.
+- New package and group fields: `version_source` (`manifest` default or `tag`), `initial_version` (baseline when no release tag exists yet), and `floating_tags` (moving tag aliases).
+- `PackageType::manifest_file_name` exposes the per-type manifest name and returns `None` for types without a single version-bearing manifest.
+- `EffectiveReleaseIdentity`, `ReleaseTarget`, `ReleaseManifestTarget`, and `ReleaseRecordTarget` carry `version_source`, `initial_version`, and `floating_tags` (targets carry `floating_tags` only).
+- The committed JSON schema assets regenerate with the new fields.
+- New helpers `render_floating_tag` and `validate_floating_tag_template_variables` render and validate floating-tag templates with `{{ major }}`, `{{ minor }}`, and `{{ patch }}` variables in addition to the `version_format` variables.
+
+##### Migration
+
+`PackageType`, `PackageDefinition`, `GroupDefinition`, `ReleaseTarget`, and the manifest/record target structs gained new fields. Code that constructs them with struct literals (rather than `..Default::default()`) must add the new fields; deserialization of existing configs and release records is unaffected because every field carries serde defaults.
+
+```toml
+[package.actions]
+path = "."
+type = "github_actions"
+version_format = "primary"
+floating_tags = ["v{{ major }}.{{ minor }}", "v{{ major }}"]
+
+[source]
+provider = "github"
+owner = "acme"
+repo = "actions"
+```
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #698](https://github.com/monochange/monochange/pull/698)
+
+- **Load configured Go modules as tag-versioned packages.** `Ecosystem::versions_from_tags` marks ecosystems whose released versions are identified by git tags instead of a manifest field, and the Go adapter now implements `load_configured` through the new public `load_configured_go_package(root, package_path)`. Configured `type = "go"` packages therefore resolve a `PackageRecord` with no `current_version`; release planning owns the tag-based baseline. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #693](https://github.com/monochange/monochange/pull/693)
+
+## [0.11.1](https://github.com/monochange/monochange/releases/tag/v0.11.1) (2026-09-10)
+
+### 🐛 Fixed
+
+#### Ship crate_docs.md in published crate tarballs
+
+These crates embed their crate-level docs from `src/crate_docs.md` through `include_str!`, but their explicit `package.include` lists only covered `*.rs` files, so `cargo package` built tarballs whose `lib.rs` referenced a missing file. The 0.11.0 crates.io rollout failed at `monochange_core` with `couldn't read src/crate_docs.md` and every crate ordered after it went unpublished; a `cargo publish` of any of these crates failed deterministically.
+
+Each manifest now includes the file:
+
+```toml
+include = ["src/**/*.rs", "Cargo.toml", "src/crate_docs.md", "readme.md"]
+```
+
+A `packaging_manifests` integration test fails CI when a crate embeds `src/crate_docs.md` without shipping it, so this class of publish failure cannot land again.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #678](https://github.com/monochange/monochange/pull/678)
+
+## [0.11.0](https://github.com/monochange/monochange/releases/tag/v0.11.0) (2026-09-09)
+
+### 🐛 Fixed
+
+#### refresh docs and validate doc samples in tests
+
+Every crate's crate-level docs (lib.rs doc comments) now come from the same shared mdt block that feeds its readme, so the two surfaces can no longer drift. Crate docs that had fallen behind the code were rewritten: `monochange_analysis` documents the semantic-analyzer architecture, `monochange_lint` documents the real `Linter`/`lint_workspace` API instead of removed entry points, `monochange_linting` carries the authoring guidance, `monochange_graph` documents the current `build_release_plan` signature with `bump_propagation`, and the `monochange_cocoapods`/`monochange_python` intros match the actual adapters.
+
+Documentation samples that declare a complete `monochange.toml` are now validated in tests against the real configuration loader, which caught and fixed several stale samples: the removed `[release_notes]`/`change_templates`/`extra_changelog_sections` options were replaced with the current `[changelog]` API, knope-migration samples no longer use the unsupported `dependency` versioned-file syntax, and `monochange step placeholder-publish` invocations dropped the removed `--from`/`--output` flags.
+
+Command references now distinguish `monochange versions sync` from the read-only `versions list` (and mention the deprecation of bare `monochange versions`), the `publish-packages` reference documents `--all`, `--stream-output`, and `--fail-on-duplicate`, the `comment-released-issues` reference documents `--from-ref` and `--auto-close-issues`, the retarget-release reference no longer documents a `format` input the step does not accept, and the knope-migration and `init --provider` claims now match what those commands actually generate. The skill gained the type-scoped `changesets/types/<type>` lint rules from the linting reference.
+
+New doc-sample validation tests in `monochange_integration_tests` (`docs_code_samples.rs`) parse every fenced `toml` sample in the guide through `load_workspace_configuration`, so documentation samples fail CI when the configuration surface changes.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #656](https://github.com/monochange/monochange/pull/656)
+
+## [0.10.0](https://github.com/monochange/monochange/releases/tag/v0.10.0) (2026-09-03)
+
+### Changed
+
+- No package-specific changes were recorded; `monochange_cocoapods` was updated to 0.10.0 as part of group `main`.
+
+## [0.9.2](https://github.com/monochange/monochange/releases/tag/v0.9.2) (2026-08-29)
+
+<details>
+<summary><strong>📖 Documentation</strong></summary>
+
+#### add the monochange logo across readme, docs.rs, and the mdBook
+
+Every published crate now renders the monochange mark on docs.rs through `html_logo_url`, and docs.rs pages use the matching favicon through `html_favicon_url`. The mark itself is a chunky lowercase `mc` monogram with a version-bump arrow in the negative space.
+
+- the readme gains a top-level hero logo that follows the reader's theme: a light variant on light GitHub themes and a light-on-dark variant on dark themes, using the `picture` element with `prefers-color-scheme`
+- the mdBook in `docs/` picks up a new `favicon.png`
+- `assets/` holds the exported logo sizes (280, 512, 1024), the dark variant, and a multi-size `favicon.ico`
+- a reserve mark (the navy Converge badge) is kept under `assets/reserve/` for a future rebrand
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #641](https://github.com/monochange/monochange/pull/641)
+
+</details>
+
+## [0.9.1](https://github.com/monochange/monochange/releases/tag/v0.9.1) (2026-08-19)
+
+### Changed
+
+- No package-specific changes were recorded; `monochange_cocoapods` was updated to 0.9.1 as part of group `main`.
+
+## [0.9.0](https://github.com/monochange/monochange/releases/tag/v0.9.0) (2026-08-14)
+
+### Changed
+
+- No package-specific changes were recorded; `monochange_cocoapods` was updated to 0.9.0 as part of group `main`.
+
+## [0.8.4](https://github.com/monochange/monochange/releases/tag/v0.8.4) (2026-07-11)
+
+### Changed
+
+- No package-specific changes were recorded; `monochange_cocoapods` was updated to 0.8.4 as part of group `main`.
+
+## [0.8.3](https://github.com/monochange/monochange/releases/tag/v0.8.3) (2026-06-29)
+
+### 🐛 Fixed
+
+#### speed up versioned-file glob expansion
+
+Versioned-file and workspace-member glob expansion now goes through one shared workspace-aware glob helper. Broad globs such as `**/pubspec.yaml` skip ignored local tooling, dependency, and vendor trees including `.fvm`, `.repos`, `node_modules`, and `target`, while explicit literal paths can still target ignored directories when that is intentional.
+
+This prevents release planning from scanning and rewriting unrelated checked-out toolchains or nested repositories, and adds regression coverage plus a benchmark for the ignored-tree case.
+
+##### batch glob expansion
+
+Release planning now prewarms a versioned-file path cache and expands all configured globs in a single workspace walk using `workspace_glob_files_many`. Configs with many broad patterns (e.g. 20 `**/metadata-*.json` rules) no longer pay one walk per pattern — the batch API collapses N walks into one shared traversal, matching each candidate path against all compiled patterns in a single pass.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #620](https://github.com/monochange/monochange/pull/620)
+
+## [0.8.2](https://github.com/monochange/monochange/releases/tag/v0.8.2) (2026-06-18)
+
+### Changed
+
+- No package-specific changes were recorded; `monochange_cocoapods` was updated to 0.8.2 as part of group `main`.
+
+## [0.8.1](https://github.com/monochange/monochange/releases/tag/v0.8.1) (2026-06-09)
+
+### Changed
+
+- No package-specific changes were recorded; `monochange_cocoapods` was updated to 0.8.1 as part of group `main`.
+
+## [0.8.0](https://github.com/monochange/monochange/releases/tag/v0.8.0) (2026-06-04)
+
+### Changed
+
+- No package-specific changes were recorded; `monochange_cocoapods` was updated to 0.8.0 as part of group `main`.
+
+## [0.7.0](https://github.com/monochange/monochange/releases/tag/v0.7.0) (2026-06-03)
+
+### Changed
+
+- No package-specific changes were recorded; `monochange_cocoapods` was updated to 0.7.0 as part of group `main`.
+
+## [0.6.8](https://github.com/monochange/monochange/releases/tag/v0.6.8) (2026-05-31)
+
+### Changed
+
+- No package-specific changes were recorded; `monochange_cocoapods` was updated to 0.6.8 as part of group `main`.
+
+## [0.6.7](https://github.com/monochange/monochange/releases/tag/v0.6.7) (2026-05-30)
+
+### Changed
+
+- No package-specific changes were recorded; `monochange_cocoapods` was updated to 0.6.7 as part of group `main`.
+
+## [0.6.6](https://github.com/monochange/monochange/releases/tag/v0.6.6) (2026-05-29)
+
+### Changed
+
+- No package-specific changes were recorded; `monochange_cocoapods` was updated to 0.6.6 as part of group `main`.
+
+## [0.6.5](https://github.com/monochange/monochange/releases/tag/v0.6.5) (2026-05-29)
+
+### Changed
+
+- No package-specific changes were recorded; `monochange_cocoapods` was updated to 0.6.5 as part of group `main`.
+
+## [0.6.4](https://github.com/monochange/monochange/releases/tag/v0.6.4) (2026-05-28)
+
+### Changed
+
+- No package-specific changes were recorded; `monochange_cocoapods` was updated to 0.6.4 as part of group `main`.
+
+## [0.6.3](https://github.com/monochange/monochange/releases/tag/v0.6.3) (2026-05-28)
+
+### Changed
+
+- No package-specific changes were recorded; `monochange_cocoapods` was updated to 0.6.3 as part of group `main`.
+
+## [0.6.2](https://github.com/monochange/monochange/releases/tag/v0.6.2) (2026-05-27)
+
+### Changed
+
+- No package-specific changes were recorded; `monochange_cocoapods` was updated to 0.6.2 as part of group `main`.
+
+## [0.6.1](https://github.com/monochange/monochange/releases/tag/v0.6.1) (2026-05-24)
+
+### Changed
+
+- No package-specific changes were recorded; `monochange_cocoapods` was updated to 0.6.1 as part of group `main`.
+
+## [0.6.0](https://github.com/monochange/monochange/releases/tag/v0.6.0) (2026-05-23)
+
+### Changed
+
+- No package-specific changes were recorded; `monochange_cocoapods` was updated to 0.6.0 as part of group `main`.
+
+## [0.5.1](https://github.com/monochange/monochange/releases/tag/v0.5.1) (2026-05-15)
+
+### 🐛 Fixed
+
+#### Fix publish failures and cargo package warnings
+
+Remove `build.rs` from `monochange_schema` and replace the generated `CURRENT_SCHEMA_VERSION_TEXT` with a direct `include_str!` + `trim_ascii_end()` compile-time embed, eliminating the `OUT_DIR` dependency that caused `cargo publish` verification to fail.
+
+Add `src/**/*.template` to `monochange`'s `package.include` list so that `monochange.toml.template` (referenced via `include_str!`) is included in the published crate tarball.
+
+Add `tests/**/*.rs` to `monochange_core` and `monochange_github` package include lists to suppress cargo package "ignoring test" warnings.
+
+Fix `monochange_cocoapods` readme from workspace-inherited path (`../../readme.md`) to local path (`readme.md`) to suppress the "readme outside package" cargo package warning.
+
+Remove `doc-comment` dependency and replace `doc_comment::doctest!` with `#[doc = include_str!(...)]` in the book crate. Only keep local file references that resolve within the package directory.
+
+Add rustdoc backticks around `PyPI` and `pub.dev` in configuration guide markdown to satisfy the missing-backticks lint.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #509](https://github.com/monochange/monochange/pull/509) _Introduced in:_ [`e6af821`](https://github.com/monochange/monochange/commit/e6af8212983b66c1b8370443e7978c6067b89fa6)
+
+## [0.5.0](https://github.com/monochange/monochange/releases/tag/v0.5.0) (2026-05-14)
+
+### 🚀 Feature
+
+#### Configurable publish-order dependency fields
+
+Add configurable ecosystem-specific dependency fields for package publish ordering across npm, Cargo, Deno, Dart/Flutter, Python, and Go.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #472](https://github.com/monochange/monochange/pull/472) _Introduced in:_ [`0d9cf46`](https://github.com/monochange/monochange/commit/0d9cf461a05057b61efa987d361ebd27d800dbdb) _Last updated in:_ [`a485823`](https://github.com/monochange/monochange/commit/a485823190fecfeebbef996c74ee63f241b6f7d8) _Closed issues:_ [#465](https://github.com/monochange/monochange/issues/465)
+
+#### Publish all configured packages
+
+Add a `--all` flag to the PublishPackages CLI step so migration workflows can publish every configured package, including packages that were not part of the prepared release record.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #461](https://github.com/monochange/monochange/pull/461) _Introduced in:_ [`3d956cd`](https://github.com/monochange/monochange/commit/3d956cd3e34747e088add98fe0358251f388782f) _Last updated in:_ [`a485823`](https://github.com/monochange/monochange/commit/a485823190fecfeebbef996c74ee63f241b6f7d8)
+
+## [0.4.2](https://github.com/monochange/monochange/releases/tag/v0.4.2) (2026-05-10)
+
+### 🚀 Feature
+
+#### Order publish plans by dependencies
+
+Order publish plans by workspace dependencies before applying registry rate-limit windows, and run CI publishing as one dependency-ordered publish operation.
+
+This keeps dependent packages from publishing before their internal dependencies are available and adds realistic fixture coverage for non-alphabetical cargo dependency graphs.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #364](https://github.com/monochange/monochange/pull/364) _Introduced in:_ [`67eae95`](https://github.com/monochange/monochange/commit/67eae951e6a35a9b4c7c6489e89cd4779e44234e) _Last updated in:_ [`2392845`](https://github.com/monochange/monochange/commit/2392845ec29289e3f219aca20ac343cf79ee965e)
+
+## [0.4.1](https://github.com/monochange/monochange/releases/tag/v0.4.1) (2026-05-10)
+
+### 📝 Changed
+
+- No package-specific changes were recorded; `monochange_cocoapods` was updated to 0.4.1 as part of group `main`.
+
+## [0.4.0](https://github.com/monochange/monochange/releases/tag/v0.4.0) (2026-05-09)
+
+### 🚀 Feature
+
+#### Consolidate adapter traits to remove ecosystem match arms
+
+Replace hardcoded ecosystem and registry match arms in `workspace_ops`, `monochange_config`, and `monochange_publish` with adapter registry dispatch.
+
+- Expand `EcosystemAdapter` in `monochange_core` with `load_configured`, `supported_versioned_file_kind`, and `validate_versioned_file`.
+- Add `From<EcosystemType>` and `From<PackageType>` conversions for `Ecosystem`.
+- Add `FromStr` for `Ecosystem` and extract `default_registry_kind_for_ecosystem` into `monochange_core`.
+- Implement the new trait methods in all ecosystem adapter crates.
+- Replace `discover_packages` body with `build_ecosystem_registry().discover_all(root)?`.
+- Replace `discover_release_workspace` `load_configured` match arms with registry dispatch.
+- Replace `path_is_supported_for_ecosystem` and `validate_ecosystem_version_readable` match arms in `monochange_config` with registry dispatch.
+- Introduce `PublishAdapter` trait and `PublishCommandBuilder` in `monochange_publish` to replace `build_publish_command` registry match arms.
+- Extract `default_registry_kind_for_ecosystem` mapping out of `package_publish.rs` into `monochange_core`.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #429](https://github.com/monochange/monochange/pull/429) _Introduced in:_ [`271e554`](https://github.com/monochange/monochange/commit/271e55420154265e798a0de3adf26a64faba66c8)
+
+#### Move ecosystem constants out of core and delegate validation to ecosystem crates
+
+Each ecosystem crate now owns its own `default_dependency_version_prefix()`, `default_dependency_fields()`, and `validate_versioned_file()` functions. The `EcosystemType::default_prefix()` and `EcosystemType::default_fields()` methods on `monochange_core::EcosystemType` are deprecated in favor of the ecosystem crate equivalents. `monochange_config` versioned file validation now dispatches to ecosystem crate validators instead of embedding ecosystem-specific parsing logic in config.
+
+Closes #137 Closes #138
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #411](https://github.com/monochange/monochange/pull/411) _Introduced in:_ [`57e2322`](https://github.com/monochange/monochange/commit/57e232282d41e89e70f3e5b34b3e07d8b2089fea) _Related issues:_ [#137](https://github.com/monochange/monochange/issues/137), [#138](https://github.com/monochange/monochange/issues/138)
+
+#### Move Go placeholder manifests into monochange_cocoapods
+
+Move Go placeholder `go.mod` generation out of `monochange::package_publish` and into `monochange_cocoapods`.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #420](https://github.com/monochange/monochange/pull/420) _Introduced in:_ [`28e4c9d`](https://github.com/monochange/monochange/commit/28e4c9d1c31579456ec93dc59d59f683608240e4) _Related issues:_ [#419](https://github.com/monochange/monochange/issues/419)
+
+### 🐛 Fixed
+
+#### Remove grouped release member summaries
+
+Grouped release notes no longer include generated changed or synchronized member lists, keeping the release note summary focused on the group release itself.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #395](https://github.com/monochange/monochange/pull/395) _Introduced in:_ [`2d012ff`](https://github.com/monochange/monochange/commit/2d012ff900a612f4aed6e4d7034c8c876f50aeae) _Last updated in:_ [`8c6a312`](https://github.com/monochange/monochange/commit/8c6a312f2d9e7477fd7901688d878c721ba41336)
+
+### 🧪 Testing
+
+#### Normalize Rust unit test file layout
+
+Move Rust unit tests into colocated `__tests__/` directories and name each file after the module under test with a `_tests.rs` suffix.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #428](https://github.com/monochange/monochange/pull/428) _Introduced in:_ [`b61cc3e`](https://github.com/monochange/monochange/commit/b61cc3e66989fd83ffb16a31568d2f46d7075216)
+
+## [0.3.4](https://github.com/monochange/monochange/releases/tag/v0.3.4) (2026-05-06)
+
+### 🐛 Fixed
+
+#### Preserve publish batch dependency order
+
+Carry prior packages into later publish-plan batches so dependency-ordered publish requests remain available when registry rate limits split a release into multiple jobs.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #389](https://github.com/monochange/monochange/pull/389) _Introduced in:_ [`12d3582`](https://github.com/monochange/monochange/commit/12d35826c3b0a8768bbf05c82b1e999a0e9ca30a)
+
+#### Use npm for trusted npm publishing
+
+Route trusted npm publishes through the npm CLI even in pnpm-managed workspaces so npm's OIDC trusted publishing flow can exchange the GitHub Actions identity for a short-lived publish credential. The release workflow also relies on devenv environment cleaning directly instead of the removed `strip:env` wrapper.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #388](https://github.com/monochange/monochange/pull/388) _Introduced in:_ [`72773bc`](https://github.com/monochange/monochange/commit/72773bc438167b55c26bb7c3f5dd9d7a21c99084)
+
+## [0.3.3](https://github.com/monochange/monochange/releases/tag/v0.3.3) (2026-05-06)
+
+### 🐛 Fixed
+
+#### preserve GitHub OIDC environment variables in devenv
+
+The development environment's `devenv.yaml` now keeps the GitHub Actions and OIDC identity variables that monochange needs to detect trusted publishing when running inside `devenv shell`. Previously, `strip: env` removed these variables and caused built-in publishing to fail with "No supported CI provider identity was detected."
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #386](https://github.com/monochange/monochange/pull/386) _Introduced in:_ [`fd1a798`](https://github.com/monochange/monochange/commit/fd1a798e57234fc465c33537077ec6acf0a47db8)
+
+## [0.3.2](https://github.com/monochange/monochange/releases/tag/v0.3.2) (2026-05-06)
+
+### 📝 Changed
+
+- No package-specific changes were recorded; `monochange_cocoapods` was updated to 0.3.2 as part of group `main`.
+
+## [0.3.1](https://github.com/monochange/monochange/releases/tag/v0.3.1) (2026-05-05)
+
+### 🐛 Fixed
+
+#### Preserve rendered changelog metadata in release records
+
+Release records now store full changelog metadata so publish flows reconstructed from git history can use the rendered release notes instead of falling back to minimal release bodies.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #356](https://github.com/monochange/monochange/pull/356) _Introduced in:_ [`6f38c00`](https://github.com/monochange/monochange/commit/6f38c003a77fcc4a95e33ae1c344340bbcce1017)
+
+#### Preserve configured changelog sections for scalar change types
+
+Configured changelog types now take precedence over scalar bump names so generated release notes retain their intended sections. Local telemetry JSONL writes now append complete event lines to avoid malformed records during concurrent command runs.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #363](https://github.com/monochange/monochange/pull/363) _Introduced in:_ [`8c8c9dc`](https://github.com/monochange/monochange/commit/8c8c9dc98f6a95d2c8a2d55fb986a66c08f29312)
+
+#### Filter placeholder publish reports to packages that need action
+
+`mc placeholder-publish` now hides already-published and skipped packages from the default report so dry runs focus on packages that still need placeholder publishing, and real runs focus on packages that were published or failed.
+
+Pass `--show-all` to include the full package report when auditing every selected package.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #372](https://github.com/monochange/monochange/pull/372) _Introduced in:_ [`26f20e6`](https://github.com/monochange/monochange/commit/26f20e6347429e57bc94aea06a40eec81f85c54d)
+
+#### Publish packages in dependency order without readiness artifacts
+
+Package publishing now derives release work directly from prepared release or `HEAD` release state, orders internal publish-relevant dependencies before dependents, and rejects publish-relevant dependency cycles while allowing development-only cycles.
+
+The publish order now works like this:
+
+1. Build the selected publish requests from the prepared release or `HEAD` release state.
+2. Materialize the workspace dependency graph.
+3. Consider only dependencies where **both packages are part of the selected publish set**.
+4. Ignore development dependency edges.
+5. Topologically sort the publish requests so dependencies are emitted before dependents.
+
+So for a tree like:
+
+```text
+core        # no dependencies
+utils       # depends on core
+api         # depends on utils
+app         # depends on core, utils, api
+```
+
+the publish order becomes:
+
+```text
+core
+utils
+api
+app
+```
+
+If multiple packages are independent at the same depth, their order is deterministic by package id, registry, and version.
+
+A package with no selected dependencies is eligible first. A package is not published until all of its selected publish-relevant dependencies have been ordered before it. Dependencies outside the selected publish set do not block ordering. Development-only cycles are ignored. Runtime, build, peer, workspace, and unknown dependency cycles fail before publishing anything, with a cycle diagnostic.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #364](https://github.com/monochange/monochange/pull/364) _Introduced in:_ [`67eae95`](https://github.com/monochange/monochange/commit/67eae951e6a35a9b4c7c6489e89cd4779e44234e)
+
+#### Make release workspace publishing preserve Cargo verification
+
+`monochange_test_helpers` is now publishable so crates that use the shared helpers in their dev-dependencies can still pass Cargo's normal publish verification. `monochange_core` no longer dev-depends on the helper crate: its integration-style discovery filter coverage now lives in the unpublished `monochange_integration_tests` crate, preventing a dependency cycle between the published core crate and the test helper crate.
+
+Package publishing keeps Cargo verification enabled and still runs JavaScript registry tooling without inherited `LD_LIBRARY_PATH`, preserving PNPM support while avoiding Nix/devenv library-path leakage into system Node.js launchers.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #368](https://github.com/monochange/monochange/pull/368) _Introduced in:_ [`b79eef1`](https://github.com/monochange/monochange/commit/b79eef170a01234b69b2b83c8ebd4ef946a079ac)
+
+#### Use `GITHUB_TOKEN` for Git Data API to create verified commits
+
+The `release-pr` workflow now passes `GITHUB_COMMIT_TOKEN` (set to `secrets.GITHUB_TOKEN`) specifically for Git Database API operations (blob, tree, commit creation, and ref updates). This allows GitHub to automatically sign commits with the `web-flow` GPG key, producing verified commits on release pull requests.
+
+The `GH_TOKEN` (PAT) continues to be used for all other GitHub API operations like pull request creation and updates.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #371](https://github.com/monochange/monochange/pull/371) _Introduced in:_ [`3770b48`](https://github.com/monochange/monochange/commit/3770b48bab6b41c80086a0d3e2e4e6a9a7540c39)
+
+### 📦 Other
+
+#### Resolve git identity from token for release PR commits
+
+The `release-pr` workflow now queries the GitHub API for the authenticated user's `id`, `login`, and `name`, then constructs the standard GitHub noreply email (`{id}+{login}@users.noreply.github.com`) for `git config user.email`. This replaces the previous hardcoded `github-actions[bot]` identity, so release PR commits are properly attributed to the account that owns the `RELEASE_PR_MERGE_TOKEN`.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #367](https://github.com/monochange/monochange/pull/367) _Introduced in:_ [`920bf04`](https://github.com/monochange/monochange/commit/920bf04ba34aa7050e0dc6a9be5c488c9431d085)
+
+#### Use the current monochange CLI when publishing release tags
+
+The publish workflow now builds the `mc` binary from the workflow commit before checking out the release tag. Publish jobs still operate on the requested release tag's files and release state, but they execute the current workflow version of `mc` so post-release publishing fixes apply when rerunning publication for an older tag.
+
+The workflow keeps full branch and tag history available after switching to the release tag so publish-time release branch reachability checks still work. The release workflow also dispatches `publish.yml` at the current workflow commit, allowing a fixed publish workflow to publish an older release tag.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #366](https://github.com/monochange/monochange/pull/366) _Introduced in:_ [`9bb5ca9`](https://github.com/monochange/monochange/commit/9bb5ca9ca5315f60a1079a55470f7b77ff8e3ea2) _Related issues:_ [#364](https://github.com/monochange/monochange/issues/364)
+
+## [0.3.0](https://github.com/monochange/monochange/releases/tag/v0.3.0) (2026-04-30)
+
+### 📝 Changed
+
+#### Add Go ecosystem support
+
+monochange now discovers and manages Go modules from `go.mod` files in single-module and multi-module repositories.
+
+**Configuration:**
+
+```toml
+[defaults]
+package_type = "go"
+
+[package.api]
+path = "api"
+
+[package.shared]
+path = "shared"
+
+[ecosystems.go]
+enabled = true
+```
+
+**What it discovers:**
+
+- Go modules by scanning for `go.mod` files
+- Multi-module monorepos with separate modules in subdirectories
+- Module paths, including major version suffixes (`/v2`, `/v3`)
+- Cross-module `require` directives as dependency edges
+- Indirect dependencies marked as development dependencies
+
+**Version management:**
+
+- Go versions come from git tags, not manifest files — the adapter reports `None` for `current_version` and stores the module path as metadata for tag resolution
+- Updates `require` directives in `go.mod` when cross-module dependencies change
+- Preserves `replace`, `exclude`, `retract` directives and comments
+- Adds `v` prefix to version strings automatically when missing
+
+**Lockfile commands:**
+
+- Infers `go mod tidy` for all Go modules (updates both `go.mod` and `go.sum`)
+- Configurable via `[ecosystems.go].lockfile_commands`
+
+**Key design decisions:**
+
+- Module names are derived from the last non-version segment of the module path (`github.com/org/repo/api/v2` → `api`)
+- The full module path and relative directory path are stored as metadata for downstream tag resolution
+- Parse errors during discovery are treated as warnings, not hard errors
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) _Review:_ [PR #156](https://github.com/monochange/monochange/pull/156) _Introduced in:_ [`519f841`](https://github.com/monochange/monochange/commit/519f841929c6a06d5b3a578b206982d2d6cc1548) _Last updated in:_ [`b33a82d`](https://github.com/monochange/monochange/commit/b33a82d8e26da20fb2dfbb94bc5f4040c27f2c67) _Closed issues:_ [#133](https://github.com/monochange/monochange/issues/133)

@@ -324,7 +324,7 @@ async fn load_prepared_release_execution_rejects_non_dry_run_follow_up_from_dry_
 	let tempdir = setup_prepared_release_repo();
 	let root = tempdir.path();
 	let artifact_path = explicit_artifact_path(root);
-	let configuration = save_artifact(root, true, &artifact_path).await;
+	let configuration = Box::pin(save_artifact(root, true, &artifact_path)).await;
 
 	let error =
 		load_prepared_release_execution(root, &configuration, Some(&artifact_path), false, false)
@@ -375,7 +375,7 @@ async fn load_prepared_release_execution_rejects_configuration_drift() {
 	let tempdir = setup_prepared_release_repo();
 	let root = tempdir.path();
 	let artifact_path = explicit_artifact_path(root);
-	let _original_configuration = save_artifact(root, true, &artifact_path).await;
+	let _original_configuration = Box::pin(save_artifact(root, true, &artifact_path)).await;
 	fs::write(
 		root.join("monochange.toml"),
 		fs::read_to_string(root.join("monochange.toml"))
@@ -407,7 +407,7 @@ async fn load_prepared_release_execution_rejects_head_and_status_drift() {
 	let tempdir = setup_prepared_release_repo();
 	let root = tempdir.path();
 	let artifact_path = explicit_artifact_path(root);
-	let configuration = save_artifact(root, false, &artifact_path).await;
+	let configuration = Box::pin(save_artifact(root, false, &artifact_path)).await;
 
 	fs::write(root.join("README.md"), "head drift\n")
 		.unwrap_or_else(|error| panic!("write README: {error}"));
@@ -426,7 +426,7 @@ async fn load_prepared_release_execution_rejects_head_and_status_drift() {
 	let tempdir = setup_prepared_release_repo();
 	let root = tempdir.path();
 	let artifact_path = explicit_artifact_path(root);
-	let configuration = save_artifact(root, false, &artifact_path).await;
+	let configuration = Box::pin(save_artifact(root, false, &artifact_path)).await;
 	fs::write(root.join("README.md"), "status drift\n")
 		.unwrap_or_else(|error| panic!("write README: {error}"));
 
@@ -446,7 +446,7 @@ async fn load_prepared_release_execution_rejects_tracked_path_drift() {
 	let tempdir = setup_prepared_release_repo();
 	let root = tempdir.path();
 	let artifact_path = explicit_artifact_path(root);
-	let configuration = save_artifact(root, false, &artifact_path).await;
+	let configuration = Box::pin(save_artifact(root, false, &artifact_path)).await;
 	let mut artifact = read_prepared_release_artifact(&artifact_path)
 		.unwrap_or_else(|error| panic!("read prepared release artifact: {error}"));
 	let tracked = artifact
@@ -474,7 +474,7 @@ async fn load_prepared_release_execution_rejects_schema_mismatch() {
 	let tempdir = setup_prepared_release_repo();
 	let root = tempdir.path();
 	let artifact_path = explicit_artifact_path(root);
-	let configuration = save_artifact(root, true, &artifact_path).await;
+	let configuration = Box::pin(save_artifact(root, true, &artifact_path)).await;
 	let mut artifact = read_prepared_release_artifact(&artifact_path)
 		.unwrap_or_else(|error| panic!("read prepared release artifact: {error}"));
 	artifact.schema_version += 1;
@@ -531,7 +531,7 @@ async fn maybe_load_prepared_release_execution_returns_explicit_stale_errors() {
 	let tempdir = setup_prepared_release_repo();
 	let root = tempdir.path();
 	let artifact_path = explicit_artifact_path(root);
-	let configuration = save_artifact(root, false, &artifact_path).await;
+	let configuration = Box::pin(save_artifact(root, false, &artifact_path)).await;
 	fs::write(root.join("README.md"), "explicit stale\n")
 		.unwrap_or_else(|error| panic!("write README: {error}"));
 
@@ -556,7 +556,7 @@ async fn load_prepared_release_execution_rejects_missing_diff_previews_when_requ
 	let tempdir = setup_prepared_release_repo();
 	let root = tempdir.path();
 	let artifact_path = explicit_artifact_path(root);
-	let configuration = save_artifact(root, false, &artifact_path).await;
+	let configuration = Box::pin(save_artifact(root, false, &artifact_path)).await;
 
 	let error =
 		load_prepared_release_execution(root, &configuration, Some(&artifact_path), false, true)

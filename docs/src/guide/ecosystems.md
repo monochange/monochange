@@ -10,15 +10,18 @@ monochange uses ecosystem adapters to translate native package-manager files int
 
 ## Capability matrix
 
-| Ecosystem      | Package type      | Discovery sources                                                                                        | Version and dependency updates                                                               | Lockfile behavior                                                                                                                                                                                                             | Built-in registry publishing                     |
-| -------------- | ----------------- | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| Cargo          | `cargo`           | `Cargo.toml` workspaces and standalone crates                                                            | `Cargo.toml` package versions and internal dependency requirements                           | Direct `Cargo.lock` rewrite by default; configure `cargo generate-lockfile`, `cargo check`, or another command when you need package-manager resolution                                                                       | `crates.io`                                      |
-| npm-family     | `npm`             | npm workspaces, pnpm workspaces, Yarn workspaces, Bun workspaces, and standalone `package.json` packages | `package.json` versions and dependency ranges                                                | Direct `package-lock.json`, `pnpm-lock.yaml` (including pnpm 12 two-document lockfiles), `yarn.lock` (Classic and Berry), `bun.lock`, and `bun.lockb` updates by default; command overrides support package-manager refreshes | `npm`                                            |
-| Deno           | `deno`            | Deno workspaces and standalone `deno.json` / `deno.jsonc` packages                                       | Deno manifest versions, exports/imports metadata, and dependency references                  | Direct `deno.lock` update when possible; no inferred lockfile command                                                                                                                                                         | `jsr`                                            |
-| Dart / Flutter | `dart`, `flutter` | Dart and Flutter workspaces plus standalone `pubspec.yaml` packages                                      | `pubspec.yaml` versions and dependency ranges                                                | Direct `pubspec.lock` update by default; configure `dart pub get` or `flutter pub get` when you need full solver refreshes                                                                                                    | `pub.dev`                                        |
-| Python         | `python`          | uv workspaces, Poetry projects, and standalone `pyproject.toml` packages                                 | PEP 621 `[project]` and Poetry `[tool.poetry]` package versions plus dependency specifiers   | Does not mutate `uv.lock` or `poetry.lock` directly; infers `uv lock` and `poetry lock` commands; unknown Python lockfiles are skipped                                                                                        | `pypi`                                           |
-| Go             | `go`              | Standalone `go.mod` modules                                                                              | Internal `require` directives in `go.mod`; package versions stay in VCS tags                 | Does not mutate `go.sum` directly; infers `go mod tidy` so the Go toolchain refreshes `go.mod` and checksum data                                                                                                              | Go module proxy via VCS tags                     |
-| GitHub Actions | `github_actions`  | Configured `[package.<id>]` declarations with `action.yml` (or `action.yaml`) in the package directory   | None: releases are git tags; a sibling `package.json` `version` field is synced when present | Not applicable, no lockfiles                                                                                                                                                                                                  | None: the tag and GitHub release are the publish |
+| Ecosystem      | Package type      | Discovery sources                                                                                        | Version and dependency updates                                                               | Lockfile behavior                                                                                                                                                                                                             | Built-in registry publishing                       |
+| -------------- | ----------------- | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| Cargo          | `cargo`           | `Cargo.toml` workspaces and standalone crates                                                            | `Cargo.toml` package versions and internal dependency requirements                           | Direct `Cargo.lock` rewrite by default; configure `cargo generate-lockfile`, `cargo check`, or another command when you need package-manager resolution                                                                       | `crates.io`                                        |
+| npm-family     | `npm`             | npm workspaces, pnpm workspaces, Yarn workspaces, Bun workspaces, and standalone `package.json` packages | `package.json` versions and dependency ranges                                                | Direct `package-lock.json`, `pnpm-lock.yaml` (including pnpm 12 two-document lockfiles), `yarn.lock` (Classic and Berry), `bun.lock`, and `bun.lockb` updates by default; command overrides support package-manager refreshes | `npm`                                              |
+| Deno           | `deno`            | Deno workspaces and standalone `deno.json` / `deno.jsonc` packages                                       | Deno manifest versions, exports/imports metadata, and dependency references                  | Direct `deno.lock` update when possible; no inferred lockfile command                                                                                                                                                         | `jsr`                                              |
+| Dart / Flutter | `dart`, `flutter` | Dart and Flutter workspaces plus standalone `pubspec.yaml` packages                                      | `pubspec.yaml` versions and dependency ranges                                                | Direct `pubspec.lock` update by default; configure `dart pub get` or `flutter pub get` when you need full solver refreshes                                                                                                    | `pub.dev`                                          |
+| Python         | `python`          | uv workspaces, Poetry projects, and standalone `pyproject.toml` packages                                 | PEP 621 `[project]` and Poetry `[tool.poetry]` package versions plus dependency specifiers   | Does not mutate `uv.lock` or `poetry.lock` directly; infers `uv lock` and `poetry lock` commands; unknown Python lockfiles are skipped                                                                                        | `pypi`                                             |
+| Go             | `go`              | Standalone `go.mod` modules                                                                              | Internal `require` directives in `go.mod`; package versions stay in VCS tags                 | Does not mutate `go.sum` directly; infers `go mod tidy` so the Go toolchain refreshes `go.mod` and checksum data                                                                                                              | Go module proxy via VCS tags                       |
+| GitHub Actions | `github_actions`  | Configured `[package.<id>]` declarations with `action.yml` (or `action.yaml`) in the package directory   | None: releases are git tags; a sibling `package.json` `version` field is synced when present | Not applicable, no lockfiles                                                                                                                                                                                                  | None: the tag and GitHub release are the publish   |
+| Swift          | `swift`           | `Package.swift` manifests                                                                                | None: `Package.swift` carries no version field; releases are repository tags                 | Not applicable, no lockfiles                                                                                                                                                                                                  | None: the tag and provider release are the publish |
+| CocoaPods      | `cocoapods`       | `.podspec` and `.podspec.json` manifests                                                                 | `s.version` declarations in podspecs, including JSON podspecs                                | Not applicable, no lockfiles                                                                                                                                                                                                  | `cocoapods_trunk` (the CocoaPods trunk)            |
+| Gradle         | `gradle`          | `gradle.properties` manifests declaring `VERSION_NAME`                                                   | `VERSION_NAME` (and other listed keys) in `gradle.properties`                                | Not applicable, no lockfiles                                                                                                                                                                                                  | `maven_central` (Sonatype Central Portal)          |
 
 The built-in publishing column is intentionally narrower than release planning. It lists only the canonical public registry for each supported ecosystem; private registries and custom publication flows should use `mode = "external"`.
 
@@ -236,6 +239,99 @@ trusted_publishing = false
 [ecosystems.go]
 # Optional: override inferred tidy commands.
 lockfile_commands = [{ command = "go mod tidy", cwd = "services/api" }]
+```
+
+## Swift
+
+Swift support targets Swift Package Manager packages declared by `Package.swift`. The Swift Package Manager resolves versions from repository tags, so Swift packages release through the tag and provider-release steps rather than a registry publish.
+
+Use Swift support when your repository has:
+
+- Apple platform packages declared by `Package.swift`
+- bindings or wrappers that should release in lockstep with the rest of a mixed-language monorepo
+
+Swift behavior:
+
+- package names come from the `name:` argument of the `Package(…)` initializer
+- `Package.swift` carries no version field: release planning resolves each package's current version from repository tags, exactly like Go
+- `type = "swift"` versioned-file entries validate but never rewrite `Package.swift`; releases are the group's tag
+- publishing stays with the release flow: create the tag and provider release, and Swift consumers resolve it
+
+Example Swift package configuration:
+
+```toml
+[package.apple]
+path = "platforms/apple"
+type = "swift"
+
+[group.sdk]
+packages = ["apple"]
+tag = true
+release = true
+version_format = "primary"
+```
+
+## CocoaPods
+
+CocoaPods support targets pods declared by `.podspec` (Ruby) or `.podspec.json` manifests and publishes them to the CocoaPods trunk.
+
+Use CocoaPods support when your repository has:
+
+- pods consumed through a `Podfile`, including React Native and Lynx apps that autolink native pods
+- podspecs whose version should move in lockstep with the rest of the workspace
+
+CocoaPods behavior:
+
+- pod names and versions come from the `s.name` and `s.version` declarations; podspecs that compute their version at evaluation time carry no literal version and fall back to tags and group versions
+- `type = "cocoapods"` versioned-file entries rewrite `s.version` (or the JSON `version` field), preserving the original quote style
+- built-in publishing runs `pod trunk push <podspec> --allow-warnings`; dry runs swap to `pod spec lint` so the same validation runs without mutating the trunk
+- duplicate-version detection queries the trunk API (`trunk.cocoapods.org/api/v1/pods/<name>`)
+- the trunk authenticates through per-machine session tokens rather than trusted publishing: set `trusted_publishing = false` and export `COCOAPODS_TRUNK_TOKEN` from a registered trunk session in CI
+
+Example CocoaPods package configuration:
+
+```toml
+[package.canvist_pod]
+path = "platforms/apple"
+type = "cocoapods"
+
+[ecosystems.cocoapods.publish]
+enabled = true
+mode = "builtin"
+registry = "cocoapods_trunk"
+trusted_publishing = false
+```
+
+## Gradle
+
+Gradle support targets Android and JVM libraries that publish to Maven Central, discovered through the `VERSION_NAME` convention in `gradle.properties`.
+
+Use Gradle support when your repository has:
+
+- Kotlin or Java libraries built with Gradle and published through the Sonatype Central Portal
+- Android bindings whose `VERSION_NAME` should move in lockstep with the rest of the workspace
+
+Gradle behavior:
+
+- a project qualifies when its `gradle.properties` declares `VERSION_NAME`; build-only properties files are ignored, as are `build/` outputs
+- package names are the Maven coordinate `group:artifact` when `GROUP` (or `POM_GROUP_ID`) is set, with the artifact id taken from `POM_ARTIFACT_ID`, the `rootProject.name` of the settings script, or the directory name
+- `type = "gradle"` versioned-file entries rewrite listed keys such as `VERSION_NAME`, preserving separators and comments
+- built-in publishing runs `./gradlew publishAndReleaseToMavenCentral`, the `com.vanniktech.maven-publish` task that uploads and releases a Central Portal deployment in one run
+- duplicate-version detection reads `maven-metadata.xml` from `repo1.maven.org` for the resolved coordinate
+- Maven Central has no trusted publishing: set `trusted_publishing = false` and provide a Central Portal user token (`ORG_GRADLE_PROJECT_mavenCentralUsername` / `ORG_GRADLE_PROJECT_mavenCentralPassword`) plus an in-memory signing key in CI
+
+Example Gradle package configuration:
+
+```toml
+[package.canvist_android]
+path = "platforms/android"
+type = "gradle"
+
+[ecosystems.gradle.publish]
+enabled = true
+mode = "builtin"
+registry = "maven_central"
+trusted_publishing = false
 ```
 
 ## GitHub Actions

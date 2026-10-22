@@ -70,6 +70,10 @@ pub(crate) enum VersionedFileKind {
 	Python(monochange_python::PythonVersionedFileKind),
 	#[cfg(feature = "go")]
 	Go(monochange_go::GoVersionedFileKind),
+	#[cfg(feature = "cocoapods")]
+	CocoaPods(monochange_cocoapods::CocoaPodsVersionedFileKind),
+	#[cfg(feature = "gradle")]
+	Gradle(monochange_gradle::GradleVersionedFileKind),
 }
 
 pub(crate) fn versioned_file_kind(
@@ -100,6 +104,15 @@ pub(crate) fn versioned_file_kind(
 		#[cfg(feature = "go")]
 		monochange_core::EcosystemType::Go => {
 			monochange_go::supported_versioned_file_kind(path).map(VersionedFileKind::Go)
+		}
+		#[cfg(feature = "cocoapods")]
+		monochange_core::EcosystemType::CocoaPods => {
+			monochange_cocoapods::supported_versioned_file_kind(path)
+				.map(VersionedFileKind::CocoaPods)
+		}
+		#[cfg(feature = "gradle")]
+		monochange_core::EcosystemType::Gradle => {
+			monochange_gradle::supported_versioned_file_kind(path).map(VersionedFileKind::Gradle)
 		}
 		_ => None,
 	}
@@ -816,6 +829,26 @@ pub(crate) fn read_cached_document(
 			};
 			Ok(CachedDocument::Text(contents))
 		}
+		#[cfg(feature = "cocoapods")]
+		VersionedFileKind::CocoaPods(_) => {
+			let Some(contents) = text_contents else {
+				return Err(MonochangeError::Config(format!(
+					"failed to parse {} as text",
+					path.display()
+				)));
+			};
+			Ok(CachedDocument::Text(contents))
+		}
+		#[cfg(feature = "gradle")]
+		VersionedFileKind::Gradle(_) => {
+			let Some(contents) = text_contents else {
+				return Err(MonochangeError::Config(format!(
+					"failed to parse {} as text",
+					path.display()
+				)));
+			};
+			Ok(CachedDocument::Text(contents))
+		}
 		#[cfg(feature = "dart")]
 		VersionedFileKind::Dart(monochange_dart::DartVersionedFileKind::Manifest) => {
 			let Some(contents) = text_contents else {
@@ -900,6 +933,27 @@ pub(crate) fn resolve_versioned_prefix(
 		monochange_core::EcosystemType::Go => {
 			context.configuration.go.dependency_version_prefix.clone()
 		}
+		monochange_core::EcosystemType::Swift => {
+			context
+				.configuration
+				.swift
+				.dependency_version_prefix
+				.clone()
+		}
+		monochange_core::EcosystemType::CocoaPods => {
+			context
+				.configuration
+				.cocoapods
+				.dependency_version_prefix
+				.clone()
+		}
+		monochange_core::EcosystemType::Gradle => {
+			context
+				.configuration
+				.gradle
+				.dependency_version_prefix
+				.clone()
+		}
 		_ => None,
 	};
 
@@ -922,6 +976,15 @@ pub(crate) fn resolve_versioned_prefix(
 			}
 			monochange_core::EcosystemType::Go => {
 				monochange_go::default_dependency_version_prefix().to_string()
+			}
+			monochange_core::EcosystemType::Swift => {
+				monochange_swift::default_dependency_version_prefix().to_string()
+			}
+			monochange_core::EcosystemType::CocoaPods => {
+				monochange_cocoapods::default_dependency_version_prefix().to_string()
+			}
+			monochange_core::EcosystemType::Gradle => {
+				monochange_gradle::default_dependency_version_prefix().to_string()
 			}
 			_ => String::new(),
 		}
@@ -1509,6 +1572,9 @@ fn ecosystem_type_str(ecosystem: monochange_core::EcosystemType) -> String {
 		monochange_core::EcosystemType::Dart => "dart",
 		monochange_core::EcosystemType::Python => "python",
 		monochange_core::EcosystemType::Go => "go",
+		monochange_core::EcosystemType::Swift => "swift",
+		monochange_core::EcosystemType::CocoaPods => "cocoapods",
+		monochange_core::EcosystemType::Gradle => "gradle",
 		// patch-coverage:ignore-start -- future-proof fallback for a non_exhaustive enum.
 		_ => "",
 		// patch-coverage:ignore-end
@@ -1677,7 +1743,8 @@ pub(crate) fn apply_versioned_file_definition_to_paths<N: AsRef<str>>(
 	// the user explicitly specifies it in the fields configuration.
 	// Only update the version field if 'version' is explicitly in the fields configuration.
 	// This applies to ALL versioned files (both package-level and group-level).
-	let update_version = fields.contains(&"version");
+	// Gradle properties name their version field `VERSION_NAME`.
+	let update_version = fields.contains(&"version") || fields.contains(&"VERSION_NAME");
 	let effective_owner_version = if update_version {
 		Some(owner_version)
 	} else {
@@ -1723,6 +1790,9 @@ pub(crate) fn apply_versioned_file_definition_to_paths<N: AsRef<str>>(
 					monochange_core::EcosystemType::Dart => "dart",
 					monochange_core::EcosystemType::Python => "python",
 					monochange_core::EcosystemType::Go => "go",
+					monochange_core::EcosystemType::Swift => "swift",
+					monochange_core::EcosystemType::CocoaPods => "cocoapods",
+					monochange_core::EcosystemType::Gradle => "gradle",
 					_ => "unknown",
 				},
 			)));
@@ -1884,6 +1954,50 @@ pub(crate) fn apply_versioned_file_definition_to_paths<N: AsRef<str>>(
 				VersionedFileKind::Go(monochange_go::GoVersionedFileKind::GoMod),
 			) => {
 				*contents = monochange_go::update_go_mod_text(contents, &versioned_deps);
+			}
+			#[cfg(feature = "cocoapods")]
+			(
+				CachedDocument::Text(contents),
+				VersionedFileKind::CocoaPods(
+					monochange_cocoapods::CocoaPodsVersionedFileKind::Podspec,
+				),
+			) => {
+				if let Some(version) = effective_owner_version {
+					*contents = monochange_cocoapods::update_podspec_version(contents, version);
+				}
+			}
+			#[cfg(feature = "cocoapods")]
+			(
+				CachedDocument::Text(contents),
+				VersionedFileKind::CocoaPods(
+					monochange_cocoapods::CocoaPodsVersionedFileKind::PodspecJson,
+				),
+			) => {
+				*contents = monochange_core::update_json_manifest_text(
+					contents,
+					effective_owner_version,
+					&fields,
+					&versioned_deps,
+				)
+				.map_err(|error| {
+					MonochangeError::Config(format!(
+						"failed to parse {}: {error}",
+						resolved_path.display()
+					))
+				})?;
+			}
+			#[cfg(feature = "gradle")]
+			(
+				CachedDocument::Text(contents),
+				VersionedFileKind::Gradle(
+					monochange_gradle::GradleVersionedFileKind::GradleProperties,
+				),
+			) => {
+				if let Some(version) = effective_owner_version {
+					*contents = monochange_gradle::update_gradle_properties_text(
+						contents, &fields, version,
+					);
+				}
 			}
 			#[cfg(feature = "python")]
 			(CachedDocument::Text(contents), VersionedFileKind::Python(kind)) => {

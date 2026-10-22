@@ -36,6 +36,9 @@ default = [
 	"dart",
 	"python",
 	"go",
+	"swift",
+	"cocoapods",
+	"gradle",
 	"github",
 	"gitlab",
 	"gitea",
@@ -48,6 +51,9 @@ deno = ["monochange_deno"]
 dart = ["monochange_dart"]
 python = ["monochange_python"]
 go = ["monochange_go"]
+swift = ["monochange_swift"]
+cocoapods = ["monochange_cocoapods"]
+gradle = ["monochange_gradle"]
 mcp = ["rmcp"]
 github = ["monochange_github", "monochange_core/http"]
 gitlab = ["monochange_gitlab", "monochange_core/http"]
@@ -65,6 +71,7 @@ monochange_analysis = { workspace = true }
 monochange_cargo = { workspace = true, optional = true }
 monochange_changelog = { workspace = true }
 monochange_classification = { workspace = true }
+monochange_cocoapods = { workspace = true, optional = true }
 monochange_config = { workspace = true }
 monochange_core = { workspace = true }
 monochange_dart = { workspace = true, optional = true }
@@ -74,6 +81,7 @@ monochange_gitea = { workspace = true, optional = true }
 monochange_github = { workspace = true, optional = true }
 monochange_gitlab = { workspace = true, optional = true }
 monochange_go = { workspace = true, optional = true }
+monochange_gradle = { workspace = true, optional = true }
 monochange_graph = { workspace = true }
 monochange_hosting = { workspace = true }
 monochange_lint = { workspace = true }
@@ -82,6 +90,7 @@ monochange_publish = { workspace = true }
 monochange_python = { workspace = true, optional = true }
 monochange_semver = { workspace = true }
 monochange_snapshot = { workspace = true }
+monochange_swift = { workspace = true, optional = true }
 monochange_telemetry = { workspace = true }
 monochange_test_helpers = { workspace = true }
 rayon = { workspace = true }

@@ -5,6 +5,7 @@ use std::path::Path;
 use monochange_cargo::cargo_publish_readiness_blockers;
 use monochange_cargo::publish_blocked_message;
 use monochange_cargo::write_cargo_placeholder_manifest;
+use monochange_cocoapods::write_cocoapods_placeholder_manifest;
 use monochange_core::Ecosystem;
 use monochange_core::MonochangeError;
 use monochange_core::MonochangeResult;
@@ -738,6 +739,8 @@ fn publish_readiness_registry(source: Option<&SourceConfiguration>) -> PublishRe
 		RegistryKind::Jsr,
 		RegistryKind::Pypi,
 		RegistryKind::GoProxy,
+		RegistryKind::CocoaPodsTrunk,
+		RegistryKind::MavenCentral,
 	] {
 		let source = source.clone();
 		registry = registry.with_env_checker(
@@ -757,7 +760,7 @@ fn publish_readiness_registry(source: Option<&SourceConfiguration>) -> PublishRe
 	registry
 }
 
-fn placeholder_manifest_writer_registry() -> PlaceholderManifestWriterRegistry {
+pub(crate) fn placeholder_manifest_writer_registry() -> PlaceholderManifestWriterRegistry {
 	PlaceholderManifestWriterRegistry::new()
 		.with_writer(
 			RegistryKind::Npm,
@@ -793,6 +796,12 @@ fn placeholder_manifest_writer_registry() -> PlaceholderManifestWriterRegistry {
 			RegistryKind::GoProxy,
 			Box::new(|placeholder_dir, request, _root, _source| {
 				write_go_placeholder_manifest(placeholder_dir, request)
+			}),
+		)
+		.with_writer(
+			RegistryKind::CocoaPodsTrunk,
+			Box::new(|placeholder_dir, request, _root, _source| {
+				write_cocoapods_placeholder_manifest(placeholder_dir, request)
 			}),
 		)
 }

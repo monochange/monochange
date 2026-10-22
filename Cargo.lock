@@ -2159,6 +2159,7 @@ dependencies = [
  "monochange_cargo",
  "monochange_changelog",
  "monochange_classification",
+ "monochange_cocoapods",
  "monochange_config",
  "monochange_core",
  "monochange_dart",
@@ -2168,6 +2169,7 @@ dependencies = [
  "monochange_github",
  "monochange_gitlab",
  "monochange_go",
+ "monochange_gradle",
  "monochange_graph",
  "monochange_hosting",
  "monochange_lint",
@@ -2176,6 +2178,7 @@ dependencies = [
  "monochange_python",
  "monochange_semver",
  "monochange_snapshot",
+ "monochange_swift",
  "monochange_telemetry",
  "monochange_test_helpers",
  "portable-pty",
@@ -2324,6 +2327,23 @@ dependencies = [
  "serde_json",
  "shlex",
  "tempfile",
+]
+
+[[package]]
+name = "monochange_cocoapods"
+version = "0.20.1"
+dependencies = [
+ "insta",
+ "monochange_core",
+ "monochange_publish",
+ "monochange_test_helpers",
+ "regex",
+ "rstest",
+ "semver",
+ "similar-asserts",
+ "tempfile",
+ "tracing",
+ "walkdir",
 ]
 
 [[package]]
@@ -2538,6 +2558,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "monochange_gradle"
+version = "0.20.1"
+dependencies = [
+ "insta",
+ "monochange_core",
+ "monochange_test_helpers",
+ "regex",
+ "rstest",
+ "semver",
+ "similar-asserts",
+ "tempfile",
+ "tracing",
+ "walkdir",
+]
+
+[[package]]
 name = "monochange_graph"
 version = "0.20.1"
 dependencies = [
@@ -2706,6 +2742,22 @@ dependencies = [
  "schemars",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "monochange_swift"
+version = "0.20.1"
+dependencies = [
+ "insta",
+ "monochange_core",
+ "monochange_test_helpers",
+ "regex",
+ "rstest",
+ "semver",
+ "similar-asserts",
+ "tempfile",
+ "tracing",
+ "walkdir",
 ]
 
 [[package]]

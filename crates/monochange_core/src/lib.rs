@@ -351,6 +351,10 @@ pub enum Ecosystem {
 	Dart,
 	Python,
 	Go,
+	Swift,
+	#[serde(rename = "cocoapods")]
+	CocoaPods,
+	Gradle,
 }
 
 impl Ecosystem {
@@ -364,6 +368,9 @@ impl Ecosystem {
 			Self::Dart => "dart",
 			Self::Python => "python",
 			Self::Go => "go",
+			Self::Swift => "swift",
+			Self::CocoaPods => "cocoapods",
+			Self::Gradle => "gradle",
 		}
 	}
 
@@ -375,7 +382,7 @@ impl Ecosystem {
 	/// version format, without filtering by branch reachability.
 	#[must_use]
 	pub const fn versions_from_tags(self) -> bool {
-		matches!(self, Self::Go)
+		matches!(self, Self::Go | Self::Swift)
 	}
 }
 
@@ -388,6 +395,9 @@ impl From<EcosystemType> for Ecosystem {
 			EcosystemType::Dart => Self::Dart,
 			EcosystemType::Python => Self::Python,
 			EcosystemType::Go => Self::Go,
+			EcosystemType::Swift => Self::Swift,
+			EcosystemType::CocoaPods => Self::CocoaPods,
+			EcosystemType::Gradle => Self::Gradle,
 		}
 	}
 }
@@ -403,6 +413,9 @@ impl From<PackageType> for Ecosystem {
 			// GitHub Actions releases are tag-and-release only; the runtime
 			// behavior matches the tag-versioned Go ecosystem.
 			PackageType::Go | PackageType::GitHubActions => Self::Go,
+			PackageType::Swift => Self::Swift,
+			PackageType::CocoaPods => Self::CocoaPods,
+			PackageType::Gradle => Self::Gradle,
 		}
 	}
 }
@@ -424,6 +437,9 @@ impl std::str::FromStr for Ecosystem {
 			"dart" | "flutter" => Ok(Self::Dart),
 			"python" => Ok(Self::Python),
 			"go" => Ok(Self::Go),
+			"swift" => Ok(Self::Swift),
+			"cocoapods" => Ok(Self::CocoaPods),
+			"gradle" => Ok(Self::Gradle),
 			_ => Err(()),
 		}
 	}
@@ -438,6 +454,11 @@ pub fn default_registry_kind_for_ecosystem(ecosystem: Ecosystem) -> Option<Regis
 		Ecosystem::Dart => Some(RegistryKind::PubDev),
 		Ecosystem::Python => Some(RegistryKind::Pypi),
 		Ecosystem::Go => Some(RegistryKind::GoProxy),
+		// Swift packages release through repository tags and provider releases:
+		// the Swift Package Manager has no registry to publish to.
+		Ecosystem::Swift => None,
+		Ecosystem::CocoaPods => Some(RegistryKind::CocoaPodsTrunk),
+		Ecosystem::Gradle => Some(RegistryKind::MavenCentral),
 	}
 }
 
@@ -993,6 +1014,10 @@ pub enum PackageType {
 	/// provider releases; there is no registry publish target.
 	#[serde(alias = "github_actions", alias = "actions")]
 	GitHubActions,
+	Swift,
+	#[serde(rename = "cocoapods")]
+	CocoaPods,
+	Gradle,
 }
 
 impl PackageType {
@@ -1007,6 +1032,9 @@ impl PackageType {
 			Self::Python => "python",
 			Self::Go => "go",
 			Self::GitHubActions => "github_actions",
+			Self::Swift => "swift",
+			Self::CocoaPods => "cocoapods",
+			Self::Gradle => "gradle",
 		}
 	}
 
@@ -1014,7 +1042,7 @@ impl PackageType {
 	///
 	/// Returns `None` for types that do not have a single version-bearing
 	/// manifest, such as GitHub Actions (an `action.yml` can exist but carries
-	/// no version).
+	/// no version) or `CocoaPods` (podspecs are named after the pod).
 	#[must_use]
 	pub fn manifest_file_name(self) -> Option<&'static str> {
 		match self {
@@ -1024,7 +1052,9 @@ impl PackageType {
 			Self::Dart => Some("pubspec.yaml"),
 			Self::Python => Some("pyproject.toml"),
 			Self::Go => Some("go.mod"),
-			Self::GitHubActions => None,
+			Self::GitHubActions | Self::CocoaPods => None,
+			Self::Swift => Some("Package.swift"),
+			Self::Gradle => Some("gradle.properties"),
 		}
 	}
 }
@@ -1326,6 +1356,10 @@ pub enum EcosystemType {
 	Dart,
 	Python,
 	Go,
+	Swift,
+	#[serde(rename = "cocoapods")]
+	CocoaPods,
+	Gradle,
 }
 
 impl EcosystemType {
@@ -1342,7 +1376,7 @@ impl EcosystemType {
 	)]
 	pub fn default_prefix(self) -> &'static str {
 		match self {
-			Self::Cargo | Self::Go => "",
+			Self::Cargo | Self::Go | Self::Swift | Self::CocoaPods | Self::Gradle => "",
 			Self::Npm | Self::Deno | Self::Dart => "^",
 			Self::Python => ">=",
 		}
@@ -1367,6 +1401,7 @@ impl EcosystemType {
 			Self::Dart => &["dependencies", "dev_dependencies"],
 			Self::Python => &["dependencies"],
 			Self::Go => &["require"],
+			Self::Swift | Self::CocoaPods | Self::Gradle => &[],
 		}
 	}
 }
@@ -2889,6 +2924,9 @@ pub enum RegistryKind {
 	PubDev,
 	Pypi,
 	GoProxy,
+	#[serde(rename = "cocoapods_trunk")]
+	CocoaPodsTrunk,
+	MavenCentral,
 }
 
 impl RegistryKind {
@@ -2902,6 +2940,8 @@ impl RegistryKind {
 			Self::PubDev => "pub_dev",
 			Self::Pypi => "pypi",
 			Self::GoProxy => "go_proxy",
+			Self::CocoaPodsTrunk => "cocoapods_trunk",
+			Self::MavenCentral => "maven_central",
 		}
 	}
 }
@@ -7511,6 +7551,9 @@ pub struct WorkspaceConfiguration {
 	pub dart: EcosystemSettings,
 	pub python: EcosystemSettings,
 	pub go: EcosystemSettings,
+	pub swift: EcosystemSettings,
+	pub cocoapods: EcosystemSettings,
+	pub gradle: EcosystemSettings,
 }
 
 impl WorkspaceConfiguration {
@@ -7994,6 +8037,7 @@ pub fn default_publish_order_dependency_fields(ecosystem: Ecosystem) -> &'static
 		Ecosystem::Dart => &["dependencies", "dev_dependencies"],
 		Ecosystem::Python => &["dependencies"],
 		Ecosystem::Go => &["require"],
+		Ecosystem::Swift | Ecosystem::CocoaPods | Ecosystem::Gradle => &[],
 	}
 }
 

@@ -3886,6 +3886,9 @@ fn sample_workspace_configuration() -> WorkspaceConfiguration {
 		dart: EcosystemSettings::default(),
 		python: EcosystemSettings::default(),
 		go: EcosystemSettings::default(),
+		swift: EcosystemSettings::default(),
+		cocoapods: EcosystemSettings::default(),
+		gradle: EcosystemSettings::default(),
 	}
 }
 
@@ -5930,4 +5933,79 @@ fn package_record_rebase_id_keeps_the_id_when_the_manifest_is_outside_the_root()
 	));
 
 	assert_eq!(package.id, original_id);
+}
+
+#[allow(deprecated)]
+#[test]
+fn native_ecosystem_conversions_and_defaults() {
+	use crate::EcosystemType;
+	use crate::PackageType;
+	use crate::RegistryKind;
+
+	assert_eq!(Ecosystem::from(EcosystemType::Swift), Ecosystem::Swift);
+	assert_eq!(
+		Ecosystem::from(EcosystemType::CocoaPods),
+		Ecosystem::CocoaPods
+	);
+	assert_eq!(Ecosystem::from(EcosystemType::Gradle), Ecosystem::Gradle);
+	assert_eq!(Ecosystem::from(PackageType::Swift), Ecosystem::Swift);
+	assert_eq!(
+		Ecosystem::from(PackageType::CocoaPods),
+		Ecosystem::CocoaPods
+	);
+	assert_eq!(Ecosystem::from(PackageType::Gradle), Ecosystem::Gradle);
+
+	assert_eq!("swift".parse::<Ecosystem>(), Ok(Ecosystem::Swift));
+	assert_eq!("cocoapods".parse::<Ecosystem>(), Ok(Ecosystem::CocoaPods));
+	assert_eq!("gradle".parse::<Ecosystem>(), Ok(Ecosystem::Gradle));
+	assert_eq!(Ecosystem::Swift.as_str(), "swift");
+	assert_eq!(Ecosystem::CocoaPods.as_str(), "cocoapods");
+	assert_eq!(Ecosystem::Gradle.as_str(), "gradle");
+	assert!(Ecosystem::Swift.versions_from_tags());
+	assert!(!Ecosystem::CocoaPods.versions_from_tags());
+	assert!(!Ecosystem::Gradle.versions_from_tags());
+
+	assert_eq!(
+		crate::default_registry_kind_for_ecosystem(Ecosystem::Swift),
+		None
+	);
+	assert_eq!(
+		crate::default_registry_kind_for_ecosystem(Ecosystem::CocoaPods),
+		Some(RegistryKind::CocoaPodsTrunk)
+	);
+	assert_eq!(
+		crate::default_registry_kind_for_ecosystem(Ecosystem::Gradle),
+		Some(RegistryKind::MavenCentral)
+	);
+	assert_eq!(RegistryKind::CocoaPodsTrunk.as_str(), "cocoapods_trunk");
+	assert_eq!(RegistryKind::MavenCentral.as_str(), "maven_central");
+
+	assert_eq!(EcosystemType::Swift.default_fields(), &[] as &[&str]);
+	assert_eq!(EcosystemType::CocoaPods.default_fields(), &[] as &[&str]);
+	assert_eq!(EcosystemType::Gradle.default_fields(), &[] as &[&str]);
+	assert_eq!(EcosystemType::Swift.default_prefix(), "");
+	assert_eq!(
+		default_publish_order_dependency_fields(Ecosystem::Swift),
+		&[] as &[&str]
+	);
+	assert_eq!(
+		default_publish_order_dependency_fields(Ecosystem::CocoaPods),
+		&[] as &[&str]
+	);
+	assert_eq!(
+		default_publish_order_dependency_fields(Ecosystem::Gradle),
+		&[] as &[&str]
+	);
+	assert_eq!(PackageType::Swift.as_str(), "swift");
+	assert_eq!(PackageType::CocoaPods.as_str(), "cocoapods");
+	assert_eq!(PackageType::Gradle.as_str(), "gradle");
+	assert_eq!(
+		PackageType::Swift.manifest_file_name(),
+		Some("Package.swift")
+	);
+	assert_eq!(PackageType::CocoaPods.manifest_file_name(), None);
+	assert_eq!(
+		PackageType::Gradle.manifest_file_name(),
+		Some("gradle.properties")
+	);
 }
