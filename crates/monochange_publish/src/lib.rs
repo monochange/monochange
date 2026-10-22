@@ -3134,16 +3134,17 @@ fn build_cocoapods_publish_command(request: &PublishRequest, cwd: &Path) -> Comm
 }
 
 fn build_gradle_publish_command(request: &PublishRequest) -> CommandSpec {
+	const WRAPPER: &str = if cfg!(windows) {
+		"gradlew.bat"
+	} else {
+		"./gradlew"
+	};
+
 	CommandSpec {
 		// The Gradle wrapper resolves the project's publishing setup; the
 		// vanniktech plugin's `publishAndReleaseToMavenCentral` task uploads
 		// and releases the deployment in one run.
-		program: if cfg!(windows) {
-			"gradlew.bat"
-		} else {
-			"./gradlew"
-		}
-		.to_string(),
+		program: WRAPPER.to_string(),
 		args: vec!["publishAndReleaseToMavenCentral".to_string()],
 		cwd: request.package_root.clone(),
 		env: BTreeMap::new(),

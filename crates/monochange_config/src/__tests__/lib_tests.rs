@@ -10081,6 +10081,24 @@ fn native_auto_discovery_maps_types_and_inherits_versioned_files() {
 }
 
 #[test]
+fn native_versioned_file_globs_only_accept_their_ecosystem_manifests() {
+	for (ecosystem, manifest) in [
+		(EcosystemType::Swift, "Package.swift"),
+		(EcosystemType::CocoaPods, "Canvist.podspec.json"),
+		(EcosystemType::Gradle, "gradle.properties"),
+	] {
+		assert!(crate::path_is_supported_for_ecosystem(
+			Path::new(manifest),
+			ecosystem
+		));
+		assert!(!crate::path_is_supported_for_ecosystem(
+			Path::new("go.mod"),
+			ecosystem
+		));
+	}
+}
+
+#[test]
 fn configured_native_packages_inherit_ecosystem_versioned_files() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("temporary workspace: {error}"));
 	let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/tests/native-audit");

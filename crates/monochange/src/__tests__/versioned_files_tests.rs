@@ -1899,6 +1899,49 @@ fn versioned_file_kind_maps_native_ecosystem_files() {
 }
 
 #[test]
+fn swift_versioned_file_keeps_the_manifest_unchanged() {
+	let root = fixture_path("native-audit/swift");
+	let configuration =
+		monochange_config::load_workspace_configuration(&fixture_path("monochange/release-base"))
+			.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let context = native_context(&configuration, &[("Canvist", "0.2.0")]);
+	let definition = monochange_core::VersionedFileDefinition {
+		path: "Package.swift".to_string(),
+		ecosystem_type: Some(EcosystemType::Swift),
+		format: None,
+		prefix: None,
+		fields: Some(vec!["version".to_string()]),
+		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
+		regex: None,
+		value_template: None,
+	};
+	let mut updates = BTreeMap::new();
+
+	apply_versioned_file_definition(
+		&root,
+		&mut updates,
+		&definition,
+		"0.2.0",
+		None,
+		&["Canvist"],
+		&context,
+	)
+	.expect("Swift validation-only entry accepts a release version");
+
+	let super::CachedDocument::Text(contents) = updates
+		.remove(&root.join("Package.swift"))
+		.expect("Swift manifest is cached")
+	else {
+		panic!("expected Swift text document");
+	};
+	assert_eq!(
+		contents,
+		std::fs::read_to_string(root.join("Package.swift")).expect("original Swift manifest")
+	);
+}
+
+#[test]
 fn podspec_versioned_file_updates_the_declared_version() {
 	let root = fixture_path("versioned-files/native");
 	let configuration =

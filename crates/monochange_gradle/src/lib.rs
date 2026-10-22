@@ -147,7 +147,7 @@ pub fn discover_gradle_projects(root: &Path) -> MonochangeResult<AdapterDiscover
 ///
 /// A project qualifies when its `gradle.properties` declares `VERSION_NAME`,
 /// the publishing convention shared by the Android library templates and the
-/// `com.vanniktech.maven-publish` setup monochange releases through.
+/// `com.vanniktech.maven.publish` setup monochange releases through.
 pub fn load_configured_gradle_project(
 	root: &Path,
 	package_path: &Path,
