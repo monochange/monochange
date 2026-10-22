@@ -3347,9 +3347,12 @@ fn parse_ecosystem_input(input: &str) -> MonochangeResult<Ecosystem> {
 		"dart" | "flutter" => Ok(Ecosystem::Dart),
 		"python" => Ok(Ecosystem::Python),
 		"go" => Ok(Ecosystem::Go),
+		"swift" => Ok(Ecosystem::Swift),
+		"cocoapods" => Ok(Ecosystem::CocoaPods),
+		"gradle" => Ok(Ecosystem::Gradle),
 		_ => {
 			Err(MonochangeError::Config(format!(
-				"unknown ecosystem `{input}`; expected one of: cargo, npm, deno, dart, flutter, python, go"
+				"unknown ecosystem `{input}`; expected one of: cargo, npm, deno, dart, flutter, python, go, swift, cocoapods, gradle"
 			)))
 		}
 	}

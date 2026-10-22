@@ -995,7 +995,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -2159,6 +2159,7 @@ dependencies = [
  "monochange_cargo",
  "monochange_changelog",
  "monochange_classification",
+ "monochange_cocoapods",
  "monochange_config",
  "monochange_core",
  "monochange_dart",
@@ -2168,6 +2169,7 @@ dependencies = [
  "monochange_github",
  "monochange_gitlab",
  "monochange_go",
+ "monochange_gradle",
  "monochange_graph",
  "monochange_hosting",
  "monochange_lint",
@@ -2176,6 +2178,7 @@ dependencies = [
  "monochange_python",
  "monochange_semver",
  "monochange_snapshot",
+ "monochange_swift",
  "monochange_telemetry",
  "monochange_test_helpers",
  "portable-pty",
@@ -2327,6 +2330,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "monochange_cocoapods"
+version = "0.20.1"
+dependencies = [
+ "insta",
+ "monochange_core",
+ "monochange_test_helpers",
+ "regex",
+ "rstest",
+ "semver",
+ "serde_json",
+ "similar-asserts",
+ "tempfile",
+ "tracing",
+ "walkdir",
+]
+
+[[package]]
 name = "monochange_config"
 version = "0.20.1"
 dependencies = [
@@ -2335,7 +2355,10 @@ dependencies = [
  "insta",
  "miette",
  "minijinja",
+ "monochange_cocoapods",
  "monochange_core",
+ "monochange_gradle",
+ "monochange_swift",
  "monochange_test_helpers",
  "proptest",
  "regex",
@@ -2538,6 +2561,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "monochange_gradle"
+version = "0.20.1"
+dependencies = [
+ "insta",
+ "monochange_core",
+ "monochange_test_helpers",
+ "regex",
+ "rstest",
+ "semver",
+ "similar-asserts",
+ "tempfile",
+ "tracing",
+ "walkdir",
+]
+
+[[package]]
 name = "monochange_graph"
 version = "0.20.1"
 dependencies = [
@@ -2706,6 +2745,22 @@ dependencies = [
  "schemars",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "monochange_swift"
+version = "0.20.1"
+dependencies = [
+ "insta",
+ "monochange_core",
+ "monochange_test_helpers",
+ "regex",
+ "rstest",
+ "semver",
+ "similar-asserts",
+ "tempfile",
+ "tracing",
+ "walkdir",
 ]
 
 [[package]]
@@ -3567,7 +3622,7 @@ dependencies = [
  "once_cell",
  "socket2",
  "tracing",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -3932,7 +3987,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -3991,7 +4046,7 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "webpki-root-certs",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -4634,7 +4689,7 @@ dependencies = [
  "getrandom 0.4.3",
  "once_cell",
  "rustix",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -4756,9 +4811,9 @@ checksum = "fd3ca314f692efd6c868f8408f53fe444634a845f96c028b97d35f6a1f79f0ee"
 
 [[package]]
 name = "tokio"
-version = "1.54.0"
+version = "1.54.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a0c168a474b95bfecfe908a65d4bdffc523144b649a74c09c286afb35d53e0bc"
+checksum = "b52fd3255258d26fac7264ab5a76b53c13367136dc011d3d6ad4f8ed070396a3"
 dependencies = [
  "bytes",
  "libc",
@@ -5265,7 +5320,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]

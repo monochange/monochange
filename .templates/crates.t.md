@@ -621,6 +621,109 @@ Reach for this crate when you need to scan standalone `go.mod` files, parse modu
 
 <!-- {/monochangeGoCrateDocs} -->
 
+<!-- {@monochangeSwiftCrateDocs} -->
+
+`monochange_swift` discovers Swift Package Manager packages from `Package.swift` manifests for the shared planner.
+
+Reach for this crate when you need to scan Swift packages, resolve their versions from repository tags, and keep them releasing in lockstep with the rest of a mixed-language monorepo.
+
+## Why use it?
+
+- discover Swift packages through `Package.swift` manifests
+- model source-control Swift Package Manager releases as repository tags
+- plan lockstep releases across Swift, Rust, npm, and the other supported ecosystems
+
+## Best for
+
+- scanning Swift packages into normalized workspace records
+- versioning Apple platform bindings together with the core libraries they wrap
+- releasing Swift packages through tag-based group releases and provider release notes
+
+## Public entry points
+
+- `discover_swift_packages(root)` discovers Swift packages under a repository root
+- `parse_package_swift(path, root)` parses one `Package.swift` manifest into package metadata
+- `parse_package_name(contents)` extracts the package name from manifest text
+
+## Scope
+
+- `Package.swift` name parsing
+- tag-based version resolution with no manifest version field
+- no registry publish target: Swift packages are consumed from repository tags
+
+<!-- {/monochangeSwiftCrateDocs} -->
+
+<!-- {@monochangeCocoaPodsCrateDocs} -->
+
+`monochange_cocoapods` discovers `CocoaPods` pods from `.podspec` manifests for the shared planner and publishes them to the `CocoaPods` trunk.
+
+Reach for this crate when you need to scan podspecs, keep pod versions in lockstep with the rest of a monorepo, and run `pod trunk push` as part of a planned release.
+
+## Why use it?
+
+- discover pods through Ruby and JSON podspecs
+- read pod names and versions from `s.name` and `s.version` declarations
+- publish releases to the `CocoaPods` trunk with `pod trunk push`
+- validate a push ahead of time with `pod spec lint` during dry runs
+
+## Best for
+
+- scanning Apple platform pods into normalized workspace records
+- versioning pods together with the Swift packages and native libraries they ship
+- publishing pods whose source is available at the released tag
+
+## Public entry points
+
+- `discover_pods(root)` discovers podspecs under a repository root
+- `parse_podspec(path, root)` parses one podspec into package metadata
+- `update_podspec_version(contents, version)` rewrites the `s.version` declaration
+
+## Scope
+
+- `.podspec` and `.podspec.json` name and version parsing
+- trunk publishing through `pod trunk push <podspec> --allow-warnings`
+- trunk API metadata for duplicate-version detection
+- no placeholder publishing: trunk validation requires real, downloadable pod sources
+- no trusted publishing: the trunk authenticates through per-machine session tokens
+
+<!-- {/monochangeCocoaPodsCrateDocs} -->
+
+<!-- {@monochangeGradleCrateDocs} -->
+
+`monochange_gradle` discovers Gradle projects from `gradle.properties` manifests for the shared planner and publishes their libraries to Maven Central.
+
+Reach for this crate when you need to scan Kotlin and Java libraries, keep `VERSION_NAME` in lockstep with the rest of a monorepo, and run `./gradlew publishAndReleaseToMavenCentral` as part of a planned release.
+
+## Why use it?
+
+- discover publishable Gradle projects through the `VERSION_NAME` convention
+- read Maven coordinates from `GROUP`/`POM_GROUP_ID` and `POM_ARTIFACT_ID` properties
+- publish releases to Maven Central through the Sonatype Central Portal
+- detect already-published versions from Maven Central metadata
+- inspect the publishing task graph without executing tasks during dry runs
+
+## Best for
+
+- scanning Android and JVM libraries into normalized workspace records
+- versioning Kotlin bindings together with the native libraries they wrap
+- releasing to Maven Central with the `com.vanniktech.maven.publish` task set
+
+## Public entry points
+
+- `discover_gradle_projects(root)` discovers Gradle projects under a repository root
+- `parse_gradle_properties(path, root)` parses one `gradle.properties` manifest into package metadata
+- `parse_properties(contents)` parses Java properties text into an ordered map
+- `maven_central_metadata_path(group_id, artifact_id)` renders the repository path for a coordinate
+
+## Scope
+
+- `gradle.properties` `VERSION_NAME` parsing with properties-file quoting rules
+- Maven coordinate resolution from Android publishing conventions
+- `rootProject.name` fallback names from `settings.gradle` and `settings.gradle.kts`
+- no trusted publishing: Maven Central authenticates through portal user tokens and GPG keys
+
+<!-- {/monochangeGradleCrateDocs} -->
+
 <!-- {@monochangeSemverCrateDocs} -->
 
 `monochange_semver` merges requested bumps with compatibility evidence.

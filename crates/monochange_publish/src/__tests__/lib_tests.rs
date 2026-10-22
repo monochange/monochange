@@ -34,6 +34,9 @@ fn empty_configuration(root: &Path) -> WorkspaceConfiguration {
 		dart: EcosystemSettings::default(),
 		python: EcosystemSettings::default(),
 		go: EcosystemSettings::default(),
+		swift: EcosystemSettings::default(),
+		cocoapods: EcosystemSettings::default(),
+		gradle: EcosystemSettings::default(),
 		version_schemes: BTreeMap::new(),
 	}
 }
@@ -2743,6 +2746,9 @@ fn publish_order_configuration(npm_dependency_fields: Option<Vec<&str>>) -> Work
 		dart: EcosystemSettings::default(),
 		python: EcosystemSettings::default(),
 		go: EcosystemSettings::default(),
+		swift: EcosystemSettings::default(),
+		cocoapods: EcosystemSettings::default(),
+		gradle: EcosystemSettings::default(),
 		version_schemes: BTreeMap::new(),
 	}
 }
@@ -4117,5 +4123,533 @@ fn env_checker_without_block_falls_through_to_none() {
 			.unwrap(),
 		None,
 		"no checkers blocking must fall through to Ok(None)"
+	);
+}
+
+// -- cocoapods and gradle publishing --
+fn cocoapods_publish_request(name: &str, version: &str) -> PublishRequest {
+	let mut request = sample_publish_request_for_registry(RegistryKind::CocoaPodsTrunk);
+	request.ecosystem = Ecosystem::CocoaPods;
+	request.package_name = name.to_string();
+	request.manifest_path = PathBuf::from(format!("{name}.podspec"));
+	request.version = version.to_string();
+	request
+}
+
+fn gradle_publish_request(coordinate: &str, version: &str) -> PublishRequest {
+	let mut request = sample_publish_request_for_registry(RegistryKind::MavenCentral);
+	request.ecosystem = Ecosystem::Gradle;
+	request.package_name = coordinate.to_string();
+	request.version = version.to_string();
+	request
+}
+
+#[test]
+fn cocoapods_release_publish_runs_trunk_push_with_allowed_warnings() {
+	let request = cocoapods_publish_request("Canvist", "1.2.3");
+
+	let command = build_publish_command(&request, PackagePublishRunMode::Release, None, false);
+
+	assert_eq!(command.program, "pod");
+	assert_eq!(
+		command.args.iter().map(String::as_str).collect::<Vec<_>>(),
+		vec!["trunk", "push", "Canvist.podspec", "--allow-warnings"]
+	);
+}
+
+#[test]
+fn cocoapods_dry_run_lints_the_podspec_instead_of_pushing() {
+	let mut args = vec![
+		"trunk".to_string(),
+		"push".to_string(),
+		"Canvist.podspec".to_string(),
+		"--allow-warnings".to_string(),
+	];
+
+	append_publish_dry_run_args(&mut args, RegistryKind::CocoaPodsTrunk, true);
+
+	assert_eq!(
+		args.iter().map(String::as_str).collect::<Vec<_>>(),
+		vec!["spec", "lint", "Canvist.podspec", "--allow-warnings"]
+	);
+}
+
+#[test]
+fn gradle_release_publish_runs_the_wrapper_release_task() {
+	let mut request = gradle_publish_request("dev.canvist:canvist-android", "0.2.0");
+	request.package_root = PathBuf::from("platforms/android");
+
+	let command = build_publish_command(&request, PackagePublishRunMode::Release, None, false);
+
+	assert_eq!(
+		command.program,
+		if cfg!(windows) {
+			"gradlew.bat"
+		} else {
+			"./gradlew"
+		}
+	);
+	assert_eq!(
+		command.args.iter().map(String::as_str).collect::<Vec<_>>(),
+		vec!["publishAndReleaseToMavenCentral"]
+	);
+	assert_eq!(command.cwd, Path::new("platforms/android"));
+}
+
+#[test]
+fn gradle_placeholder_publishing_is_not_supported() {
+	let builder = build_publish_command_builder();
+	let adapter = builder
+		.adapter_for_registry(RegistryKind::MavenCentral)
+		.expect("gradle adapter");
+
+	assert!(
+		adapter
+			.build_placeholder_command(&gradle_publish_request("g:a", "0.0.0"), Path::new("."))
+			.is_none()
+	);
+	assert!(adapter.supported_providers().is_empty());
+}
+
+#[test]
+fn cocoapods_trust_capabilities_report_no_trusted_publishing() {
+	let capabilities = builtin_registry_trust_capabilities(RegistryKind::CocoaPodsTrunk);
+
+	assert!(!capabilities.trusted_publishing);
+	assert!(
+		capabilities
+			.notes
+			.iter()
+			.any(|note| note.contains("session tokens"))
+	);
+}
+
+#[test]
+fn maven_central_trust_capabilities_report_no_trusted_publishing() {
+	let capabilities = builtin_registry_trust_capabilities(RegistryKind::MavenCentral);
+
+	assert!(!capabilities.trusted_publishing);
+	assert!(
+		capabilities
+			.notes
+			.iter()
+			.any(|note| note.contains("Central Portal user token"))
+	);
+}
+
+#[test]
+fn maven_central_coordinate_prefers_metadata_then_splits_package_names() {
+	let mut request = gradle_publish_request("ignored", "1.0.0");
+	request
+		.package_metadata
+		.insert("group_id".to_string(), "dev.canvist".to_string());
+	request
+		.package_metadata
+		.insert("artifact_id".to_string(), "canvist-android".to_string());
+
+	assert_eq!(
+		maven_central_coordinate(&request),
+		Some(("dev.canvist".to_string(), "canvist-android".to_string()))
+	);
+
+	let request = gradle_publish_request("io.sentry:sentry", "1.0.0");
+	assert_eq!(
+		maven_central_coordinate(&request),
+		Some(("io.sentry".to_string(), "sentry".to_string()))
+	);
+
+	let request = gradle_publish_request("canvist-android", "1.0.0");
+	assert_eq!(maven_central_coordinate(&request), None);
+
+	let request = gradle_publish_request("dev.canvist:", "1.0.0");
+	assert_eq!(maven_central_coordinate(&request), None);
+}
+
+fn trunk_registry_response(body: &'static str) -> (RegistryEndpoints, std::thread::JoinHandle<()>) {
+	let listener = std::net::TcpListener::bind("127.0.0.1:0")
+		.unwrap_or_else(|error| panic!("bind trunk registry: {error}"));
+	let address = listener
+		.local_addr()
+		.unwrap_or_else(|error| panic!("trunk registry address: {error}"));
+	let response = format!(
+		"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+		body.len(),
+		body
+	);
+	let thread = std::thread::spawn(move || {
+		for _ in 0..2 {
+			let Ok((mut stream, _)) = listener.accept() else {
+				return;
+			};
+			let mut request = [0_u8; 2048];
+			std::io::Read::read(&mut stream, &mut request)
+				.unwrap_or_else(|error| panic!("read trunk request: {error}"));
+			std::io::Write::write_all(&mut stream, response.as_bytes())
+				.unwrap_or_else(|error| panic!("write trunk response: {error}"));
+		}
+	});
+	let mut endpoints = RegistryEndpoints::from_env();
+	endpoints.cocoapods_trunk_api = format!("http://{address}");
+	(endpoints, thread)
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn registry_version_exists_checks_the_cocoapods_trunk() {
+	let (endpoints, thread) =
+		trunk_registry_response(r#"{"versions":[{"name":"1.0.0"},{"name":"1.2.3"}]}"#);
+	let client = registry_client().unwrap_or_else(|error| panic!("registry client: {error}"));
+
+	let present = registry_version_exists(
+		&client,
+		&endpoints,
+		&cocoapods_publish_request("Canvist", "1.2.3"),
+	)
+	.await
+	.unwrap_or_else(|error| panic!("trunk lookup: {error}"));
+	assert!(present);
+
+	let missing = registry_version_exists(
+		&client,
+		&endpoints,
+		&cocoapods_publish_request("Canvist", "2.0.0"),
+	)
+	.await
+	.unwrap_or_else(|error| panic!("trunk lookup: {error}"));
+	assert!(!missing);
+
+	thread
+		.join()
+		.unwrap_or_else(|_| panic!("trunk thread panicked"));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn registry_version_exists_reports_absent_pods_from_the_trunk() {
+	let listener = std::net::TcpListener::bind("127.0.0.1:0")
+		.unwrap_or_else(|error| panic!("bind trunk registry: {error}"));
+	let address = listener
+		.local_addr()
+		.unwrap_or_else(|error| panic!("trunk registry address: {error}"));
+	let thread = std::thread::spawn(move || {
+		let Ok((mut stream, _)) = listener.accept() else {
+			return;
+		};
+		let mut request = [0_u8; 2048];
+		std::io::Read::read(&mut stream, &mut request)
+			.unwrap_or_else(|error| panic!("read trunk request: {error}"));
+		std::io::Write::write_all(
+			&mut stream,
+			b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+		)
+		.unwrap_or_else(|error| panic!("write trunk response: {error}"));
+	});
+	let mut endpoints = RegistryEndpoints::from_env();
+	endpoints.cocoapods_trunk_api = format!("http://{address}");
+	let client = registry_client().unwrap_or_else(|error| panic!("registry client: {error}"));
+
+	let exists = registry_version_exists(
+		&client,
+		&endpoints,
+		&cocoapods_publish_request("Canvist", "1.0.0"),
+	)
+	.await
+	.unwrap_or_else(|error| panic!("trunk lookup: {error}"));
+
+	assert!(!exists);
+	thread
+		.join()
+		.unwrap_or_else(|_| panic!("trunk thread panicked"));
+}
+
+fn maven_registry_response(
+	body: &'static str,
+	status: &'static str,
+	request_count: usize,
+) -> (RegistryEndpoints, std::thread::JoinHandle<()>) {
+	let listener = std::net::TcpListener::bind("127.0.0.1:0")
+		.unwrap_or_else(|error| panic!("bind maven registry: {error}"));
+	let address = listener
+		.local_addr()
+		.unwrap_or_else(|error| panic!("maven registry address: {error}"));
+	let response = format!(
+		"HTTP/1.1 {status}\r\nContent-Type: text/xml\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+		body.len(),
+		body
+	);
+	let thread = std::thread::spawn(move || {
+		for _ in 0..request_count {
+			let Ok((mut stream, _)) = listener.accept() else {
+				return;
+			};
+			let mut request = [0_u8; 2048];
+			std::io::Read::read(&mut stream, &mut request)
+				.unwrap_or_else(|error| panic!("read maven request: {error}"));
+			std::io::Write::write_all(&mut stream, response.as_bytes())
+				.unwrap_or_else(|error| panic!("write maven response: {error}"));
+		}
+	});
+	let mut endpoints = RegistryEndpoints::from_env();
+	endpoints.maven_central = format!("http://{address}");
+	(endpoints, thread)
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn registry_version_exists_checks_maven_central_metadata() {
+	let (endpoints, thread) = maven_registry_response(
+		"<metadata><versioning><versions><version>0.1.0</version><version>0.2.0</version></versions></versioning></metadata>",
+		"200 OK",
+		2,
+	);
+	let client = registry_client().unwrap_or_else(|error| panic!("registry client: {error}"));
+
+	let present = registry_version_exists(
+		&client,
+		&endpoints,
+		&gradle_publish_request("dev.canvist:canvist-android", "0.2.0"),
+	)
+	.await
+	.unwrap_or_else(|error| panic!("maven lookup: {error}"));
+	assert!(present);
+
+	let missing = registry_version_exists(
+		&client,
+		&endpoints,
+		&gradle_publish_request("dev.canvist:canvist-android", "0.3.0"),
+	)
+	.await
+	.unwrap_or_else(|error| panic!("maven lookup: {error}"));
+	assert!(!missing);
+
+	thread
+		.join()
+		.unwrap_or_else(|_| panic!("maven thread panicked"));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn registry_version_exists_reports_absent_maven_artifacts() {
+	let (endpoints, thread) = maven_registry_response("", "404 Not Found", 1);
+	let client = registry_client().unwrap_or_else(|error| panic!("registry client: {error}"));
+
+	let exists = registry_version_exists(
+		&client,
+		&endpoints,
+		&gradle_publish_request("dev.canvist:canvist-android", "0.2.0"),
+	)
+	.await
+	.unwrap_or_else(|error| panic!("maven lookup: {error}"));
+
+	assert!(!exists);
+	thread
+		.join()
+		.unwrap_or_else(|_| panic!("maven thread panicked"));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn registry_version_exists_rejects_gradle_requests_without_coordinates() {
+	let endpoints = RegistryEndpoints::from_env();
+	let client = registry_client().unwrap_or_else(|error| panic!("registry client: {error}"));
+
+	let error = registry_version_exists(
+		&client,
+		&endpoints,
+		&gradle_publish_request("canvist-android", "0.2.0"),
+	)
+	.await
+	.expect_err("a coordinate-less gradle package must fail the lookup");
+
+	assert!(error.to_string().contains("no Maven coordinate"));
+}
+
+#[test]
+fn manual_setup_url_opens_the_native_registry_pages() {
+	let trunk = manual_setup_url(&cocoapods_publish_request("Canvist", "1.0.0"));
+	assert_eq!(trunk, "https://cocoapods.org/pods/Canvist");
+
+	let mut request = gradle_publish_request("dev.canvist:canvist-android", "1.0.0");
+	request
+		.package_metadata
+		.insert("group_id".to_string(), "dev.canvist".to_string());
+	request
+		.package_metadata
+		.insert("artifact_id".to_string(), "canvist-android".to_string());
+	let maven = manual_setup_url(&request);
+	assert_eq!(
+		maven,
+		"https://central.sonatype.com/artifact/dev.canvist/canvist-android"
+	);
+	assert_eq!(
+		manual_setup_url(&gradle_publish_request(
+			"dev.canvist:canvist-android",
+			"1.0.0"
+		)),
+		maven
+	);
+	assert_eq!(
+		manual_setup_url(&gradle_publish_request("unknown", "1.0.0")),
+		"https://central.sonatype.com/"
+	);
+}
+
+#[test]
+fn maven_central_metadata_path_renders_group_segments() {
+	assert_eq!(
+		maven_central_metadata_path("dev.canvist", "canvist-android"),
+		"dev/canvist/canvist-android"
+	);
+}
+
+#[test]
+fn cocoapods_adapter_covers_every_publish_method_directly() {
+	let builder = build_publish_command_builder();
+	let adapter = builder
+		.adapter_for_registry(RegistryKind::CocoaPodsTrunk)
+		.expect("cocoapods adapter");
+	let request = cocoapods_publish_request("Canvist", "1.2.3");
+
+	assert!(
+		adapter
+			.build_placeholder_command(&request, Path::new("/tmp/placeholder"))
+			.is_none()
+	);
+
+	let release = adapter
+		.build_release_command(&request)
+		.expect("release command");
+	assert_eq!(release.cwd, Path::new("."));
+
+	let mut args = vec![
+		"trunk".to_string(),
+		"push".to_string(),
+		"Canvist.podspec".to_string(),
+	];
+	adapter.append_dry_run_args(&mut args);
+	assert_eq!(
+		args.iter().map(String::as_str).collect::<Vec<_>>(),
+		vec!["spec", "lint", "Canvist.podspec"]
+	);
+
+	assert_eq!(
+		adapter.registry_setup_url(),
+		Some("https://guides.cocoapods.org/making/getting-setup-with-trunk.html")
+	);
+	assert!(!adapter.registry_notes().is_empty());
+	assert!(!adapter.supports_provenance());
+	assert!(adapter.supported_providers().is_empty());
+}
+
+#[test]
+fn gradle_adapter_covers_every_publish_method_directly() {
+	let builder = build_publish_command_builder();
+	let adapter = builder
+		.adapter_for_registry(RegistryKind::MavenCentral)
+		.expect("gradle adapter");
+	let request = gradle_publish_request("dev.canvist:canvist-android", "0.2.0");
+
+	let release = adapter
+		.build_release_command(&request)
+		.expect("release command");
+	assert_eq!(
+		release.program,
+		if cfg!(windows) {
+			"gradlew.bat"
+		} else {
+			"./gradlew"
+		}
+	);
+
+	let mut args = vec!["publishAndReleaseToMavenCentral".to_string()];
+	adapter.append_dry_run_args(&mut args);
+	assert_eq!(args, ["publishAndReleaseToMavenCentral", "--dry-run"]);
+
+	assert_eq!(
+		adapter.registry_setup_url(),
+		Some("https://central.sonatype.org/publish/publish-portal/")
+	);
+	assert!(!adapter.registry_notes().is_empty());
+	assert!(!adapter.supports_provenance());
+	assert!(adapter.supported_providers().is_empty());
+}
+
+#[test]
+fn append_publish_dry_run_args_disables_maven_central_task_execution() {
+	let mut args = vec!["publishAndReleaseToMavenCentral".to_string()];
+
+	append_publish_dry_run_args(&mut args, RegistryKind::MavenCentral, true);
+
+	assert_eq!(args, ["publishAndReleaseToMavenCentral", "--dry-run"]);
+}
+
+#[test]
+fn gradle_release_dry_run_disables_task_execution() {
+	let request = gradle_publish_request("dev.canvist:canvist-android", "0.2.0");
+	let command = build_publish_command(&request, PackagePublishRunMode::Release, None, true);
+	assert_eq!(
+		command.args,
+		["publishAndReleaseToMavenCentral", "--dry-run"]
+	);
+}
+
+#[test]
+fn native_publish_order_uses_each_ecosystems_configuration() {
+	let mut configuration = empty_configuration(Path::new("."));
+	configuration.swift.publish_order.dependency_fields =
+		Some(vec!["swift-dependencies".to_string()]);
+	configuration.cocoapods.publish_order.dependency_fields =
+		Some(vec!["pod-dependencies".to_string()]);
+	configuration.gradle.publish_order.dependency_fields =
+		Some(vec!["gradle-dependencies".to_string()]);
+	for (ecosystem, field) in [
+		(Ecosystem::Swift, "swift-dependencies"),
+		(Ecosystem::CocoaPods, "pod-dependencies"),
+		(Ecosystem::Gradle, "gradle-dependencies"),
+	] {
+		assert_eq!(
+			publish_order_dependency_fields(&configuration, ecosystem),
+			BTreeSet::from([field.to_string()])
+		);
+	}
+}
+
+#[test]
+fn cocoapods_release_dry_run_keeps_the_selected_json_podspec() {
+	let mut request = cocoapods_publish_request("Canvist", "0.2.0");
+	request.manifest_path = PathBuf::from("Canvist.podspec.json");
+	let command = build_publish_command(&request, PackagePublishRunMode::Release, None, true);
+	assert_eq!(
+		command.args,
+		["spec", "lint", "Canvist.podspec.json", "--allow-warnings"]
+	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn registry_version_exists_treats_any_published_maven_artifact_as_placeholder_present() {
+	let (endpoints, thread) = maven_registry_response(
+		"<metadata><versioning><versions><version>0.1.0</version></versions></versioning></metadata>",
+		"200 OK",
+		1,
+	);
+	let client = registry_client().unwrap_or_else(|error| panic!("registry client: {error}"));
+	let mut request = gradle_publish_request("dev.canvist:canvist-android", "0.0.0");
+	request.placeholder = true;
+
+	let exists = registry_version_exists(&client, &endpoints, &request)
+		.await
+		.unwrap_or_else(|error| panic!("maven lookup: {error}"));
+
+	assert!(exists);
+	thread
+		.join()
+		.unwrap_or_else(|_| panic!("maven thread panicked"));
+}
+
+#[test]
+fn cocoapods_publish_command_falls_back_to_the_manifest_display_path() {
+	let mut request = cocoapods_publish_request("Canvist", "1.2.3");
+	request.manifest_path = PathBuf::from(".");
+
+	let command = build_cocoapods_publish_command(&request, &request.package_root);
+
+	assert_eq!(
+		command.args.iter().map(String::as_str).collect::<Vec<_>>(),
+		vec!["trunk", "push", ".", "--allow-warnings"]
 	);
 }

@@ -165,6 +165,13 @@ impl VersionSyncAdapter {
 					apply_changes: apply_python_changes,
 				}
 			}
+			Ecosystem::Swift | Ecosystem::CocoaPods | Ecosystem::Gradle => {
+				Self {
+					ecosystem,
+					detect_changes: detect_native_changes,
+					apply_changes: apply_native_changes,
+				}
+			}
 			#[allow(unreachable_patterns)]
 			_ => panic!("unsupported ecosystem: {ecosystem:?}"),
 		}
@@ -382,8 +389,13 @@ pub(crate) fn version_prefix_for_strategy(
 		Ecosystem::Deno => monochange_deno::default_dependency_version_prefix(),
 		Ecosystem::Npm => monochange_npm::default_dependency_version_prefix(),
 		Ecosystem::Python => monochange_python::default_dependency_version_prefix(),
-		// Cargo and Go don't use version prefixes for caret/compatible strategies.
-		Ecosystem::Cargo | Ecosystem::Go => "",
+		// Cargo, Go, and the native ecosystems don't use version prefixes for
+		// caret/compatible strategies.
+		Ecosystem::Cargo
+		| Ecosystem::Go
+		| Ecosystem::Swift
+		| Ecosystem::CocoaPods
+		| Ecosystem::Gradle => "",
 		#[allow(unreachable_patterns)]
 		_ => panic!("unsupported ecosystem: {ecosystem:?}"),
 	}
@@ -525,6 +537,32 @@ pub(crate) fn detect_cargo_changes(
 		monochange_cargo::default_dependency_fields(),
 		Ecosystem::Cargo,
 	)
+}
+
+/// The native ecosystems declare no dependency metadata monochange rewrites:
+/// `Package.swift`, podspecs, and `gradle.properties` carry no internal
+/// dependency pins in fields monochange versions, so sync is a no-op.
+// The Result and parameter shapes match the other sync adapters so one fn
+// pointer table drives every ecosystem.
+#[allow(clippy::unnecessary_wraps)]
+#[allow(clippy::used_underscore_binding)]
+pub(crate) fn detect_native_changes(
+	_contents: &str,
+	_version_map: &BTreeMap<String, String>,
+	_workspace_package_names: &BTreeSet<String>,
+	_workspace_go_module_paths: &BTreeMap<String, String>,
+	_strategy: VersionStrategy,
+) -> MonochangeResult<Vec<DependencySyncChange>> {
+	Ok(Vec::new())
+}
+
+#[allow(clippy::unnecessary_wraps)]
+#[allow(clippy::used_underscore_binding)]
+pub(crate) fn apply_native_changes(
+	contents: &str,
+	_changes: &[DependencySyncChange],
+) -> MonochangeResult<String> {
+	Ok(contents.to_string())
 }
 
 pub(crate) fn detect_python_changes(

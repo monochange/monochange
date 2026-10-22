@@ -129,6 +129,15 @@ fn minimal_manifests() -> Vec<(&'static str, &'static str)> {
 			"pyproject.toml",
 			"[project]\nname = \"docs-sample\"\nversion = \"0.1.0\"\n",
 		),
+		(
+			"Package.swift",
+			"// swift-tools-version: 6.0\nimport PackageDescription\n\nlet package = Package(\n    name: \"DocsSample\"\n)\n",
+		),
+		(
+			"DocsSample.podspec",
+			"Pod::Spec.new do |s|\n  s.name = 'DocsSample'\n  s.version = '0.1.0'\nend\n",
+		),
+		("gradle.properties", "VERSION_NAME=0.1.0\n"),
 	]
 }
 

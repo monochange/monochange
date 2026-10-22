@@ -20,7 +20,10 @@ glob = { workspace = true, default-features = true }
 ignore = { workspace = true, default-features = true }
 miette = { workspace = true, default-features = true }
 minijinja = { workspace = true, default-features = true }
+monochange_cocoapods = { workspace = true }
 monochange_core = { workspace = true }
+monochange_gradle = { workspace = true }
+monochange_swift = { workspace = true }
 regex = { workspace = true, default-features = true }
 schemars = { workspace = true, optional = true, default-features = true }
 semver = { workspace = true, default-features = true }

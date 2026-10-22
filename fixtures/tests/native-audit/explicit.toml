@@ -1,0 +1,20 @@
+[package.apple]
+path = "swift"
+type = "swift"
+
+[package.pod]
+path = "json"
+type = "cocoapods"
+
+[package.android]
+path = "android"
+type = "gradle"
+
+[ecosystems.swift]
+versioned_files = ["Package.swift"]
+
+[ecosystems.cocoapods]
+versioned_files = [{ path = "*.podspec.json", type = "cocoapods", fields = ["version"] }]
+
+[ecosystems.gradle]
+versioned_files = [{ path = "gradle.properties", type = "gradle", fields = ["CUSTOM_VERSION"] }]

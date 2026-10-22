@@ -1845,3 +1845,424 @@ fn inferred_lockfile_ecosystem_type_maps_python_when_commands_are_not_configured
 		Some(EcosystemType::Python)
 	);
 }
+
+// -- native ecosystem versioned files --
+fn native_context<'a>(
+	configuration: &'a monochange_core::WorkspaceConfiguration,
+	released: &[(&'a str, &str)],
+) -> VersionedFileUpdateContext<'a> {
+	VersionedFileUpdateContext {
+		package_by_config_id: BTreeMap::new(),
+		package_by_native_name: BTreeMap::new(),
+		current_versions_by_native_name: BTreeMap::new(),
+		released_versions_by_native_name: released
+			.iter()
+			.map(|(name, version)| ((*name).to_string(), (*version).to_string()))
+			.collect(),
+		configuration,
+		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		labels: BTreeMap::new(),
+		release_values: BTreeMap::new(),
+	}
+}
+
+#[test]
+fn versioned_file_kind_maps_native_ecosystem_files() {
+	assert!(matches!(
+		versioned_file_kind(EcosystemType::CocoaPods, Path::new("pod/Canvist.podspec")),
+		Some(super::VersionedFileKind::CocoaPods(
+			monochange_cocoapods::CocoaPodsVersionedFileKind::Podspec
+		))
+	));
+	assert!(matches!(
+		versioned_file_kind(
+			EcosystemType::CocoaPods,
+			Path::new("pod/Canvist.podspec.json")
+		),
+		Some(super::VersionedFileKind::CocoaPods(
+			monochange_cocoapods::CocoaPodsVersionedFileKind::PodspecJson
+		))
+	));
+	assert!(matches!(
+		versioned_file_kind(
+			EcosystemType::Gradle,
+			Path::new("android/gradle.properties")
+		),
+		Some(super::VersionedFileKind::Gradle(
+			monochange_gradle::GradleVersionedFileKind::GradleProperties
+		))
+	));
+	assert!(matches!(
+		versioned_file_kind(EcosystemType::Swift, Path::new("swift/Package.swift")),
+		Some(super::VersionedFileKind::Swift)
+	));
+}
+
+#[test]
+fn swift_versioned_file_keeps_the_manifest_unchanged() {
+	let root = fixture_path("native-audit/swift");
+	let configuration =
+		monochange_config::load_workspace_configuration(&fixture_path("monochange/release-base"))
+			.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let context = native_context(&configuration, &[("Canvist", "0.2.0")]);
+	let definition = monochange_core::VersionedFileDefinition {
+		path: "Package.swift".to_string(),
+		ecosystem_type: Some(EcosystemType::Swift),
+		format: None,
+		prefix: None,
+		fields: Some(vec!["version".to_string()]),
+		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
+		regex: None,
+		value_template: None,
+	};
+	let mut updates = BTreeMap::new();
+
+	apply_versioned_file_definition(
+		&root,
+		&mut updates,
+		&definition,
+		"0.2.0",
+		None,
+		&["Canvist"],
+		&context,
+	)
+	.expect("Swift validation-only entry accepts a release version");
+
+	let super::CachedDocument::Text(contents) = updates
+		.remove(&root.join("Package.swift"))
+		.expect("Swift manifest is cached")
+	else {
+		panic!("expected Swift text document");
+	};
+	assert_eq!(
+		contents,
+		std::fs::read_to_string(root.join("Package.swift")).expect("original Swift manifest")
+	);
+}
+
+#[test]
+fn podspec_versioned_file_updates_the_declared_version() {
+	let root = fixture_path("versioned-files/native");
+	let configuration =
+		monochange_config::load_workspace_configuration(&fixture_path("monochange/release-base"))
+			.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let context = native_context(&configuration, &[("Canvist", "0.2.0")]);
+	let definition = monochange_core::VersionedFileDefinition {
+		path: "Canvist.podspec".to_string(),
+		ecosystem_type: Some(EcosystemType::CocoaPods),
+		format: None,
+		prefix: None,
+		fields: Some(vec!["version".to_string()]),
+		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
+		regex: None,
+		value_template: None,
+	};
+	let mut updates = BTreeMap::new();
+
+	apply_versioned_file_definition(
+		&root,
+		&mut updates,
+		&definition,
+		"0.2.0",
+		None,
+		&["Canvist"],
+		&context,
+	)
+	.unwrap_or_else(|error| panic!("apply podspec update: {error}"));
+
+	let super::CachedDocument::Text(contents) = updates
+		.remove(&root.join("Canvist.podspec"))
+		.unwrap_or_else(|| panic!("expected podspec update"))
+	else {
+		panic!("expected podspec text document");
+	};
+
+	assert!(contents.contains("s.version = \"0.2.0\""), "{contents}");
+	assert!(contents.contains("s.name = \"Canvist\""), "{contents}");
+}
+
+#[test]
+fn podspec_json_versioned_file_updates_the_version_field() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	std::fs::write(
+		root.join("Canvist.podspec.json"),
+		"{\"name\":\"Canvist\",\"version\":\"0.1.0\"}",
+	)
+	.unwrap_or_else(|error| panic!("write podspec.json: {error}"));
+	let configuration =
+		monochange_config::load_workspace_configuration(&fixture_path("monochange/release-base"))
+			.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let context = native_context(&configuration, &[("Canvist", "0.2.0")]);
+	let definition = monochange_core::VersionedFileDefinition {
+		path: "Canvist.podspec.json".to_string(),
+		ecosystem_type: Some(EcosystemType::CocoaPods),
+		format: None,
+		prefix: None,
+		fields: Some(vec!["version".to_string()]),
+		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
+		regex: None,
+		value_template: None,
+	};
+	let mut updates = BTreeMap::new();
+
+	apply_versioned_file_definition(
+		root,
+		&mut updates,
+		&definition,
+		"0.2.0",
+		None,
+		&["Canvist"],
+		&context,
+	)
+	.unwrap_or_else(|error| panic!("apply podspec.json update: {error}"));
+
+	let super::CachedDocument::Text(contents) = updates
+		.remove(&root.join("Canvist.podspec.json"))
+		.unwrap_or_else(|| panic!("expected podspec.json update"))
+	else {
+		panic!("expected podspec.json text document");
+	};
+
+	assert!(contents.contains("\"version\":\"0.2.0\""), "{contents}");
+}
+
+#[test]
+fn gradle_properties_versioned_file_updates_version_name() {
+	let root = fixture_path("versioned-files/native");
+	let configuration =
+		monochange_config::load_workspace_configuration(&fixture_path("monochange/release-base"))
+			.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let context = native_context(&configuration, &[("dev.canvist:canvist-android", "0.2.0")]);
+	let definition = monochange_core::VersionedFileDefinition {
+		path: "gradle.properties".to_string(),
+		ecosystem_type: Some(EcosystemType::Gradle),
+		format: None,
+		prefix: None,
+		fields: Some(vec!["VERSION_NAME".to_string()]),
+		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
+		regex: None,
+		value_template: None,
+	};
+	let mut updates = BTreeMap::new();
+
+	apply_versioned_file_definition(
+		&root,
+		&mut updates,
+		&definition,
+		"0.2.0",
+		None,
+		&["dev.canvist:canvist-android"],
+		&context,
+	)
+	.unwrap_or_else(|error| panic!("apply gradle update: {error}"));
+
+	let super::CachedDocument::Text(contents) = updates
+		.remove(&root.join("gradle.properties"))
+		.unwrap_or_else(|| panic!("expected gradle.properties update"))
+	else {
+		panic!("expected gradle.properties text document");
+	};
+
+	assert!(contents.contains("VERSION_NAME=0.2.0"), "{contents}");
+	assert!(contents.contains("GROUP=dev.canvist"), "{contents}");
+}
+
+#[test]
+fn typed_native_versioned_file_globs_report_the_ecosystem_on_mismatch() {
+	let root = fixture_path("versioned-files/native");
+	let configuration =
+		monochange_config::load_workspace_configuration(&fixture_path("monochange/release-base"))
+			.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let context = native_context(&configuration, &[("Canvist", "0.2.0")]);
+	let definition = monochange_core::VersionedFileDefinition {
+		path: "gradle.properties".to_string(),
+		ecosystem_type: Some(EcosystemType::CocoaPods),
+		format: None,
+		prefix: None,
+		fields: Some(vec!["version".to_string()]),
+		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
+		regex: None,
+		value_template: None,
+	};
+	let mut updates = BTreeMap::new();
+
+	let error = apply_versioned_file_definition(
+		&root,
+		&mut updates,
+		&definition,
+		"0.2.0",
+		None,
+		&["Canvist"],
+		&context,
+	)
+	.expect_err("a cocoapods glob matching gradle.properties must fail");
+
+	assert!(
+		error.to_string().contains("for ecosystem `cocoapods`"),
+		"unexpected error: {error}"
+	);
+}
+
+#[test]
+fn ecosystem_type_str_names_native_ecosystems() {
+	assert_eq!(
+		super::ecosystem_type_str(EcosystemType::Swift),
+		"swift".to_string()
+	);
+	assert_eq!(
+		super::ecosystem_type_str(EcosystemType::CocoaPods),
+		"cocoapods".to_string()
+	);
+	assert_eq!(
+		super::ecosystem_type_str(EcosystemType::Gradle),
+		"gradle".to_string()
+	);
+}
+
+#[test]
+fn typed_swift_and_gradle_versioned_file_globs_report_mismatches() {
+	let root = fixture_path("versioned-files/native");
+	let configuration =
+		monochange_config::load_workspace_configuration(&fixture_path("monochange/release-base"))
+			.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let context = native_context(&configuration, &[("Canvist", "0.2.0")]);
+
+	for (ecosystem_type, path, ecosystem) in [
+		(EcosystemType::Swift, "gradle.properties", "swift"),
+		(EcosystemType::Gradle, "Canvist.podspec", "gradle"),
+	] {
+		let definition = monochange_core::VersionedFileDefinition {
+			path: path.to_string(),
+			ecosystem_type: Some(ecosystem_type),
+			format: None,
+			prefix: None,
+			fields: Some(vec!["version".to_string()]),
+			name: None,
+			missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
+			regex: None,
+			value_template: None,
+		};
+		let mut updates = BTreeMap::new();
+
+		let error = apply_versioned_file_definition(
+			&root,
+			&mut updates,
+			&definition,
+			"0.2.0",
+			None,
+			&["Canvist"],
+			&context,
+		)
+		.expect_err("a mismatched typed glob must fail");
+
+		assert!(
+			error
+				.to_string()
+				.contains(&format!("for ecosystem `{ecosystem}`")),
+			"unexpected error: {error}"
+		);
+	}
+}
+
+#[test]
+fn native_cached_documents_reject_non_utf8_files() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	std::fs::write(
+		root.join("Canvist.podspec"),
+		include_bytes!("../../../../fixtures/tests/native-adapters/invalid-utf8"),
+	)
+	.unwrap_or_else(|error| panic!("write invalid podspec: {error}"));
+	std::fs::write(
+		root.join("gradle.properties"),
+		include_bytes!("../../../../fixtures/tests/native-adapters/invalid-utf8"),
+	)
+	.unwrap_or_else(|error| panic!("write invalid gradle.properties: {error}"));
+	std::fs::copy(root.join("gradle.properties"), root.join("Package.swift"))
+		.expect("copy invalid Swift manifest");
+	let configuration =
+		monochange_config::load_workspace_configuration(&fixture_path("monochange/release-base"))
+			.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let context = native_context(&configuration, &[("Canvist", "0.2.0")]);
+
+	for (ecosystem_type, path) in [
+		(EcosystemType::CocoaPods, "Canvist.podspec"),
+		(EcosystemType::Gradle, "gradle.properties"),
+		(EcosystemType::Swift, "Package.swift"),
+	] {
+		let definition = monochange_core::VersionedFileDefinition {
+			path: path.to_string(),
+			ecosystem_type: Some(ecosystem_type),
+			format: None,
+			prefix: None,
+			fields: Some(vec!["version".to_string()]),
+			name: None,
+			missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
+			regex: None,
+			value_template: None,
+		};
+		let mut updates = BTreeMap::new();
+
+		let error = apply_versioned_file_definition(
+			root,
+			&mut updates,
+			&definition,
+			"0.2.0",
+			None,
+			&["Canvist"],
+			&context,
+		)
+		.expect_err("a non-UTF-8 native manifest must fail");
+
+		assert!(
+			error.to_string().contains("failed to parse"),
+			"unexpected error: {error}"
+		);
+	}
+}
+
+#[test]
+fn podspec_json_updates_report_invalid_json() {
+	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	std::fs::write(root.join("Canvist.podspec.json"), "{not json")
+		.unwrap_or_else(|error| panic!("write invalid podspec.json: {error}"));
+	let configuration =
+		monochange_config::load_workspace_configuration(&fixture_path("monochange/release-base"))
+			.unwrap_or_else(|error| panic!("configuration: {error}"));
+	let context = native_context(&configuration, &[("Canvist", "0.2.0")]);
+	let definition = monochange_core::VersionedFileDefinition {
+		path: "Canvist.podspec.json".to_string(),
+		ecosystem_type: Some(EcosystemType::CocoaPods),
+		format: None,
+		prefix: None,
+		fields: Some(vec!["version".to_string()]),
+		name: None,
+		missing_field_behavior: monochange_core::MissingFieldBehavior::default(),
+		regex: None,
+		value_template: None,
+	};
+	let mut updates = BTreeMap::new();
+
+	let error = apply_versioned_file_definition(
+		root,
+		&mut updates,
+		&definition,
+		"0.2.0",
+		None,
+		&["Canvist"],
+		&context,
+	)
+	.expect_err("an invalid JSON podspec must fail");
+
+	assert!(
+		error.to_string().contains("failed to parse"),
+		"unexpected error: {error}"
+	);
+}

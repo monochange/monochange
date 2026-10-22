@@ -738,6 +738,8 @@ fn publish_readiness_registry(source: Option<&SourceConfiguration>) -> PublishRe
 		RegistryKind::Jsr,
 		RegistryKind::Pypi,
 		RegistryKind::GoProxy,
+		RegistryKind::CocoaPodsTrunk,
+		RegistryKind::MavenCentral,
 	] {
 		let source = source.clone();
 		registry = registry.with_env_checker(
@@ -757,7 +759,7 @@ fn publish_readiness_registry(source: Option<&SourceConfiguration>) -> PublishRe
 	registry
 }
 
-fn placeholder_manifest_writer_registry() -> PlaceholderManifestWriterRegistry {
+pub(crate) fn placeholder_manifest_writer_registry() -> PlaceholderManifestWriterRegistry {
 	PlaceholderManifestWriterRegistry::new()
 		.with_writer(
 			RegistryKind::Npm,

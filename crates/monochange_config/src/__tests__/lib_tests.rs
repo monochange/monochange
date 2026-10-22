@@ -110,6 +110,7 @@ use crate::line_index_for_offset;
 use crate::load_change_signals;
 use crate::load_changeset_file;
 use crate::load_workspace_configuration;
+use crate::manifest_file_for_ecosystem;
 use crate::package_bump_propagations;
 use crate::range_to_span;
 use crate::render_diagnostic_notes;
@@ -1816,6 +1817,152 @@ type = "go"
 	assert_eq!(
 		package.publish.registry,
 		Some(PublishRegistry::Builtin(RegistryKind::GoProxy))
+	);
+}
+
+#[test]
+fn load_workspace_configuration_normalizes_native_ecosystem_settings() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = tempdir.path();
+	fs::create_dir_all(root.join("swift"))
+		.unwrap_or_else(|error| panic!("create swift dir: {error}"));
+	fs::create_dir_all(root.join("pod")).unwrap_or_else(|error| panic!("create pod dir: {error}"));
+	fs::create_dir_all(root.join("android"))
+		.unwrap_or_else(|error| panic!("create android dir: {error}"));
+	fs::write(
+		root.join("swift/Package.swift"),
+		"let package = Package(name: \"Canvist\")",
+	)
+	.unwrap_or_else(|error| panic!("write Package.swift: {error}"));
+	fs::write(
+		root.join("pod/Canvist.podspec"),
+		"Pod::Spec.new do |s|\n  s.name = 'Canvist'\nend\n",
+	)
+	.unwrap_or_else(|error| panic!("write podspec: {error}"));
+	fs::write(
+		root.join("android/gradle.properties"),
+		"VERSION_NAME=0.1.0\n",
+	)
+	.unwrap_or_else(|error| panic!("write gradle.properties: {error}"));
+	fs::write(
+		root.join("monochange.toml"),
+		r#"[ecosystems.swift]
+enabled = true
+
+[ecosystems.cocoapods]
+enabled = true
+dependency_version_prefix = ""
+
+[ecosystems.cocoapods.publish]
+enabled = true
+trusted_publishing = false
+
+[ecosystems.gradle]
+enabled = true
+
+[ecosystems.gradle.publish]
+enabled = true
+trusted_publishing = false
+
+[package.apple]
+path = "swift"
+type = "swift"
+
+[package.pod]
+path = "pod"
+type = "cocoapods"
+
+[package.android]
+path = "android"
+type = "gradle"
+"#,
+	)
+	.unwrap_or_else(|error| panic!("write config: {error}"));
+
+	let configuration =
+		load_workspace_configuration(root).unwrap_or_else(|error| panic!("configuration: {error}"));
+
+	assert!(configuration.swift.enabled.unwrap_or(false));
+	assert!(configuration.cocoapods.enabled.unwrap_or(false));
+	assert!(configuration.gradle.enabled.unwrap_or(false));
+
+	let registries: Vec<(&str, Option<PublishRegistry>)> = configuration
+		.packages
+		.iter()
+		.map(|package| (package.id.as_str(), package.publish.registry.clone()))
+		.collect();
+
+	assert!(
+		registries.contains(&("apple", None)),
+		"swift packages release through tags, not registries: {registries:?}"
+	);
+	assert!(registries.contains(&(
+		"pod",
+		Some(PublishRegistry::Builtin(RegistryKind::CocoaPodsTrunk))
+	)));
+	assert!(registries.contains(&(
+		"android",
+		Some(PublishRegistry::Builtin(RegistryKind::MavenCentral))
+	)));
+
+	let types: Vec<(&str, PackageType)> = configuration
+		.packages
+		.iter()
+		.map(|package| (package.id.as_str(), package.package_type))
+		.collect();
+	assert!(types.contains(&("apple", PackageType::Swift)));
+	assert!(types.contains(&("pod", PackageType::CocoaPods)));
+	assert!(types.contains(&("android", PackageType::Gradle)));
+}
+
+#[test]
+fn extract_manifest_name_reads_native_manifests() {
+	assert_eq!(
+		monochange_swift::parse_package_name(
+			"// name: \"Commented\"\nlet package = Package(name: \"Canvist\")"
+		),
+		Some("Canvist".to_string())
+	);
+	assert_eq!(
+		monochange_swift::parse_package_name("name = \"Solo\""),
+		None
+	);
+	assert_eq!(monochange_swift::parse_package_name("products: []"), None);
+	assert_eq!(
+		monochange_swift::parse_package_name("// name: \"Only Commented\""),
+		None
+	);
+	assert_eq!(monochange_swift::parse_package_name("name: \"\""), None);
+
+	assert_eq!(
+		monochange_gradle::parse_properties("VERSION_NAME=1.0\nPOM_ARTIFACT_ID=canvist\n")
+			.remove("POM_ARTIFACT_ID"),
+		Some("canvist".to_string())
+	);
+	assert_eq!(
+		monochange_gradle::parse_properties("POM_ARTIFACT_ID=\"quoted\"").remove("POM_ARTIFACT_ID"),
+		Some("quoted".to_string())
+	);
+	assert_eq!(
+		monochange_gradle::parse_properties("OTHER=value").remove("POM_ARTIFACT_ID"),
+		None
+	);
+}
+
+#[test]
+fn manifest_file_for_ecosystem_lists_native_manifests() {
+	assert_eq!(
+		manifest_file_for_ecosystem(EcosystemType::Swift),
+		&["Package.swift"]
+	);
+	assert_eq!(
+		manifest_file_for_ecosystem(EcosystemType::Gradle),
+		&["gradle.properties"]
+	);
+	// CocoaPods podspecs are named after the pod, so no fixed name exists.
+	assert_eq!(
+		manifest_file_for_ecosystem(EcosystemType::CocoaPods),
+		Vec::<&str>::new().as_slice()
 	);
 }
 
@@ -9887,4 +10034,89 @@ fn load_workspace_configuration_rejects_duplicate_package_cli_names() {
 			.contains("cli name `shared` is registered by both `first` and `second`"),
 		"{error}"
 	);
+}
+
+#[test]
+fn extract_manifest_name_routes_native_ecosystems() {
+	assert_eq!(
+		crate::extract_manifest_name(
+			"let package = Package(name: \"Canvist\")",
+			EcosystemType::Swift
+		),
+		Some("Canvist".to_string())
+	);
+	assert_eq!(
+		crate::extract_manifest_name("POM_ARTIFACT_ID=canvist-android\n", EcosystemType::Gradle),
+		Some("canvist-android".to_string())
+	);
+	assert_eq!(
+		crate::extract_manifest_name("s.name = 'Canvist'", EcosystemType::CocoaPods),
+		Some("Canvist".to_string())
+	);
+}
+
+#[test]
+fn extract_package_swift_name_skips_malformed_lines() {
+	assert_eq!(monochange_swift::parse_package_name("name\n"), None);
+	assert_eq!(
+		monochange_swift::parse_package_name("name: \"unterminated\n"),
+		None
+	);
+}
+
+#[test]
+fn native_auto_discovery_maps_types_and_inherits_versioned_files() {
+	let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/tests/native-audit");
+	let configuration = load_workspace_configuration(&root)
+		.unwrap_or_else(|error| panic!("load native auto-discovery: {error}"));
+	assert_eq!(configuration.packages.len(), 3);
+
+	for package in &configuration.packages {
+		assert!(matches!(
+			package.package_type,
+			PackageType::Swift | PackageType::CocoaPods | PackageType::Gradle
+		));
+		assert_eq!(package.versioned_files.len(), 1);
+	}
+}
+
+#[test]
+fn native_versioned_file_globs_only_accept_their_ecosystem_manifests() {
+	for (ecosystem, manifest) in [
+		(EcosystemType::Swift, "Package.swift"),
+		(EcosystemType::CocoaPods, "Canvist.podspec.json"),
+		(EcosystemType::Gradle, "gradle.properties"),
+	] {
+		assert!(crate::path_is_supported_for_ecosystem(
+			Path::new(manifest),
+			ecosystem
+		));
+		assert!(!crate::path_is_supported_for_ecosystem(
+			Path::new("go.mod"),
+			ecosystem
+		));
+	}
+}
+
+#[test]
+fn configured_native_packages_inherit_ecosystem_versioned_files() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("temporary workspace: {error}"));
+	let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/tests/native-audit");
+	monochange_test_helpers::copy_directory(&fixture, tempdir.path());
+	fs::copy(
+		fixture.join("explicit.toml"),
+		tempdir.path().join("monochange.toml"),
+	)
+	.unwrap_or_else(|error| panic!("explicit config: {error}"));
+	let configuration = load_workspace_configuration(tempdir.path())
+		.unwrap_or_else(|error| panic!("load native packages: {error}"));
+
+	for package in &configuration.packages {
+		assert_eq!(
+			package.versioned_files.len(),
+			1,
+			"{} inherits versioned files",
+			package.id
+		);
+	}
 }

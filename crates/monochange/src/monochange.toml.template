@@ -9,7 +9,7 @@
     packages         -- list of { id, toml_key, path, type, changelog? }
     has_group        -- true when more than one package was discovered
     package_ids_toml -- pre-formatted TOML array contents
-    has_cargo / has_npm / has_deno / has_dart / has_python / has_go -- ecosystem detected flags
+    has_cargo / has_npm / has_deno / has_dart / has_python / has_go / has_swift / has_cocoapods / has_gradle -- ecosystem detected flags
 #}
 #:schema https://monochange.github.io/monochange/schemas/monochange.schema.json
 # =============================================================================
@@ -738,6 +738,47 @@ enabled = true
 # [ecosystems.go]
 # enabled = true
 {% endif %}
+
+{% if has_swift %}
+[ecosystems.swift]
+enabled = true
+{% else %}
+# [ecosystems.swift]
+# enabled = true
+{% endif %}
+# Swift packages release through repository tags and provider releases: the
+# Swift Package Manager resolves versions from git tags, so releases happen
+# through the tag and release steps rather than a registry publish.
+
+{% if has_cocoapods %}
+[ecosystems.cocoapods]
+enabled = true
+{% else %}
+# [ecosystems.cocoapods]
+# enabled = true
+{% endif %}
+# [ecosystems.cocoapods.publish]
+# enabled = true
+# mode = "builtin"
+# registry = "cocoapods_trunk"
+# The trunk has no trusted publishing: disable it and export
+# COCOAPODS_TRUNK_TOKEN from a registered trunk session in CI.
+# trusted_publishing = false
+
+{% if has_gradle %}
+[ecosystems.gradle]
+enabled = true
+{% else %}
+# [ecosystems.gradle]
+# enabled = true
+{% endif %}
+# [ecosystems.gradle.publish]
+# enabled = true
+# mode = "builtin"
+# registry = "maven_central"
+# Maven Central has no trusted publishing: disable it and provide a Central
+# Portal user token and signing key through Gradle properties in CI.
+# trusted_publishing = false
 
 # =============================================================================
 # [source] - source-control provider configuration

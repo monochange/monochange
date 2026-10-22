@@ -1,0 +1,5 @@
+---
+source: crates/monochange_integration_tests/tests/native_release_planning.rs
+expression: "package[\"stdout\"].as_str().expect(\"wrapper output\")"
+---
+Gradle task graph only

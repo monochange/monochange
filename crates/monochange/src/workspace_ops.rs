@@ -1062,15 +1062,7 @@ fn render_annotated_init_config(
 		let pkg_type = package_type_for_ecosystem(package.ecosystem);
 		let changelog = detect_default_changelog(root, &manifest_dir);
 
-		let type_str = match pkg_type {
-			PackageType::Cargo => "cargo",
-			PackageType::Npm => "npm",
-			PackageType::Deno => "deno",
-			PackageType::Dart => "dart",
-			PackageType::Python => "python",
-			PackageType::Go => "go",
-			_ => unreachable!(),
-		};
+		let type_str = pkg_type.as_str();
 
 		let mut entry = BTreeMap::new();
 		entry.insert("id", json!(id));
@@ -1091,6 +1083,9 @@ fn render_annotated_init_config(
 	let has_dart = packages.iter().any(|p| p.ecosystem == Ecosystem::Dart);
 	let has_python = packages.iter().any(|p| p.ecosystem == Ecosystem::Python);
 	let has_go = packages.iter().any(|p| p.ecosystem == Ecosystem::Go);
+	let has_swift = packages.iter().any(|p| p.ecosystem == Ecosystem::Swift);
+	let has_cocoapods = packages.iter().any(|p| p.ecosystem == Ecosystem::CocoaPods);
+	let has_gradle = packages.iter().any(|p| p.ecosystem == Ecosystem::Gradle);
 
 	let mut package_ids_toml = String::new();
 	write_toml_array_items(&mut package_ids_toml, package_ids.iter());
@@ -1105,6 +1100,9 @@ fn render_annotated_init_config(
 		"has_dart": has_dart,
 		"has_python": has_python,
 		"has_go": has_go,
+		"has_swift": has_swift,
+		"has_cocoapods": has_cocoapods,
+		"has_gradle": has_gradle,
 		"provider": provider.unwrap_or(""),
 		"owner": remote.map_or("your-org", |r| r.owner.as_str()),
 		"repo": remote.map_or("your-repo", |r| r.repo.as_str()),
@@ -1150,6 +1148,12 @@ pub(crate) fn build_ecosystem_registry() -> EcosystemRegistry {
 	registry.push_adapter(Box::new(PythonAdapter));
 	#[cfg(feature = "go")]
 	registry.push_adapter(Box::new(GoAdapter));
+	#[cfg(feature = "swift")]
+	registry.push_adapter(Box::new(monochange_swift::SwiftAdapter));
+	#[cfg(feature = "cocoapods")]
+	registry.push_adapter(Box::new(monochange_cocoapods::CocoaPodsAdapter));
+	#[cfg(feature = "gradle")]
+	registry.push_adapter(Box::new(monochange_gradle::GradleAdapter));
 	registry
 }
 
@@ -1201,6 +1205,9 @@ fn package_type_for_ecosystem(ecosystem: Ecosystem) -> PackageType {
 		Ecosystem::Dart => PackageType::Dart,
 		Ecosystem::Python => PackageType::Python,
 		Ecosystem::Go => PackageType::Go,
+		Ecosystem::Swift => PackageType::Swift,
+		Ecosystem::CocoaPods => PackageType::CocoaPods,
+		Ecosystem::Gradle => PackageType::Gradle,
 		_ => PackageType::Cargo,
 	}
 }
@@ -1322,6 +1329,21 @@ pub(crate) fn build_lockfile_command_executions(
 	executions.extend(python_executions);
 	#[cfg(feature = "go")]
 	executions.extend(go_executions);
+
+	for (ecosystem, settings) in [
+		(Ecosystem::Swift, &configuration.swift),
+		(Ecosystem::CocoaPods, &configuration.cocoapods),
+		(Ecosystem::Gradle, &configuration.gradle),
+	] {
+		executions.extend(resolve_lockfile_command_executions(
+			root,
+			&settings.lockfile_commands,
+			packages.iter().any(|package| {
+				package.ecosystem == ecosystem && released_versions.contains_key(&package.id)
+			}),
+		)?);
+	}
+
 	Ok((dedup_lockfile_command_executions(executions), warnings))
 }
 // patch-coverage:ignore-end

@@ -1,0 +1,31 @@
+[package.apple]
+path = "swift"
+type = "swift"
+
+[package.canvist_pod]
+path = "pod"
+type = "cocoapods"
+
+[package.canvist_android]
+path = "android"
+type = "gradle"
+
+[group.sdk]
+packages = ["apple", "canvist_pod", "canvist_android"]
+tag = true
+release = true
+version_format = "primary"
+release_title = "canvist {{ version }}"
+versioned_files = [
+	{ path = "pod/Canvist.podspec", type = "cocoapods", fields = ["version"] },
+	{ path = "android/gradle.properties", type = "gradle", fields = ["VERSION_NAME"] },
+]
+
+[ecosystems.swift]
+enabled = true
+
+[ecosystems.cocoapods]
+enabled = true
+
+[ecosystems.gradle]
+enabled = true

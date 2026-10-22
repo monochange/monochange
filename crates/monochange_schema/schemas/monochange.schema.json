@@ -1408,7 +1408,10 @@
 				"deno",
 				"dart",
 				"python",
-				"go"
+				"go",
+				"swift",
+				"cocoapods",
+				"gradle"
 			],
 			"type": "string"
 		},
@@ -1570,7 +1573,10 @@
 						"deno",
 						"dart",
 						"python",
-						"go"
+						"go",
+						"swift",
+						"cocoapods",
+						"gradle"
 					],
 					"type": "string"
 				},
@@ -1860,7 +1866,9 @@
 				"jsr",
 				"pub_dev",
 				"pypi",
-				"go_proxy"
+				"go_proxy",
+				"cocoapods_trunk",
+				"maven_central"
 			],
 			"type": "string"
 		},
@@ -2740,6 +2748,9 @@
 				"cargo": {
 					"$ref": "#/$defs/ecosystem_settings"
 				},
+				"cocoapods": {
+					"$ref": "#/$defs/ecosystem_settings"
+				},
 				"dart": {
 					"$ref": "#/$defs/ecosystem_settings"
 				},
@@ -2749,10 +2760,16 @@
 				"go": {
 					"$ref": "#/$defs/ecosystem_settings"
 				},
+				"gradle": {
+					"$ref": "#/$defs/ecosystem_settings"
+				},
 				"npm": {
 					"$ref": "#/$defs/ecosystem_settings"
 				},
 				"python": {
+					"$ref": "#/$defs/ecosystem_settings"
+				},
+				"swift": {
 					"$ref": "#/$defs/ecosystem_settings"
 				}
 			},

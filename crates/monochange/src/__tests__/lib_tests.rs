@@ -13612,6 +13612,9 @@ fn build_command_and_configured_change_type_choices_include_runtime_metadata() {
 		dart: monochange_core::EcosystemSettings::default(),
 		python: monochange_core::EcosystemSettings::default(),
 		go: monochange_core::EcosystemSettings::default(),
+		swift: monochange_core::EcosystemSettings::default(),
+		cocoapods: monochange_core::EcosystemSettings::default(),
+		gradle: monochange_core::EcosystemSettings::default(),
 		version_schemes: BTreeMap::new(),
 	};
 	assert_eq!(
@@ -13725,6 +13728,9 @@ fn apply_runtime_change_type_choices_updates_only_unconfigured_change_inputs() {
 		dart: monochange_core::EcosystemSettings::default(),
 		python: monochange_core::EcosystemSettings::default(),
 		go: monochange_core::EcosystemSettings::default(),
+		swift: monochange_core::EcosystemSettings::default(),
+		cocoapods: monochange_core::EcosystemSettings::default(),
+		gradle: monochange_core::EcosystemSettings::default(),
 		version_schemes: BTreeMap::new(),
 	};
 	let mut cli = vec![
@@ -13792,6 +13798,9 @@ fn apply_runtime_change_type_choices_preserves_existing_choice_inputs_and_empty_
 		dart: monochange_core::EcosystemSettings::default(),
 		python: monochange_core::EcosystemSettings::default(),
 		go: monochange_core::EcosystemSettings::default(),
+		swift: monochange_core::EcosystemSettings::default(),
+		cocoapods: monochange_core::EcosystemSettings::default(),
+		gradle: monochange_core::EcosystemSettings::default(),
 		version_schemes: BTreeMap::new(),
 	};
 	let mut cli = vec![CliCommandDefinition {

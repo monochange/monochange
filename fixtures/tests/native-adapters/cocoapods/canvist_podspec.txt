@@ -1,0 +1,6 @@
+
+Pod::Spec.new do |s|
+  s.name = "Canvist"
+  s.version = "0.2.0"
+  s.summary = "canvist editor for iOS"
+end

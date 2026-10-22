@@ -288,6 +288,9 @@ fn workspace_configuration_with_lockfile_commands() -> WorkspaceConfiguration {
 		dart: monochange_core::EcosystemSettings::default(),
 		python: monochange_core::EcosystemSettings::default(),
 		go: monochange_core::EcosystemSettings::default(),
+		swift: monochange_core::EcosystemSettings::default(),
+		cocoapods: monochange_core::EcosystemSettings::default(),
+		gradle: monochange_core::EcosystemSettings::default(),
 		version_schemes: BTreeMap::new(),
 	}
 }
@@ -596,6 +599,9 @@ fn validate_and_discover_release_workspace_cover_fallback_and_errors() {
 		dart: monochange_core::EcosystemSettings::default(),
 		python: monochange_core::EcosystemSettings::default(),
 		go: monochange_core::EcosystemSettings::default(),
+		swift: monochange_core::EcosystemSettings::default(),
+		cocoapods: monochange_core::EcosystemSettings::default(),
+		gradle: monochange_core::EcosystemSettings::default(),
 		version_schemes: BTreeMap::new(),
 	};
 	let undetected_error = discover_release_workspace(undetected_root.path(), &undetected)
@@ -658,6 +664,9 @@ fn validate_and_discover_release_workspace_cover_fallback_and_errors() {
 		dart: monochange_core::EcosystemSettings::default(),
 		python: monochange_core::EcosystemSettings::default(),
 		go: monochange_core::EcosystemSettings::default(),
+		swift: monochange_core::EcosystemSettings::default(),
+		cocoapods: monochange_core::EcosystemSettings::default(),
+		gradle: monochange_core::EcosystemSettings::default(),
 		version_schemes: BTreeMap::new(),
 	};
 	let missing_manifest_error =
@@ -3439,4 +3448,56 @@ fn add_change_file_reports_a_create_failure_when_a_parent_component_is_a_file() 
 		error.to_string().contains("failed to create"),
 		"unexpected error: {error}"
 	);
+}
+#[test]
+fn annotated_init_config_supports_native_ecosystem_types() {
+	let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/tests/native-audit");
+	let rendered =
+		render_annotated_init_config(&root, None, None).expect("render native init config");
+	let config = toml::from_str::<toml::Value>(&rendered).expect("valid init TOML");
+	let packages = config
+		.get("package")
+		.and_then(toml::Value::as_table)
+		.expect("packages");
+	let types = packages
+		.values()
+		.map(|package| {
+			package
+				.get("type")
+				.and_then(toml::Value::as_str)
+				.expect("type")
+		})
+		.collect::<BTreeSet<_>>();
+	assert_eq!(types, BTreeSet::from(["swift", "cocoapods", "gradle"]));
+}
+
+#[test]
+fn native_releases_schedule_configured_lockfile_commands() {
+	let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/tests/native-audit");
+	let mut configuration = workspace_configuration_with_lockfile_commands();
+	let commands = vec![LockfileCommandDefinition {
+		command: "native refresh".to_string(),
+		cwd: None,
+		shell: ShellConfig::None,
+	}];
+	configuration.swift.lockfile_commands = commands.clone();
+	configuration.cocoapods.lockfile_commands = commands.clone();
+	configuration.gradle.lockfile_commands = commands;
+
+	for ecosystem in [Ecosystem::Swift, Ecosystem::CocoaPods, Ecosystem::Gradle] {
+		let record = PackageRecord::new(
+			ecosystem,
+			"native",
+			root.join("manifest"),
+			root.clone(),
+			None,
+			monochange_core::PublishState::Public,
+		);
+		let plan = versioning_plan(&root, &record.id, "1.2.4");
+		let (executions, _) =
+			build_lockfile_command_executions(&root, &configuration, &[record], &plan)
+				.expect("plan native commands");
+		assert_eq!(executions.len(), 1);
+		assert_eq!(executions[0].command, "native refresh");
+	}
 }

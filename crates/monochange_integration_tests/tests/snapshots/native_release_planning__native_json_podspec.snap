@@ -1,0 +1,9 @@
+---
+source: crates/monochange_integration_tests/tests/native_release_planning.rs
+expression: "fs::read_to_string(root.join(\"json/Canvist.podspec.json\")).unwrap_or_else(|error|\npanic!(\"json podspec: {error}\"))"
+---
+{
+  "name": "CanvistJson",
+  "version": "1.2.3",
+  "summary": "A JSON podspec"
+}

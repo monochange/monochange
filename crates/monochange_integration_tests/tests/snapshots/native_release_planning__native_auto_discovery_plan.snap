@@ -1,0 +1,43 @@
+---
+source: crates/monochange_integration_tests/tests/native_release_planning.rs
+expression: plan_summary(&manifest)
+---
+{
+  "decisions": [
+    {
+      "bump": "patch",
+      "package": "cocoapods:json/Canvist.podspec.json",
+      "plannedVersion": "1.2.4"
+    },
+    {
+      "bump": "patch",
+      "package": "gradle:android/gradle.properties",
+      "plannedVersion": "1.2.4"
+    },
+    {
+      "bump": "patch",
+      "package": "swift:swift/Package.swift",
+      "plannedVersion": "1.2.4"
+    }
+  ],
+  "groups": [
+    {
+      "group": "sdk",
+      "members": [
+        "swift:swift/Package.swift",
+        "cocoapods:json/Canvist.podspec.json",
+        "gradle:android/gradle.properties"
+      ],
+      "version": "1.2.4"
+    }
+  ],
+  "targets": [
+    {
+      "id": "sdk",
+      "tagName": "v1.2.4",
+      "version": "1.2.4",
+      "versionFormat": "primary"
+    }
+  ],
+  "version": "1.2.4"
+}

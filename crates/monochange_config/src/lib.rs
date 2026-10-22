@@ -472,6 +472,12 @@ pub(crate) struct RawEcosystems {
 	python: RawEcosystemSettings,
 	#[serde(default)]
 	go: RawEcosystemSettings,
+	#[serde(default)]
+	swift: RawEcosystemSettings,
+	#[serde(default)]
+	cocoapods: RawEcosystemSettings,
+	#[serde(default)]
+	gradle: RawEcosystemSettings,
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -998,6 +1004,9 @@ fn package_type_to_ecosystem_type(package_type: PackageType) -> EcosystemType {
 		// mapping only matters for the injected sibling `package.json`
 		// versioned file.
 		PackageType::GitHubActions => EcosystemType::Npm,
+		PackageType::Swift => EcosystemType::Swift,
+		PackageType::CocoaPods => EcosystemType::CocoaPods,
+		PackageType::Gradle => EcosystemType::Gradle,
 		_ => EcosystemType::Cargo,
 	}
 }
@@ -1283,6 +1292,11 @@ pub(crate) fn manifest_file_for_ecosystem(
 		EcosystemType::Dart => &["pubspec.yaml"],
 		EcosystemType::Python => &["pyproject.toml"],
 		EcosystemType::Go => &["go.mod"],
+		EcosystemType::Swift => &["Package.swift"],
+		EcosystemType::Gradle => &["gradle.properties"],
+		// CocoaPods podspecs are named after the pod, so config-layer
+		// auto-discovery has no fixed manifest name to look for; the
+		// CocoaPods adapter discovers them during workspace discovery.
 		// patch-coverage:ignore-start -- future-proof fallback for non-exhaustive external enum.
 		_ => &[],
 		// patch-coverage:ignore-end
@@ -1299,6 +1313,11 @@ fn extract_manifest_name(contents: &str, ecosystem_type: EcosystemType) -> Optio
 		EcosystemType::Npm | EcosystemType::Deno => extract_json_name_field(contents),
 		EcosystemType::Dart => extract_yaml_name_field(contents),
 		EcosystemType::Python => extract_toml_table_field(contents, "project", "name"),
+		EcosystemType::Swift => monochange_swift::parse_package_name(contents),
+		EcosystemType::CocoaPods => monochange_cocoapods::parse_podspec_name(contents),
+		EcosystemType::Gradle => {
+			monochange_gradle::parse_properties(contents).remove("POM_ARTIFACT_ID")
+		}
 		_ => None,
 	}
 }
@@ -1459,6 +1478,9 @@ fn ecosystem_name(ecosystem_type: EcosystemType) -> &'static str {
 		EcosystemType::Dart => "dart",
 		EcosystemType::Python => "python",
 		EcosystemType::Go => "go",
+		EcosystemType::Swift => "swift",
+		EcosystemType::CocoaPods => "cocoapods",
+		EcosystemType::Gradle => "gradle",
 		// patch-coverage:ignore-start -- future-proof fallback for non-exhaustive external enum.
 		_ => "unknown",
 		// patch-coverage:ignore-end
@@ -1493,7 +1515,7 @@ pub(crate) fn discover_packages_from_ecosystem(
 ) -> MonochangeResult<Vec<DiscoveredPackage>> {
 	let manifest_filenames = manifest_file_for_ecosystem(ecosystem_type);
 	// patch-coverage:ignore-start -- defensive branch for future non-exhaustive ecosystem variants.
-	if manifest_filenames.is_empty() {
+	if manifest_filenames.is_empty() && ecosystem_type != EcosystemType::CocoaPods {
 		return Ok(Vec::new());
 	}
 
@@ -1570,9 +1592,18 @@ pub(crate) fn discover_packages_from_ecosystem(
 				continue;
 			}
 
-			for manifest_name in manifest_filenames {
-				let manifest_path = path.join(manifest_name);
+			let manifest_paths = if ecosystem_type == EcosystemType::CocoaPods {
+				monochange_cocoapods::find_podspec_in(path)
+					.into_iter()
+					.collect::<Vec<_>>()
+			} else {
+				manifest_filenames
+					.iter()
+					.map(|name| path.join(name))
+					.collect()
+			};
 
+			for manifest_path in manifest_paths {
 				if !manifest_path.is_file() {
 					continue;
 				}
@@ -1628,6 +1659,8 @@ fn default_publish_registry_for_ecosystem(
 		EcosystemType::Dart => Some(PublishRegistry::Builtin(RegistryKind::PubDev)),
 		EcosystemType::Python => Some(PublishRegistry::Builtin(RegistryKind::Pypi)),
 		EcosystemType::Go => Some(PublishRegistry::Builtin(RegistryKind::GoProxy)),
+		EcosystemType::CocoaPods => Some(PublishRegistry::Builtin(RegistryKind::CocoaPodsTrunk)),
+		EcosystemType::Gradle => Some(PublishRegistry::Builtin(RegistryKind::MavenCentral)),
 		_ => None,
 	}
 }
@@ -1904,6 +1937,9 @@ fn build_package_definitions(
 	dart_ecosystem: &EcosystemSettings,
 	python_ecosystem: &EcosystemSettings,
 	go_ecosystem: &EcosystemSettings,
+	swift_ecosystem: &EcosystemSettings,
+	cocoapods_ecosystem: &EcosystemSettings,
+	gradle_ecosystem: &EcosystemSettings,
 ) -> MonochangeResult<Vec<PackageDefinition>> {
 	packages
 		.into_iter()
@@ -1974,6 +2010,9 @@ fn build_package_definitions(
 					EcosystemType::Dart => dart_ecosystem.versioned_files.clone(),
 					EcosystemType::Python => python_ecosystem.versioned_files.clone(),
 					EcosystemType::Go => go_ecosystem.versioned_files.clone(),
+					EcosystemType::Swift => swift_ecosystem.versioned_files.clone(),
+					EcosystemType::CocoaPods => cocoapods_ecosystem.versioned_files.clone(),
+					EcosystemType::Gradle => gradle_ecosystem.versioned_files.clone(),
 					_ => Vec::new(),
 				}
 			};
@@ -2016,6 +2055,9 @@ fn build_package_definitions(
 					EcosystemType::Dart => &dart_ecosystem.publish,
 					EcosystemType::Python => &python_ecosystem.publish,
 					EcosystemType::Go => &go_ecosystem.publish,
+					EcosystemType::Swift => &swift_ecosystem.publish,
+					EcosystemType::CocoaPods => &cocoapods_ecosystem.publish,
+					EcosystemType::Gradle => &gradle_ecosystem.publish,
 					_ => &cargo_ecosystem.publish,
 				}),
 
@@ -2244,16 +2286,22 @@ fn discover_auto_packages(
 	dart_ecosystem: &EcosystemSettings,
 	python_ecosystem: &EcosystemSettings,
 	go_ecosystem: &EcosystemSettings,
+	swift_ecosystem: &EcosystemSettings,
+	cocoapods_ecosystem: &EcosystemSettings,
+	gradle_ecosystem: &EcosystemSettings,
 ) -> MonochangeResult<Vec<PackageDefinition>> {
 	let mut packages = Vec::new();
 
-	let ecosystem_pairs: [(EcosystemType, &EcosystemSettings); 6] = [
+	let ecosystem_pairs: [(EcosystemType, &EcosystemSettings); 9] = [
 		(EcosystemType::Cargo, cargo_ecosystem),
 		(EcosystemType::Npm, npm_ecosystem),
 		(EcosystemType::Deno, deno_ecosystem),
 		(EcosystemType::Dart, dart_ecosystem),
 		(EcosystemType::Python, python_ecosystem),
 		(EcosystemType::Go, go_ecosystem),
+		(EcosystemType::Swift, swift_ecosystem),
+		(EcosystemType::CocoaPods, cocoapods_ecosystem),
+		(EcosystemType::Gradle, gradle_ecosystem),
 	];
 
 	for (ecosystem_type, ecosystem_settings) in ecosystem_pairs {
@@ -2331,6 +2379,9 @@ fn ecosystem_type_to_package_type(ecosystem_type: EcosystemType) -> PackageType 
 		EcosystemType::Python => PackageType::Python,
 		EcosystemType::Go => PackageType::Go,
 		EcosystemType::Cargo => PackageType::Cargo,
+		EcosystemType::Swift => PackageType::Swift,
+		EcosystemType::CocoaPods => PackageType::CocoaPods,
+		EcosystemType::Gradle => PackageType::Gradle,
 		// patch-coverage:ignore-start -- future-proof fallback for non-exhaustive external enum.
 		_ => unreachable!("unsupported ecosystem type"),
 		// patch-coverage:ignore-end
@@ -2386,7 +2437,22 @@ pub fn load_workspace_configuration(root: &Path) -> MonochangeResult<WorkspaceCo
 	)?;
 	let go_ecosystem =
 		normalize_ecosystem_settings(&contents, "go", EcosystemType::Go, ecosystems.go)?;
-
+	let swift_ecosystem =
+		normalize_ecosystem_settings(&contents, "swift", EcosystemType::Swift, ecosystems.swift)?;
+	// patch-coverage:ignore-start -- multi-line call terminators carry zero-count llvm-cov regions; every config load runs these calls.
+	let cocoapods_ecosystem = normalize_ecosystem_settings(
+		&contents,
+		"cocoapods",
+		EcosystemType::CocoaPods,
+		ecosystems.cocoapods,
+	)?;
+	let gradle_ecosystem = normalize_ecosystem_settings(
+		&contents,
+		"gradle",
+		EcosystemType::Gradle,
+		ecosystems.gradle,
+	)?;
+	// patch-coverage:ignore-end
 	let defaults_changelog_policy = defaults
 		.changelog
 		.as_ref()
@@ -2418,6 +2484,9 @@ pub fn load_workspace_configuration(root: &Path) -> MonochangeResult<WorkspaceCo
 		&dart_ecosystem,
 		&python_ecosystem,
 		&go_ecosystem,
+		&swift_ecosystem,
+		&cocoapods_ecosystem,
+		&gradle_ecosystem,
 	)?;
 	let default_changelog_initial_header = defaults
 		.changelog
@@ -2438,6 +2507,9 @@ pub fn load_workspace_configuration(root: &Path) -> MonochangeResult<WorkspaceCo
 		&dart_ecosystem,
 		&python_ecosystem,
 		&go_ecosystem,
+		&swift_ecosystem,
+		&cocoapods_ecosystem,
+		&gradle_ecosystem,
 	)?;
 	// patch-coverage:ignore-end
 	// Merge explicitly defined packages with auto-discovered ones.
@@ -2484,6 +2556,9 @@ pub fn load_workspace_configuration(root: &Path) -> MonochangeResult<WorkspaceCo
 		("dart", &dart_ecosystem),
 		("python", &python_ecosystem),
 		("go", &go_ecosystem),
+		("swift", &swift_ecosystem),
+		("cocoapods", &cocoapods_ecosystem),
+		("gradle", &gradle_ecosystem),
 	] {
 		validate_versioned_files_with_cache(
 			root,
@@ -2571,6 +2646,9 @@ pub fn load_workspace_configuration(root: &Path) -> MonochangeResult<WorkspaceCo
 		dart: dart_ecosystem,
 		python: python_ecosystem,
 		go: go_ecosystem,
+		swift: swift_ecosystem,
+		cocoapods: cocoapods_ecosystem,
+		gradle: gradle_ecosystem,
 	})
 }
 
@@ -4748,6 +4826,11 @@ fn path_is_supported_for_ecosystem(path: &Path, ecosystem_type: EcosystemType) -
 		EcosystemType::Deno => matches!(file_name, "deno.json" | "deno.jsonc" | "deno.lock"),
 		EcosystemType::Dart => matches!(file_name, "pubspec.yaml" | "pubspec.yml" | "pubspec.lock"),
 		EcosystemType::Python => matches!(file_name, "pyproject.toml" | "uv.lock" | "poetry.lock"),
+		EcosystemType::Swift => monochange_swift::supported_versioned_file_kind(path).is_some(),
+		EcosystemType::CocoaPods => {
+			monochange_cocoapods::supported_versioned_file_kind(path).is_some()
+		}
+		EcosystemType::Gradle => monochange_gradle::supported_versioned_file_kind(path).is_some(),
 		_ => matches!(file_name, "go.mod" | "go.sum"),
 	}
 }
@@ -7522,6 +7605,9 @@ fn ecosystem_matches_package_type(ecosystem: Ecosystem, package_type: PackageTyp
 			| (Ecosystem::Dart, PackageType::Dart)
 			| (Ecosystem::Python, PackageType::Python)
 			| (Ecosystem::Go, PackageType::Go)
+			| (Ecosystem::Swift, PackageType::Swift)
+			| (Ecosystem::CocoaPods, PackageType::CocoaPods)
+			| (Ecosystem::Gradle, PackageType::Gradle)
 	)
 }
 

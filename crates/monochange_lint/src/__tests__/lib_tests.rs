@@ -174,6 +174,9 @@ fn sample_workspace_configuration(root: &Path) -> WorkspaceConfiguration {
 		dart: monochange_core::EcosystemSettings::default(),
 		python: monochange_core::EcosystemSettings::default(),
 		go: monochange_core::EcosystemSettings::default(),
+		swift: monochange_core::EcosystemSettings::default(),
+		cocoapods: monochange_core::EcosystemSettings::default(),
+		gradle: monochange_core::EcosystemSettings::default(),
 		version_schemes: BTreeMap::new(),
 	}
 }

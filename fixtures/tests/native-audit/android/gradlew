@@ -1,0 +1,9 @@
+#!/bin/sh
+set -eu
+
+if [ "$#" -ne 2 ] || [ "$1" != "publishAndReleaseToMavenCentral" ] || [ "$2" != "--dry-run" ]; then
+	echo 'refusing to run without the Gradle dry-run flag' >&2
+	exit 91
+fi
+
+printf 'Gradle task graph only\n'

@@ -77,6 +77,9 @@ fn empty_configuration() -> WorkspaceConfiguration {
 		dart: EcosystemSettings::default(),
 		python: EcosystemSettings::default(),
 		go: EcosystemSettings::default(),
+		swift: EcosystemSettings::default(),
+		cocoapods: EcosystemSettings::default(),
+		gradle: EcosystemSettings::default(),
 		version_schemes: BTreeMap::new(),
 	}
 }
@@ -421,6 +424,9 @@ fn build_selectable_targets_includes_standalone_packages_before_group_members() 
 		dart: EcosystemSettings::default(),
 		python: EcosystemSettings::default(),
 		go: EcosystemSettings::default(),
+		swift: EcosystemSettings::default(),
+		cocoapods: EcosystemSettings::default(),
+		gradle: EcosystemSettings::default(),
 		version_schemes: BTreeMap::new(),
 	};
 	let displays = build_selectable_targets(&configuration)
@@ -510,6 +516,9 @@ fn build_selectable_targets_handles_group_with_empty_packages() {
 		dart: EcosystemSettings::default(),
 		python: EcosystemSettings::default(),
 		go: EcosystemSettings::default(),
+		swift: EcosystemSettings::default(),
+		cocoapods: EcosystemSettings::default(),
+		gradle: EcosystemSettings::default(),
 		version_schemes: BTreeMap::new(),
 	};
 	let targets = build_selectable_targets(&configuration);
@@ -595,6 +604,9 @@ fn build_selectable_targets_with_only_standalone_packages() {
 		dart: EcosystemSettings::default(),
 		python: EcosystemSettings::default(),
 		go: EcosystemSettings::default(),
+		swift: EcosystemSettings::default(),
+		cocoapods: EcosystemSettings::default(),
+		gradle: EcosystemSettings::default(),
 		version_schemes: BTreeMap::new(),
 	};
 	let targets = build_selectable_targets(&configuration);
@@ -694,6 +706,9 @@ fn build_selectable_targets_deduplicates_and_sorts_change_types() {
 		dart: EcosystemSettings::default(),
 		python: EcosystemSettings::default(),
 		go: EcosystemSettings::default(),
+		swift: EcosystemSettings::default(),
+		cocoapods: EcosystemSettings::default(),
+		gradle: EcosystemSettings::default(),
 		version_schemes: BTreeMap::new(),
 	};
 	let target = build_selectable_targets(&configuration)
