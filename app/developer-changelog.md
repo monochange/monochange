@@ -2,6 +2,24 @@
 
 Release notes for website developers and operators.
 
+## 0.3.3
+
+### 🐛 Fixed
+
+#### Read GitHub OAuth token replies without discarding the error
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #828](https://github.com/monochange/monochange/pull/828)
+
+`exchange_code` and the user-token refresh in `github_user_access_token` no longer call `reqwest::Response::json` on `POST /login/oauth/access_token`. They read the body as text and parse it in `parse_token_response`, which:
+
+- returns `GitHub rejected the sign-in: <error_description> (<error>)` when GitHub sends an OAuth error instead of a token;
+- accepts `application/x-www-form-urlencoded` replies and lifetimes sent as strings (`"expires_in": "28800"`);
+- reports any other body as `GitHub returned an unreadable token response (HTTP <status>, <content type>): <title or first 200 characters>` and logs it with `tracing::warn!`.
+
+Refresh failures still ask the user to sign in again, but the server log now carries GitHub's reason.
+
+- **Document native package release setup.** The hosted ecosystem guide now explains how to configure Swift, CocoaPods, and Gradle packages, including versioned files and registry credentials. Follow the native ecosystem sections when adding Apple or Android packages to an existing workspace; Gradle and CocoaPods publishing require `trusted_publishing = false` and their registry credentials. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #830](https://github.com/monochange/monochange/pull/830)
+
 ## 0.3.2
 
 ### 🚀 Feature

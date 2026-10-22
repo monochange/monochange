@@ -4,6 +4,86 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)
+
+Grouped release for `main`.
+
+### 💥 Breaking Change
+
+#### Add swift, cocoapods, and gradle ecosystems
+
+_Packages:_ 🟠 _monochange_, 🟠 _monochange_config_, 🟠 _monochange_core_, 🟠 _monochange_publish_, 🔴 _monochange_cocoapods_, 🔴 _monochange_gradle_, 🔴 _monochange_swift_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #830](https://github.com/monochange/monochange/pull/830)
+
+monochange now plans and publishes native Apple and Android packages alongside the existing ecosystems: Swift Package Manager packages (`Package.swift`, versions resolved from repository tags), CocoaPods pods (`.podspec` and `.podspec.json`, published to the CocoaPods trunk with `pod trunk push`), and Gradle libraries (`gradle.properties` with the `VERSION_NAME` convention, published to Maven Central through `./gradlew publishAndReleaseToMavenCentral`).
+
+Configure the new ecosystems with `[ecosystems.swift]`, `[ecosystems.cocoapods]`, and `[ecosystems.gradle]`, or type packages directly:
+
+```toml
+[package.apple]
+path = "platforms/apple"
+type = "swift"
+
+[package.pod]
+path = "platforms/pod"
+type = "cocoapods"
+
+[package.android]
+path = "platforms/android"
+type = "gradle"
+```
+
+Swift support uses source-control distribution through tags and provider releases. Swift package registries are outside the built-in publish flow. Set `trusted_publishing = false` for cocoapods and gradle packages since neither the trunk nor Maven Central supports OIDC trusted publishing. Duplicate-version detection queries the CocoaPods trunk API and `repo1.maven.org` Maven metadata, and typed versioned files rewrite active podspec `s.version` declarations and selected Gradle properties during release preparation.
+
+Gradle publish dry runs append `--dry-run` so Gradle only displays its task graph. CocoaPods dry runs retain the selected podspec and validation flags when switching to `pod spec lint`. Both CocoaPods and Gradle require real releases and do not support placeholder name reservation.
+
+#### Add native ecosystem fields to Rust configuration and endpoint structs
+
+_Packages:_ 🔴 _monochange_core_, 🔴 _monochange_publish_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #830](https://github.com/monochange/monochange/pull/830)
+
+> Rust callers constructing `WorkspaceConfiguration` or `RegistryEndpoints` with struct literals must initialize the new fields.
+
+`WorkspaceConfiguration` now carries `swift`, `cocoapods`, and `gradle` settings. Add these entries to an existing struct literal:
+
+```rust
+swift: EcosystemSettings::default(),
+cocoapods: EcosystemSettings::default(),
+gradle: EcosystemSettings::default(),
+```
+
+Previously serialized workspace configurations remain readable: omitted native ecosystem settings deserialize to their defaults.
+
+For `RegistryEndpoints`, prefer `RegistryEndpoints::from_env()` and override the endpoints needed by your caller. Existing explicit struct literals need these additional fields:
+
+```rust
+cocoapods_trunk_api: "https://trunk.cocoapods.org/api/v1".to_string(),
+maven_central: "https://repo1.maven.org/maven2".to_string(),
+```
+
+The built-in registry defaults remain available when the corresponding environment overrides are absent.
+
+### 🐛 Fixed
+
+#### Retry GitHub's OIDC endpoint before failing a hosted release commit
+
+_Packages:_ 🟢 _monochange_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #829](https://github.com/monochange/monochange/pull/829)
+
+A hosted `CommitRelease` asks GitHub Actions for the job's OIDC token before calling monochange.dev. When that endpoint (`ACTIONS_ID_TOKEN_REQUEST_URL`) briefly returned a 5xx status, the release failed at once and blamed the workspace:
+
+```text
+error[config.invalid]: hosted CommitRelease OIDC token request failed with status 503 Service Unavailable
+  help:    Check `monochange.toml` and the command arguments, then rerun the command.
+```
+
+The token request now retries connection failures and 5xx statuses after 2, 5, and 10 seconds, as `getIDToken` in `@actions/core` does. If GitHub still cannot issue the token, the error names the attempts and says it is a GitHub outage to rerun, and a 4xx status points at the job's `permissions: id-token: write`.
+
+Failed requests to GitHub's OIDC endpoint or to the hosted backend now report `error[hosted.request_failed]` instead of `error[config.invalid]`, so they no longer suggest checking `monochange.toml`. A CI step that matched `config.invalid` for these failures should match `hosted.request_failed`. No configuration change is needed.
+
 ## [0.20.1](https://github.com/monochange/monochange/releases/tag/v0.20.1) (2026-10-21)
 
 Grouped release for `main`.

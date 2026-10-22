@@ -2,6 +2,26 @@
 
 All notable changes to this crate are documented here. See [keep a changelog](https://keepachangelog.com/en/1.1.0/) for the format.
 
+## monochange_classification [0.4.8](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.4.8) (2026-10-22)
+
+### 🚀 Feature
+
+#### Validate native package ecosystems and publish registries
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #830](https://github.com/monochange/monochange/pull/830)
+
+Configuration, release-record, and classification schemas now accept `swift`, `cocoapods`, and `gradle` ecosystem values. Configuration and release records also recognize the `cocoapods_trunk` and `maven_central` registries.
+
+Consumers validating native package declarations against generated schemas can use the new values directly:
+
+```toml
+[package.android]
+path = "platforms/android"
+type = "gradle"
+```
+
+Refresh cached schema assets before validating configurations or release records containing these values.
+
 ## monochange_classification [0.4.7](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.4.7) (2026-10-21)
 
 ### Changed

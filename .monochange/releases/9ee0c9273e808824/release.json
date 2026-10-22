@@ -1,0 +1,2736 @@
+{
+	"schema_version": "0.10",
+	"kind": "monochange.releaseRecord",
+	"created_at": "2026-10-22T18:26:41Z",
+	"command": "release",
+	"version": null,
+	"versions": {
+		"main": "0.21.0",
+		"monochange_app": "0.3.3",
+		"monochange_classification": "0.4.8",
+		"monochange_schema": "0.10.2"
+	},
+	"release_targets": [
+		{
+			"id": "main",
+			"kind": "group",
+			"version": "0.21.0",
+			"version_format": "primary",
+			"tag": true,
+			"release": true,
+			"tag_name": "v0.21.0",
+			"rendered_title": "v0.21.0 (2026-10-22)",
+			"rendered_changelog_title": "[0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)",
+			"members": [
+				"@monochange/cli",
+				"@monochange/cli-darwin-arm64",
+				"@monochange/cli-darwin-x64",
+				"@monochange/cli-linux-arm64-gnu",
+				"@monochange/cli-linux-arm64-musl",
+				"@monochange/cli-linux-x64-gnu",
+				"@monochange/cli-linux-x64-musl",
+				"@monochange/cli-win32-arm64-msvc",
+				"@monochange/cli-win32-x64-msvc",
+				"@monochange/skill",
+				"monochange",
+				"monochange_analysis",
+				"monochange_cargo",
+				"monochange_changelog",
+				"monochange_cocoapods",
+				"monochange_config",
+				"monochange_core",
+				"monochange_dart",
+				"monochange_deno",
+				"monochange_ecmascript",
+				"monochange_forgejo",
+				"monochange_gitea",
+				"monochange_github",
+				"monochange_gitlab",
+				"monochange_go",
+				"monochange_gradle",
+				"monochange_graph",
+				"monochange_hosting",
+				"monochange_lint",
+				"monochange_linting",
+				"monochange_npm",
+				"monochange_publish",
+				"monochange_python",
+				"monochange_semver",
+				"monochange_swift",
+				"monochange_telemetry",
+				"monochange_test_helpers"
+			]
+		},
+		{
+			"id": "monochange_app",
+			"kind": "package",
+			"version": "0.3.3",
+			"version_format": "namespaced",
+			"tag": true,
+			"release": true,
+			"tag_name": "monochange_app/v0.3.3",
+			"rendered_title": "monochange.dev 0.3.3",
+			"rendered_changelog_title": "0.3.3",
+			"members": [
+				"monochange_app"
+			]
+		},
+		{
+			"id": "monochange_classification",
+			"kind": "package",
+			"version": "0.4.8",
+			"version_format": "namespaced",
+			"tag": true,
+			"release": false,
+			"tag_name": "monochange_classification/v0.4.8",
+			"rendered_title": "monochange_classification v0.4.8 (2026-10-22)",
+			"rendered_changelog_title": "monochange_classification [0.4.8](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.4.8) (2026-10-22)",
+			"members": [
+				"monochange_classification"
+			]
+		},
+		{
+			"id": "monochange_schema",
+			"kind": "package",
+			"version": "0.10.2",
+			"version_format": "namespaced",
+			"tag": true,
+			"release": true,
+			"tag_name": "monochange_schema/v0.10.2",
+			"rendered_title": "monochange_schema v0.10.2 (2026-10-22)",
+			"rendered_changelog_title": "monochange_schema [0.10.2](https://github.com/monochange/monochange/releases/tag/monochange_schema/v0.10.2) (2026-10-22)",
+			"members": [
+				"monochange_schema"
+			]
+		}
+	],
+	"released_packages": [
+		"@monochange/cli",
+		"@monochange/cli-darwin-arm64",
+		"@monochange/cli-darwin-x64",
+		"@monochange/cli-linux-arm64-gnu",
+		"@monochange/cli-linux-arm64-musl",
+		"@monochange/cli-linux-x64-gnu",
+		"@monochange/cli-linux-x64-musl",
+		"@monochange/cli-win32-arm64-msvc",
+		"@monochange/cli-win32-x64-msvc",
+		"@monochange/skill",
+		"monochange",
+		"monochange_analysis",
+		"monochange_app",
+		"monochange_cargo",
+		"monochange_changelog",
+		"monochange_classification",
+		"monochange_cocoapods",
+		"monochange_config",
+		"monochange_core",
+		"monochange_dart",
+		"monochange_deno",
+		"monochange_ecmascript",
+		"monochange_forgejo",
+		"monochange_gitea",
+		"monochange_github",
+		"monochange_gitlab",
+		"monochange_go",
+		"monochange_gradle",
+		"monochange_graph",
+		"monochange_hosting",
+		"monochange_lint",
+		"monochange_linting",
+		"monochange_npm",
+		"monochange_publish",
+		"monochange_python",
+		"monochange_schema",
+		"monochange_semver",
+		"monochange_swift",
+		"monochange_telemetry",
+		"monochange_test_helpers"
+	],
+	"changed_files": [
+		"Cargo.lock",
+		"Cargo.toml",
+		"app/Cargo.lock",
+		"app/Cargo.toml",
+		"app/changelog.md",
+		"app/crates/monochange_app/Cargo.toml",
+		"app/developer-changelog.md",
+		"app/public/releases/0.3.3.json",
+		"changelog.md",
+		"crates/monochange/Cargo.toml",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/Cargo.toml",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/Cargo.toml",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/Cargo.toml",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_classification/Cargo.toml",
+		"crates/monochange_classification/changelog.md",
+		"crates/monochange_cocoapods/Cargo.toml",
+		"crates/monochange_cocoapods/changelog.md",
+		"crates/monochange_config/Cargo.toml",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/Cargo.toml",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/Cargo.toml",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/Cargo.toml",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/Cargo.toml",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/Cargo.toml",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/Cargo.toml",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/Cargo.toml",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/Cargo.toml",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/Cargo.toml",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_gradle/Cargo.toml",
+		"crates/monochange_gradle/changelog.md",
+		"crates/monochange_graph/Cargo.toml",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/Cargo.toml",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/Cargo.toml",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/Cargo.toml",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/Cargo.toml",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/Cargo.toml",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/Cargo.toml",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_schema/Cargo.toml",
+		"crates/monochange_schema/changelog.md",
+		"crates/monochange_semver/Cargo.toml",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_swift/Cargo.toml",
+		"crates/monochange_swift/changelog.md",
+		"crates/monochange_telemetry/Cargo.toml",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/Cargo.toml",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli/package.json",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-arm64/package.json",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-darwin-x64/package.json",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/package.json",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/package.json",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/package.json",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/package.json",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/package.json",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/package.json",
+		"packages/monochange__skill/changelog.md",
+		"packages/monochange__skill/package.json",
+		"pnpm-lock.yaml"
+	],
+	"package_publications": [
+		{
+			"package": "@monochange/cli",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.21.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-arm64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.21.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-x64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.21.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.21.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.21.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.21.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.21.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-arm64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.21.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-x64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.21.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/skill",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.21.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_analysis",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_cargo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_changelog",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_classification",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.4.8",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_cocoapods",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_config",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_core",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_dart",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_deno",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_ecmascript",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_forgejo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitea",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_github",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitlab",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_go",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gradle",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_graph",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_hosting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_lint",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_linting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_npm",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_publish",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_python",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_schema",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.10.2",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_semver",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_swift",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_telemetry",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_test_helpers",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		}
+	],
+	"updated_changelogs": [
+		"app/changelog.md",
+		"app/developer-changelog.md",
+		"app/public/releases/0.3.3.json",
+		"changelog.md",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_classification/changelog.md",
+		"crates/monochange_cocoapods/changelog.md",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_gradle/changelog.md",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_schema/changelog.md",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_swift/changelog.md",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__skill/changelog.md"
+	],
+	"deleted_changesets": [
+		".changeset/github-sign-in-token-errors.md",
+		".changeset/github-token-response-parsing.md",
+		".changeset/hosted-oidc-retry.md",
+		".changeset/native-ecosystem-schemas.md",
+		".changeset/native-ecosystem-setup-guide.md",
+		".changeset/native-ecosystem-struct-migration.md",
+		".changeset/native-ecosystems.md",
+		".changeset/permission-review-new-tab.md"
+	],
+	"changesets": [
+		{
+			"path": ".changeset/github-sign-in-token-errors.md",
+			"summary": "Show why GitHub sign-in failed",
+			"details": "When GitHub refuses a sign-in, the error page now shows GitHub's own reason, such as an expired or already used authorization code, instead of \"error decoding response body\". If GitHub answers with something that is not a token at all, such as an outage or rate-limit page, the page names the HTTP status and the page title so you know whether to retry.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "website_fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "86e820f0ecd11c56113f3dcc47b0dd1cc7977a7e",
+						"short_sha": "86e820f",
+						"url": "https://github.com/monochange/monochange/commit/86e820f0ecd11c56113f3dcc47b0dd1cc7977a7e",
+						"authored_at": "2026-10-21T16:39:30+01:00",
+						"committed_at": "2026-10-21T16:39:30+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#828",
+						"title": "fix(app): show GitHub's reason when the OAuth token exchange fails",
+						"url": "https://github.com/monochange/monochange/pull/828",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "86e820f0ecd11c56113f3dcc47b0dd1cc7977a7e",
+						"short_sha": "86e820f",
+						"url": "https://github.com/monochange/monochange/commit/86e820f0ecd11c56113f3dcc47b0dd1cc7977a7e",
+						"authored_at": "2026-10-21T16:39:30+01:00",
+						"committed_at": "2026-10-21T16:39:30+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#828",
+						"title": "fix(app): show GitHub's reason when the OAuth token exchange fails",
+						"url": "https://github.com/monochange/monochange/pull/828",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/github-token-response-parsing.md",
+			"summary": "Read GitHub OAuth token replies without discarding the error",
+			"details": "`exchange_code` and the user-token refresh in `github_user_access_token` no longer call `reqwest::Response::json` on `POST /login/oauth/access_token`. They read the body as text and parse it in `parse_token_response`, which:\n\n- returns `GitHub rejected the sign-in: <error_description> (<error>)` when GitHub sends an OAuth error instead of a token;\n- accepts `application/x-www-form-urlencoded` replies and lifetimes sent as strings (`\"expires_in\": \"28800\"`);\n- reports any other body as `GitHub returned an unreadable token response (HTTP <status>, <content type>): <title or first 200 characters>` and logs it with `tracing::warn!`.\n\nRefresh failures still ask the user to sign in again, but the server log now carries GitHub's reason.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "86e820f0ecd11c56113f3dcc47b0dd1cc7977a7e",
+						"short_sha": "86e820f",
+						"url": "https://github.com/monochange/monochange/commit/86e820f0ecd11c56113f3dcc47b0dd1cc7977a7e",
+						"authored_at": "2026-10-21T16:39:30+01:00",
+						"committed_at": "2026-10-21T16:39:30+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#828",
+						"title": "fix(app): show GitHub's reason when the OAuth token exchange fails",
+						"url": "https://github.com/monochange/monochange/pull/828",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "86e820f0ecd11c56113f3dcc47b0dd1cc7977a7e",
+						"short_sha": "86e820f",
+						"url": "https://github.com/monochange/monochange/commit/86e820f0ecd11c56113f3dcc47b0dd1cc7977a7e",
+						"authored_at": "2026-10-21T16:39:30+01:00",
+						"committed_at": "2026-10-21T16:39:30+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#828",
+						"title": "fix(app): show GitHub's reason when the OAuth token exchange fails",
+						"url": "https://github.com/monochange/monochange/pull/828",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/hosted-oidc-retry.md",
+			"summary": "Retry GitHub's OIDC endpoint before failing a hosted release commit",
+			"details": "A hosted `CommitRelease` asks GitHub Actions for the job's OIDC token before calling monochange.dev. When that endpoint (`ACTIONS_ID_TOKEN_REQUEST_URL`) briefly returned a 5xx status, the release failed at once and blamed the workspace:\n\n```text\nerror[config.invalid]: hosted CommitRelease OIDC token request failed with status 503 Service Unavailable\n  help:    Check `monochange.toml` and the command arguments, then rerun the command.\n```\n\nThe token request now retries connection failures and 5xx statuses after 2, 5, and 10 seconds, as `getIDToken` in `@actions/core` does. If GitHub still cannot issue the token, the error names the attempts and says it is a GitHub outage to rerun, and a 4xx status points at the job's `permissions: id-token: write`.\n\nFailed requests to GitHub's OIDC endpoint or to the hosted backend now report `error[hosted.request_failed]` instead of `error[config.invalid]`, so they no longer suggest checking `monochange.toml`. A CI step that matched `config.invalid` for these failures should match `hosted.request_failed`. No configuration change is needed.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "7708e33ea6d2f894c14b2526f26048edf59877f0",
+						"short_sha": "7708e33",
+						"url": "https://github.com/monochange/monochange/commit/7708e33ea6d2f894c14b2526f26048edf59877f0",
+						"authored_at": "2026-10-21T22:42:40+01:00",
+						"committed_at": "2026-10-21T22:42:40+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#829",
+						"title": "fix(release): retry GitHub's OIDC endpoint for hosted release commits",
+						"url": "https://github.com/monochange/monochange/pull/829",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "7708e33ea6d2f894c14b2526f26048edf59877f0",
+						"short_sha": "7708e33",
+						"url": "https://github.com/monochange/monochange/commit/7708e33ea6d2f894c14b2526f26048edf59877f0",
+						"authored_at": "2026-10-21T22:42:40+01:00",
+						"committed_at": "2026-10-21T22:42:40+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#829",
+						"title": "fix(release): retry GitHub's OIDC endpoint for hosted release commits",
+						"url": "https://github.com/monochange/monochange/pull/829",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/native-ecosystem-schemas.md",
+			"summary": "Validate native package ecosystems and publish registries",
+			"details": "Configuration, release-record, and classification schemas now accept `swift`, `cocoapods`, and `gradle` ecosystem values. Configuration and release records also recognize the `cocoapods_trunk` and `maven_central` registries.\n\nConsumers validating native package declarations against generated schemas can use the new values directly:\n\n```toml\n[package.android]\npath = \"platforms/android\"\ntype = \"gradle\"\n```\n\nRefresh cached schema assets before validating configurations or release records containing these values.",
+			"targets": [
+				{
+					"id": "monochange_schema",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "feat"
+				},
+				{
+					"id": "monochange_classification",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "feat"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "89766ab579b7aa8e84d1b83e628316ee475a9995",
+						"short_sha": "89766ab",
+						"url": "https://github.com/monochange/monochange/commit/89766ab579b7aa8e84d1b83e628316ee475a9995",
+						"authored_at": "2026-10-22T15:53:21Z",
+						"committed_at": "2026-10-22T15:53:21Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#830",
+						"title": "feat(ecosystems): add swift, cocoapods, and gradle ecosystem support",
+						"url": "https://github.com/monochange/monochange/pull/830",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "89766ab579b7aa8e84d1b83e628316ee475a9995",
+						"short_sha": "89766ab",
+						"url": "https://github.com/monochange/monochange/commit/89766ab579b7aa8e84d1b83e628316ee475a9995",
+						"authored_at": "2026-10-22T15:53:21Z",
+						"committed_at": "2026-10-22T15:53:21Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#830",
+						"title": "feat(ecosystems): add swift, cocoapods, and gradle ecosystem support",
+						"url": "https://github.com/monochange/monochange/pull/830",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/native-ecosystem-setup-guide.md",
+			"summary": "Document native package release setup",
+			"details": "The hosted ecosystem guide now explains how to configure Swift, CocoaPods, and Gradle packages, including versioned files and registry credentials. Follow the native ecosystem sections when adding Apple or Android packages to an existing workspace; Gradle and CocoaPods publishing require `trusted_publishing = false` and their registry credentials.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "89766ab579b7aa8e84d1b83e628316ee475a9995",
+						"short_sha": "89766ab",
+						"url": "https://github.com/monochange/monochange/commit/89766ab579b7aa8e84d1b83e628316ee475a9995",
+						"authored_at": "2026-10-22T15:53:21Z",
+						"committed_at": "2026-10-22T15:53:21Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#830",
+						"title": "feat(ecosystems): add swift, cocoapods, and gradle ecosystem support",
+						"url": "https://github.com/monochange/monochange/pull/830",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "89766ab579b7aa8e84d1b83e628316ee475a9995",
+						"short_sha": "89766ab",
+						"url": "https://github.com/monochange/monochange/commit/89766ab579b7aa8e84d1b83e628316ee475a9995",
+						"authored_at": "2026-10-22T15:53:21Z",
+						"committed_at": "2026-10-22T15:53:21Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#830",
+						"title": "feat(ecosystems): add swift, cocoapods, and gradle ecosystem support",
+						"url": "https://github.com/monochange/monochange/pull/830",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/native-ecosystem-struct-migration.md",
+			"summary": "Add native ecosystem fields to Rust configuration and endpoint structs",
+			"details": "> Rust callers constructing `WorkspaceConfiguration` or `RegistryEndpoints` with struct literals must initialize the new fields.\n\n`WorkspaceConfiguration` now carries `swift`, `cocoapods`, and `gradle` settings. Add these entries to an existing struct literal:\n\n```rust\nswift: EcosystemSettings::default(),\ncocoapods: EcosystemSettings::default(),\ngradle: EcosystemSettings::default(),\n```\n\nPreviously serialized workspace configurations remain readable: omitted native ecosystem settings deserialize to their defaults.\n\nFor `RegistryEndpoints`, prefer `RegistryEndpoints::from_env()` and override the endpoints needed by your caller. Existing explicit struct literals need these additional fields:\n\n```rust\ncocoapods_trunk_api: \"https://trunk.cocoapods.org/api/v1\".to_string(),\nmaven_central: \"https://repo1.maven.org/maven2\".to_string(),\n```\n\nThe built-in registry defaults remain available when the corresponding environment overrides are absent.",
+			"targets": [
+				{
+					"id": "monochange_core",
+					"kind": "package",
+					"bump": "major",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "major"
+				},
+				{
+					"id": "monochange_publish",
+					"kind": "package",
+					"bump": "major",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "major"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "89766ab579b7aa8e84d1b83e628316ee475a9995",
+						"short_sha": "89766ab",
+						"url": "https://github.com/monochange/monochange/commit/89766ab579b7aa8e84d1b83e628316ee475a9995",
+						"authored_at": "2026-10-22T15:53:21Z",
+						"committed_at": "2026-10-22T15:53:21Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#830",
+						"title": "feat(ecosystems): add swift, cocoapods, and gradle ecosystem support",
+						"url": "https://github.com/monochange/monochange/pull/830",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "89766ab579b7aa8e84d1b83e628316ee475a9995",
+						"short_sha": "89766ab",
+						"url": "https://github.com/monochange/monochange/commit/89766ab579b7aa8e84d1b83e628316ee475a9995",
+						"authored_at": "2026-10-22T15:53:21Z",
+						"committed_at": "2026-10-22T15:53:21Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#830",
+						"title": "feat(ecosystems): add swift, cocoapods, and gradle ecosystem support",
+						"url": "https://github.com/monochange/monochange/pull/830",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/native-ecosystems.md",
+			"summary": "Add swift, cocoapods, and gradle ecosystems",
+			"details": "monochange now plans and publishes native Apple and Android packages alongside the existing ecosystems: Swift Package Manager packages (`Package.swift`, versions resolved from repository tags), CocoaPods pods (`.podspec` and `.podspec.json`, published to the CocoaPods trunk with `pod trunk push`), and Gradle libraries (`gradle.properties` with the `VERSION_NAME` convention, published to Maven Central through `./gradlew publishAndReleaseToMavenCentral`).\n\nConfigure the new ecosystems with `[ecosystems.swift]`, `[ecosystems.cocoapods]`, and `[ecosystems.gradle]`, or type packages directly:\n\n```toml\n[package.apple]\npath = \"platforms/apple\"\ntype = \"swift\"\n\n[package.pod]\npath = \"platforms/pod\"\ntype = \"cocoapods\"\n\n[package.android]\npath = \"platforms/android\"\ntype = \"gradle\"\n```\n\nSwift support uses source-control distribution through tags and provider releases. Swift package registries are outside the built-in publish flow. Set `trusted_publishing = false` for cocoapods and gradle packages since neither the trunk nor Maven Central supports OIDC trusted publishing. Duplicate-version detection queries the CocoaPods trunk API and `repo1.maven.org` Maven metadata, and typed versioned files rewrite active podspec `s.version` declarations and selected Gradle properties during release preparation.\n\nGradle publish dry runs append `--dry-run` so Gradle only displays its task graph. CocoaPods dry runs retain the selected podspec and validation flags when switching to `pod spec lint`. Both CocoaPods and Gradle require real releases and do not support placeholder name reservation.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "feat"
+				},
+				{
+					"id": "monochange_core",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "feat"
+				},
+				{
+					"id": "monochange_config",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "feat"
+				},
+				{
+					"id": "monochange_publish",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "feat"
+				},
+				{
+					"id": "monochange_swift",
+					"kind": "package",
+					"bump": "major",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "major"
+				},
+				{
+					"id": "monochange_cocoapods",
+					"kind": "package",
+					"bump": "major",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "major"
+				},
+				{
+					"id": "monochange_gradle",
+					"kind": "package",
+					"bump": "major",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "major"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "89766ab579b7aa8e84d1b83e628316ee475a9995",
+						"short_sha": "89766ab",
+						"url": "https://github.com/monochange/monochange/commit/89766ab579b7aa8e84d1b83e628316ee475a9995",
+						"authored_at": "2026-10-22T15:53:21Z",
+						"committed_at": "2026-10-22T15:53:21Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#830",
+						"title": "feat(ecosystems): add swift, cocoapods, and gradle ecosystem support",
+						"url": "https://github.com/monochange/monochange/pull/830",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "89766ab579b7aa8e84d1b83e628316ee475a9995",
+						"short_sha": "89766ab",
+						"url": "https://github.com/monochange/monochange/commit/89766ab579b7aa8e84d1b83e628316ee475a9995",
+						"authored_at": "2026-10-22T15:53:21Z",
+						"committed_at": "2026-10-22T15:53:21Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#830",
+						"title": "feat(ecosystems): add swift, cocoapods, and gradle ecosystem support",
+						"url": "https://github.com/monochange/monochange/pull/830",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/permission-review-new-tab.md",
+			"summary": "Review GitHub access requests in a new tab",
+			"details": "The **Review on GitHub** link in the dashboard's new-permissions notice now opens GitHub in a new tab, so the dashboard stays open while you accept the request.\n\nPersonal accounts no longer show organization-only access, such as Members, as missing. GitHub never grants that access to personal accounts, so the notice could never go away for them.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "website_fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "55fb8bc76a35b07a13eb0e7599235fe9c0ec22e3",
+						"short_sha": "55fb8bc",
+						"url": "https://github.com/monochange/monochange/commit/55fb8bc76a35b07a13eb0e7599235fe9c0ec22e3",
+						"authored_at": "2026-10-21T14:14:53+01:00",
+						"committed_at": "2026-10-21T14:14:53+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#826",
+						"title": "fix(app): permission notice opens GitHub in a new tab and skips org-only access for personal accounts",
+						"url": "https://github.com/monochange/monochange/pull/826",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "55fb8bc76a35b07a13eb0e7599235fe9c0ec22e3",
+						"short_sha": "55fb8bc",
+						"url": "https://github.com/monochange/monochange/commit/55fb8bc76a35b07a13eb0e7599235fe9c0ec22e3",
+						"authored_at": "2026-10-21T14:14:53+01:00",
+						"committed_at": "2026-10-21T14:14:53+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#826",
+						"title": "fix(app): permission notice opens GitHub in a new tab and skips org-only access for personal accounts",
+						"url": "https://github.com/monochange/monochange/pull/826",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		}
+	],
+	"changelogs": [
+		{
+			"owner_id": "monochange_app",
+			"owner_kind": "package",
+			"output": "website",
+			"stream": "website",
+			"path": "app/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "0.3.3",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Improved",
+						"collapsed": false,
+						"entries": [
+							"- **Show why GitHub sign-in failed.** When GitHub refuses a sign-in, the error page now shows GitHub's own reason, such as an expired or already used authorization code, instead of \"error decoding response body\". If GitHub answers with something that is not a token at all, such as an outage or rate-limit page, the page names the HTTP status and the page title so you know whether to retry.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #828](https://github.com/monochange/monochange/pull/828)",
+							"#### Review GitHub access requests in a new tab\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #826](https://github.com/monochange/monochange/pull/826)\n\nThe **Review on GitHub** link in the dashboard's new-permissions notice now opens GitHub in a new tab, so the dashboard stays open while you accept the request.\n\nPersonal accounts no longer show organization-only access, such as Members, as missing. GitHub never grants that access to personal accounts, so the notice could never go away for them."
+						]
+					}
+				]
+			},
+			"rendered": "## 0.3.3\n\n### Improved\n\n- **Show why GitHub sign-in failed.** When GitHub refuses a sign-in, the error page now shows GitHub's own reason, such as an expired or already used authorization code, instead of \"error decoding response body\". If GitHub answers with something that is not a token at all, such as an outage or rate-limit page, the page names the HTTP status and the page title so you know whether to retry.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #828](https://github.com/monochange/monochange/pull/828)\n#### Review GitHub access requests in a new tab\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #826](https://github.com/monochange/monochange/pull/826)\n\nThe **Review on GitHub** link in the dashboard's new-permissions notice now opens GitHub in a new tab, so the dashboard stays open while you accept the request.\n\nPersonal accounts no longer show organization-only access, such as Members, as missing. GitHub never grants that access to personal accounts, so the notice could never go away for them."
+		},
+		{
+			"owner_id": "monochange_app",
+			"owner_kind": "package",
+			"output": "website_developer",
+			"stream": "default",
+			"path": "app/developer-changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "0.3.3",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Read GitHub OAuth token replies without discarding the error\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #828](https://github.com/monochange/monochange/pull/828)\n\n`exchange_code` and the user-token refresh in `github_user_access_token` no longer call `reqwest::Response::json` on `POST /login/oauth/access_token`. They read the body as text and parse it in `parse_token_response`, which:\n\n- returns `GitHub rejected the sign-in: <error_description> (<error>)` when GitHub sends an OAuth error instead of a token;\n- accepts `application/x-www-form-urlencoded` replies and lifetimes sent as strings (`\"expires_in\": \"28800\"`);\n- reports any other body as `GitHub returned an unreadable token response (HTTP <status>, <content type>): <title or first 200 characters>` and logs it with `tracing::warn!`.\n\nRefresh failures still ask the user to sign in again, but the server log now carries GitHub's reason.",
+							"- **Document native package release setup.** The hosted ecosystem guide now explains how to configure Swift, CocoaPods, and Gradle packages, including versioned files and registry credentials. Follow the native ecosystem sections when adding Apple or Android packages to an existing workspace; Gradle and CocoaPods publishing require `trusted_publishing = false` and their registry credentials.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #830](https://github.com/monochange/monochange/pull/830)"
+						]
+					}
+				]
+			},
+			"rendered": "## 0.3.3\n\n### 🐛 Fixed\n\n#### Read GitHub OAuth token replies without discarding the error\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #828](https://github.com/monochange/monochange/pull/828)\n\n`exchange_code` and the user-token refresh in `github_user_access_token` no longer call `reqwest::Response::json` on `POST /login/oauth/access_token`. They read the body as text and parse it in `parse_token_response`, which:\n\n- returns `GitHub rejected the sign-in: <error_description> (<error>)` when GitHub sends an OAuth error instead of a token;\n- accepts `application/x-www-form-urlencoded` replies and lifetimes sent as strings (`\"expires_in\": \"28800\"`);\n- reports any other body as `GitHub returned an unreadable token response (HTTP <status>, <content type>): <title or first 200 characters>` and logs it with `tracing::warn!`.\n\nRefresh failures still ask the user to sign in again, but the server log now carries GitHub's reason.\n\n- **Document native package release setup.** The hosted ecosystem guide now explains how to configure Swift, CocoaPods, and Gradle packages, including versioned files and registry credentials. Follow the native ecosystem sections when adding Apple or Android packages to an existing workspace; Gradle and CocoaPods publishing require `trusted_publishing = false` and their registry credentials.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #830](https://github.com/monochange/monochange/pull/830)"
+		},
+		{
+			"owner_id": "monochange_app",
+			"owner_kind": "package",
+			"output": "website_json",
+			"stream": "website",
+			"path": "app/public/releases/0.3.3.json",
+			"format": "json",
+			"notes": {
+				"title": "0.3.3",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Improved",
+						"collapsed": false,
+						"entries": [
+							"- **Show why GitHub sign-in failed.** When GitHub refuses a sign-in, the error page now shows GitHub's own reason, such as an expired or already used authorization code, instead of \"error decoding response body\". If GitHub answers with something that is not a token at all, such as an outage or rate-limit page, the page names the HTTP status and the page title so you know whether to retry.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #828](https://github.com/monochange/monochange/pull/828)",
+							"#### Review GitHub access requests in a new tab\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #826](https://github.com/monochange/monochange/pull/826)\n\nThe **Review on GitHub** link in the dashboard's new-permissions notice now opens GitHub in a new tab, so the dashboard stays open while you accept the request.\n\nPersonal accounts no longer show organization-only access, such as Members, as missing. GitHub never grants that access to personal accounts, so the notice could never go away for them."
+						]
+					}
+				]
+			},
+			"rendered": "{\n  \"title\": \"0.3.3\",\n  \"summary\": [],\n  \"sections\": [\n    {\n      \"title\": \"Improved\",\n      \"collapsed\": false,\n      \"entries\": [\n        {\n          \"summary\": \"Show why GitHub sign-in failed\",\n          \"details_markdown\": \"When GitHub refuses a sign-in, the error page now shows GitHub's own reason, such as an expired or already used authorization code, instead of \\\"error decoding response body\\\". If GitHub answers with something that is not a token at all, such as an outage or rate-limit page, the page names the HTTP status and the page title so you know whether to retry.\",\n          \"change_type\": \"website_fix\",\n          \"bump\": \"patch\",\n          \"stream\": \"website\",\n          \"style\": \"compact\",\n          \"provenance\": {\n            \"source_path\": \".changeset/github-sign-in-token-errors.md\",\n            \"changeset_path\": \".changeset/github-sign-in-token-errors.md\",\n            \"change_owner\": {\n              \"label\": \"@ifiokjr\",\n              \"url\": \"https://github.com/ifiokjr\"\n            },\n            \"review_request\": {\n              \"label\": \"PR #828\",\n              \"url\": \"https://github.com/monochange/monochange/pull/828\"\n            },\n            \"introduced_commit\": {\n              \"label\": \"86e820f\",\n              \"url\": \"https://github.com/monochange/monochange/commit/86e820f0ecd11c56113f3dcc47b0dd1cc7977a7e\"\n            }\n          }\n        },\n        {\n          \"summary\": \"Review GitHub access requests in a new tab\",\n          \"details_markdown\": \"The **Review on GitHub** link in the dashboard's new-permissions notice now opens GitHub in a new tab, so the dashboard stays open while you accept the request.\\n\\nPersonal accounts no longer show organization-only access, such as Members, as missing. GitHub never grants that access to personal accounts, so the notice could never go away for them.\",\n          \"change_type\": \"website_fix\",\n          \"bump\": \"patch\",\n          \"stream\": \"website\",\n          \"style\": \"expanded\",\n          \"provenance\": {\n            \"source_path\": \".changeset/permission-review-new-tab.md\",\n            \"changeset_path\": \".changeset/permission-review-new-tab.md\",\n            \"change_owner\": {\n              \"label\": \"@ifiokjr\",\n              \"url\": \"https://github.com/ifiokjr\"\n            },\n            \"review_request\": {\n              \"label\": \"PR #826\",\n              \"url\": \"https://github.com/monochange/monochange/pull/826\"\n            },\n            \"introduced_commit\": {\n              \"label\": \"55fb8bc\",\n              \"url\": \"https://github.com/monochange/monochange/commit/55fb8bc76a35b07a13eb0e7599235fe9c0ec22e3\"\n            }\n          }\n        }\n      ]\n    }\n  ]\n}"
+		},
+		{
+			"owner_id": "main",
+			"owner_kind": "group",
+			"output": "default",
+			"stream": "default",
+			"path": "changelog.md",
+			"format": "monochange",
+			"notes": {
+				"title": "[0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)",
+				"summary": [
+					"Grouped release for `main`."
+				],
+				"sections": [
+					{
+						"title": "💥 Breaking Change",
+						"collapsed": false,
+						"entries": [
+							"#### Add swift, cocoapods, and gradle ecosystems\n\n_Packages:_ 🟠 _monochange_, 🟠 _monochange_config_, 🟠 _monochange_core_, 🟠 _monochange_publish_, 🔴 _monochange_cocoapods_, 🔴 _monochange_gradle_, 🔴 _monochange_swift_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #830](https://github.com/monochange/monochange/pull/830)\n\nmonochange now plans and publishes native Apple and Android packages alongside the existing ecosystems: Swift Package Manager packages (`Package.swift`, versions resolved from repository tags), CocoaPods pods (`.podspec` and `.podspec.json`, published to the CocoaPods trunk with `pod trunk push`), and Gradle libraries (`gradle.properties` with the `VERSION_NAME` convention, published to Maven Central through `./gradlew publishAndReleaseToMavenCentral`).\n\nConfigure the new ecosystems with `[ecosystems.swift]`, `[ecosystems.cocoapods]`, and `[ecosystems.gradle]`, or type packages directly:\n\n```toml\n[package.apple]\npath = \"platforms/apple\"\ntype = \"swift\"\n\n[package.pod]\npath = \"platforms/pod\"\ntype = \"cocoapods\"\n\n[package.android]\npath = \"platforms/android\"\ntype = \"gradle\"\n```\n\nSwift support uses source-control distribution through tags and provider releases. Swift package registries are outside the built-in publish flow. Set `trusted_publishing = false` for cocoapods and gradle packages since neither the trunk nor Maven Central supports OIDC trusted publishing. Duplicate-version detection queries the CocoaPods trunk API and `repo1.maven.org` Maven metadata, and typed versioned files rewrite active podspec `s.version` declarations and selected Gradle properties during release preparation.\n\nGradle publish dry runs append `--dry-run` so Gradle only displays its task graph. CocoaPods dry runs retain the selected podspec and validation flags when switching to `pod spec lint`. Both CocoaPods and Gradle require real releases and do not support placeholder name reservation.",
+							"#### Add native ecosystem fields to Rust configuration and endpoint structs\n\n_Packages:_ 🔴 _monochange_core_, 🔴 _monochange_publish_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #830](https://github.com/monochange/monochange/pull/830)\n\n> Rust callers constructing `WorkspaceConfiguration` or `RegistryEndpoints` with struct literals must initialize the new fields.\n\n`WorkspaceConfiguration` now carries `swift`, `cocoapods`, and `gradle` settings. Add these entries to an existing struct literal:\n\n```rust\nswift: EcosystemSettings::default(),\ncocoapods: EcosystemSettings::default(),\ngradle: EcosystemSettings::default(),\n```\n\nPreviously serialized workspace configurations remain readable: omitted native ecosystem settings deserialize to their defaults.\n\nFor `RegistryEndpoints`, prefer `RegistryEndpoints::from_env()` and override the endpoints needed by your caller. Existing explicit struct literals need these additional fields:\n\n```rust\ncocoapods_trunk_api: \"https://trunk.cocoapods.org/api/v1\".to_string(),\nmaven_central: \"https://repo1.maven.org/maven2\".to_string(),\n```\n\nThe built-in registry defaults remain available when the corresponding environment overrides are absent."
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Retry GitHub's OIDC endpoint before failing a hosted release commit\n\n_Packages:_ 🟢 _monochange_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #829](https://github.com/monochange/monochange/pull/829)\n\nA hosted `CommitRelease` asks GitHub Actions for the job's OIDC token before calling monochange.dev. When that endpoint (`ACTIONS_ID_TOKEN_REQUEST_URL`) briefly returned a 5xx status, the release failed at once and blamed the workspace:\n\n```text\nerror[config.invalid]: hosted CommitRelease OIDC token request failed with status 503 Service Unavailable\n  help:    Check `monochange.toml` and the command arguments, then rerun the command.\n```\n\nThe token request now retries connection failures and 5xx statuses after 2, 5, and 10 seconds, as `getIDToken` in `@actions/core` does. If GitHub still cannot issue the token, the error names the attempts and says it is a GitHub outage to rerun, and a 4xx status points at the job's `permissions: id-token: write`.\n\nFailed requests to GitHub's OIDC endpoint or to the hosted backend now report `error[hosted.request_failed]` instead of `error[config.invalid]`, so they no longer suggest checking `monochange.toml`. A CI step that matched `config.invalid` for these failures should match `hosted.request_failed`. No configuration change is needed."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)\n\nGrouped release for `main`.\n\n### 💥 Breaking Change\n\n#### Add swift, cocoapods, and gradle ecosystems\n\n_Packages:_ 🟠 _monochange_, 🟠 _monochange_config_, 🟠 _monochange_core_, 🟠 _monochange_publish_, 🔴 _monochange_cocoapods_, 🔴 _monochange_gradle_, 🔴 _monochange_swift_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #830](https://github.com/monochange/monochange/pull/830)\n\nmonochange now plans and publishes native Apple and Android packages alongside the existing ecosystems: Swift Package Manager packages (`Package.swift`, versions resolved from repository tags), CocoaPods pods (`.podspec` and `.podspec.json`, published to the CocoaPods trunk with `pod trunk push`), and Gradle libraries (`gradle.properties` with the `VERSION_NAME` convention, published to Maven Central through `./gradlew publishAndReleaseToMavenCentral`).\n\nConfigure the new ecosystems with `[ecosystems.swift]`, `[ecosystems.cocoapods]`, and `[ecosystems.gradle]`, or type packages directly:\n\n```toml\n[package.apple]\npath = \"platforms/apple\"\ntype = \"swift\"\n\n[package.pod]\npath = \"platforms/pod\"\ntype = \"cocoapods\"\n\n[package.android]\npath = \"platforms/android\"\ntype = \"gradle\"\n```\n\nSwift support uses source-control distribution through tags and provider releases. Swift package registries are outside the built-in publish flow. Set `trusted_publishing = false` for cocoapods and gradle packages since neither the trunk nor Maven Central supports OIDC trusted publishing. Duplicate-version detection queries the CocoaPods trunk API and `repo1.maven.org` Maven metadata, and typed versioned files rewrite active podspec `s.version` declarations and selected Gradle properties during release preparation.\n\nGradle publish dry runs append `--dry-run` so Gradle only displays its task graph. CocoaPods dry runs retain the selected podspec and validation flags when switching to `pod spec lint`. Both CocoaPods and Gradle require real releases and do not support placeholder name reservation.\n\n#### Add native ecosystem fields to Rust configuration and endpoint structs\n\n_Packages:_ 🔴 _monochange_core_, 🔴 _monochange_publish_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #830](https://github.com/monochange/monochange/pull/830)\n\n> Rust callers constructing `WorkspaceConfiguration` or `RegistryEndpoints` with struct literals must initialize the new fields.\n\n`WorkspaceConfiguration` now carries `swift`, `cocoapods`, and `gradle` settings. Add these entries to an existing struct literal:\n\n```rust\nswift: EcosystemSettings::default(),\ncocoapods: EcosystemSettings::default(),\ngradle: EcosystemSettings::default(),\n```\n\nPreviously serialized workspace configurations remain readable: omitted native ecosystem settings deserialize to their defaults.\n\nFor `RegistryEndpoints`, prefer `RegistryEndpoints::from_env()` and override the endpoints needed by your caller. Existing explicit struct literals need these additional fields:\n\n```rust\ncocoapods_trunk_api: \"https://trunk.cocoapods.org/api/v1\".to_string(),\nmaven_central: \"https://repo1.maven.org/maven2\".to_string(),\n```\n\nThe built-in registry defaults remain available when the corresponding environment overrides are absent.\n\n### 🐛 Fixed\n\n#### Retry GitHub's OIDC endpoint before failing a hosted release commit\n\n_Packages:_ 🟢 _monochange_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #829](https://github.com/monochange/monochange/pull/829)\n\nA hosted `CommitRelease` asks GitHub Actions for the job's OIDC token before calling monochange.dev. When that endpoint (`ACTIONS_ID_TOKEN_REQUEST_URL`) briefly returned a 5xx status, the release failed at once and blamed the workspace:\n\n```text\nerror[config.invalid]: hosted CommitRelease OIDC token request failed with status 503 Service Unavailable\n  help:    Check `monochange.toml` and the command arguments, then rerun the command.\n```\n\nThe token request now retries connection failures and 5xx statuses after 2, 5, and 10 seconds, as `getIDToken` in `@actions/core` does. If GitHub still cannot issue the token, the error names the attempts and says it is a GitHub outage to rerun, and a 4xx status points at the job's `permissions: id-token: write`.\n\nFailed requests to GitHub's OIDC endpoint or to the hosted backend now report `error[hosted.request_failed]` instead of `error[config.invalid]`, so they no longer suggest checking `monochange.toml`. A CI step that matched `config.invalid` for these failures should match `hosted.request_failed`. No configuration change is needed."
+		},
+		{
+			"owner_id": "monochange",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Add swift, cocoapods, and gradle ecosystems\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #830](https://github.com/monochange/monochange/pull/830)\n\nmonochange now plans and publishes native Apple and Android packages alongside the existing ecosystems: Swift Package Manager packages (`Package.swift`, versions resolved from repository tags), CocoaPods pods (`.podspec` and `.podspec.json`, published to the CocoaPods trunk with `pod trunk push`), and Gradle libraries (`gradle.properties` with the `VERSION_NAME` convention, published to Maven Central through `./gradlew publishAndReleaseToMavenCentral`).\n\nConfigure the new ecosystems with `[ecosystems.swift]`, `[ecosystems.cocoapods]`, and `[ecosystems.gradle]`, or type packages directly:\n\n```toml\n[package.apple]\npath = \"platforms/apple\"\ntype = \"swift\"\n\n[package.pod]\npath = \"platforms/pod\"\ntype = \"cocoapods\"\n\n[package.android]\npath = \"platforms/android\"\ntype = \"gradle\"\n```\n\nSwift support uses source-control distribution through tags and provider releases. Swift package registries are outside the built-in publish flow. Set `trusted_publishing = false` for cocoapods and gradle packages since neither the trunk nor Maven Central supports OIDC trusted publishing. Duplicate-version detection queries the CocoaPods trunk API and `repo1.maven.org` Maven metadata, and typed versioned files rewrite active podspec `s.version` declarations and selected Gradle properties during release preparation.\n\nGradle publish dry runs append `--dry-run` so Gradle only displays its task graph. CocoaPods dry runs retain the selected podspec and validation flags when switching to `pod spec lint`. Both CocoaPods and Gradle require real releases and do not support placeholder name reservation."
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Retry GitHub's OIDC endpoint before failing a hosted release commit\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #829](https://github.com/monochange/monochange/pull/829)\n\nA hosted `CommitRelease` asks GitHub Actions for the job's OIDC token before calling monochange.dev. When that endpoint (`ACTIONS_ID_TOKEN_REQUEST_URL`) briefly returned a 5xx status, the release failed at once and blamed the workspace:\n\n```text\nerror[config.invalid]: hosted CommitRelease OIDC token request failed with status 503 Service Unavailable\n  help:    Check `monochange.toml` and the command arguments, then rerun the command.\n```\n\nThe token request now retries connection failures and 5xx statuses after 2, 5, and 10 seconds, as `getIDToken` in `@actions/core` does. If GitHub still cannot issue the token, the error names the attempts and says it is a GitHub outage to rerun, and a 4xx status points at the job's `permissions: id-token: write`.\n\nFailed requests to GitHub's OIDC endpoint or to the hosted backend now report `error[hosted.request_failed]` instead of `error[config.invalid]`, so they no longer suggest checking `monochange.toml`. A CI step that matched `config.invalid` for these failures should match `hosted.request_failed`. No configuration change is needed."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)\n\n### 🚀 Feature\n\n#### Add swift, cocoapods, and gradle ecosystems\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #830](https://github.com/monochange/monochange/pull/830)\n\nmonochange now plans and publishes native Apple and Android packages alongside the existing ecosystems: Swift Package Manager packages (`Package.swift`, versions resolved from repository tags), CocoaPods pods (`.podspec` and `.podspec.json`, published to the CocoaPods trunk with `pod trunk push`), and Gradle libraries (`gradle.properties` with the `VERSION_NAME` convention, published to Maven Central through `./gradlew publishAndReleaseToMavenCentral`).\n\nConfigure the new ecosystems with `[ecosystems.swift]`, `[ecosystems.cocoapods]`, and `[ecosystems.gradle]`, or type packages directly:\n\n```toml\n[package.apple]\npath = \"platforms/apple\"\ntype = \"swift\"\n\n[package.pod]\npath = \"platforms/pod\"\ntype = \"cocoapods\"\n\n[package.android]\npath = \"platforms/android\"\ntype = \"gradle\"\n```\n\nSwift support uses source-control distribution through tags and provider releases. Swift package registries are outside the built-in publish flow. Set `trusted_publishing = false` for cocoapods and gradle packages since neither the trunk nor Maven Central supports OIDC trusted publishing. Duplicate-version detection queries the CocoaPods trunk API and `repo1.maven.org` Maven metadata, and typed versioned files rewrite active podspec `s.version` declarations and selected Gradle properties during release preparation.\n\nGradle publish dry runs append `--dry-run` so Gradle only displays its task graph. CocoaPods dry runs retain the selected podspec and validation flags when switching to `pod spec lint`. Both CocoaPods and Gradle require real releases and do not support placeholder name reservation.\n\n### 🐛 Fixed\n\n#### Retry GitHub's OIDC endpoint before failing a hosted release commit\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #829](https://github.com/monochange/monochange/pull/829)\n\nA hosted `CommitRelease` asks GitHub Actions for the job's OIDC token before calling monochange.dev. When that endpoint (`ACTIONS_ID_TOKEN_REQUEST_URL`) briefly returned a 5xx status, the release failed at once and blamed the workspace:\n\n```text\nerror[config.invalid]: hosted CommitRelease OIDC token request failed with status 503 Service Unavailable\n  help:    Check `monochange.toml` and the command arguments, then rerun the command.\n```\n\nThe token request now retries connection failures and 5xx statuses after 2, 5, and 10 seconds, as `getIDToken` in `@actions/core` does. If GitHub still cannot issue the token, the error names the attempts and says it is a GitHub outage to rerun, and a 4xx status points at the job's `permissions: id-token: write`.\n\nFailed requests to GitHub's OIDC endpoint or to the hosted backend now report `error[hosted.request_failed]` instead of `error[config.invalid]`, so they no longer suggest checking `monochange.toml`. A CI step that matched `config.invalid` for these failures should match `hosted.request_failed`. No configuration change is needed."
+		},
+		{
+			"owner_id": "monochange_analysis",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_analysis/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_analysis` was updated to 0.21.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_analysis` was updated to 0.21.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_cargo",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_cargo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_cargo` was updated to 0.21.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_cargo` was updated to 0.21.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_changelog",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_changelog/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_changelog` was updated to 0.21.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_changelog` was updated to 0.21.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_classification",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_classification/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "monochange_classification [0.4.8](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.4.8) (2026-10-22)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Validate native package ecosystems and publish registries\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #830](https://github.com/monochange/monochange/pull/830)\n\nConfiguration, release-record, and classification schemas now accept `swift`, `cocoapods`, and `gradle` ecosystem values. Configuration and release records also recognize the `cocoapods_trunk` and `maven_central` registries.\n\nConsumers validating native package declarations against generated schemas can use the new values directly:\n\n```toml\n[package.android]\npath = \"platforms/android\"\ntype = \"gradle\"\n```\n\nRefresh cached schema assets before validating configurations or release records containing these values."
+						]
+					}
+				]
+			},
+			"rendered": "## monochange_classification [0.4.8](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.4.8) (2026-10-22)\n\n### 🚀 Feature\n\n#### Validate native package ecosystems and publish registries\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #830](https://github.com/monochange/monochange/pull/830)\n\nConfiguration, release-record, and classification schemas now accept `swift`, `cocoapods`, and `gradle` ecosystem values. Configuration and release records also recognize the `cocoapods_trunk` and `maven_central` registries.\n\nConsumers validating native package declarations against generated schemas can use the new values directly:\n\n```toml\n[package.android]\npath = \"platforms/android\"\ntype = \"gradle\"\n```\n\nRefresh cached schema assets before validating configurations or release records containing these values."
+		},
+		{
+			"owner_id": "monochange_cocoapods",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_cocoapods/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "💥 Breaking Change",
+						"collapsed": false,
+						"entries": [
+							"#### Add swift, cocoapods, and gradle ecosystems\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #830](https://github.com/monochange/monochange/pull/830)\n\nmonochange now plans and publishes native Apple and Android packages alongside the existing ecosystems: Swift Package Manager packages (`Package.swift`, versions resolved from repository tags), CocoaPods pods (`.podspec` and `.podspec.json`, published to the CocoaPods trunk with `pod trunk push`), and Gradle libraries (`gradle.properties` with the `VERSION_NAME` convention, published to Maven Central through `./gradlew publishAndReleaseToMavenCentral`).\n\nConfigure the new ecosystems with `[ecosystems.swift]`, `[ecosystems.cocoapods]`, and `[ecosystems.gradle]`, or type packages directly:\n\n```toml\n[package.apple]\npath = \"platforms/apple\"\ntype = \"swift\"\n\n[package.pod]\npath = \"platforms/pod\"\ntype = \"cocoapods\"\n\n[package.android]\npath = \"platforms/android\"\ntype = \"gradle\"\n```\n\nSwift support uses source-control distribution through tags and provider releases. Swift package registries are outside the built-in publish flow. Set `trusted_publishing = false` for cocoapods and gradle packages since neither the trunk nor Maven Central supports OIDC trusted publishing. Duplicate-version detection queries the CocoaPods trunk API and `repo1.maven.org` Maven metadata, and typed versioned files rewrite active podspec `s.version` declarations and selected Gradle properties during release preparation.\n\nGradle publish dry runs append `--dry-run` so Gradle only displays its task graph. CocoaPods dry runs retain the selected podspec and validation flags when switching to `pod spec lint`. Both CocoaPods and Gradle require real releases and do not support placeholder name reservation."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)\n\n### 💥 Breaking Change\n\n#### Add swift, cocoapods, and gradle ecosystems\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #830](https://github.com/monochange/monochange/pull/830)\n\nmonochange now plans and publishes native Apple and Android packages alongside the existing ecosystems: Swift Package Manager packages (`Package.swift`, versions resolved from repository tags), CocoaPods pods (`.podspec` and `.podspec.json`, published to the CocoaPods trunk with `pod trunk push`), and Gradle libraries (`gradle.properties` with the `VERSION_NAME` convention, published to Maven Central through `./gradlew publishAndReleaseToMavenCentral`).\n\nConfigure the new ecosystems with `[ecosystems.swift]`, `[ecosystems.cocoapods]`, and `[ecosystems.gradle]`, or type packages directly:\n\n```toml\n[package.apple]\npath = \"platforms/apple\"\ntype = \"swift\"\n\n[package.pod]\npath = \"platforms/pod\"\ntype = \"cocoapods\"\n\n[package.android]\npath = \"platforms/android\"\ntype = \"gradle\"\n```\n\nSwift support uses source-control distribution through tags and provider releases. Swift package registries are outside the built-in publish flow. Set `trusted_publishing = false` for cocoapods and gradle packages since neither the trunk nor Maven Central supports OIDC trusted publishing. Duplicate-version detection queries the CocoaPods trunk API and `repo1.maven.org` Maven metadata, and typed versioned files rewrite active podspec `s.version` declarations and selected Gradle properties during release preparation.\n\nGradle publish dry runs append `--dry-run` so Gradle only displays its task graph. CocoaPods dry runs retain the selected podspec and validation flags when switching to `pod spec lint`. Both CocoaPods and Gradle require real releases and do not support placeholder name reservation."
+		},
+		{
+			"owner_id": "monochange_config",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_config/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Add swift, cocoapods, and gradle ecosystems\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #830](https://github.com/monochange/monochange/pull/830)\n\nmonochange now plans and publishes native Apple and Android packages alongside the existing ecosystems: Swift Package Manager packages (`Package.swift`, versions resolved from repository tags), CocoaPods pods (`.podspec` and `.podspec.json`, published to the CocoaPods trunk with `pod trunk push`), and Gradle libraries (`gradle.properties` with the `VERSION_NAME` convention, published to Maven Central through `./gradlew publishAndReleaseToMavenCentral`).\n\nConfigure the new ecosystems with `[ecosystems.swift]`, `[ecosystems.cocoapods]`, and `[ecosystems.gradle]`, or type packages directly:\n\n```toml\n[package.apple]\npath = \"platforms/apple\"\ntype = \"swift\"\n\n[package.pod]\npath = \"platforms/pod\"\ntype = \"cocoapods\"\n\n[package.android]\npath = \"platforms/android\"\ntype = \"gradle\"\n```\n\nSwift support uses source-control distribution through tags and provider releases. Swift package registries are outside the built-in publish flow. Set `trusted_publishing = false` for cocoapods and gradle packages since neither the trunk nor Maven Central supports OIDC trusted publishing. Duplicate-version detection queries the CocoaPods trunk API and `repo1.maven.org` Maven metadata, and typed versioned files rewrite active podspec `s.version` declarations and selected Gradle properties during release preparation.\n\nGradle publish dry runs append `--dry-run` so Gradle only displays its task graph. CocoaPods dry runs retain the selected podspec and validation flags when switching to `pod spec lint`. Both CocoaPods and Gradle require real releases and do not support placeholder name reservation."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)\n\n### 🚀 Feature\n\n#### Add swift, cocoapods, and gradle ecosystems\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #830](https://github.com/monochange/monochange/pull/830)\n\nmonochange now plans and publishes native Apple and Android packages alongside the existing ecosystems: Swift Package Manager packages (`Package.swift`, versions resolved from repository tags), CocoaPods pods (`.podspec` and `.podspec.json`, published to the CocoaPods trunk with `pod trunk push`), and Gradle libraries (`gradle.properties` with the `VERSION_NAME` convention, published to Maven Central through `./gradlew publishAndReleaseToMavenCentral`).\n\nConfigure the new ecosystems with `[ecosystems.swift]`, `[ecosystems.cocoapods]`, and `[ecosystems.gradle]`, or type packages directly:\n\n```toml\n[package.apple]\npath = \"platforms/apple\"\ntype = \"swift\"\n\n[package.pod]\npath = \"platforms/pod\"\ntype = \"cocoapods\"\n\n[package.android]\npath = \"platforms/android\"\ntype = \"gradle\"\n```\n\nSwift support uses source-control distribution through tags and provider releases. Swift package registries are outside the built-in publish flow. Set `trusted_publishing = false` for cocoapods and gradle packages since neither the trunk nor Maven Central supports OIDC trusted publishing. Duplicate-version detection queries the CocoaPods trunk API and `repo1.maven.org` Maven metadata, and typed versioned files rewrite active podspec `s.version` declarations and selected Gradle properties during release preparation.\n\nGradle publish dry runs append `--dry-run` so Gradle only displays its task graph. CocoaPods dry runs retain the selected podspec and validation flags when switching to `pod spec lint`. Both CocoaPods and Gradle require real releases and do not support placeholder name reservation."
+		},
+		{
+			"owner_id": "monochange_core",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_core/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "💥 Breaking Change",
+						"collapsed": false,
+						"entries": [
+							"#### Add native ecosystem fields to Rust configuration and endpoint structs\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #830](https://github.com/monochange/monochange/pull/830)\n\n> Rust callers constructing `WorkspaceConfiguration` or `RegistryEndpoints` with struct literals must initialize the new fields.\n\n`WorkspaceConfiguration` now carries `swift`, `cocoapods`, and `gradle` settings. Add these entries to an existing struct literal:\n\n```rust\nswift: EcosystemSettings::default(),\ncocoapods: EcosystemSettings::default(),\ngradle: EcosystemSettings::default(),\n```\n\nPreviously serialized workspace configurations remain readable: omitted native ecosystem settings deserialize to their defaults.\n\nFor `RegistryEndpoints`, prefer `RegistryEndpoints::from_env()` and override the endpoints needed by your caller. Existing explicit struct literals need these additional fields:\n\n```rust\ncocoapods_trunk_api: \"https://trunk.cocoapods.org/api/v1\".to_string(),\nmaven_central: \"https://repo1.maven.org/maven2\".to_string(),\n```\n\nThe built-in registry defaults remain available when the corresponding environment overrides are absent."
+						]
+					},
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Add swift, cocoapods, and gradle ecosystems\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #830](https://github.com/monochange/monochange/pull/830)\n\nmonochange now plans and publishes native Apple and Android packages alongside the existing ecosystems: Swift Package Manager packages (`Package.swift`, versions resolved from repository tags), CocoaPods pods (`.podspec` and `.podspec.json`, published to the CocoaPods trunk with `pod trunk push`), and Gradle libraries (`gradle.properties` with the `VERSION_NAME` convention, published to Maven Central through `./gradlew publishAndReleaseToMavenCentral`).\n\nConfigure the new ecosystems with `[ecosystems.swift]`, `[ecosystems.cocoapods]`, and `[ecosystems.gradle]`, or type packages directly:\n\n```toml\n[package.apple]\npath = \"platforms/apple\"\ntype = \"swift\"\n\n[package.pod]\npath = \"platforms/pod\"\ntype = \"cocoapods\"\n\n[package.android]\npath = \"platforms/android\"\ntype = \"gradle\"\n```\n\nSwift support uses source-control distribution through tags and provider releases. Swift package registries are outside the built-in publish flow. Set `trusted_publishing = false` for cocoapods and gradle packages since neither the trunk nor Maven Central supports OIDC trusted publishing. Duplicate-version detection queries the CocoaPods trunk API and `repo1.maven.org` Maven metadata, and typed versioned files rewrite active podspec `s.version` declarations and selected Gradle properties during release preparation.\n\nGradle publish dry runs append `--dry-run` so Gradle only displays its task graph. CocoaPods dry runs retain the selected podspec and validation flags when switching to `pod spec lint`. Both CocoaPods and Gradle require real releases and do not support placeholder name reservation."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)\n\n### 💥 Breaking Change\n\n#### Add native ecosystem fields to Rust configuration and endpoint structs\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #830](https://github.com/monochange/monochange/pull/830)\n\n> Rust callers constructing `WorkspaceConfiguration` or `RegistryEndpoints` with struct literals must initialize the new fields.\n\n`WorkspaceConfiguration` now carries `swift`, `cocoapods`, and `gradle` settings. Add these entries to an existing struct literal:\n\n```rust\nswift: EcosystemSettings::default(),\ncocoapods: EcosystemSettings::default(),\ngradle: EcosystemSettings::default(),\n```\n\nPreviously serialized workspace configurations remain readable: omitted native ecosystem settings deserialize to their defaults.\n\nFor `RegistryEndpoints`, prefer `RegistryEndpoints::from_env()` and override the endpoints needed by your caller. Existing explicit struct literals need these additional fields:\n\n```rust\ncocoapods_trunk_api: \"https://trunk.cocoapods.org/api/v1\".to_string(),\nmaven_central: \"https://repo1.maven.org/maven2\".to_string(),\n```\n\nThe built-in registry defaults remain available when the corresponding environment overrides are absent.\n\n### 🚀 Feature\n\n#### Add swift, cocoapods, and gradle ecosystems\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #830](https://github.com/monochange/monochange/pull/830)\n\nmonochange now plans and publishes native Apple and Android packages alongside the existing ecosystems: Swift Package Manager packages (`Package.swift`, versions resolved from repository tags), CocoaPods pods (`.podspec` and `.podspec.json`, published to the CocoaPods trunk with `pod trunk push`), and Gradle libraries (`gradle.properties` with the `VERSION_NAME` convention, published to Maven Central through `./gradlew publishAndReleaseToMavenCentral`).\n\nConfigure the new ecosystems with `[ecosystems.swift]`, `[ecosystems.cocoapods]`, and `[ecosystems.gradle]`, or type packages directly:\n\n```toml\n[package.apple]\npath = \"platforms/apple\"\ntype = \"swift\"\n\n[package.pod]\npath = \"platforms/pod\"\ntype = \"cocoapods\"\n\n[package.android]\npath = \"platforms/android\"\ntype = \"gradle\"\n```\n\nSwift support uses source-control distribution through tags and provider releases. Swift package registries are outside the built-in publish flow. Set `trusted_publishing = false` for cocoapods and gradle packages since neither the trunk nor Maven Central supports OIDC trusted publishing. Duplicate-version detection queries the CocoaPods trunk API and `repo1.maven.org` Maven metadata, and typed versioned files rewrite active podspec `s.version` declarations and selected Gradle properties during release preparation.\n\nGradle publish dry runs append `--dry-run` so Gradle only displays its task graph. CocoaPods dry runs retain the selected podspec and validation flags when switching to `pod spec lint`. Both CocoaPods and Gradle require real releases and do not support placeholder name reservation."
+		},
+		{
+			"owner_id": "monochange_dart",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_dart/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_dart` was updated to 0.21.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_dart` was updated to 0.21.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_deno",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_deno/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_deno` was updated to 0.21.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_deno` was updated to 0.21.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_ecmascript",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_ecmascript/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_ecmascript` was updated to 0.21.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_ecmascript` was updated to 0.21.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_forgejo",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_forgejo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_forgejo` was updated to 0.21.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_forgejo` was updated to 0.21.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_gitea",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_gitea/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_gitea` was updated to 0.21.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_gitea` was updated to 0.21.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_github",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_github/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_github` was updated to 0.21.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_github` was updated to 0.21.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_gitlab",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_gitlab/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_gitlab` was updated to 0.21.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_gitlab` was updated to 0.21.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_go",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_go/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_go` was updated to 0.21.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_go` was updated to 0.21.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_gradle",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_gradle/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "💥 Breaking Change",
+						"collapsed": false,
+						"entries": [
+							"#### Add swift, cocoapods, and gradle ecosystems\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #830](https://github.com/monochange/monochange/pull/830)\n\nmonochange now plans and publishes native Apple and Android packages alongside the existing ecosystems: Swift Package Manager packages (`Package.swift`, versions resolved from repository tags), CocoaPods pods (`.podspec` and `.podspec.json`, published to the CocoaPods trunk with `pod trunk push`), and Gradle libraries (`gradle.properties` with the `VERSION_NAME` convention, published to Maven Central through `./gradlew publishAndReleaseToMavenCentral`).\n\nConfigure the new ecosystems with `[ecosystems.swift]`, `[ecosystems.cocoapods]`, and `[ecosystems.gradle]`, or type packages directly:\n\n```toml\n[package.apple]\npath = \"platforms/apple\"\ntype = \"swift\"\n\n[package.pod]\npath = \"platforms/pod\"\ntype = \"cocoapods\"\n\n[package.android]\npath = \"platforms/android\"\ntype = \"gradle\"\n```\n\nSwift support uses source-control distribution through tags and provider releases. Swift package registries are outside the built-in publish flow. Set `trusted_publishing = false` for cocoapods and gradle packages since neither the trunk nor Maven Central supports OIDC trusted publishing. Duplicate-version detection queries the CocoaPods trunk API and `repo1.maven.org` Maven metadata, and typed versioned files rewrite active podspec `s.version` declarations and selected Gradle properties during release preparation.\n\nGradle publish dry runs append `--dry-run` so Gradle only displays its task graph. CocoaPods dry runs retain the selected podspec and validation flags when switching to `pod spec lint`. Both CocoaPods and Gradle require real releases and do not support placeholder name reservation."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)\n\n### 💥 Breaking Change\n\n#### Add swift, cocoapods, and gradle ecosystems\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #830](https://github.com/monochange/monochange/pull/830)\n\nmonochange now plans and publishes native Apple and Android packages alongside the existing ecosystems: Swift Package Manager packages (`Package.swift`, versions resolved from repository tags), CocoaPods pods (`.podspec` and `.podspec.json`, published to the CocoaPods trunk with `pod trunk push`), and Gradle libraries (`gradle.properties` with the `VERSION_NAME` convention, published to Maven Central through `./gradlew publishAndReleaseToMavenCentral`).\n\nConfigure the new ecosystems with `[ecosystems.swift]`, `[ecosystems.cocoapods]`, and `[ecosystems.gradle]`, or type packages directly:\n\n```toml\n[package.apple]\npath = \"platforms/apple\"\ntype = \"swift\"\n\n[package.pod]\npath = \"platforms/pod\"\ntype = \"cocoapods\"\n\n[package.android]\npath = \"platforms/android\"\ntype = \"gradle\"\n```\n\nSwift support uses source-control distribution through tags and provider releases. Swift package registries are outside the built-in publish flow. Set `trusted_publishing = false` for cocoapods and gradle packages since neither the trunk nor Maven Central supports OIDC trusted publishing. Duplicate-version detection queries the CocoaPods trunk API and `repo1.maven.org` Maven metadata, and typed versioned files rewrite active podspec `s.version` declarations and selected Gradle properties during release preparation.\n\nGradle publish dry runs append `--dry-run` so Gradle only displays its task graph. CocoaPods dry runs retain the selected podspec and validation flags when switching to `pod spec lint`. Both CocoaPods and Gradle require real releases and do not support placeholder name reservation."
+		},
+		{
+			"owner_id": "monochange_graph",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_graph/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_graph` was updated to 0.21.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_graph` was updated to 0.21.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_hosting",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_hosting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_hosting` was updated to 0.21.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_hosting` was updated to 0.21.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_lint",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_lint/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_lint` was updated to 0.21.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_lint` was updated to 0.21.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_linting",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_linting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_linting` was updated to 0.21.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_linting` was updated to 0.21.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_npm",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_npm/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_npm` was updated to 0.21.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_npm` was updated to 0.21.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_publish",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_publish/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "💥 Breaking Change",
+						"collapsed": false,
+						"entries": [
+							"#### Add native ecosystem fields to Rust configuration and endpoint structs\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #830](https://github.com/monochange/monochange/pull/830)\n\n> Rust callers constructing `WorkspaceConfiguration` or `RegistryEndpoints` with struct literals must initialize the new fields.\n\n`WorkspaceConfiguration` now carries `swift`, `cocoapods`, and `gradle` settings. Add these entries to an existing struct literal:\n\n```rust\nswift: EcosystemSettings::default(),\ncocoapods: EcosystemSettings::default(),\ngradle: EcosystemSettings::default(),\n```\n\nPreviously serialized workspace configurations remain readable: omitted native ecosystem settings deserialize to their defaults.\n\nFor `RegistryEndpoints`, prefer `RegistryEndpoints::from_env()` and override the endpoints needed by your caller. Existing explicit struct literals need these additional fields:\n\n```rust\ncocoapods_trunk_api: \"https://trunk.cocoapods.org/api/v1\".to_string(),\nmaven_central: \"https://repo1.maven.org/maven2\".to_string(),\n```\n\nThe built-in registry defaults remain available when the corresponding environment overrides are absent."
+						]
+					},
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Add swift, cocoapods, and gradle ecosystems\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #830](https://github.com/monochange/monochange/pull/830)\n\nmonochange now plans and publishes native Apple and Android packages alongside the existing ecosystems: Swift Package Manager packages (`Package.swift`, versions resolved from repository tags), CocoaPods pods (`.podspec` and `.podspec.json`, published to the CocoaPods trunk with `pod trunk push`), and Gradle libraries (`gradle.properties` with the `VERSION_NAME` convention, published to Maven Central through `./gradlew publishAndReleaseToMavenCentral`).\n\nConfigure the new ecosystems with `[ecosystems.swift]`, `[ecosystems.cocoapods]`, and `[ecosystems.gradle]`, or type packages directly:\n\n```toml\n[package.apple]\npath = \"platforms/apple\"\ntype = \"swift\"\n\n[package.pod]\npath = \"platforms/pod\"\ntype = \"cocoapods\"\n\n[package.android]\npath = \"platforms/android\"\ntype = \"gradle\"\n```\n\nSwift support uses source-control distribution through tags and provider releases. Swift package registries are outside the built-in publish flow. Set `trusted_publishing = false` for cocoapods and gradle packages since neither the trunk nor Maven Central supports OIDC trusted publishing. Duplicate-version detection queries the CocoaPods trunk API and `repo1.maven.org` Maven metadata, and typed versioned files rewrite active podspec `s.version` declarations and selected Gradle properties during release preparation.\n\nGradle publish dry runs append `--dry-run` so Gradle only displays its task graph. CocoaPods dry runs retain the selected podspec and validation flags when switching to `pod spec lint`. Both CocoaPods and Gradle require real releases and do not support placeholder name reservation."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)\n\n### 💥 Breaking Change\n\n#### Add native ecosystem fields to Rust configuration and endpoint structs\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #830](https://github.com/monochange/monochange/pull/830)\n\n> Rust callers constructing `WorkspaceConfiguration` or `RegistryEndpoints` with struct literals must initialize the new fields.\n\n`WorkspaceConfiguration` now carries `swift`, `cocoapods`, and `gradle` settings. Add these entries to an existing struct literal:\n\n```rust\nswift: EcosystemSettings::default(),\ncocoapods: EcosystemSettings::default(),\ngradle: EcosystemSettings::default(),\n```\n\nPreviously serialized workspace configurations remain readable: omitted native ecosystem settings deserialize to their defaults.\n\nFor `RegistryEndpoints`, prefer `RegistryEndpoints::from_env()` and override the endpoints needed by your caller. Existing explicit struct literals need these additional fields:\n\n```rust\ncocoapods_trunk_api: \"https://trunk.cocoapods.org/api/v1\".to_string(),\nmaven_central: \"https://repo1.maven.org/maven2\".to_string(),\n```\n\nThe built-in registry defaults remain available when the corresponding environment overrides are absent.\n\n### 🚀 Feature\n\n#### Add swift, cocoapods, and gradle ecosystems\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #830](https://github.com/monochange/monochange/pull/830)\n\nmonochange now plans and publishes native Apple and Android packages alongside the existing ecosystems: Swift Package Manager packages (`Package.swift`, versions resolved from repository tags), CocoaPods pods (`.podspec` and `.podspec.json`, published to the CocoaPods trunk with `pod trunk push`), and Gradle libraries (`gradle.properties` with the `VERSION_NAME` convention, published to Maven Central through `./gradlew publishAndReleaseToMavenCentral`).\n\nConfigure the new ecosystems with `[ecosystems.swift]`, `[ecosystems.cocoapods]`, and `[ecosystems.gradle]`, or type packages directly:\n\n```toml\n[package.apple]\npath = \"platforms/apple\"\ntype = \"swift\"\n\n[package.pod]\npath = \"platforms/pod\"\ntype = \"cocoapods\"\n\n[package.android]\npath = \"platforms/android\"\ntype = \"gradle\"\n```\n\nSwift support uses source-control distribution through tags and provider releases. Swift package registries are outside the built-in publish flow. Set `trusted_publishing = false` for cocoapods and gradle packages since neither the trunk nor Maven Central supports OIDC trusted publishing. Duplicate-version detection queries the CocoaPods trunk API and `repo1.maven.org` Maven metadata, and typed versioned files rewrite active podspec `s.version` declarations and selected Gradle properties during release preparation.\n\nGradle publish dry runs append `--dry-run` so Gradle only displays its task graph. CocoaPods dry runs retain the selected podspec and validation flags when switching to `pod spec lint`. Both CocoaPods and Gradle require real releases and do not support placeholder name reservation."
+		},
+		{
+			"owner_id": "monochange_python",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_python/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_python` was updated to 0.21.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_python` was updated to 0.21.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_schema",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_schema/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "monochange_schema [0.10.2](https://github.com/monochange/monochange/releases/tag/monochange_schema/v0.10.2) (2026-10-22)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Validate native package ecosystems and publish registries\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #830](https://github.com/monochange/monochange/pull/830)\n\nConfiguration, release-record, and classification schemas now accept `swift`, `cocoapods`, and `gradle` ecosystem values. Configuration and release records also recognize the `cocoapods_trunk` and `maven_central` registries.\n\nConsumers validating native package declarations against generated schemas can use the new values directly:\n\n```toml\n[package.android]\npath = \"platforms/android\"\ntype = \"gradle\"\n```\n\nRefresh cached schema assets before validating configurations or release records containing these values."
+						]
+					}
+				]
+			},
+			"rendered": "## monochange_schema [0.10.2](https://github.com/monochange/monochange/releases/tag/monochange_schema/v0.10.2) (2026-10-22)\n\n### 🚀 Feature\n\n#### Validate native package ecosystems and publish registries\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #830](https://github.com/monochange/monochange/pull/830)\n\nConfiguration, release-record, and classification schemas now accept `swift`, `cocoapods`, and `gradle` ecosystem values. Configuration and release records also recognize the `cocoapods_trunk` and `maven_central` registries.\n\nConsumers validating native package declarations against generated schemas can use the new values directly:\n\n```toml\n[package.android]\npath = \"platforms/android\"\ntype = \"gradle\"\n```\n\nRefresh cached schema assets before validating configurations or release records containing these values."
+		},
+		{
+			"owner_id": "monochange_semver",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_semver/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_semver` was updated to 0.21.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_semver` was updated to 0.21.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_swift",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_swift/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "💥 Breaking Change",
+						"collapsed": false,
+						"entries": [
+							"#### Add swift, cocoapods, and gradle ecosystems\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #830](https://github.com/monochange/monochange/pull/830)\n\nmonochange now plans and publishes native Apple and Android packages alongside the existing ecosystems: Swift Package Manager packages (`Package.swift`, versions resolved from repository tags), CocoaPods pods (`.podspec` and `.podspec.json`, published to the CocoaPods trunk with `pod trunk push`), and Gradle libraries (`gradle.properties` with the `VERSION_NAME` convention, published to Maven Central through `./gradlew publishAndReleaseToMavenCentral`).\n\nConfigure the new ecosystems with `[ecosystems.swift]`, `[ecosystems.cocoapods]`, and `[ecosystems.gradle]`, or type packages directly:\n\n```toml\n[package.apple]\npath = \"platforms/apple\"\ntype = \"swift\"\n\n[package.pod]\npath = \"platforms/pod\"\ntype = \"cocoapods\"\n\n[package.android]\npath = \"platforms/android\"\ntype = \"gradle\"\n```\n\nSwift support uses source-control distribution through tags and provider releases. Swift package registries are outside the built-in publish flow. Set `trusted_publishing = false` for cocoapods and gradle packages since neither the trunk nor Maven Central supports OIDC trusted publishing. Duplicate-version detection queries the CocoaPods trunk API and `repo1.maven.org` Maven metadata, and typed versioned files rewrite active podspec `s.version` declarations and selected Gradle properties during release preparation.\n\nGradle publish dry runs append `--dry-run` so Gradle only displays its task graph. CocoaPods dry runs retain the selected podspec and validation flags when switching to `pod spec lint`. Both CocoaPods and Gradle require real releases and do not support placeholder name reservation."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)\n\n### 💥 Breaking Change\n\n#### Add swift, cocoapods, and gradle ecosystems\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #830](https://github.com/monochange/monochange/pull/830)\n\nmonochange now plans and publishes native Apple and Android packages alongside the existing ecosystems: Swift Package Manager packages (`Package.swift`, versions resolved from repository tags), CocoaPods pods (`.podspec` and `.podspec.json`, published to the CocoaPods trunk with `pod trunk push`), and Gradle libraries (`gradle.properties` with the `VERSION_NAME` convention, published to Maven Central through `./gradlew publishAndReleaseToMavenCentral`).\n\nConfigure the new ecosystems with `[ecosystems.swift]`, `[ecosystems.cocoapods]`, and `[ecosystems.gradle]`, or type packages directly:\n\n```toml\n[package.apple]\npath = \"platforms/apple\"\ntype = \"swift\"\n\n[package.pod]\npath = \"platforms/pod\"\ntype = \"cocoapods\"\n\n[package.android]\npath = \"platforms/android\"\ntype = \"gradle\"\n```\n\nSwift support uses source-control distribution through tags and provider releases. Swift package registries are outside the built-in publish flow. Set `trusted_publishing = false` for cocoapods and gradle packages since neither the trunk nor Maven Central supports OIDC trusted publishing. Duplicate-version detection queries the CocoaPods trunk API and `repo1.maven.org` Maven metadata, and typed versioned files rewrite active podspec `s.version` declarations and selected Gradle properties during release preparation.\n\nGradle publish dry runs append `--dry-run` so Gradle only displays its task graph. CocoaPods dry runs retain the selected podspec and validation flags when switching to `pod spec lint`. Both CocoaPods and Gradle require real releases and do not support placeholder name reservation."
+		},
+		{
+			"owner_id": "monochange_telemetry",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_telemetry/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_telemetry` was updated to 0.21.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_telemetry` was updated to 0.21.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_test_helpers",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_test_helpers/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.21.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.21.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli` was updated to 0.21.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli` was updated to 0.21.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-arm64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-darwin-arm64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.21.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.21.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-x64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-darwin-x64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.21.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.21.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-arm64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.21.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.21.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-arm64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.21.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.21.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-x64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.21.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.21.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-x64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.21.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.21.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-win32-arm64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-win32-arm64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.21.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.21.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-win32-x64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-win32-x64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.21.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.21.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/skill",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__skill/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/skill` was updated to 0.21.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/skill` was updated to 0.21.0 as part of group `main`."
+		}
+	],
+	"provider": {
+		"kind": "github",
+		"owner": "monochange",
+		"repo": "monochange",
+		"host": null
+	}
+}
