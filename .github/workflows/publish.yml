@@ -348,7 +348,7 @@ jobs:
         shell: devenv shell -- bash -e {0}
 
       - name: check publish readiness
-        uses: monochange/actions@6866cbbd35932bdfb496f5b144578c9274d36ca0 # v0.10.0
+        uses: monochange/actions@77fe97c0119e8c16e429d6f5cf94859b097cdcf8 # v0.10.1
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.crates-oidc.outputs.token }}
         with:
@@ -379,7 +379,7 @@ jobs:
           version: 12
 
       - name: publish packages
-        uses: monochange/actions@6866cbbd35932bdfb496f5b144578c9274d36ca0 # v0.10.0
+        uses: monochange/actions@77fe97c0119e8c16e429d6f5cf94859b097cdcf8 # v0.10.1
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.crates-oidc.outputs.token }}
         with:
