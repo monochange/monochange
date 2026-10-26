@@ -2222,6 +2222,7 @@ dependencies = [
  "monochange_deno",
  "monochange_npm",
  "monochange_test_helpers",
+ "rayon",
  "serde",
  "serde_json",
  "temp-env",
