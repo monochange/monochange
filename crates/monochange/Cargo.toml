@@ -64,6 +64,7 @@ forgejo = ["monochange_forgejo", "monochange_core/http"]
 anstyle = { workspace = true }
 chrono = { workspace = true }
 clap = { workspace = true, default-features = true, features = ["color"] }
+clap_complete = { workspace = true }
 glob = { workspace = true }
 inquire = { workspace = true, default-features = true, features = ["crossterm"] }
 minijinja = { workspace = true }
