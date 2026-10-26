@@ -4373,3 +4373,93 @@ fn release_backend_prefers_the_step_input_then_the_environment() {
 		"error names the variable and the value: {error}"
 	);
 }
+
+#[test]
+fn command_interpolation_quotes_changeset_paths() {
+	let mut context = cli_context();
+	let mut prepared = sample_prepared_release();
+	prepared.changeset_paths = vec![
+		PathBuf::from(".changeset/benign-notes.md"),
+		PathBuf::from(".changeset/hostile'; rm -rf ~; '.md"),
+	];
+	context.prepared_release = Some(prepared);
+
+	let interpolated = interpolate_cli_command_command(
+		&context,
+		"git add {{ changesets }}",
+		None,
+		&BTreeMap::new(),
+	);
+
+	assert_eq!(
+		interpolated,
+		"git add '.changeset/benign-notes.md' '.changeset/hostile'\\''; rm -rf ~; '\\''.md'"
+	);
+}
+
+#[test]
+fn command_interpolation_decodes_back_to_single_arguments() {
+	let mut context = cli_context();
+	let mut prepared = sample_prepared_release();
+	prepared.changeset_paths = vec![
+		PathBuf::from(".changeset/benign-notes.md"),
+		PathBuf::from(".changeset/name with spaces.md"),
+	];
+	prepared.changed_files = vec![PathBuf::from("Cargo.toml")];
+	context.prepared_release = Some(prepared);
+
+	let interpolated = interpolate_cli_command_command(
+		&context,
+		"git add {{ changesets }} {{ changed_files }}",
+		None,
+		&BTreeMap::new(),
+	);
+
+	let parts = shlex::split(&interpolated)
+		.unwrap_or_else(|| panic!("split interpolated command: {interpolated}"));
+	assert_eq!(
+		parts,
+		[
+			"git",
+			"add",
+			".changeset/benign-notes.md",
+			".changeset/name with spaces.md",
+			"Cargo.toml",
+		]
+	);
+}
+
+#[test]
+fn command_interpolation_keeps_scalar_values_unquoted() {
+	let mut context = cli_context();
+	let mut prepared = sample_prepared_release();
+	prepared.version = Some("1.2.3".to_string());
+	context.prepared_release = Some(prepared);
+
+	let interpolated = interpolate_cli_command_command(
+		&context,
+		"echo \"release {{ version }}\"",
+		None,
+		&BTreeMap::new(),
+	);
+
+	assert_eq!(interpolated, "echo \"release 1.2.3\"");
+}
+
+#[test]
+fn condition_template_context_keeps_paths_unquoted() {
+	let mut context = cli_context();
+	let mut prepared = sample_prepared_release();
+	prepared.changeset_paths = vec![PathBuf::from(".changeset/feature.md")];
+	context.prepared_release = Some(prepared);
+
+	let template_context = build_cli_template_context(&context, &BTreeMap::new(), None);
+
+	assert_eq!(
+		template_context
+			.get("changesets")
+			.and_then(serde_json::Value::as_str),
+		Some(".changeset/feature.md"),
+		"when-conditions and step inputs must keep seeing raw paths"
+	);
+}
