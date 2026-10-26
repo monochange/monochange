@@ -1,5 +1,6 @@
 ---
 source: crates/monochange/tests/cli_help.rs
+assertion_line: 32
 info:
   program: monochange
   args:
@@ -31,6 +32,7 @@ Workspace Commands:
   versions       List package and group versions or sync internal dependency constraints
   lint           Inspect and scaffold manifest lint rules
   migrate        Audit or migrate release metadata for monochange repositories
+  doctor         Check the local environment monochange needs and report what is missing
 
 Change Analysis Commands:
   change         Determine the release severity of repository changes
@@ -47,6 +49,7 @@ Automation Commands:
   skill          Read or install the bundled monochange agent skill
   subagents      Generate repo-local monochange subagents and agent guidance files
   snapshot       Print a normalized JSON snapshot of the CLI surface
+  completions    Generate a shell completion script for monochange
   help           Show detailed help for a command
 
 Workflow Commands (monochange.toml):
