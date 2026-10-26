@@ -1,4 +1,14 @@
 {
+	"commandBudgets": {
+		"monochange step release-record --from HEAD": {
+			"baseline": 800,
+			"history_x10": 2500
+		},
+		"monochange analyze --package pkg-0 --main-ref HEAD~10 --head-ref HEAD": {
+			"baseline": 2500,
+			"history_x10": 6000
+		}
+	},
 	"baseline": {
 		"monochange run release --dry-run": {
 			"stepTotalMs": 450,
