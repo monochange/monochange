@@ -4653,3 +4653,68 @@ fn cocoapods_publish_command_falls_back_to_the_manifest_display_path() {
 		vec!["trunk", "push", ".", "--allow-warnings"]
 	);
 }
+
+#[tokio::test(flavor = "multi_thread")]
+async fn filter_pending_publish_requests_probes_registries_concurrently() {
+	use std::time::Duration;
+	use std::time::Instant;
+
+	use httpmock::Method::GET;
+	use httpmock::MockServer;
+
+	let server = MockServer::start();
+	let mut endpoints = RegistryEndpoints::from_env();
+	endpoints.npm_registry = server.base_url();
+
+	// Two 150ms registry lookups that run concurrently finish well inside
+	// the 300ms a sequential loop would need; the margin absorbs scheduling.
+	let delayed_missing = server.mock(|when, then| {
+		when.method(GET).path("/slow-package");
+		then.delay(Duration::from_millis(150)).status(404);
+	});
+	let delayed_present = server.mock(|when, then| {
+		when.method(GET).path("/present-package");
+		then.delay(Duration::from_millis(150))
+			.status(200)
+			.json_body(serde_json::json!({
+				"versions": { "1.0.0": {} },
+			}));
+	});
+
+	let mut slow = sample_publish_request_for_registry(RegistryKind::Npm);
+	slow.package_id = "slow".to_string();
+	slow.package_name = "slow-package".to_string();
+	let mut present = sample_publish_request_for_registry(RegistryKind::Npm);
+	present.package_id = "present".to_string();
+	present.package_name = "present-package".to_string();
+	let mut external = sample_publish_request_for_registry(RegistryKind::Npm);
+	external.package_id = "external".to_string();
+	external.package_name = "external-package".to_string();
+	external.mode = PublishMode::External;
+
+	let client = registry_client().unwrap_or_else(|error| panic!("registry client: {error}"));
+	let started = Instant::now();
+	let pending = filter_pending_publish_requests_with_transport(
+		&[slow.clone(), present.clone(), external.clone()],
+		&client,
+		&endpoints,
+	)
+	.await
+	.unwrap_or_else(|error| panic!("filter pending requests: {error}"));
+	let elapsed = started.elapsed();
+
+	assert_eq!(
+		pending
+			.iter()
+			.map(|request| request.package_id.as_str())
+			.collect::<Vec<_>>(),
+		["slow"],
+		"only the un-published request remains, in input order"
+	);
+	assert!(
+		elapsed < Duration::from_millis(300),
+		"two delayed probes should overlap, took {elapsed:?}"
+	);
+	delayed_missing.assert_async().await;
+	delayed_present.assert_async().await;
+}
