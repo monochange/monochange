@@ -6822,15 +6822,15 @@ async fn find_release_record_files_at_commit_reports_git_errors() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
 	// Not a git repo — calling git should error
-	let result = crate::git_support::find_release_record_files_at_commit(root, "HEAD").await;
+	let result = crate::git_support::first_parent_history(root, "HEAD").await;
 	assert!(
 		result.is_err(),
 		"expected error for non-git directory, got: {result:?}"
 	);
 	let message = result.unwrap_err().to_string();
 	assert!(
-		message.contains("failed to inspect commit"),
-		"expected 'failed to inspect commit' in error, got: {message}"
+		message.contains("failed to read first-parent commit ancestry"),
+		"expected ancestry error in message, got: {message}"
 	);
 }
 
@@ -6881,9 +6881,21 @@ async fn find_release_record_files_at_commit_falls_back_to_tree_when_parent_is_m
 		.unwrap_or_else(|error| panic!("git clone shallow: {error}"));
 	assert!(status.success(), "git clone shallow failed");
 
-	let files = crate::git_support::find_release_record_files_at_commit(clone_root, "HEAD")
+	let history = crate::git_support::first_parent_history(clone_root, "HEAD")
 		.await
-		.unwrap_or_else(|error| panic!("find release record files: {error}"));
+		.unwrap_or_else(|error| panic!("first-parent history: {error}"));
+	let entry = history
+		.iter()
+		.next()
+		.unwrap_or_else(|| panic!("history must contain HEAD"));
+	assert!(
+		entry.first_parent.is_none(),
+		"a shallow cut must report no parents so discovery falls back to the tree"
+	);
+	let files =
+		crate::git_support::find_release_record_files_at_commit(clone_root, entry, &history)
+			.await
+			.unwrap_or_else(|error| panic!("find release record files: {error}"));
 	assert_eq!(
 		files,
 		vec![".monochange/releases/0000000000000000/release.json"]
@@ -10856,11 +10868,20 @@ async fn first_parent_commits_returns_head_then_ancestors() {
 	git_in_temp_repo(root, &["commit", "-m", "second"]);
 
 	let head = git_output_in_temp_repo(root, &["rev-parse", "HEAD"]);
-	let commits = crate::git_support::first_parent_commits(root, &head)
+	let history = crate::git_support::first_parent_history(root, &head)
 		.await
-		.unwrap_or_else(|error| panic!("first parent commits: {error}"));
-	assert_eq!(commits.first().map(String::as_str), Some(head.as_str()));
+		.unwrap_or_else(|error| panic!("first parent history: {error}"));
+	let commits: Vec<&str> = history.iter().map(|entry| entry.commit.as_str()).collect();
+	assert_eq!(commits.first().copied(), Some(head.as_str()));
 	assert_eq!(commits.len(), 2);
+	assert_eq!(
+		history
+			.iter()
+			.next()
+			.and_then(|entry| entry.first_parent.as_deref()),
+		commits.get(1).copied(),
+		"the newest commit's first parent must be the next entry"
+	);
 }
 
 #[tokio::test(flavor = "multi_thread")]

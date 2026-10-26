@@ -1,4 +1,3 @@
-use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command as ProcessCommand;
@@ -126,22 +125,92 @@ pub(crate) async fn resolve_git_commit_ref(root: &Path, from: &str) -> Monochang
 
 #[must_use = "the commit history result must be checked"]
 #[tracing::instrument(skip_all, fields(commit))]
-pub(crate) async fn first_parent_commits(
+pub(crate) async fn first_parent_history(
 	root: &Path,
 	commit: &str,
-) -> MonochangeResult<Vec<String>> {
+) -> MonochangeResult<FirstParentHistory> {
 	let output = run_git_capture(
 		root,
-		&["rev-list", "--first-parent", commit],
+		&["log", "--first-parent", "--format=%H %P", commit],
 		"failed to read first-parent commit ancestry",
 	)
 	.await?;
 
-	Ok(output
-		.lines()
-		.map(str::to_string)
-		.filter(|line| !line.is_empty())
-		.collect())
+	let mut entries = Vec::new();
+	for line in output.lines().filter(|line| !line.is_empty()) {
+		let (commit, parents) = line.split_once(' ').unwrap_or((line, ""));
+		let first_parent = parents
+			.split(' ')
+			.next()
+			.filter(|parent| !parent.is_empty())
+			.map(str::to_string);
+		entries.push(FirstParentEntry {
+			commit: commit.to_string(),
+			first_parent,
+		});
+	}
+
+	Ok(FirstParentHistory::from_entries(entries))
+}
+
+/// One commit in a first-parent walk plus its first parent.
+///
+/// `first_parent` is `None` at a graft boundary: the root commit, or the cut
+/// of a shallow clone, where git reports no parents for the boundary commit.
+pub(crate) struct FirstParentEntry {
+	pub(crate) commit: String,
+	pub(crate) first_parent: Option<String>,
+}
+
+impl std::fmt::Debug for FirstParentEntry {
+	fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		formatter
+			.debug_struct("FirstParentEntry")
+			.field("commit", &self.commit)
+			.field("first_parent", &self.first_parent)
+			.finish()
+	}
+}
+
+/// First-parent ancestry resolved by one `git log` run.
+///
+/// The walk also remembers which commits it contains, so a commit whose
+/// recorded first parent never appears in the walk is recognized as sitting
+/// at a cut boundary — the parent object is not available to diff against.
+pub(crate) struct FirstParentHistory {
+	entries: Vec<FirstParentEntry>,
+	walk_commits: std::collections::HashSet<String>,
+}
+
+impl std::fmt::Debug for FirstParentHistory {
+	fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		formatter
+			.debug_struct("FirstParentHistory")
+			.field("entries", &self.entries)
+			.field("walk_commits", &self.walk_commits)
+			.finish()
+	}
+}
+
+impl FirstParentHistory {
+	fn from_entries(entries: Vec<FirstParentEntry>) -> Self {
+		let walk_commits = entries
+			.iter()
+			.map(|entry| entry.commit.clone())
+			.collect::<std::collections::HashSet<_>>();
+		Self {
+			entries,
+			walk_commits,
+		}
+	}
+
+	pub(crate) fn iter(&self) -> impl Iterator<Item = &FirstParentEntry> {
+		self.entries.iter()
+	}
+
+	fn contains_commit(&self, commit: &str) -> bool {
+		self.walk_commits.contains(commit)
+	}
 }
 
 pub(crate) async fn read_git_file_at_commit(
@@ -159,39 +228,15 @@ pub(crate) async fn read_git_file_at_commit(
 
 pub(crate) async fn find_release_record_files_at_commit(
 	root: &Path,
-	commit: &str,
+	entry: &FirstParentEntry,
+	history: &FirstParentHistory,
 ) -> MonochangeResult<Vec<String>> {
 	let prefix = ".monochange/releases/";
 	let suffix = "/release.json";
 	let filter = |line: &&str| line.starts_with(prefix) && line.ends_with(suffix);
 
-	let first_parent = run_git_capture(
-		root,
-		&["cat-file", "-p", commit],
-		"failed to inspect commit",
-	)
-	.await?
-	.lines()
-	.find_map(|line| line.strip_prefix("parent ").map(str::to_string));
-
-	let resolved_commit =
-		run_git_capture(root, &["rev-parse", commit], "failed to resolve commit").await?;
-	let shallow_file = run_git_capture(
-		root,
-		&["rev-parse", "--git-path", "shallow"],
-		"failed to resolve shallow boundary path",
-	)
-	.await
-	.unwrap_or_else(|_| String::from(".git/shallow"));
-	let shallow_file = root.join(PathBuf::from(shallow_file.trim()));
-	let is_shallow_boundary = fs::read_to_string(shallow_file)
-		.is_ok_and(|contents| contents.lines().any(|line| line == resolved_commit.trim()));
-
-	if let Some(parent) = first_parent.as_deref()
-		&& !is_shallow_boundary
-		&& git_command_output(root, &["cat-file", "-e", &format!("{parent}^{{commit}}")])
-			.await
-			.is_ok()
+	if let Some(parent) = entry.first_parent.as_deref()
+		&& history.contains_commit(parent)
 	{
 		// Exclude deleted paths: a commit that removes a release record (for
 		// example when reverting a release preparation) must not make the
@@ -209,7 +254,7 @@ pub(crate) async fn find_release_record_files_at_commit(
 			"-r",
 			"--diff-filter=d",
 			parent,
-			commit,
+			&entry.commit,
 		];
 		let output = run_git_capture(root, &args, "failed to list files at commit").await?;
 		Ok(output
@@ -220,7 +265,9 @@ pub(crate) async fn find_release_record_files_at_commit(
 			.into_iter()
 			.collect())
 	} else {
-		let args = ["ls-tree", "-r", "--name-only", commit];
+		// The parent object is unavailable (root or shallow cut), so the only
+		// way to see which records this commit carries is its full tree.
+		let args = ["ls-tree", "-r", "--name-only", &entry.commit];
 		let output = run_git_capture(root, &args, "failed to list files at commit").await?;
 		Ok(output.lines().filter(filter).map(str::to_string).collect())
 	}
@@ -309,15 +356,86 @@ pub(crate) async fn git_stage_all(root: &Path) -> MonochangeResult<()> {
 	.await
 }
 // patch-coverage:ignore-end
+/// Decide which release paths `git add` must stage, asking git about every
+/// path in two batched calls instead of one call per path.
+///
+/// The per-path rules match the original sequential form: paths the discovery
+/// filter ignores never stage; missing paths stage only when git still tracks
+/// them (staging a deletion); `.monochange/releases` paths always stage; and
+/// any other path stages when git tracks it or has not ignored it.
 pub(crate) async fn resolve_stageable_release_paths(
 	root: &Path,
 	tracked_paths: &[PathBuf],
 ) -> MonochangeResult<Vec<PathBuf>> {
-	let mut stageable_paths = Vec::with_capacity(tracked_paths.len());
+	/// What a path needs from git before it can stage.
+	enum Pending {
+		/// A path that no longer exists stages only when git tracks it.
+		TrackedOnly,
+		/// An existing path outside `.monochange/releases` stages when git
+		/// tracks it, and otherwise when git has not ignored it.
+		TrackedOrUnignored,
+	}
+
 	let path_filter = DiscoveryPathFilter::new(root);
+	let mut pending = Vec::<(&PathBuf, Pending)>::new();
+	let mut stageable_paths = Vec::with_capacity(tracked_paths.len());
 
 	for path in tracked_paths {
-		if release_path_requires_staging(root, path, &path_filter).await? {
+		let relative = root_relative_path(root, path);
+
+		if !relative.starts_with(".monochange/releases")
+			&& release_path_is_ignored_by_filter(root, relative, &path_filter)
+		{
+			tracing::debug!(path = %path.display(), "skipping non-stageable release path");
+			continue;
+		}
+
+		if !root.join(path).exists() {
+			pending.push((path, Pending::TrackedOnly));
+		} else if relative.starts_with(".monochange/releases") {
+			stageable_paths.push(path.clone());
+		} else {
+			pending.push((path, Pending::TrackedOrUnignored));
+		}
+	}
+
+	if pending.is_empty() {
+		return Ok(stageable_paths);
+	}
+
+	let mut queried_paths = Vec::with_capacity(pending.len());
+	for (path, _) in &pending {
+		queried_paths.push((*path).clone());
+	}
+	let tracked = git_tracked_paths(root, &queried_paths).await?;
+
+	// Untracked existing paths still need the ignore check; ask about all of
+	// them in one call.
+	let mut untracked_unignored_queries = Vec::new();
+	for (path, requirement) in &pending {
+		if matches!(requirement, Pending::TrackedOrUnignored)
+			&& !tracked.contains(&git_path_key(root, path))
+		{
+			untracked_unignored_queries.push((*path).clone());
+		}
+	}
+	let ignored = if untracked_unignored_queries.is_empty() {
+		std::collections::HashSet::new()
+	} else {
+		git_ignored_paths(root, &untracked_unignored_queries).await?
+	};
+
+	// Preserve the input order the sequential form produced.
+	for (path, requirement) in pending {
+		let path_key = git_path_key(root, path);
+		let stageable = match requirement {
+			Pending::TrackedOnly => tracked.contains(&path_key),
+			Pending::TrackedOrUnignored => {
+				tracked.contains(&path_key) || !ignored.contains(&path_key)
+			}
+		};
+
+		if stageable {
 			stageable_paths.push(path.clone());
 		} else {
 			tracing::debug!(path = %path.display(), "skipping non-stageable release path");
@@ -325,36 +443,6 @@ pub(crate) async fn resolve_stageable_release_paths(
 	}
 
 	Ok(stageable_paths)
-}
-
-async fn release_path_requires_staging(
-	root: &Path,
-	path: &Path,
-	path_filter: &DiscoveryPathFilter,
-) -> MonochangeResult<bool> {
-	let relative = root_relative_path(root, path);
-
-	if !relative.starts_with(".monochange/releases")
-		&& release_path_is_ignored_by_filter(root, relative, path_filter)
-	{
-		return Ok(false);
-	}
-
-	let absolute_path = root.join(path);
-
-	if !absolute_path.exists() {
-		return git_path_is_tracked(root, path).await;
-	}
-
-	if relative.starts_with(".monochange/releases") {
-		return Ok(true);
-	}
-
-	if git_path_is_tracked(root, path).await? {
-		return Ok(true);
-	}
-
-	Ok(!git_path_is_ignored(root, path).await?)
 }
 
 fn release_path_is_ignored_by_filter(
@@ -373,54 +461,80 @@ fn root_relative_path<'a>(root: &Path, path: &'a Path) -> &'a Path {
 	}
 }
 
-#[must_use = "the tracked status result must be checked"]
-async fn git_path_is_tracked(root: &Path, path: &Path) -> MonochangeResult<bool> {
-	let relative = path.to_string_lossy();
-	let output = git_command_output(root, &["ls-files", "--error-unmatch", "--", &relative])
-		.await
-		.map_err(|error| {
-			MonochangeError::Discovery(format!(
-				"failed to inspect tracked git path {}: {error}",
-				path.display()
-			))
-		})?;
-
-	match output.status.code() {
-		Some(0) => Ok(true),
-		Some(1) => Ok(false),
-		_ => {
-			Err(MonochangeError::Discovery(format!(
-				"failed to inspect tracked git path {}: {}",
-				path.display(),
-				git_error_detail(&output)
-			)))
-		}
-	}
+/// The key a path compares under in git path listings: root-relative with
+/// git's forward-slash separators, regardless of how the caller built the
+/// path. Absolute paths inside the repository and `\\`-separated Windows
+/// paths then match the same entry git prints.
+fn git_path_key(root: &Path, path: &Path) -> String {
+	root_relative_path(root, path)
+		.to_string_lossy()
+		.replace('\\', "/")
 }
 
-#[must_use = "the ignored status result must be checked"]
-async fn git_path_is_ignored(root: &Path, path: &Path) -> MonochangeResult<bool> {
-	let relative = path.to_string_lossy();
-	let output = git_command_output(root, &["check-ignore", "-q", "--", &relative])
-		.await
-		.map_err(|error| {
-			MonochangeError::Discovery(format!(
-				"failed to inspect ignored git path {}: {error}",
-				path.display()
-			))
-		})?;
+/// Report which of `paths` git tracks, in one `git ls-files` run.
+///
+/// `ls-files` reads the index, so deleted-but-tracked paths are still
+/// reported, matching the per-path `--error-unmatch` check it replaces.
+#[must_use = "the tracked paths result must be checked"]
+async fn git_tracked_paths(
+	root: &Path,
+	paths: &[PathBuf],
+) -> MonochangeResult<std::collections::HashSet<String>> {
+	let mut args = vec!["ls-files".to_string(), "--".to_string()];
+	args.extend(paths.iter().map(|path| path.to_string_lossy().into_owned()));
+	let args = args.iter().map(String::as_str).collect::<Vec<_>>();
+	let output = git_command_output(root, &args).await.map_err(|error| {
+		MonochangeError::Discovery(format!("failed to inspect tracked git paths: {error}"))
+	})?;
+
+	if !output.status.success() {
+		return Err(MonochangeError::Discovery(format!(
+			"failed to inspect tracked git paths: {}",
+			git_error_detail(&output)
+		)));
+	}
+
+	let stdout = String::from_utf8_lossy(&output.stdout);
+	Ok(stdout
+		.lines()
+		.filter(|line| !line.is_empty())
+		.map(str::to_string)
+		.collect())
+}
+
+/// Report which of `paths` git ignores, in one `git check-ignore` run.
+///
+/// `check-ignore` exits 1 when no path is ignored and prints each ignored
+/// path otherwise; both carry the same information as the per-path quiet
+/// check it replaces.
+#[must_use = "the ignored paths result must be checked"]
+async fn git_ignored_paths(
+	root: &Path,
+	paths: &[PathBuf],
+) -> MonochangeResult<std::collections::HashSet<String>> {
+	let mut args = vec!["check-ignore".to_string(), "--".to_string()];
+	args.extend(paths.iter().map(|path| path.to_string_lossy().into_owned()));
+	let args = args.iter().map(String::as_str).collect::<Vec<_>>();
+	let output = git_command_output(root, &args).await.map_err(|error| {
+		MonochangeError::Discovery(format!("failed to inspect ignored git paths: {error}"))
+	})?;
 
 	match output.status.code() {
-		Some(0) => Ok(true),
-		Some(1) => Ok(false),
+		Some(0 | 1) => {}
 		_ => {
-			Err(MonochangeError::Discovery(format!(
-				"failed to inspect ignored git path {}: {}",
-				path.display(),
+			return Err(MonochangeError::Discovery(format!(
+				"failed to inspect ignored git paths: {}",
 				git_error_detail(&output)
-			)))
+			)));
 		}
 	}
+
+	let stdout = String::from_utf8_lossy(&output.stdout);
+	Ok(stdout
+		.lines()
+		.filter(|line| !line.is_empty())
+		.map(str::to_string)
+		.collect())
 }
 
 #[must_use = "the commit result must be checked"]
