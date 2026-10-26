@@ -53,6 +53,44 @@ fn test_verify_malformed_token() {
 	assert!(result.is_err());
 }
 
+// ── App state construction tests ──
+mod app_state_tests {
+	use crate::AppSecrets;
+	use crate::AppState;
+	use crate::github_app::GitHubAppError;
+
+	fn secrets_with_jwt(jwt_secret: &str) -> AppSecrets {
+		serde_json::from_value(serde_json::json!({
+			"database_url": "sqlite::memory:",
+			"jwt_secret": jwt_secret,
+			"github_client_id": "",
+			"github_client_secret": "",
+		}))
+		.unwrap_or_else(|error| panic!("build test secrets: {error}"))
+	}
+
+	#[tokio::test]
+	async fn rejects_empty_jwt_secret() {
+		let db = monochange_app_db::create_pool("sqlite::memory:")
+			.await
+			.unwrap_or_else(|error| panic!("open test database: {error}"));
+		let error = AppState::new(db, secrets_with_jwt(""))
+			.err()
+			.expect("an empty JWT secret must not start the server");
+		assert!(matches!(error, GitHubAppError::EmptyJwtSecret));
+	}
+
+	#[tokio::test]
+	async fn accepts_non_empty_jwt_secret() {
+		let db = monochange_app_db::create_pool("sqlite::memory:")
+			.await
+			.unwrap_or_else(|error| panic!("open test database: {error}"));
+		let state = AppState::new(db, secrets_with_jwt("signing-key"))
+			.unwrap_or_else(|error| panic!("non-empty JWT secret should be accepted: {error}"));
+		assert_eq!(state.jwt_secret, "signing-key");
+	}
+}
+
 #[rstest]
 fn test_token_is_unique() {
 	let secret = "secret";
@@ -329,6 +367,38 @@ mod oidc_tests {
 			"monochange.dev",
 			"monochange/monochange",
 		);
+		assert!(verifier.verify(&token).await.is_err());
+	}
+
+	#[tokio::test]
+	async fn rejects_non_rs256_token() {
+		let keys = test_keys();
+		let server = MockServer::start();
+		let verifier = verifier_with(&server, &keys);
+
+		// An HS256 token whose header still names the RSA key id: without the
+		// RS256 pin, the RSA JWK would be selected and the attacker-chosen
+		// algorithm would decide how the signature is checked.
+		let now = chrono::Utc::now().timestamp();
+		let claims = serde_json::json!({
+			"iss": "https://token.actions.githubusercontent.com",
+			"aud": "monochange.dev",
+			"exp": now + 600,
+			"iat": now,
+			"repository": "monochange/monochange",
+			"repository_id": "42",
+			"repository_owner": "monochange",
+		});
+		let token = encode(
+			&Header {
+				alg: Algorithm::HS256,
+				kid: Some("test-key-1".to_string()),
+				..Default::default()
+			},
+			&claims,
+			&EncodingKey::from_secret(b"attacker-controlled-secret"),
+		)
+		.unwrap_or_else(|error| panic!("sign test token: {error}"));
 		assert!(verifier.verify(&token).await.is_err());
 	}
 

@@ -190,6 +190,13 @@ impl AppState {
 		secrets: AppSecrets,
 	) -> Result<Self, github_app::GitHubAppError> {
 		let jwt_secret = secrets.jwt_secret.clone();
+		// An empty string is a valid HMAC key, so a profile that resolves
+		// JWT_SECRET to nothing would sign forgeable session tokens; the
+		// required-secrets check cannot catch a resolved-but-empty value.
+		if jwt_secret.is_empty() {
+			return Err(github_app::GitHubAppError::EmptyJwtSecret);
+		}
+
 		let github_client_id = secrets.github_client_id.clone();
 		let github_client_secret = secrets.github_client_secret.clone();
 		let github_callback_url = std::env::var("MONOCHANGE_GITHUB_CALLBACK_URL")

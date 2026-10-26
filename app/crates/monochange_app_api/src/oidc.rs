@@ -16,6 +16,7 @@ use std::sync::RwLock;
 use std::time::Duration;
 use std::time::Instant;
 
+use jsonwebtoken::Algorithm;
 use jsonwebtoken::DecodingKey;
 use jsonwebtoken::Validation;
 use jsonwebtoken::decode;
@@ -131,7 +132,10 @@ impl OidcVerifier {
 		let jwk = self.jwk_for_kid(&kid).await?;
 		let key = DecodingKey::from_jwk(&jwk)
 			.map_err(|error| OidcError::InvalidToken(error.to_string()))?;
-		let mut validation = Validation::new(header.alg);
+		// GitHub signs its OIDC tokens with RS256 only. Pinning the algorithm
+		// instead of trusting `header.alg` rejects algorithm-confusion tokens
+		// before the signature is checked.
+		let mut validation = Validation::new(Algorithm::RS256);
 		validation.set_issuer(std::slice::from_ref(&self.issuer));
 
 		validation.set_audience(std::slice::from_ref(&self.audience));
