@@ -1,0 +1,46 @@
+---
+source: crates/monochange/tests/cli_clap_help.rs
+assertion_line: 151
+expression: render_help_snapshot(&path)
+---
+Version: [current]
+Command: monochange completions
+
+Print a completion script for the named shell. The script includes the commands configured in this repository's monochange.toml, so generate it from the repository you work in.
+
+Install with your shell's completion mechanism, for example `monochange completions zsh > "${fpath[1]}/_monochange"`.
+
+[1m[97mUsage:[0m [93mmonochange completions[0m [95m[OPTIONS][0m [95m<SHELL>[0m
+
+[1m[96mArguments:[0m
+  [95m<SHELL>[0m
+          Shell to generate completions for
+
+          [possible values: bash, elvish, fish, powershell, zsh]
+
+[1m[96mOptions:[0m
+  [93m-h[0m, [93m--help[0m
+          Print help (see a summary with '-h')
+
+[1m[96mGlobal Options:[0m
+  [93m-q[0m, [93m--quiet[0m
+          Suppress result, progress, and diagnostic output without changing execution
+
+  [93m-v[0m, [93m--verbose[0m
+          Show full result lists and logs, every step timing, and progress notes
+
+      [93m--color[0m[95m [0m[95m<WHEN>[0m
+          Control when output uses color; `auto` honors NO_COLOR, CLICOLOR, and CLICOLOR_FORCE
+
+          [possible values: auto, always, never]
+
+      [93m--progress-format[0m[95m [0m[95m<FORMAT>[0m
+          Control progress output on stderr
+
+          [possible values: auto, unicode, ascii, json]
+
+      [93m--jq[0m[95m [0m[95m<EXPRESSION>[0m
+          Filter explicit JSON output; requires `--format json` or `--format json-min`
+
+      [93m--snapshot[0m
+          Print a normalized JSON snapshot for this command subtree
