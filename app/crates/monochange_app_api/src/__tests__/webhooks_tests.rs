@@ -24,6 +24,7 @@ async fn first_installation_is_saved_before_the_installer_has_a_website_account(
 	let secrets: AppSecrets = serde_json::from_value(serde_json::json!({
 		"database_url": "sqlite::memory:",
 		"jwt_secret": "webhook-test-signing-key",
+		"token_encryption_key": "test-token-encryption-key",
 		"github_client_id": "",
 		"github_client_secret": "",
 	}))
@@ -79,6 +80,7 @@ async fn configured_state() -> AppState {
 	let secrets: AppSecrets = serde_json::from_value(serde_json::json!({
 		"database_url": "sqlite::memory:",
 		"jwt_secret": "webhook-test-signing-key",
+		"token_encryption_key": "test-token-encryption-key",
 		"github_client_id": "",
 		"github_client_secret": "",
 	}))

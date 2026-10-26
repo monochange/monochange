@@ -18,6 +18,7 @@ pub mod oauth;
 pub mod oidc;
 pub mod release_api;
 pub mod tasks_api;
+pub mod token_vault;
 pub mod webhooks;
 
 use std::sync::Arc;
@@ -177,6 +178,14 @@ pub struct AppState {
 	/// `MONOCHANGE_TOKEN` accepted by the hosted release endpoints; `None`
 	/// requires GitHub Actions OIDC.
 	pub api_token: Option<String>,
+	/// Repositories the `MONOCHANGE_TOKEN` may act on, from
+	/// `MONOCHANGE_TOKEN_REPOSITORIES` (`owner/repo` entries separated by
+	/// commas or whitespace, compared case-insensitively). `None` leaves the
+	/// token unable to act anywhere, so the shared token never becomes a
+	/// deployment-wide credential by accident.
+	pub api_token_repositories: Option<std::collections::HashSet<String>>,
+	/// Seals GitHub OAuth tokens before they reach the database.
+	pub token_vault: Arc<token_vault::TokenVault>,
 	/// Shared HTTP client for GitHub API calls.
 	pub http: reqwest::Client,
 	/// Serialize refresh-token rotation so one browser session cannot invalidate another request.
@@ -218,6 +227,19 @@ impl AppState {
 			.monochange_token
 			.clone()
 			.filter(|token| !token.is_empty());
+		let api_token_repositories = std::env::var("MONOCHANGE_TOKEN_REPOSITORIES")
+			.ok()
+			.and_then(|raw| {
+				let repositories = raw
+					.split([',', ' ', '\n', '\t'])
+					.map(str::trim)
+					.filter(|entry| !entry.is_empty())
+					.map(str::to_lowercase)
+					.collect::<std::collections::HashSet<_>>();
+				(!repositories.is_empty()).then_some(repositories)
+			});
+		let token_vault = token_vault::TokenVault::new(&secrets.token_encryption_key)
+			.map_err(|_| github_app::GitHubAppError::EmptyTokenEncryptionKey)?;
 		// GitHub rejects API requests without a User-Agent header with 403.
 		let http = reqwest::Client::builder()
 			.user_agent("monochange")
@@ -238,6 +260,8 @@ impl AppState {
 			oidc: Arc::new(oidc::OidcVerifier::new(&oidc_audience)),
 			oidc_audience,
 			api_token,
+			api_token_repositories,
+			token_vault: Arc::new(token_vault),
 			http,
 			github_token_refresh_lock: Arc::new(tokio::sync::Mutex::new(())),
 		})

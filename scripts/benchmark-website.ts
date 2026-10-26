@@ -152,6 +152,7 @@ function startServer(options, port, databaseUrl) {
 			MONOSECRET_PROFILE: "ci",
 			DATABASE_URL: databaseUrl,
 			JWT_SECRET: "website-benchmark-signing-key",
+			TOKEN_ENCRYPTION_KEY: "website-benchmark-token-encryption-key",
 			GITHUB_CLIENT_ID: "benchmark-client-id",
 			GITHUB_CLIENT_SECRET: "benchmark-client-secret",
 			LEPTOS_ENV: "PROD",

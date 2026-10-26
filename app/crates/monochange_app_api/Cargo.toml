@@ -9,6 +9,7 @@ repository.workspace = true
 description = "Authentication and session API for the monochange web app"
 
 [dependencies]
+aes-gcm = "0.10"
 axum = { workspace = true }
 axum-extra = { workspace = true }
 base64 = "0.22"

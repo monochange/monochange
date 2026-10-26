@@ -41,6 +41,7 @@ async fn state(server: Option<&MockServer>) -> Arc<AppState> {
 	let secrets: AppSecrets = serde_json::from_value(serde_json::json!({
 		"database_url": "sqlite::memory:",
 		"jwt_secret": "connection-test-signing-key",
+		"token_encryption_key": "test-token-encryption-key",
 		"github_client_id": "",
 		"github_client_secret": "",
 	}))

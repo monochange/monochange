@@ -105,8 +105,13 @@ async fn authenticate(
 /// Check that an authenticated caller may act on `repository`.
 ///
 /// An OIDC token only grants access to the repository whose workflow minted
-/// it; the API token is deployment-wide.
-fn authorize(caller: &Caller, repository: &str) -> Result<(), (StatusCode, Json<ApiError>)> {
+/// it; the API token only grants access to the repositories the deployment
+/// listed in `MONOCHANGE_TOKEN_REPOSITORIES`.
+fn authorize(
+	state: &AppState,
+	caller: &Caller,
+	repository: &str,
+) -> Result<(), (StatusCode, Json<ApiError>)> {
 	match caller {
 		Caller::ActionsRun {
 			repository: claimed,
@@ -115,6 +120,19 @@ fn authorize(caller: &Caller, repository: &str) -> Result<(), (StatusCode, Json<
 				StatusCode::FORBIDDEN,
 				Json(ApiError::new(format!(
 					"OIDC token is for repository `{claimed}` but the request targets `{repository}`"
+				))),
+			))
+		}
+		Caller::ApiToken
+			if !state
+				.api_token_repositories
+				.as_ref()
+				.is_some_and(|repositories| repositories.contains(&repository.to_lowercase())) =>
+		{
+			Err((
+				StatusCode::FORBIDDEN,
+				Json(ApiError::new(format!(
+					"MONOCHANGE_TOKEN is not scoped to `{repository}`; add the repository to MONOCHANGE_TOKEN_REPOSITORIES or use a GitHub Actions OIDC token"
 				))),
 			))
 		}
@@ -321,7 +339,7 @@ pub async fn create_release_commit(
 		.map_err(|message| (StatusCode::BAD_REQUEST, Json(ApiError::new(message))))?;
 
 	let full_name = format!("{}/{}", request.owner, request.repository);
-	authorize(&caller, &full_name)?;
+	authorize(&state, &caller, &full_name)?;
 	let repository = find_connected_repository(&state, &full_name)
 		.await
 		.map_err(|message| (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiError::new(message))))?
@@ -413,7 +431,7 @@ pub async fn publish_release_request(
 	validate_branch_names(&request.head_branch, Some(&request.base_branch))
 		.map_err(|message| (StatusCode::BAD_REQUEST, Json(ApiError::new(message))))?;
 	let full_name = format!("{}/{}", request.owner, request.repo);
-	authorize(&caller, &full_name)?;
+	authorize(&state, &caller, &full_name)?;
 
 	let repository = find_connected_repository(&state, &full_name)
 		.await
