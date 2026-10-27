@@ -214,7 +214,11 @@ fn validate_commit_paths(request: &HostedCommitRequest) -> Result<(), String> {
 	for file in &request.files {
 		let path = &file.path;
 
-		if path.starts_with('/') || path.contains("..") || path.contains('\\') {
+		if path.contains('\\')
+			|| path
+				.split('/')
+				.any(|component| matches!(component, "" | "." | ".."))
+		{
 			return Err(format!(
 				"release file path `{path}` must be repository-relative"
 			));
@@ -224,7 +228,9 @@ fn validate_commit_paths(request: &HostedCommitRequest) -> Result<(), String> {
 			return Err(format!("release file path `{path}` must not touch .git"));
 		}
 
-		if path.starts_with(".github/workflows/") {
+		if matches!(path.as_str(), ".github" | ".github/workflows")
+			|| path.starts_with(".github/workflows/")
+		{
 			return Err(format!(
 				"release file path `{path}` must not modify GitHub workflows"
 			));

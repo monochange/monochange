@@ -416,6 +416,19 @@ async fn create_commit(
 	server: &MockServer,
 	request: &HostedCommitRequest,
 ) -> Result<(String, bool, Option<String>), GitHubAppError> {
+	server.mock(|when, then| {
+		when.method(Method::GET)
+			.path("/repos/acme/actions/git/commits/base-sha");
+		then.json_body(serde_json::json!({"tree": {"sha": "base-tree-sha"}}));
+	});
+	for tree in ["base-tree-sha", "tree-sha"] {
+		server.mock(|when, then| {
+			when.method(Method::GET)
+				.path(format!("/repos/acme/actions/git/trees/{tree}"));
+			then.json_body(serde_json::json!({"tree": []}));
+		});
+	}
+
 	create_release_commit(
 		&reqwest::Client::new(),
 		&server.base_url(),
@@ -745,4 +758,73 @@ async fn unreadable_repository_metadata_refuses_to_force() {
 		"{error}"
 	);
 	update.assert_calls(0);
+}
+
+#[rstest]
+#[case::truncated_root("truncated")]
+#[case::truncated_github("truncated_github")]
+#[case::ancestor_blob("ancestor")]
+#[case::workflow_blob("workflows")]
+#[tokio::test]
+async fn workflow_tree_boundaries_must_be_complete_directories(
+	#[case] invalid: &str,
+	#[values(false, true)] uploaded_files: bool,
+) {
+	let server = MockServer::start();
+	mock_branch(&server, RELEASE_BRANCH, None);
+	let writes = mock_commit_writes(&server);
+	let create_ref = server.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/git/refs");
+		then.status(201);
+	});
+	let update_ref = mock_branch_update(&server, RELEASE_BRANCH, false);
+	let release_entries = match invalid {
+		"truncated" => serde_json::json!({"tree": [], "truncated": true}),
+		"ancestor" => {
+			serde_json::json!({"tree": [{"path": ".github", "sha": "github-tree", "type": "blob"}]})
+		}
+		_ => {
+			serde_json::json!({"tree": [{"path": ".github", "sha": "release-github-tree", "type": "tree"}]})
+		}
+	};
+	server.mock(|when, then| {
+		when.method(Method::GET)
+			.path("/repos/acme/actions/git/trees/base-tree-sha");
+		then.json_body(
+			serde_json::json!({"tree": [{"path": ".github", "sha": "github-tree", "type": "tree"}]}),
+		);
+	});
+	server.mock(|when, then| {
+		when.method(Method::GET)
+			.path("/repos/acme/actions/git/trees/tree-sha");
+		then.json_body(release_entries);
+	});
+	for tree in ["github-tree", "release-github-tree"] {
+		let kind = if tree == "release-github-tree" && invalid == "workflows" {
+			"blob"
+		} else {
+			"tree"
+		};
+		server.mock(|when, then| {
+			when.method(Method::GET)
+				.path(format!("/repos/acme/actions/git/trees/{tree}"));
+			then.json_body(serde_json::json!({
+				"tree": [{"path": "workflows", "sha": "workflow-tree", "type": kind}],
+				"truncated": tree == "release-github-tree" && invalid == "truncated_github",
+			}));
+		});
+	}
+	let mut request = release_commit_request(RELEASE_BRANCH, Some("main"));
+	if !uploaded_files {
+		request.files.clear();
+		request.tree = Some("tree-sha".to_owned());
+	}
+	assert!(matches!(
+		create_commit(&server, &request).await,
+		Err(GitHubAppError::WorkflowsChanged)
+	));
+	writes.commit.assert_calls(0);
+	create_ref.assert_calls(0);
+	update_ref.assert_calls(0);
 }
