@@ -766,7 +766,7 @@ async fn unreadable_repository_metadata_refuses_to_force() {
 #[case::ancestor_blob("ancestor")]
 #[case::workflow_blob("workflows")]
 #[tokio::test]
-async fn workflow_tree_boundaries_must_be_complete_directories(
+async fn workflow_security_tree_boundaries_must_be_complete_directories(
 	#[case] invalid: &str,
 	#[values(false, true)] uploaded_files: bool,
 ) {
@@ -780,7 +780,12 @@ async fn workflow_tree_boundaries_must_be_complete_directories(
 	});
 	let update_ref = mock_branch_update(&server, RELEASE_BRANCH, false);
 	let release_entries = match invalid {
-		"truncated" => serde_json::json!({"tree": [], "truncated": true}),
+		"truncated" => {
+			serde_json::json!({
+				"tree": [{"path": ".github", "sha": "github-tree", "type": "tree"}],
+				"truncated": true,
+			})
+		}
 		"ancestor" => {
 			serde_json::json!({"tree": [{"path": ".github", "sha": "github-tree", "type": "blob"}]})
 		}

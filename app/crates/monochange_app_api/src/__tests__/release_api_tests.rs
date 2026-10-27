@@ -45,7 +45,7 @@ use crate::github_app::GitHubAppError;
 #[case("")]
 #[case("folder/")]
 #[test]
-fn protected_tree_paths_and_noncanonical_paths_are_rejected(#[case] path: &str) {
+fn workflow_security_paths_and_noncanonical_paths_are_rejected(#[case] path: &str) {
 	for content in [None, Some("replacement".to_string())] {
 		let mut request = request_with_path(path);
 		request.files[0].content = content;
