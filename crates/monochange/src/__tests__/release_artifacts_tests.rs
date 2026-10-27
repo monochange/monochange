@@ -1185,7 +1185,7 @@ fn deduplicate_skips_current_record_dir_during_overlap_scan() {
 }
 
 #[test]
-fn validate_release_record_file_skips_rebuild_when_targets_match() {
+fn validate_release_record_file_preserves_unchanged_content() {
 	let tmp = tempdir().unwrap();
 	let root = tmp.path();
 
@@ -1199,6 +1199,151 @@ fn validate_release_record_file_skips_rebuild_when_targets_match() {
 
 	let second_content = fs::read_to_string(&path).unwrap();
 	assert_eq!(first_content, second_content);
+}
+
+#[rstest::rstest]
+#[case("/release_targets/0/tag_name")]
+#[case("/release_targets/0/tag")]
+#[case("/release_targets/0/release")]
+#[case("/release_targets/0/floating_tags")]
+#[case("/release_targets/0/members")]
+#[case("/release_targets/0/rendered_title")]
+#[case("/release_targets/0/rendered_changelog_title")]
+#[case("/package_publications")]
+#[case("/provider")]
+#[case("/updated_changelogs")]
+#[case("/changelogs")]
+#[case("/changed_files")]
+#[case("/released_packages")]
+#[case("/values")]
+#[case("/labels")]
+#[case("/created_at")]
+fn release_record_security_rejects_tampering_beyond_target_identity(#[case] pointer: &str) {
+	let fixture = monochange_test_helpers::fixture_path!("release-record-integrity");
+	let mutations: serde_json::Value =
+		serde_json::from_str(&fs::read_to_string(fixture.join("mutations.json")).unwrap()).unwrap();
+	let mut record: serde_json::Value =
+		serde_json::from_str(&fs::read_to_string(fixture.join("release.json")).unwrap()).unwrap();
+	let replacement = mutations[pointer].clone();
+
+	if let Some(field) = record.pointer_mut(pointer) {
+		*field = replacement;
+	} else {
+		let (parent, field) = pointer.rsplit_once('/').unwrap();
+		record.pointer_mut(parent).unwrap()[field] = replacement;
+	}
+
+	let tmp = tempdir().unwrap();
+	let manifest = minimal_manifest_with_target("pkg-a", "1.0.0");
+	let path = ReleasePaths::from_manifest(tmp.path(), &manifest).absolute;
+	fs::create_dir_all(path.parent().unwrap()).unwrap();
+	let tampered = serde_json::to_string(&record).unwrap();
+	fs::write(&path, &tampered).unwrap();
+
+	// Preparation preserves pre-existing records; commit must check every field.
+	write_release_record_file(tmp.path(), None, &manifest).unwrap();
+	assert!(validate_release_record_file(tmp.path(), None, &manifest, false).is_err());
+	assert_eq!(fs::read_to_string(&path).unwrap(), tampered);
+
+	validate_release_record_file(tmp.path(), None, &manifest, true).unwrap();
+	validate_release_record_file(tmp.path(), None, &manifest, false).unwrap();
+}
+
+#[test]
+fn validate_release_record_file_accepts_reordered_keys_and_preserves_preparation_time() {
+	let tmp = tempdir().unwrap();
+	let manifest = minimal_manifest_with_target("pkg-a", "1.0.0");
+	let path = ReleasePaths::from_manifest(tmp.path(), &manifest).absolute;
+	fs::create_dir_all(path.parent().unwrap()).unwrap();
+	fs::copy(
+		monochange_test_helpers::fixture_path!("release-record-integrity/release.json"),
+		&path,
+	)
+	.unwrap();
+	let original = fs::read_to_string(&path).unwrap();
+
+	assert_eq!(
+		validate_release_record_file(tmp.path(), None, &manifest, false).unwrap(),
+		path
+	);
+	assert_eq!(fs::read_to_string(&path).unwrap(), original);
+}
+
+#[rstest::rstest]
+#[case::protect(false)]
+#[case::repair(true)]
+#[cfg(unix)]
+fn release_record_security_rejects_unserializable_expected_content(#[case] update: bool) {
+	use std::os::unix::ffi::OsStringExt;
+
+	let fixture = monochange_test_helpers::fixture_path!("release-record-integrity");
+	let tmp = tempdir().unwrap();
+	let mut manifest = minimal_manifest_with_target("pkg-a", "1.0.0");
+	let bytes: Vec<u8> =
+		serde_json::from_str(&fs::read_to_string(fixture.join("non-utf8-path.json")).unwrap())
+			.unwrap();
+	manifest
+		.changed_files
+		.push(std::ffi::OsString::from_vec(bytes).into());
+	let path = ReleasePaths::from_manifest(tmp.path(), &manifest).absolute;
+	fs::create_dir_all(path.parent().unwrap()).unwrap();
+	fs::copy(fixture.join("release.json"), &path).unwrap();
+	let original = fs::read_to_string(&path).unwrap();
+
+	let error = validate_release_record_file(tmp.path(), None, &manifest, update).unwrap_err();
+
+	assert!(matches!(
+		error,
+		MonochangeError::Io(message) if message.starts_with("serialize release record:")
+	));
+	assert_eq!(fs::read_to_string(&path).unwrap(), original);
+}
+
+#[rstest::rstest]
+#[case::tampered(true)]
+#[case::missing(false)]
+fn release_record_security_rejection_preserves_overlapping_records(#[case] current_exists: bool) {
+	let fixture = monochange_test_helpers::fixture_path!("release-record-integrity");
+	let tmp = tempdir().unwrap();
+	let root = tmp.path();
+	let manifest = minimal_manifest_with_target("pkg-a", "1.0.0");
+	let path = ReleasePaths::from_manifest(root, &manifest).absolute;
+	let mut overlapping_manifest = manifest.clone();
+	overlapping_manifest
+		.release_targets
+		.extend(minimal_manifest_with_target("pkg-b", "2.0.0").release_targets);
+	let overlapping_path = ReleasePaths::from_manifest(root, &overlapping_manifest).absolute;
+
+	// A reused preparation can arrive without the local deduplication index.
+	fs::create_dir_all(overlapping_path.parent().unwrap()).unwrap();
+	fs::copy(fixture.join("overlapping-release.json"), &overlapping_path).unwrap();
+	let overlapping_before = fs::read_to_string(&overlapping_path).unwrap();
+	let current_before = if current_exists {
+		let mut record: serde_json::Value =
+			serde_json::from_str(&fs::read_to_string(fixture.join("release.json")).unwrap())
+				.unwrap();
+		let mutations: serde_json::Value =
+			serde_json::from_str(&fs::read_to_string(fixture.join("mutations.json")).unwrap())
+				.unwrap();
+		record["release_targets"][0]["tag_name"] = mutations["/release_targets/0/tag_name"].clone();
+		let content = serde_json::to_string(&record).unwrap();
+		fs::create_dir_all(path.parent().unwrap()).unwrap();
+		fs::write(&path, &content).unwrap();
+		Some(content)
+	} else {
+		None
+	};
+
+	assert!(validate_release_record_file(root, None, &manifest, false).is_err());
+	assert_eq!(
+		fs::read_to_string(&overlapping_path).unwrap(),
+		overlapping_before
+	);
+	if let Some(content) = current_before {
+		assert_eq!(fs::read_to_string(&path).unwrap(), content);
+	} else {
+		assert!(!path.exists());
+	}
 }
 
 #[test]
@@ -1391,7 +1536,7 @@ fn save_dedup_index_reports_io_errors() {
 }
 
 #[test]
-fn validate_release_record_file_fast_path_detects_missing_id() {
+fn validate_release_record_file_repairs_missing_id() {
 	let tmp = tempdir().unwrap();
 	let root = tmp.path();
 
@@ -1411,7 +1556,7 @@ fn validate_release_record_file_fast_path_detects_missing_id() {
 }
 
 #[test]
-fn validate_release_record_file_fast_path_detects_missing_kind() {
+fn validate_release_record_file_repairs_missing_kind() {
 	let tmp = tempdir().unwrap();
 	let root = tmp.path();
 
@@ -1430,7 +1575,7 @@ fn validate_release_record_file_fast_path_detects_missing_kind() {
 }
 
 #[test]
-fn validate_release_record_file_fast_path_detects_missing_version() {
+fn validate_release_record_file_repairs_missing_version() {
 	let tmp = tempdir().unwrap();
 	let root = tmp.path();
 
@@ -1449,7 +1594,7 @@ fn validate_release_record_file_fast_path_detects_missing_version() {
 }
 
 #[test]
-fn validate_release_record_file_fast_path_detects_mismatched_target_count() {
+fn validate_release_record_file_repairs_mismatched_target_count() {
 	let tmp = tempdir().unwrap();
 	let root = tmp.path();
 
@@ -1470,7 +1615,7 @@ fn validate_release_record_file_fast_path_detects_mismatched_target_count() {
 
 #[test]
 #[cfg(unix)]
-fn validate_release_record_file_fast_path_reports_error_for_unreadable_file() {
+fn validate_release_record_file_reports_error_for_unreadable_file() {
 	use std::os::unix::fs::PermissionsExt;
 
 	let tmp = tempdir().unwrap();

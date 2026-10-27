@@ -1,0 +1,154 @@
+name: release-record regression evidence
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - crates/monochange/src/release_artifacts.rs
+      - crates/monochange/src/__tests__/release_artifacts_tests.rs
+      - fixtures/tests/release-record-integrity/**
+      - .github/workflows/release-record-regressions.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_BUILD_JOBS: "1"
+  RUST_TEST_THREADS: "2"
+
+jobs:
+  release-record-regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: setup
+        uses: $/.github/actions/devenv
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          free-runner-space: "true"
+
+      - name: prove the original release validator fails the security cases
+        shell: devenv shell -- bash -e {0}
+        run: |
+          set -euo pipefail
+          export CARGO_BUILD_JOBS=1 RUST_TEST_THREADS=2
+          head="$(git rev-parse HEAD)"
+          source_file=crates/monochange/src/release_artifacts.rs
+          output="${{ runner.temp }}/release-record-regressions"
+          mkdir -p "$output"
+          restore_fixed() {
+            git restore --source="$head" --worktree -- "$source_file"
+          }
+          trap restore_fixed EXIT
+          git show "05d0753505a07ef9bf9bb0fef6e4713da1773ddd:$source_file" > "$source_file"
+          set +e
+          cargo test --locked -p monochange --all-features --lib release_record_security_ \
+            -- --test-threads=2 2>&1 | tee "$output/original.log"
+          status=${PIPESTATUS[0]}
+          set -e
+          test "$status" -eq 101
+          node --input-type=module - "$output/original.log" 20 <<'NODE'
+          import { readFileSync } from "node:fs";
+          const log = readFileSync(process.argv[2], "utf8");
+          const expected = Number(process.argv[3]);
+          const summary = new RegExp("^test result: FAILED\\. 0 passed; " + expected + " failed;", "m");
+          const failures = [...log.matchAll(/^---- .*release_record_security_.* stdout ----$/gm)].length;
+          if (!summary.test(log) || failures !== expected) {
+            throw new Error("original validator did not produce twenty executed failures");
+          }
+          NODE
+          restore_fixed
+          git diff --exit-code -- "$source_file"
+          test "$(git rev-parse HEAD)" = "$head"
+
+      - name: prove cleanup before validation deletes neighboring records
+        shell: devenv shell -- bash -e {0}
+        run: |
+          set -euo pipefail
+          export CARGO_BUILD_JOBS=1 RUST_TEST_THREADS=2
+          head="$(git rev-parse HEAD)"
+          source_file=crates/monochange/src/release_artifacts.rs
+          output="${{ runner.temp }}/release-record-regressions"
+          restore_fixed() {
+            git restore --source="$head" --worktree -- "$source_file"
+          }
+          trap restore_fixed EXIT
+          node --input-type=module <<'NODE'
+          import { readFileSync, writeFileSync } from "node:fs";
+          const path = "crates/monochange/src/release_artifacts.rs";
+          const source = readFileSync(path, "utf8");
+          const start = source.indexOf("pub(crate) fn validate_release_record_file(");
+          const end = source.indexOf("\n/// Derived filesystem paths", start);
+          if (start < 0 || end < 0) throw new Error("validator boundaries changed");
+          const method = source.slice(start, end);
+          const cleanup = [
+            "\tdeduplicate_overlapping_release_records(",
+            "\t\troot,",
+            "\t\t&record.release_targets,",
+            "\t\tpaths.absolute.parent().unwrap_or(root),",
+            "\t)?;",
+            "",
+          ].join("\n");
+          const acceptance = "\tif let Some(existing) = existing {";
+          if (method.split(cleanup).length !== 2 || method.split(acceptance).length !== 2) {
+            throw new Error("expected one cleanup and one acceptance boundary");
+          }
+          const counterexample = method.replace(cleanup, "").replace(acceptance, cleanup + acceptance);
+          writeFileSync(path, source.slice(0, start) + counterexample + source.slice(end));
+          NODE
+          set +e
+          cargo test --locked -p monochange --all-features --lib \
+            release_record_security_rejection_preserves_overlapping_records \
+            -- --test-threads=2 2>&1 | tee "$output/cleanup-order.log"
+          status=${PIPESTATUS[0]}
+          set -e
+          test "$status" -eq 101
+          node --input-type=module - "$output/cleanup-order.log" <<'NODE'
+          import { readFileSync } from "node:fs";
+          const log = readFileSync(process.argv[2], "utf8");
+          const failures = [...log.matchAll(/^---- .*release_record_security_rejection_.* stdout ----$/gm)].length;
+          if (!/^test result: FAILED\. 0 passed; 2 failed;/m.test(log) || failures !== 2) {
+            throw new Error("unsafe cleanup placement did not produce two executed failures");
+          }
+          NODE
+          restore_fixed
+          git diff --exit-code -- "$source_file"
+
+      - name: verify the fixed release artifact module
+        shell: devenv shell -- bash -e {0}
+        run: |
+          set -euo pipefail
+          export CARGO_BUILD_JOBS=1 RUST_TEST_THREADS=2
+          cargo test --locked -p monochange --all-features --lib release_artifacts::tests \
+            -- --test-threads=2 2>&1 | tee "${{ runner.temp }}/release-record-regressions/fixed.log"
+
+      - name: capture release-note outputs
+        shell: devenv shell -- bash -e {0}
+        run: |
+          set -euo pipefail
+          export CARGO_BUILD_JOBS=1 RUST_TEST_THREADS=2
+          cargo run --locked -p monochange --bin monochange -- step validate
+          cargo run --locked -p monochange --bin monochange -- \
+            step prepare-release --dry-run --format json \
+            > "${{ runner.temp }}/release-record-regressions/release-preview.json"
+
+      - name: upload regression evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-record-regression-evidence
+          path: |
+            ${{ runner.temp }}/release-record-regressions/*.log
+            ${{ runner.temp }}/release-record-regressions/release-preview.json
+          if-no-files-found: error
+          retention-days: 7

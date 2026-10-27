@@ -1545,82 +1545,41 @@ fn compare_json_strings(json1: &str, json2: &str) -> bool {
 	}
 }
 
-/// Validate that the release record file expected for `manifest` still exists
-/// on disk after re-running deduplication. Called by `commit_release` to
-/// guard against stale or missing records between `prepare_release` and
-/// `commit_release`.
+/// Validate the expected release record before deduplicating overlapping records.
+/// Called by `commit_release` to guard against stale or missing records between
+/// `prepare_release` and `commit_release`.
 ///
-/// Performance note: when the file already exists and its `release_targets`
-/// match the manifest, this function skips rebuilding the `ReleaseRecord`
-/// entirely. It only falls back to `build_release_record` when the file is
-/// missing or the targets differ, avoiding the JSON round-trip on the hot
-/// path.
+/// Every field is compared with the prepared manifest. The record's valid
+/// creation timestamp is preserved because the manifest does not store it;
+/// preparing and committing at different times must not invalidate the record.
 pub(crate) fn validate_release_record_file(
 	root: &Path,
 	source: Option<&SourceConfiguration>,
 	manifest: &ReleaseManifest,
 	update_release_json: bool,
 ) -> MonochangeResult<PathBuf> {
-	// Compute the expected path from the manifest without building the record.
 	let paths = ReleasePaths::from_manifest(root, manifest);
+	let existing = if paths.absolute.is_file() {
+		Some(
+			fs::read_to_string(&paths.absolute)
+				.map_err(|error| MonochangeError::Io(format!("read release record: {error}")))?,
+		)
+	} else {
+		None
+	};
+	let mut record = build_release_record(source, manifest);
 
-	// Fast path: if the file exists, verify its release_targets identity
-	// without rebuilding the entire ReleaseRecord.
-	if paths.absolute.is_file() {
-		match fs::read_to_string(&paths.absolute) {
-			Ok(existing_json) => {
-				if let Ok(existing_value) =
-					serde_json::from_str::<serde_json::Value>(&existing_json)
-					&& let Some(existing_targets) = existing_value
-						.get("release_targets")
-						.and_then(|v| v.as_array())
-				{
-					let manifest_targets = &manifest.release_targets;
-
-					if existing_targets.len() == manifest_targets.len() {
-						let all_match = manifest_targets.iter().all(|mt| {
-							existing_targets.iter().any(|et| {
-								let Some(id) = et.get("id").and_then(|v| v.as_str()) else {
-									return false;
-								};
-								let Some(kind) = et.get("kind").and_then(|v| v.as_str()) else {
-									return false;
-								};
-								let Some(version) = et.get("version").and_then(|v| v.as_str())
-								else {
-									return false;
-								};
-								mt.id == id && mt.kind.as_str() == kind && mt.version == version
-							})
-						});
-
-						if all_match {
-							// Targets match — no need to rebuild or rewrite.
-							add_to_dedup_index(root, &paths.hash).ok();
-							return Ok(paths.absolute);
-						}
-					}
-				}
-			}
-			Err(error) => {
-				return Err(MonochangeError::Io(format!("read release record: {error}")));
-			}
-		}
+	if let Some(existing_record) = existing
+		.as_deref()
+		.and_then(|json| serde_json::from_str::<ReleaseRecord>(json).ok())
+		&& chrono::DateTime::parse_from_rfc3339(&existing_record.created_at).is_ok()
+	{
+		record.created_at = existing_record.created_at;
 	}
+	let json = serde_json::to_string_pretty(&record)
+		.map_err(|error| MonochangeError::Io(format!("serialize release record: {error}")))?;
 
-	// Slow path: rebuild the record, deduplicate, and validate or rewrite.
-	let record = build_release_record(source, manifest);
-	deduplicate_overlapping_release_records(
-		root,
-		&record.release_targets,
-		paths.absolute.parent().unwrap_or(root),
-	)?;
-	let json = serde_json::to_string_pretty(&record).unwrap_or_default();
-
-	if paths.absolute.is_file() {
-		let existing = fs::read_to_string(&paths.absolute)
-			.map_err(|error| MonochangeError::Io(format!("read release record: {error}")))?;
-
+	if let Some(existing) = existing {
 		if !compare_json_strings(&existing, &json) {
 			if update_release_json {
 				fs::write(&paths.absolute, json).map_err(|error| {
@@ -1646,6 +1605,11 @@ pub(crate) fn validate_release_record_file(
 		)));
 	}
 
+	deduplicate_overlapping_release_records(
+		root,
+		&record.release_targets,
+		paths.absolute.parent().unwrap_or(root),
+	)?;
 	Ok(paths.absolute)
 }
 
