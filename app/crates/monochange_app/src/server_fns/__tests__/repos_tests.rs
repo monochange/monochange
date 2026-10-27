@@ -156,6 +156,11 @@ async fn organization_state(server: &MockServer) -> Arc<AppState> {
 	let state = state().await;
 	sqlx::query("INSERT INTO installations (id, user_id, github_installation_id, github_account_login, github_account_type) VALUES (3, 1, 1003, 'team', 'Organization')").execute(&state.db).await.unwrap();
 	sqlx::query("INSERT INTO repositories (installation_id, github_repo_id, github_full_name, github_private) VALUES (3, 31, 'team/private', 1), (3, 32, 'team/second', 1)").execute(&state.db).await.unwrap();
+	sqlx::query("INSERT INTO organizations (id, provider, github_id, github_login, account_type) VALUES (3, 'github', 5001, 'team', 'Organization')").execute(&state.db).await.unwrap();
+	sqlx::query("UPDATE installations SET organization_id = 3 WHERE id = 3")
+		.execute(&state.db)
+		.await
+		.unwrap();
 	let mut state = (*state).clone();
 	state.github_api_origin = server.base_url();
 	Arc::new(state)
@@ -169,7 +174,9 @@ async fn organization_repositories_require_current_active_owner_membership() {
 			when.method(GET)
 				.path("/user/memberships/orgs/team")
 				.header("authorization", "Bearer test-only-token");
-			then.json_body(serde_json::json!({"state":"active","role":"admin"}));
+			then.json_body(
+				serde_json::json!({"state":"active","role":"admin","organization":{"id":5001}}),
+			);
 		})
 		.await;
 	let state = organization_state(&server).await;
@@ -192,18 +199,188 @@ async fn organization_repositories_require_current_active_owner_membership() {
 }
 
 #[tokio::test]
-async fn one_user_token_checks_repositories_from_multiple_organizations() {
+async fn organization_membership_cannot_authorize_a_different_stable_account() {
 	let server = MockServer::start_async().await;
-	let team_membership = server
+	let membership = server
+		.mock_async(|when, then| {
+			when.method(GET).path("/user/memberships/orgs/team");
+			then.json_body(
+				serde_json::json!({"state":"active","role":"admin","organization":{"id":9001}}),
+			);
+		})
+		.await;
+	let state = organization_state(&server).await;
+	let cookie = session(&state, 1);
+	let owner = context(state, Some(cookie));
+	let repositories = owner
+		.with(|| ScopedFuture::new(list_repos()))
+		.await
+		.unwrap();
+	assert_eq!(repositories.len(), 2);
+	assert!(
+		repositories
+			.iter()
+			.all(|repository| repository.installation_login == "alice")
+	);
+	membership.assert_calls_async(1).await;
+}
+
+#[tokio::test]
+async fn organization_membership_must_include_the_stable_account_id() {
+	let server = MockServer::start_async().await;
+	let membership = server
 		.mock_async(|when, then| {
 			when.method(GET).path("/user/memberships/orgs/team");
 			then.json_body(serde_json::json!({"state":"active","role":"admin"}));
 		})
 		.await;
+	let state = organization_state(&server).await;
+	let cookie = session(&state, 1);
+	let owner = context(state, Some(cookie));
+	assert!(
+		owner
+			.with(|| ScopedFuture::new(list_repos()))
+			.await
+			.is_err()
+	);
+	membership.assert_calls_async(1).await;
+}
+
+#[tokio::test]
+async fn one_membership_response_cannot_authorize_two_accounts_with_the_same_login() {
+	let server = MockServer::start_async().await;
+	let membership = server
+		.mock_async(|when, then| {
+			when.method(GET).path("/user/memberships/orgs/team");
+			then.json_body(
+				serde_json::json!({"state":"active","role":"admin","organization":{"id":5001}}),
+			);
+		})
+		.await;
+	let state = organization_state(&server).await;
+	sqlx::query("INSERT INTO organizations (id, provider, github_id, github_login, account_type) VALUES (4, 'github', 9001, 'team', 'Organization')").execute(&state.db).await.unwrap();
+	sqlx::query("INSERT INTO installations (id, user_id, github_installation_id, github_account_login, github_account_type, organization_id) VALUES (4, 1, 1004, 'team', 'Organization', 4)").execute(&state.db).await.unwrap();
+	sqlx::query("INSERT INTO repositories (installation_id, github_repo_id, github_full_name) VALUES (4, 41, 'team/stale')").execute(&state.db).await.unwrap();
+	let cookie = session(&state, 1);
+	let owner = context(state, Some(cookie));
+	let repositories = owner
+		.with(|| ScopedFuture::new(list_repos()))
+		.await
+		.unwrap();
+	assert_eq!(repositories.len(), 4);
+	assert!(
+		!repositories
+			.iter()
+			.any(|repository| repository.github_full_name == "team/stale")
+	);
+	membership.assert_calls_async(2).await;
+}
+
+#[tokio::test]
+async fn organization_repositories_wait_for_a_stable_provider_identity() {
+	let server = MockServer::start_async().await;
+	let membership = server
+		.mock_async(|when, then| {
+			when.method(GET).path("/user/memberships/orgs/team");
+			then.json_body(
+				serde_json::json!({"state":"active","role":"admin","organization":{"id":5001}}),
+			);
+		})
+		.await;
+	let state = organization_state(&server).await;
+	sqlx::query("UPDATE installations SET organization_id = NULL WHERE id = 3")
+		.execute(&state.db)
+		.await
+		.unwrap();
+	let cookie = session(&state, 1);
+	let owner = context(state, Some(cookie));
+	assert_eq!(
+		owner
+			.with(|| ScopedFuture::new(list_repos()))
+			.await
+			.unwrap()
+			.len(),
+		2
+	);
+	membership.assert_calls_async(0).await;
+}
+
+#[tokio::test]
+async fn organization_identity_must_belong_to_the_github_provider() {
+	let server = MockServer::start_async().await;
+	let membership = server
+		.mock_async(|when, then| {
+			when.method(GET).path("/user/memberships/orgs/team");
+			then.json_body(
+				serde_json::json!({"state":"active","role":"admin","organization":{"id":5001}}),
+			);
+		})
+		.await;
+	let state = organization_state(&server).await;
+	sqlx::query("UPDATE organizations SET provider = 'other' WHERE id = 3")
+		.execute(&state.db)
+		.await
+		.unwrap();
+	let cookie = session(&state, 1);
+	let owner = context(state, Some(cookie));
+	assert_eq!(
+		owner
+			.with(|| ScopedFuture::new(list_repos()))
+			.await
+			.unwrap()
+			.len(),
+		2
+	);
+	membership.assert_calls_async(0).await;
+}
+
+#[tokio::test]
+async fn other_providers_cannot_grant_github_repository_access() {
+	let state = state().await;
+	sqlx::query("UPDATE repositories SET provider = 'other' WHERE github_repo_id = 11")
+		.execute(&state.db)
+		.await
+		.unwrap();
+	let cookie = session(&state, 1);
+	let owner = context(state.clone(), Some(cookie));
+	assert_eq!(
+		owner
+			.with(|| ScopedFuture::new(list_repos()))
+			.await
+			.unwrap()
+			.len(),
+		1
+	);
+	sqlx::query("UPDATE installations SET provider = 'other' WHERE id = 1")
+		.execute(&state.db)
+		.await
+		.unwrap();
+	assert!(
+		owner
+			.with(|| ScopedFuture::new(list_repos()))
+			.await
+			.unwrap()
+			.is_empty()
+	);
+}
+
+#[tokio::test]
+async fn one_user_token_checks_repositories_from_multiple_organizations() {
+	let server = MockServer::start_async().await;
+	let team_membership = server
+		.mock_async(|when, then| {
+			when.method(GET).path("/user/memberships/orgs/team");
+			then.json_body(
+				serde_json::json!({"state":"active","role":"admin","organization":{"id":5001}}),
+			);
+		})
+		.await;
 	let second_membership = server
 		.mock_async(|when, then| {
 			when.method(GET).path("/user/memberships/orgs/second-team");
-			then.json_body(serde_json::json!({"state":"active","role":"admin"}));
+			then.json_body(
+				serde_json::json!({"state":"active","role":"admin","organization":{"id":5002}}),
+			);
 		})
 		.await;
 	let state = organization_state(&server).await;
@@ -215,6 +392,11 @@ async fn one_user_token_checks_repositories_from_multiple_organizations() {
 	.execute(&state.db)
 	.await
 	.unwrap();
+	sqlx::query("INSERT INTO organizations (id, provider, github_id, github_login, account_type) VALUES (4, 'github', 5002, 'second-team', 'Organization')").execute(&state.db).await.unwrap();
+	sqlx::query("UPDATE installations SET organization_id = 4 WHERE id = 4")
+		.execute(&state.db)
+		.await
+		.unwrap();
 	sqlx::query(
 		"INSERT INTO repositories (
 			installation_id, github_repo_id, github_full_name, github_private
@@ -252,7 +434,9 @@ async fn ordinary_or_pending_members_cannot_read_organization_repositories() {
 		let membership = server
 			.mock_async(|when, then| {
 				when.method(GET).path("/user/memberships/orgs/team");
-				then.json_body(serde_json::json!({"state":state_value,"role":role}));
+				then.json_body(
+					serde_json::json!({"state":state_value,"role":role,"organization":{"id":5001}}),
+				);
 			})
 			.await;
 		let state = organization_state(&server).await;

@@ -245,13 +245,20 @@ async fn dashboard_rechecks_organization_ownership_and_reports_expired_authoriza
 	let membership = server
 		.mock_async(|when, then| {
 			when.method(GET).path("/user/memberships/orgs/acme");
-			then.json_body(serde_json::json!({"state":"active","role":"admin"}));
+			then.json_body(
+				serde_json::json!({"state":"active","role":"admin","organization":{"id":5001}}),
+			);
 		})
 		.await;
 	let state = configured_state(&server).await;
 	sqlx::query("INSERT INTO users (id, github_id, github_login, github_access_token) VALUES (1, 101, 'alice', 'test-only-alice-token')").execute(&state.db).await.unwrap();
 	sqlx::query("INSERT INTO installations (id, user_id, github_installation_id, github_account_login, github_account_type) VALUES (1, 1, 1001, 'acme', 'Organization')").execute(&state.db).await.unwrap();
 	sqlx::query("INSERT INTO repositories (installation_id, github_repo_id, github_full_name, github_private) VALUES (1, 11, 'acme/private', 1)").execute(&state.db).await.unwrap();
+	sqlx::query("INSERT INTO organizations (id, provider, github_id, github_login, account_type) VALUES (1, 'github', 5001, 'acme', 'Organization')").execute(&state.db).await.unwrap();
+	sqlx::query("UPDATE installations SET organization_id = 1 WHERE id = 1")
+		.execute(&state.db)
+		.await
+		.unwrap();
 	let token = monochange_app_api::create_token(&state.jwt_secret, 1, 101, "alice").unwrap();
 
 	let cookie = format!("{}={token}", oauth::SESSION_COOKIE_NAME);
@@ -261,7 +268,9 @@ async fn dashboard_rechecks_organization_ownership_and_reports_expired_authoriza
 	let membership = server
 		.mock_async(|when, then| {
 			when.method(GET).path("/user/memberships/orgs/acme");
-			then.json_body(serde_json::json!({"state":"active","role":"member"}));
+			then.json_body(
+				serde_json::json!({"state":"active","role":"member","organization":{"id":5001}}),
+			);
 		})
 		.await;
 	let revoked = dashboard_html(&app, &cookie).await;
@@ -272,7 +281,9 @@ async fn dashboard_rechecks_organization_ownership_and_reports_expired_authoriza
 	let membership = server
 		.mock_async(|when, then| {
 			when.method(GET).path("/user/memberships/orgs/acme");
-			then.json_body(serde_json::json!({"state":"active","role":"admin"}));
+			then.json_body(
+				serde_json::json!({"state":"active","role":"admin","organization":{"id":5001}}),
+			);
 		})
 		.await;
 	let restored = dashboard_html(&app, &cookie).await;
@@ -531,11 +542,14 @@ async fn configured_dashboard_connects_to_verified_app_and_shows_suspended_repos
 	sqlx::query("INSERT INTO installations (id, user_id, github_installation_id, github_account_login, github_account_type, target_type) VALUES (1, 1, 1001, 'alice', 'User', 'suspended')").execute(&state.db).await.unwrap();
 	sqlx::query("INSERT INTO repositories (installation_id, github_repo_id, github_full_name, github_private) VALUES (1, 11, 'alice/private', 1)").execute(&state.db).await.unwrap();
 	let token = monochange_app_api::create_token(&state.jwt_secret, 1, 101, "alice").unwrap();
-	let response = router(state)
+	let cookie = format!("{}={token}", oauth::SESSION_COOKIE_NAME);
+	let app = router(state.clone());
+	let response = app
+		.clone()
 		.oneshot(
 			Request::builder()
 				.uri("/dashboard")
-				.header(COOKIE, format!("{}={token}", oauth::SESSION_COOKIE_NAME))
+				.header(COOKIE, cookie.clone())
 				.body(Body::empty())
 				.unwrap(),
 		)
@@ -554,8 +568,33 @@ async fn configured_dashboard_connects_to_verified_app_and_shows_suspended_repos
 	assert!(body.contains("href=\"https://github.com/settings/installations/1001\""));
 	// Once for the installation link, once for the requested permissions.
 	metadata.assert_calls_async(2).await;
-	// Once to link the legacy installation's account, once for its permissions.
-	installation.assert_calls_async(2).await;
+	// Concurrent organization and permission resources may both see the legacy row.
+	let installation_calls = installation.calls_async().await;
+	assert!(
+		(2..=3).contains(&installation_calls),
+		"first visit made {installation_calls} installation requests"
+	);
+	let (provider, external_id, account_type, status): (String, i64, String, String) =
+		sqlx::query_as("SELECT o.provider, o.github_id, o.account_type, i.target_type FROM installations i JOIN organizations o ON o.id = i.organization_id WHERE i.id = 1")
+			.fetch_one(&state.db)
+			.await
+			.unwrap();
+	assert_eq!(
+		(
+			provider.as_str(),
+			external_id,
+			account_type.as_str(),
+			status.as_str()
+		),
+		("github", 101, "User", "suspended")
+	);
+
+	let revisit = dashboard_html(&app, &cookie).await;
+	assert!(revisit.contains("alice/private"));
+	assert!(revisit.contains("Installation suspended"));
+	installation
+		.assert_calls_async(installation_calls + 1)
+		.await;
 }
 
 #[tokio::test]
@@ -979,7 +1018,9 @@ async fn organisations_lead_to_projects_that_work_without_javascript() {
 	server
 		.mock_async(|when, then| {
 			when.method(GET).path("/user/memberships/orgs/team");
-			then.json_body(serde_json::json!({"state":"active","role":"admin"}));
+			then.json_body(
+				serde_json::json!({"state":"active","role":"admin","organization":{"id":5001}}),
+			);
 		})
 		.await;
 	let state = configured_state(&server).await;
