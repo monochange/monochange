@@ -309,7 +309,9 @@ fn release_commit_error_status(error: &github_app::GitHubAppError) -> StatusCode
 			StatusCode::CONFLICT
 		}
 		github_app::GitHubAppError::NotConfigured => StatusCode::SERVICE_UNAVAILABLE,
-		github_app::GitHubAppError::WorkflowsChanged => StatusCode::UNPROCESSABLE_ENTITY,
+		github_app::GitHubAppError::WorkflowsChanged
+		| github_app::GitHubAppError::InvalidReleaseBranch(_)
+		| github_app::GitHubAppError::UnboundPullRequest => StatusCode::UNPROCESSABLE_ENTITY,
 		_ => StatusCode::BAD_GATEWAY,
 	}
 }
@@ -483,15 +485,21 @@ pub async fn publish_release_request(
 		}));
 	}
 
-	let (number, operation, url) =
-		github_app::publish_release_pull_request(&state.http, &app.api_url, &token, request)
-			.await
-			.map_err(|error| {
-				(
-					StatusCode::BAD_GATEWAY,
-					Json(ApiError::new(error.to_string())),
-				)
-			})?;
+	let (number, operation, url) = github_app::publish_release_pull_request(
+		&state.http,
+		&app.api_url,
+		&token,
+		request,
+		&state.jwt_secret,
+		repository.github_repo_id,
+	)
+	.await
+	.map_err(|error| {
+		(
+			release_commit_error_status(&error),
+			Json(ApiError::new(error.to_string())),
+		)
+	})?;
 
 	tracing::info!(
 		repository = %full_name,

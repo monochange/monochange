@@ -121,6 +121,7 @@ fn moved_branches_are_conflicts() {
 /// Serve a GitHub API that creates the release branch with `verification`.
 fn github_creating_release_branch(verification: &serde_json::Value) -> MockServer {
 	let server = MockServer::start();
+	mock_repository_metadata(&server);
 	server.mock(|when, then| {
 		when.method(Method::GET)
 			.path("/repos/acme/actions/git/commits/base-sha");
@@ -211,6 +212,7 @@ async fn unverified_release_commit_is_a_bad_gateway() {
 #[tokio::test]
 async fn stale_release_commit_is_a_conflict() {
 	let server = MockServer::start();
+	mock_repository_metadata(&server);
 	server.mock(|when, then| {
 		when.method(Method::GET)
 			.path("/repos/acme/actions/git/ref/heads/monochange/release/release");
@@ -259,6 +261,7 @@ fn test_private_key() -> &'static str {
 /// App state with `acme/actions` connected to installation 1001, the GitHub
 /// App pointed at `github`, and `api_token` as the configured `MONOCHANGE_TOKEN`.
 async fn release_api_state(github: &MockServer, api_token: &str) -> AppState {
+	mock_repository_metadata(github);
 	let db = monochange_app_db::create_pool("sqlite::memory:")
 		.await
 		.unwrap();
@@ -302,6 +305,13 @@ async fn release_api_state(github: &MockServer, api_token: &str) -> AppState {
 			.json_body(serde_json::json!({ "token": "installation-token" }));
 	});
 	state
+}
+
+fn mock_repository_metadata(server: &MockServer) {
+	server.mock(|when, then| {
+		when.method(Method::GET).path("/repos/acme/actions");
+		then.json_body(serde_json::json!({"default_branch": "main"}));
+	});
 }
 
 fn mock_branch(github: &MockServer, branch: &str, sha: &str) {
@@ -971,4 +981,61 @@ async fn release_request_endpoint_rejects_invalid_branch_names() {
 		body["message"],
 		"branch `-release` is not a valid branch name"
 	);
+}
+
+#[tokio::test]
+async fn release_request_endpoint_cannot_adopt_an_unrelated_pull_request() {
+	let github = MockServer::start();
+	let state = release_api_state(&github, API_TOKEN).await;
+	let pull = serde_json::json!({
+		"number": 42, "node_id": "PR_42", "html_url": "https://github.com/acme/actions/pull/42",
+		"body": "An unrelated pull request", "user": {"id": 123, "type": "Bot"},
+		"head": {"ref": "monochange/release/release", "repo": {"id": 11}},
+		"base": {"ref": "main", "repo": {"id": 11}}
+	});
+	github.mock(|when, then| {
+		when.method(Method::GET).path("/repos/acme/actions/pulls");
+		then.json_body(serde_json::json!([pull.clone()]));
+	});
+	let update = github.mock(|when, then| {
+		when.method(Method::PATCH)
+			.path("/repos/acme/actions/pulls/42");
+		then.json_body(pull);
+	});
+	let labels = github.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/issues/42/labels");
+		then.status(200);
+	});
+	let auto_merge = github.mock(|when, then| {
+		when.method(Method::POST).path("/graphql");
+		then.json_body(
+			serde_json::json!({"data": {"enablePullRequestAutoMerge": {"pullRequest": {"number": 42}}}}),
+		);
+	});
+	let payload = serde_json::json!({
+		"request": {
+			"provider": "github", "repository": "acme/actions", "owner": "acme", "repo": "actions",
+			"base_branch": "main", "head_branch": "monochange/release/release",
+			"title": "chore(release): prepare release", "body": "Replacement body",
+			"labels": ["release"], "auto_merge": true,
+			"commit_message": {"subject": "chore(release): prepare release"}
+		}, "tracked_paths": [], "dry_run": false
+	});
+	let response = api_router(state)
+		.oneshot(
+			Request::builder()
+				.method("POST")
+				.uri("/api/release-requests")
+				.header("authorization", format!("Bearer {API_TOKEN}"))
+				.header("content-type", "application/json")
+				.body(Body::from(payload.to_string()))
+				.unwrap(),
+		)
+		.await
+		.unwrap();
+	assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+	update.assert_calls(0);
+	labels.assert_calls(0);
+	auto_merge.assert_calls(0);
 }

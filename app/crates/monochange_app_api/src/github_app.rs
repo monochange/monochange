@@ -57,6 +57,20 @@ pub enum GitHubAppError {
 		"the release tree changes `.github/workflows`; release commits must not modify GitHub workflows"
 	)]
 	WorkflowsChanged,
+	#[error("branch `{0}` must be a release branch distinct from the base and default branches")]
+	InvalidReleaseBranch(String),
+	#[error(
+		"pull request is not a verified monochange release request for this head, base, and repository"
+	)]
+	UnboundPullRequest,
+	#[error(
+		"release pull request {url} was created but could not be authenticated; close this newly created release PR and retry: {source}"
+	)]
+	ReleasePullRequestNeedsRecovery {
+		url: String,
+		#[source]
+		source: Box<GitHubAppError>,
+	},
 	#[error("invalid webhook signature")]
 	WebhookSignature,
 	#[error("invalid GitHub app slug")]
@@ -498,8 +512,107 @@ struct CreateRefRequest<'a> {
 struct PullRequestResponse {
 	number: u64,
 	html_url: String,
+	node_id: String,
 	#[serde(default)]
-	node_id: Option<String>,
+	body: Option<String>,
+	user: PullRequestAuthor,
+	head: PullRequestBranch,
+	base: PullRequestBranch,
+}
+
+#[derive(Debug, Deserialize)]
+struct PullRequestAuthor {
+	id: u64,
+	#[serde(rename = "type")]
+	kind: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct PullRequestBranch {
+	#[serde(rename = "ref")]
+	name: String,
+	repo: PullRequestRepository,
+}
+
+#[derive(Debug, Deserialize)]
+struct PullRequestRepository {
+	id: i64,
+}
+
+/// GitHub assigns these identities; callers cannot copy a marker to another PR.
+#[derive(Serialize)]
+struct ReleasePullRequestIdentity<'a> {
+	number: u64,
+	node_id: &'a str,
+	author_id: u64,
+	head_repository: i64,
+	head_branch: &'a str,
+	base_repository: i64,
+	base_branch: &'a str,
+}
+
+const RELEASE_PR_MARKER: &str = "<!-- monochange-release-pr:v1:";
+
+impl PullRequestResponse {
+	/// Authenticate GitHub-assigned identity separately from caller-controlled prose.
+	fn binding(&self, secret: &str) -> Hmac<Sha256> {
+		let identity = ReleasePullRequestIdentity {
+			number: self.number,
+			node_id: &self.node_id,
+			author_id: self.user.id,
+			head_repository: self.head.repo.id,
+			head_branch: &self.head.name,
+			base_repository: self.base.repo.id,
+			base_branch: &self.base.name,
+		};
+		let mut mac = Hmac::<Sha256>::new_from_slice(secret.as_bytes())
+			.unwrap_or_else(|error| panic!("HMAC accepts any key length: {error}"));
+		mac.update(b"monochange-hosted-release-pr-v1\0");
+		mac.update(
+			&serde_json::to_vec(&identity)
+				.unwrap_or_else(|error| panic!("release PR identity is serializable: {error}")),
+		);
+		mac
+	}
+
+	/// Require the exact repository and branches before trusting a signed marker.
+	fn verify_identity(
+		&self,
+		request: &SourceChangeRequest,
+		repository_id: i64,
+	) -> Result<(), GitHubAppError> {
+		if self.user.kind != "Bot"
+			|| self.node_id.is_empty()
+			|| self.head.repo.id != repository_id
+			|| self.base.repo.id != repository_id
+			|| self.head.name != request.head_branch
+			|| self.base.name != request.base_branch
+		{
+			return Err(GitHubAppError::UnboundPullRequest);
+		}
+		Ok(())
+	}
+
+	/// Refuse adoption unless this deployment previously signed the same PR.
+	fn verify_binding(&self, secret: &str) -> Result<(), GitHubAppError> {
+		let signature = self
+			.body
+			.as_deref()
+			.and_then(|body| body.lines().last())
+			.and_then(|line| line.strip_prefix(RELEASE_PR_MARKER))
+			.and_then(|line| line.strip_suffix(" -->"))
+			.and_then(|signature| hex::decode(signature).ok())
+			.ok_or(GitHubAppError::UnboundPullRequest)?;
+		self.binding(secret)
+			.verify_slice(&signature)
+			.map_err(|_| GitHubAppError::UnboundPullRequest)
+	}
+
+	/// Preserve service provenance when replacing the caller's release notes.
+	fn signed_body(&self, secret: &str, body: &str) -> String {
+		let signature = hex::encode(self.binding(secret).finalize().into_bytes());
+		format!("{body}\n\n{RELEASE_PR_MARKER}{signature} -->")
+	}
 }
 
 #[derive(Debug, Serialize)]
@@ -514,6 +627,7 @@ struct CreatePullRequestRequest<'a> {
 struct UpdatePullRequestRequest<'a> {
 	title: &'a str,
 	body: &'a str,
+	base: &'a str,
 }
 
 #[derive(Debug, Serialize)]
@@ -607,13 +721,11 @@ async fn read_default_branch(
 	http: &reqwest::Client,
 	api_url: &str,
 	token: &str,
-	request: &HostedCommitRequest,
+	owner: &str,
+	repo: &str,
 ) -> Result<String, GitHubAppError> {
 	let response = http
-		.get(format!(
-			"{api_url}/repos/{}/{}",
-			request.owner, request.repository
-		))
+		.get(format!("{api_url}/repos/{owner}/{repo}"))
 		.bearer_auth(token)
 		.header("Accept", "application/vnd.github+json")
 		.send()
@@ -654,21 +766,14 @@ enum ReleaseBranchUpdate {
 /// Decide how the release commit may move the release branch.
 ///
 /// The release branch belongs to monochange and is rebuilt from the base
-/// branch on every run, so an existing release branch is replaced rather than
-/// built upon. Creating a branch or fast-forwarding it from `base_commit`
-/// never discards commits and is always allowed. A forced replacement is
-/// allowed only when every condition holds:
-///
-/// - the request names a base branch (older CLIs do not);
-/// - the branch is shaped like a monochange release branch,
-///   `<branch_prefix>/release`;
-/// - the branch is neither the base branch nor the repository's default
-///   branch, which is read only on this path;
-/// - `base_commit` is still the head of the base branch.
+/// branch on every run. All updates require a release branch distinct from
+/// the named base, when supplied, and the repository's default branch.
+/// Replacing an existing release additionally requires a named base branch
+/// whose head is still `base_commit`.
 ///
 /// A stale run whose base branch moved gets [`GitHubAppError::BaseMoved`] so
-/// the run for the newer commit refreshes the branch; every other refused
-/// replacement gets [`GitHubAppError::BranchMoved`]. Without these checks a
+/// the run for the newer commit refreshes the branch. Invalid branch policy
+/// gets [`GitHubAppError::InvalidReleaseBranch`]. Without these checks a
 /// caller could name `main` as the branch and force it onto another branch's
 /// commit.
 ///
@@ -682,6 +787,18 @@ async fn plan_release_branch_update(
 	token: &str,
 	request: &HostedCommitRequest,
 ) -> Result<ReleaseBranchUpdate, GitHubAppError> {
+	if !is_release_branch_name(&request.branch)
+		|| request.base_branch.as_deref() == Some(request.branch.as_str())
+	{
+		return Err(GitHubAppError::InvalidReleaseBranch(request.branch.clone()));
+	}
+
+	if read_default_branch(http, api_url, token, &request.owner, &request.repository).await?
+		== request.branch
+	{
+		return Err(GitHubAppError::InvalidReleaseBranch(request.branch.clone()));
+	}
+
 	let release_head = read_branch_head(
 		http,
 		api_url,
@@ -698,19 +815,14 @@ async fn plan_release_branch_update(
 	if release_head == request.base_commit {
 		return Ok(ReleaseBranchUpdate::FastForward);
 	}
-
-	let branch_moved = |release_head: String| {
+	let base_branch = request.base_branch.as_deref().ok_or_else(|| {
 		GitHubAppError::BranchMoved(
 			request.branch.clone(),
 			release_head,
 			request.base_commit.clone(),
 		)
-	};
-	let Some(base_branch) = request.base_branch.as_deref().filter(|base_branch| {
-		*base_branch != request.branch && is_release_branch_name(&request.branch)
-	}) else {
-		return Err(branch_moved(release_head));
-	};
+	})?;
+
 	let base_head = read_branch_head(
 		http,
 		api_url,
@@ -734,10 +846,6 @@ async fn plan_release_branch_update(
 			base_head,
 			request.base_commit.clone(),
 		));
-	}
-
-	if read_default_branch(http, api_url, token, request).await? == request.branch {
-		return Err(branch_moved(release_head));
 	}
 
 	Ok(ReleaseBranchUpdate::Regenerate)
@@ -1053,10 +1161,10 @@ async fn find_open_pull_request(
 	repo: &str,
 	head_branch: &str,
 ) -> Result<Option<PullRequestResponse>, GitHubAppError> {
+	let head = format!("{owner}:{head_branch}");
 	let response = http
-		.get(format!(
-			"{api_url}/repos/{owner}/{repo}/pulls?state=open&head={owner}%3A{head_branch}"
-		))
+		.get(format!("{api_url}/repos/{owner}/{repo}/pulls"))
+		.query(&[("state", "open"), ("head", head.as_str())])
 		.bearer_auth(token)
 		.header("Accept", "application/vnd.github+json")
 		.send()
@@ -1070,10 +1178,20 @@ async fn find_open_pull_request(
 	}
 
 	let pulls: Vec<PullRequestResponse> = response.json().await?;
+
+	if pulls.len() > 1 {
+		return Err(GitHubAppError::UnboundPullRequest);
+	}
+
 	Ok(pulls.into_iter().next())
 }
 
 /// Open or update the release pull request under the bot identity.
+///
+/// Existing PRs must carry a server-authenticated marker for their immutable
+/// identity, repository, creator, head and base. A newly created PR receives
+/// that marker before labels or auto-merge are applied. Rotating the signing
+/// secret invalidates old markers and requires recreating those release PRs.
 ///
 /// Returns the pull request number, the performed operation, and its URL.
 pub async fn publish_release_pull_request(
@@ -1081,9 +1199,21 @@ pub async fn publish_release_pull_request(
 	api_url: &str,
 	installation_token: &str,
 	request: &SourceChangeRequest,
+	binding_secret: &str,
+	repository_id: i64,
 ) -> Result<(u64, SourceChangeRequestOperation, String), GitHubAppError> {
 	let owner = &request.owner;
 	let repo = &request.repo;
+
+	if !is_release_branch_name(&request.head_branch)
+		|| request.head_branch == request.base_branch
+		|| read_default_branch(http, api_url, installation_token, owner, repo).await?
+			== request.head_branch
+	{
+		return Err(GitHubAppError::InvalidReleaseBranch(
+			request.head_branch.clone(),
+		));
+	}
 
 	let existing = find_open_pull_request(
 		http,
@@ -1096,29 +1226,9 @@ pub async fn publish_release_pull_request(
 	.await?;
 
 	let (pull, operation) = if let Some(existing) = existing {
-		let response = http
-			.patch(format!(
-				"{api_url}/repos/{owner}/{repo}/pulls/{}",
-				existing.number
-			))
-			.bearer_auth(installation_token)
-			.header("Accept", "application/vnd.github+json")
-			.json(&UpdatePullRequestRequest {
-				title: &request.title,
-				body: &request.body,
-			})
-			.send()
-			.await?;
-
-		if !response.status().is_success() {
-			let status = response.status();
-			let body = response.text().await.unwrap_or_default();
-
-			return Err(api_error("update pull request", status, body));
-		}
-
-		let pull: PullRequestResponse = response.json().await?;
-		(pull, SourceChangeRequestOperation::Updated)
+		existing.verify_identity(request, repository_id)?;
+		existing.verify_binding(binding_secret)?;
+		(existing, SourceChangeRequestOperation::Updated)
 	} else {
 		let response = http
 			.post(format!("{api_url}/repos/{owner}/{repo}/pulls"))
@@ -1143,6 +1253,48 @@ pub async fn publish_release_pull_request(
 		let pull: PullRequestResponse = response.json().await?;
 		(pull, SourceChangeRequestOperation::Created)
 	};
+	pull.verify_identity(request, repository_id)?;
+	let body = pull.signed_body(binding_secret, &request.body);
+	let stamp = async {
+		let response = http
+			.patch(format!(
+				"{api_url}/repos/{owner}/{repo}/pulls/{}",
+				pull.number
+			))
+			.bearer_auth(installation_token)
+			.header("Accept", "application/vnd.github+json")
+			.json(&UpdatePullRequestRequest {
+				title: &request.title,
+				body: &body,
+				base: &request.base_branch,
+			})
+			.send()
+			.await?;
+
+		if !response.status().is_success() {
+			let status = response.status();
+			return Err(api_error(
+				"update pull request",
+				status,
+				response.text().await.unwrap_or_default(),
+			));
+		}
+
+		let updated: PullRequestResponse = response.json().await?;
+		updated.verify_identity(request, repository_id)?;
+		updated.verify_binding(binding_secret)
+	}
+	.await;
+	stamp.map_err(|error| {
+		if operation == SourceChangeRequestOperation::Created {
+			GitHubAppError::ReleasePullRequestNeedsRecovery {
+				url: pull.html_url.clone(),
+				source: Box::new(error),
+			}
+		} else {
+			error
+		}
+	})?;
 
 	if !request.labels.is_empty() {
 		let response = http
@@ -1166,10 +1318,9 @@ pub async fn publish_release_pull_request(
 		}
 	}
 
-	if request.auto_merge
-		&& let Some(node_id) = pull.node_id.as_deref()
-	{
-		let _ = enable_pull_request_auto_merge(http, api_url, installation_token, node_id).await;
+	if request.auto_merge {
+		let _ =
+			enable_pull_request_auto_merge(http, api_url, installation_token, &pull.node_id).await;
 	}
 
 	Ok((pull.number, operation, pull.html_url))

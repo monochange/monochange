@@ -1,0 +1,113 @@
+name: hosted authorization regression evidence
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - app/crates/monochange_app_api/src/github_app.rs
+      - app/crates/monochange_app_api/src/release_api.rs
+      - app/crates/monochange_app_api/src/__tests__/github_app_tests.rs
+      - app/crates/monochange_app_api/src/__tests__/release_api_tests.rs
+      - .github/workflows/hosted-authorization-regressions.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  hosted-authorization-regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: setup
+        uses: $/.github/actions/devenv
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          free-runner-space: "true"
+
+      - name: prove original branch updates and PR adoption fail the security cases
+        shell: devenv shell -- bash -e {0}
+        run: |
+          set -euo pipefail
+          export CARGO_BUILD_JOBS=1 RUST_TEST_THREADS=2 TOKIO_WORKER_THREADS=2
+          head="$(git rev-parse HEAD)"
+          output="${{ runner.temp }}/hosted-authorization-regressions"
+          mkdir -p "$output"
+          paths=(
+            app/crates/monochange_app_api/src/github_app.rs
+            app/crates/monochange_app_api/src/release_api.rs
+            app/crates/monochange_app_api/src/__tests__/github_app_tests.rs
+            app/crates/monochange_app_api/src/__tests__/release_api_tests.rs
+          )
+          restore_fixed() {
+            git restore --source="$head" --worktree -- "${paths[@]}"
+          }
+          trap restore_fixed EXIT
+          node --input-type=module <<'NODE'
+          import { execFileSync } from "node:child_process";
+          import { readFileSync, writeFileSync } from "node:fs";
+          const base = "05d0753505a07ef9bf9bb0fef6e4713da1773ddd";
+          const githubTests = "app/crates/monochange_app_api/src/__tests__/github_app_tests.rs";
+          const apiTests = "app/crates/monochange_app_api/src/__tests__/release_api_tests.rs";
+          const current = readFileSync(githubTests, "utf8");
+          const start = current.indexOf("\n#[rstest]\n#[case::create(None)]");
+          const end = current.indexOf("\nfn release_commit_request(", start);
+          if (start < 0 || end < 0) throw new Error("branch regression boundaries changed");
+          let selected = current.slice(start, end);
+          for (const name of ["default_release_branch_is_rejected_before_every_write", "non_release_or_base_branch_is_rejected_before_every_write"]) {
+            const declaration = `async fn ${name}(`;
+            if (selected.split(declaration).length !== 2) throw new Error(`expected one ${name}`);
+            selected = selected.replace(declaration, `async fn hosted_authorization_security_${name}(`);
+          }
+          writeFileSync(githubTests, execFileSync("git", ["show", `${base}:${githubTests}`], { encoding: "utf8" }) + selected);
+          const api = readFileSync(apiTests, "utf8");
+          const adoption = "async fn release_request_endpoint_cannot_adopt_an_unrelated_pull_request(";
+          if (api.split(adoption).length !== 2) throw new Error("expected one PR adoption case");
+          writeFileSync(apiTests, api.replace(adoption, "async fn hosted_authorization_security_unrelated_pull_request("));
+          for (const path of ["app/crates/monochange_app_api/src/github_app.rs", "app/crates/monochange_app_api/src/release_api.rs"]) {
+            writeFileSync(path, execFileSync("git", ["show", `${base}:${path}`], { encoding: "utf8" }));
+          }
+          NODE
+          set +e
+          cargo test --manifest-path app/Cargo.toml --locked -p monochange_app_api --lib \
+            hosted_authorization_security_ -- --test-threads=2 2>&1 | tee "$output/original.log"
+          status=${PIPESTATUS[0]}
+          set -e
+          test "$status" -eq 101
+          node --input-type=module - "$output/original.log" <<'NODE'
+          import { readFileSync } from "node:fs";
+          const log = readFileSync(process.argv[2], "utf8");
+          const failures = [...log.matchAll(/^---- .*hosted_authorization_security_.* stdout ----$/gm)].length;
+          if (!/^test result: FAILED\. 0 passed; 9 failed;/m.test(log) || failures !== 9) {
+            throw new Error("expected nine executed authorization failures");
+          }
+          NODE
+          restore_fixed
+          git diff --exit-code -- "${paths[@]}"
+          test "$(git rev-parse HEAD)" = "$head"
+
+      - name: verify the fixed API
+        shell: devenv shell -- bash -e {0}
+        run: |
+          set -euo pipefail
+          export CARGO_BUILD_JOBS=1 RUST_TEST_THREADS=2 TOKIO_WORKER_THREADS=2
+          cargo test --manifest-path app/Cargo.toml --locked -p monochange_app_api --lib \
+            -- --test-threads=2 2>&1 | tee "${{ runner.temp }}/hosted-authorization-regressions/fixed.log"
+
+      - name: upload regression evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: hosted-authorization-regression-evidence
+          path: ${{ runner.temp }}/hosted-authorization-regressions/*.log
+          if-no-files-found: error
+          retention-days: 7
