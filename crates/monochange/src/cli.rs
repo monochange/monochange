@@ -387,13 +387,6 @@ release and pull request settings for the provider\n  - GitHub Actions workflows
 The starter config does not generate [cli.*] command aliases.",
 				),
 		)
-		.subcommand(
-			// Kept so existing scripts keep working; this version provides no
-			// default aliases, so the command never changes monochange.toml.
-			Command::new("populate")
-				.about("Check for default CLI workflow aliases (none are provided in this version)")
-				.hide(true),
-		)
 		.subcommand(build_command_wizard_subcommand())
 		.subcommand(build_skill_subcommand())
 		.subcommand(build_subagents_subcommand())
@@ -1052,6 +1045,13 @@ pub(crate) fn build_check_subcommand() -> Command {
 				.short('f')
 				.help("Automatically fix lint issues where possible")
 				.action(ArgAction::SetTrue),
+		)
+		.arg(
+			Arg::new("dry-run")
+				.long("dry-run")
+				.help("Preview the fixes --fix would apply without writing files")
+				.action(ArgAction::SetTrue)
+				.requires("fix"),
 		)
 		.arg(
 			Arg::new("ecosystem")

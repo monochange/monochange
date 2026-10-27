@@ -97,65 +97,6 @@ fn collect_workspace_file_updates(
 	Ok(updates)
 }
 
-#[test]
-fn render_step_inputs_toml_uses_array_for_inherited_and_map_for_mixed_inputs() {
-	let mut inherited_inputs = BTreeMap::new();
-	inherited_inputs.insert(
-		"format".to_string(),
-		monochange_core::CliStepInputValue::Inherited,
-	);
-	let mut rendered = String::new();
-	render_step_inputs_toml(&mut rendered, &inherited_inputs);
-	assert_eq!(rendered, "inputs = [\"format\"]\n");
-
-	inherited_inputs.insert(
-		"release".to_string(),
-		monochange_core::CliStepInputValue::Inherited,
-	);
-	let mut rendered = String::new();
-	render_step_inputs_toml(&mut rendered, &inherited_inputs);
-	assert_eq!(rendered, "inputs = [\"format\", \"release\"]\n");
-
-	inherited_inputs.insert(
-		"draft".to_string(),
-		monochange_core::CliStepInputValue::Boolean(true),
-	);
-	let rendered = render_step_inputs_inline_table(&inherited_inputs);
-	assert_eq!(
-		rendered,
-		"{ draft = true, format = \"{{ inputs.format }}\", release = \"{{ inputs.release }}\" }"
-	);
-}
-
-#[test]
-fn write_toml_array_items_streams_values_without_outer_brackets() {
-	let mut rendered = String::new();
-	write_toml_array_items(
-		&mut rendered,
-		["core".to_string(), "web app".to_string()].iter(),
-	);
-
-	assert_eq!(rendered, "\"core\", \"web app\"");
-}
-
-#[test]
-fn render_command_variables_inline_table_streams_multiple_variables() {
-	let mut variables = BTreeMap::new();
-	variables.insert(
-		"changed".to_string(),
-		monochange_core::CommandVariable::ChangedFiles,
-	);
-	variables.insert(
-		"version".to_string(),
-		monochange_core::CommandVariable::Version,
-	);
-
-	assert_eq!(
-		render_command_variables_inline_table(&variables),
-		"{ changed = \"changed_files\", version = \"version\" }"
-	);
-}
-
 fn setup_workspace_ops_fixture() -> tempfile::TempDir {
 	monochange_test_helpers::fs::setup_fixture_from(
 		env!("CARGO_MANIFEST_DIR"),
@@ -325,7 +266,7 @@ fn remap_workspace_path_maps_workspace_paths_into_the_temp_root() {
 }
 
 #[test]
-fn init_and_populate_workspace_cover_common_error_and_noop_paths() {
+fn init_workspace_reports_write_failures() {
 	let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
 	fs::create_dir_all(root.join("monochange.toml"))
@@ -334,26 +275,6 @@ fn init_and_populate_workspace_cover_common_error_and_noop_paths() {
 		.err()
 		.unwrap_or_else(|| panic!("expected init write error"));
 	assert!(init_error.to_string().contains("failed to write"));
-
-	let empty_root = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	let missing_error = populate_workspace(empty_root.path())
-		.err()
-		.unwrap_or_else(|| panic!("expected missing config error"));
-	assert!(
-		missing_error
-			.to_string()
-			.contains("run `monochange init` first")
-	);
-
-	let populated_root = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	fs::write(
-		populated_root.path().join("monochange.toml"),
-		render_cli_commands_toml(&default_cli_commands()),
-	)
-	.unwrap_or_else(|error| panic!("write populated config: {error}"));
-	let populated = populate_workspace(populated_root.path())
-		.unwrap_or_else(|error| panic!("populate no-op: {error}"));
-	assert!(populated.added_commands.is_empty());
 }
 
 #[test]

@@ -19,7 +19,6 @@ use monochange_config::load_change_signals;
 use monochange_config::load_changeset_contents_with_context;
 use monochange_config::load_workspace_configuration;
 use monochange_core::BumpSeverity;
-use monochange_core::CliCommandDefinition;
 use monochange_core::DiscoveryReport;
 use monochange_core::Ecosystem;
 use monochange_core::EcosystemRegistry;
@@ -40,7 +39,6 @@ use monochange_core::ReleasePlan;
 use monochange_core::ReleaseRecord;
 use monochange_core::SourceConfiguration;
 use monochange_core::VersionStrategy;
-use monochange_core::default_cli_commands;
 #[cfg(feature = "dart")]
 use monochange_dart::DartAdapter;
 use monochange_deno::DenoAdapter;
@@ -80,13 +78,27 @@ pub(crate) struct InitWorkspaceResult {
 }
 
 impl InitWorkspaceResult {
-	/// Returns a human-readable summary of what was written
+	/// Returns a human-readable summary of what was written, plus the first
+	/// commands to run from the new workspace.
 	pub fn summary(&self) -> String {
 		let mut lines = vec![format!("wrote {}", self.config_path.display())];
 
 		for path in &self.workflow_paths {
 			lines.push(format!("wrote {}", path.display()));
 		}
+
+		lines.push(String::new());
+		lines.push("next steps:".to_string());
+		lines.push("  monochange step validate   — check the generated configuration".to_string());
+		lines.push("  monochange discover       — list the packages monochange found".to_string());
+		lines.push(
+			"  monochange create         — record a change (add --interactive for prompts)"
+				.to_string(),
+		);
+		lines.push(
+			"  monochange preview        — preview the next release without writing files"
+				.to_string(),
+		);
 
 		lines.join("\n")
 	}
@@ -646,322 +658,6 @@ fn write_github_workflows(root: &Path) -> MonochangeResult<Vec<PathBuf>> {
 	}
 
 	Ok(paths)
-}
-
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub(crate) struct PopulateWorkspaceResult {
-	pub path: PathBuf,
-	pub added_commands: Vec<String>,
-}
-
-#[must_use = "the population result must be checked"]
-pub(crate) fn populate_workspace(root: &Path) -> MonochangeResult<PopulateWorkspaceResult> {
-	let path = monochange_config::config_path(root);
-
-	if !path.exists() {
-		return Err(MonochangeError::Config(format!(
-			"{} does not exist; run `monochange init` first or create a monochange.toml before running `monochange populate`",
-			path.display()
-		)));
-	}
-
-	let contents = match fs::read_to_string(&path) {
-		Ok(contents) => contents,
-		Err(error) => {
-			return Err(MonochangeError::Io(format!(
-				"failed to read {}: {error}",
-				path.display()
-			)));
-		}
-	};
-
-	let existing = existing_cli_command_names(&contents, &path)?;
-	let missing = default_cli_commands()
-		.into_iter()
-		.filter(|command| !existing.contains(&command.name))
-		.collect::<Vec<_>>();
-
-	if missing.is_empty() {
-		return Ok(PopulateWorkspaceResult {
-			path,
-			added_commands: Vec::new(),
-		});
-	}
-
-	let mut updated = contents.trim_end().to_string();
-
-	if !updated.is_empty() {
-		updated.push_str("\n\n");
-	}
-
-	updated.push_str(&render_cli_commands_toml(&missing));
-	updated.push('\n');
-
-	if let Err(error) = fs::write(&path, updated) {
-		return Err(MonochangeError::Io(format!(
-			"failed to write {}: {error}",
-			path.display()
-		)));
-	}
-
-	Ok(PopulateWorkspaceResult {
-		path,
-		added_commands: missing.into_iter().map(|command| command.name).collect(),
-	})
-}
-
-fn existing_cli_command_names(contents: &str, path: &Path) -> MonochangeResult<BTreeSet<String>> {
-	if contents.trim().is_empty() {
-		return Ok(BTreeSet::new());
-	}
-
-	let document = toml::from_str::<toml::Value>(contents).map_err(|error| {
-		MonochangeError::Config(format!("failed to parse {}: {error}", path.display()))
-	})?;
-
-	Ok(document
-		.get("cli")
-		.and_then(toml::Value::as_table)
-		.map(|table| table.keys().cloned().collect())
-		.unwrap_or_default())
-}
-
-pub(crate) fn render_cli_commands_toml(commands: &[CliCommandDefinition]) -> String {
-	let mut rendered = String::new();
-
-	for (index, command) in commands.iter().enumerate() {
-		if index > 0 {
-			rendered.push_str("\n\n");
-		}
-
-		render_cli_command_toml(&mut rendered, command);
-	}
-
-	rendered
-}
-
-fn render_cli_command_toml(rendered: &mut String, command: &CliCommandDefinition) {
-	writeln!(rendered, "[cli.{}]", command.name)
-		.unwrap_or_else(|error| panic!("writing to String cannot fail: {error}"));
-
-	if let Some(help_text) = &command.help_text {
-		write_toml_key_value(rendered, "help_text", &render_toml_string(help_text));
-	}
-
-	for input in &command.inputs {
-		rendered.push('\n');
-		writeln!(rendered, "[[cli.{}.inputs]]", command.name)
-			.unwrap_or_else(|error| panic!("writing to String cannot fail: {error}"));
-		render_cli_input_toml(rendered, input);
-	}
-
-	for step in &command.steps {
-		rendered.push('\n');
-		writeln!(rendered, "[[cli.{}.steps]]", command.name)
-			.unwrap_or_else(|error| panic!("writing to String cannot fail: {error}"));
-		render_cli_step_toml(rendered, step);
-	}
-}
-
-fn write_toml_key_value(rendered: &mut String, key: &str, value: &str) {
-	writeln!(rendered, "{key} = {value}")
-		.unwrap_or_else(|error| panic!("writing to String cannot fail: {error}"));
-}
-
-fn render_cli_input_toml(rendered: &mut String, input: &monochange_core::CliInputDefinition) {
-	write_toml_key_value(rendered, "name", &render_toml_string(&input.name));
-	write_toml_key_value(
-		rendered,
-		"type",
-		&render_toml_string(match input.kind {
-			monochange_core::CliInputKind::String => "string",
-			monochange_core::CliInputKind::StringList => "string_list",
-			monochange_core::CliInputKind::Path => "path",
-			monochange_core::CliInputKind::Choice => "choice",
-			monochange_core::CliInputKind::Boolean => "boolean",
-		}),
-	);
-	input.help_text.iter().for_each(|help_text| {
-		write_toml_key_value(rendered, "help_text", &render_toml_string(help_text));
-	});
-
-	if input.required {
-		write_toml_key_value(rendered, "required", "true");
-	}
-
-	if let Some(default) = &input.default {
-		write_toml_key_value(rendered, "default", &render_toml_string(default));
-	}
-
-	if !input.choices.is_empty() {
-		write_toml_key_value(
-			rendered,
-			"choices",
-			&render_toml_array(input.choices.iter()),
-		);
-	}
-
-	if let Some(short) = input.short {
-		write_toml_key_value(rendered, "short", &render_toml_string(&short.to_string()));
-	}
-}
-
-fn render_cli_step_toml(rendered: &mut String, step: &CliStepDefinition) {
-	let step_type = step.kind_name();
-	writeln!(rendered, "type = {}", render_toml_string(step_type))
-		.unwrap_or_else(|error| panic!("writing to String cannot fail: {error}"));
-
-	if let Some(when) = step.when() {
-		writeln!(rendered, "when = {}", render_toml_string(when))
-			.unwrap_or_else(|error| panic!("writing to String cannot fail: {error}"));
-	}
-
-	match step {
-		CliStepDefinition::Command {
-			command,
-			dry_run_command,
-			shell,
-			id,
-			variables,
-			inputs,
-			..
-		} => {
-			writeln!(rendered, "command = {}", render_toml_string(command))
-				.unwrap_or_else(|error| panic!("writing to String cannot fail: {error}"));
-
-			if let Some(dry_run_command) = dry_run_command {
-				writeln!(
-					rendered,
-					"dry_run_command = {}",
-					render_toml_string(dry_run_command)
-				)
-				.unwrap_or_else(|error| panic!("writing to String cannot fail: {error}"));
-			}
-
-			match shell {
-				monochange_core::ShellConfig::None => {}
-				monochange_core::ShellConfig::Default => {
-					writeln!(rendered, "shell = true")
-						.unwrap_or_else(|error| panic!("writing to String cannot fail: {error}"));
-				}
-				monochange_core::ShellConfig::Custom(shell) => {
-					writeln!(rendered, "shell = {}", render_toml_string(shell))
-						.unwrap_or_else(|error| panic!("writing to String cannot fail: {error}"));
-				}
-			}
-
-			if let Some(id) = id {
-				write_toml_key_value(rendered, "id", &render_toml_string(id));
-			}
-
-			if let Some(variables) = variables {
-				writeln!(
-					rendered,
-					"variables = {}",
-					render_command_variables_inline_table(variables)
-				)
-				.unwrap_or_else(|error| panic!("writing to String cannot fail: {error}"));
-			}
-
-			render_step_inputs_toml(rendered, inputs);
-		}
-		_ => {
-			render_step_inputs_toml(rendered, step.inputs());
-		}
-	}
-}
-
-fn render_step_inputs_toml(
-	rendered: &mut String,
-	inputs: &BTreeMap<String, monochange_core::CliStepInputValue>,
-) {
-	if inputs.is_empty() {
-		return;
-	}
-	let rendered_inputs = if inputs
-		.values()
-		.all(|value| matches!(value, monochange_core::CliStepInputValue::Inherited))
-	{
-		render_toml_array(inputs.keys())
-	} else {
-		render_step_inputs_inline_table(inputs)
-	};
-	writeln!(rendered, "inputs = {rendered_inputs}")
-		.unwrap_or_else(|error| panic!("writing to String cannot fail: {error}"));
-}
-
-fn render_step_inputs_inline_table(
-	inputs: &BTreeMap<String, monochange_core::CliStepInputValue>,
-) -> String {
-	let mut rendered = String::from("{ ");
-	let mut first = true;
-
-	for (name, value) in inputs {
-		if first {
-			first = false;
-		} else {
-			rendered.push_str(", ");
-		}
-
-		let _ = write!(
-			rendered,
-			"{name} = {}",
-			render_step_input_value(name, value)
-		);
-	}
-
-	rendered.push_str(" }");
-	rendered
-}
-
-fn render_step_input_value(name: &str, value: &monochange_core::CliStepInputValue) -> String {
-	match value {
-		monochange_core::CliStepInputValue::Inherited => {
-			render_toml_string(&format!("{{{{ inputs.{name} }}}}"))
-		}
-		monochange_core::CliStepInputValue::String(value) => render_toml_string(value),
-		monochange_core::CliStepInputValue::Boolean(value) => value.to_string(),
-		monochange_core::CliStepInputValue::List(values) => render_toml_array(values.iter()),
-	}
-}
-
-fn render_command_variables_inline_table(
-	variables: &BTreeMap<String, monochange_core::CommandVariable>,
-) -> String {
-	let mut rendered = String::from("{ ");
-	let mut first = true;
-
-	for (name, value) in variables {
-		if first {
-			first = false;
-		} else {
-			rendered.push_str(", ");
-		}
-
-		let value = match value {
-			monochange_core::CommandVariable::Version => "version",
-			monochange_core::CommandVariable::GroupVersion => "group_version",
-			monochange_core::CommandVariable::ReleasedPackages => "released_packages",
-			monochange_core::CommandVariable::ChangedFiles => "changed_files",
-			monochange_core::CommandVariable::Changesets => "changesets",
-		};
-
-		let _ = write!(rendered, "{name} = {}", render_toml_string(value));
-	}
-
-	rendered.push_str(" }");
-	rendered
-}
-
-fn render_toml_array<I, S>(values: I) -> String
-where
-	I: IntoIterator<Item = S>,
-	S: AsRef<str>,
-{
-	let mut rendered = String::from("[");
-	write_toml_array_items(&mut rendered, values);
-	rendered.push(']');
-	rendered
 }
 
 fn write_toml_array_items<I, S>(rendered: &mut String, values: I)
