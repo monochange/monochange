@@ -13,6 +13,7 @@ use thiserror::Error;
 
 pub mod feedback;
 pub mod models;
+pub mod oauth;
 pub mod projects;
 
 pub type DbPool = sqlx::SqlitePool;
@@ -60,6 +61,7 @@ pub async fn run_migrations(pool: &DbPool) -> Result<(), DbError> {
 		add_github_user_token_refresh,
 		add_organizations_and_projects,
 		create_project_feedback,
+		create_oauth_state_uses,
 	];
 
 	welds::migrations::up(&client, migrations)
@@ -125,11 +127,23 @@ fn create_project_feedback(
 	))
 }
 
+// The welds migration callback requires this Result signature.
+#[allow(clippy::unnecessary_wraps)]
+fn create_oauth_state_uses(
+	_state: &welds::migrations::TableState,
+) -> Result<welds::migrations::MigrationStep, welds::WeldsError> {
+	Ok(welds::migrations::MigrationStep::new(
+		"006_create_oauth_state_uses",
+		CreateOAuthStateUses,
+	))
+}
+
 pub(crate) struct CreateUsersTable;
 pub(crate) struct CreateReleaseAutomationTables;
 pub(crate) struct AddGitHubUserTokenRefresh;
 pub(crate) struct AddOrganizationsAndProjects;
 pub(crate) struct CreateProjectFeedback;
+pub(crate) struct CreateOAuthStateUses;
 
 fn sql_statements(sql: &str) -> Vec<String> {
 	sql.split(';')
@@ -406,5 +420,24 @@ impl welds::migrations::MigrationWriter for CreateProjectFeedback {
             DROP TABLE IF EXISTS project_feedback;
         ",
 		)
+	}
+}
+
+/// Consumed browser state survives process restarts and concurrent callbacks.
+impl welds::migrations::MigrationWriter for CreateOAuthStateUses {
+	fn up_sql(&self, _syntax: welds::Syntax) -> Vec<String> {
+		sql_statements(
+			r"
+            CREATE TABLE IF NOT EXISTS oauth_state_uses (
+                nonce TEXT PRIMARY KEY NOT NULL,
+                expires_at INTEGER NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_oauth_state_uses_expiry ON oauth_state_uses(expires_at);
+        ",
+		)
+	}
+
+	fn down_sql(&self, _syntax: welds::Syntax) -> Vec<String> {
+		sql_statements("DROP TABLE IF EXISTS oauth_state_uses;")
 	}
 }

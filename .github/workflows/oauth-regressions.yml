@@ -1,0 +1,103 @@
+name: "oauth regressions"
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  merge_group:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+env:
+  CARGO_BUILD_JOBS: "1"
+  RUST_TEST_THREADS: "2"
+  TOKIO_WORKER_THREADS: "2"
+
+jobs:
+  oauth-regressions:
+    timeout-minutes: 120
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: setup
+        uses: $/.github/actions/devenv
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          free-runner-space: "true"
+
+      - name: prove original OAuth paths fail the regressions
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE"
+          head="$(git rev-parse HEAD)"
+          output="$RUNNER_TEMP/oauth-regressions"
+          mkdir -p "$output"
+          paths=(
+            app/crates/monochange_app/src/rate_limit.rs
+            app/crates/monochange_app/src/server_fns/auth.rs
+            app/crates/monochange_app/src/__tests__/rate_limit_tests.rs
+            app/crates/monochange_app/src/server_fns/__tests__/auth_tests.rs
+            app/crates/monochange_app/src/__tests__/app_tests.rs
+          )
+          restore_fixed() {
+            git restore --source="$head" --worktree -- "${paths[@]}"
+          }
+          trap restore_fixed EXIT
+
+          # Keep current supporting types and tests; replace only the vulnerable paths.
+          original=05d0753505a07ef9bf9bb0fef6e4713da1773ddd
+          git show "$original:${paths[0]}" > "${paths[0]}"
+          git show "$original:${paths[1]}" > "${paths[1]}"
+          perl -pi -e 's/async fn (oauth_pages_spend_the_address_bucket_before_rendering|replayed_state_is_rejected_before_a_second_provider_exchange|concurrent_callbacks_consume_the_state_once|callback_failure_does_not_create_a_session_and_consumes_the_pending_login|fallback_login_aliases_spend_the_bucket_before_generating_state|fallback_callback_aliases_are_limited_before_provider_work)\(/async fn security_regression_oauth_$1(/g' "${paths[@]:2}"
+
+          set +e
+          cargo test --manifest-path app/Cargo.toml --package monochange_app --lib --locked \
+            security_regression_oauth_ -- --test-threads=2 2>&1 | tee "$output/original.log"
+          status=${PIPESTATUS[0]}
+          set -e
+          test "$status" -eq 101
+          rg -q '^test result: FAILED\. 0 passed; 14 failed;' "$output/original.log"
+          test "$(rg -c '^---- .*security_regression_oauth_.* stdout ----$' "$output/original.log")" -eq 14
+          restore_fixed
+          git diff --exit-code -- "${paths[@]}"
+          test "$(git rev-parse HEAD)" = "$head"
+        shell: devenv shell -- bash -e {0}
+
+      - name: run fixed app workspace tests
+        run: |
+          set -euo pipefail
+          cargo test --manifest-path app/Cargo.toml --workspace --locked \
+            2>&1 | tee "$RUNNER_TEMP/oauth-regressions/fixed.log"
+        shell: devenv shell -- bash -e {0}
+
+      - name: check app formatting
+        run: cargo fmt --manifest-path app/Cargo.toml --all --check
+        shell: devenv shell -- bash -e {0}
+
+      - name: lint app workspace
+        run: cargo clippy --manifest-path app/Cargo.toml --workspace --all-targets --locked -- -D warnings
+        shell: devenv shell -- bash -e {0}
+
+      - name: upload original and fixed regression evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: oauth-regression-evidence
+          path: ${{ runner.temp }}/oauth-regressions/*.log
+          if-no-files-found: error
+          retention-days: 7

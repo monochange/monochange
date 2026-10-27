@@ -36,7 +36,7 @@ struct OAuthState {
 	/// Where sign-in returns to, already checked by [`return_path`].
 	#[serde(default)]
 	return_to: Option<String>,
-	exp: usize,
+	exp: i64,
 }
 
 /// Values needed to begin a browser-bound GitHub authorization.
@@ -53,6 +53,8 @@ pub struct VerifiedOAuth {
 	pub code_verifier: Option<String>,
 	/// The same-site path sign-in started from, if it named one.
 	pub return_to: Option<String>,
+	/// Signed expiry of this attempt, used to retain its replay guard.
+	pub expires_at: i64,
 }
 
 /// The longest path sign-in will return to.
@@ -112,7 +114,7 @@ fn pending_oauth(
 		intent,
 		code_verifier,
 		return_to,
-		exp: (chrono::Utc::now() + chrono::Duration::minutes(10)).timestamp() as usize,
+		exp: (chrono::Utc::now() + chrono::Duration::minutes(10)).timestamp(),
 	};
 	let token = encode(
 		&Header::default(),
@@ -154,6 +156,7 @@ pub fn verify_login_state(
 		intent: claims.claims.intent,
 		code_verifier: claims.claims.code_verifier,
 		return_to: claims.claims.return_to.as_deref().and_then(return_path),
+		expires_at: claims.claims.exp,
 	})
 }
 

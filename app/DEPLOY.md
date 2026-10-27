@@ -298,7 +298,7 @@ To roll back before step 7, restore the previous Compose file and redeploy the p
 
 ## API rate limits
 
-The app limits its API, the Leptos server functions and the REST endpoints under `/api`, per client. Pages, `/pkg` assets, `/health`, and `/api/github/webhooks` are never limited: GitHub doesn't redeliver a dropped webhook on its own, and each delivery is already authenticated by its signature.
+The app limits Leptos server functions, REST endpoints under `/api`, and the `/login` and `/auth/callback` pages before server rendering. OAuth pages always use the address bucket, including for signed-in visitors. Other pages, `/pkg` assets, `/health`, and `/api/github/webhooks` are never limited: GitHub doesn't redeliver a dropped webhook on its own, and each delivery is already authenticated by its signature.
 
 | Client                    | Counted by                       | Sustained      | Burst |
 | ------------------------- | -------------------------------- | -------------- | ----- |
@@ -306,6 +306,8 @@ The app limits its API, the Leptos server functions and the REST endpoints under
 | Anyone else, including CI | client address (IPv6 by its /64) | 60 per minute  | 30    |
 
 Each limit is a GCRA bucket from the [`governor`](https://docs.rs/governor) crate: a client may spend the burst at once, then it refills at the sustained rate. Limited responses carry the IETF [`RateLimit-Policy` and `RateLimit`](https://datatracker.ietf.org/doc/draft-ietf-httpapi-ratelimit-headers/) fields, and a `429 Too Many Requests` adds `Retry-After` in seconds. Server functions reject with an encoded `ServerFnError`, so the site shows the message; REST endpoints reject with their usual `{"message": ...}` JSON body.
+
+OAuth page rejections return plain text. Callback state is consumed once in SQLite before the provider exchange, so a copied state cookie cannot trigger another exchange, including after a restart. Failed exchanges require a fresh sign-in attempt. The startup migration creates `oauth_state_uses`; expired entries are pruned as callbacks arrive. Token exchanges time out after ten seconds, and each app process allows at most sixteen concurrent exchanges. Capacity rejections preserve the pending state for a retry.
 
 Override any limit with an environment variable on the `app` service; each must be a whole number above zero, and the app refuses to start otherwise.
 

@@ -1,5 +1,5 @@
-//! Per-client rate limits for the app's API: Leptos server functions and the
-//! REST endpoints under `/api`.
+//! Per-client rate limits for Leptos server functions, REST endpoints under
+//! `/api`, and the OAuth pages that initiate provider work during SSR.
 //!
 //! Every limit is a [`governor`] GCRA bucket: a client may spend a burst of
 //! requests at once, and the bucket refills one request at a time at the
@@ -7,7 +7,9 @@
 //! so a busy dashboard never competes with other people behind the same
 //! network address. Everyone else shares a smaller bucket per client address.
 //!
-//! Pages, hydration assets, `/health`, and GitHub webhooks are not limited.
+//! `/login` and `/auth/callback` always spend the address bucket, including
+//! when the browser carries a session. Other pages, hydration assets,
+//! `/health`, and GitHub webhooks are not limited.
 //! GitHub never redelivers a dropped webhook on its own and every delivery is
 //! already authenticated by its signature, so limiting it would only lose
 //! events.
@@ -16,7 +18,7 @@
 //! fields, and a rejection adds `Retry-After`. Server functions reject with an
 //! encoded `ServerFnError`, so the Leptos client shows the message instead of
 //! failing to decode the body; REST endpoints reject with the same JSON
-//! `{"message": ...}` body as their other errors.
+//! `{"message": ...}` body as their other errors. OAuth pages return plain text.
 
 use std::collections::HashSet;
 use std::hash::Hash;
@@ -181,6 +183,7 @@ enum Client {
 enum Surface {
 	ServerFunction,
 	Rest,
+	OAuth,
 }
 
 /// The outcome of counting one request.
@@ -230,6 +233,7 @@ impl Decision {
 					.into_response()
 			}
 			Surface::Rest => Json(ApiError { message }).into_response(),
+			Surface::OAuth => message.into_response(),
 		};
 		*response.status_mut() = StatusCode::TOO_MANY_REQUESTS;
 		response.headers_mut().extend(self.headers());
@@ -286,7 +290,21 @@ impl RateLimit {
 	}
 
 	fn surface(&self, path: &str) -> Option<Surface> {
-		if self.limits.server_fn_paths.contains(path) {
+		// The SSR fallback parses this absolute URL before matching its routes.
+		// Use the same normalization so dot-segment aliases cannot skip the bucket.
+		let rendered_url = format!("http://leptos.dev{path}");
+		let oauth_page = leptos_router::location::RequestUrl::new(&rendered_url)
+			.parse()
+			.is_ok_and(|url| {
+				matches!(
+					url.path().trim_end_matches('/'),
+					"/login" | "/auth/callback"
+				)
+			});
+
+		if oauth_page {
+			Some(Surface::OAuth)
+		} else if self.limits.server_fn_paths.contains(path) {
 			Some(Surface::ServerFunction)
 		} else if path.starts_with("/api/") && path != WEBHOOK_PATH {
 			Some(Surface::Rest)
@@ -295,9 +313,15 @@ impl RateLimit {
 		}
 	}
 
-	fn check(&self, request: &Request) -> Decision {
+	fn check(&self, request: &Request, surface: Surface) -> Decision {
 		let limits = &self.limits;
-		match client(request, &limits.jwt_secret) {
+		let client = if surface == Surface::OAuth {
+			Client::Address(client_address(request))
+		} else {
+			client(request, &limits.jwt_secret)
+		};
+
+		match client {
 			Client::User(id) => {
 				count(
 					&limits.authenticated,
@@ -360,13 +384,13 @@ fn whole_seconds(wait: Duration) -> u64 {
 	(wait.as_millis().div_ceil(1000) as u64).max(1)
 }
 
-/// Count API requests against the caller's bucket, answering `429 Too Many
-/// Requests` once it is empty. Other routes pass through untouched.
+/// Count API and OAuth page requests before server functions or SSR run,
+/// answering `429 Too Many Requests` once the caller's bucket is empty.
 pub async fn limit(State(rate_limit): State<RateLimit>, request: Request, next: Next) -> Response {
 	let Some(surface) = rate_limit.surface(request.uri().path()) else {
 		return next.run(request).await;
 	};
-	let decision = rate_limit.check(&request);
+	let decision = rate_limit.check(&request, surface);
 	if let Some(seconds) = decision.retry_after {
 		tracing::debug!(
 			policy = decision.policy,
