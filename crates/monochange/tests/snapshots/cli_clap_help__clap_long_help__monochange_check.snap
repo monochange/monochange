@@ -13,6 +13,9 @@ Validate configuration, changesets, and run manifest lint rules
   [93m-f[0m, [93m--fix[0m
           Automatically fix lint issues where possible
 
+      [93m--dry-run[0m
+          Preview the fixes --fix would apply without writing files
+
   [93m-e[0m, [93m--ecosystem[0m[95m [0m[95m<ECOSYSTEMS>[0m
           Limit linting to specific lint suites
 
