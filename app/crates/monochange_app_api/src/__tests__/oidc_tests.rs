@@ -65,6 +65,51 @@ async fn fresh_cache_rejects_distinct_unknown_key_ids_without_provider_calls() {
 }
 
 #[tokio::test]
+async fn newly_published_key_waits_for_fresh_cache_expiry() {
+	let server = MockServer::start_async().await;
+	let original = server
+		.mock_async(|when, then| {
+			when.method(GET).path("/jwks");
+			then.json_body(jwks());
+		})
+		.await;
+	let verifier = verifier(&server);
+	verifier.jwk_for_kid("known-key").await.unwrap();
+	original.assert_calls_async(1).await;
+	original.delete_async().await;
+	let mut rotated = jwks();
+	*rotated.pointer_mut("/keys/0/kid").unwrap() = serde_json::json!("rotated-key");
+	let provider = server
+		.mock_async(|when, then| {
+			when.method(GET).path("/jwks");
+			then.json_body(rotated);
+		})
+		.await;
+
+	assert!(matches!(
+		verifier.jwk_for_kid("rotated-key").await,
+		Err(OidcError::NoMatchingKey)
+	));
+	provider.assert_calls_async(0).await;
+	verifier
+		.cache
+		.lock()
+		.await
+		.document
+		.as_mut()
+		.unwrap()
+		.fetched_at = Instant::now().checked_sub(JWKS_CACHE_TTL).unwrap();
+
+	let key = verifier.jwk_for_kid("rotated-key").await.unwrap();
+	assert_eq!(key.common.key_id.as_deref(), Some("rotated-key"));
+	assert!(matches!(
+		verifier.jwk_for_kid("known-key").await,
+		Err(OidcError::NoMatchingKey)
+	));
+	provider.assert_calls_async(1).await;
+}
+
+#[tokio::test]
 async fn concurrent_cold_cache_requests_share_one_provider_call() {
 	let server = MockServer::start_async().await;
 	let provider = server
@@ -178,7 +223,7 @@ async fn concurrent_expired_cache_requests_share_one_refresh() {
 		.document
 		.as_mut()
 		.unwrap()
-		.fetched_at = Instant::now() - JWKS_CACHE_TTL;
+		.fetched_at = Instant::now().checked_sub(JWKS_CACHE_TTL).unwrap();
 	let mut requests = tokio::task::JoinSet::new();
 
 	for index in 0..16 {
@@ -211,7 +256,7 @@ async fn provider_error_preserves_last_good_keys_without_accepting_expired_keys(
 			then.status(503).json_body(jwks());
 		})
 		.await;
-	let expired_at = Instant::now() - JWKS_CACHE_TTL;
+	let expired_at = Instant::now().checked_sub(JWKS_CACHE_TTL).unwrap();
 	verifier
 		.cache
 		.lock()
@@ -255,7 +300,8 @@ async fn refresh_recovers_after_the_failure_deadline() {
 			then.json_body(jwks());
 		})
 		.await;
-	verifier.cache.lock().await.retry_after = Some(Instant::now() - Duration::from_secs(1));
+	verifier.cache.lock().await.retry_after =
+		Some(Instant::now().checked_sub(Duration::from_secs(1)).unwrap());
 
 	verifier.jwk_for_kid("known-key").await.unwrap();
 	verifier.jwk_for_kid("known-key").await.unwrap();
