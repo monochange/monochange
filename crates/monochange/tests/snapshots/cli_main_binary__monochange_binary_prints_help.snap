@@ -16,39 +16,41 @@ monochange discovers packages across Cargo, npm/pnpm/Bun, Deno, Dart/Flutter, Py
 Usage: monochange [OPTIONS] <COMMAND>
 
 Release Commands:
-  next       Show the next version for each release group and package without writing files
-  create     Create a changeset file for one or more packages
-  preview    Preview planned version bumps, changelogs, and release artifacts without writing files
-  prepare    Prepare version bumps, changelogs, and release artifacts
-  publish    Publish packages and inspect registry publishing state
-  affected   Evaluate affected packages and changeset coverage
-  diagnose   Inspect changeset provenance and review metadata
+  next         Show the next version for each release group and package without writing files
+  create       Create a changeset file for one or more packages
+  preview      Preview planned version bumps, changelogs, and release artifacts without writing files
+  prepare      Prepare version bumps, changelogs, and release artifacts
+  publish      Publish packages and inspect registry publishing state
+  affected     Evaluate affected packages and changeset coverage
+  diagnose     Inspect changeset provenance and review metadata
 
 Workspace Commands:
-  init       Generate monochange.toml with detected packages and groups
-  discover   Discover packages across supported ecosystems
-  config     Render resolved monochange configuration and workspace metadata
-  check      Validate configuration, changesets, and run manifest lint rules
-  versions   List package and group versions or sync internal dependency constraints
-  lint       Inspect and scaffold manifest lint rules
-  migrate    Audit or migrate release metadata for monochange repositories
+  init         Generate monochange.toml with detected packages and groups
+  discover     Discover packages across supported ecosystems
+  config       Render resolved monochange configuration and workspace metadata
+  check        Validate configuration, changesets, and run manifest lint rules
+  versions     List package and group versions or sync internal dependency constraints
+  lint         Inspect and scaffold manifest lint rules
+  migrate      Audit or migrate release metadata for monochange repositories
+  doctor       Check the local environment monochange needs and report what is missing
 
 Change Analysis Commands:
-  change     Determine the release severity of repository changes
-  changeset  Inspect and validate pending changeset intent
-  api        Inspect lower-level API diffs
-  analyze    Analyze semantic changes for one package across main, head, and optional release baselines
-  notes      Render one configured release-note output without modifying release files
+  change       Determine the release severity of repository changes
+  changeset    Inspect and validate pending changeset intent
+  api          Inspect lower-level API diffs
+  analyze      Analyze semantic changes for one package across main, head, and optional release baselines
+  notes        Render one configured release-note output without modifying release files
 
 Automation Commands:
-  run        Run workflow commands defined in monochange.toml
-  step       Run built-in release workflow steps
-  command    Open an interactive dashboard for adding or editing config-defined CLI commands
-  mcp        Start the monochange MCP (Model Context Protocol) server over stdin/stdout
-  skill      Read or install the bundled monochange agent skill
-  subagents  Generate repo-local monochange subagents and agent guidance files
-  snapshot   Print a normalized JSON snapshot of the CLI surface
-  help       Show detailed help for a command
+  run          Run workflow commands defined in monochange.toml
+  step         Run built-in release workflow steps
+  command      Open an interactive dashboard for adding or editing config-defined CLI commands
+  mcp          Start the monochange MCP (Model Context Protocol) server over stdin/stdout
+  skill        Read or install the bundled monochange agent skill
+  subagents    Generate repo-local monochange subagents and agent guidance files
+  snapshot     Print a normalized JSON snapshot of the CLI surface
+  completions  Generate a shell completion script for monochange
+  help         Show detailed help for a command
 
 Options:
   -q, --quiet
