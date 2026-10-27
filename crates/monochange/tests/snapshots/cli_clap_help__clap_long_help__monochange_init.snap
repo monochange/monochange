@@ -16,7 +16,7 @@ Generate monochange.toml with detected packages and groups
       [93m--provider[0m[95m [0m[95m<PROVIDER>[0m
           Source-control provider for release automation workflows
 
-          [possible values: github, gitlab, gitea]
+          [possible values: github, gitlab, gitea, forgejo]
 
   [93m-h[0m, [93m--help[0m
           Print help

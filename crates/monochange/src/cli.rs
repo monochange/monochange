@@ -378,7 +378,7 @@ fn build_command_with_workflows(
 						.long("provider")
 						.value_name("PROVIDER")
 						.help("Source-control provider for release automation workflows")
-						.value_parser(["github", "gitlab", "gitea"]),
+						.value_parser(["github", "gitlab", "gitea", "forgejo"]),
 				)
 				.after_help(
 					"Examples:\n  monochange init\n  monochange init --provider github\n  monochange init --force\n\n\

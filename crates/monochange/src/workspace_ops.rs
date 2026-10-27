@@ -534,7 +534,7 @@ fn build_prerelease_state_update(
 ///
 /// * `root` - Repository root directory
 /// * `force` - Overwrite existing configuration if true
-/// * `provider` - Optional source provider ("github", "gitlab", or "gitea")
+/// * `provider` - Optional source provider ("github", "gitlab", "gitea", or "forgejo")
 ///
 /// # Errors
 ///
@@ -1186,7 +1186,12 @@ pub(crate) fn discover_workspace_with_configuration(
 ) -> MonochangeResult<DiscoveryReport> {
 	let discovery = build_ecosystem_registry().discover_all(root)?;
 	let mut warnings = discovery.warnings;
-	let mut packages = discovery.packages;
+	let mut packages = monochange_core::filter_discovered_packages_by_ecosystem_settings(
+		root,
+		configuration,
+		discovery.packages,
+		&mut warnings,
+	);
 	normalize_package_ids(root, &mut packages);
 	packages.sort_by(|left, right| left.id.cmp(&right.id));
 	packages.dedup_by(|left, right| left.id == right.id);

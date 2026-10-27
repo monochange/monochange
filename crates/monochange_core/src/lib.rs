@@ -641,6 +641,90 @@ pub fn root_relative(root: &Path, path: &Path) -> PathBuf {
 	}
 }
 
+/// Apply `[ecosystems.<id>]` discovery filters to a discovered package list.
+///
+/// `enabled = false` drops the ecosystem's packages, `roots` keeps only
+/// packages whose repository-relative manifest lives under one of the listed
+/// directories, and `exclude` removes packages whose manifest matches any of
+/// the glob patterns. Settings left at their defaults keep every discovered
+/// package, and a package the settings keep is returned unchanged in input
+/// order.
+///
+/// Exclude globs that fail to compile do not silently disable the filter: the
+/// package list is unaffected and each broken pattern is reported as a
+/// warning the caller can surface.
+pub fn filter_discovered_packages_by_ecosystem_settings(
+	root: &Path,
+	configuration: &WorkspaceConfiguration,
+	packages: Vec<PackageRecord>,
+	warnings: &mut Vec<String>,
+) -> Vec<PackageRecord> {
+	let mut warned_patterns = BTreeSet::new();
+	let mut packages = packages;
+
+	packages.retain(|package| {
+		ecosystem_discovery_allows(root, configuration, package, warnings, &mut warned_patterns)
+	});
+
+	packages
+}
+
+/// Whether one discovered package survives its ecosystem's discovery
+/// settings. Broken exclude globs warn once per pattern and match nothing.
+fn ecosystem_discovery_allows(
+	root: &Path,
+	configuration: &WorkspaceConfiguration,
+	package: &PackageRecord,
+	warnings: &mut Vec<String>,
+	warned_patterns: &mut BTreeSet<String>,
+) -> bool {
+	let settings = configuration.ecosystem_settings(package.ecosystem);
+
+	if settings.enabled == Some(false) {
+		return false;
+	}
+
+	let Some(relative) = relative_to_root(root, &package.manifest_path) else {
+		return true;
+	};
+
+	if !settings.roots.is_empty()
+		&& !settings
+			.roots
+			.iter()
+			.any(|root_path| relative.starts_with(Path::new(root_path)))
+	{
+		return false;
+	}
+
+	for pattern in &settings.exclude {
+		match Pattern::new(&glob_pattern_text(pattern)) {
+			Ok(compiled) => {
+				if compiled.matches(&relative.to_string_lossy()) {
+					return false;
+				}
+			}
+			Err(error) => {
+				let warned_key = format!("{}:{pattern}", package.ecosystem.as_str());
+				if warned_patterns.insert(warned_key) {
+					warnings.push(format!(
+						"invalid exclude glob `{pattern}` for the {} ecosystem: {error}",
+						package.ecosystem.as_str(),
+					));
+				}
+			}
+		}
+	}
+
+	true
+}
+
+/// Normalize a configured glob so it matches forward-slash manifest paths on
+/// every platform.
+fn glob_pattern_text(pattern: &str) -> String {
+	pattern.replace('\\', "/")
+}
+
 #[derive(Clone, Debug)]
 pub struct DiscoveryPathFilter {
 	root: PathBuf,
@@ -7566,6 +7650,22 @@ impl WorkspaceConfiguration {
 		self.packages
 			.iter()
 			.find(|package| package.id == package_id)
+	}
+
+	/// The `[ecosystems.<id>]` settings for an ecosystem.
+	#[must_use]
+	pub fn ecosystem_settings(&self, ecosystem: Ecosystem) -> &EcosystemSettings {
+		match ecosystem {
+			Ecosystem::Cargo => &self.cargo,
+			Ecosystem::Npm => &self.npm,
+			Ecosystem::Deno => &self.deno,
+			Ecosystem::Dart => &self.dart,
+			Ecosystem::Python => &self.python,
+			Ecosystem::Go => &self.go,
+			Ecosystem::Swift => &self.swift,
+			Ecosystem::CocoaPods => &self.cocoapods,
+			Ecosystem::Gradle => &self.gradle,
+		}
 	}
 
 	/// Look up a configured group by its group id.
