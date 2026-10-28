@@ -252,6 +252,7 @@ mod cli_runtime;
 
 mod cli_theme;
 mod command_wizard;
+mod doctor;
 mod git_support;
 mod hosted_sources;
 mod interactive;
@@ -1361,6 +1362,25 @@ async fn dispatch_cli_args(
 	finish_cli_output(rendered, quiet, jq_expression, &matches)
 }
 
+/// Print a completion script for `shell`, built from the commands this
+/// repository's configuration defines so configured workflows complete too.
+fn render_shell_completions(
+	bin_name: &'static str,
+	root: &Path,
+	shell: &str,
+) -> MonochangeResult<String> {
+	let shell = shell.parse::<clap_complete::Shell>().map_err(|error| {
+		MonochangeError::Config(format!("unknown shell `{shell}` for completions: {error}"))
+	})?;
+	let cli = cli::cli_commands_for_root(root);
+	let mut command = cli::build_command_with_cli(bin_name, &cli);
+	let mut buffer = Vec::new();
+	clap_complete::generate(shell, &mut command, bin_name, &mut buffer);
+
+	String::from_utf8(buffer)
+		.map_err(|error| MonochangeError::Io(format!("completion script was not UTF-8: {error}")))
+}
+
 /// Answers the requests that never need the workspace configuration.
 ///
 /// Version output and help for built-in commands are parsed against the default command set before
@@ -1591,6 +1611,20 @@ async fn run_cli_subcommand(
 			populate_workspace(root).map(|result| format_populate_workspace_result(&result))
 		}
 		Some(("command", _)) => run_command_wizard_for_cli(root, context.quiet),
+		Some(("completions", completions_matches)) => {
+			let shell = completions_matches
+				.get_one::<String>("shell")
+				.map_or("bash", String::as_str);
+
+			render_shell_completions(context.bin_name, root, shell)
+		}
+		Some(("doctor", doctor_matches)) => {
+			doctor::render_doctor_report(
+				root,
+				&configuration,
+				selected_cli_output_format(doctor_matches)?,
+			)
+		}
 		Some(("skill", skill_matches)) => run_skill_subcommand(context.quiet, skill_matches),
 		Some(("subagents", subagent_matches)) => run_subagents_subcommand(root, subagent_matches),
 		Some(("change", change_matches)) => {

@@ -423,6 +423,8 @@ writes the MCP config that does so.",
 			}
 		})
 		.subcommand(build_check_subcommand())
+		.subcommand(build_completions_command())
+		.subcommand(build_doctor_command())
 		.subcommand(build_help_subcommand());
 
 	command = command
@@ -461,7 +463,7 @@ const HELP_COMMAND_GROUPS: &[(&str, &[&str])] = &[
 	(
 		"Workspace Commands",
 		&[
-			"init", "discover", "config", "check", "versions", "lint", "migrate",
+			"init", "discover", "config", "check", "versions", "lint", "migrate", "doctor",
 		],
 	),
 	(
@@ -478,6 +480,7 @@ const HELP_COMMAND_GROUPS: &[(&str, &[&str])] = &[
 			"skill",
 			"subagents",
 			"snapshot",
+			"completions",
 			"help",
 		],
 	),
@@ -1116,6 +1119,44 @@ pub(crate) fn build_help_subcommand() -> Command {
 				.help("Built-in command path to get help for (e.g. step validate, init). Config-defined workflow commands are listed too; use `monochange run <name> --help` when a built-in command shares the name")
 				.value_name("COMMAND")
 				.num_args(0..),
+		)
+}
+
+/// Arguments for the `completions` command, appended to the built-in set.
+pub(crate) fn build_completions_command() -> Command {
+	Command::new("completions")
+		.about("Generate a shell completion script for monochange")
+		.long_about(
+			"Print a completion script for the named shell. The script includes the commands \
+			 configured in this repository's monochange.toml, so generate it from the repository \
+			 you work in.\n\nInstall with your shell's completion mechanism, for example \
+			 `monochange completions zsh > \"${fpath[1]}/_monochange\"`.",
+		)
+		.arg(
+			Arg::new("shell")
+				.help("Shell to generate completions for")
+				.value_name("SHELL")
+				.required(true)
+				.value_parser(["bash", "elvish", "fish", "powershell", "zsh"]),
+		)
+}
+
+/// Arguments for the `doctor` command, appended to the built-in set.
+pub(crate) fn build_doctor_command() -> Command {
+	Command::new("doctor")
+		.about("Check the local environment monochange needs and report what is missing")
+		.long_about(
+			"Run local checks only: git availability, monochange.toml parsing, and the \
+			 toolchain of every ecosystem enabled in this workspace. Nothing contacts the \
+			 network.",
+		)
+		.arg(
+			Arg::new("format")
+				.long("format")
+				.help("Output format for the report")
+				.value_name("FORMAT")
+				.default_value("text")
+				.value_parser(["text", "json", "json-min", "markdown", "md"]),
 		)
 }
 

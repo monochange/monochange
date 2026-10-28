@@ -1,5 +1,6 @@
 ---
 source: crates/monochange/tests/cli_help.rs
+assertion_line: 59
 info:
   program: monochange
   args:
@@ -25,10 +26,12 @@ Visible top-level commands:
   changeset
   check
   command
+  completions
   config
   create
   diagnose
   discover
+  doctor
   help
   init
   lint

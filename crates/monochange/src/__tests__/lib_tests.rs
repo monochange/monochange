@@ -10781,7 +10781,7 @@ async fn git_stage_paths_reports_git_inspection_failures() {
 	assert!(
 		error
 			.to_string()
-			.contains("failed to inspect tracked git path release.txt")
+			.contains("failed to inspect tracked git paths")
 	);
 }
 
@@ -17961,4 +17961,39 @@ fn release_commands_still_run_with_defaults_when_configuration_is_missing() {
 	.unwrap_or_else(|error| panic!("config without monochange.toml: {error}"));
 
 	assert!(output.trim_start().starts_with('{'), "{output}");
+}
+
+#[test]
+fn shell_completions_render_for_every_supported_shell() {
+	let workspace = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	fs::write(
+		workspace.path().join("monochange.toml"),
+		"[cli.bench-check]\n[[cli.bench-check.steps]]\ntype = \"Validate\"\n",
+	)
+	.unwrap_or_else(|error| panic!("write config: {error}"));
+
+	for (shell, marker) in [
+		("bash", "_monochange()"),
+		("zsh", "#compdef monochange"),
+		("fish", "__fish_monochange_global_optspecs"),
+		("elvish", "edit:completion"),
+	] {
+		let rendered = crate::render_shell_completions("monochange", workspace.path(), shell)
+			.unwrap_or_else(|error| panic!("completions for {shell}: {error}"));
+		assert!(
+			rendered.contains(marker),
+			"{shell} completions must contain `{marker}`: {}",
+			&rendered[..rendered.len().min(200)]
+		);
+	}
+}
+
+#[test]
+fn shell_completions_reject_unknown_shells() {
+	let workspace = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let error = match crate::render_shell_completions("monochange", workspace.path(), "tcsh") {
+		Ok(rendered) => panic!("tcsh is not a supported shell: {rendered}"),
+		Err(error) => error,
+	};
+	assert!(error.to_string().contains("tcsh"));
 }
