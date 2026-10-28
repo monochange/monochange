@@ -69,9 +69,9 @@ in
       "lint:format" = {
         enable = true;
         verbose = true;
-        pass_filenames = true;
+        pass_filenames = false;
         name = "lint:format";
-        description = "Run workspace autofixes before commit and restage the results.";
+        description = "Check workspace formatting before commit.";
         entry = "${config.env.DEVENV_PROFILE}/bin/lint:format";
         stages = [ "pre-commit" ];
       };

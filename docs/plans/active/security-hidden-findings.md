@@ -40,6 +40,8 @@ Every owned app production file has a unique, nonempty executable source map in 
 
 The imported artifact findings remain unlisted in Security Cloud. Merged source fixes and their evidence do not imply that a canonical Cloud finding was closed.
 
+The remaining OAuth merge-group benchmark timed out during shell-entry hook setup, before Criterion ran. The formatter hook passed filename batches to a command that always checks the whole workspace, allowing parallel batches to repeat that full check. The hook now omits filenames and checks the same workspace once per hook run. This removes redundant work; the logs do not establish the exact cause of the stall. An isolated benchmark retry on the original merge commit remains required.
+
 ## Release-record evidence
 
 The [regression evidence job](https://github.com/monochange/monochange/actions/runs/40609908058/job/122558648730) measured revision `c98a6f2b42aba0c89464b6c8a9a49cd81cc65392`. The original validator failed all twenty selected cases: sixteen field mutations, two invalid expected-serialization cases, acceptance of a tampered record, and deletion of an overlapping record when the expected record was missing. Moving cleanup before validation in the fixed implementation reproduced both neighboring-record deletions. Restoring the fixed source passed all 109 release-artifact module tests.
