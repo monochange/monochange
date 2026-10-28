@@ -305,6 +305,69 @@ const RELEASE_BRANCH: &str = "monochange/release/release";
 const BASE_COMMIT: &str = "base-sha";
 const RELEASE_COMMIT: &str = "release-sha";
 
+#[rstest]
+#[case::create(None)]
+#[case::fast_forward(Some(BASE_COMMIT))]
+#[tokio::test]
+async fn default_release_branch_is_rejected_before_every_write(
+	#[case] head: Option<&str>,
+	#[values(Some("main"), None)] base: Option<&str>,
+) {
+	let server = MockServer::start();
+	mock_repository(&server, RELEASE_BRANCH);
+	mock_branch(&server, RELEASE_BRANCH, head);
+	let writes = mock_commit_writes(&server);
+	let create_ref = server.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/git/refs");
+		then.status(201);
+	});
+	let update_ref = mock_branch_update(&server, RELEASE_BRANCH, false);
+
+	assert!(
+		create_commit(&server, &release_commit_request(RELEASE_BRANCH, base))
+			.await
+			.is_err()
+	);
+	writes.blob.assert_calls(0);
+	writes.tree.assert_calls(0);
+	writes.commit.assert_calls(0);
+	create_ref.assert_calls(0);
+	update_ref.assert_calls(0);
+}
+
+#[rstest]
+#[case::non_release("feature/work", "main")]
+#[case::named_base(RELEASE_BRANCH, RELEASE_BRANCH)]
+#[tokio::test]
+async fn non_release_or_base_branch_is_rejected_before_every_write(
+	#[case] branch: &str,
+	#[case] base: &str,
+	#[values(None, Some(BASE_COMMIT))] head: Option<&str>,
+) {
+	let server = MockServer::start();
+	mock_repository(&server, "main");
+	mock_branch(&server, branch, head);
+	let writes = mock_commit_writes(&server);
+	let create_ref = server.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/git/refs");
+		then.status(201);
+	});
+	let update_ref = mock_branch_update(&server, branch, false);
+
+	assert!(
+		create_commit(&server, &release_commit_request(branch, Some(base)))
+			.await
+			.is_err()
+	);
+	writes.blob.assert_calls(0);
+	writes.tree.assert_calls(0);
+	writes.commit.assert_calls(0);
+	create_ref.assert_calls(0);
+	update_ref.assert_calls(0);
+}
+
 fn release_commit_request(branch: &str, base_branch: Option<&str>) -> HostedCommitRequest {
 	HostedCommitRequest {
 		provider: "github".to_string(),
@@ -416,6 +479,8 @@ async fn create_commit(
 	server: &MockServer,
 	request: &HostedCommitRequest,
 ) -> Result<(String, bool, Option<String>), GitHubAppError> {
+	mock_repository(server, "main");
+
 	server.mock(|when, then| {
 		when.method(Method::GET)
 			.path("/repos/acme/actions/git/commits/base-sha");
@@ -438,8 +503,11 @@ async fn create_commit(
 	.await
 }
 
+#[rstest]
 #[tokio::test]
-async fn first_release_commit_creates_the_release_branch() {
+async fn first_release_commit_creates_the_release_branch(
+	#[values(Some("main"), None)] base: Option<&str>,
+) {
 	let server = MockServer::start();
 	mock_branch(&server, RELEASE_BRANCH, None);
 	let writes = mock_commit_writes(&server);
@@ -453,12 +521,9 @@ async fn first_release_commit_creates_the_release_branch() {
 		then.status(201);
 	});
 
-	let result = create_commit(
-		&server,
-		&release_commit_request(RELEASE_BRANCH, Some("main")),
-	)
-	.await
-	.unwrap();
+	let result = create_commit(&server, &release_commit_request(RELEASE_BRANCH, base))
+		.await
+		.unwrap();
 
 	assert_eq!(
 		result,
@@ -509,19 +574,19 @@ async fn unverified_release_commit_fails_without_moving_the_branch(
 	update.assert_calls(0);
 }
 
+#[rstest]
 #[tokio::test]
-async fn release_branch_at_the_base_commit_is_fast_forwarded() {
+async fn release_branch_at_the_base_commit_is_fast_forwarded(
+	#[values(Some("main"), None)] base: Option<&str>,
+) {
 	let server = MockServer::start();
 	mock_branch(&server, RELEASE_BRANCH, Some(BASE_COMMIT));
 	mock_commit_writes(&server);
 	let update = mock_branch_update(&server, RELEASE_BRANCH, false);
 
-	create_commit(
-		&server,
-		&release_commit_request(RELEASE_BRANCH, Some("main")),
-	)
-	.await
-	.unwrap();
+	create_commit(&server, &release_commit_request(RELEASE_BRANCH, base))
+		.await
+		.unwrap();
 
 	update.assert();
 }
@@ -624,15 +689,18 @@ async fn release_branch_that_moved_is_never_force_updated(
 		.await
 		.unwrap_err();
 
-	assert!(
-		matches!(
-			&error,
-			GitHubAppError::BranchMoved(moved, actual, expected)
-
-				if moved == branch && actual == "other-sha" && expected == BASE_COMMIT
-		),
-		"{error}"
-	);
+	if base_branch.is_none() {
+		assert!(
+			matches!(&error, GitHubAppError::BranchMoved(moved, actual, expected)
+			if moved == branch && actual == "other-sha" && expected == BASE_COMMIT),
+			"{error}"
+		);
+	} else {
+		assert!(
+			matches!(&error, GitHubAppError::InvalidReleaseBranch(moved) if moved == branch),
+			"{error}"
+		);
+	}
 	update.assert_calls(0);
 }
 
@@ -720,9 +788,7 @@ async fn only_release_branches_that_are_not_the_default_branch_are_forced(
 	assert!(
 		matches!(
 			&error,
-			GitHubAppError::BranchMoved(moved, actual, expected)
-
-				if moved == branch && actual == "other-sha" && expected == BASE_COMMIT
+			GitHubAppError::InvalidReleaseBranch(moved) if moved == branch
 		),
 		"{error}"
 	);
@@ -760,6 +826,169 @@ async fn unreadable_repository_metadata_refuses_to_force() {
 	update.assert_calls(0);
 }
 
+fn release_pull_request() -> monochange_core::SourceChangeRequest {
+	serde_json::from_value(serde_json::json!({
+		"provider": "github", "repository": "acme/actions", "owner": "acme", "repo": "actions",
+		"base_branch": "main", "head_branch": RELEASE_BRANCH,
+		"title": "chore(release): prepare release", "body": "Prepared release",
+		"labels": ["release"], "auto_merge": true,
+		"commit_message": {"subject": "chore(release): prepare release"}
+	}))
+	.unwrap()
+}
+
+fn pull_response() -> serde_json::Value {
+	serde_json::json!({
+		"number": 42, "node_id": "PR_42", "html_url": "https://github.com/acme/actions/pull/42",
+		"body": "An existing PR", "user": {"id": 123, "type": "Bot"},
+		"head": {"ref": RELEASE_BRANCH, "repo": {"id": 999}},
+		"base": {"ref": "main", "repo": {"id": 999}}
+	})
+}
+
+const PR_BINDING_SECRET: &str = "test-only-release-pr-signing-key";
+
+fn sign_pull(pull: &mut serde_json::Value, secret: &str) {
+	let parsed: super::PullRequestResponse = serde_json::from_value(pull.clone()).unwrap();
+	pull["body"] = parsed.signed_body(secret, "Prepared release").into();
+}
+
+async fn publish_pull(
+	server: &MockServer,
+	request: &monochange_core::SourceChangeRequest,
+) -> Result<(u64, monochange_core::SourceChangeRequestOperation, String), GitHubAppError> {
+	super::publish_release_pull_request(
+		&reqwest::Client::new(),
+		&server.base_url(),
+		"installation-token",
+		request,
+		PR_BINDING_SECRET,
+		999,
+	)
+	.await
+}
+
+#[rstest]
+#[case::unmarked("unmarked")]
+#[case::wrong_base("base")]
+#[case::wrong_head("head")]
+#[case::foreign_head_repository("head_repo")]
+#[case::foreign_base_repository("base_repo")]
+#[case::different_creator("creator")]
+#[case::different_number("number")]
+#[case::different_node("node")]
+#[case::human_creator("human")]
+#[case::forged_signature("forged")]
+#[case::other_deployment_key("secret")]
+#[tokio::test]
+async fn unrelated_or_rebound_pull_requests_are_never_mutated(#[case] mismatch: &str) {
+	let server = MockServer::start();
+	mock_repository(&server, "main");
+	let mut pull = pull_response();
+	sign_pull(&mut pull, PR_BINDING_SECRET);
+	match mismatch {
+		"unmarked" => pull["body"] = "An unrelated pull request".into(),
+		"base" => pull["base"]["ref"] = "production".into(),
+		"head" => pull["head"]["ref"] = "feature/work".into(),
+		"head_repo" => pull["head"]["repo"]["id"] = 1000.into(),
+		"base_repo" => pull["base"]["repo"]["id"] = 1000.into(),
+		"creator" => pull["user"]["id"] = 456.into(),
+		"number" => pull["number"] = 43.into(),
+		"node" => pull["node_id"] = "PR_43".into(),
+		"human" => pull["user"]["type"] = "User".into(),
+		"secret" => sign_pull(&mut pull, "another-test-only-deployment-key"),
+		"forged" => {
+			pull["body"] = format!("{}{} -->", super::RELEASE_PR_MARKER, "00".repeat(32)).into();
+		}
+		_ => unreachable!(),
+	}
+	server.mock(|when, then| {
+		when.method(Method::GET).path("/repos/acme/actions/pulls");
+		then.json_body(serde_json::json!([pull]));
+	});
+	let mutations = server.mock(|when, then| {
+		when.method(Method::PATCH);
+		then.json_body(pull_response());
+	});
+	let labels = server.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/issues/42/labels");
+		then.status(200);
+	});
+	let auto_merge = server.mock(|when, then| {
+		when.method(Method::POST).path("/graphql");
+		then.json_body(
+			serde_json::json!({"data": {"enablePullRequestAutoMerge": {"pullRequest": {"number": 42}}}}),
+		);
+	});
+
+	assert!(matches!(
+		publish_pull(&server, &release_pull_request()).await,
+		Err(GitHubAppError::UnboundPullRequest)
+	));
+	mutations.assert_calls(0);
+	labels.assert_calls(0);
+	auto_merge.assert_calls(0);
+}
+
+#[rstest]
+#[case::created(false)]
+#[case::bound_update(true)]
+#[tokio::test]
+async fn only_created_or_authenticated_release_pull_requests_are_updated(#[case] existing: bool) {
+	let server = MockServer::start();
+	mock_repository(&server, "main");
+	let mut pull = pull_response();
+	sign_pull(&mut pull, PR_BINDING_SECRET);
+	let listed = if existing {
+		serde_json::json!([pull.clone()])
+	} else {
+		serde_json::json!([])
+	};
+	server.mock(|when, then| {
+		when.method(Method::GET).path("/repos/acme/actions/pulls");
+		then.json_body(listed);
+	});
+	let create = server.mock(|when, then| {
+		when.method(Method::POST).path("/repos/acme/actions/pulls");
+		then.status(201).json_body(pull_response());
+	});
+	let update = server.mock(|when, then| {
+		when.method(Method::PATCH)
+			.path("/repos/acme/actions/pulls/42")
+			.json_body(
+				serde_json::json!({"title": "chore(release): prepare release", "body": pull["body"], "base": "main"}),
+			);
+		then.json_body(pull.clone());
+	});
+	let labels = server.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/issues/42/labels");
+		then.status(200);
+	});
+	let auto_merge = server.mock(|when, then| {
+		when.method(Method::POST).path("/graphql");
+		then.json_body(
+			serde_json::json!({"data": {"enablePullRequestAutoMerge": {"pullRequest": {"number": 42}}}}),
+		);
+	});
+	let (_, operation, _) = publish_pull(&server, &release_pull_request())
+		.await
+		.unwrap();
+	assert_eq!(
+		operation,
+		if existing {
+			monochange_core::SourceChangeRequestOperation::Updated
+		} else {
+			monochange_core::SourceChangeRequestOperation::Created
+		}
+	);
+	create.assert_calls(usize::from(!existing));
+	update.assert_calls(1);
+	labels.assert_calls(1);
+	auto_merge.assert_calls(1);
+}
+
 #[rstest]
 #[case::truncated_root("truncated")]
 #[case::truncated_github("truncated_github")]
@@ -786,6 +1015,7 @@ async fn workflow_security_tree_boundaries_must_be_complete_directories(
 				"truncated": true,
 			})
 		}
+
 		"ancestor" => {
 			serde_json::json!({"tree": [{"path": ".github", "sha": "github-tree", "type": "blob"}]})
 		}
@@ -833,4 +1063,159 @@ async fn workflow_security_tree_boundaries_must_be_complete_directories(
 	writes.commit.assert_calls(0);
 	create_ref.assert_calls(0);
 	update_ref.assert_calls(0);
+}
+
+#[tokio::test]
+async fn ambiguous_release_pull_request_matches_are_not_adopted() {
+	let server = MockServer::start();
+	mock_repository(&server, "main");
+	let mut pull = pull_response();
+	sign_pull(&mut pull, PR_BINDING_SECRET);
+	server.mock(|when, then| {
+		when.method(Method::GET).path("/repos/acme/actions/pulls");
+		then.json_body(serde_json::json!([pull.clone(), pull]));
+	});
+	assert!(matches!(
+		publish_pull(&server, &release_pull_request()).await,
+		Err(GitHubAppError::UnboundPullRequest)
+	));
+}
+
+#[rstest]
+#[case::feature("feature/work", "main")]
+#[case::same_as_base(RELEASE_BRANCH, RELEASE_BRANCH)]
+#[case::default(RELEASE_BRANCH, "main")]
+#[tokio::test]
+async fn pull_requests_require_release_branch_policy(#[case] head: &str, #[case] base: &str) {
+	let server = MockServer::start();
+	mock_repository(&server, RELEASE_BRANCH);
+	let mut request = release_pull_request();
+	request.head_branch = head.to_owned();
+	request.base_branch = base.to_owned();
+	assert!(matches!(
+		publish_pull(&server, &request).await,
+		Err(GitHubAppError::InvalidReleaseBranch(_))
+	));
+}
+
+#[tokio::test]
+async fn a_failed_pull_request_creation_stops_before_all_followup_writes() {
+	let server = MockServer::start();
+	mock_repository(&server, "main");
+	server.mock(|when, then| {
+		when.method(Method::GET).path("/repos/acme/actions/pulls");
+		then.json_body(serde_json::json!([]));
+	});
+	let failure = r#"{"message":"Validation Failed"}"#;
+	let create = server.mock(|when, then| {
+		when.method(Method::POST).path("/repos/acme/actions/pulls");
+		then.status(422).body(failure);
+	});
+	let stamp = server.mock(|when, then| {
+		when.method(Method::PATCH);
+		then.json_body(pull_response());
+	});
+	let labels = server.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/issues/42/labels");
+		then.status(200);
+	});
+	let auto_merge = server.mock(|when, then| {
+		when.method(Method::POST).path("/graphql");
+		then.status(200);
+	});
+
+	let outcome = publish_pull(&server, &release_pull_request()).await;
+	assert!(
+		matches!(&outcome, Err(GitHubAppError::Status("create pull request", status, body))
+		if *status == reqwest::StatusCode::UNPROCESSABLE_ENTITY && body.as_str() == failure),
+		"{outcome:?}"
+	);
+	create.assert_calls(1);
+	stamp.assert_calls(0);
+	labels.assert_calls(0);
+	auto_merge.assert_calls(0);
+}
+
+#[tokio::test]
+async fn a_failed_creation_stamp_has_explicit_recovery_and_cannot_be_adopted_on_retry() {
+	let server = MockServer::start();
+	mock_repository(&server, "main");
+	let mut empty = server.mock(|when, then| {
+		when.method(Method::GET).path("/repos/acme/actions/pulls");
+		then.json_body(serde_json::json!([]));
+	});
+	let create = server.mock(|when, then| {
+		when.method(Method::POST).path("/repos/acme/actions/pulls");
+		then.status(201).json_body(pull_response());
+	});
+	let stamp = server.mock(|when, then| {
+		when.method(Method::PATCH)
+			.path("/repos/acme/actions/pulls/42");
+		then.status(503).body("provider unavailable");
+	});
+	let labels = server.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/issues/42/labels");
+		then.status(200);
+	});
+	let auto_merge = server.mock(|when, then| {
+		when.method(Method::POST).path("/graphql");
+		then.status(200);
+	});
+	let error = publish_pull(&server, &release_pull_request())
+		.await
+		.unwrap_err();
+	assert!(
+		matches!(error, GitHubAppError::ReleasePullRequestNeedsRecovery { ref url, ref source }
+		if url == "https://github.com/acme/actions/pull/42"
+		&& matches!(source.as_ref(), GitHubAppError::Status("update pull request", status, _) if *status == reqwest::StatusCode::SERVICE_UNAVAILABLE))
+	);
+	empty.delete();
+	server.mock(|when, then| {
+		when.method(Method::GET).path("/repos/acme/actions/pulls");
+		then.json_body(serde_json::json!([pull_response()]));
+	});
+	assert!(matches!(
+		publish_pull(&server, &release_pull_request()).await,
+		Err(GitHubAppError::UnboundPullRequest)
+	));
+	create.assert_calls(1);
+	stamp.assert_calls(1);
+	labels.assert_calls(0);
+	auto_merge.assert_calls(0);
+}
+
+#[tokio::test]
+async fn retargeted_patch_responses_stop_before_labels_or_auto_merge() {
+	let server = MockServer::start();
+	mock_repository(&server, "main");
+	let mut pull = pull_response();
+	sign_pull(&mut pull, PR_BINDING_SECRET);
+	server.mock(|when, then| {
+		when.method(Method::GET).path("/repos/acme/actions/pulls");
+		then.json_body(serde_json::json!([pull.clone()]));
+	});
+	pull["base"]["ref"] = "production".into();
+	let update = server.mock(|when, then| {
+		when.method(Method::PATCH)
+			.path("/repos/acme/actions/pulls/42");
+		then.json_body(pull);
+	});
+	let labels = server.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/issues/42/labels");
+		then.status(200);
+	});
+	let auto_merge = server.mock(|when, then| {
+		when.method(Method::POST).path("/graphql");
+		then.status(200);
+	});
+	assert!(matches!(
+		publish_pull(&server, &release_pull_request()).await,
+		Err(GitHubAppError::UnboundPullRequest)
+	));
+	update.assert_calls(1);
+	labels.assert_calls(0);
+	auto_merge.assert_calls(0);
 }

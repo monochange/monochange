@@ -28,16 +28,17 @@ use crate::github_app;
 /// A repository row joined with its installation.
 #[derive(Debug)]
 struct ConnectedRepository {
+	github_repo_id: i64,
 	installation_github_id: i64,
 }
 
-/// Resolve the repository by full name and return its installation id.
+/// Resolve the GitHub repository and installation ids by repository full name.
 async fn find_connected_repository(
 	state: &AppState,
 	full_name: &str,
 ) -> Result<Option<ConnectedRepository>, String> {
 	let row = sqlx::query(
-		"SELECT i.github_installation_id
+		"SELECT r.github_repo_id, i.github_installation_id
 		 FROM repositories r
 		 JOIN installations i ON r.installation_id = i.id
 		 WHERE r.github_full_name = $1",
@@ -48,6 +49,7 @@ async fn find_connected_repository(
 	.map_err(|error| format!("repository lookup failed: {error}"))?;
 	Ok(row.map(|row| {
 		ConnectedRepository {
+			github_repo_id: row.get("github_repo_id"),
 			installation_github_id: row.get("github_installation_id"),
 		}
 	}))
@@ -309,7 +311,9 @@ fn release_commit_error_status(error: &github_app::GitHubAppError) -> StatusCode
 			StatusCode::CONFLICT
 		}
 		github_app::GitHubAppError::NotConfigured => StatusCode::SERVICE_UNAVAILABLE,
-		github_app::GitHubAppError::WorkflowsChanged => StatusCode::UNPROCESSABLE_ENTITY,
+		github_app::GitHubAppError::WorkflowsChanged
+		| github_app::GitHubAppError::InvalidReleaseBranch(_)
+		| github_app::GitHubAppError::UnboundPullRequest => StatusCode::UNPROCESSABLE_ENTITY,
 		_ => StatusCode::BAD_GATEWAY,
 	}
 }
@@ -483,15 +487,21 @@ pub async fn publish_release_request(
 		}));
 	}
 
-	let (number, operation, url) =
-		github_app::publish_release_pull_request(&state.http, &app.api_url, &token, request)
-			.await
-			.map_err(|error| {
-				(
-					StatusCode::BAD_GATEWAY,
-					Json(ApiError::new(error.to_string())),
-				)
-			})?;
+	let (number, operation, url) = github_app::publish_release_pull_request(
+		&state.http,
+		&app.api_url,
+		&token,
+		request,
+		&state.jwt_secret,
+		repository.github_repo_id,
+	)
+	.await
+	.map_err(|error| {
+		(
+			release_commit_error_status(&error),
+			Json(ApiError::new(error.to_string())),
+		)
+	})?;
 
 	tracing::info!(
 		repository = %full_name,
