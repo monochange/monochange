@@ -73,7 +73,7 @@ jobs:
           tool: cargo-binstall
 
       - name: install cargo-leptos
-        run: cargo binstall cargo-leptos@0.3.6 --no-confirm
+        run: cargo binstall cargo-leptos@0.3.6 --locked --no-confirm
 
       - name: add wasm target
         run: rustup target add wasm32-unknown-unknown
@@ -229,7 +229,7 @@ jobs:
           tool: cargo-binstall
 
       - name: install cargo-leptos
-        run: cargo binstall cargo-leptos@0.3.6 --no-confirm
+        run: cargo binstall cargo-leptos@0.3.6 --locked --no-confirm
 
       - name: add wasm target
         run: rustup target add wasm32-unknown-unknown
@@ -251,6 +251,23 @@ jobs:
 
       - name: install node dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: record website build tools
+        working-directory: app
+        run: |
+          set -euo pipefail
+          {
+            rustup show active-toolchain
+            rustc -vV
+            cargo -vV
+            cargo binstall --version
+            cargo leptos --version
+            leptos_path="$(command -v cargo-leptos)"
+            leptos_hash="$(sha256sum "$leptos_path" | cut -d ' ' -f 1)"
+            printf 'cargo-leptos SHA256: %s\n' "$leptos_hash"
+            node --print 'JSON.stringify({node: process.versions.node, zlib: process.versions.zlib})'
+            pnpm --version
+          } | tee /tmp/website-build-provenance.txt
 
       - name: build release site
         working-directory: app
@@ -296,4 +313,13 @@ jobs:
             /tmp/website-results.json
             /tmp/website-benchmark.md
             /tmp/website-size.md
+            /tmp/website-build-provenance.txt
+          retention-days: 90
+
+      - name: upload website package
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: website-package
+          path: app/target/site/pkg/
           retention-days: 90
