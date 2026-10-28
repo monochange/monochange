@@ -23,10 +23,11 @@ The first batch prioritizes organization identity, workflow integrity, JWKS refr
 - JWKS refreshes: https://github.com/monochange/monochange/pull/848
 - OAuth limits: https://github.com/monochange/monochange/pull/847
 - Release-record integrity: https://github.com/monochange/monochange/pull/850
+- Hosted release-branch policy and PR provenance: https://github.com/monochange/monochange/pull/852
 
 The four priority fixes are merged. Each had independent source review, green current-head CI, actual original-code assertion failures, and app-workspace executable patch coverage before explicit submission to the protected main merge queue. Their signed squash commits contain no AI attribution; each full attributed PR description was restored after merge.
 
-The release-record PR is rebased on those four fixes and still requires current-head CI and executable patch coverage. Release-branch policy and PR provenance are implemented together in an unpublished sibling worktree; their nine original-code controls and full current-head CI remain unverified. Workflow integrity was separated from those changes so it could land independently.
+The release-record PR is rebased on those four fixes and still requires current-head CI and executable patch coverage. Release-branch policy and PR provenance are published together in the hosted authorization PR; their nine original-code controls and full current-head CI remain unverified. Workflow integrity was separated from those changes so it could land independently.
 
 ## Priority merge evidence
 
