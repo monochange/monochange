@@ -1319,11 +1319,7 @@ async fn execute_publish_release_step(
 		.and_then(|v| v.first().cloned())
 		.unwrap_or_else(|| "HEAD".to_string());
 	let manifest = if let Some(prepared_release) = context.prepared_release.as_ref() {
-		build_release_manifest(
-			state.cli_command,
-			prepared_release,
-			context.originating_command.as_deref(),
-		)
+		build_release_manifest(state.cli_command, prepared_release, None)
 	} else {
 		let from_ref = state
 			.step_inputs
@@ -1573,11 +1569,7 @@ async fn execute_commit_release_step(
 		.prepared_release
 		.as_ref()
 		.expect("prepared release must be available before committing release");
-	let manifest = build_release_manifest(
-		state.cli_command,
-		prepared_release,
-		context.originating_command.as_deref(),
-	);
+	let manifest = build_release_manifest(state.cli_command, prepared_release, None);
 	let no_verify =
 		parse_boolean_step_input(state.step_inputs, "no_verify")?.unwrap_or(defaults.no_verify);
 	let update_release_json = parse_boolean_step_input(state.step_inputs, "update_release_json")?
@@ -1656,11 +1648,7 @@ async fn execute_open_release_request_step(
 			"`OpenReleaseRequest` requires `[source]` configuration".to_string(),
 		)
 	})?;
-	let manifest = build_release_manifest(
-		state.cli_command,
-		prepared_release,
-		context.originating_command.as_deref(),
-	);
+	let manifest = build_release_manifest(state.cli_command, prepared_release, None);
 	let request = build_source_change_request(&source, &manifest);
 	let tracked_paths = tracked_release_pull_request_paths(context, &manifest);
 	let dry_run = context.dry_run;
@@ -1715,11 +1703,7 @@ async fn execute_comment_released_issues_step(
 	context: &mut CliContext,
 ) -> MonochangeResult<Option<String>> {
 	let manifest = if let Some(prepared_release) = context.prepared_release.as_ref() {
-		build_release_manifest(
-			state.cli_command,
-			prepared_release,
-			context.originating_command.as_deref(),
-		)
+		build_release_manifest(state.cli_command, prepared_release, None)
 	} else {
 		let from_ref = state
 			.step_inputs
@@ -5623,11 +5607,7 @@ fn resolve_command_output(
 
 		return match format {
 			OutputFormat::Json | OutputFormat::JsonMin => {
-				let manifest = build_release_manifest(
-					cli_command,
-					prepared_release,
-					context.originating_command.as_deref(),
-				);
+				let manifest = build_release_manifest(cli_command, prepared_release, None);
 				render_release_cli_command_json(
 					format,
 					&manifest,

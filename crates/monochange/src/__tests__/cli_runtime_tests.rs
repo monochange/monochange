@@ -3396,12 +3396,12 @@ async fn cached_release_preserves_its_producer_and_rejects_record_command_tamper
 	.await
 	.unwrap();
 
-	// Reusing preparation through a differently named command must also retain
-	// the producer when the cache and the JSON result are written again.
+	// The cache retains its producer while JSON describes the current invocation.
+	let preparer = default_cli_command("prepare-release");
 	let output = execute_cli_command_with_options(
 		root,
 		&configuration,
-		&default_cli_command("prepare-release"),
+		&preparer,
 		ExecuteCliCommandOptions {
 			dry_run: false,
 			quiet: true,
@@ -3415,7 +3415,7 @@ async fn cached_release_preserves_its_producer_and_rejects_record_command_tamper
 	.await
 	.unwrap();
 	let output: serde_json::Value = serde_json::from_str(&output).unwrap();
-	assert_eq!(output["command"], producer.name);
+	assert_eq!(output["command"], preparer.name);
 
 	if tamper {
 		let mut record: serde_json::Value =
@@ -3561,7 +3561,10 @@ async fn legacy_preparation_requires_a_trusted_producer_before_follow_up(#[case]
 		context.prepared_release.as_ref().unwrap(),
 		context.originating_command.as_deref(),
 	);
-	assert_eq!(expected.command, "prepare-release");
+	assert_eq!(
+		expected.command,
+		default_cli_command("prepare-release").name
+	);
 	let error =
 		crate::release_artifacts::validate_release_record_file(root, None, &expected, false)
 			.unwrap_err();

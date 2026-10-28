@@ -1903,7 +1903,13 @@ fn prepare_release_commit(
 	let release_record_path = if context.dry_run {
 		release_record_paths(root, &manifest.release_targets).absolute
 	} else {
-		validate_release_record_file(root, source, manifest, update_release_json)?
+		// Runtime commands still select their own release branch. Only the
+		// prepared record retains the command that originally produced it.
+		let mut expected = manifest.clone();
+		if let Some(command) = &context.originating_command {
+			expected.command.clone_from(command);
+		}
+		validate_release_record_file(root, source, &expected, update_release_json)?
 	};
 
 	let mut tracked_paths = tracked_paths;

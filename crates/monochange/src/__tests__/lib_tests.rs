@@ -3918,7 +3918,7 @@ fn render_config_step_reports_zero_packages_for_an_empty_workspace() {
 fn template_context_exposes_resolved_config_by_default() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	seed_release_fixture(tempdir.path(), None, false);
-	let mut context = cli_context_for_when_evaluation_tests();
+	let mut context = cli_context_for_tests();
 	context.root = tempdir.path().to_path_buf();
 
 	let template_context = build_cli_template_context(&context, &BTreeMap::new(), None);
@@ -5568,7 +5568,7 @@ fn normalize_when_expression_supports_logical_operators() {
 	);
 }
 
-fn cli_context_for_when_evaluation_tests() -> CliContext {
+pub(crate) fn cli_context_for_tests() -> CliContext {
 	CliContext {
 		root: PathBuf::from("."),
 		dry_run: false,
@@ -5601,7 +5601,7 @@ fn cli_context_for_when_evaluation_tests() -> CliContext {
 
 #[test]
 fn should_execute_cli_step_runs_when_condition_is_true() {
-	let context = cli_context_for_when_evaluation_tests();
+	let context = cli_context_for_tests();
 	let step_inputs = BTreeMap::from([
 		("run".to_string(), vec!["true".to_string()]),
 		("extra".to_string(), vec!["true".to_string()]),
@@ -5626,7 +5626,7 @@ fn should_execute_cli_step_runs_when_condition_is_true() {
 
 #[test]
 fn should_execute_cli_step_can_gate_on_command_inputs_not_declared_by_step() {
-	let mut context = cli_context_for_when_evaluation_tests();
+	let mut context = cli_context_for_tests();
 	context.inputs = BTreeMap::from([
 		("commit".to_string(), vec!["true".to_string()]),
 		("create_pr".to_string(), vec!["true".to_string()]),
@@ -5652,7 +5652,7 @@ fn should_execute_cli_step_can_gate_on_command_inputs_not_declared_by_step() {
 
 #[test]
 fn should_execute_cli_step_prefers_step_inputs_over_command_inputs() {
-	let mut context = cli_context_for_when_evaluation_tests();
+	let mut context = cli_context_for_tests();
 	context.inputs = BTreeMap::from([("run".to_string(), vec!["true".to_string()])]);
 	let step_inputs = BTreeMap::from([("run".to_string(), vec!["false".to_string()])]);
 	let step = monochange_core::CliStepDefinition::Command {
@@ -5675,7 +5675,7 @@ fn should_execute_cli_step_prefers_step_inputs_over_command_inputs() {
 
 #[test]
 fn should_execute_cli_step_skips_when_condition_is_false() {
-	let context = cli_context_for_when_evaluation_tests();
+	let context = cli_context_for_tests();
 	let step_inputs = BTreeMap::from([("run".to_string(), vec!["false".to_string()])]);
 	let step = monochange_core::CliStepDefinition::Command {
 		show_progress: None,
@@ -5697,7 +5697,7 @@ fn should_execute_cli_step_skips_when_condition_is_false() {
 
 #[test]
 fn should_execute_cli_step_skips_for_zero_value() {
-	let context = cli_context_for_when_evaluation_tests();
+	let context = cli_context_for_tests();
 	let step_inputs = BTreeMap::from([("run".to_string(), vec!["0".to_string()])]);
 	let step = monochange_core::CliStepDefinition::Command {
 		show_progress: None,
@@ -5719,7 +5719,7 @@ fn should_execute_cli_step_skips_for_zero_value() {
 
 #[test]
 fn should_execute_cli_step_can_gate_on_number_of_changesets() {
-	let mut context = cli_context_for_when_evaluation_tests();
+	let mut context = cli_context_for_tests();
 	let step_inputs = BTreeMap::new();
 	let step = monochange_core::CliStepDefinition::Command {
 		show_progress: None,
@@ -5751,7 +5751,7 @@ fn should_execute_cli_step_can_gate_on_number_of_changesets() {
 
 #[test]
 fn should_execute_cli_step_trims_and_treats_1_as_true() {
-	let context = cli_context_for_when_evaluation_tests();
+	let context = cli_context_for_tests();
 	let step_inputs = BTreeMap::from([("run".to_string(), vec![" 1 ".to_string()])]);
 	let step = monochange_core::CliStepDefinition::Command {
 		show_progress: None,
@@ -5773,7 +5773,7 @@ fn should_execute_cli_step_trims_and_treats_1_as_true() {
 
 #[test]
 fn should_execute_cli_step_skips_with_not_operator() {
-	let context = cli_context_for_when_evaluation_tests();
+	let context = cli_context_for_tests();
 	let step_inputs = BTreeMap::from([("skip".to_string(), vec!["true".to_string()])]);
 	let step = monochange_core::CliStepDefinition::Command {
 		show_progress: None,
@@ -5795,7 +5795,7 @@ fn should_execute_cli_step_skips_with_not_operator() {
 
 #[test]
 fn should_execute_cli_step_gates_on_release_streams_and_outputs() {
-	let mut context = cli_context_for_when_evaluation_tests();
+	let mut context = cli_context_for_tests();
 	let changelog = |output: &str, stream: &str| {
 		crate::PreparedChangelog {
 			owner_id: "main".to_string(),
@@ -5876,7 +5876,7 @@ fn should_execute_cli_step_gates_on_release_streams_and_outputs() {
 
 #[test]
 fn should_execute_cli_step_rejects_unknown_template_reference() {
-	let context = cli_context_for_when_evaluation_tests();
+	let context = cli_context_for_tests();
 	let step_inputs = BTreeMap::from([("run".to_string(), vec!["true".to_string()])]);
 	let step = monochange_core::CliStepDefinition::Command {
 		show_progress: None,
@@ -5900,7 +5900,7 @@ fn should_execute_cli_step_rejects_unknown_template_reference() {
 
 #[test]
 fn should_execute_cli_step_rejects_non_scalar_condition_value() {
-	let context = cli_context_for_when_evaluation_tests();
+	let context = cli_context_for_tests();
 	let step_inputs =
 		BTreeMap::from([("list".to_string(), vec!["a".to_string(), "b".to_string()])]);
 	let step = monochange_core::CliStepDefinition::Command {

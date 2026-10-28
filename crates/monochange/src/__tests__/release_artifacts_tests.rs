@@ -1270,6 +1270,54 @@ fn validate_release_record_file_accepts_reordered_keys_and_preserves_preparation
 }
 
 #[rstest::rstest]
+#[case::unchanged(false, false)]
+#[case::protect(true, false)]
+#[case::repair(true, true)]
+fn commit_preparation_validates_the_cached_producer_without_changing_runtime_identity(
+	#[case] tamper: bool,
+	#[case] repair: bool,
+) {
+	let tmp = tempdir().unwrap();
+	let root = tmp.path();
+	let mut original = minimal_manifest_with_target("pkg-a", "1.0.0");
+	original.command = "nightly-publish".to_string();
+	let path = write_release_record_file(root, None, &original).unwrap();
+	let mut consumer = original.clone();
+	consumer.command = "release-pr".to_string();
+	let mut context = crate::tests::cli_context_for_tests();
+	context.root = root.to_path_buf();
+	context.originating_command = Some(original.command.clone());
+	if tamper {
+		let mut record: serde_json::Value =
+			serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
+		record["command"] = serde_json::Value::String(consumer.command.clone());
+		fs::write(&path, serde_json::to_string_pretty(&record).unwrap()).unwrap();
+	}
+	let before = fs::read_to_string(&path).unwrap();
+
+	let result = prepare_release_commit(root, &context, None, &consumer, repair);
+
+	if tamper && !repair {
+		let error = result
+			.err()
+			.expect("changed command must fail strict validation");
+		assert!(
+			error
+				.to_string()
+				.contains("does not match expected content")
+		);
+		assert_eq!(fs::read_to_string(&path).unwrap(), before);
+	} else {
+		assert!(result.unwrap().tracked_paths.contains(&path));
+		validate_release_record_file(root, None, &original, false).unwrap();
+		if !tamper {
+			assert_eq!(fs::read_to_string(&path).unwrap(), before);
+		}
+	}
+	assert_eq!(consumer.command, "release-pr");
+}
+
+#[rstest::rstest]
 #[case::protect(false)]
 #[case::repair(true)]
 #[cfg(unix)]
