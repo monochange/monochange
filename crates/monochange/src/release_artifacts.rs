@@ -959,10 +959,10 @@ pub(crate) fn render_discovery_report(
 pub(crate) fn build_release_manifest(
 	cli_command: &CliCommandDefinition,
 	prepared_release: &PreparedRelease,
-	_command_logs: &[String],
+	originating_command: Option<&str>,
 ) -> ReleaseManifest {
 	ReleaseManifest {
-		command: cli_command.name.clone(),
+		command: originating_command.unwrap_or(&cli_command.name).to_owned(),
 		dry_run: prepared_release.dry_run,
 		version: prepared_release.version.clone(),
 		group_version: prepared_release.group_version.clone(),

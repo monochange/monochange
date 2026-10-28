@@ -88,6 +88,7 @@ fn cli_context() -> CliContext {
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: None,
+		originating_command: None,
 		prepared_file_diffs: Vec::new(),
 		release_manifest_path: None,
 		release_requests: Vec::new(),
@@ -3064,6 +3065,7 @@ async fn execute_cli_command_with_options_plans_publish_rate_limits_from_prepare
 		&sample_prepared_release(),
 		&[],
 		Some(artifact_path.as_path()),
+		"release",
 	)
 	.await
 	.unwrap_or_else(|error| panic!("save prepared release artifact: {error}"));
@@ -3147,6 +3149,7 @@ async fn execute_cli_command_with_options_reuses_prepared_release_artifact_for_v
 		&sample_prepared_release_with_versions(),
 		&[],
 		Some(artifact_path.as_path()),
+		"release",
 	)
 	.await
 	.unwrap_or_else(|error| panic!("save prepared release artifact: {error}"));
@@ -3277,6 +3280,7 @@ async fn execute_cli_command_with_options_reports_invalid_versions_output_format
 		&sample_prepared_release_with_versions(),
 		&[],
 		Some(artifact_path.as_path()),
+		"release",
 	)
 	.await
 	.unwrap_or_else(|error| panic!("save prepared release artifact: {error}"));
@@ -3355,12 +3359,224 @@ async fn save_prepared_release_artifact_returns_explicit_errors() {
 		&sample_configuration(tempdir.path()),
 		&context,
 		Some(tempdir.path().join("prepared-release.json").as_path()),
+		&default_cli_command("prepare-release"),
 	)
 	.await
 	.err()
 	.unwrap_or_else(|| panic!("expected explicit artifact save error"));
 
 	assert!(!error.to_string().is_empty());
+}
+
+#[rstest::rstest]
+#[case::unchanged(false)]
+#[case::tampered(true)]
+#[tokio::test(flavor = "multi_thread")]
+async fn cached_release_preserves_its_producer_and_rejects_record_command_tampering(
+	#[case] tamper: bool,
+) {
+	let workspace = prepared_release_git_workspace();
+	let root = workspace.path();
+	let configuration = sample_configuration(root);
+	let artifact_path = root.join(".monochange/local/prepared-release.json");
+	let mut prepared = sample_prepared_release();
+	prepared.dry_run = false;
+	let mut producer = release_cli_command();
+	producer.name = "nightly-publish".to_string();
+	let manifest = build_release_manifest(&producer, &prepared, None);
+	let record_path = write_release_record_file(root, None, &manifest).unwrap();
+	save_prepared_release_execution(
+		root,
+		&configuration,
+		&prepared,
+		&[],
+		Some(&artifact_path),
+		&producer.name,
+	)
+	.await
+	.unwrap();
+
+	// Reusing preparation through a differently named command must also retain
+	// the producer when the cache and the JSON result are written again.
+	let output = execute_cli_command_with_options(
+		root,
+		&configuration,
+		&default_cli_command("prepare-release"),
+		ExecuteCliCommandOptions {
+			dry_run: false,
+			quiet: true,
+			show_diff: false,
+			inputs: format_input("json"),
+			prepared_release_path: Some(artifact_path.clone()),
+			progress_format: ProgressFormat::Auto,
+			progress: None,
+		},
+	)
+	.await
+	.unwrap();
+	let output: serde_json::Value = serde_json::from_str(&output).unwrap();
+	assert_eq!(output["command"], producer.name);
+
+	if tamper {
+		let mut record: serde_json::Value =
+			serde_json::from_str(&fs::read_to_string(&record_path).unwrap()).unwrap();
+		record["command"] = serde_json::json!("commit-release");
+		fs::write(&record_path, serde_json::to_string_pretty(&record).unwrap()).unwrap();
+	}
+	let record_before = fs::read_to_string(&record_path).unwrap();
+	let mut context = cli_context();
+	// An explicit artifact bypasses input-fingerprint invalidation, ensuring
+	// the content validator itself rejects the altered command.
+	ensure_prepared_release_for_consumer_step(
+		root,
+		&configuration,
+		&mut context,
+		Some(&artifact_path),
+		false,
+		false,
+		"CommitRelease",
+	)
+	.await
+	.unwrap();
+	assert_eq!(
+		context.originating_command.as_deref(),
+		Some("nightly-publish")
+	);
+	let expected = build_release_manifest(
+		&default_cli_command("commit-release"),
+		context.prepared_release.as_ref().unwrap(),
+		context.originating_command.as_deref(),
+	);
+	let result =
+		crate::release_artifacts::validate_release_record_file(root, None, &expected, false);
+	if tamper {
+		assert!(
+			result
+				.unwrap_err()
+				.to_string()
+				.contains("does not match expected content")
+		);
+	} else {
+		assert_eq!(result.unwrap(), record_path);
+	}
+	assert_eq!(fs::read_to_string(&record_path).unwrap(), record_before);
+}
+
+#[rstest::rstest]
+#[case::commit("CommitRelease")]
+#[case::request("OpenReleaseRequest")]
+#[tokio::test(flavor = "multi_thread")]
+async fn legacy_preparation_requires_a_trusted_producer_before_follow_up(#[case] step_name: &str) {
+	let workspace = prepared_release_git_workspace();
+	let root = workspace.path();
+	let configuration = sample_configuration(root);
+	let artifact_path = root.join(".monochange/local/prepared-release.json");
+	let prepared = sample_prepared_release();
+	let mut producer = release_cli_command();
+	producer.name = "nightly-publish".to_string();
+	let manifest = build_release_manifest(&producer, &prepared, None);
+	let record_path = write_release_record_file(root, None, &manifest).unwrap();
+	let record_before = fs::read_to_string(&record_path).unwrap();
+	save_prepared_release_execution(
+		root,
+		&configuration,
+		&prepared,
+		&[],
+		Some(&artifact_path),
+		&producer.name,
+	)
+	.await
+	.unwrap();
+	let mut artifact: serde_json::Value =
+		serde_json::from_str(&fs::read_to_string(&artifact_path).unwrap()).unwrap();
+	artifact
+		.as_object_mut()
+		.unwrap()
+		.remove("originating_command");
+	fs::write(
+		&artifact_path,
+		serde_json::to_string_pretty(&artifact).unwrap(),
+	)
+	.unwrap();
+	let loaded = crate::prepared_release_cache::load_prepared_release_execution(
+		root,
+		&configuration,
+		Some(&artifact_path),
+		true,
+		false,
+	)
+	.await
+	.unwrap()
+	.unwrap();
+	assert_eq!(loaded.originating_command, None);
+
+	let mut context = cli_context();
+	let error = ensure_prepared_release_for_consumer_step(
+		root,
+		&configuration,
+		&mut context,
+		Some(&artifact_path),
+		true,
+		false,
+		step_name,
+	)
+	.await
+	.unwrap_err();
+	assert!(error.to_string().contains("originating command"));
+	assert!(error.to_string().contains("trusted workspace inputs"));
+	assert!(context.prepared_release.is_none());
+	assert_eq!(fs::read_to_string(&record_path).unwrap(), record_before);
+
+	// A different producer can establish a new trusted identity, but preparation
+	// must preserve the existing record until repair is explicitly requested.
+	execute_cli_command_with_options(
+		root,
+		&configuration,
+		&default_cli_command("prepare-release"),
+		ExecuteCliCommandOptions {
+			dry_run: true,
+			quiet: true,
+			show_diff: false,
+			inputs: format_input("json"),
+			prepared_release_path: Some(artifact_path.clone()),
+			progress_format: ProgressFormat::Auto,
+			progress: None,
+		},
+	)
+	.await
+	.unwrap();
+	ensure_prepared_release_for_consumer_step(
+		root,
+		&configuration,
+		&mut context,
+		Some(&artifact_path),
+		true,
+		false,
+		step_name,
+	)
+	.await
+	.unwrap();
+	let expected = build_release_manifest(
+		&default_cli_command("commit-release"),
+		context.prepared_release.as_ref().unwrap(),
+		context.originating_command.as_deref(),
+	);
+	assert_eq!(expected.command, "prepare-release");
+	let error =
+		crate::release_artifacts::validate_release_record_file(root, None, &expected, false)
+			.unwrap_err();
+	assert!(
+		error
+			.to_string()
+			.contains("does not match expected content")
+	);
+	assert_eq!(fs::read_to_string(&record_path).unwrap(), record_before);
+	assert_eq!(
+		crate::release_artifacts::validate_release_record_file(root, None, &expected, true)
+			.unwrap(),
+		record_path
+	);
+	crate::release_artifacts::validate_release_record_file(root, None, &expected, false).unwrap();
 }
 
 fn sample_package_definition() -> monochange_core::PackageDefinition {

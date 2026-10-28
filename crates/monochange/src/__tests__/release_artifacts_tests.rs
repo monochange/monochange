@@ -743,7 +743,7 @@ fn build_release_manifest_copies_package_publications_from_prepared_release() {
 		versioning: crate::versioning_state::ResolvedReleaseValues::default(),
 	};
 
-	let manifest = build_release_manifest(&cli_command, &prepared_release, &[]);
+	let manifest = build_release_manifest(&cli_command, &prepared_release, None);
 	assert_eq!(
 		manifest.package_publications,
 		prepared_release.package_publications
@@ -1815,7 +1815,7 @@ fn build_release_manifest_freezes_rendered_values_and_label_inputs() {
 		versioning,
 	};
 
-	let manifest = build_release_manifest(&cli_command, &prepared_release, &[]);
+	let manifest = build_release_manifest(&cli_command, &prepared_release, None);
 
 	// Rendered values are frozen so a later re-render cannot pick up a
 	// different counter, and the calendar context travels with them.

@@ -5578,6 +5578,7 @@ fn cli_context_for_when_evaluation_tests() -> CliContext {
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: None,
+		originating_command: None,
 		prepared_file_diffs: Vec::new(),
 		release_manifest_path: None,
 		release_requests: Vec::new(),
@@ -7302,6 +7303,7 @@ fn template_context_exposes_release_commit_namespace() {
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: None,
+		originating_command: None,
 		prepared_file_diffs: Vec::new(),
 		release_manifest_path: None,
 		release_requests: Vec::new(),
@@ -7349,6 +7351,7 @@ fn template_context_exposes_retarget_namespace() {
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: None,
+		originating_command: None,
 		prepared_file_diffs: Vec::new(),
 		release_manifest_path: None,
 		release_requests: Vec::new(),
@@ -7388,6 +7391,7 @@ fn template_context_exposes_publish_namespace() {
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: None,
+		originating_command: None,
 		prepared_file_diffs: Vec::new(),
 		release_manifest_path: None,
 		release_requests: Vec::new(),
@@ -7505,6 +7509,7 @@ fn template_context_exposes_manifest_affected_steps_and_custom_variables() {
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: Some(sample_prepared_release_for_cli_render()),
+		originating_command: None,
 		prepared_file_diffs: Vec::new(),
 		release_manifest_path: Some(PathBuf::from("target/release-manifest.json")),
 		release_requests: Vec::new(),
@@ -7636,6 +7641,7 @@ fn render_cli_command_result_prefers_retarget_report() {
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: None,
+		originating_command: None,
 		prepared_file_diffs: Vec::new(),
 		release_manifest_path: None,
 		release_requests: Vec::new(),
@@ -7677,6 +7683,7 @@ fn render_cli_command_result_renders_release_follow_up_sections() {
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: Some(sample_prepared_release_for_cli_render()),
+		originating_command: None,
 		prepared_file_diffs: Vec::new(),
 		release_manifest_path: Some(PathBuf::from("target/release-manifest.json")),
 		release_requests: Vec::new(),
@@ -7719,6 +7726,7 @@ fn render_cli_command_markdown_result_uses_markdown_sections_for_prepare_release
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: Some(sample_prepared_release_for_cli_render()),
+		originating_command: None,
 		prepared_file_diffs: vec![PreparedFileDiff {
 			path: PathBuf::from("Cargo.toml"),
 			diff: "@@ -1 +1 @@".to_string(),
@@ -7770,6 +7778,7 @@ fn render_cli_command_markdown_result_renders_release_follow_up_sections() {
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: Some(sample_prepared_release_for_cli_render()),
+		originating_command: None,
 		prepared_file_diffs: vec![PreparedFileDiff {
 			path: PathBuf::from("Cargo.toml"),
 			diff: "@@ -1 +1 @@".to_string(),
@@ -15218,6 +15227,7 @@ fn tracked_release_pull_request_paths_include_manifest_path_and_deduplicate() {
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: None,
+		originating_command: None,
 		prepared_file_diffs: Vec::new(),
 		release_manifest_path: Some(PathBuf::from("Cargo.lock")),
 		release_requests: Vec::new(),
@@ -17035,7 +17045,7 @@ fn validate_release_record_file_reports_error_when_dedupe_cannot_read_releases_d
 		.unwrap_or_else(|error| panic!("write record: {error}"));
 	assert!(record_path.exists());
 
-	// Mutate the file so the fast path (target identity match) is skipped.
+	// Require a repair before testing the later deduplication directory read.
 	let content =
 		fs::read_to_string(&record_path).unwrap_or_else(|error| panic!("read record: {error}"));
 	let mutated = content.replace("pkg-a", "mutated-pkg");
@@ -17047,17 +17057,24 @@ fn validate_release_record_file_reports_error_when_dedupe_cannot_read_releases_d
 	let _ = fs::remove_file(&index_path);
 	clear_dedup_cache();
 
-	// Remove read permission from the releases directory so dedupe cannot iterate.
+	// Allow record traversal and repair, but prevent dedupe from listing siblings.
 	let releases_dir = root.join(".monochange/releases");
 	let mut permissions = fs::metadata(&releases_dir)
 		.unwrap_or_else(|error| panic!("metadata: {error}"))
 		.permissions();
 	let original_mode = permissions.mode();
-	permissions.set_mode(0o000);
+	permissions.set_mode(0o300);
 	fs::set_permissions(&releases_dir, permissions)
 		.unwrap_or_else(|error| panic!("set permissions: {error}"));
 
 	let result = validate_release_record_file(root, None, &manifest, true);
+	// Restore permissions before assertions so tempdir cleanup also works on failure.
+	let mut permissions = fs::metadata(&releases_dir)
+		.unwrap_or_else(|error| panic!("metadata: {error}"))
+		.permissions();
+	permissions.set_mode(original_mode);
+	fs::set_permissions(&releases_dir, permissions)
+		.unwrap_or_else(|error| panic!("restore permissions: {error}"));
 	assert!(
 		result.is_err(),
 		"expected error when dedupe cannot read releases dir, got: {result:?}"
@@ -17067,14 +17084,6 @@ fn validate_release_record_file_reports_error_when_dedupe_cannot_read_releases_d
 		message.contains("read releases dir"),
 		"expected 'read releases dir' in error, got: {message}"
 	);
-
-	// Restore permissions so tempdir cleanup succeeds.
-	let mut permissions = fs::metadata(&releases_dir)
-		.unwrap_or_else(|error| panic!("metadata: {error}"))
-		.permissions();
-	permissions.set_mode(original_mode);
-	fs::set_permissions(&releases_dir, permissions)
-		.unwrap_or_else(|error| panic!("restore permissions: {error}"));
 }
 
 #[tokio::test(flavor = "multi_thread")]

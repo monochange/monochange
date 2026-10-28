@@ -152,6 +152,7 @@ async fn save_artifact(root: &Path, dry_run: bool, explicit_path: &Path) -> Work
 		&prepared.prepared_release,
 		&prepared.file_diffs,
 		Some(explicit_path),
+		"release",
 	)
 	.await
 	.unwrap_or_else(|error| panic!("save prepared release artifact: {error}"));
@@ -277,6 +278,7 @@ async fn tracked_path_snapshots_deduplicate_paths_and_mark_deleted_entries() {
 		&prepared.prepared_release,
 		&prepared.file_diffs,
 		Some(&explicit_artifact_path(root)),
+		"release",
 	)
 	.await
 	.unwrap_or_else(|error| panic!("save prepared release artifact: {error}"));
@@ -350,6 +352,7 @@ async fn load_prepared_release_execution_returns_cached_release_with_message_and
 		&prepared.prepared_release,
 		&prepared.file_diffs,
 		Some(&artifact_path),
+		"release",
 	)
 	.await
 	.unwrap_or_else(|error| panic!("save prepared release artifact: {error}"));
@@ -361,6 +364,7 @@ async fn load_prepared_release_execution_returns_cached_release_with_message_and
 			.unwrap_or_else(|| panic!("expected cached prepared release"));
 
 	assert!(loaded.message.contains("reused prepared release artifact"));
+	assert_eq!(loaded.originating_command.as_deref(), Some("release"));
 	assert_eq!(loaded.execution.prepared_release, prepared.prepared_release);
 	assert_eq!(loaded.execution.file_diffs, prepared.file_diffs);
 	assert_eq!(loaded.execution.phase_timings.len(), 1);
@@ -509,6 +513,7 @@ async fn maybe_load_prepared_release_execution_ignores_stale_default_cache() {
 		&prepared.prepared_release,
 		&prepared.file_diffs,
 		None,
+		"release",
 	)
 	.await
 	.unwrap_or_else(|error| panic!("save default prepared release artifact: {error}"));
@@ -615,6 +620,7 @@ async fn save_prepared_release_execution_reports_parent_and_write_failures() {
 		&prepared.prepared_release,
 		&prepared.file_diffs,
 		Some(&parent_file.join("artifact.json")),
+		"release",
 	)
 	.await
 	.unwrap_err();
@@ -633,6 +639,7 @@ async fn save_prepared_release_execution_reports_parent_and_write_failures() {
 		&prepared.prepared_release,
 		&prepared.file_diffs,
 		Some(&artifact_dir),
+		"release",
 	)
 	.await
 	.unwrap_err();
@@ -855,7 +862,7 @@ async fn implicit_cache_invalidates_when_untracked_changeset_severity_changes_in
 	install_changeset_payload(root, "alpha-minor.md", "feature.md");
 
 	let original = prepare_with_configuration(root, &configuration).await;
-	save_prepared_release_execution(root, &configuration, &original, &[], None)
+	save_prepared_release_execution(root, &configuration, &original, &[], None, "release")
 		.await
 		.unwrap_or_else(|error| panic!("save default prepared release artifact: {error}"));
 
@@ -886,7 +893,7 @@ async fn implicit_cache_invalidates_when_changeset_body_changes_without_severity
 	install_changeset_payload(root, "alpha-minor.md", "feature.md");
 
 	let original = prepare_with_configuration(root, &configuration).await;
-	save_prepared_release_execution(root, &configuration, &original, &[], None)
+	save_prepared_release_execution(root, &configuration, &original, &[], None, "release")
 		.await
 		.unwrap_or_else(|error| panic!("save default prepared release artifact: {error}"));
 
@@ -921,7 +928,7 @@ async fn implicit_cache_invalidates_when_changeset_is_added() {
 	install_changeset_payload(root, "alpha-minor.md", "alpha-minor.md");
 
 	let original = prepare_with_configuration(root, &configuration).await;
-	save_prepared_release_execution(root, &configuration, &original, &[], None)
+	save_prepared_release_execution(root, &configuration, &original, &[], None, "release")
 		.await
 		.unwrap_or_else(|error| panic!("save default prepared release artifact: {error}"));
 
@@ -952,7 +959,7 @@ async fn implicit_cache_invalidates_when_changeset_is_removed() {
 	let removed = install_changeset_payload(root, "beta-patch.md", "beta-patch.md");
 
 	let original = prepare_with_configuration(root, &configuration).await;
-	save_prepared_release_execution(root, &configuration, &original, &[], None)
+	save_prepared_release_execution(root, &configuration, &original, &[], None, "release")
 		.await
 		.unwrap_or_else(|error| panic!("save default prepared release artifact: {error}"));
 
@@ -982,7 +989,7 @@ async fn implicit_cache_hits_when_every_input_is_unchanged() {
 	install_changeset_payload(root, "alpha-minor.md", "feature.md");
 
 	let prepared = prepare_with_configuration(root, &configuration).await;
-	save_prepared_release_execution(root, &configuration, &prepared, &[], None)
+	save_prepared_release_execution(root, &configuration, &prepared, &[], None, "release")
 		.await
 		.unwrap_or_else(|error| panic!("save default prepared release artifact: {error}"));
 
@@ -1017,7 +1024,7 @@ async fn implicit_cache_invalidates_when_manifest_changes_without_a_status_chang
 	)
 	.unwrap_or_else(|error| panic!("write first manifest edit: {error}"));
 	let prepared = prepare_with_configuration(root, &configuration).await;
-	save_prepared_release_execution(root, &configuration, &prepared, &[], None)
+	save_prepared_release_execution(root, &configuration, &prepared, &[], None, "release")
 		.await
 		.unwrap_or_else(|error| panic!("save default prepared release artifact: {error}"));
 
@@ -1047,9 +1054,16 @@ async fn explicit_prepared_release_artifact_still_loads() {
 	install_changeset_payload(root, "alpha-minor.md", "feature.md");
 
 	let prepared = prepare_with_configuration(root, &configuration).await;
-	save_prepared_release_execution(root, &configuration, &prepared, &[], Some(&artifact_path))
-		.await
-		.unwrap_or_else(|error| panic!("save explicit prepared release artifact: {error}"));
+	save_prepared_release_execution(
+		root,
+		&configuration,
+		&prepared,
+		&[],
+		Some(&artifact_path),
+		"release",
+	)
+	.await
+	.unwrap_or_else(|error| panic!("save explicit prepared release artifact: {error}"));
 
 	let loaded =
 		load_prepared_release_execution(root, &configuration, Some(&artifact_path), true, false)
@@ -1072,7 +1086,7 @@ async fn implicit_cache_rejects_an_artifact_written_before_input_fingerprinting(
 	install_changeset_payload(root, "alpha-minor.md", "feature.md");
 
 	let prepared = prepare_with_configuration(root, &configuration).await;
-	save_prepared_release_execution(root, &configuration, &prepared, &[], None)
+	save_prepared_release_execution(root, &configuration, &prepared, &[], None, "release")
 		.await
 		.unwrap_or_else(|error| panic!("save default prepared release artifact: {error}"));
 
@@ -1109,9 +1123,16 @@ async fn explicit_artifact_without_a_fingerprint_still_loads() {
 	install_changeset_payload(root, "alpha-minor.md", "feature.md");
 
 	let prepared = prepare_with_configuration(root, &configuration).await;
-	save_prepared_release_execution(root, &configuration, &prepared, &[], Some(&artifact_path))
-		.await
-		.unwrap_or_else(|error| panic!("save explicit prepared release artifact: {error}"));
+	save_prepared_release_execution(
+		root,
+		&configuration,
+		&prepared,
+		&[],
+		Some(&artifact_path),
+		"release",
+	)
+	.await
+	.unwrap_or_else(|error| panic!("save explicit prepared release artifact: {error}"));
 
 	let mut artifact = read_prepared_release_artifact(&artifact_path)
 		.unwrap_or_else(|error| panic!("read prepared release artifact: {error}"));
@@ -1142,9 +1163,16 @@ async fn explicit_artifact_with_a_drifted_fingerprint_still_loads() {
 	install_changeset_payload(root, "alpha-minor.md", "feature.md");
 
 	let prepared = prepare_with_configuration(root, &configuration).await;
-	save_prepared_release_execution(root, &configuration, &prepared, &[], Some(&artifact_path))
-		.await
-		.unwrap_or_else(|error| panic!("save explicit prepared release artifact: {error}"));
+	save_prepared_release_execution(
+		root,
+		&configuration,
+		&prepared,
+		&[],
+		Some(&artifact_path),
+		"release",
+	)
+	.await
+	.unwrap_or_else(|error| panic!("save explicit prepared release artifact: {error}"));
 
 	// Change the workspace inputs after the artifact was written.
 	replace_changeset_payload(root, "alpha-major.md", "feature.md");
