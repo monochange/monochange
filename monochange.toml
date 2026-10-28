@@ -792,8 +792,9 @@ rules = { "npm/workspace-protocol" = "off" }
 #     placeholder.readme / placeholder.readme_file — default placeholder README
 #                      source inherited by packages during bootstrap publishing
 #
-# Note: roots and exclude are parsed but discovery currently scans all
-# supported ecosystems regardless of these settings.
+# Discovery honors these settings: enabled = false skips the ecosystem,
+# roots restricts it to the listed directories, and exclude removes matching
+# manifest paths.
 
 [ecosystems.cargo]
 enabled = true

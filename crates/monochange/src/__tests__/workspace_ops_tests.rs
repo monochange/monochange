@@ -3422,3 +3422,119 @@ fn native_releases_schedule_configured_lockfile_commands() {
 		assert_eq!(executions[0].command, "native refresh");
 	}
 }
+
+#[test]
+fn ecosystem_discovery_settings_filter_discovered_packages() {
+	use monochange_core::filter_discovered_packages_by_ecosystem_settings;
+
+	fn package(manifest: &str) -> monochange_core::PackageRecord {
+		monochange_core::PackageRecord::new(
+			monochange_core::Ecosystem::Cargo,
+			"pkg",
+			PathBuf::from(manifest),
+			PathBuf::from(manifest),
+			None,
+			monochange_core::PublishState::Public,
+		)
+	}
+
+	fn configuration(settings: monochange_core::EcosystemSettings) -> WorkspaceConfiguration {
+		let mut configuration = workspace_configuration_with_lockfile_commands();
+		configuration.cargo = settings;
+		configuration
+	}
+
+	let root = Path::new("/repo");
+	let inside = package("/repo/crates/core/Cargo.toml");
+	let outside = package("/repo/tools/helper/Cargo.toml");
+	let mut warnings = Vec::new();
+
+	// Defaults keep everything.
+	let defaults = monochange_core::EcosystemSettings::default();
+	let kept = filter_discovered_packages_by_ecosystem_settings(
+		root,
+		&configuration(defaults.clone()),
+		vec![inside.clone(), outside.clone()],
+		&mut warnings,
+	);
+	assert_eq!(kept.len(), 2, "default settings keep every package");
+
+	// roots restricts discovery to packages under the listed directories.
+	let mut rooted = defaults.clone();
+	rooted.roots = vec!["crates".to_string()];
+	let kept = filter_discovered_packages_by_ecosystem_settings(
+		root,
+		&configuration(rooted),
+		vec![inside.clone(), outside.clone()],
+		&mut warnings,
+	);
+	assert_eq!(
+		kept.len(),
+		1,
+		"roots drop packages outside the listed directories"
+	);
+	assert_eq!(kept[0].manifest_path, inside.manifest_path);
+
+	// exclude removes packages whose manifest matches the glob.
+	let mut excluded = defaults.clone();
+	excluded.exclude = vec!["tools/**".to_string()];
+	let kept = filter_discovered_packages_by_ecosystem_settings(
+		root,
+		&configuration(excluded),
+		vec![inside.clone(), outside.clone()],
+		&mut warnings,
+	);
+	assert_eq!(kept.len(), 1, "exclude globs remove matching manifests");
+	assert_eq!(kept[0].manifest_path, inside.manifest_path);
+
+	// enabled = false drops the whole ecosystem.
+	let mut disabled = defaults;
+	disabled.enabled = Some(false);
+	let kept = filter_discovered_packages_by_ecosystem_settings(
+		root,
+		&configuration(disabled),
+		vec![inside, outside],
+		&mut warnings,
+	);
+	assert!(kept.is_empty(), "enabled = false drops the ecosystem");
+	assert!(
+		warnings.is_empty(),
+		"valid settings never warn: {warnings:?}"
+	);
+}
+
+#[test]
+fn ecosystem_discovery_settings_warn_once_for_broken_exclude_globs() {
+	use monochange_core::filter_discovered_packages_by_ecosystem_settings;
+
+	let mut configuration = workspace_configuration_with_lockfile_commands();
+	configuration.cargo.exclude = vec!["[invalid".to_string()];
+	let root = Path::new("/repo");
+	let package = || {
+		monochange_core::PackageRecord::new(
+			monochange_core::Ecosystem::Cargo,
+			"a",
+			PathBuf::from("/repo/crates/a/Cargo.toml"),
+			PathBuf::from("/repo/crates/a/Cargo.toml"),
+			None,
+			monochange_core::PublishState::Public,
+		)
+	};
+	let packages = vec![package(), package()];
+	let mut warnings = Vec::new();
+
+	let kept = filter_discovered_packages_by_ecosystem_settings(
+		root,
+		&configuration,
+		packages,
+		&mut warnings,
+	);
+
+	assert_eq!(kept.len(), 2, "a broken glob matches nothing");
+	assert_eq!(
+		warnings.len(),
+		1,
+		"a broken glob warns once per pattern, not per package: {warnings:?}"
+	);
+	assert!(warnings[0].contains("invalid exclude glob `[invalid`"));
+}
