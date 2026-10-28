@@ -34,6 +34,25 @@ use crate::api_router;
 use crate::github_app::GitHubAppAuth;
 use crate::github_app::GitHubAppError;
 
+#[rstest]
+#[case(".github")]
+#[case(".github/workflows")]
+#[case(".github/workflows/ci.yml")]
+#[case(".github//workflows/ci.yml")]
+#[case("./.github/workflows/ci.yml")]
+#[case(".github/../workflows/ci.yml")]
+#[case(".github\\workflows\\ci.yml")]
+#[case("")]
+#[case("folder/")]
+#[test]
+fn workflow_security_paths_and_noncanonical_paths_are_rejected(#[case] path: &str) {
+	for content in [None, Some("replacement".to_string())] {
+		let mut request = request_with_path(path);
+		request.files[0].content = content;
+		assert!(validate_commit_paths(&request).is_err(), "accepted {path}");
+	}
+}
+
 fn request_with_path(path: &str) -> HostedCommitRequest {
 	HostedCommitRequest {
 		provider: "github".to_string(),
@@ -58,6 +77,8 @@ fn request_with_path(path: &str) -> HostedCommitRequest {
 #[case::release_record(".monochange/releases/829c44b7a1ee8674/release.json")]
 #[case::changeset_deletion(".changeset/feature.md")]
 #[case::package_manifest("crates/core/Cargo.toml")]
+#[case::github_configuration(".github/CODEOWNERS")]
+#[case::dots_inside_filename("docs/version..md")]
 fn release_managed_paths_are_accepted(#[case] path: &str) {
 	assert_eq!(validate_commit_paths(&request_with_path(path)), Ok(()));
 }
@@ -100,6 +121,13 @@ fn moved_branches_are_conflicts() {
 /// Serve a GitHub API that creates the release branch with `verification`.
 fn github_creating_release_branch(verification: &serde_json::Value) -> MockServer {
 	let server = MockServer::start();
+	server.mock(|when, then| {
+		when.method(Method::GET)
+			.path("/repos/acme/actions/git/commits/base-sha");
+		then.json_body(serde_json::json!({"tree": {"sha": "base-tree"}}));
+	});
+	mock_tree_listing(&server, "base-tree", &[]);
+	mock_tree_listing(&server, "tree-sha", &[]);
 	server.mock(|when, then| {
 		when.method(Method::GET)
 			.path("/repos/acme/actions/git/ref/heads/monochange/release/release");
@@ -320,6 +348,13 @@ async fn empty_api_token_secret_requires_oidc() {
 async fn release_commit_endpoint_refreshes_an_existing_release_branch() {
 	let github = MockServer::start();
 	let state = release_api_state(&github, API_TOKEN).await;
+	github.mock(|when, then| {
+		when.method(Method::GET)
+			.path("/repos/acme/actions/git/commits/base-sha");
+		then.json_body(serde_json::json!({"tree": {"sha": "base-tree"}}));
+	});
+	mock_tree_listing(&github, "base-tree", &[]);
+	mock_tree_listing(&github, "tree-sha", &[]);
 	mock_branch(
 		&github,
 		"monochange/release/release",
@@ -468,10 +503,25 @@ fn mock_workflow_trees(github: &MockServer, trees: &WorkflowTrees) {
 	release_github: None,
 	release_workflows: None,
 }, StatusCode::UNPROCESSABLE_ENTITY)]
+#[case::workflows_directory_removed(WorkflowTrees {
+	base: "base-tree",
+	base_github: Some("github-tree"),
+	base_workflows: Some("workflows-tree"),
+	release_github: Some("release-github-tree"),
+	release_workflows: None,
+}, StatusCode::UNPROCESSABLE_ENTITY)]
+#[case::workflows_added(WorkflowTrees {
+	base: "base-tree",
+	base_github: Some("github-tree"),
+	base_workflows: None,
+	release_github: Some("release-github-tree"),
+	release_workflows: Some("workflows-tree"),
+}, StatusCode::UNPROCESSABLE_ENTITY)]
 #[tokio::test]
 async fn release_commit_endpoint_commits_a_tree_built_by_the_workflow(
 	#[case] trees: WorkflowTrees,
 	#[case] expected: StatusCode,
+	#[values(false, true)] uploaded_files: bool,
 ) {
 	let github = MockServer::start();
 	let state = release_api_state(&github, API_TOKEN).await;
@@ -487,6 +537,12 @@ async fn release_commit_endpoint_commits_a_tree_built_by_the_workflow(
 			.path("/repos/acme/actions/git/blobs");
 		then.status(201)
 			.json_body(serde_json::json!({ "sha": "blob-sha" }));
+	});
+	github.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/git/trees");
+		then.status(201)
+			.json_body(serde_json::json!({"sha": WORKFLOW_TREE}));
 	});
 	let commit = github.mock(|when, then| {
 		when.method(Method::POST)
@@ -504,13 +560,15 @@ async fn release_commit_endpoint_commits_a_tree_built_by_the_workflow(
 			.json_body(serde_json::json!({ "object": { "sha": "release-sha" } }));
 	});
 	let mut request = request_with_path("crates/core/Cargo.toml");
-	request.files.clear();
-	request.tree = Some(WORKFLOW_TREE.to_string());
+	if !uploaded_files {
+		request.files.clear();
+		request.tree = Some(WORKFLOW_TREE.to_string());
+	}
 
 	let (status, body) = post_release_commit(&state, API_TOKEN, &request).await;
 
 	assert_eq!(status, expected, "{body}");
-	blobs.assert_calls(0);
+	blobs.assert_calls(usize::from(uploaded_files));
 	if expected == StatusCode::OK {
 		assert_eq!(body["commit"], "release-sha");
 		commit.assert();

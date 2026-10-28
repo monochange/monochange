@@ -423,12 +423,16 @@ struct CommitRequest<'a> {
 #[derive(Debug, Deserialize)]
 struct GitTreeListing {
 	tree: Vec<GitTreeListingEntry>,
+	#[serde(default)]
+	truncated: bool,
 }
 
 #[derive(Debug, Deserialize)]
 struct GitTreeListingEntry {
 	path: String,
 	sha: String,
+	#[serde(rename = "type")]
+	kind: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -856,18 +860,23 @@ async fn tree_child(
 	)
 	.await?;
 
-	Ok(listing
-		.tree
-		.into_iter()
-		.find(|entry| entry.path == name)
-		.map(|entry| entry.sha))
+	if listing.truncated {
+		return Err(GitHubAppError::WorkflowsChanged);
+	}
+
+	let entry = listing.tree.into_iter().find(|entry| entry.path == name);
+
+	if entry.as_ref().is_some_and(|entry| entry.kind != "tree") {
+		return Err(GitHubAppError::WorkflowsChanged);
+	}
+
+	Ok(entry.map(|entry| entry.sha))
 }
 
-/// Refuse a tree built by the workflow when it changes `.github/workflows`.
+/// Refuse a release tree when it changes `.github/workflows`.
 ///
-/// Uploaded files are checked by path before anything is written; a tree
-/// carries no paths, so its `.github/workflows` entry is compared with the
-/// base commit's instead, one directory level at a time.
+/// Both uploaded files and caller-built trees must preserve the base commit's
+/// workflow subtree, including its object types.
 async fn ensure_tree_keeps_workflows(
 	http: &reqwest::Client,
 	api_url: &str,
@@ -932,12 +941,10 @@ pub async fn create_release_commit(
 	// 2. The tree: either the one the workflow already built with its own
 	// token, or blobs and a tree created here from the uploaded contents.
 	let tree_sha = match &request.tree {
-		Some(tree) => {
-			ensure_tree_keeps_workflows(http, api_url, installation_token, request, tree).await?;
-			tree.clone()
-		}
+		Some(tree) => tree.clone(),
 		None => create_release_tree(http, api_url, installation_token, request).await?,
 	};
+	ensure_tree_keeps_workflows(http, api_url, installation_token, request, &tree_sha).await?;
 
 	// 4. Commit with the prepared base as its only parent.
 	let message = if request.body.is_empty() {
