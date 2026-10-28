@@ -1844,9 +1844,8 @@ fn load_raw_configuration(root: &Path) -> MonochangeResult<(String, RawWorkspace
 		String::new()
 	};
 	let raw = if path.exists() {
-		toml::from_str::<RawWorkspaceConfiguration>(&contents).map_err(|error| {
-			MonochangeError::Config(format!("failed to parse {}: {error}", path.display()))
-		})?
+		toml::from_str::<RawWorkspaceConfiguration>(&contents)
+			.map_err(|error| toml_syntax_diagnostic(&path, &contents, &error))?
 	} else {
 		RawWorkspaceConfiguration::default()
 	};
@@ -7057,6 +7056,31 @@ fn validate_floating_tag_templates(
 	}
 
 	Ok(())
+}
+
+/// Render a TOML syntax error the way semantic config errors render: a
+/// source snippet with a caret at the span the parser reported, instead of a
+/// flat message that leaves the offending line to guesswork.
+fn toml_syntax_diagnostic(path: &Path, contents: &str, error: &toml::de::Error) -> MonochangeError {
+	let span = error.span().unwrap_or(0..0);
+	let detail = error.message().to_string();
+	let label = if detail.is_empty() {
+		None
+	} else {
+		Some(detail)
+	};
+
+	MonochangeError::Diagnostic(render_source_diagnostic(
+		&path.display().to_string(),
+		contents,
+		&format!("failed to parse {}", path.display()),
+		&[LabeledSpan::new(
+			label,
+			span.start,
+			span.end.saturating_sub(span.start),
+		)],
+		None,
+	))
 }
 
 fn render_source_diagnostic(

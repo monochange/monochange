@@ -24,6 +24,7 @@ fn type_scoped_changeset_workspace() -> tempfile::TempDir {
 fn run_check_command(
 	root: &std::path::Path,
 	fix: bool,
+	fix_dry_run: bool,
 	ecosystems: &[String],
 	only_rules: &[String],
 	format: OutputFormat,
@@ -40,6 +41,7 @@ fn run_check_command(
 		root,
 		&configuration,
 		fix,
+		fix_dry_run,
 		ecosystems,
 		only_rules,
 		format,
@@ -53,6 +55,7 @@ fn check_report_input<'a>(
 	validation_warnings: &'a [String],
 	validation_errors: &'a [String],
 	fixed_files: usize,
+	fix_dry_run: bool,
 	verbose: bool,
 ) -> CheckReportInput<'a> {
 	CheckReportInput {
@@ -61,6 +64,7 @@ fn check_report_input<'a>(
 		validation_warnings,
 		validation_errors,
 		fixed_files,
+		fix_dry_run,
 		verbose,
 	}
 }
@@ -69,7 +73,7 @@ fn check_report_input<'a>(
 fn test_format_check_report_empty() {
 	let report = LintReport::new();
 	let output = format_check_report(
-		&check_report_input(&report, &[], &[], 0, false),
+		&check_report_input(&report, &[], &[], 0, false, false),
 		TextTheme::for_stdout(),
 	);
 	assert_eq!(output, "✔ Checks passed");
@@ -92,7 +96,7 @@ fn test_format_check_report_with_issues() {
 	));
 
 	let output = format_check_report(
-		&check_report_input(&report, &[], &[], 0, true),
+		&check_report_input(&report, &[], &[], 0, false, true),
 		TextTheme::for_stdout(),
 	);
 	insta::assert_snapshot!(output);
@@ -126,7 +130,14 @@ fn check_report_explains_validation_warnings_fixes_and_remaining_fixable_issues(
 		.push("skipped autofix for Cargo.toml".to_string());
 
 	let warnings_only = format_check_report(
-		&check_report_input(&report, &["deprecated option".to_string()], &[], 0, false),
+		&check_report_input(
+			&report,
+			&["deprecated option".to_string()],
+			&[],
+			0,
+			false,
+			false,
+		),
 		TextTheme::for_stdout(),
 	);
 	insta::assert_snapshot!("check_report_warnings_only", warnings_only);
@@ -137,6 +148,7 @@ fn check_report_explains_validation_warnings_fixes_and_remaining_fixable_issues(
 			&[],
 			&["error: package `x` path `x` does not exist\n  --> monochange.toml:3:1".to_string()],
 			2,
+			false,
 			true,
 		),
 		TextTheme::for_stdout(),
@@ -214,6 +226,7 @@ fn run_check_command_supports_text_json_and_fix_error_paths() {
 	let json = run_check_command(
 		clean_workspace.path(),
 		false,
+		false,
 		&[],
 		&[],
 		OutputFormat::Json,
@@ -224,6 +237,7 @@ fn run_check_command_supports_text_json_and_fix_error_paths() {
 
 	let text = run_check_command(
 		clean_workspace.path(),
+		false,
 		false,
 		&[],
 		&[],
@@ -238,16 +252,32 @@ fn run_check_command_supports_text_json_and_fix_error_paths() {
 	let mut permissions = fs::metadata(&cargo_toml).unwrap().permissions();
 	permissions.set_readonly(true);
 	fs::set_permissions(&cargo_toml, permissions).unwrap();
-	let error = run_check_command(tempdir.path(), true, &[], &[], OutputFormat::Text, false)
-		.expect_err("expected fix write to fail for readonly manifest");
+	let error = run_check_command(
+		tempdir.path(),
+		true,
+		false,
+		&[],
+		&[],
+		OutputFormat::Text,
+		false,
+	)
+	.expect_err("expected fix write to fail for readonly manifest");
 	assert!(error.to_string().contains("Failed to write fixed content"));
 }
 
 #[test]
 fn run_check_command_enforces_type_scoped_changeset_rules() {
 	let workspace = type_scoped_changeset_workspace();
-	let error = run_check_command(workspace.path(), false, &[], &[], OutputFormat::Text, false)
-		.expect_err("expected the missing developer notes section to fail");
+	let error = run_check_command(
+		workspace.path(),
+		false,
+		false,
+		&[],
+		&[],
+		OutputFormat::Text,
+		false,
+	)
+	.expect_err("expected the missing developer notes section to fail");
 	let message = error
 		.reported_output()
 		.expect("text check failures preserve the complete result");
@@ -255,8 +285,16 @@ fn run_check_command_enforces_type_scoped_changeset_rules() {
 	assert!(message.contains("changesets/types/app_feature"));
 	assert!(message.contains("changeset must include a `Developer notes` section"));
 
-	let error = run_check_command(workspace.path(), false, &[], &[], OutputFormat::Json, false)
-		.expect_err("expected the JSON check to preserve the failure exit status");
+	let error = run_check_command(
+		workspace.path(),
+		false,
+		false,
+		&[],
+		&[],
+		OutputFormat::Json,
+		false,
+	)
+	.expect_err("expected the JSON check to preserve the failure exit status");
 	assert!(
 		error
 			.to_string()
@@ -343,8 +381,16 @@ fn run_check_command_reports_all_validation_errors_before_failing() {
 		repository = \"https://github.com/monochange/monochange\"\n",
 	)
 	.unwrap_or_else(|error| panic!("expected warning manifest to be written: {error}"));
-	let warning_text = run_check_command(warning_root, false, &[], &[], OutputFormat::Text, false)
-		.unwrap_or_else(|error| panic!("expected warning-only check to pass: {error}"));
+	let warning_text = run_check_command(
+		warning_root,
+		false,
+		false,
+		&[],
+		&[],
+		OutputFormat::Text,
+		false,
+	)
+	.unwrap_or_else(|error| panic!("expected warning-only check to pass: {error}"));
 	assert!(
 		warning_text
 			.lines()
@@ -356,7 +402,7 @@ fn run_check_command_reports_all_validation_errors_before_failing() {
 
 	assert!(warning_text.contains("matches no files"));
 
-	let text_error = run_check_command(root, false, &[], &[], OutputFormat::Text, false)
+	let text_error = run_check_command(root, false, false, &[], &[], OutputFormat::Text, false)
 		.expect_err("expected text check to fail validation");
 	// The printed report lists every validation error; the diagnostic only
 	// summarizes the failure.
@@ -371,7 +417,7 @@ fn run_check_command_reports_all_validation_errors_before_failing() {
 	assert!(text_report.contains("unknown package or group `missing`"));
 	assert!(text_report.contains("missing.toml"));
 
-	let json_error = run_check_command(root, false, &[], &[], OutputFormat::Json, false)
+	let json_error = run_check_command(root, false, false, &[], &[], OutputFormat::Json, false)
 		.expect_err("expected json check to fail validation");
 	let json_message = json_error.to_string();
 	assert!(json_message.contains("check failed"));
@@ -381,8 +427,16 @@ fn run_check_command_reports_all_validation_errors_before_failing() {
 #[test]
 fn run_check_command_applies_fixes_and_reports_them() {
 	let tempdir = readonly_fix_workspace();
-	let output = run_check_command(tempdir.path(), true, &[], &[], OutputFormat::Text, false)
-		.unwrap_or_else(|error| panic!("expected fixable lint workspace to succeed: {error}"));
+	let output = run_check_command(
+		tempdir.path(),
+		true,
+		false,
+		&[],
+		&[],
+		OutputFormat::Text,
+		false,
+	)
+	.unwrap_or_else(|error| panic!("expected fixable lint workspace to succeed: {error}"));
 	assert!(
 		output
 			.lines()
@@ -398,9 +452,51 @@ fn run_check_command_applies_fixes_and_reports_them() {
 }
 
 #[test]
+fn run_check_command_fix_dry_run_previews_without_writing() {
+	let tempdir = readonly_fix_workspace();
+	// The unfixed errors are still on disk, so a dry-run preview reports
+	// failure like a plain check; the rendered output is what previews the fix.
+	let error = run_check_command(
+		tempdir.path(),
+		true,
+		true,
+		&[],
+		&[],
+		OutputFormat::Text,
+		false,
+	)
+	.err()
+	.unwrap_or_else(|| panic!("dry-run must still report the unfixed errors"));
+
+	let output = match &error {
+		MonochangeError::Reported { output, .. } => output.clone(),
+		other => panic!("expected a reported check output, got: {other}"),
+	};
+	assert!(
+		output.contains("would fix 1 file"),
+		"dry-run summary must say what --fix would do: {output}"
+	);
+
+	let manifest = fs::read_to_string(tempdir.path().join("crates/example/Cargo.toml"))
+		.unwrap_or_else(|error| panic!("expected manifest to be readable: {error}"));
+	assert!(
+		!manifest.contains("publish = false"),
+		"dry-run must not write the fix: {manifest}"
+	);
+}
+
+#[test]
 fn run_check_command_applies_fixes_without_progress_reporter() {
 	let tempdir = readonly_fix_workspace();
-	let result = run_check_command(tempdir.path(), true, &[], &[], OutputFormat::Json, false);
+	let result = run_check_command(
+		tempdir.path(),
+		true,
+		false,
+		&[],
+		&[],
+		OutputFormat::Json,
+		false,
+	);
 	assert!(
 		result.is_ok(),
 		"expected fixable lint workspace to succeed without a reporter: {result:?}"

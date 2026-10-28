@@ -10120,3 +10120,30 @@ fn configured_native_packages_inherit_ecosystem_versioned_files() {
 		);
 	}
 }
+
+#[test]
+fn toml_syntax_errors_render_a_source_snippet() {
+	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let path = tempdir.path().join("monochange.toml");
+	fs::write(&path, "[defaults]\npackage_type = cargo\n")
+		.unwrap_or_else(|error| panic!("write config: {error}"));
+
+	let error = load_workspace_configuration(tempdir.path())
+		.err()
+		.unwrap_or_else(|| panic!("expected invalid TOML error"));
+	let rendered = error.to_string();
+
+	assert!(
+		rendered.contains("failed to parse") && rendered.contains("monochange.toml"),
+		"message: {rendered}"
+	);
+	assert!(
+		rendered.contains("string values must be quoted"),
+		"the parser detail must travel into the snippet: {rendered}"
+	);
+	assert!(
+		rendered.contains("monochange.toml:2:"),
+		"the snippet must point at the offending line: {rendered}"
+	);
+	assert!(rendered.contains('^'), "the snippet must show a caret");
+}

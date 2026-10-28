@@ -68,7 +68,6 @@ use monochange_core::ChangesetContext;
 use monochange_core::ChangesetPolicyEvaluation;
 use monochange_core::ChangesetRevision;
 use monochange_core::CliCommandDefinition;
-use monochange_core::CliStepDefinition;
 use monochange_core::CommitMessage;
 use monochange_core::DEFAULT_CHANGELOG_OUTPUT;
 use monochange_core::DEFAULT_CHANGELOG_STREAM;
@@ -157,7 +156,6 @@ use subagents::run_subagents;
 pub(crate) use versioned_files::*;
 pub use workspace_ops::AddChangeFileRequest;
 pub use workspace_ops::PlannedChangeFile;
-use workspace_ops::PopulateWorkspaceResult;
 pub use workspace_ops::add_change_file;
 pub(crate) use workspace_ops::add_interactive_change_file;
 pub(crate) use workspace_ops::discover_release_workspace;
@@ -165,7 +163,6 @@ pub use workspace_ops::discover_workspace;
 use workspace_ops::init_workspace;
 pub use workspace_ops::plan_change_file;
 pub use workspace_ops::plan_release;
-use workspace_ops::populate_workspace;
 pub use workspace_ops::prepare_release;
 pub(crate) use workspace_ops::prepare_release_execution_with_configuration;
 pub(crate) use workspace_ops::push_change_target_markdown;
@@ -1235,31 +1232,6 @@ fn render_help_command(
 	render_clap_long_help(bin_name, cli, &path)
 }
 
-fn format_populate_workspace_result(result: &PopulateWorkspaceResult) -> String {
-	if result.added_commands.is_empty() {
-		format!(
-			"left {} unchanged; this version provides no default CLI workflow aliases. Use `monochange command` to define custom workflows",
-			result.path.display()
-		)
-	} else {
-		let mut message = format!(
-			"updated {} and added {} default CLI commands: ",
-			result.path.display(),
-			result.added_commands.len()
-		);
-
-		for (index, command) in result.added_commands.iter().enumerate() {
-			if index > 0 {
-				message.push_str(", ");
-			}
-
-			message.push_str(command);
-		}
-
-		message
-	}
-}
-
 /// control both the argv payload and the workspace root used for config loading
 /// and command execution.
 #[doc(hidden)]
@@ -1372,8 +1344,8 @@ fn render_shell_completions(
 	let shell = shell.parse::<clap_complete::Shell>().map_err(|error| {
 		MonochangeError::Config(format!("unknown shell `{shell}` for completions: {error}"))
 	})?;
-	let cli = cli::cli_commands_for_root(root);
-	let mut command = cli::build_command_with_cli(bin_name, &cli);
+	let cli = cli_commands_for_root(root);
+	let mut command = build_command_with_cli(bin_name, &cli);
 	let mut buffer = Vec::new();
 	clap_complete::generate(shell, &mut command, bin_name, &mut buffer);
 
@@ -1606,9 +1578,6 @@ async fn run_cli_subcommand(
 
 			init_workspace(root, init_matches.get_flag("force"), provider)
 				.map(|result| result.summary())
-		}
-		Some(("populate", _)) => {
-			populate_workspace(root).map(|result| format_populate_workspace_result(&result))
 		}
 		Some(("command", _)) => run_command_wizard_for_cli(root, context.quiet),
 		Some(("completions", completions_matches)) => {
@@ -1893,6 +1862,7 @@ fn run_check_subcommand(
 		root,
 		configuration,
 		matches.get_flag("fix"),
+		matches.get_flag("dry-run"),
 		&string_values(matches, "ecosystem"),
 		&string_values(matches, "only"),
 		format,

@@ -131,6 +131,7 @@ pub(crate) fn run_check_command_with_configuration(
 	root: &Path,
 	configuration: &WorkspaceConfiguration,
 	fix: bool,
+	fix_dry_run: bool,
 	ecosystems: &[String],
 	only_rules: &[String],
 	format: OutputFormat,
@@ -162,13 +163,15 @@ pub(crate) fn run_check_command_with_configuration(
 		reporter.fix_started(fixed_file_count);
 
 		for (file_path, fixed_content) in fixes {
-			std::fs::write(&file_path, fixed_content).map_err(|error| {
-				MonochangeError::Io(format!(
-					"Failed to write fixed content to {}: {}",
-					file_path.display(),
-					error
-				))
-			})?;
+			if !fix_dry_run {
+				std::fs::write(&file_path, fixed_content).map_err(|error| {
+					MonochangeError::Io(format!(
+						"Failed to write fixed content to {}: {}",
+						file_path.display(),
+						error
+					))
+				})?;
+			}
 			let description = report
 				.autofixable()
 				.iter()
@@ -181,7 +184,7 @@ pub(crate) fn run_check_command_with_configuration(
 
 		reporter.fix_finished(fixed_files.len());
 
-		if fixed_file_count > 0 {
+		if fixed_file_count > 0 && !fix_dry_run {
 			// NOTE: optimize later by re-linting only fixed files or adding a safe
 			// fast-path for “all original errors were fixed.”
 			report = linter.lint_workspace(
@@ -248,6 +251,7 @@ pub(crate) fn run_check_command_with_configuration(
 					validation_warnings: &validation_warnings,
 					validation_errors: &validation_errors,
 					fixed_files: fixed_file_count,
+					fix_dry_run,
 					verbose,
 				},
 				TextTheme::for_stdout(),
@@ -322,6 +326,7 @@ pub(crate) fn run_lint_step(root: &Path, fix: bool) -> MonochangeResult<(String,
 				validation_warnings: &[],
 				validation_errors: &[],
 				fixed_files: fixed_file_count,
+				fix_dry_run: false,
 				verbose: false,
 			},
 			TextTheme::for_stdout(),
@@ -638,6 +643,7 @@ struct CheckReportInput<'a> {
 	validation_warnings: &'a [String],
 	validation_errors: &'a [String],
 	fixed_files: usize,
+	fix_dry_run: bool,
 	verbose: bool,
 }
 
@@ -663,8 +669,13 @@ fn format_check_report(input: &CheckReportInput<'_>, theme: TextTheme) -> String
 	}
 
 	if input.fixed_files > 0 {
+		let verb = if input.fix_dry_run {
+			"would fix"
+		} else {
+			"fixed"
+		};
 		details.push(format!(
-			"fixed {}",
+			"{verb} {}",
 			plural(input.fixed_files, "file", "files")
 		));
 	}
