@@ -4150,18 +4150,46 @@ pub async fn filter_pending_publish_requests_with_transport(
 	client: &Client,
 	endpoints: &RegistryEndpoints,
 ) -> MonochangeResult<Vec<PublishRequest>> {
+	/// How many registry probes run at once. Probing is read-only, but a
+	/// release with dozens of packages must not open every connection to one
+	/// registry at the same time.
+	const PROBE_CONCURRENCY: usize = 8;
+
 	let mut pending_requests = Vec::with_capacity(requests.len());
 
-	for request in requests {
-		if request.mode == PublishMode::External {
-			continue;
+	for chunk in requests.chunks(PROBE_CONCURRENCY) {
+		// Spawn the whole chunk before awaiting any of it, so the probes
+		// overlap; awaiting the handles in chunk order keeps the result in
+		// the input order the sequential loop produced.
+		let mut probes = Vec::with_capacity(chunk.len());
+		for request in chunk {
+			if request.mode == PublishMode::External {
+				probes.push(None);
+				continue;
+			}
+
+			let client = client.clone();
+			let endpoints = endpoints.clone();
+			let request = request.clone();
+			probes.push(Some(tokio::spawn(async move {
+				registry_version_exists(&client, &endpoints, &request).await
+			})));
 		}
 
-		if registry_version_exists(client, endpoints, request).await? {
-			continue;
-		}
+		for (request, probe) in chunk.iter().zip(probes) {
+			let Some(probe) = probe else {
+				continue;
+			};
+			let exists = probe.await.map_err(|error| {
+				MonochangeError::Io(format!("registry existence probe failed: {error}"))
+			})??;
 
-		pending_requests.push(request.clone());
+			if exists {
+				continue;
+			}
+
+			pending_requests.push(request.clone());
+		}
 	}
 
 	Ok(pending_requests)
