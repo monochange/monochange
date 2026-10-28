@@ -65,6 +65,10 @@ pub enum GitHubAppError {
 		"JWT signing secret is empty; set JWT_SECRET to a non-empty value before starting the server"
 	)]
 	EmptyJwtSecret,
+	#[error(
+		"token encryption key is empty; set TOKEN_ENCRYPTION_KEY to a non-empty value before starting the server"
+	)]
+	EmptyTokenEncryptionKey,
 }
 
 /// Monochange GitHub App credentials resolved from the environment.

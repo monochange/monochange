@@ -37,6 +37,7 @@ async fn state() -> Arc<AppState> {
 	let secrets: AppSecrets = serde_json::from_value(serde_json::json!({
 		"database_url": "sqlite::memory:",
 		"jwt_secret": "server-function-test-signing-key",
+		"token_encryption_key": "test-token-encryption-key",
 		"github_client_id": "client-test-id",
 		"github_client_secret": "client-test-secret",
 	}))
@@ -58,6 +59,7 @@ async fn state_with_server(server: &MockServer) -> Arc<AppState> {
 	let secrets: AppSecrets = serde_json::from_value(serde_json::json!({
 		"database_url": "sqlite::memory:",
 		"jwt_secret": "server-function-test-signing-key",
+		"token_encryption_key": "test-token-encryption-key",
 		"github_client_id": "client-test-id",
 		"github_client_secret": "client-test-secret",
 	}))
@@ -688,8 +690,20 @@ async fn installation_authorization_exchanges_without_pkce_and_creates_a_session
 	.await
 	.unwrap();
 
-	assert_eq!(stored.0, "installation-access");
-	assert_eq!(stored.1, "installation-refresh");
+	assert!(monochange_app_api::token_vault::TokenVault::is_sealed(
+		&stored.0
+	));
+	assert!(monochange_app_api::token_vault::TokenVault::is_sealed(
+		&stored.1
+	));
+	assert_eq!(
+		state.token_vault.open(&stored.0).unwrap(),
+		"installation-access"
+	);
+	assert_eq!(
+		state.token_vault.open(&stored.1).unwrap(),
+		"installation-refresh"
+	);
 	assert!(stored.2 > chrono::Utc::now().timestamp());
 	assert!(stored.3 > stored.2);
 }
@@ -780,8 +794,14 @@ async fn expired_github_app_token_is_refreshed_once_for_concurrent_requests() {
 	.fetch_one(&state.db)
 	.await
 	.unwrap();
-	assert_eq!(stored.0, "new-access");
-	assert_eq!(stored.1, "new-refresh");
+	assert!(monochange_app_api::token_vault::TokenVault::is_sealed(
+		&stored.0
+	));
+	assert!(monochange_app_api::token_vault::TokenVault::is_sealed(
+		&stored.1
+	));
+	assert_eq!(state.token_vault.open(&stored.0).unwrap(), "new-access");
+	assert_eq!(state.token_vault.open(&stored.1).unwrap(), "new-refresh");
 	assert!(stored.2 > now);
 
 	assert!(stored.3 > stored.2);

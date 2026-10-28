@@ -3455,6 +3455,7 @@ dependencies = [
 name = "monochange_app_api"
 version = "0.3.3"
 dependencies = [
+ "aes-gcm",
  "axum",
  "axum-extra",
  "base64 0.22.1",

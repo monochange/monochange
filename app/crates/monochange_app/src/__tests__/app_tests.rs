@@ -46,6 +46,7 @@ async fn state(server: &MockServer) -> Arc<AppState> {
 	let secrets: AppSecrets = serde_json::from_value(serde_json::json!({
 		"database_url": "sqlite::memory:",
 		"jwt_secret": "callback-test-signing-key",
+		"token_encryption_key": "test-token-encryption-key",
 		"github_client_id": "test-client",
 		"github_client_secret": "test-only-client-secret"
 	}))
@@ -814,8 +815,20 @@ async fn callback_delivers_session_cookie_before_showing_success_and_dashboard_u
 	.fetch_one(&state.db)
 	.await
 	.unwrap();
-	assert_eq!(stored.0, "test-only-access-token");
-	assert_eq!(stored.1, "test-only-refresh-token");
+	assert!(monochange_app_api::token_vault::TokenVault::is_sealed(
+		&stored.0
+	));
+	assert!(monochange_app_api::token_vault::TokenVault::is_sealed(
+		&stored.1
+	));
+	assert_eq!(
+		state.token_vault.open(&stored.0).unwrap(),
+		"test-only-access-token"
+	);
+	assert_eq!(
+		state.token_vault.open(&stored.1).unwrap(),
+		"test-only-refresh-token"
+	);
 	assert!(stored.2 > chrono::Utc::now().timestamp());
 	assert!(stored.3 > stored.2);
 	let session = cookies
@@ -914,9 +927,14 @@ async fn simultaneous_callbacks_share_one_identity_and_preserve_an_existing_work
 	.fetch_one(&state.db)
 	.await
 	.unwrap();
+	assert_eq!(identity.0, 7);
+	assert_eq!(identity.1, "team");
+	assert!(monochange_app_api::token_vault::TokenVault::is_sealed(
+		&identity.2
+	));
 	assert_eq!(
-		identity,
-		(7, "team".to_string(), "updated-test-token".to_string())
+		state.token_vault.open(&identity.2).unwrap(),
+		"updated-test-token"
 	);
 	assert_eq!(
 		sqlx::query_scalar::<_, i32>(

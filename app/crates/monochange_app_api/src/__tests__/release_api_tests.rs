@@ -273,6 +273,7 @@ async fn release_api_state(github: &MockServer, api_token: &str) -> AppState {
 	let secrets: AppSecrets = serde_json::from_value(serde_json::json!({
 		"database_url": "sqlite::memory:",
 		"jwt_secret": "release-api-test-signing-key",
+		"token_encryption_key": "test-token-encryption-key",
 		"github_client_id": "",
 		"github_client_secret": "",
 		"monochange_token": api_token,
@@ -285,6 +286,14 @@ async fn release_api_state(github: &MockServer, api_token: &str) -> AppState {
 		"test-only-webhook-secret",
 		&github.base_url(),
 	));
+	// The API token may only act on the repositories a deployment lists in
+	// MONOCHANGE_TOKEN_REPOSITORIES; the harness scopes it to `acme/actions`.
+	state.api_token_repositories = Some(
+		["acme/actions"]
+			.iter()
+			.map(|repository| (*repository).to_string())
+			.collect(),
+	);
 	github.mock(|when, then| {
 		when.method(Method::POST)
 			.path("/app/installations/1001/access_tokens")
@@ -333,6 +342,7 @@ async fn empty_api_token_secret_requires_oidc() {
 	let secrets: AppSecrets = serde_json::from_value(serde_json::json!({
 		"database_url": "sqlite::memory:",
 		"jwt_secret": "release-api-test-signing-key",
+		"token_encryption_key": "test-token-encryption-key",
 		"github_client_id": "",
 		"github_client_secret": "",
 		"monochange_token": "",
@@ -342,6 +352,45 @@ async fn empty_api_token_secret_requires_oidc() {
 		.await
 		.unwrap();
 	assert_eq!(AppState::new(db, secrets).unwrap().api_token, None);
+}
+
+#[tokio::test]
+async fn api_token_cannot_act_outside_its_configured_repositories() {
+	let github = MockServer::start();
+	let state = release_api_state(&github, API_TOKEN).await;
+
+	let mut request = request_with_path(".monochange/releases/829c44b7a1ee8674/release.json");
+	request.repository = "unscoped-repository".to_string();
+
+	let (status, body) = post_release_commit(&state, API_TOKEN, &request).await;
+	assert_eq!(status, StatusCode::FORBIDDEN);
+	assert!(
+		body["message"]
+			.as_str()
+			.unwrap()
+			.contains("MONOCHANGE_TOKEN is not scoped to `acme/unscoped-repository`"),
+		"body: {body}"
+	);
+}
+
+#[tokio::test]
+async fn api_token_scope_matches_repository_names_case_insensitively() {
+	let github = MockServer::start();
+	let state = release_api_state(&github, API_TOKEN).await;
+
+	// `Acme/Actions` lowercases onto the scoped `acme/actions`, so
+	// authorization passes; the exact-case repository lookup then misses and
+	// the request ends as a 404 rather than a 403 scope rejection.
+	let mut request = request_with_path(".monochange/releases/829c44b7a1ee8674/release.json");
+	request.owner = "Acme".to_string();
+	request.repository = "Actions".to_string();
+
+	let (status, _) = post_release_commit(&state, API_TOKEN, &request).await;
+	assert_ne!(
+		status,
+		StatusCode::FORBIDDEN,
+		"case-insensitive scope must authorize"
+	);
 }
 
 #[tokio::test]
@@ -796,12 +845,18 @@ async fn release_commit_endpoint_checks_credentials_before_the_body(
 #[rstest]
 #[case::matching_oidc_repository("acme/actions", true)]
 #[case::other_oidc_repository("acme/other", false)]
-fn oidc_callers_may_only_act_on_their_own_repository(#[case] claimed: &str, #[case] allowed: bool) {
+#[tokio::test]
+async fn oidc_callers_may_only_act_on_their_own_repository(
+	#[case] claimed: &str,
+	#[case] allowed: bool,
+) {
+	let github = MockServer::start();
+	let state = release_api_state(&github, API_TOKEN).await;
 	let caller = Caller::ActionsRun {
 		repository: claimed.to_string(),
 	};
 
-	let result = authorize(&caller, "acme/actions");
+	let result = authorize(&state, &caller, "acme/actions");
 
 	assert_eq!(result.is_ok(), allowed);
 	if let Err((status, body)) = result {
@@ -813,9 +868,21 @@ fn oidc_callers_may_only_act_on_their_own_repository(#[case] claimed: &str, #[ca
 	}
 }
 
-#[test]
-fn api_token_callers_may_act_on_any_connected_repository() {
-	assert!(authorize(&Caller::ApiToken, "acme/actions").is_ok());
+#[tokio::test]
+async fn api_token_callers_may_act_only_on_scoped_repositories() {
+	let github = MockServer::start();
+	let state = release_api_state(&github, API_TOKEN).await;
+
+	assert!(authorize(&state, &Caller::ApiToken, "acme/actions").is_ok());
+
+	let Err((status, body)) = authorize(&state, &Caller::ApiToken, "acme/other") else {
+		panic!("an unscoped repository must reject the API token");
+	};
+	assert_eq!(status, StatusCode::FORBIDDEN);
+	assert_eq!(
+		body.0.message,
+		"MONOCHANGE_TOKEN is not scoped to `acme/other`; add the repository to MONOCHANGE_TOKEN_REPOSITORIES or use a GitHub Actions OIDC token"
+	);
 }
 
 #[rstest]
