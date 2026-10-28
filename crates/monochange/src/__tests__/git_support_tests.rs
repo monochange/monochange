@@ -230,14 +230,14 @@ async fn git_path_is_tracked_reports_command_failures() {
 	let root = tempdir.path().to_path_buf();
 	drop(tempdir);
 
-	let error = git_path_is_tracked(&root, Path::new("release.txt"))
+	let error = git_tracked_paths(&root, &[PathBuf::from("release.txt")])
 		.await
 		.err()
 		.unwrap_or_else(|| panic!("expected tracked inspection failure"));
 	assert!(
 		error
 			.to_string()
-			.contains("failed to inspect tracked git path release.txt")
+			.contains("failed to inspect tracked git paths")
 	);
 }
 
@@ -249,10 +249,12 @@ async fn git_path_is_ignored_reports_false_for_unignored_paths() {
 	fs::write(root.join("release.txt"), "release\n")
 		.unwrap_or_else(|error| panic!("write release file: {error}"));
 
+	let ignored = git_ignored_paths(root, &[PathBuf::from("release.txt")])
+		.await
+		.unwrap_or_else(|error| panic!("git path ignored: {error}"));
 	assert!(
-		!git_path_is_ignored(root, Path::new("release.txt"))
-			.await
-			.unwrap_or_else(|error| panic!("git path ignored: {error}"))
+		ignored.is_empty(),
+		"unignored path must not be reported: {ignored:?}"
 	);
 }
 
@@ -263,14 +265,14 @@ async fn git_path_is_ignored_reports_inspection_failures() {
 	fs::write(root.join("release.txt"), "release\n")
 		.unwrap_or_else(|error| panic!("write release file: {error}"));
 
-	let error = git_path_is_ignored(root, Path::new("release.txt"))
+	let error = git_ignored_paths(root, &[PathBuf::from("release.txt")])
 		.await
 		.err()
 		.unwrap_or_else(|| panic!("expected ignored inspection failure"));
 	assert!(
 		error
 			.to_string()
-			.contains("failed to inspect ignored git path release.txt")
+			.contains("failed to inspect ignored git paths")
 	);
 }
 
@@ -280,14 +282,14 @@ async fn git_path_is_ignored_reports_command_failures() {
 	let root = tempdir.path().to_path_buf();
 	drop(tempdir);
 
-	let error = git_path_is_ignored(&root, Path::new("release.txt"))
+	let error = git_ignored_paths(&root, &[PathBuf::from("release.txt")])
 		.await
 		.err()
 		.unwrap_or_else(|| panic!("expected ignored command failure"));
 	assert!(
 		error
 			.to_string()
-			.contains("failed to inspect ignored git path release.txt")
+			.contains("failed to inspect ignored git paths")
 	);
 }
 
@@ -362,6 +364,19 @@ async fn run_git_process_with_stdin_reports_nonzero_exit_status_details() {
 	);
 }
 
+/// Scan one commit through the same history-based walk the release-record
+/// discovery uses, so tests exercise the real lookup path.
+async fn files_at_commit(root: &Path, commit: &str) -> MonochangeResult<Vec<String>> {
+	let history = crate::git_support::first_parent_history(root, commit)
+		.await
+		.unwrap_or_else(|error| panic!("first parent history: {error}"));
+	let entry = history
+		.iter()
+		.find(|entry| entry.commit == commit)
+		.unwrap_or_else(|| panic!("commit {commit} missing from its own history"));
+	crate::git_support::find_release_record_files_at_commit(root, entry, &history).await
+}
+
 #[tokio::test(flavor = "multi_thread")]
 async fn find_release_record_files_at_commit_excludes_deleted_records() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
@@ -387,7 +402,7 @@ async fn find_release_record_files_at_commit_excludes_deleted_records() {
 	let delete_commit = git_output(root, &["rev-parse", "HEAD"]);
 
 	// The deleting commit must not report the deleted record as present.
-	let files_at_delete_commit = find_release_record_files_at_commit(root, &delete_commit)
+	let files_at_delete_commit = files_at_commit(root, &delete_commit)
 		.await
 		.unwrap_or_else(|error| panic!("scan deleting commit: {error}"));
 	assert!(
@@ -396,7 +411,7 @@ async fn find_release_record_files_at_commit_excludes_deleted_records() {
 	);
 
 	// The commit that added the record still reports it.
-	let files_at_record_commit = find_release_record_files_at_commit(root, &record_commit)
+	let files_at_record_commit = files_at_commit(root, &record_commit)
 		.await
 		.unwrap_or_else(|error| panic!("scan record commit: {error}"));
 	assert_eq!(
@@ -444,7 +459,7 @@ async fn find_release_record_files_at_commit_ignores_records_reintroduced_by_mer
 	);
 	let merge_commit = git_output(root, &["rev-parse", "HEAD"]);
 
-	let files_at_merge = find_release_record_files_at_commit(root, &merge_commit)
+	let files_at_merge = files_at_commit(root, &merge_commit)
 		.await
 		.unwrap_or_else(|error| panic!("scan merge commit: {error}"));
 	assert!(
@@ -453,7 +468,7 @@ async fn find_release_record_files_at_commit_ignores_records_reintroduced_by_mer
 	);
 
 	// The release commit itself still reports the record.
-	let files_at_record_commit = find_release_record_files_at_commit(root, &record_commit)
+	let files_at_record_commit = files_at_commit(root, &record_commit)
 		.await
 		.unwrap_or_else(|error| panic!("scan record commit: {error}"));
 	assert_eq!(
@@ -500,7 +515,7 @@ async fn find_release_record_files_at_commit_detects_records_added_by_merged_bra
 
 	let merge_commit = git_output(root, &["rev-parse", "HEAD"]);
 
-	let files_at_merge = find_release_record_files_at_commit(root, &merge_commit)
+	let files_at_merge = files_at_commit(root, &merge_commit)
 		.await
 		.unwrap_or_else(|error| panic!("scan merge commit: {error}"));
 	assert_eq!(
