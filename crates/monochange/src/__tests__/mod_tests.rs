@@ -1,6 +1,8 @@
 use std::sync::LazyLock;
 use std::sync::Mutex;
 
+pub(crate) use lib_tests::cli_context_for_tests;
+
 pub(crate) use super::cli_runtime::lookup_template_value;
 pub(crate) use super::cli_runtime::parse_direct_template_reference;
 pub(crate) use super::cli_runtime::template_value_to_input_values;

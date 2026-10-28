@@ -577,6 +577,7 @@ struct CliContext {
 	inputs: BTreeMap<String, Vec<String>>,
 	last_step_inputs: BTreeMap<String, Vec<String>>,
 	prepared_release: Option<PreparedRelease>,
+	originating_command: Option<String>,
 	prepared_file_diffs: Vec<PreparedFileDiff>,
 	release_manifest_path: Option<PathBuf>,
 	release_requests: Vec<SourceReleaseRequest>,

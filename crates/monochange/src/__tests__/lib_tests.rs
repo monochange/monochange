@@ -3918,7 +3918,7 @@ fn render_config_step_reports_zero_packages_for_an_empty_workspace() {
 fn template_context_exposes_resolved_config_by_default() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	seed_release_fixture(tempdir.path(), None, false);
-	let mut context = cli_context_for_when_evaluation_tests();
+	let mut context = cli_context_for_tests();
 	context.root = tempdir.path().to_path_buf();
 
 	let template_context = build_cli_template_context(&context, &BTreeMap::new(), None);
@@ -5568,7 +5568,7 @@ fn normalize_when_expression_supports_logical_operators() {
 	);
 }
 
-fn cli_context_for_when_evaluation_tests() -> CliContext {
+pub(crate) fn cli_context_for_tests() -> CliContext {
 	CliContext {
 		root: PathBuf::from("."),
 		dry_run: false,
@@ -5578,6 +5578,7 @@ fn cli_context_for_when_evaluation_tests() -> CliContext {
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: None,
+		originating_command: None,
 		prepared_file_diffs: Vec::new(),
 		release_manifest_path: None,
 		release_requests: Vec::new(),
@@ -5600,7 +5601,7 @@ fn cli_context_for_when_evaluation_tests() -> CliContext {
 
 #[test]
 fn should_execute_cli_step_runs_when_condition_is_true() {
-	let context = cli_context_for_when_evaluation_tests();
+	let context = cli_context_for_tests();
 	let step_inputs = BTreeMap::from([
 		("run".to_string(), vec!["true".to_string()]),
 		("extra".to_string(), vec!["true".to_string()]),
@@ -5625,7 +5626,7 @@ fn should_execute_cli_step_runs_when_condition_is_true() {
 
 #[test]
 fn should_execute_cli_step_can_gate_on_command_inputs_not_declared_by_step() {
-	let mut context = cli_context_for_when_evaluation_tests();
+	let mut context = cli_context_for_tests();
 	context.inputs = BTreeMap::from([
 		("commit".to_string(), vec!["true".to_string()]),
 		("create_pr".to_string(), vec!["true".to_string()]),
@@ -5651,7 +5652,7 @@ fn should_execute_cli_step_can_gate_on_command_inputs_not_declared_by_step() {
 
 #[test]
 fn should_execute_cli_step_prefers_step_inputs_over_command_inputs() {
-	let mut context = cli_context_for_when_evaluation_tests();
+	let mut context = cli_context_for_tests();
 	context.inputs = BTreeMap::from([("run".to_string(), vec!["true".to_string()])]);
 	let step_inputs = BTreeMap::from([("run".to_string(), vec!["false".to_string()])]);
 	let step = monochange_core::CliStepDefinition::Command {
@@ -5674,7 +5675,7 @@ fn should_execute_cli_step_prefers_step_inputs_over_command_inputs() {
 
 #[test]
 fn should_execute_cli_step_skips_when_condition_is_false() {
-	let context = cli_context_for_when_evaluation_tests();
+	let context = cli_context_for_tests();
 	let step_inputs = BTreeMap::from([("run".to_string(), vec!["false".to_string()])]);
 	let step = monochange_core::CliStepDefinition::Command {
 		show_progress: None,
@@ -5696,7 +5697,7 @@ fn should_execute_cli_step_skips_when_condition_is_false() {
 
 #[test]
 fn should_execute_cli_step_skips_for_zero_value() {
-	let context = cli_context_for_when_evaluation_tests();
+	let context = cli_context_for_tests();
 	let step_inputs = BTreeMap::from([("run".to_string(), vec!["0".to_string()])]);
 	let step = monochange_core::CliStepDefinition::Command {
 		show_progress: None,
@@ -5718,7 +5719,7 @@ fn should_execute_cli_step_skips_for_zero_value() {
 
 #[test]
 fn should_execute_cli_step_can_gate_on_number_of_changesets() {
-	let mut context = cli_context_for_when_evaluation_tests();
+	let mut context = cli_context_for_tests();
 	let step_inputs = BTreeMap::new();
 	let step = monochange_core::CliStepDefinition::Command {
 		show_progress: None,
@@ -5750,7 +5751,7 @@ fn should_execute_cli_step_can_gate_on_number_of_changesets() {
 
 #[test]
 fn should_execute_cli_step_trims_and_treats_1_as_true() {
-	let context = cli_context_for_when_evaluation_tests();
+	let context = cli_context_for_tests();
 	let step_inputs = BTreeMap::from([("run".to_string(), vec![" 1 ".to_string()])]);
 	let step = monochange_core::CliStepDefinition::Command {
 		show_progress: None,
@@ -5772,7 +5773,7 @@ fn should_execute_cli_step_trims_and_treats_1_as_true() {
 
 #[test]
 fn should_execute_cli_step_skips_with_not_operator() {
-	let context = cli_context_for_when_evaluation_tests();
+	let context = cli_context_for_tests();
 	let step_inputs = BTreeMap::from([("skip".to_string(), vec!["true".to_string()])]);
 	let step = monochange_core::CliStepDefinition::Command {
 		show_progress: None,
@@ -5794,7 +5795,7 @@ fn should_execute_cli_step_skips_with_not_operator() {
 
 #[test]
 fn should_execute_cli_step_gates_on_release_streams_and_outputs() {
-	let mut context = cli_context_for_when_evaluation_tests();
+	let mut context = cli_context_for_tests();
 	let changelog = |output: &str, stream: &str| {
 		crate::PreparedChangelog {
 			owner_id: "main".to_string(),
@@ -5875,7 +5876,7 @@ fn should_execute_cli_step_gates_on_release_streams_and_outputs() {
 
 #[test]
 fn should_execute_cli_step_rejects_unknown_template_reference() {
-	let context = cli_context_for_when_evaluation_tests();
+	let context = cli_context_for_tests();
 	let step_inputs = BTreeMap::from([("run".to_string(), vec!["true".to_string()])]);
 	let step = monochange_core::CliStepDefinition::Command {
 		show_progress: None,
@@ -5899,7 +5900,7 @@ fn should_execute_cli_step_rejects_unknown_template_reference() {
 
 #[test]
 fn should_execute_cli_step_rejects_non_scalar_condition_value() {
-	let context = cli_context_for_when_evaluation_tests();
+	let context = cli_context_for_tests();
 	let step_inputs =
 		BTreeMap::from([("list".to_string(), vec!["a".to_string(), "b".to_string()])]);
 	let step = monochange_core::CliStepDefinition::Command {
@@ -7302,6 +7303,7 @@ fn template_context_exposes_release_commit_namespace() {
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: None,
+		originating_command: None,
 		prepared_file_diffs: Vec::new(),
 		release_manifest_path: None,
 		release_requests: Vec::new(),
@@ -7349,6 +7351,7 @@ fn template_context_exposes_retarget_namespace() {
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: None,
+		originating_command: None,
 		prepared_file_diffs: Vec::new(),
 		release_manifest_path: None,
 		release_requests: Vec::new(),
@@ -7388,6 +7391,7 @@ fn template_context_exposes_publish_namespace() {
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: None,
+		originating_command: None,
 		prepared_file_diffs: Vec::new(),
 		release_manifest_path: None,
 		release_requests: Vec::new(),
@@ -7505,6 +7509,7 @@ fn template_context_exposes_manifest_affected_steps_and_custom_variables() {
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: Some(sample_prepared_release_for_cli_render()),
+		originating_command: None,
 		prepared_file_diffs: Vec::new(),
 		release_manifest_path: Some(PathBuf::from("target/release-manifest.json")),
 		release_requests: Vec::new(),
@@ -7636,6 +7641,7 @@ fn render_cli_command_result_prefers_retarget_report() {
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: None,
+		originating_command: None,
 		prepared_file_diffs: Vec::new(),
 		release_manifest_path: None,
 		release_requests: Vec::new(),
@@ -7677,6 +7683,7 @@ fn render_cli_command_result_renders_release_follow_up_sections() {
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: Some(sample_prepared_release_for_cli_render()),
+		originating_command: None,
 		prepared_file_diffs: Vec::new(),
 		release_manifest_path: Some(PathBuf::from("target/release-manifest.json")),
 		release_requests: Vec::new(),
@@ -7719,6 +7726,7 @@ fn render_cli_command_markdown_result_uses_markdown_sections_for_prepare_release
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: Some(sample_prepared_release_for_cli_render()),
+		originating_command: None,
 		prepared_file_diffs: vec![PreparedFileDiff {
 			path: PathBuf::from("Cargo.toml"),
 			diff: "@@ -1 +1 @@".to_string(),
@@ -7770,6 +7778,7 @@ fn render_cli_command_markdown_result_renders_release_follow_up_sections() {
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: Some(sample_prepared_release_for_cli_render()),
+		originating_command: None,
 		prepared_file_diffs: vec![PreparedFileDiff {
 			path: PathBuf::from("Cargo.toml"),
 			diff: "@@ -1 +1 @@".to_string(),
@@ -15218,6 +15227,7 @@ fn tracked_release_pull_request_paths_include_manifest_path_and_deduplicate() {
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: None,
+		originating_command: None,
 		prepared_file_diffs: Vec::new(),
 		release_manifest_path: Some(PathBuf::from("Cargo.lock")),
 		release_requests: Vec::new(),
@@ -17035,7 +17045,7 @@ fn validate_release_record_file_reports_error_when_dedupe_cannot_read_releases_d
 		.unwrap_or_else(|error| panic!("write record: {error}"));
 	assert!(record_path.exists());
 
-	// Mutate the file so the fast path (target identity match) is skipped.
+	// Require a repair before testing the later deduplication directory read.
 	let content =
 		fs::read_to_string(&record_path).unwrap_or_else(|error| panic!("read record: {error}"));
 	let mutated = content.replace("pkg-a", "mutated-pkg");
@@ -17047,17 +17057,24 @@ fn validate_release_record_file_reports_error_when_dedupe_cannot_read_releases_d
 	let _ = fs::remove_file(&index_path);
 	clear_dedup_cache();
 
-	// Remove read permission from the releases directory so dedupe cannot iterate.
+	// Allow record traversal and repair, but prevent dedupe from listing siblings.
 	let releases_dir = root.join(".monochange/releases");
 	let mut permissions = fs::metadata(&releases_dir)
 		.unwrap_or_else(|error| panic!("metadata: {error}"))
 		.permissions();
 	let original_mode = permissions.mode();
-	permissions.set_mode(0o000);
+	permissions.set_mode(0o300);
 	fs::set_permissions(&releases_dir, permissions)
 		.unwrap_or_else(|error| panic!("set permissions: {error}"));
 
 	let result = validate_release_record_file(root, None, &manifest, true);
+	// Restore permissions before assertions so tempdir cleanup also works on failure.
+	let mut permissions = fs::metadata(&releases_dir)
+		.unwrap_or_else(|error| panic!("metadata: {error}"))
+		.permissions();
+	permissions.set_mode(original_mode);
+	fs::set_permissions(&releases_dir, permissions)
+		.unwrap_or_else(|error| panic!("restore permissions: {error}"));
 	assert!(
 		result.is_err(),
 		"expected error when dedupe cannot read releases dir, got: {result:?}"
@@ -17067,14 +17084,6 @@ fn validate_release_record_file_reports_error_when_dedupe_cannot_read_releases_d
 		message.contains("read releases dir"),
 		"expected 'read releases dir' in error, got: {message}"
 	);
-
-	// Restore permissions so tempdir cleanup succeeds.
-	let mut permissions = fs::metadata(&releases_dir)
-		.unwrap_or_else(|error| panic!("metadata: {error}"))
-		.permissions();
-	permissions.set_mode(original_mode);
-	fs::set_permissions(&releases_dir, permissions)
-		.unwrap_or_else(|error| panic!("restore permissions: {error}"));
 }
 
 #[tokio::test(flavor = "multi_thread")]

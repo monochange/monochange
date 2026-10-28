@@ -28,7 +28,7 @@ This is especially useful when you want to:
 | --------------------- | ------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `update_release_json` | boolean | `false` | When `true`, allows `CommitRelease` to create or overwrite the `.monochange/releases/<id>/release.json` record if it is missing or does not match the expected content. When `false` (the default), a missing or mismatched record is treated as an error. |
 
-This input is useful when a previous step (such as `PrepareRelease` or a `Command` step that runs `dprint fmt`) may have modified the release record file, and you want `CommitRelease` to accept the regenerated content rather than fail with a mismatch error.
+Use this input to deliberately repair a missing or changed record from the prepared manifest. Keep the default for normal release workflows so a content mismatch stops the commit. Formatting-only changes do not require overwrite mode.
 
 `CommitRelease` compares release records semantically (parsed JSON values), so formatting-only differences such as indentation or key ordering are ignored and never trigger a mismatch.
 
@@ -70,6 +70,10 @@ In normal mode, `CommitRelease` creates a local commit.
 In `--dry-run` mode, it previews the commit payload without creating the commit.
 
 Before committing, `CommitRelease` validates the `.monochange/releases/<id>/release.json` record on disk. If the file exists, the step compares it against the expected content **semantically** (parsed JSON values), so formatting-only differences such as indentation or key ordering do not trigger a mismatch. If the file is missing or semantically different, the step either errors (default) or overwrites the file, depending on the `update_release_json` input.
+
+Validation covers tag and publication instructions, provider metadata, changelogs, and release values even when target IDs and versions match. A valid creation timestamp is preserved because the prepared manifest does not store that timestamp.
+
+If validation rejects a missing or changed record, overlapping release records remain untouched.
 
 The release record is committed state. Only `.monochange/local/` may be gitignored, and an ignore rule that also matches `.monochange/releases/` keeps the record out of git history, which breaks `publish-readiness`, `tag-release`, and provider release automation.
 
@@ -133,9 +137,9 @@ command = "echo release commit {{ release_commit.commit }}"
 shell = true
 ```
 
-### Prepare, format, then commit with record overwrite
+### Prepare, format, then commit
 
-If a formatting tool such as `dprint fmt` runs between `PrepareRelease` and `CommitRelease`, it may change the whitespace or key ordering of the generated `release.json`. By default, `CommitRelease` would treat this as a mismatch and error. Set `update_release_json = true` to allow `CommitRelease` to overwrite the formatted file with the semantically-equivalent regenerated content:
+A formatting tool such as `dprint fmt` can run between `PrepareRelease` and `CommitRelease`. Whitespace and JSON key ordering are accepted with the default mismatch protection:
 
 ```toml
 [[cli.release-pr.steps]]
@@ -150,10 +154,9 @@ command = "dprint fmt --allow-no-files {{ changed_files }} .monochange/releases/
 [[cli.release-pr.steps]]
 type = "CommitRelease"
 name = "create release commit"
-update_release_json = true
 ```
 
-This pattern is the recommended way to combine automated formatting with release record durability.
+If validation reports a content mismatch, restore the record from a trusted preparation. Set `update_release_json = true` only when you intend to replace its contents with the expected record from the prepared manifest.
 
 ### Prepare, commit, then open a release request
 
@@ -196,4 +199,4 @@ A raw shell commit can create a commit, but it cannot automatically preserve the
 - assuming it publishes releases or opens a release request by itself
 - forgetting that `--dry-run` previews the commit rather than creating it
 - reaching for a custom `git commit` command and then losing durable release metadata
-- running a formatter (such as `dprint fmt`) between `PrepareRelease` and `CommitRelease` without setting `update_release_json = true` on the `CommitRelease` step
+- enabling `update_release_json = true` solely for formatting changes, which semantic validation already accepts

@@ -385,7 +385,13 @@ async fn ensure_prepared_release_for_consumer_step(
 			"`{step_name}` requires a previous `PrepareRelease` step or a reusable prepared release artifact"
 		)));
 	};
+	let originating_command = loaded.originating_command.ok_or_else(|| {
+		MonochangeError::Config(format!(
+			"`{step_name}` requires a prepared release artifact with its originating command; rerun the original `PrepareRelease` workflow from trusted workspace inputs. If the producer changes, restore the expected record from trusted preparation or explicitly enable `update_release_json` repair"
+		))
+	})?;
 	context.command_logs.push(loaded.message);
+	context.originating_command = Some(originating_command);
 	context.prepared_file_diffs = loaded.execution.file_diffs;
 	context.prepared_release = Some(loaded.execution.prepared_release);
 	Ok(())
@@ -647,6 +653,7 @@ pub(crate) async fn execute_cli_command_with_options(
 		last_step_inputs: inputs.clone(),
 		inputs,
 		prepared_release: None,
+		originating_command: None,
 		prepared_file_diffs: Vec::new(),
 		release_manifest_path: None,
 		release_requests: Vec::new(),
@@ -1008,9 +1015,10 @@ pub(crate) async fn execute_cli_command_with_options(
 	}
 
 	let artifact_path = prepared_release_path.as_deref();
-	let result = save_prepared_release_artifact(root, configuration, &context, artifact_path)
-		.await
-		.and_then(|()| resolve_command_output(cli_command, &context, dry_run, output));
+	let result =
+		save_prepared_release_artifact(root, configuration, &context, artifact_path, cli_command)
+			.await
+			.and_then(|()| resolve_command_output(cli_command, &context, dry_run, output));
 
 	match &result {
 		Ok(_) => {
@@ -1198,26 +1206,35 @@ async fn execute_prepare_release_step(
 			.steps
 			.get(state.step_index + 1..)
 			.is_some_and(steps_reference_release_file_diffs);
-	let prepared_execution = if let Some(loaded) = maybe_load_prepared_release_execution(
-		state.root,
-		state.configuration,
-		state.prepared_release_path,
-		state.dry_run,
-		build_file_diffs,
-	)
-	.await?
-	{
-		context.command_logs.push(loaded.message);
-		loaded.execution
-	} else {
-		prepare_release_execution_with_configuration(
+	let (prepared_execution, originating_command) = if let Some(loaded) =
+		maybe_load_prepared_release_execution(
 			state.root,
 			state.configuration,
+			state.prepared_release_path,
 			state.dry_run,
 			build_file_diffs,
-			allow_empty_changesets,
 		)
 		.await?
+	{
+		context.command_logs.push(loaded.message);
+		(
+			loaded.execution,
+			loaded
+				.originating_command
+				.unwrap_or_else(|| state.cli_command.name.clone()),
+		)
+	} else {
+		(
+			prepare_release_execution_with_configuration(
+				state.root,
+				state.configuration,
+				state.dry_run,
+				build_file_diffs,
+				allow_empty_changesets,
+			)
+			.await?,
+			state.cli_command.name.clone(),
+		)
 	};
 
 	for warning in &prepared_execution.warnings {
@@ -1227,12 +1244,16 @@ async fn execute_prepare_release_step(
 	step_phase_timings.clone_from(&prepared_execution.phase_timings);
 	context.prepared_file_diffs = prepared_execution.file_diffs;
 	context.prepared_release = Some(prepared_execution.prepared_release);
+	context.originating_command = Some(originating_command);
 	let prepared_release = context
 		.prepared_release
 		.as_ref()
 		.expect("prepared release must be available after prepare step");
-	let manifest =
-		build_release_manifest(state.cli_command, prepared_release, &context.command_logs);
+	let manifest = build_release_manifest(
+		state.cli_command,
+		prepared_release,
+		context.originating_command.as_deref(),
+	);
 
 	if should_write_release_record_for_prepared_release(
 		prepared_release,
@@ -1298,7 +1319,7 @@ async fn execute_publish_release_step(
 		.and_then(|v| v.first().cloned())
 		.unwrap_or_else(|| "HEAD".to_string());
 	let manifest = if let Some(prepared_release) = context.prepared_release.as_ref() {
-		build_release_manifest(state.cli_command, prepared_release, &context.command_logs)
+		build_release_manifest(state.cli_command, prepared_release, None)
 	} else {
 		let from_ref = state
 			.step_inputs
@@ -1548,8 +1569,7 @@ async fn execute_commit_release_step(
 		.prepared_release
 		.as_ref()
 		.expect("prepared release must be available before committing release");
-	let manifest =
-		build_release_manifest(state.cli_command, prepared_release, &context.command_logs);
+	let manifest = build_release_manifest(state.cli_command, prepared_release, None);
 	let no_verify =
 		parse_boolean_step_input(state.step_inputs, "no_verify")?.unwrap_or(defaults.no_verify);
 	let update_release_json = parse_boolean_step_input(state.step_inputs, "update_release_json")?
@@ -1628,8 +1648,7 @@ async fn execute_open_release_request_step(
 			"`OpenReleaseRequest` requires `[source]` configuration".to_string(),
 		)
 	})?;
-	let manifest =
-		build_release_manifest(state.cli_command, prepared_release, &context.command_logs);
+	let manifest = build_release_manifest(state.cli_command, prepared_release, None);
 	let request = build_source_change_request(&source, &manifest);
 	let tracked_paths = tracked_release_pull_request_paths(context, &manifest);
 	let dry_run = context.dry_run;
@@ -1684,7 +1703,7 @@ async fn execute_comment_released_issues_step(
 	context: &mut CliContext,
 ) -> MonochangeResult<Option<String>> {
 	let manifest = if let Some(prepared_release) = context.prepared_release.as_ref() {
-		build_release_manifest(state.cli_command, prepared_release, &context.command_logs)
+		build_release_manifest(state.cli_command, prepared_release, None)
 	} else {
 		let from_ref = state
 			.step_inputs
@@ -5548,6 +5567,7 @@ async fn save_prepared_release_artifact(
 	configuration: &monochange_core::WorkspaceConfiguration,
 	context: &CliContext,
 	prepared_release_path: Option<&Path>,
+	cli_command: &CliCommandDefinition,
 ) -> MonochangeResult<()> {
 	let Some(prepared_release) = &context.prepared_release else {
 		return Ok(());
@@ -5559,6 +5579,10 @@ async fn save_prepared_release_artifact(
 		prepared_release,
 		&context.prepared_file_diffs,
 		prepared_release_path,
+		context
+			.originating_command
+			.as_deref()
+			.unwrap_or(&cli_command.name),
 	)
 	.await;
 
@@ -5583,8 +5607,7 @@ fn resolve_command_output(
 
 		return match format {
 			OutputFormat::Json | OutputFormat::JsonMin => {
-				let manifest =
-					build_release_manifest(cli_command, prepared_release, &context.command_logs);
+				let manifest = build_release_manifest(cli_command, prepared_release, None);
 				render_release_cli_command_json(
 					format,
 					&manifest,
