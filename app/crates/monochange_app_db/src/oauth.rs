@@ -6,7 +6,7 @@ use crate::DbPool;
 ///
 /// The unique insert selects one winner across requests and processes. Entries
 /// remain until the signed state expires, including when provider exchange fails.
-/// SQLite checks expiry during the insert because waiting for a connection or
+/// `SQLite` checks expiry during the insert because waiting for a connection or
 /// writer can outlive the cookie and let another callback prune its used nonce.
 ///
 /// # Errors
