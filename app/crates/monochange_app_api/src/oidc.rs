@@ -10,9 +10,11 @@
 //! 3. Validate the issuer and the configured audience.
 //! 4. Extract the repository claims the endpoint authorizes against.
 
+#[cfg(test)]
+#[path = "__tests__/oidc_tests.rs"]
+mod tests;
+
 use std::collections::HashMap;
-use std::sync::Arc;
-use std::sync::RwLock;
 use std::time::Duration;
 use std::time::Instant;
 
@@ -23,9 +25,16 @@ use jsonwebtoken::decode_header;
 use jsonwebtoken::jwk::Jwk;
 use serde::Deserialize;
 use thiserror::Error;
+use tokio::sync::Mutex;
+use tokio::sync::Semaphore;
 
 /// The only issuer the verifier accepts.
 pub const GITHUB_ACTIONS_ISSUER: &str = "https://token.actions.githubusercontent.com";
+
+const JWKS_CACHE_TTL: Duration = Duration::from_secs(600);
+const JWKS_RETRY_DELAY: Duration = Duration::from_secs(30);
+const JWKS_REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
+const JWKS_MAX_BYTES: usize = 64 * 1024;
 
 /// Errors raised while verifying a GitHub Actions OIDC token.
 #[derive(Debug, Error)]
@@ -34,6 +43,12 @@ pub enum OidcError {
 	InvalidToken(String),
 	#[error("failed to fetch GitHub OIDC signing keys: {0}")]
 	Jwks(#[from] reqwest::Error),
+	#[error("GitHub OIDC signing keys are not valid JSON: {0}")]
+	InvalidJwks(#[from] serde_json::Error),
+	#[error("GitHub OIDC signing keys exceed the response size limit")]
+	JwksTooLarge,
+	#[error("GitHub OIDC signing key refresh is temporarily unavailable")]
+	RefreshBackoff,
 	#[error("no signing key matches the token header")]
 	NoMatchingKey,
 	#[error("OIDC token validation failed: {0}")]
@@ -86,13 +101,36 @@ struct CachedJwks {
 	fetched_at: Instant,
 }
 
+#[derive(Default)]
+struct JwksCache {
+	document: Option<CachedJwks>,
+	retry_after: Option<Instant>,
+}
+
+impl JwksCache {
+	/// A fresh document answers even unknown key IDs without a refresh.
+	fn fresh_key(&self, kid: &str) -> Option<Result<Jwk, OidcError>> {
+		self.document
+			.as_ref()
+			.filter(|document| document.fetched_at.elapsed() < JWKS_CACHE_TTL)
+			.map(|document| {
+				document
+					.keys_by_kid
+					.get(kid)
+					.cloned()
+					.ok_or(OidcError::NoMatchingKey)
+			})
+	}
+}
+
 /// Verifies GitHub Actions OIDC tokens against GitHub's published JWKS.
 pub struct OidcVerifier {
 	issuer: String,
 	audience: String,
 	jwks_url: String,
 	http: reqwest::Client,
-	cache: Arc<RwLock<Option<CachedJwks>>>,
+	cache: Mutex<JwksCache>,
+	refresh: Semaphore,
 }
 
 impl OidcVerifier {
@@ -105,10 +143,11 @@ impl OidcVerifier {
 			jwks_url: format!("{GITHUB_ACTIONS_ISSUER}/.well-known/jwks"),
 			http: reqwest::Client::builder()
 				.connect_timeout(Duration::from_secs(10))
-				.timeout(Duration::from_secs(30))
+				.timeout(JWKS_REQUEST_TIMEOUT)
 				.build()
 				.unwrap_or_default(),
-			cache: Arc::new(RwLock::new(None)),
+			cache: Mutex::new(JwksCache::default()),
+			refresh: Semaphore::new(1),
 		}
 	}
 
@@ -153,43 +192,75 @@ impl OidcVerifier {
 	}
 
 	async fn jwk_for_kid(&self, kid: &str) -> Result<Jwk, OidcError> {
-		if let Some(jwk) = self.cached_key(kid) {
-			return Ok(jwk);
+		let cached = self.cache.lock().await.fresh_key(kid);
+
+		if let Some(key) = cached {
+			return key;
 		}
 
-		self.refresh_cache().await?;
-		self.cached_key(kid).ok_or(OidcError::NoMatchingKey)
-	}
+		// One request owns the refresh; no cache data lock spans network work.
+		let _permit = self
+			.refresh
+			.acquire()
+			.await
+			.unwrap_or_else(|_| panic!("the private JWKS refresh gate is never closed"));
+		{
+			let mut cache = self.cache.lock().await;
 
-	fn cached_key(&self, kid: &str) -> Option<Jwk> {
-		let cache = self.cache.read().ok()?;
-		let cached = cache.as_ref()?;
+			if let Some(key) = cache.fresh_key(kid) {
+				return key;
+			}
 
-		if cached.fetched_at.elapsed() < Duration::from_secs(600) {
-			cached.keys_by_kid.get(kid).cloned()
-		} else {
-			None
+			if cache
+				.retry_after
+				.is_some_and(|deadline| Instant::now() < deadline)
+			{
+				return Err(OidcError::RefreshBackoff);
+			}
+
+			// Cancellation must also leave a deadline for the next owner.
+			cache.retry_after = Some(Instant::now() + JWKS_RETRY_DELAY);
 		}
-	}
 
-	async fn refresh_cache(&self) -> Result<(), OidcError> {
-		let document: JwksDocument = self.http.get(&self.jwks_url).send().await?.json().await?;
-		let keys_by_kid = document
-			.keys
-			.into_iter()
-			.filter_map(|jwk| jwk.common.key_id.clone().map(|kid| (kid, jwk)))
-			.collect::<HashMap<_, _>>();
-		let mut cache = self
-			.cache
-			.write()
-			.map_err(|_| OidcError::NoMatchingKey)
-			.ok()
-			.ok_or(OidcError::NoMatchingKey)?;
-		*cache = Some(CachedJwks {
+		let fetched = self.fetch_signing_keys().await;
+		let mut cache = self.cache.lock().await;
+		cache.retry_after = Some(Instant::now() + JWKS_RETRY_DELAY);
+		let keys_by_kid = fetched?;
+		let key = keys_by_kid.get(kid).cloned();
+		cache.document = Some(CachedJwks {
 			keys_by_kid,
 			fetched_at: Instant::now(),
 		});
-		Ok(())
+		cache.retry_after = None;
+
+		key.ok_or(OidcError::NoMatchingKey)
+	}
+
+	async fn fetch_signing_keys(&self) -> Result<HashMap<String, Jwk>, OidcError> {
+		let mut response = self
+			.http
+			.get(&self.jwks_url)
+			.timeout(JWKS_REQUEST_TIMEOUT)
+			.send()
+			.await?
+			.error_for_status()?;
+		let mut bytes = Vec::new();
+
+		while let Some(chunk) = response.chunk().await? {
+			if chunk.len() > JWKS_MAX_BYTES - bytes.len() {
+				return Err(OidcError::JwksTooLarge);
+			}
+
+			bytes.extend_from_slice(&chunk);
+		}
+
+		let document: JwksDocument = serde_json::from_slice(&bytes)?;
+
+		Ok(document
+			.keys
+			.into_iter()
+			.filter_map(|jwk| jwk.common.key_id.clone().map(|kid| (kid, jwk)))
+			.collect())
 	}
 }
 

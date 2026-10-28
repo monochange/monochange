@@ -35,6 +35,9 @@ on:
       - "scripts/website-size-baseline.json"
       - "package.json"
       - "pnpm-lock.yaml"
+  merge_group:
+    branches:
+      - main
   workflow_dispatch: {}
 
 concurrency:
@@ -96,6 +99,95 @@ jobs:
 
       - name: cargo leptos build
         run: cargo leptos build
+
+  app-coverage:
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    env:
+      CARGO_BUILD_JOBS: 1
+      COVERAGE_BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before || github.sha }}
+      COVERAGE_HEAD: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
+
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
+
+      - name: install rust toolchain
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          toolchain: nightly-2026-05-08
+          components: llvm-tools-preview
+
+      - name: install coverage tool
+        uses: taiki-e/install-action@9983c65e42da123ff25d1f78505eb6de315aa172 # v2.87.20
+        with:
+          tool: cargo-llvm-cov@0.8.5
+
+      - name: cache cargo build
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: app
+          key: app-coverage
+
+      - name: setup node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+
+      - name: measure app workspace coverage
+        working-directory: app
+        run: |
+          mkdir -p target/coverage
+          cargo-llvm-cov llvm-cov --locked --workspace --lcov --output-path target/coverage/lcov.info
+        env:
+          DATABASE_URL: "sqlite::memory:"
+          JWT_SECRET: "ci-test-jwt-secret-key-123"
+          GITHUB_CLIENT_ID: "ci-test-client-id"
+          GITHUB_CLIENT_SECRET: "ci-test-client-secret"
+
+      - name: require app source coverage and 100% patch coverage
+        run: |
+          node --input-type=module <<'NODE'
+          import { execFileSync } from "node:child_process";
+          import { readFileSync } from "node:fs";
+          import { resolve, sep } from "node:path";
+          import { parseChangedLines, parseLcov, verifyPatchCoverage } from "./scripts/check-patch-coverage.ts";
+
+          const repoRoot = process.cwd();
+          const base = process.env.COVERAGE_BASE;
+          const head = process.env.COVERAGE_HEAD;
+          if (!base || !head || execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim() !== head) {
+            throw new Error("coverage must measure the requested head revision");
+          }
+          const diff = (path) => execFileSync("git", ["diff", "--unified=0", "--no-color", "--no-ext-diff", `${base}...${head}`, "--", path], { encoding: "utf8" });
+          const lcovText = readFileSync("app/target/coverage/lcov.info", "utf8");
+          const coverage = parseLcov(lcovText, repoRoot);
+          if (![...coverage].some(([source, lines]) => source.startsWith(`${resolve("app")}${sep}`) && lines.size > 0)) {
+            throw new Error("coverage is missing executable app source maps");
+          }
+          const diffText = diff("app/");
+          const oidcSource = resolve("app/crates/monochange_app_api/src/oidc.rs");
+          if (parseChangedLines(diffText, repoRoot).has(oidcSource) && !coverage.get(oidcSource)?.size) {
+            throw new Error("app coverage is missing the OIDC executable source map");
+          }
+          const result = verifyPatchCoverage({ lcovText, diffText, repoRoot, target: 100 });
+          console.log(result.summary);
+          const oidc = verifyPatchCoverage({ lcovText, diffText: diff("app/crates/monochange_app_api/src/oidc.rs"), repoRoot, target: 100 });
+          console.log(`OIDC_${oidc.summary}`);
+          if (!result.passed || !oidc.passed) process.exitCode = 1;
+          NODE
+
+      - name: upload app coverage
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: app-coverage
+          path: app/target/coverage/lcov.info
+          retention-days: 7
 
   docker:
     timeout-minutes: 60
