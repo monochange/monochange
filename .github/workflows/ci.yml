@@ -642,6 +642,34 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           free-runner-space: "true"
 
+      - name: inspect app release-note outputs
+        run: |
+          set -euo pipefail
+          export CARGO_BUILD_JOBS=1 RUST_TEST_THREADS=2 TOKIO_WORKER_THREADS=2
+          evidence="${{ runner.temp }}/app-release-preview"
+          mkdir -p "$evidence"
+          monochange step validate
+          monochange step prepare-release --dry-run --format json > "$evidence/manifest.json"
+          node scripts/check-app-release-preview.ts "$evidence/manifest.json" | tee "$evidence/outputs.tsv"
+          while IFS=$'\t' read -r output _; do
+            extension=md
+            if [ "$output" = website_json ]; then
+              extension=json
+            fi
+            monochange notes --output "$output" --target monochange_app --file "$evidence/$output.$extension"
+          done < "$evidence/outputs.tsv"
+          git diff --exit-code
+        shell: devenv shell -- bash -e {0}
+
+      - name: upload app release-note preview
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: app-release-note-preview
+          path: ${{ runner.temp }}/app-release-preview/
+          if-no-files-found: error
+          retention-days: 7
+
       - name: create release commit
         id: release_commit
         run: |
