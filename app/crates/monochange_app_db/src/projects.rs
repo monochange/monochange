@@ -122,17 +122,53 @@ fn organization_from_row(row: &sqlx::sqlite::SqliteRow) -> OrganizationRecord {
 	}
 }
 
+/// Resolves a provider login only when it identifies exactly one account.
+///
+/// Logins can be renamed and reused. Ambiguous stored metadata must not
+/// select an arbitrary tenant for the public project portal.
+///
+/// # Errors
+/// Returns a database error on query failure or an ambiguous login.
 pub async fn find_organization(
 	pool: &DbPool,
 	provider: &str,
 	login: &str,
 ) -> Result<Option<OrganizationRecord>, sqlx::Error> {
-	let row = sqlx::query(
+	let rows = sqlx::query(
 		"SELECT id, provider, github_id, github_login, account_type, github_avatar_url
-		 FROM organizations WHERE provider = $1 AND github_login = $2 COLLATE NOCASE",
+		 FROM organizations WHERE provider = $1 AND github_login = $2 COLLATE NOCASE LIMIT 2",
 	)
 	.bind(provider)
 	.bind(login)
+	.fetch_all(pool)
+	.await?;
+
+	match rows.as_slice() {
+		[] => Ok(None),
+		[row] => Ok(Some(organization_from_row(row))),
+		_ => {
+			Err(sqlx::Error::Protocol(
+				"organization login is ambiguous".to_owned(),
+			))
+		}
+	}
+}
+
+/// Resolves the stable organization identity linked to an installation.
+///
+/// # Errors
+/// Returns a database error when the organization query fails.
+pub async fn find_organization_by_id(
+	pool: &DbPool,
+	provider: &str,
+	organization_id: i32,
+) -> Result<Option<OrganizationRecord>, sqlx::Error> {
+	let row = sqlx::query(
+		"SELECT id, provider, github_id, github_login, account_type, github_avatar_url
+		 FROM organizations WHERE provider = $1 AND id = $2",
+	)
+	.bind(provider)
+	.bind(organization_id)
 	.fetch_optional(pool)
 	.await?;
 	Ok(row.as_ref().map(organization_from_row))

@@ -103,6 +103,17 @@ async fn installations_share_one_organisation_that_follows_renames() {
 }
 
 #[tokio::test]
+async fn duplicate_display_logins_do_not_select_a_tenant() {
+	let pool = pool().await;
+	let first = link(&pool, 1, &acme("acme", None)).await;
+	let mut reused = acme("ACME", None);
+	reused.external_id = 9001;
+	let second = link(&pool, 2, &reused).await;
+	assert_ne!(first, second);
+	assert!(find_organization(&pool, GITHUB, "acme").await.is_err());
+}
+
+#[tokio::test]
 async fn projects_are_created_listed_updated_and_deleted() {
 	let pool = pool().await;
 	let organization = link(&pool, 1, &acme("acme", None)).await;

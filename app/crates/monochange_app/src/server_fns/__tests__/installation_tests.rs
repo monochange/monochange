@@ -281,6 +281,22 @@ async fn connect(state: &AppState, installation_id: i64, login: &str, account_ty
 	.await
 	.unwrap();
 
+	let mut connection = state.db.acquire().await.unwrap();
+	monochange_app_db::projects::link_installation_organization(
+		&mut connection,
+		installation,
+		&monochange_app_db::projects::AccountIdentity {
+			provider: monochange_app_db::projects::GITHUB.to_owned(),
+			external_id: installation_id,
+			login: login.to_owned(),
+			account_type: account_type.to_owned(),
+			avatar_url: None,
+		},
+	)
+	.await
+	.unwrap();
+	drop(connection);
+
 	for repository in ["one", "two"] {
 		sqlx::query(
 			"INSERT INTO repositories (installation_id, github_repo_id, github_full_name, github_private, created_at, updated_at)
@@ -351,8 +367,9 @@ async fn installations_behind_the_app_permissions_link_to_their_review_page() {
 		when.method(Method::GET)
 			.path("/user/memberships/orgs/acme")
 			.header("authorization", "Bearer test-only-token");
-		then.status(200)
-			.json_body(serde_json::json!({"state": "active", "role": "admin"}));
+		then.status(200).json_body(
+			serde_json::json!({"state": "active", "role": "admin", "organization": {"id":22}}),
+		);
 	});
 	let state = state(Some(&server)).await;
 	connect(&state, 11, "alice", "User").await;
@@ -380,8 +397,9 @@ async fn organization_installations_review_on_the_organization_settings_page() {
 	mock_installation(&server, 22, 200, &serde_json::json!({"metadata": "read"}));
 	server.mock(|when, then| {
 		when.method(Method::GET).path("/user/memberships/orgs/acme");
-		then.status(200)
-			.json_body(serde_json::json!({"state": "active", "role": "admin"}));
+		then.status(200).json_body(
+			serde_json::json!({"state": "active", "role": "admin", "organization": {"id":22}}),
+		);
 	});
 	let state = state(Some(&server)).await;
 	connect(&state, 22, "acme", "Organization").await;

@@ -79,7 +79,9 @@ async fn owner_of_team(server: &MockServer) {
 	server
 		.mock_async(|when, then| {
 			when.method(GET).path("/user/memberships/orgs/team");
-			then.json_body(serde_json::json!({"state":"active","role":"admin"}));
+			then.json_body(
+				serde_json::json!({"state":"active","role":"admin","organization":{"id":5001}}),
+			);
 		})
 		.await;
 }
@@ -203,6 +205,172 @@ async fn organisations_group_the_repositories_a_user_manages() {
 			.iter()
 			.all(|organization| organization.login != "bob")
 	);
+}
+
+#[tokio::test]
+async fn reused_organization_logins_cannot_expose_or_mutate_the_previous_tenant() {
+	let server = MockServer::start_async().await;
+	owner_of_team(&server).await;
+	let state = state(&server).await;
+	// The previous owner renamed on GitHub before its stored login was refreshed.
+	sqlx::query("INSERT INTO organizations (id, provider, github_id, github_login, account_type) VALUES (0, 'github', 50, 'TEAM', 'Organization')")
+		.execute(&state.db)
+		.await
+		.unwrap();
+	sqlx::query("INSERT INTO projects (id, organization_id, slug, name, description) VALUES (10, 0, 'invoices', 'Victim invoices', 'Private billing')")
+		.execute(&state.db)
+		.await
+		.unwrap();
+	let (owner, _) = context(&state, Some(1));
+	let organizations = owner
+		.with(|| ScopedFuture::new(list_organizations()))
+		.await
+		.unwrap();
+	let team = organizations
+		.iter()
+		.find(|organization| organization.login == "team")
+		.unwrap();
+	assert!(team.projects.is_empty());
+	assert!(
+		owner
+			.with(|| ScopedFuture::new(project_overview("team".to_owned(), "invoices".to_owned())))
+			.await
+			.unwrap()
+			.is_none()
+	);
+
+	for result in [
+		owner
+			.with(|| {
+				ScopedFuture::new(update_project(
+					"team".to_owned(),
+					"invoices".to_owned(),
+					"Stolen".to_owned(),
+					String::new(),
+					repositories(&["team/app"]),
+				))
+			})
+			.await,
+		owner
+			.with(|| ScopedFuture::new(delete_project("team".to_owned(), "invoices".to_owned())))
+			.await,
+	] {
+		assert_eq!(
+			message(&result.unwrap_err()),
+			"That organisation or project isn't available to you."
+		);
+	}
+
+	create(&owner, "team", "Invoices", &["team/app"])
+		.await
+		.unwrap();
+	let projects: Vec<(i32, String)> =
+		sqlx::query_as("SELECT organization_id, name FROM projects ORDER BY id")
+			.fetch_all(&state.db)
+			.await
+			.unwrap();
+	let current_id: i32 =
+		sqlx::query_scalar("SELECT organization_id FROM installations WHERE id = 3")
+			.fetch_one(&state.db)
+			.await
+			.unwrap();
+	assert_eq!(
+		projects,
+		[
+			(0, "Victim invoices".to_owned()),
+			(current_id, "Invoices".to_owned())
+		]
+	);
+	assert!(
+		monochange_app_api::feedback::public_project(&state, "team", "invoices")
+			.await
+			.is_err()
+	);
+}
+
+#[tokio::test]
+async fn organizations_with_colliding_logins_are_not_grouped_into_one_tenant() {
+	let server = MockServer::start_async().await;
+	owner_of_team(&server).await;
+	let state = state(&server).await;
+	sqlx::query("UPDATE installations SET github_account_login = 'team' WHERE id = 1")
+		.execute(&state.db)
+		.await
+		.unwrap();
+	sqlx::query("UPDATE organizations SET github_login = 'team' WHERE github_id = 101")
+		.execute(&state.db)
+		.await
+		.unwrap();
+	let (owner, _) = context(&state, Some(1));
+	let organizations = owner
+		.with(|| ScopedFuture::new(list_organizations()))
+		.await
+		.unwrap();
+	assert_eq!(organizations.len(), 2);
+	let mut repository_counts: Vec<usize> = organizations
+		.iter()
+		.map(|organization| organization.repositories.len())
+		.collect();
+	repository_counts.sort_unstable();
+	assert_eq!(repository_counts, [1, 2]);
+	assert!(
+		owner
+			.with(|| ScopedFuture::new(organization_overview("team".to_owned())))
+			.await
+			.is_err()
+	);
+}
+
+#[rstest::rstest]
+#[case(5001, true)]
+#[case(9001, false)]
+#[tokio::test]
+async fn legacy_organization_identity_is_resolved_before_membership_authorizes_access(
+	#[case] membership_id: i64,
+	#[case] visible: bool,
+) {
+	let server = MockServer::start_async().await;
+	let account = server
+		.mock_async(|when, then| {
+			when.method(GET)
+				.path("/app/installations/1003")
+				.header_exists("authorization");
+			then.json_body(serde_json::json!({
+				"account": {"id": 5001, "login": "team", "type": "Organization"}
+			}));
+		})
+		.await;
+	let membership = server
+		.mock_async(|when, then| {
+			when.method(GET).path("/user/memberships/orgs/team");
+			then.json_body(
+				serde_json::json!({"state":"active","role":"admin","organization":{"id":membership_id}}),
+			);
+		})
+		.await;
+	let mut configured = (*state(&server).await).clone();
+	configured.github_app = Some(test_app(&server));
+	let state = Arc::new(configured);
+	sqlx::query("UPDATE installations SET organization_id = NULL WHERE id = 3")
+		.execute(&state.db)
+		.await
+		.unwrap();
+	let (owner, _) = context(&state, Some(1));
+	let organizations = owner
+		.with(|| ScopedFuture::new(list_organizations()))
+		.await
+		.unwrap();
+	assert_eq!(
+		organizations
+			.iter()
+			.any(|organization| organization.login == "team"),
+		visible
+	);
+	let linked_id: i64 = sqlx::query_scalar("SELECT o.github_id FROM installations i JOIN organizations o ON o.id = i.organization_id WHERE i.id = 3")
+		.fetch_one(&state.db).await.unwrap();
+	assert_eq!(linked_id, 5001);
+	account.assert_calls_async(1).await;
+	membership.assert_calls_async(1).await;
 }
 
 #[tokio::test]
