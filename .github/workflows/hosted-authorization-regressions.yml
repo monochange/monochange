@@ -80,7 +80,7 @@ jobs:
           set +e
           cargo test --manifest-path app/Cargo.toml --locked -p monochange_app_api --lib \
             hosted_authorization_security_ -- --test-threads=2 2>&1 | tee "$output/original.log"
-          status=${PIPESTATUS[0]}
+          status=$?
           set -e
           test "$status" -eq 101
           node --input-type=module - "$output/original.log" <<'NODE'
