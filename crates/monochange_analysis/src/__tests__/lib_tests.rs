@@ -721,7 +721,15 @@ fn snapshot_helpers_cover_error_paths_and_filtered_content() {
 		None,
 		monochange_core::PublishState::Public,
 	);
-	assert!(snapshot_package(&root, &outside_package, &SnapshotTarget::WorkingTree).is_err());
+	assert!(
+		snapshot_package(
+			&root,
+			&outside_package,
+			&SnapshotTarget::WorkingTree,
+			"label"
+		)
+		.is_err()
+	);
 
 	let not_a_repo = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let git_list_error = git_list_files(not_a_repo.path(), &["ls-files"])
@@ -824,11 +832,12 @@ fn revision_snapshot_batch_parser_skips_outside_large_and_binary_files() {
 #[test]
 fn revision_snapshot_batch_reports_git_process_failures() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	let error = build_revision_snapshot_files(
+	let error = build_git_object_snapshot_files_with_limit(
 		tempdir.path(),
 		Path::new("crates/core"),
-		"HEAD",
+		"HEAD:",
 		&[PathBuf::from("crates/core/src/lib.rs")],
+		MAX_SNAPSHOT_FILE_SIZE,
 	)
 	.expect_err("cat-file outside a repository should fail")
 	.render();
@@ -843,14 +852,14 @@ fn revision_snapshot_request_writer_formats_requests_and_reports_failures() {
 		PathBuf::from("crates/core/src/main.rs"),
 	];
 	let mut output = Vec::new();
-	write_revision_snapshot_requests(&mut output, "main", &paths)
+	write_snapshot_batch_requests(&mut output, "main:", &paths)
 		.unwrap_or_else(|error| panic!("write requests: {error}"));
 	assert_eq!(
 		String::from_utf8(output).unwrap_or_else(|error| panic!("request text: {error}")),
 		"main:crates/core/src/lib.rs\nmain:crates/core/src/main.rs\n"
 	);
 
-	let error = write_revision_snapshot_requests(&mut FailingWriter, "main", &paths)
+	let error = write_snapshot_batch_requests(&mut FailingWriter, "main:", &paths)
 		.expect_err("a failed pipe write should be reported")
 		.render();
 	assert!(error.contains("failed to write git cat-file input"));
@@ -999,15 +1008,16 @@ fn snapshot_target_helpers_cover_branch_range_pr_and_index_paths() {
 		.is_some()
 	);
 
-	let built = build_snapshot_files_from_paths(
+	let built = build_git_object_snapshot_files_with_limit(
 		&root,
 		package_root,
-		&SnapshotTarget::GitIndex,
+		":",
 		&[
 			PathBuf::from("outside.txt"),
 			PathBuf::from("crates/core/src/lib.rs"),
 			PathBuf::from("crates/core/src/missing.rs"),
 		],
+		MAX_SNAPSHOT_FILE_SIZE,
 	)
 	.unwrap_or_else(|error| panic!("build snapshot files: {error}"));
 	assert_eq!(built.len(), 1);
@@ -1273,7 +1283,7 @@ fn git_and_snapshot_helpers_cover_remaining_error_paths() {
 		.into_iter()
 		.find(|package| package.name == "core")
 		.unwrap_or_else(|| panic!("missing core package"));
-	let index_snapshot = snapshot_package(&root, &package, &SnapshotTarget::GitIndex)
+	let index_snapshot = snapshot_package(&root, &package, &SnapshotTarget::GitIndex, "label")
 		.unwrap_or_else(|error| panic!("index package snapshot: {error}"));
 	assert!(
 		index_snapshot

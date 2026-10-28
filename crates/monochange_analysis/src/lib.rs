@@ -38,6 +38,7 @@ use monochange_dart::semantic_analyzer as dart_semantic_analyzer;
 use monochange_deno::semantic_analyzer as deno_semantic_analyzer;
 #[cfg(feature = "npm")]
 use monochange_npm::semantic_analyzer as npm_semantic_analyzer;
+use rayon::prelude::*;
 use serde::Deserialize;
 use serde::Serialize;
 use walkdir::WalkDir;
@@ -358,7 +359,6 @@ fn analyze_changes_in_session(
 		.filter(|path| workspace.workspace_path_matcher.classify(path) != PackagePathMatch::Ignored)
 		.collect::<Vec<_>>();
 	let mut warnings = workspace.warnings.clone();
-	let mut package_analyses = BTreeMap::new();
 	// patch-coverage:ignore-start -- success and failure are covered through analysis sessions; llvm-cov attributes the closing `?` expression inconsistently.
 	let package_inputs = package_inputs(
 		&session.repo_root,
@@ -383,73 +383,39 @@ fn analyze_changes_in_session(
 		}
 	}
 
-	for package in &workspace.packages {
-		let Some(changed_files) = package_inputs.get(&package.id) else {
-			continue;
-		};
+	// Snapshot labels depend only on the target, so resolve them once instead
+	// of per package; a working-tree label stages the whole tree, and staging
+	// it for every package would repeat identical work N times.
+	let before_label = snapshot_label(&session.repo_root, &targets.before)?;
+	let after_label = snapshot_label(&session.repo_root, &targets.after)?;
 
-		let package_root = package_root_relative(&session.repo_root, package)
-			.expect("analyzed packages should have a repository-relative root");
-		let package_matcher = workspace.path_matchers.get(&package.id);
-		let workspace_matcher = workspace
-			.workspace_path_matchers
-			.get(&package.id)
-			.unwrap_or(&workspace.workspace_path_matcher);
-		let mut before_snapshot = snapshot_package(&session.repo_root, package, &targets.before)?;
-		let mut after_snapshot = snapshot_package(&session.repo_root, package, &targets.after)?;
-		let lifecycle_change = package_lifecycle_change(package, &before_snapshot, &after_snapshot);
-		filter_snapshot_files(
-			&mut before_snapshot,
-			&package_root,
-			workspace_matcher,
-			package_matcher,
-		);
-		filter_snapshot_files(
-			&mut after_snapshot,
-			&package_root,
-			workspace_matcher,
-			package_matcher,
-		);
+	// Package analyses run in parallel: each one captures snapshots and may
+	// spawn a per-ecosystem analyzer subprocess, which is exactly the work
+	// worth spreading across cores. `par_iter` keeps result order, so the
+	// analysis stays deterministic.
+	let analyses = workspace
+		.packages
+		.par_iter()
+		.filter(|package| package_inputs.contains_key(&package.id))
+		.map(|package| {
+			analyze_package_in_session(
+				session,
+				&workspace,
+				package,
+				package_inputs
+					.get(&package.id)
+					.expect("filter guarantees the package has inputs"),
+				&targets,
+				&before_label,
+				&after_label,
+			)
+		})
+		.collect::<MonochangeResult<Vec<_>>>()?;
 
-		let package_id = preferred_package_id(package);
-		let package_changed_files = changed_files
-			.iter()
-			.map(|file| file.package_path.clone())
-			.collect::<Vec<_>>();
-
-		let analyzer = session.registry.analyzer_for(package).expect(
-			"semantic analyzer registry should cover all discovered ecosystems when all default features are enabled",
-		);
-
-		let context = PackageAnalysisContext {
-			repo_root: &session.repo_root,
-			package,
-			detection_level: session.config.detection_level,
-			changed_files,
-			before_snapshot: Some(&before_snapshot),
-			after_snapshot: Some(&after_snapshot),
-		};
-		let mut result = analyzer.analyze_package(&context)?;
-
-		if let Some(lifecycle_change) = lifecycle_change {
-			result.semantic_changes.push(lifecycle_change);
-		}
-
-		let release_identity = workspace.release_identities.get(&package_id).cloned();
-		package_analyses.insert(
-			package_id.clone(),
-			PackageChangeAnalysis {
-				package_id,
-				package_record_id: package.id.clone(),
-				package_name: package.name.clone(),
-				ecosystem: package.ecosystem,
-				release_identity,
-				analyzer_id: Some(result.analyzer_id),
-				changed_files: package_changed_files,
-				semantic_changes: result.semantic_changes,
-				warnings: result.warnings,
-			},
-		);
+	let mut package_analyses = BTreeMap::new();
+	for analysis in analyses {
+		let package_id = analysis.package_id.clone();
+		package_analyses.insert(package_id, analysis);
 	}
 
 	Ok(ChangeAnalysis {
@@ -458,6 +424,82 @@ fn analyze_changes_in_session(
 		packages: workspace.packages,
 		package_analyses,
 		warnings,
+	})
+}
+
+/// Capture both snapshots and run the package's semantic analyzer.
+///
+/// Called from a rayon worker, so everything it touches is shared state that
+/// must stay `Sync`; the snapshots and analysis result are worker-local.
+fn analyze_package_in_session(
+	session: &AnalysisSession,
+	workspace: &AnalysisWorkspace,
+	package: &PackageRecord,
+	changed_files: &[AnalyzedFileChange],
+	targets: &SnapshotTargets,
+	before_label: &str,
+	after_label: &str,
+) -> MonochangeResult<PackageChangeAnalysis> {
+	let package_root = package_root_relative(&session.repo_root, package)
+		.expect("analyzed packages should have a repository-relative root");
+	let package_matcher = workspace.path_matchers.get(&package.id);
+	let workspace_matcher = workspace
+		.workspace_path_matchers
+		.get(&package.id)
+		.unwrap_or(&workspace.workspace_path_matcher);
+	let mut before_snapshot =
+		snapshot_package(&session.repo_root, package, &targets.before, before_label)?;
+	let mut after_snapshot =
+		snapshot_package(&session.repo_root, package, &targets.after, after_label)?;
+	let lifecycle_change = package_lifecycle_change(package, &before_snapshot, &after_snapshot);
+	filter_snapshot_files(
+		&mut before_snapshot,
+		&package_root,
+		workspace_matcher,
+		package_matcher,
+	);
+	filter_snapshot_files(
+		&mut after_snapshot,
+		&package_root,
+		workspace_matcher,
+		package_matcher,
+	);
+
+	let package_id = preferred_package_id(package);
+	let package_changed_files = changed_files
+		.iter()
+		.map(|file| file.package_path.clone())
+		.collect::<Vec<_>>();
+
+	let analyzer = session.registry.analyzer_for(package).expect(
+		"semantic analyzer registry should cover all discovered ecosystems when all default features are enabled",
+	);
+
+	let context = PackageAnalysisContext {
+		repo_root: &session.repo_root,
+		package,
+		detection_level: session.config.detection_level,
+		changed_files,
+		before_snapshot: Some(&before_snapshot),
+		after_snapshot: Some(&after_snapshot),
+	};
+	let mut result = analyzer.analyze_package(&context)?;
+
+	if let Some(lifecycle_change) = lifecycle_change {
+		result.semantic_changes.push(lifecycle_change);
+	}
+
+	let release_identity = workspace.release_identities.get(&package_id).cloned();
+	Ok(PackageChangeAnalysis {
+		package_id,
+		package_record_id: package.id.clone(),
+		package_name: package.name.clone(),
+		ecosystem: package.ecosystem,
+		release_identity,
+		analyzer_id: Some(result.analyzer_id),
+		changed_files: package_changed_files,
+		semantic_changes: result.semantic_changes,
+		warnings: result.warnings,
 	})
 }
 
@@ -509,11 +551,15 @@ pub fn analyze_release_trajectory_for_refs(
 	refs: &ReleaseTrajectoryRefs,
 	config: &AnalysisConfig,
 ) -> MonochangeResult<ReleaseTrajectoryAnalysis> {
+	// One session across the three ranges: shared refs resolve to the same
+	// trees, so the session's workspace cache discovers each tree once
+	// instead of re-running discovery per range.
+	let session = AnalysisSession::new(repo_root, config.clone())?;
 	let release_to_main =
-		analyze_custom_range(repo_root, &refs.release_ref, &refs.main_ref, config)?;
-	let main_to_head = analyze_custom_range(repo_root, &refs.main_ref, &refs.head_ref, config)?;
+		analyze_custom_range_in_session(&session, &refs.release_ref, &refs.main_ref)?;
+	let main_to_head = analyze_custom_range_in_session(&session, &refs.main_ref, &refs.head_ref)?;
 	let release_to_head =
-		analyze_custom_range(repo_root, &refs.release_ref, &refs.head_ref, config)?;
+		analyze_custom_range_in_session(&session, &refs.release_ref, &refs.head_ref)?;
 	let mut warnings = Vec::new();
 
 	if refs.main_ref == refs.head_ref {
@@ -554,20 +600,15 @@ pub async fn analyze_release_trajectory(
 	analyze_release_trajectory_for_refs(&repo_root, &refs, config)
 }
 
-fn analyze_custom_range(
-	repo_root: &Path,
+fn analyze_custom_range_in_session(
+	session: &AnalysisSession,
 	base: &str,
 	head: &str,
-	config: &AnalysisConfig,
 ) -> MonochangeResult<ChangeAnalysis> {
-	analyze_changes(
-		repo_root,
-		&ChangeFrame::CustomRange {
-			base: base.to_string(),
-			head: head.to_string(),
-		},
-		config,
-	)
+	session.analyze(&ChangeFrame::CustomRange {
+		base: base.to_string(),
+		head: head.to_string(),
+	})
 }
 
 fn preferred_package_id(package: &PackageRecord) -> String {
@@ -739,10 +780,10 @@ fn materialize_discovery_files(
 
 	let files = match target {
 		SnapshotTarget::GitRevision(revision) => {
-			build_revision_snapshot_files_with_limit(
+			build_git_object_snapshot_files_with_limit(
 				repo_root,
 				Path::new(""),
-				revision,
+				&format!("{revision}:"),
 				&paths,
 				MAX_DISCOVERY_FILE_SIZE,
 				// patch-coverage:ignore-start -- the revision branch is exercised; llvm-cov attributes the closing `?` separately.
@@ -751,10 +792,10 @@ fn materialize_discovery_files(
 		}
 		SnapshotTarget::GitIndex => {
 			// patch-coverage:ignore-start -- index materialization is exercised; llvm-cov leaves a zero-count subregion within the argument list.
-			build_snapshot_files_from_paths_with_limit(
+			build_git_object_snapshot_files_with_limit(
 				repo_root,
 				Path::new(""),
-				target,
+				":",
 				&paths,
 				MAX_DISCOVERY_FILE_SIZE,
 			)?
@@ -1127,6 +1168,7 @@ fn snapshot_package(
 	repo_root: &Path,
 	package: &PackageRecord,
 	target: &SnapshotTarget,
+	label: &str,
 ) -> MonochangeResult<PackageSnapshot> {
 	let package_root = package_root_relative(repo_root, package).ok_or_else(|| {
 		MonochangeError::Discovery(format!(
@@ -1134,7 +1176,6 @@ fn snapshot_package(
 			package.id
 		))
 	})?;
-	let label = snapshot_label(repo_root, target)?;
 
 	let files = match target {
 		SnapshotTarget::WorkingTree => snapshot_files_from_working_tree(repo_root, &package_root)?,
@@ -1144,7 +1185,10 @@ fn snapshot_package(
 		SnapshotTarget::GitIndex => snapshot_files_from_index(repo_root, &package_root)?,
 	};
 
-	Ok(PackageSnapshot { label, files })
+	Ok(PackageSnapshot {
+		label: label.to_string(),
+		files,
+	})
 }
 
 fn snapshot_label(repo_root: &Path, target: &SnapshotTarget) -> MonochangeResult<String> {
@@ -1281,28 +1325,19 @@ fn snapshot_files_from_revision(
 		package_root_text.as_str(),
 	];
 	let paths = git_list_files(repo_root, &args)?;
-	build_revision_snapshot_files(repo_root, package_root, revision, &paths)
-}
-
-fn build_revision_snapshot_files(
-	repo_root: &Path,
-	package_root: &Path,
-	revision: &str,
-	paths: &[PathBuf],
-) -> MonochangeResult<Vec<PackageSnapshotFile>> {
-	build_revision_snapshot_files_with_limit(
+	build_git_object_snapshot_files_with_limit(
 		repo_root,
 		package_root,
-		revision,
-		paths,
+		&format!("{revision}:"),
+		&paths,
 		MAX_SNAPSHOT_FILE_SIZE,
 	)
 }
 
-fn build_revision_snapshot_files_with_limit(
+fn build_git_object_snapshot_files_with_limit(
 	repo_root: &Path,
 	package_root: &Path,
-	revision: &str,
+	object_prefix: &str,
 	paths: &[PathBuf],
 	max_file_size: usize,
 ) -> MonochangeResult<Vec<PackageSnapshotFile>> {
@@ -1334,7 +1369,7 @@ fn build_revision_snapshot_files_with_limit(
 		.stdin
 		.take()
 		.ok_or_else(|| MonochangeError::Io("failed to open git cat-file stdin".to_string()))?;
-	let write_result = write_revision_snapshot_requests(&mut stdin, revision, paths);
+	let write_result = write_snapshot_batch_requests(&mut stdin, object_prefix, paths);
 	drop(stdin);
 
 	// patch-coverage:ignore-start -- child wait and reader failures require invalidating handles owned exclusively by this function.
@@ -1370,13 +1405,18 @@ fn build_revision_snapshot_files_with_limit(
 	}
 }
 
-fn write_revision_snapshot_requests(
+/// Request every path as one `git cat-file --batch` run.
+///
+/// `object_prefix` selects where each path is read from: `"{revision}:"` for a
+/// committed tree or `":"` for the index, matching the `git show` object
+/// syntax this batching replaces.
+fn write_snapshot_batch_requests(
 	writer: &mut dyn std::io::Write,
-	revision: &str,
+	object_prefix: &str,
 	paths: &[PathBuf],
 ) -> MonochangeResult<()> {
 	for path in paths {
-		writeln!(writer, "{revision}:{}", path.to_string_lossy()).map_err(|error| {
+		writeln!(writer, "{object_prefix}{}", path.to_string_lossy()).map_err(|error| {
 			MonochangeError::Io(format!("failed to write git cat-file input: {error}"))
 		})?;
 	}
@@ -1472,7 +1512,13 @@ fn snapshot_files_from_index(
 	let package_root_text = git_package_pathspec(package_root);
 	let args = ["ls-files", "--cached", "--", package_root_text.as_str()];
 	let paths = git_list_files(repo_root, &args)?;
-	build_snapshot_files_from_paths(repo_root, package_root, &SnapshotTarget::GitIndex, &paths)
+	build_git_object_snapshot_files_with_limit(
+		repo_root,
+		package_root,
+		":",
+		&paths,
+		MAX_SNAPSHOT_FILE_SIZE,
+	)
 }
 
 fn git_package_pathspec(package_root: &Path) -> String {
@@ -1481,50 +1527,6 @@ fn git_package_pathspec(package_root: &Path) -> String {
 	} else {
 		package_root.to_string_lossy().into_owned()
 	}
-}
-
-fn build_snapshot_files_from_paths(
-	repo_root: &Path,
-	package_root: &Path,
-	target: &SnapshotTarget,
-	paths: &[PathBuf],
-) -> MonochangeResult<Vec<PackageSnapshotFile>> {
-	build_snapshot_files_from_paths_with_limit(
-		repo_root,
-		package_root,
-		target,
-		paths,
-		MAX_SNAPSHOT_FILE_SIZE,
-	)
-}
-
-fn build_snapshot_files_from_paths_with_limit(
-	repo_root: &Path,
-	package_root: &Path,
-	target: &SnapshotTarget,
-	paths: &[PathBuf],
-	max_file_size: usize,
-) -> MonochangeResult<Vec<PackageSnapshotFile>> {
-	let mut files = Vec::new();
-
-	for path in paths {
-		let Some(relative_to_package) = path.strip_prefix(package_root).ok().map(Path::to_path_buf)
-		else {
-			continue;
-		};
-		let Some(contents) =
-			read_text_file_from_target_with_limit(repo_root, target, path, max_file_size)?
-		else {
-			continue;
-		};
-		files.push(PackageSnapshotFile {
-			path: relative_to_package,
-			contents,
-		});
-	}
-
-	files.sort_by(|left, right| left.path.cmp(&right.path));
-	Ok(files)
 }
 
 fn git_list_files(repo_root: &Path, args: &[&str]) -> MonochangeResult<Vec<PathBuf>> {
