@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -32,6 +32,22 @@ const COMMANDS = [
 		currentArgs: ["step", "discover", "--format", "json"],
 	},
 	...PHASE_COMMANDS,
+];
+
+/// Commands that only fit the generated fixtures this script creates: they
+/// reference `pkg-0`, `HEAD~10`, and a seeded release record, which external
+/// fixtures passed via run-fixture do not guarantee.
+const GENERATED_FIXTURE_COMMANDS = [
+	{
+		label: "monochange step release-record --from HEAD",
+		legacyArgs: ["step", "release-record", "--from", "HEAD"],
+		currentArgs: ["step", "release-record", "--from", "HEAD"],
+	},
+	{
+		label: "monochange analyze --package pkg-0 --main-ref HEAD~10 --head-ref HEAD",
+		legacyArgs: ["analyze", "--package", "pkg-0", "--main-ref", "HEAD~10", "--head-ref", "HEAD"],
+		currentArgs: ["analyze", "--package", "pkg-0", "--main-ref", "HEAD~10", "--head-ref", "HEAD"],
+	},
 ];
 const SCENARIOS = [
 	{ id: "baseline", name: "Baseline fixture", packages: 20, changesets: 50, commits: 50 },
@@ -197,6 +213,8 @@ function summarizeScenarioStatus(tablePath, phaseTablePath) {
 		["monochange step discover --format json", "discover"],
 		["monochange run release --dry-run", "dry-run"],
 		["monochange run release", "release"],
+		["monochange step release-record --from HEAD", "release-record"],
+		["monochange analyze --package pkg-0 --main-ref HEAD~10 --head-ref HEAD", "analyze"],
 	]);
 	const hyperfine = parseHyperfineTable(tablePath);
 	const phases = parsePhaseStatus(phaseTablePath);
@@ -476,6 +494,27 @@ function collectPhaseMarkdown(scenarioId, fixtureDir, mainBin, prBin, phasePath,
 	renderPhaseMarkdown(scenarioId, phasePath, violationsPath, ...paths);
 }
 
+function newestRepositoryReleaseRecord() {
+	const releasesDir = join(scriptDir, "..", ".monochange", "releases");
+	let entries: string[] = [];
+
+	try {
+		entries = readdirSync(releasesDir).toSorted();
+	} catch {
+		return null;
+	}
+
+	for (const entry of entries.toReversed()) {
+		try {
+			return readFileSync(join(releasesDir, entry, "release.json"), "utf8");
+		} catch {
+			continue;
+		}
+	}
+
+	return null;
+}
+
 function gitCommit(root, message) {
 	run("git", [
 		"-C",
@@ -517,6 +556,19 @@ function generateFixture(root, packages, changesets, commits) {
 	run("git", ["-C", root, "add", "."]);
 	gitCommit(root, "initial");
 
+	// Commit a real release record mid-history so the release-record walk
+	// benchmark measures discovery over a meaningful ancestry distance. The
+	// repository's own records always carry the current schema version.
+	const recordFixture = newestRepositoryReleaseRecord();
+	if (recordFixture) {
+		mkdirSync(join(root, ".monochange/releases/bench000000000000"), { recursive: true });
+		writeFileSync(join(root, ".monochange/releases/bench000000000000/release.json"), recordFixture);
+		run("git", ["-C", root, "add", "."]);
+		gitCommit(root, "release record");
+	} else {
+		die("no committed release record found to seed the benchmark fixture");
+	}
+
 	for (let commit = 0; commit < commits; commit += 1) {
 		const pkg = commit % packages;
 		writeFileSync(join(root, `crates/pkg-${pkg}/src.rs`), `// commit ${commit}\n`);
@@ -541,7 +593,7 @@ function generateFixture(root, packages, changesets, commits) {
 	}
 }
 
-function runScenario(mainBin, prBin, fixtureDir, tablePath) {
+function runScenario(mainBin, prBin, fixtureDir, tablePath, commands = COMMANDS) {
 	const args = [
 		"--prepare",
 		"git reset --hard HEAD >/dev/null && git clean -fd >/dev/null",
@@ -557,7 +609,7 @@ function runScenario(mainBin, prBin, fixtureDir, tablePath) {
 		tablePath,
 	];
 
-	for (const command of COMMANDS) {
+	for (const command of commands) {
 		args.push(
 			"--command-name",
 			`main · ${command.label}`,
@@ -622,6 +674,22 @@ function runFixtureMode(args) {
 	if (o.violations_output) writeFileSync(o.violations_output, readText(violationsPath));
 }
 
+function countCommandBudgetViolations(scenarioId, tablePath) {
+	const budgets = JSON.parse(readText(phaseBudgetsFile) || "{}").commandBudgets ?? {};
+	const means = parseHyperfineMeans(tablePath);
+	let violations = 0;
+
+	for (const [label, scenarioBudgets] of Object.entries(budgets)) {
+		const budgetMs = scenarioBudgets[scenarioId];
+
+		if (budgetMs == null) continue;
+		const prMs = means.get(`pr \u00b7 ${label}`) ?? means.get(`pr · ${label}`);
+		if (prMs != null && prMs > budgetMs) violations += 1;
+	}
+
+	return violations;
+}
+
 function runMode(args) {
 	const o = parseOptions(args, ["--main-bin", "--pr-bin", "--output", "--violations-output"]);
 
@@ -637,9 +705,17 @@ function runMode(args) {
 		const violationsPath = tempPath("-violations.txt");
 		const fixtureDir = tempDir();
 		generateFixture(fixtureDir, scenario.packages, scenario.changesets, scenario.commits);
-		runScenario(o.main_bin, o.pr_bin, fixtureDir, tablePath);
+		runScenario(
+			o.main_bin,
+			o.pr_bin,
+			fixtureDir,
+			tablePath,
+			COMMANDS.concat(GENERATED_FIXTURE_COMMANDS),
+		);
 		collectPhaseMarkdown(scenario.id, fixtureDir, o.main_bin, o.pr_bin, phasePath, violationsPath);
-		totalViolations += Number.parseInt(readText(violationsPath) || "0", 10);
+		totalViolations +=
+			Number.parseInt(readText(violationsPath) || "0", 10) +
+			countCommandBudgetViolations(scenario.id, tablePath);
 		rmSync(fixtureDir, { recursive: true, force: true });
 		renderArgs.push({
 			name: scenario.name,
