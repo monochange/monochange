@@ -247,6 +247,7 @@ async fn replayed_state_is_rejected_before_a_second_provider_exchange() {
 		})
 		.await;
 	assert!(first.is_err());
+	exchange.assert_calls_async(1).await;
 
 	// A new AppState has no process-local history of the first exchange.
 	let secrets =

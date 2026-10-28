@@ -408,6 +408,7 @@ async fn fallback_callback_aliases_are_limited_before_provider_work(#[case] path
 	let first = app.clone().oneshot(request()).await.unwrap();
 	assert_eq!(first.status(), StatusCode::NOT_FOUND);
 	let _ = html(first).await;
+	exchange.assert_calls_async(1).await;
 	let second = app.oneshot(request()).await.unwrap();
 
 	assert_eq!(second.status(), StatusCode::TOO_MANY_REQUESTS);

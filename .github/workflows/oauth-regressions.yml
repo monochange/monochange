@@ -59,7 +59,14 @@ jobs:
           original=05d0753505a07ef9bf9bb0fef6e4713da1773ddd
           git show "$original:${paths[0]}" > "${paths[0]}"
           git show "$original:${paths[1]}" > "${paths[1]}"
-          perl -pi -e 's/async fn (oauth_pages_spend_the_address_bucket_before_rendering|replayed_state_is_rejected_before_a_second_provider_exchange|concurrent_callbacks_consume_the_state_once|callback_failure_does_not_create_a_session_and_consumes_the_pending_login|fallback_login_aliases_spend_the_bucket_before_generating_state|fallback_callback_aliases_are_limited_before_provider_work)\(/async fn security_regression_oauth_$1(/g' "${paths[@]:2}"
+          node --input-type=module - "${paths[@]:2}" <<'JS'
+          import { readFileSync, writeFileSync } from "node:fs";
+          const selected = /async fn (oauth_pages_spend_the_address_bucket_before_rendering|replayed_state_is_rejected_before_a_second_provider_exchange|concurrent_callbacks_consume_the_state_once|callback_failure_does_not_create_a_session_and_consumes_the_pending_login|fallback_login_aliases_spend_the_bucket_before_generating_state|fallback_callback_aliases_are_limited_before_provider_work)\(/g;
+          for (const path of process.argv.slice(2)) {
+            const source = readFileSync(path, "utf8");
+            writeFileSync(path, source.replace(selected, "async fn security_regression_oauth_$1("));
+          }
+          JS
 
           set +e
           cargo test --manifest-path app/Cargo.toml --package monochange_app --lib --locked \
@@ -67,8 +74,17 @@ jobs:
           status=${PIPESTATUS[0]}
           set -e
           test "$status" -eq 101
-          rg -q '^test result: FAILED\. 0 passed; 14 failed;' "$output/original.log"
-          test "$(rg -c '^---- .*security_regression_oauth_.* stdout ----$' "$output/original.log")" -eq 14
+          node --input-type=module - "$output/original.log" <<'JS'
+          import { readFileSync } from "node:fs";
+          const log = readFileSync(process.argv[2], "utf8");
+          if (!/^test result: FAILED\. 0 passed; 14 failed;/m.test(log)) {
+            throw new Error("Expected zero passing and fourteen failing regression tests");
+          }
+          const failures = log.match(/^---- .*security_regression_oauth_.* stdout ----$/gm) ?? [];
+          if (failures.length !== 14) {
+            throw new Error(`Expected fourteen test failure sections, received ${failures.length}`);
+          }
+          JS
           restore_fixed
           git diff --exit-code -- "${paths[@]}"
           test "$(git rev-parse HEAD)" = "$head"
