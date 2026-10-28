@@ -825,10 +825,11 @@ async fn workflow_security_tree_boundaries_must_be_complete_directories(
 		request.files.clear();
 		request.tree = Some("tree-sha".to_owned());
 	}
-	assert!(matches!(
-		create_commit(&server, &request).await,
-		Err(GitHubAppError::WorkflowsChanged)
-	));
+	let outcome = create_commit(&server, &request).await;
+	assert!(
+		matches!(&outcome, Err(GitHubAppError::WorkflowsChanged)),
+		"{outcome:?}"
+	);
 	writes.commit.assert_calls(0);
 	create_ref.assert_calls(0);
 	update_ref.assert_calls(0);
