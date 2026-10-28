@@ -181,6 +181,8 @@ pub struct AppState {
 	pub http: reqwest::Client,
 	/// Serialize refresh-token rotation so one browser session cannot invalidate another request.
 	pub github_token_refresh_lock: Arc<tokio::sync::Mutex<()>>,
+	/// Bound provider work even when callbacks arrive from many addresses.
+	pub oauth_exchange_slots: Arc<tokio::sync::Semaphore>,
 }
 
 impl AppState {
@@ -233,6 +235,7 @@ impl AppState {
 			api_token,
 			http,
 			github_token_refresh_lock: Arc::new(tokio::sync::Mutex::new(())),
+			oauth_exchange_slots: Arc::new(tokio::sync::Semaphore::new(16)),
 		})
 	}
 }

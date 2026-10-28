@@ -45,6 +45,8 @@ fn router(rate_limit: RateLimit) -> Router {
 		.route(TASKS, get(|| async { "tasks" }))
 		.route(WEBHOOK_PATH, post(|| async { "delivered" }))
 		.route("/dashboard", get(|| async { "page" }))
+		.route("/login", get(|| async { "login" }))
+		.route("/auth/callback", get(|| async { "callback" }))
 		.layer(axum::middleware::from_fn_with_state(rate_limit, limit))
 }
 
@@ -243,6 +245,32 @@ async fn server_functions_reject_with_an_error_the_leptos_client_decodes() {
 		server_fn::ServerFnError::ServerError(
 			"Too many requests. Try again in 1 second.".to_owned()
 		)
+	);
+}
+
+#[rstest]
+#[case("/login")]
+#[case("/auth/callback?code=invalid&state=valid")]
+#[tokio::test]
+async fn oauth_pages_spend_the_address_bucket_before_rendering(#[case] path: &str) {
+	let router = router(RateLimit::new(
+		config(tier(1, 1), tier(600, 100)),
+		SECRET,
+		[SERVER_FN],
+	));
+	let session = token(7);
+	let peer = Some("203.0.113.7:4000");
+	let first = send(&router, request("GET", path, peer, Some(&session))).await;
+
+	assert_eq!(first.status(), StatusCode::OK);
+	assert_eq!(header_value(&first, "ratelimit"), Some("\"anonymous\";r=0"));
+
+	let rejected = send(&router, request("GET", path, peer, None)).await;
+	assert_eq!(rejected.status(), StatusCode::TOO_MANY_REQUESTS);
+	assert_eq!(header_value(&rejected, "retry-after"), Some("60"));
+	assert_eq!(
+		body(rejected).await,
+		"Too many requests. Try again in 60 seconds."
 	);
 }
 

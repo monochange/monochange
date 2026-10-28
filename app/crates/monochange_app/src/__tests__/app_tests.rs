@@ -339,6 +339,123 @@ fn router(state: Arc<AppState>) -> Router {
 		.with_state(options)
 }
 
+fn oauth_limited_router(state: Arc<AppState>) -> Router {
+	use crate::rate_limit::RateLimit;
+	use crate::rate_limit::RateLimitConfig;
+	use crate::rate_limit::RateLimitTier;
+
+	let tier = RateLimitTier {
+		per_minute: std::num::NonZeroU32::new(1).unwrap(),
+		burst: std::num::NonZeroU32::new(1).unwrap(),
+	};
+	let limit = RateLimit::new(
+		RateLimitConfig {
+			anonymous: tier,
+			authenticated: tier,
+		},
+		state.jwt_secret.clone(),
+		std::iter::empty(),
+	);
+
+	router(state).layer(axum::middleware::from_fn_with_state(
+		limit,
+		crate::rate_limit::limit,
+	))
+}
+
+#[rstest::rstest]
+#[case("/./login")]
+#[case("/%2e/login")]
+#[case("/unused/../login")]
+#[case("/unused/%2e%2e/login")]
+#[tokio::test]
+async fn fallback_login_aliases_spend_the_bucket_before_generating_state(#[case] path: &str) {
+	let server = MockServer::start_async().await;
+	let app = oauth_limited_router(state(&server).await);
+	let request = || {
+		let request = Request::builder().uri(path).body(Body::empty()).unwrap();
+		assert_eq!(request.uri().path(), path);
+		request
+	};
+	let first = app.clone().oneshot(request()).await.unwrap();
+
+	// The fallback sets 404 after rendering, so status alone cannot prove no work ran.
+	assert_eq!(first.status(), StatusCode::NOT_FOUND);
+	assert!(first.headers().contains_key(SET_COOKIE));
+	let _ = html(first).await;
+	let second = app.oneshot(request()).await.unwrap();
+
+	assert_eq!(second.status(), StatusCode::TOO_MANY_REQUESTS);
+	assert!(!second.headers().contains_key(SET_COOKIE));
+}
+
+#[rstest::rstest]
+#[case("/auth/./callback")]
+#[case("/%2e/auth/callback")]
+#[case("/auth/%2E/callback")]
+#[case("/unused/../auth/callback")]
+#[case("/unused/%2e%2e/auth/callback")]
+#[tokio::test]
+async fn fallback_callback_aliases_are_limited_before_provider_work(#[case] path: &str) {
+	let server = MockServer::start_async().await;
+	let exchange = server
+		.mock_async(|when, then| {
+			when.method(POST).path("/login/oauth/access_token");
+			then.json_body(serde_json::json!({"error": "bad_verification_code"}));
+		})
+		.await;
+	let state = state(&server).await;
+	let app = oauth_limited_router(state.clone());
+	let request = || {
+		let pending = oauth::login_state(&state.jwt_secret).unwrap();
+		let request = Request::builder()
+			.uri(format!("{path}?code=invalid&state={}", pending.state))
+			.header(COOKIE, pending.cookie.to_string())
+			.body(Body::empty())
+			.unwrap();
+		assert_eq!(request.uri().path(), path);
+		request
+	};
+	let first = app.clone().oneshot(request()).await.unwrap();
+	assert_eq!(first.status(), StatusCode::NOT_FOUND);
+	let _ = html(first).await;
+	exchange.assert_calls_async(1).await;
+	let second = app.oneshot(request()).await.unwrap();
+
+	assert_eq!(second.status(), StatusCode::TOO_MANY_REQUESTS);
+	exchange.assert_calls_async(1).await;
+}
+
+#[rstest::rstest]
+#[case("/%6cogin")]
+#[case("/auth/%63allback")]
+#[case("//login")]
+#[case("//auth/callback")]
+#[case("/auth//callback")]
+#[tokio::test]
+async fn unmatched_static_oauth_aliases_do_not_run_provider_work(#[case] path: &str) {
+	let server = MockServer::start_async().await;
+	let exchange = server
+		.mock_async(|when, then| {
+			when.method(POST).path("/login/oauth/access_token");
+			then.json_body(serde_json::json!({"error": "bad_verification_code"}));
+		})
+		.await;
+	let state = state(&server).await;
+	let pending = oauth::login_state(&state.jwt_secret).unwrap();
+	let request = Request::builder()
+		.uri(format!("{path}?code=invalid&state={}", pending.state))
+		.header(COOKIE, pending.cookie.to_string())
+		.body(Body::empty())
+		.unwrap();
+	assert_eq!(request.uri().path(), path);
+	let response = router(state).oneshot(request).await.unwrap();
+	assert_eq!(response.status(), StatusCode::NOT_FOUND);
+	assert!(!response.headers().contains_key(SET_COOKIE));
+	let _ = html(response).await;
+	exchange.assert_calls_async(0).await;
+}
+
 #[tokio::test]
 async fn public_navigation_names_the_changelog_in_desktop_mobile_and_footer_links() {
 	let server = MockServer::start_async().await;
@@ -866,7 +983,22 @@ async fn callback_failure_does_not_create_a_session_and_consumes_the_pending_log
 			.unwrap(),
 		0
 	);
-	exchange.assert_async().await;
+	let replay = router(state.clone())
+		.oneshot(
+			Request::builder()
+				.uri(format!(
+					"/auth/callback?code=replayed-code&state={}",
+					pending.state
+				))
+				.header(COOKIE, pending.cookie.to_string())
+				.body(Body::empty())
+				.unwrap(),
+		)
+		.await
+		.unwrap();
+	let replay_body = html(replay).await;
+	exchange.assert_calls_async(1).await;
+	assert!(replay_body.contains("Invalid or expired OAuth state"));
 }
 
 #[tokio::test]

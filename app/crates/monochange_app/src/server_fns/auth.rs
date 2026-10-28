@@ -277,6 +277,26 @@ pub async fn exchange_code(
 	let verified =
 		monochange_app_api::oauth::verify_login_state(&state.jwt_secret, &jar, &state_param)
 			.map_err(|_| server_fn::ServerFnError::new("Invalid or expired OAuth state"))?;
+	let _exchange_slot = state
+		.oauth_exchange_slots
+		.try_acquire()
+		.map_err(|_| server_fn::ServerFnError::new("Sign-in is busy. Try again shortly."))?;
+	let consumed =
+		monochange_app_db::oauth::consume_state(&state.db, &state_param, verified.expires_at)
+			.await
+			.map_err(|error| {
+				tracing::error!(%error, "failed to consume OAuth state");
+				server_fn::ServerFnError::new(
+					"Sign-in is temporarily unavailable. Try again shortly.",
+				)
+			})?;
+
+	if !consumed {
+		return Err(server_fn::ServerFnError::new(
+			"Invalid or expired OAuth state",
+		));
+	}
+
 	let return_to = verified
 		.return_to
 		.unwrap_or_else(|| "/dashboard".to_owned());
@@ -307,6 +327,7 @@ pub async fn exchange_code(
 		))
 		.header("Accept", "application/json")
 		.form(&token_form)
+		.timeout(std::time::Duration::from_secs(10))
 		.send()
 		.await
 		.map_err(|e| server_fn::ServerFnError::new(format!("Token: {e}")))?;

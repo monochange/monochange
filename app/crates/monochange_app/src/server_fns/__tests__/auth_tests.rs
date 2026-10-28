@@ -33,6 +33,7 @@ async fn state() -> Arc<AppState> {
 	let db = monochange_app_db::create_pool("sqlite::memory:")
 		.await
 		.unwrap();
+	monochange_app_db::run_migrations(&db).await.unwrap();
 	let secrets: AppSecrets = serde_json::from_value(serde_json::json!({
 		"database_url": "sqlite::memory:",
 		"jwt_secret": "server-function-test-signing-key",
@@ -223,6 +224,229 @@ async fn valid_state_is_consumed_even_when_the_code_exchange_fails() {
 	assert_eq!(cleared.max_age(), Some(time::Duration::ZERO));
 
 	assert_eq!(cleared.secure(), Some(true));
+}
+
+#[tokio::test]
+async fn replayed_state_is_rejected_before_a_second_provider_exchange() {
+	let server = MockServer::start_async().await;
+	let exchange = server
+		.mock_async(|when, then| {
+			when.method(POST).path("/login/oauth/access_token");
+			then.json_body(serde_json::json!({"error": "bad_verification_code"}));
+		})
+		.await;
+	let state = state_with_server(&server).await;
+	let pending = oauth::login_state(&state.jwt_secret).unwrap();
+	let (owner, _) = context(state.clone(), Some(pending.cookie.to_string()));
+	let first = owner
+		.with(|| {
+			ScopedFuture::new(exchange_code(
+				"invalid-first-code".to_owned(),
+				pending.state.clone(),
+			))
+		})
+		.await;
+	assert!(first.is_err());
+	exchange.assert_calls_async(1).await;
+
+	// A new AppState has no process-local history of the first exchange.
+	let secrets =
+		serde_json::from_value(serde_json::to_value(state.secrets.as_ref()).unwrap()).unwrap();
+	let mut restarted = AppState::new(state.db.clone(), secrets).unwrap();
+	restarted.github_oauth_origin = server.base_url();
+	let (owner, _) = context(Arc::new(restarted), Some(pending.cookie.to_string()));
+	let replay = owner
+		.with(|| {
+			ScopedFuture::new(exchange_code(
+				"invalid-second-code".to_owned(),
+				pending.state,
+			))
+		})
+		.await;
+
+	exchange.assert_calls_async(1).await;
+	assert_eq!(
+		replay.unwrap_err().to_string(),
+		"error running server function: Invalid or expired OAuth state"
+	);
+}
+
+#[tokio::test]
+async fn concurrent_callbacks_consume_the_state_once() {
+	let server = MockServer::start_async().await;
+	let exchange = server
+		.mock_async(|when, then| {
+			when.method(POST).path("/login/oauth/access_token");
+			then.delay(std::time::Duration::from_millis(50))
+				.json_body(serde_json::json!({"error": "bad_verification_code"}));
+		})
+		.await;
+	let state = state_with_server(&server).await;
+	let pending = oauth::login_state(&state.jwt_secret).unwrap();
+	let (first_owner, _) = context(state.clone(), Some(pending.cookie.to_string()));
+	let (second_owner, _) = context(state, Some(pending.cookie.to_string()));
+	let first = first_owner.with(|| {
+		ScopedFuture::new(exchange_code(
+			"first-code".to_owned(),
+			pending.state.clone(),
+		))
+	});
+	let second = second_owner
+		.with(|| ScopedFuture::new(exchange_code("second-code".to_owned(), pending.state)));
+	let (first, second) = tokio::join!(first, second);
+	let errors = [
+		first.unwrap_err().to_string(),
+		second.unwrap_err().to_string(),
+	];
+
+	exchange.assert_calls_async(1).await;
+	assert_eq!(
+		errors
+			.iter()
+			.filter(|error| {
+				error.as_str() == "error running server function: Invalid or expired OAuth state"
+			})
+			.count(),
+		1
+	);
+}
+
+#[tokio::test]
+async fn exchange_capacity_is_bounded_without_consuming_waiting_state() {
+	let server = MockServer::start_async().await;
+	let exchange = server
+		.mock_async(|when, then| {
+			when.method(POST).path("/login/oauth/access_token");
+			then.json_body(serde_json::json!({"error": "bad_verification_code"}));
+		})
+		.await;
+	let state = state_with_server(&server).await;
+	let pending = oauth::login_state(&state.jwt_secret).unwrap();
+	let slot = state.oauth_exchange_slots.acquire_many(16).await.unwrap();
+	let (owner, _) = context(state.clone(), Some(pending.cookie.to_string()));
+	let result = owner
+		.with(|| ScopedFuture::new(exchange_code("busy-code".to_owned(), pending.state.clone())))
+		.await;
+
+	assert_eq!(
+		result.unwrap_err().to_string(),
+		"error running server function: Sign-in is busy. Try again shortly."
+	);
+	exchange.assert_calls_async(0).await;
+	drop(slot);
+
+	let (owner, _) = context(state.clone(), Some(pending.cookie.to_string()));
+	assert!(
+		owner
+			.with(|| ScopedFuture::new(exchange_code("retry-code".to_owned(), pending.state,)))
+			.await
+			.is_err()
+	);
+	exchange.assert_calls_async(1).await;
+	assert_eq!(state.oauth_exchange_slots.available_permits(), 16);
+}
+
+#[tokio::test]
+async fn replay_storage_failure_prevents_provider_exchange() {
+	let server = MockServer::start_async().await;
+	let outbound = server
+		.mock_async(|when, then| {
+			when.any_request();
+			then.status(500);
+		})
+		.await;
+	let state = state_with_server(&server).await;
+	let pending = oauth::login_state(&state.jwt_secret).unwrap();
+	state.db.close().await;
+	let (owner, _) = context(state.clone(), Some(pending.cookie.to_string()));
+	let result = owner
+		.with(|| ScopedFuture::new(exchange_code("unused-code".to_owned(), pending.state)))
+		.await;
+
+	assert_eq!(
+		result.unwrap_err().to_string(),
+		"error running server function: Sign-in is temporarily unavailable. Try again shortly."
+	);
+	outbound.assert_calls_async(0).await;
+	assert_eq!(state.oauth_exchange_slots.available_permits(), 16);
+}
+
+#[tokio::test]
+async fn expired_state_never_reaches_the_provider() {
+	let server = MockServer::start_async().await;
+	let outbound = server
+		.mock_async(|when, then| {
+			when.any_request();
+			then.status(500);
+		})
+		.await;
+	let state = state_with_server(&server).await;
+	let expired = jsonwebtoken::encode(
+		&jsonwebtoken::Header::default(),
+		&serde_json::json!({
+			"nonce": "expired-state",
+			"intent": "Login",
+			"code_verifier": null,
+			"exp": chrono::Utc::now().timestamp() - 1,
+		}),
+		&jsonwebtoken::EncodingKey::from_secret(state.jwt_secret.as_bytes()),
+	)
+	.unwrap();
+	let cookie = Cookie::new(oauth::OAUTH_COOKIE_NAME, expired);
+	let (owner, _) = context(state, Some(cookie.to_string()));
+	let error = owner
+		.with(|| {
+			ScopedFuture::new(exchange_code(
+				"unused".to_owned(),
+				"expired-state".to_owned(),
+			))
+		})
+		.await
+		.unwrap_err();
+
+	assert_eq!(
+		error.to_string(),
+		"error running server function: Invalid or expired OAuth state"
+	);
+	outbound.assert_calls_async(0).await;
+}
+
+#[tokio::test]
+async fn provider_timeout_releases_capacity_and_keeps_state_consumed() {
+	let server = MockServer::start_async().await;
+	let exchange = server
+		.mock_async(|when, then| {
+			when.method(POST).path("/login/oauth/access_token");
+			then.delay(std::time::Duration::from_secs(60))
+				.json_body(serde_json::json!({"error": "bad_verification_code"}));
+		})
+		.await;
+	let state = state_with_server(&server).await;
+	let pending = oauth::login_state(&state.jwt_secret).unwrap();
+	let (owner, _) = context(state.clone(), Some(pending.cookie.to_string()));
+	let error = tokio::time::timeout(
+		std::time::Duration::from_secs(20),
+		owner.with(|| {
+			ScopedFuture::new(exchange_code("slow-code".to_owned(), pending.state.clone()))
+		}),
+	)
+	.await
+	.unwrap()
+	.unwrap_err();
+
+	assert!(error.to_string().contains("Token:"));
+	assert_eq!(state.oauth_exchange_slots.available_permits(), 16);
+
+	let (owner, _) = context(state, Some(pending.cookie.to_string()));
+	let replay = owner
+		.with(|| ScopedFuture::new(exchange_code("replayed-code".to_owned(), pending.state)))
+		.await
+		.unwrap_err();
+	assert_eq!(
+		replay.to_string(),
+		"error running server function: Invalid or expired OAuth state"
+	);
+	exchange.assert_calls_async(1).await;
 }
 
 #[test]
