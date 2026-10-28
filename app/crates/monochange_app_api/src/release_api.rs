@@ -28,8 +28,6 @@ use crate::github_app;
 /// A repository row joined with its installation.
 #[derive(Debug)]
 struct ConnectedRepository {
-	github_repo_id: i64,
-	full_name: String,
 	installation_github_id: i64,
 }
 
@@ -39,7 +37,7 @@ async fn find_connected_repository(
 	full_name: &str,
 ) -> Result<Option<ConnectedRepository>, String> {
 	let row = sqlx::query(
-		"SELECT r.github_repo_id, r.github_full_name, i.github_installation_id
+		"SELECT i.github_installation_id
 		 FROM repositories r
 		 JOIN installations i ON r.installation_id = i.id
 		 WHERE r.github_full_name = $1",
@@ -50,8 +48,6 @@ async fn find_connected_repository(
 	.map_err(|error| format!("repository lookup failed: {error}"))?;
 	Ok(row.map(|row| {
 		ConnectedRepository {
-			github_repo_id: row.get("github_repo_id"),
-			full_name: row.get("github_full_name"),
 			installation_github_id: row.get("github_installation_id"),
 		}
 	}))
@@ -163,7 +159,7 @@ fn validate_api_token(expected: Option<&str>, token: &str) -> Result<(), (Status
 		)
 	})?;
 
-	if constant_time_eq(expected.as_bytes(), token.as_bytes()) {
+	if crate::github_app::constant_time_eq(expected.as_bytes(), token.as_bytes()) {
 		Ok(())
 	} else {
 		Err((
@@ -171,17 +167,6 @@ fn validate_api_token(expected: Option<&str>, token: &str) -> Result<(), (Status
 			"invalid MONOCHANGE_TOKEN".to_string(),
 		))
 	}
-}
-
-fn constant_time_eq(left: &[u8], right: &[u8]) -> bool {
-	if left.len() != right.len() {
-		return false;
-	}
-
-	left.iter()
-		.zip(right)
-		.fold(0u8, |acc, (a, b)| acc | (a ^ b))
-		== 0
 }
 
 fn app_unconfigured() -> (StatusCode, String) {
@@ -354,15 +339,6 @@ pub async fn create_release_commit(
 				))),
 			)
 		})?;
-
-	if repository.github_repo_id.to_string() != request.repository
-		&& repository.full_name != full_name
-	{
-		return Err((
-			StatusCode::BAD_REQUEST,
-			Json(ApiError::new("repository mismatch")),
-		));
-	}
 
 	let app = state
 		.github_app

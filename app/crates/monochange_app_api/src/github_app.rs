@@ -61,6 +61,10 @@ pub enum GitHubAppError {
 	WebhookSignature,
 	#[error("invalid GitHub app slug")]
 	InvalidAppSlug,
+	#[error(
+		"JWT signing secret is empty; set JWT_SECRET to a non-empty value before starting the server"
+	)]
+	EmptyJwtSecret,
 }
 
 /// Monochange GitHub App credentials resolved from the environment.
@@ -339,7 +343,10 @@ fn access_rank(level: &str) -> u8 {
 }
 
 /// Compare two byte strings without early exit.
-fn constant_time_eq(left: &[u8], right: &[u8]) -> bool {
+///
+/// Shared by webhook signature and API token checks so a secret can never be
+/// probed byte by byte through either path.
+pub(crate) fn constant_time_eq(left: &[u8], right: &[u8]) -> bool {
 	if left.len() != right.len() {
 		return false;
 	}
