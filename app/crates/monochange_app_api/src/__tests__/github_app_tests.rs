@@ -1099,6 +1099,45 @@ async fn pull_requests_require_release_branch_policy(#[case] head: &str, #[case]
 }
 
 #[tokio::test]
+async fn a_failed_pull_request_creation_stops_before_all_followup_writes() {
+	let server = MockServer::start();
+	mock_repository(&server, "main");
+	server.mock(|when, then| {
+		when.method(Method::GET).path("/repos/acme/actions/pulls");
+		then.json_body(serde_json::json!([]));
+	});
+	let failure = r#"{"message":"Validation Failed"}"#;
+	let create = server.mock(|when, then| {
+		when.method(Method::POST).path("/repos/acme/actions/pulls");
+		then.status(422).body(failure);
+	});
+	let stamp = server.mock(|when, then| {
+		when.method(Method::PATCH);
+		then.json_body(pull_response());
+	});
+	let labels = server.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/issues/42/labels");
+		then.status(200);
+	});
+	let auto_merge = server.mock(|when, then| {
+		when.method(Method::POST).path("/graphql");
+		then.status(200);
+	});
+
+	let outcome = publish_pull(&server, &release_pull_request()).await;
+	assert!(
+		matches!(&outcome, Err(GitHubAppError::Status("create pull request", status, body))
+		if *status == reqwest::StatusCode::UNPROCESSABLE_ENTITY && body.as_str() == failure),
+		"{outcome:?}"
+	);
+	create.assert_calls(1);
+	stamp.assert_calls(0);
+	labels.assert_calls(0);
+	auto_merge.assert_calls(0);
+}
+
+#[tokio::test]
 async fn a_failed_creation_stamp_has_explicit_recovery_and_cannot_be_adopted_on_retry() {
 	let server = MockServer::start();
 	mock_repository(&server, "main");
