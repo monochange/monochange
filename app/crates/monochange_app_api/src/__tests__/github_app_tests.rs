@@ -898,7 +898,7 @@ async fn unrelated_or_rebound_pull_requests_are_never_mutated(#[case] mismatch: 
 		"human" => pull["user"]["type"] = "User".into(),
 		"secret" => sign_pull(&mut pull, "another-test-only-deployment-key"),
 		"forged" => {
-			pull["body"] = format!("{}{} -->", super::RELEASE_PR_MARKER, "00".repeat(32)).into()
+			pull["body"] = format!("{}{} -->", super::RELEASE_PR_MARKER, "00".repeat(32)).into();
 		}
 		_ => unreachable!(),
 	}
