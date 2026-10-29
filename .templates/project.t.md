@@ -97,6 +97,8 @@ Recent `monochange` improvements made package publishing guidance and diagnostic
 monochange init
 ```
 
+Run `monochange format` after editing the config to keep sections, packages, groups, and CLI workflows in canonical order.
+
 2. Validate configuration and changeset targets before making release changes:
 
 ```bash
@@ -136,6 +138,7 @@ These are common commands for repositories using monochange. Optional `[cli.*]` 
 | Goal                             | Command                                                             | Use it when                                                                                                                        |
 | -------------------------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | Validate config and changesets   | `monochange step validate`                                          | You changed `monochange.toml` or `.changeset/*.md` files                                                                           |
+| Format configuration             | `monochange format`                                                 | You want canonical section, package, group, and CLI ordering without manually re-sorting entries                                   |
 | Inspect package ids and groups   | `monochange discover --format json`                                 | You need the normalized workspace model                                                                                            |
 | Sync internal dependency ranges  | `monochange versions sync --dry-run`                                | You want internal dependency references to match canonical workspace package versions                                              |
 | Check the next version           | `monochange next`                                                   | You want the next release group and package versions from pending changesets, without writing any release state                    |

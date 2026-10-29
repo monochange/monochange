@@ -1,0 +1,26 @@
+---
+source: crates/monochange_integration_tests/tests/format_configuration.rs
+expression: formatted
+---
+#:schema ./schema.json
+
+# =============================================================================
+# Example workspace
+# =============================================================================
+
+[defaults]
+parent_bump = "patch"
+package_type = "cargo"
+
+[package.alpha]
+path = "packages/alpha"
+
+[package.zeta]
+path = "packages/zeta"
+
+[group.main]
+packages = ["alpha", "zeta"]
+
+[cli.release]
+help_text = "Release packages"
+steps = [{ type = "Validate" }]

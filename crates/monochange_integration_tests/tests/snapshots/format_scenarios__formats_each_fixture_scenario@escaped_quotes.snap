@@ -1,0 +1,9 @@
+---
+source: crates/monochange_integration_tests/tests/format_scenarios.rs
+expression: formatted
+---
+[package."@acme/quote\"d"]
+path = "packages/quote"
+
+[package.alpha]
+path = "packages/alpha"

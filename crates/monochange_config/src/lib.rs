@@ -94,6 +94,9 @@ use semver::Version;
 use serde::Deserialize;
 use serde_yaml_ng::Mapping;
 
+mod format;
+pub use format::format_workspace_configuration;
+
 const CONFIG_FILE: &str = "monochange.toml";
 pub const RESERVED_CLI_COMMAND_NAMES: &[&str] = &[
 	"agent",
@@ -114,6 +117,16 @@ pub const RESERVED_CLI_COMMAND_NAMES: &[&str] = &[
 	"validate",
 	"version",
 ];
+
+/// Returns whether a CLI command name is reserved by a built-in command.
+///
+/// New built-in commands that are not part of the historical
+/// [`RESERVED_CLI_COMMAND_NAMES`] slice should be added here.
+#[must_use]
+pub fn is_reserved_cli_command_name(name: &str) -> bool {
+	name == "format" || RESERVED_CLI_COMMAND_NAMES.contains(&name)
+}
+
 const SUPPORTED_CHANGE_TEMPLATE_VARIABLES: &[&str] = &[
 	"summary",
 	"details",
@@ -6474,7 +6487,7 @@ fn validate_cli(cli: &[CliCommandDefinition]) -> MonochangeResult<()> {
 			)));
 		}
 
-		if RESERVED_CLI_COMMAND_NAMES.contains(&cli_command.name.as_str()) {
+		if is_reserved_cli_command_name(&cli_command.name) {
 			return Err(MonochangeError::Config(format!(
 				"CLI command `{}` collides with a reserved built-in command",
 				cli_command.name

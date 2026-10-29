@@ -29,6 +29,7 @@ Visible top-level commands:
   create
   diagnose
   discover
+  format
   help
   init
   lint

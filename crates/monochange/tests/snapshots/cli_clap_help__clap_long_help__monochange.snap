@@ -20,6 +20,7 @@ monochange discovers packages across Cargo, npm/pnpm/Bun, Deno, Dart/Flutter, Py
 
 [1m[96mWorkspace Commands:[0m
   [93minit[0m           Generate monochange.toml with detected packages and groups
+  [93mformat[0m         Format monochange.toml with canonical section and package ordering
   [93mdiscover[0m       Discover packages across supported ecosystems
   [93mconfig[0m         Render resolved monochange configuration and workspace metadata
   [93mcheck[0m          Validate configuration, changesets, and run manifest lint rules
@@ -83,6 +84,8 @@ Quick Start
 1. Create or update monochange.toml for your workspace:
 
   monochange init
+
+Run monochange format after editing the config to keep sections, packages, groups, and CLI workflows in canonical order.
 
 2. Validate configuration and changeset targets before making release changes:
 

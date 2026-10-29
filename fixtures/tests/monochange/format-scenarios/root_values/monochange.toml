@@ -1,0 +1,8 @@
+title = "workspace"
+description = "demo"
+
+[package.zeta]
+path = "packages/zeta"
+
+[package.alpha]
+path = "packages/alpha"

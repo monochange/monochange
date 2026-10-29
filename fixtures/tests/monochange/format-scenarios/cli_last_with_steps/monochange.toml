@@ -1,0 +1,12 @@
+[cli.release]
+help_text = "Release"
+steps = [{ type = "Validate" }]
+
+[package.core]
+path = "crates/core"
+
+[defaults]
+package_type = "cargo"
+
+[changelog]
+templates = ["- {{ summary }}"]

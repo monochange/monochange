@@ -1,0 +1,8 @@
+[group.main]
+packages = "not-an-array"
+
+[package.zeta]
+path = "packages/zeta"
+
+[package.alpha]
+path = "packages/alpha"

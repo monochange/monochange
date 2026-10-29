@@ -1,0 +1,15 @@
+---
+source: crates/monochange_integration_tests/tests/format_scenarios.rs
+expression: formatted
+---
+[package."@acme/api"]
+path = "packages/api"
+
+[package."@acme/ui"]
+path = "packages/ui"
+
+[package.monochange_app]
+path = "app"
+
+[package.monochange_core]
+path = "crates/core"

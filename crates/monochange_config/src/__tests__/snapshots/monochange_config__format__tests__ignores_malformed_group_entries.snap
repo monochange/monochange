@@ -1,0 +1,19 @@
+---
+source: crates/monochange_config/src/__tests__/format_tests.rs
+expression: format_workspace_configuration(source).unwrap()
+---
+
+[package.alpha]
+path = "packages/alpha"
+
+[package.zeta]
+path = "packages/zeta"
+
+[group]
+note = "not a group table"
+
+[group.empty]
+tag = true
+
+[group.main]
+packages = ["alpha", "zeta"]

@@ -1,0 +1,11 @@
+[cli.zeta]
+help_text = "Zeta"
+steps = [{ type = "Validate" }]
+
+[cli.alpha]
+help_text = "Alpha"
+steps = [{ type = "Validate" }]
+
+[cli.middle]
+help_text = "Middle"
+steps = [{ type = "Validate" }]

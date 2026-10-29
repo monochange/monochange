@@ -1,0 +1,22 @@
+#:schema ./schema.json
+
+# =============================================================================
+# Example workspace
+# =============================================================================
+
+[cli.release]
+help_text = "Release packages"
+steps = [{ type = "Validate" }]
+
+[group.main]
+packages = ["zeta", "alpha"]
+
+[package.zeta]
+path = "packages/zeta"
+
+[defaults]
+parent_bump = "patch"
+package_type = "cargo"
+
+[package.alpha]
+path = "packages/alpha"

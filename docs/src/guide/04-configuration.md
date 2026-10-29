@@ -758,6 +758,23 @@ lockfile_commands = [
 
 `cwd` is resolved relative to the workspace root. `shell = false` runs the command directly, `shell = true` uses `sh -c`, and `shell = "bash"` uses a custom shell binary.
 
+## Formatting configuration
+
+Run `monochange format` to rewrite `monochange.toml` in the canonical layout. The command preserves comments, keeps the file header at the top, and formats the result with monochange's built-in taplo configuration:
+
+- Top-level sections appear in this order: `defaults`, `changelog`, `version_scheme`, `package`, `group`, `deployments`, `lints`, `ecosystems`, `source`, `prerelease`, `changesets`, then `cli`.
+- `[package.*]`, `[group.*]`, `[version_scheme.*]`, `[ecosystems.*]`, and `[cli.*]` tables are sorted alphabetically by id.
+- Each `[group.<id>].packages` array is sorted alphabetically.
+- A section header comment stays at the start of its section when the first table moves.
+- `[cli.*]` workflow commands stay at the end of the file.
+
+Use `monochange format --check` in CI to fail when the file needs formatting without rewriting it. This repository runs the check from `lint:monochange`, which the CI lint job invokes.
+
+```bash
+monochange format
+monochange format --check
+```
+
 ## CLI commands
 
 CLI workflow commands are user-defined commands that run as `monochange run <command>`, or as `monochange <command>` when no built-in command has that name. Each `[cli.<command>]` table in `monochange.toml` defines one workflow with its own help text, inputs, and ordered step list.
@@ -766,7 +783,7 @@ CLI workflow commands are user-defined commands that run as `monochange run <com
 
 Built-in steps are also available directly as immutable `monochange step <name>` commands. The binary generates those commands from the step schemas, so `monochange step discover`, `monochange step prepare-release`, `monochange step affected-packages`, and the other step commands do not require config entries. Use `monochange step <name>` in CI when you want a stable built-in operation without depending on a repository-defined wrapper.
 
-Some top-level names are reserved for binary commands, including `init`, `mcp`, `help`, `version`, `analyze`, `check`, and `step`. The `step` command namespace is reserved for immutable built-in step commands, and `run` is reserved for executing configured workflows. Do not define `[cli.step]` or `[cli.run]` tables.
+Some top-level names are reserved for binary commands, including `init`, `format`, `mcp`, `help`, `version`, `analyze`, `check`, and `step`. The `step` command namespace is reserved for immutable built-in step commands, and `run` is reserved for executing configured workflows. Do not define `[cli.step]` or `[cli.run]` tables.
 
 <!-- {=cliStepExplicitInputInheritance} -->
 

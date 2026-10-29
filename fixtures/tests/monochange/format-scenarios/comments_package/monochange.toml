@@ -1,0 +1,9 @@
+[package.zeta]
+path = "packages/zeta"
+
+# Alpha is the primary package.
+[package.alpha]
+path = "packages/alpha"
+
+[defaults]
+package_type = "npm"

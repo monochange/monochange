@@ -397,10 +397,11 @@ in
     "fix:monochange" = {
       exec = ''
         set -euo pipefail
+        monochange format
         monochange step validate
         monochange check --fix
       '';
-      description = "Fix clippy lints for rust.";
+      description = "Format monochange.toml, then fix configuration and manifest lint issues.";
       binary = "bash";
     };
     "lint:workflows" = {
@@ -507,10 +508,11 @@ in
     "lint:monochange" = {
       exec = ''
         set -euo pipefail
+        monochange format --check
         monochange step validate
         monochange check
       '';
-      description = "Run manifest lint rules across all ecosystems.";
+      description = "Verify monochange.toml formatting and run configuration and manifest lint rules.";
       binary = "bash";
     };
     "lint:rust-cfg-test" = {

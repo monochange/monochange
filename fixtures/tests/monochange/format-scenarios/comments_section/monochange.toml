@@ -1,0 +1,13 @@
+[defaults]
+package_type = "npm"
+
+# =============================================================================
+# Packages
+# =============================================================================
+
+# Zeta package.
+[package.zeta]
+path = "packages/zeta"
+
+[package.alpha]
+path = "packages/alpha"

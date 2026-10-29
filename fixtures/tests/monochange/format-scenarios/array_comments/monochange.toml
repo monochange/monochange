@@ -1,0 +1,5 @@
+[group.main]
+packages = [
+	"zeta", # zeta package
+	"alpha", # alpha package
+]

@@ -84,6 +84,10 @@ jobs:
         run: deny:check
         shell: devenv shell -- bash -e {0}
 
+      - name: check monochange formatting
+        run: monochange format --check
+        shell: devenv shell -- bash -e {0}
+
       - name: manifest lint
         run: lint:monochange
         shell: devenv shell -- bash -e {0}

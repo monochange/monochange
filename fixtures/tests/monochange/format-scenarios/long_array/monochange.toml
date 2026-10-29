@@ -1,0 +1,21 @@
+[defaults]
+package_type = "npm"
+
+[group.main]
+packages = [
+	"zulu",
+	"yankee",
+	"xray",
+	"whiskey",
+	"victor",
+	"uniform",
+	"tango",
+	"sierra",
+	"romeo",
+	"quebec",
+	"papa",
+	"oscar",
+	"november",
+	"mike",
+	"lima",
+]

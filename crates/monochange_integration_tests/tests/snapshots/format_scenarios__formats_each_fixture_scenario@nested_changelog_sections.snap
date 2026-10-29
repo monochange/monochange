@@ -1,0 +1,11 @@
+---
+source: crates/monochange_integration_tests/tests/format_scenarios.rs
+expression: formatted
+---
+[changelog.sections.zeta]
+heading = "Zeta"
+priority = 30
+
+[changelog.sections.alpha]
+heading = "Alpha"
+priority = 10

@@ -1,0 +1,13 @@
+---
+source: crates/monochange_integration_tests/tests/format_scenarios.rs
+expression: formatted
+---
+[defaults]
+package_type = "npm"
+
+[defaults.changelog]
+path = "[special]/changelog.md"
+initial_header = "Header with [brackets] and #hash"
+
+[package.alpha]
+path = "packages/alpha"
