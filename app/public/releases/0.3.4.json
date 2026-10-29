@@ -1,0 +1,60 @@
+{
+	"title": "0.3.4",
+	"summary": [],
+	"sections": [
+		{
+			"title": "Improved",
+			"collapsed": false,
+			"entries": [
+				{
+					"summary": "Keep projects with the correct GitHub organization",
+					"details_markdown": "Projects and their settings stay with the correct GitHub organization when a former name is reused by another account.",
+					"change_type": "website_fix",
+					"bump": "patch",
+					"stream": "website",
+					"style": "compact",
+					"provenance": {
+						"source_path": ".changeset/organization-project-ownership.md",
+						"changeset_path": ".changeset/organization-project-ownership.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #846",
+							"url": "https://github.com/monochange/monochange/pull/846"
+						},
+						"introduced_commit": {
+							"label": "eeaf90a",
+							"url": "https://github.com/monochange/monochange/commit/eeaf90a563bdb3bb094c642bf36c1bb405ec4182"
+						}
+					}
+				},
+				{
+					"summary": "Protect sign-in attempts during retries",
+					"details_markdown": "Refreshing a sign-in result can no longer submit the same attempt to GitHub again. If GitHub sign-in fails, start again from the sign-in page. During heavy sign-in traffic, the site may ask you to wait briefly and try again.",
+					"change_type": "website_fix",
+					"bump": "patch",
+					"stream": "website",
+					"style": "compact",
+					"provenance": {
+						"source_path": ".changeset/sign-in-retries.md",
+						"changeset_path": ".changeset/sign-in-retries.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #847",
+							"url": "https://github.com/monochange/monochange/pull/847"
+						},
+						"introduced_commit": {
+							"label": "3aee8b0",
+							"url": "https://github.com/monochange/monochange/commit/3aee8b03925db096fed64d4a4a187c3e5c50ac73"
+						}
+					}
+				}
+			]
+		}
+	]
+}
