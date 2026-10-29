@@ -1,0 +1,15 @@
+---
+source: crates/monochange_integration_tests/tests/format_scenarios.rs
+expression: formatted
+---
+[cli.alpha]
+help_text = "Alpha"
+steps = [{ type = "Validate" }]
+
+[cli.middle]
+help_text = "Middle"
+steps = [{ type = "Validate" }]
+
+[cli.zeta]
+help_text = "Zeta"
+steps = [{ type = "Validate" }]

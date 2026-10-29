@@ -1,0 +1,15 @@
+---
+source: crates/monochange_integration_tests/tests/format_scenarios.rs
+expression: formatted
+---
+[source]
+provider = "github"
+owner = "acme"
+repo = "widgets"
+
+[source.pull_requests]
+enabled = true
+
+[source.releases]
+enabled = true
+draft = false

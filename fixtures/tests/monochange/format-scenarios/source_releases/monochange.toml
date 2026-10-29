@@ -1,0 +1,11 @@
+[source]
+provider = "github"
+owner = "acme"
+repo = "widgets"
+
+[source.pull_requests]
+enabled = true
+
+[source.releases]
+enabled = true
+draft = false

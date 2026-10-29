@@ -1,0 +1,9 @@
+[package.web]
+path = "packages/web"
+
+[[package.web.deployments]]
+name = "nested"
+
+[[deployments]]
+name = "root"
+trigger = "workflow"

@@ -1,0 +1,17 @@
+---
+source: crates/monochange_integration_tests/tests/format_scenarios.rs
+expression: formatted
+---
+[defaults]
+package_type = "npm"
+
+[defaults.changelog]
+path = "{{ path }}/changelog.md"
+initial_header = """
+# Changelog
+
+All notable changes.
+"""
+
+[package.core]
+path = "crates/core"

@@ -1,0 +1,27 @@
+[changesets.affected]
+required = false
+
+[lints]
+use = []
+
+[prerelease]
+enabled = false
+
+[ecosystems.npm]
+enabled = true
+
+[group.main]
+packages = ["beta", "alpha"]
+
+[package.beta]
+path = "packages/beta"
+
+[package.alpha]
+path = "packages/alpha"
+
+[defaults]
+package_type = "npm"
+
+[cli.deploy]
+help_text = "Deploy"
+steps = [{ type = "Validate" }]

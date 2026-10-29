@@ -387,6 +387,7 @@ release and pull request settings for the provider\n  - GitHub Actions workflows
 The starter config does not generate [cli.*] command aliases.",
 				),
 		)
+		.subcommand(build_format_subcommand())
 		.subcommand(
 			// Kept so existing scripts keep working; this version provides no
 			// default aliases, so the command never changes monochange.toml.
@@ -461,7 +462,7 @@ const HELP_COMMAND_GROUPS: &[(&str, &[&str])] = &[
 	(
 		"Workspace Commands",
 		&[
-			"init", "discover", "config", "check", "versions", "lint", "migrate",
+			"init", "format", "discover", "config", "check", "versions", "lint", "migrate",
 		],
 	),
 	(
@@ -566,6 +567,22 @@ fn root_help_template(
 		"\n\n{header}Options:{header:#}\n{{options}}{{after-help}}"
 	);
 	template
+}
+
+fn build_format_subcommand() -> Command {
+	Command::new("format")
+		.about("Format monochange.toml with canonical section and package ordering")
+		.arg(
+			Arg::new("check")
+				.long("check")
+				.action(ArgAction::SetTrue)
+				.help("Fail when monochange.toml is not formatted instead of writing changes"),
+		)
+		.after_help(
+			"Examples:\n  monochange format\n  monochange format --check\n\n\
+The formatter keeps comments, orders top-level sections, sorts package and group tables by id, \
+sorts group members, and places [cli.*] workflows last.",
+		)
 }
 
 pub(crate) fn build_change_subcommand() -> Command {

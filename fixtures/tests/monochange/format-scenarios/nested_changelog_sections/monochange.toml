@@ -1,0 +1,7 @@
+[changelog.sections.zeta]
+heading = "Zeta"
+priority = 30
+
+[changelog.sections.alpha]
+heading = "Alpha"
+priority = 10

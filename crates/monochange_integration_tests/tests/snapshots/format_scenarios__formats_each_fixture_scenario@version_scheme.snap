@@ -1,0 +1,9 @@
+---
+source: crates/monochange_integration_tests/tests/format_scenarios.rs
+expression: formatted
+---
+[version_scheme.calver]
+template = "{{ year }}.{{ month_padded }}.{{ release_of_month }}"
+
+[version_scheme.ubuntu]
+template = "{{ year }}.{{ month }}"

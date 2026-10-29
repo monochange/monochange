@@ -1,0 +1,7 @@
+[prerelease]
+enabled = true
+channel = "alpha"
+base = "planned"
+
+[defaults]
+package_type = "npm"

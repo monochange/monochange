@@ -1,0 +1,9 @@
+[ecosystems.cargo]
+enabled = true
+
+[ecosystems.npm.publish]
+enabled = true
+
+[ecosystems.npm]
+enabled = true
+roots = ["packages/*"]

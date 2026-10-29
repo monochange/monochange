@@ -58,6 +58,7 @@ use git_support::git_stage_paths;
 use migration_audit::run_migration_command;
 #[cfg(feature = "cargo")]
 use monochange_cargo::RustSemverProvider;
+use monochange_config::format_workspace_configuration;
 use monochange_config::load_workspace_configuration;
 use monochange_config::resolve_package_reference;
 use monochange_core::BumpSeverity;
@@ -1588,6 +1589,7 @@ async fn run_cli_subcommand(
 			init_workspace(root, init_matches.get_flag("force"), provider)
 				.map(|result| result.summary())
 		}
+		Some(("format", format_matches)) => run_format_subcommand(root, format_matches),
 		Some(("populate", _)) => {
 			populate_workspace(root).map(|result| format_populate_workspace_result(&result))
 		}
@@ -1841,6 +1843,35 @@ fn string_values(matches: &clap::ArgMatches, name: &str) -> Vec<String> {
 		.get_many::<String>(name)
 		.map(|values| values.cloned().collect())
 		.unwrap_or_default()
+}
+
+/// Rewrites `monochange.toml` in the canonical section and package order.
+fn run_format_subcommand(root: &Path, matches: &clap::ArgMatches) -> MonochangeResult<String> {
+	let path = root.join("monochange.toml");
+	let source = fs::read_to_string(&path).map_err(|error| {
+		MonochangeError::Io(format!("failed to read {}: {error}", path.display()))
+	})?;
+	let formatted = format_workspace_configuration(&source)?;
+
+	if matches.get_flag("check") {
+		if formatted != source {
+			return Err(MonochangeError::Config(
+				"monochange.toml is not formatted; run `monochange format`".to_string(),
+			));
+		}
+
+		return Ok("monochange.toml is formatted".to_string());
+	}
+
+	if formatted == source {
+		return Ok("monochange.toml is already formatted".to_string());
+	}
+
+	fs::write(&path, formatted).map_err(|error| {
+		MonochangeError::Io(format!("failed to write {}: {error}", path.display()))
+	})?;
+
+	Ok("Formatted monochange.toml".to_string())
 }
 
 /// Runs the workspace lint rules, optionally fixing what they find.

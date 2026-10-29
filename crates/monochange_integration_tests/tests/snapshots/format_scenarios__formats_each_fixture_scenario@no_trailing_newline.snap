@@ -1,0 +1,9 @@
+---
+source: crates/monochange_integration_tests/tests/format_scenarios.rs
+expression: formatted
+---
+[defaults]
+package_type = "npm"
+
+[package.zeta]
+path = "packages/zeta"

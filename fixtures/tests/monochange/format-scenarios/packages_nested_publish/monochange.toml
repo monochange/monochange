@@ -1,0 +1,11 @@
+[package.zeta]
+path = "packages/zeta"
+
+[package.zeta.publish]
+enabled = true
+
+[package.alpha]
+path = "packages/alpha"
+
+[package.alpha.publish]
+enabled = false

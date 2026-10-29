@@ -17,6 +17,7 @@ Release Commands:
 
 Workspace Commands:
   init       Generate monochange.toml with detected packages and groups
+  format     Format monochange.toml with canonical section and package ordering
   discover   Discover packages across supported ecosystems
   config     Render resolved monochange configuration and workspace metadata
   check      Validate configuration, changesets, and run manifest lint rules
@@ -78,6 +79,8 @@ Quick Start
 1. Create or update monochange.toml for your workspace:
 
   monochange init
+
+Run monochange format after editing the config to keep sections, packages, groups, and CLI workflows in canonical order.
 
 2. Validate configuration and changeset targets before making release changes:
 

@@ -1,0 +1,12 @@
+---
+source: crates/monochange_integration_tests/tests/format_scenarios.rs
+expression: formatted
+---
+[package.alpha]
+path = "packages/alpha"
+
+[package.zeta]
+path = "packages/zeta"
+
+[group.main]
+packages = "not-an-array"

@@ -1,0 +1,11 @@
+---
+source: crates/monochange_integration_tests/tests/format_scenarios.rs
+expression: formatted
+---
+[defaults]
+package_type = "npm"
+
+[prerelease]
+enabled = true
+channel = "alpha"
+base = "planned"

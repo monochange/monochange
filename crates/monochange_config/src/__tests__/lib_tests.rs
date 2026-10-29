@@ -6442,6 +6442,13 @@ fn validate_cli_rejects_invalid_command_shapes() {
 }
 
 #[test]
+fn reserved_cli_command_names_include_format() {
+	assert!(crate::is_reserved_cli_command_name("format"));
+	assert!(crate::is_reserved_cli_command_name("init"));
+	assert!(!crate::is_reserved_cli_command_name("custom"));
+}
+
+#[test]
 fn validate_cli_rejects_invalid_inputs_and_step_metadata() {
 	let mut duplicate_inputs = cli_command(
 		"release",

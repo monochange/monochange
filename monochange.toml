@@ -9,6 +9,7 @@
 #
 # Run `monochange step validate` to check this file against the workspace.
 # Run `monochange init` to generate a starter config from detected packages.
+# Run `monochange format` to sort sections, packages, groups, and CLI workflows.
 
 # =============================================================================
 # [defaults] — repository-wide defaults applied to every package unless
@@ -179,6 +180,18 @@ security = { heading = "🔒 Security", description = "Security vulnerabilities,
 perf = { heading = "⚡ Performance", description = "Performance optimizations and improvements", priority = 40 }
 other = { heading = "📦 Other", description = "Miscellaneous changes not categorized elsewhere", priority = 50 }
 
+[changelog.sections.website_added]
+heading = "New"
+priority = 20
+
+[changelog.sections.website_fixed]
+heading = "Improved"
+priority = 30
+
+[changelog.sections.website_changed]
+heading = "Changed"
+priority = 10
+
 [changelog.section_thresholds]
 collapse = 40
 ignored = 45
@@ -208,18 +221,6 @@ website_feature = { bump = "minor", section = "website_added", stream = "website
 website_fix = { bump = "patch", section = "website_fixed", stream = "website", description = "Corrections to behavior experienced by website users" }
 website_change = { bump = "major", section = "website_changed", stream = "website", description = "Product changes requiring action from website users" }
 
-[changelog.sections.website_added]
-heading = "New"
-priority = 20
-
-[changelog.sections.website_fixed]
-heading = "Improved"
-priority = 30
-
-[changelog.sections.website_changed]
-heading = "Changed"
-priority = 10
-
 [changelog.streams.website]
 description = "Product updates for monochange.dev users. Excludes deployment, CI, credentials, and internal maintenance intended only for developers or operators."
 
@@ -245,6 +246,7 @@ targets = ["monochange_app"]
 path = "app/public/releases/{{ version }}.json"
 format = "json"
 mode = "release"
+
 # =============================================================================
 # [package.*] — declare each release-managed package explicitly
 # =============================================================================
@@ -348,153 +350,6 @@ mode = "release"
 #                             a fresh capture and reports command-surface
 #                             breaks instead of "unknown" package changes
 
-[package.monochange]
-path = "crates/monochange"
-cli = { name = "monochange", snapshot = "monochange snapshot --view index" }
-
-[package.monochange_app]
-path = "app/crates/monochange_app"
-# Workflow files stay out of the affected paths: CI and deployment changes
-# are repository plumbing and never require a monochange_app changeset.
-additional_paths = ["app/**", "docs/src/**", "Dockerfile"]
-publish = { enabled = false }
-changelog = false
-tag = true
-release = true
-version_format = "namespaced"
-release_title = "monochange.dev {{ version }}"
-changelog_version_title = "{{ version }}"
-ignore_ecosystem_versioned_files = true
-
-[package.monochange_core]
-path = "crates/monochange_core"
-
-[package.monochange_snapshot]
-path = "crates/monochange_snapshot"
-# `monochange_snapshot` is the only member of [group.snapshot], and the group
-# changelog already renders this package's notes at
-# `crates/monochange_snapshot/changelog.md`. The package would otherwise
-# inherit `[defaults.changelog]`, whose `{{ path }}/changelog.md` pattern
-# resolves to that same file, and release planning rejects two owners for one
-# changelog path. Disable the package-level changelog so the group owns it.
-changelog = false
-# The Cargo analyzer compares whole token streams for public items, so an
-# attribute-only change such as adding `#[cfg_attr(feature = "schema",
-# derive(...))]` is classified as a breaking `modified` item. Adding an
-# opt-in feature is additive, and this crate's schema version is derived from
-# its package version, so letting the false positive stand would advance the
-# published command snapshot contract to 0.2 and stale every committed CLI
-# baseline without any wire change. Cap the proposal at `minor`; an explicit
-# `major` changeset still advances the contract when the wire format actually
-# breaks.
-bump_ceiling = "minor"
-
-[package.monochange_cargo]
-path = "crates/monochange_cargo"
-
-[package.monochange_npm]
-path = "crates/monochange_npm"
-
-[package.monochange_cocoapods]
-path = "crates/monochange_cocoapods"
-
-[package.monochange_config]
-path = "crates/monochange_config"
-
-[package.monochange_changelog]
-path = "crates/monochange_changelog"
-
-[package.monochange_deno]
-path = "crates/monochange_deno"
-
-[package.monochange_ecmascript]
-path = "crates/monochange_ecmascript"
-
-[package.monochange_dart]
-path = "crates/monochange_dart"
-
-[package.monochange_python]
-path = "crates/monochange_python"
-
-[package.monochange_publish]
-path = "crates/monochange_publish"
-
-[package.monochange_go]
-path = "crates/monochange_go"
-
-[package.monochange_gradle]
-path = "crates/monochange_gradle"
-
-[package.monochange_graph]
-path = "crates/monochange_graph"
-
-[package.monochange_schema]
-path = "crates/monochange_schema"
-# The schema contract is standalone: its GitHub release carries the notes for
-# each schema version. publish.yml publishes this draft alongside the main
-# release once the registry publish succeeds.
-release = true
-tag = true
-
-[package.monochange_classification]
-path = "crates/monochange_classification"
-# Keep the tag for history, but skip the provider release: this crate moves
-# alongside its consumers and its notes already live in its committed
-# changelog.
-release = false
-tag = true
-
-[package.monochange_semver]
-path = "crates/monochange_semver"
-
-[package.monochange_swift]
-path = "crates/monochange_swift"
-
-[package.monochange_telemetry]
-path = "crates/monochange_telemetry"
-
-[package.monochange_github]
-path = "crates/monochange_github"
-
-[package.monochange_gitlab]
-path = "crates/monochange_gitlab"
-
-[package.monochange_gitea]
-path = "crates/monochange_gitea"
-
-[package.monochange_forgejo]
-path = "crates/monochange_forgejo"
-
-[package.monochange_hosting]
-path = "crates/monochange_hosting"
-
-[package.monochange_test_helpers]
-path = "crates/monochange_test_helpers"
-
-[package.monochange_analysis]
-path = "crates/monochange_analysis"
-
-[package.monochange_lint]
-path = "crates/monochange_lint"
-
-[package.monochange_linting]
-path = "crates/monochange_linting"
-
-# The skill package ships prose: SKILL.md, reference guides, and examples.
-# Classification reads rewritten guidance as API impact because the wording of
-# a skill is its interface, so a documentation pass can be scored as a minor or
-# major change to an interface that has no callers. Opting out keeps the
-# proposal visible in classification reports while letting the released
-# changeset decide the bump, and the ceiling keeps the advisory proposal itself
-# at patch for a package that never ships code. Both settings are declared here
-# rather than on [group.main] because the skill is the only prose package in
-# the group; package declarations override group defaults.
-[package."@monochange/skill"]
-path = "packages/monochange__skill"
-type = "npm"
-bump_ceiling = "patch"
-classification_enforced = false
-
 [package."@monochange/cli"]
 path = "packages/monochange__cli"
 type = "npm"
@@ -523,13 +378,160 @@ type = "npm"
 path = "packages/monochange__cli-linux-x64-musl"
 type = "npm"
 
+[package."@monochange/cli-win32-arm64-msvc"]
+path = "packages/monochange__cli-win32-arm64-msvc"
+type = "npm"
+
 [package."@monochange/cli-win32-x64-msvc"]
 path = "packages/monochange__cli-win32-x64-msvc"
 type = "npm"
 
-[package."@monochange/cli-win32-arm64-msvc"]
-path = "packages/monochange__cli-win32-arm64-msvc"
+# The skill package ships prose: SKILL.md, reference guides, and examples.
+# Classification reads rewritten guidance as API impact because the wording of
+# a skill is its interface, so a documentation pass can be scored as a minor or
+# major change to an interface that has no callers. Opting out keeps the
+# proposal visible in classification reports while letting the released
+# changeset decide the bump, and the ceiling keeps the advisory proposal itself
+# at patch for a package that never ships code. Both settings are declared here
+# rather than on [group.main] because the skill is the only prose package in
+# the group; package declarations override group defaults.
+[package."@monochange/skill"]
+path = "packages/monochange__skill"
 type = "npm"
+bump_ceiling = "patch"
+classification_enforced = false
+
+[package.monochange]
+path = "crates/monochange"
+cli = { name = "monochange", snapshot = "monochange snapshot --view index" }
+
+[package.monochange_analysis]
+path = "crates/monochange_analysis"
+
+[package.monochange_app]
+path = "app/crates/monochange_app"
+# Workflow files stay out of the affected paths: CI and deployment changes
+# are repository plumbing and never require a monochange_app changeset.
+additional_paths = ["app/**", "docs/src/**", "Dockerfile"]
+publish = { enabled = false }
+changelog = false
+tag = true
+release = true
+version_format = "namespaced"
+release_title = "monochange.dev {{ version }}"
+changelog_version_title = "{{ version }}"
+ignore_ecosystem_versioned_files = true
+
+[package.monochange_cargo]
+path = "crates/monochange_cargo"
+
+[package.monochange_changelog]
+path = "crates/monochange_changelog"
+
+[package.monochange_classification]
+path = "crates/monochange_classification"
+# Keep the tag for history, but skip the provider release: this crate moves
+# alongside its consumers and its notes already live in its committed
+# changelog.
+release = false
+tag = true
+
+[package.monochange_cocoapods]
+path = "crates/monochange_cocoapods"
+
+[package.monochange_config]
+path = "crates/monochange_config"
+
+[package.monochange_core]
+path = "crates/monochange_core"
+
+[package.monochange_dart]
+path = "crates/monochange_dart"
+
+[package.monochange_deno]
+path = "crates/monochange_deno"
+
+[package.monochange_ecmascript]
+path = "crates/monochange_ecmascript"
+
+[package.monochange_forgejo]
+path = "crates/monochange_forgejo"
+
+[package.monochange_gitea]
+path = "crates/monochange_gitea"
+
+[package.monochange_github]
+path = "crates/monochange_github"
+
+[package.monochange_gitlab]
+path = "crates/monochange_gitlab"
+
+[package.monochange_go]
+path = "crates/monochange_go"
+
+[package.monochange_gradle]
+path = "crates/monochange_gradle"
+
+[package.monochange_graph]
+path = "crates/monochange_graph"
+
+[package.monochange_hosting]
+path = "crates/monochange_hosting"
+
+[package.monochange_lint]
+path = "crates/monochange_lint"
+
+[package.monochange_linting]
+path = "crates/monochange_linting"
+
+[package.monochange_npm]
+path = "crates/monochange_npm"
+
+[package.monochange_publish]
+path = "crates/monochange_publish"
+
+[package.monochange_python]
+path = "crates/monochange_python"
+
+[package.monochange_schema]
+path = "crates/monochange_schema"
+# The schema contract is standalone: its GitHub release carries the notes for
+# each schema version. publish.yml publishes this draft alongside the main
+# release once the registry publish succeeds.
+release = true
+tag = true
+
+[package.monochange_semver]
+path = "crates/monochange_semver"
+
+[package.monochange_snapshot]
+path = "crates/monochange_snapshot"
+# `monochange_snapshot` is the only member of [group.snapshot], and the group
+# changelog already renders this package's notes at
+# `crates/monochange_snapshot/changelog.md`. The package would otherwise
+# inherit `[defaults.changelog]`, whose `{{ path }}/changelog.md` pattern
+# resolves to that same file, and release planning rejects two owners for one
+# changelog path. Disable the package-level changelog so the group owns it.
+changelog = false
+# The Cargo analyzer compares whole token streams for public items, so an
+# attribute-only change such as adding `#[cfg_attr(feature = "schema",
+# derive(...))]` is classified as a breaking `modified` item. Adding an
+# opt-in feature is additive, and this crate's schema version is derived from
+# its package version, so letting the false positive stand would advance the
+# published command snapshot contract to 0.2 and stale every committed CLI
+# baseline without any wire change. Cap the proposal at `minor`; an explicit
+# `major` changeset still advances the contract when the wire format actually
+# breaks.
+bump_ceiling = "minor"
+
+[package.monochange_swift]
+path = "crates/monochange_swift"
+
+[package.monochange_telemetry]
+path = "crates/monochange_telemetry"
+
+[package.monochange_test_helpers]
+path = "crates/monochange_test_helpers"
 
 # =============================================================================
 # [group.*] — version groups that share a single release identity
@@ -637,54 +639,6 @@ versioned_files = [
 	{ path = "crates/monochange_snapshot/Cargo.toml", type = "cargo", fields = ["package.version"] },
 ]
 changelog = { path = "crates/monochange_snapshot/changelog.md", format = "monochange" }
-
-# =============================================================================
-# [changesets.affected] — changeset verification settings
-# =============================================================================
-#
-# Controls the `AffectedPackages` CLI step which checks whether pull requests
-# include changeset files that cover all changed packages.
-#
-# This section works independently of any source provider.
-
-[changesets.affected]
-# Whether changeset verification is enabled. When false, the AffectedPackages
-# step will refuse to run.
-# Default: true
-enabled = true
-
-# Whether a missing changeset is treated as a failure (true) or just a
-# warning (false).
-# Default: true
-required = true
-
-# Pull-request labels that skip verification entirely. `release` covers
-# automated release PRs. `no-changeset-required` is a maintainer-only
-# decision for repository-plumbing pull requests whose changed paths would
-# otherwise demand a package changeset.
-# Default: []
-skip_labels = ["release", "no-changeset-required"]
-
-# Whether to render a failure comment body in the evaluation output for
-# CI integrations to post back to the pull request.
-# Default: true
-comment_on_failure = true
-
-# Additional non-package root-level paths that should also trigger changeset
-# requirements when changed. Package directories are included automatically.
-changed_paths = ["codecov.yml"]
-
-# Files that should not trigger changeset requirements.
-ignored_paths = [
-	"**/tests/**",
-	"**/__tests__/**",
-	"**/__tests.rs",
-	"**/snapshots/**",
-	"fixtures/tests/**",
-	"crates/*/changelog.md",
-	"changelog.md",
-	"packages/*/changelog.md",
-]
 
 # =============================================================================
 # [lints] — manifest lint configuration
@@ -883,13 +837,61 @@ verified_commits = true
 body_style = "full"
 
 # =============================================================================
+# [changesets.affected] — changeset verification settings
+# =============================================================================
+#
+# Controls the `AffectedPackages` CLI step which checks whether pull requests
+# include changeset files that cover all changed packages.
+#
+# This section works independently of any source provider.
+
+[changesets.affected]
+# Whether changeset verification is enabled. When false, the AffectedPackages
+# step will refuse to run.
+# Default: true
+enabled = true
+
+# Whether a missing changeset is treated as a failure (true) or just a
+# warning (false).
+# Default: true
+required = true
+
+# Pull-request labels that skip verification entirely. `release` covers
+# automated release PRs. `no-changeset-required` is a maintainer-only
+# decision for repository-plumbing pull requests whose changed paths would
+# otherwise demand a package changeset.
+# Default: []
+skip_labels = ["release", "no-changeset-required"]
+
+# Whether to render a failure comment body in the evaluation output for
+# CI integrations to post back to the pull request.
+# Default: true
+comment_on_failure = true
+
+# Additional non-package root-level paths that should also trigger changeset
+# requirements when changed. Package directories are included automatically.
+changed_paths = ["codecov.yml"]
+
+# Files that should not trigger changeset requirements.
+ignored_paths = [
+	"**/tests/**",
+	"**/__tests__/**",
+	"**/__tests.rs",
+	"**/snapshots/**",
+	"fixtures/tests/**",
+	"crates/*/changelog.md",
+	"changelog.md",
+	"packages/*/changelog.md",
+]
+
+# =============================================================================
 # [cli.*] — user-defined CLI commands
 # =============================================================================
 #
 # Each [cli.<name>] table becomes a top-level `monochange <name>` command.
 #
 # Reserved names that cannot be used include hardcoded commands such as
-# "agent", "agents", "analyze", "check", "fix", "help", "init", "lint",
+# "agent", "agents", "analyze", "check", "fix", "format", "help", "init", "lint",
 # "lsp", "mcp", "skill", "skills", "subagents", "validate", and "version".
 #
 # Fields:
@@ -949,6 +951,13 @@ steps = [
 	{ name = "create change file", type = "CreateChangeFile", inputs = ["interactive", "package", "bump", "version", "reason", "type", "details", "output"] },
 ]
 
+[cli.publish-check]
+help_text = "Validate the release and preview package publishing in dry-run mode"
+dry_run = true
+steps = [
+	{ type = "PublishPackages", name = "publish packages dry run" },
+]
+
 [cli.release]
 help_text = "Prepare a release pull request from pending changesets (run in GitHub Actions)"
 inputs = [
@@ -968,11 +977,4 @@ steps = [
 	{ type = "Command", name = "stage schema assets", when = "{{ number_of_changesets > 0 }}", command = "git add crates/monochange_schema/SCHEMA_VERSION crates/monochange_schema/schemas docs/src/schemas" },
 	{ type = "CommitRelease", name = "create release commit", when = "{{ number_of_changesets > 0 && inputs.commit }}", inputs = { no_verify = "{{ inputs.no_verify }}", stage_all = true } },
 	{ type = "OpenReleaseRequest", name = "create the pr", when = "{{ number_of_changesets > 0 && inputs.commit && inputs.create_pr }}", inputs = { no_verify = "{{ inputs.no_verify }}", stage_all = true } },
-]
-
-[cli.publish-check]
-help_text = "Validate the release and preview package publishing in dry-run mode"
-dry_run = true
-steps = [
-	{ type = "PublishPackages", name = "publish packages dry run" },
 ]

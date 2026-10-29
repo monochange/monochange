@@ -1,0 +1,10 @@
+[source.releases]
+enabled = true
+
+[source]
+provider = "github"
+owner = "acme"
+repo = "widgets"
+
+[source.releases.attestations]
+enabled = true

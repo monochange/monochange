@@ -1,0 +1,13 @@
+#:schema ./schema.json
+
+# Project header
+# keeps this block at the top.
+
+[package.zeta]
+path = "packages/zeta"
+
+[defaults]
+package_type = "npm"
+
+[package.alpha]
+path = "packages/alpha"

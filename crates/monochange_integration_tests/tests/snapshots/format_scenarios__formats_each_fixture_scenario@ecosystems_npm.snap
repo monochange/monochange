@@ -1,0 +1,13 @@
+---
+source: crates/monochange_integration_tests/tests/format_scenarios.rs
+expression: formatted
+---
+[ecosystems.cargo]
+enabled = true
+
+[ecosystems.npm]
+enabled = true
+roots = ["packages/*"]
+
+[ecosystems.npm.publish]
+enabled = true

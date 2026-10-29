@@ -1,0 +1,4 @@
+[package]
+
+[defaults]
+package_type = "npm"
