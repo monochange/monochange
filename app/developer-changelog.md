@@ -2,6 +2,75 @@
 
 Release notes for website developers and operators.
 
+## 0.3.4
+
+### 🐛 Fixed
+
+#### Add canonical `monochange format` command
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #854](https://github.com/monochange/monochange/pull/854)
+
+Adds `monochange format` to rewrite `monochange.toml` in the idiomatic layout: top-level sections in a fixed order, `[package.*]` and `[group.*]` tables sorted by id, group members sorted alphabetically, and `[cli.*]` workflows last. Comments stay attached to their tables and the document header stays at the top.
+
+The command formats the result with taplo using the repository's tab-based, 100-column configuration, so it does not require a separate taplo installation. Use `monochange format --check` to fail CI when the file needs formatting without writing changes. The repository's `lint:monochange` task and CI lint job now run that check.
+
+#### Encrypt GitHub OAuth tokens at rest and scope the hosted API token
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #834](https://github.com/monochange/monochange/pull/834)
+
+Two changes to the monochange.dev database and hosted API:
+
+- GitHub user access and refresh tokens are now sealed with AES-256-GCM before they are written to the SQLite database, under a new required `TOKEN_ENCRYPTION_KEY` secret (`auth` section for production, generated in development and CI). A database file disclosure no longer leaks live GitHub tokens. Rows written before this change stay readable in plaintext and are replaced with sealed values the next time the token refreshes; rotating the key invalidates stored tokens and users simply sign in again.
+- The deployment-wide `MONOCHANGE_TOKEN` no longer authorizes every connected repository. It only acts on repositories listed in the new `MONOCHANGE_TOKEN_REPOSITORIES` environment variable (`owner/repo`, comma or whitespace separated, case-insensitive). Deployments that rely on the token must list the repositories it may act on, or use GitHub Actions OIDC tokens, which were already restricted per repository.
+
+#### Tighten hosted endpoint verification and startup secret checks
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #833](https://github.com/monochange/monochange/pull/833)
+
+The hosted release API now rejects three edge cases that previously slipped through verification:
+
+- GitHub Actions OIDC tokens must be signed with RS256. The verifier pinned the algorithm to the token header before, so a token that named any other algorithm selected how its own signature was checked.
+- The server refuses to start when the resolved `JWT_SECRET` is an empty string. An empty secret is a valid HMAC key, and a profile that resolves the secret to nothing would have signed session tokens anyone could forge.
+- The unreachable "repository mismatch" check after the connected-repository lookup is gone. Repositories are resolved by exact full name, so the check could never fire.
+
+The constant-time comparison used for `MONOCHANGE_TOKEN` checks is now shared with the webhook signature path instead of existing as two identical copies.
+
+#### Protect hosted release branches and pull requests
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #852](https://github.com/monochange/monochange/pull/852)
+
+Enforce hosted release authorization before creating or moving any branch. Every hosted commit must name a `<prefix>/release` branch distinct from both the requested base and the repository default. Older clients may still create or fast-forward a valid release branch without naming a base; replacing an existing release branch requires a named base whose head still matches the prepared commit.
+
+Hosted pull request updates now require a server-signed marker bound to the PR number, node ID, bot creator, repository IDs, head, and base. Requests cannot adopt an unrelated PR or enable auto-merge on it. Existing release PRs without a marker must be closed and recreated once; rotating the deployment JWT signing secret also requires recreating open release PRs. If GitHub creates a release PR but its marker update fails, close the newly created PR identified in the error before retrying.
+
+- **Preserve workflows in hosted release commits.** Hosted release commits now compare the final `.github/workflows` subtree with the prepared base for both uploaded files and prebuilt trees. Requests fail if workflow contents change, a protected directory becomes a file, or a tree listing is incomplete. Uploaded file paths must be canonical repository-relative paths and cannot replace or delete `.github` or `.github/workflows`; uploads to other `.github` files remain supported. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #849](https://github.com/monochange/monochange/pull/849)
+
+#### Bound OAuth work and reject callback replays
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #847](https://github.com/monochange/monochange/pull/847)
+
+`/login` and `/auth/callback` now consume the anonymous address bucket before server rendering. Valid signed callback state is atomically consumed in SQLite before the provider exchange, so replaying the original cookie cannot trigger more exchanges, including after a process restart. Failed exchanges also consume their state; start a fresh sign-in attempt to retry.
+
+The application runs migration `006_create_oauth_state_uses` on startup. Consumed states are retained until their signed expiry and pruned during subsequent callbacks. Provider token requests have a ten-second timeout, and each app process permits at most sixteen concurrent exchanges. Saturated requests can retry their existing state because capacity rejection happens before consumption. Existing rate-limit environment variables continue to control the address bucket.
+
+#### Bound OIDC signing key refreshes independently of token key IDs
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #848](https://github.com/monochange/monochange/pull/848)
+
+Authentication for `POST /api/release-commits` and `POST /api/release-requests` now rejects unknown signing key IDs from a fresh JWKS cache without contacting GitHub. The cache remains valid for ten minutes. Concurrent refreshes share one request, and a shared retry deadline of thirty seconds prevents failed or cancelled attempts from restarting once per key ID. Invalid tokens can no longer force one provider request per attempt.
+
+A signing key first published by GitHub while the cache is fresh is not fetched or accepted until that ten-minute cache expires.
+
+JWKS responses must have a successful HTTP status and fit within 64 KiB before parsing. Failed refreshes retain the previous key set but do not authorize tokens with expired keys. Deployments and workflow callers need no configuration changes.
+
+#### Authorize organization access through stable provider identities
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #846](https://github.com/monochange/monochange/pull/846)
+
+Bind dashboard organization and project authorization to each installation's stable provider account ID. GitHub membership responses must identify that same account before granting repository access, and legacy installations resolve their identity before membership checks. Organization logins remain display metadata; duplicate stored logins cannot select a tenant through public project routes. No configuration or data migration is required.
+
+- **Clarify release-record validation in the CLI guide.** The `CommitRelease` reference now keeps mismatch protection enabled in its formatting example. It explains which prepared fields are checked, how rejected records preserve neighboring release records, and when deliberate recovery with `update_release_json = true` is appropriate. Whitespace and JSON key ordering require no configuration change. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #850](https://github.com/monochange/monochange/pull/850)
+
 ## 0.3.3
 
 ### 🐛 Fixed

@@ -1,0 +1,3057 @@
+{
+	"schema_version": "0.10",
+	"kind": "monochange.releaseRecord",
+	"created_at": "2026-10-29T11:07:43Z",
+	"command": "release",
+	"version": null,
+	"versions": {
+		"main": "0.21.1",
+		"monochange_app": "0.3.4",
+		"monochange_classification": "0.4.9"
+	},
+	"release_targets": [
+		{
+			"id": "main",
+			"kind": "group",
+			"version": "0.21.1",
+			"version_format": "primary",
+			"tag": true,
+			"release": true,
+			"tag_name": "v0.21.1",
+			"rendered_title": "v0.21.1 (2026-10-29)",
+			"rendered_changelog_title": "[0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)",
+			"members": [
+				"@monochange/cli",
+				"@monochange/cli-darwin-arm64",
+				"@monochange/cli-darwin-x64",
+				"@monochange/cli-linux-arm64-gnu",
+				"@monochange/cli-linux-arm64-musl",
+				"@monochange/cli-linux-x64-gnu",
+				"@monochange/cli-linux-x64-musl",
+				"@monochange/cli-win32-arm64-msvc",
+				"@monochange/cli-win32-x64-msvc",
+				"@monochange/skill",
+				"monochange",
+				"monochange_analysis",
+				"monochange_cargo",
+				"monochange_changelog",
+				"monochange_cocoapods",
+				"monochange_config",
+				"monochange_core",
+				"monochange_dart",
+				"monochange_deno",
+				"monochange_ecmascript",
+				"monochange_forgejo",
+				"monochange_gitea",
+				"monochange_github",
+				"monochange_gitlab",
+				"monochange_go",
+				"monochange_gradle",
+				"monochange_graph",
+				"monochange_hosting",
+				"monochange_lint",
+				"monochange_linting",
+				"monochange_npm",
+				"monochange_publish",
+				"monochange_python",
+				"monochange_semver",
+				"monochange_swift",
+				"monochange_telemetry",
+				"monochange_test_helpers"
+			]
+		},
+		{
+			"id": "monochange_app",
+			"kind": "package",
+			"version": "0.3.4",
+			"version_format": "namespaced",
+			"tag": true,
+			"release": true,
+			"tag_name": "monochange_app/v0.3.4",
+			"rendered_title": "monochange.dev 0.3.4",
+			"rendered_changelog_title": "0.3.4",
+			"members": [
+				"monochange_app"
+			]
+		},
+		{
+			"id": "monochange_classification",
+			"kind": "package",
+			"version": "0.4.9",
+			"version_format": "namespaced",
+			"tag": true,
+			"release": false,
+			"tag_name": "monochange_classification/v0.4.9",
+			"rendered_title": "monochange_classification v0.4.9 (2026-10-29)",
+			"rendered_changelog_title": "monochange_classification [0.4.9](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.4.9) (2026-10-29)",
+			"members": [
+				"monochange_classification"
+			]
+		}
+	],
+	"released_packages": [
+		"@monochange/cli",
+		"@monochange/cli-darwin-arm64",
+		"@monochange/cli-darwin-x64",
+		"@monochange/cli-linux-arm64-gnu",
+		"@monochange/cli-linux-arm64-musl",
+		"@monochange/cli-linux-x64-gnu",
+		"@monochange/cli-linux-x64-musl",
+		"@monochange/cli-win32-arm64-msvc",
+		"@monochange/cli-win32-x64-msvc",
+		"@monochange/skill",
+		"monochange",
+		"monochange_analysis",
+		"monochange_app",
+		"monochange_cargo",
+		"monochange_changelog",
+		"monochange_classification",
+		"monochange_cocoapods",
+		"monochange_config",
+		"monochange_core",
+		"monochange_dart",
+		"monochange_deno",
+		"monochange_ecmascript",
+		"monochange_forgejo",
+		"monochange_gitea",
+		"monochange_github",
+		"monochange_gitlab",
+		"monochange_go",
+		"monochange_gradle",
+		"monochange_graph",
+		"monochange_hosting",
+		"monochange_lint",
+		"monochange_linting",
+		"monochange_npm",
+		"monochange_publish",
+		"monochange_python",
+		"monochange_semver",
+		"monochange_swift",
+		"monochange_telemetry",
+		"monochange_test_helpers"
+	],
+	"changed_files": [
+		"Cargo.lock",
+		"Cargo.toml",
+		"app/Cargo.lock",
+		"app/Cargo.toml",
+		"app/changelog.md",
+		"app/crates/monochange_app/Cargo.toml",
+		"app/developer-changelog.md",
+		"app/public/releases/0.3.4.json",
+		"changelog.md",
+		"crates/monochange/Cargo.toml",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/Cargo.toml",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/Cargo.toml",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/Cargo.toml",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_classification/Cargo.toml",
+		"crates/monochange_classification/changelog.md",
+		"crates/monochange_cocoapods/Cargo.toml",
+		"crates/monochange_cocoapods/changelog.md",
+		"crates/monochange_config/Cargo.toml",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/Cargo.toml",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/Cargo.toml",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/Cargo.toml",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/Cargo.toml",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/Cargo.toml",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/Cargo.toml",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/Cargo.toml",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/Cargo.toml",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/Cargo.toml",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_gradle/Cargo.toml",
+		"crates/monochange_gradle/changelog.md",
+		"crates/monochange_graph/Cargo.toml",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/Cargo.toml",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/Cargo.toml",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/Cargo.toml",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/Cargo.toml",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/Cargo.toml",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/Cargo.toml",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_semver/Cargo.toml",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_swift/Cargo.toml",
+		"crates/monochange_swift/changelog.md",
+		"crates/monochange_telemetry/Cargo.toml",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/Cargo.toml",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli/package.json",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-arm64/package.json",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-darwin-x64/package.json",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/package.json",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/package.json",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/package.json",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/package.json",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/package.json",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/package.json",
+		"packages/monochange__skill/changelog.md",
+		"packages/monochange__skill/package.json",
+		"pnpm-lock.yaml"
+	],
+	"package_publications": [
+		{
+			"package": "@monochange/cli",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.21.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-arm64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.21.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-x64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.21.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.21.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.21.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.21.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.21.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-arm64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.21.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-x64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.21.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/skill",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.21.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_analysis",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_cargo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_changelog",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_classification",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.4.9",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_cocoapods",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_config",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_core",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_dart",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_deno",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_ecmascript",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_forgejo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitea",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_github",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitlab",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_go",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gradle",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_graph",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_hosting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_lint",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_linting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_npm",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_publish",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_python",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_semver",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_swift",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_telemetry",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_test_helpers",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.21.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		}
+	],
+	"updated_changelogs": [
+		"app/changelog.md",
+		"app/developer-changelog.md",
+		"app/public/releases/0.3.4.json",
+		"changelog.md",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_classification/changelog.md",
+		"crates/monochange_cocoapods/changelog.md",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_gradle/changelog.md",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_swift/changelog.md",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__skill/changelog.md"
+	],
+	"deleted_changesets": [
+		".changeset/format-configuration-ordering.md",
+		".changeset/github-oauth-token-encryption.md",
+		".changeset/hosted-api-verification-hardening.md",
+		".changeset/hosted-release-authorization.md",
+		".changeset/hosted-workflow-integrity.md",
+		".changeset/oauth-callback-replay-limits.md",
+		".changeset/oidc-jwks-refresh-policy.md",
+		".changeset/organization-identity-authorization.md",
+		".changeset/organization-project-ownership.md",
+		".changeset/release-record-integrity.md",
+		".changeset/release-record-validation-guide.md",
+		".changeset/sign-in-retries.md"
+	],
+	"changesets": [
+		{
+			"path": ".changeset/format-configuration-ordering.md",
+			"summary": "Add canonical `monochange format` command",
+			"details": "Adds `monochange format` to rewrite `monochange.toml` in the idiomatic layout: top-level sections in a fixed order, `[package.*]` and `[group.*]` tables sorted by id, group members sorted alphabetically, and `[cli.*]` workflows last. Comments stay attached to their tables and the document header stays at the top.\n\nThe command formats the result with taplo using the repository's tab-based, 100-column configuration, so it does not require a separate taplo installation. Use `monochange format --check` to fail CI when the file needs formatting without writing changes. The repository's `lint:monochange` task and CI lint job now run that check.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monochange_config",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "@monochange/skill",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "f4faeebdd46ea05ce5ce0fb18f35adad98a60792",
+						"short_sha": "f4faeeb",
+						"url": "https://github.com/monochange/monochange/commit/f4faeebdd46ea05ce5ce0fb18f35adad98a60792",
+						"authored_at": "2026-10-29T10:41:08Z",
+						"committed_at": "2026-10-29T10:41:08Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#854",
+						"title": "feat: add monochange format command",
+						"url": "https://github.com/monochange/monochange/pull/854",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "f4faeebdd46ea05ce5ce0fb18f35adad98a60792",
+						"short_sha": "f4faeeb",
+						"url": "https://github.com/monochange/monochange/commit/f4faeebdd46ea05ce5ce0fb18f35adad98a60792",
+						"authored_at": "2026-10-29T10:41:08Z",
+						"committed_at": "2026-10-29T10:41:08Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#854",
+						"title": "feat: add monochange format command",
+						"url": "https://github.com/monochange/monochange/pull/854",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/github-oauth-token-encryption.md",
+			"summary": "Encrypt GitHub OAuth tokens at rest and scope the hosted API token",
+			"details": "Two changes to the monochange.dev database and hosted API:\n\n- GitHub user access and refresh tokens are now sealed with AES-256-GCM before they are written to the SQLite database, under a new required `TOKEN_ENCRYPTION_KEY` secret (`auth` section for production, generated in development and CI). A database file disclosure no longer leaks live GitHub tokens. Rows written before this change stay readable in plaintext and are replaced with sealed values the next time the token refreshes; rotating the key invalidates stored tokens and users simply sign in again.\n- The deployment-wide `MONOCHANGE_TOKEN` no longer authorizes every connected repository. It only acts on repositories listed in the new `MONOCHANGE_TOKEN_REPOSITORIES` environment variable (`owner/repo`, comma or whitespace separated, case-insensitive). Deployments that rely on the token must list the repositories it may act on, or use GitHub Actions OIDC tokens, which were already restricted per repository.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "1d7d30c3a8b63c92633513ea21cb785b71e1dc77",
+						"short_sha": "1d7d30c",
+						"url": "https://github.com/monochange/monochange/commit/1d7d30c3a8b63c92633513ea21cb785b71e1dc77",
+						"authored_at": "2026-10-28T09:34:44Z",
+						"committed_at": "2026-10-28T09:34:44Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#834",
+						"title": "fix(app): seal stored OAuth tokens and scope the hosted API token",
+						"url": "https://github.com/monochange/monochange/pull/834",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "1d7d30c3a8b63c92633513ea21cb785b71e1dc77",
+						"short_sha": "1d7d30c",
+						"url": "https://github.com/monochange/monochange/commit/1d7d30c3a8b63c92633513ea21cb785b71e1dc77",
+						"authored_at": "2026-10-28T09:34:44Z",
+						"committed_at": "2026-10-28T09:34:44Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#834",
+						"title": "fix(app): seal stored OAuth tokens and scope the hosted API token",
+						"url": "https://github.com/monochange/monochange/pull/834",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/hosted-api-verification-hardening.md",
+			"summary": "Tighten hosted endpoint verification and startup secret checks",
+			"details": "The hosted release API now rejects three edge cases that previously slipped through verification:\n\n- GitHub Actions OIDC tokens must be signed with RS256. The verifier pinned the algorithm to the token header before, so a token that named any other algorithm selected how its own signature was checked.\n- The server refuses to start when the resolved `JWT_SECRET` is an empty string. An empty secret is a valid HMAC key, and a profile that resolves the secret to nothing would have signed session tokens anyone could forge.\n- The unreachable \"repository mismatch\" check after the connected-repository lookup is gone. Repositories are resolved by exact full name, so the check could never fire.\n\nThe constant-time comparison used for `MONOCHANGE_TOKEN` checks is now shared with the webhook signature path instead of existing as two identical copies.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "de5222464fb0a692215d9d5bb2391449975a6a90",
+						"short_sha": "de52224",
+						"url": "https://github.com/monochange/monochange/commit/de5222464fb0a692215d9d5bb2391449975a6a90",
+						"authored_at": "2026-10-28T09:34:44Z",
+						"committed_at": "2026-10-28T09:34:44Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#833",
+						"title": "fix/app hosted api auth",
+						"url": "https://github.com/monochange/monochange/pull/833",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "de5222464fb0a692215d9d5bb2391449975a6a90",
+						"short_sha": "de52224",
+						"url": "https://github.com/monochange/monochange/commit/de5222464fb0a692215d9d5bb2391449975a6a90",
+						"authored_at": "2026-10-28T09:34:44Z",
+						"committed_at": "2026-10-28T09:34:44Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#833",
+						"title": "fix/app hosted api auth",
+						"url": "https://github.com/monochange/monochange/pull/833",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/hosted-release-authorization.md",
+			"summary": "Protect hosted release branches and pull requests",
+			"details": "Enforce hosted release authorization before creating or moving any branch. Every hosted commit must name a `<prefix>/release` branch distinct from both the requested base and the repository default. Older clients may still create or fast-forward a valid release branch without naming a base; replacing an existing release branch requires a named base whose head still matches the prepared commit.\n\nHosted pull request updates now require a server-signed marker bound to the PR number, node ID, bot creator, repository IDs, head, and base. Requests cannot adopt an unrelated PR or enable auto-merge on it. Existing release PRs without a marker must be closed and recreated once; rotating the deployment JWT signing secret also requires recreating open release PRs. If GitHub creates a release PR but its marker update fails, close the newly created PR identified in the error before retrying.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "7307e37807c09b5bb89c3363795fff0fb4f7639e",
+						"short_sha": "7307e37",
+						"url": "https://github.com/monochange/monochange/commit/7307e37807c09b5bb89c3363795fff0fb4f7639e",
+						"authored_at": "2026-10-28T17:08:30Z",
+						"committed_at": "2026-10-28T17:08:30Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#852",
+						"title": "fix(app): enforce release branch policy and PR provenance",
+						"url": "https://github.com/monochange/monochange/pull/852",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "7307e37807c09b5bb89c3363795fff0fb4f7639e",
+						"short_sha": "7307e37",
+						"url": "https://github.com/monochange/monochange/commit/7307e37807c09b5bb89c3363795fff0fb4f7639e",
+						"authored_at": "2026-10-28T17:08:30Z",
+						"committed_at": "2026-10-28T17:08:30Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#852",
+						"title": "fix(app): enforce release branch policy and PR provenance",
+						"url": "https://github.com/monochange/monochange/pull/852",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/hosted-workflow-integrity.md",
+			"summary": "Preserve workflows in hosted release commits",
+			"details": "Hosted release commits now compare the final `.github/workflows` subtree with the prepared base for both uploaded files and prebuilt trees. Requests fail if workflow contents change, a protected directory becomes a file, or a tree listing is incomplete. Uploaded file paths must be canonical repository-relative paths and cannot replace or delete `.github` or `.github/workflows`; uploads to other `.github` files remain supported.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "4abb6a129f81f7beaa22cda7609d93e64812910d",
+						"short_sha": "4abb6a1",
+						"url": "https://github.com/monochange/monochange/commit/4abb6a129f81f7beaa22cda7609d93e64812910d",
+						"authored_at": "2026-10-28T08:51:13Z",
+						"committed_at": "2026-10-28T08:51:13Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#849",
+						"title": "fix(app): preserve workflows in hosted release commits",
+						"url": "https://github.com/monochange/monochange/pull/849",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "4abb6a129f81f7beaa22cda7609d93e64812910d",
+						"short_sha": "4abb6a1",
+						"url": "https://github.com/monochange/monochange/commit/4abb6a129f81f7beaa22cda7609d93e64812910d",
+						"authored_at": "2026-10-28T08:51:13Z",
+						"committed_at": "2026-10-28T08:51:13Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#849",
+						"title": "fix(app): preserve workflows in hosted release commits",
+						"url": "https://github.com/monochange/monochange/pull/849",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/oauth-callback-replay-limits.md",
+			"summary": "Bound OAuth work and reject callback replays",
+			"details": "`/login` and `/auth/callback` now consume the anonymous address bucket before server rendering. Valid signed callback state is atomically consumed in SQLite before the provider exchange, so replaying the original cookie cannot trigger more exchanges, including after a process restart. Failed exchanges also consume their state; start a fresh sign-in attempt to retry.\n\nThe application runs migration `006_create_oauth_state_uses` on startup. Consumed states are retained until their signed expiry and pruned during subsequent callbacks. Provider token requests have a ten-second timeout, and each app process permits at most sixteen concurrent exchanges. Saturated requests can retry their existing state because capacity rejection happens before consumption. Existing rate-limit environment variables continue to control the address bucket.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "3aee8b03925db096fed64d4a4a187c3e5c50ac73",
+						"short_sha": "3aee8b0",
+						"url": "https://github.com/monochange/monochange/commit/3aee8b03925db096fed64d4a4a187c3e5c50ac73",
+						"authored_at": "2026-10-28T09:12:57Z",
+						"committed_at": "2026-10-28T09:12:57Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#847",
+						"title": "fix(oauth): limit SSR sign-ins and reject callback replays",
+						"url": "https://github.com/monochange/monochange/pull/847",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "3aee8b03925db096fed64d4a4a187c3e5c50ac73",
+						"short_sha": "3aee8b0",
+						"url": "https://github.com/monochange/monochange/commit/3aee8b03925db096fed64d4a4a187c3e5c50ac73",
+						"authored_at": "2026-10-28T09:12:57Z",
+						"committed_at": "2026-10-28T09:12:57Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#847",
+						"title": "fix(oauth): limit SSR sign-ins and reject callback replays",
+						"url": "https://github.com/monochange/monochange/pull/847",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/oidc-jwks-refresh-policy.md",
+			"summary": "Bound OIDC signing key refreshes independently of token key IDs",
+			"details": "Authentication for `POST /api/release-commits` and `POST /api/release-requests` now rejects unknown signing key IDs from a fresh JWKS cache without contacting GitHub. The cache remains valid for ten minutes. Concurrent refreshes share one request, and a shared retry deadline of thirty seconds prevents failed or cancelled attempts from restarting once per key ID. Invalid tokens can no longer force one provider request per attempt.\n\nA signing key first published by GitHub while the cache is fresh is not fetched or accepted until that ten-minute cache expires.\n\nJWKS responses must have a successful HTTP status and fit within 64 KiB before parsing. Failed refreshes retain the previous key set but do not authorize tokens with expired keys. Deployments and workflow callers need no configuration changes.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "94f20ead1841219e45cff21801257168050995e3",
+						"short_sha": "94f20ea",
+						"url": "https://github.com/monochange/monochange/commit/94f20ead1841219e45cff21801257168050995e3",
+						"authored_at": "2026-10-28T04:20:34Z",
+						"committed_at": "2026-10-28T04:20:34Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#848",
+						"title": "fix(app): bound OIDC signing key refreshes",
+						"url": "https://github.com/monochange/monochange/pull/848",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "94f20ead1841219e45cff21801257168050995e3",
+						"short_sha": "94f20ea",
+						"url": "https://github.com/monochange/monochange/commit/94f20ead1841219e45cff21801257168050995e3",
+						"authored_at": "2026-10-28T04:20:34Z",
+						"committed_at": "2026-10-28T04:20:34Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#848",
+						"title": "fix(app): bound OIDC signing key refreshes",
+						"url": "https://github.com/monochange/monochange/pull/848",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/organization-identity-authorization.md",
+			"summary": "Authorize organization access through stable provider identities",
+			"details": "Bind dashboard organization and project authorization to each installation's stable provider account ID. GitHub membership responses must identify that same account before granting repository access, and legacy installations resolve their identity before membership checks. Organization logins remain display metadata; duplicate stored logins cannot select a tenant through public project routes. No configuration or data migration is required.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "eeaf90a563bdb3bb094c642bf36c1bb405ec4182",
+						"short_sha": "eeaf90a",
+						"url": "https://github.com/monochange/monochange/commit/eeaf90a563bdb3bb094c642bf36c1bb405ec4182",
+						"authored_at": "2026-10-28T08:56:20Z",
+						"committed_at": "2026-10-28T08:56:20Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#846",
+						"title": "fix(app): bind organization access to stable account IDs",
+						"url": "https://github.com/monochange/monochange/pull/846",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "eeaf90a563bdb3bb094c642bf36c1bb405ec4182",
+						"short_sha": "eeaf90a",
+						"url": "https://github.com/monochange/monochange/commit/eeaf90a563bdb3bb094c642bf36c1bb405ec4182",
+						"authored_at": "2026-10-28T08:56:20Z",
+						"committed_at": "2026-10-28T08:56:20Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#846",
+						"title": "fix(app): bind organization access to stable account IDs",
+						"url": "https://github.com/monochange/monochange/pull/846",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/organization-project-ownership.md",
+			"summary": "Keep projects with the correct GitHub organization",
+			"details": "Projects and their settings stay with the correct GitHub organization when a former name is reused by another account.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "website_fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "eeaf90a563bdb3bb094c642bf36c1bb405ec4182",
+						"short_sha": "eeaf90a",
+						"url": "https://github.com/monochange/monochange/commit/eeaf90a563bdb3bb094c642bf36c1bb405ec4182",
+						"authored_at": "2026-10-28T08:56:20Z",
+						"committed_at": "2026-10-28T08:56:20Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#846",
+						"title": "fix(app): bind organization access to stable account IDs",
+						"url": "https://github.com/monochange/monochange/pull/846",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "eeaf90a563bdb3bb094c642bf36c1bb405ec4182",
+						"short_sha": "eeaf90a",
+						"url": "https://github.com/monochange/monochange/commit/eeaf90a563bdb3bb094c642bf36c1bb405ec4182",
+						"authored_at": "2026-10-28T08:56:20Z",
+						"committed_at": "2026-10-28T08:56:20Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#846",
+						"title": "fix(app): bind organization access to stable account IDs",
+						"url": "https://github.com/monochange/monochange/pull/846",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/release-record-integrity.md",
+			"summary": "Verify the complete prepared release record",
+			"details": "Reject modified release records before `CommitRelease`, even when their target IDs and versions still match the prepared release. Tag settings, package publication targets, provider metadata, changelogs, and release values must match the prepared manifest. A valid preparation timestamp and JSON key ordering remain unchanged. Rejected records leave overlapping release records untouched. If the expected record cannot be serialized, validation reports the cause before writing.\n\nPreviously, `monochange step commit-release` could accept a record with matching targets but modified release instructions. It now reports a content mismatch. `PrepareRelease` preserves existing records. Recovery requires restoring the record from a trusted preparation, or explicitly configuring `update_release_json = true` on `CommitRelease` to restore the expected record.\n\nPrepared-release caches retain the originating command so separately invoked `prepare-release`, `commit-release`, and `open-release-request` steps validate the same record. Branch selection and command output continue to describe the current invocation. Older caches still load for inspection; before committing or opening a release request, rerun the original `PrepareRelease` workflow from trusted workspace inputs to establish that identity. Changing the producer command also requires restoring the expected record from trusted preparation or explicitly enabling `update_release_json` repair. Preparation preserves existing record bytes; record command changes remain a content mismatch.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "49ea2400a63118554b2a99840fc38b7005a8096a",
+						"short_sha": "49ea240",
+						"url": "https://github.com/monochange/monochange/commit/49ea2400a63118554b2a99840fc38b7005a8096a",
+						"authored_at": "2026-10-28T15:56:04Z",
+						"committed_at": "2026-10-28T15:56:04Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#850",
+						"title": "fix(release): validate complete prepared release records",
+						"url": "https://github.com/monochange/monochange/pull/850",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "49ea2400a63118554b2a99840fc38b7005a8096a",
+						"short_sha": "49ea240",
+						"url": "https://github.com/monochange/monochange/commit/49ea2400a63118554b2a99840fc38b7005a8096a",
+						"authored_at": "2026-10-28T15:56:04Z",
+						"committed_at": "2026-10-28T15:56:04Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#850",
+						"title": "fix(release): validate complete prepared release records",
+						"url": "https://github.com/monochange/monochange/pull/850",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/release-record-validation-guide.md",
+			"summary": "Clarify release-record validation in the CLI guide",
+			"details": "The `CommitRelease` reference now keeps mismatch protection enabled in its formatting example. It explains which prepared fields are checked, how rejected records preserve neighboring release records, and when deliberate recovery with `update_release_json = true` is appropriate. Whitespace and JSON key ordering require no configuration change.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "49ea2400a63118554b2a99840fc38b7005a8096a",
+						"short_sha": "49ea240",
+						"url": "https://github.com/monochange/monochange/commit/49ea2400a63118554b2a99840fc38b7005a8096a",
+						"authored_at": "2026-10-28T15:56:04Z",
+						"committed_at": "2026-10-28T15:56:04Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#850",
+						"title": "fix(release): validate complete prepared release records",
+						"url": "https://github.com/monochange/monochange/pull/850",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "49ea2400a63118554b2a99840fc38b7005a8096a",
+						"short_sha": "49ea240",
+						"url": "https://github.com/monochange/monochange/commit/49ea2400a63118554b2a99840fc38b7005a8096a",
+						"authored_at": "2026-10-28T15:56:04Z",
+						"committed_at": "2026-10-28T15:56:04Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#850",
+						"title": "fix(release): validate complete prepared release records",
+						"url": "https://github.com/monochange/monochange/pull/850",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/sign-in-retries.md",
+			"summary": "Protect sign-in attempts during retries",
+			"details": "Refreshing a sign-in result can no longer submit the same attempt to GitHub again. If GitHub sign-in fails, start again from the sign-in page. During heavy sign-in traffic, the site may ask you to wait briefly and try again.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "website_fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "3aee8b03925db096fed64d4a4a187c3e5c50ac73",
+						"short_sha": "3aee8b0",
+						"url": "https://github.com/monochange/monochange/commit/3aee8b03925db096fed64d4a4a187c3e5c50ac73",
+						"authored_at": "2026-10-28T09:12:57Z",
+						"committed_at": "2026-10-28T09:12:57Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#847",
+						"title": "fix(oauth): limit SSR sign-ins and reject callback replays",
+						"url": "https://github.com/monochange/monochange/pull/847",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "3aee8b03925db096fed64d4a4a187c3e5c50ac73",
+						"short_sha": "3aee8b0",
+						"url": "https://github.com/monochange/monochange/commit/3aee8b03925db096fed64d4a4a187c3e5c50ac73",
+						"authored_at": "2026-10-28T09:12:57Z",
+						"committed_at": "2026-10-28T09:12:57Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#847",
+						"title": "fix(oauth): limit SSR sign-ins and reject callback replays",
+						"url": "https://github.com/monochange/monochange/pull/847",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		}
+	],
+	"changelogs": [
+		{
+			"owner_id": "monochange_app",
+			"owner_kind": "package",
+			"output": "website",
+			"stream": "website",
+			"path": "app/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "0.3.4",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Improved",
+						"collapsed": false,
+						"entries": [
+							"- **Keep projects with the correct GitHub organization.** Projects and their settings stay with the correct GitHub organization when a former name is reused by another account.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #846](https://github.com/monochange/monochange/pull/846)",
+							"- **Protect sign-in attempts during retries.** Refreshing a sign-in result can no longer submit the same attempt to GitHub again. If GitHub sign-in fails, start again from the sign-in page. During heavy sign-in traffic, the site may ask you to wait briefly and try again.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #847](https://github.com/monochange/monochange/pull/847)"
+						]
+					}
+				]
+			},
+			"rendered": "## 0.3.4\n\n### Improved\n\n- **Keep projects with the correct GitHub organization.** Projects and their settings stay with the correct GitHub organization when a former name is reused by another account.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #846](https://github.com/monochange/monochange/pull/846)\n- **Protect sign-in attempts during retries.** Refreshing a sign-in result can no longer submit the same attempt to GitHub again. If GitHub sign-in fails, start again from the sign-in page. During heavy sign-in traffic, the site may ask you to wait briefly and try again.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #847](https://github.com/monochange/monochange/pull/847)"
+		},
+		{
+			"owner_id": "monochange_app",
+			"owner_kind": "package",
+			"output": "website_developer",
+			"stream": "default",
+			"path": "app/developer-changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "0.3.4",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Add canonical `monochange format` command\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #854](https://github.com/monochange/monochange/pull/854)\n\nAdds `monochange format` to rewrite `monochange.toml` in the idiomatic layout: top-level sections in a fixed order, `[package.*]` and `[group.*]` tables sorted by id, group members sorted alphabetically, and `[cli.*]` workflows last. Comments stay attached to their tables and the document header stays at the top.\n\nThe command formats the result with taplo using the repository's tab-based, 100-column configuration, so it does not require a separate taplo installation. Use `monochange format --check` to fail CI when the file needs formatting without writing changes. The repository's `lint:monochange` task and CI lint job now run that check.",
+							"#### Encrypt GitHub OAuth tokens at rest and scope the hosted API token\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #834](https://github.com/monochange/monochange/pull/834)\n\nTwo changes to the monochange.dev database and hosted API:\n\n- GitHub user access and refresh tokens are now sealed with AES-256-GCM before they are written to the SQLite database, under a new required `TOKEN_ENCRYPTION_KEY` secret (`auth` section for production, generated in development and CI). A database file disclosure no longer leaks live GitHub tokens. Rows written before this change stay readable in plaintext and are replaced with sealed values the next time the token refreshes; rotating the key invalidates stored tokens and users simply sign in again.\n- The deployment-wide `MONOCHANGE_TOKEN` no longer authorizes every connected repository. It only acts on repositories listed in the new `MONOCHANGE_TOKEN_REPOSITORIES` environment variable (`owner/repo`, comma or whitespace separated, case-insensitive). Deployments that rely on the token must list the repositories it may act on, or use GitHub Actions OIDC tokens, which were already restricted per repository.",
+							"#### Tighten hosted endpoint verification and startup secret checks\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #833](https://github.com/monochange/monochange/pull/833)\n\nThe hosted release API now rejects three edge cases that previously slipped through verification:\n\n- GitHub Actions OIDC tokens must be signed with RS256. The verifier pinned the algorithm to the token header before, so a token that named any other algorithm selected how its own signature was checked.\n- The server refuses to start when the resolved `JWT_SECRET` is an empty string. An empty secret is a valid HMAC key, and a profile that resolves the secret to nothing would have signed session tokens anyone could forge.\n- The unreachable \"repository mismatch\" check after the connected-repository lookup is gone. Repositories are resolved by exact full name, so the check could never fire.\n\nThe constant-time comparison used for `MONOCHANGE_TOKEN` checks is now shared with the webhook signature path instead of existing as two identical copies.",
+							"#### Protect hosted release branches and pull requests\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #852](https://github.com/monochange/monochange/pull/852)\n\nEnforce hosted release authorization before creating or moving any branch. Every hosted commit must name a `<prefix>/release` branch distinct from both the requested base and the repository default. Older clients may still create or fast-forward a valid release branch without naming a base; replacing an existing release branch requires a named base whose head still matches the prepared commit.\n\nHosted pull request updates now require a server-signed marker bound to the PR number, node ID, bot creator, repository IDs, head, and base. Requests cannot adopt an unrelated PR or enable auto-merge on it. Existing release PRs without a marker must be closed and recreated once; rotating the deployment JWT signing secret also requires recreating open release PRs. If GitHub creates a release PR but its marker update fails, close the newly created PR identified in the error before retrying.",
+							"- **Preserve workflows in hosted release commits.** Hosted release commits now compare the final `.github/workflows` subtree with the prepared base for both uploaded files and prebuilt trees. Requests fail if workflow contents change, a protected directory becomes a file, or a tree listing is incomplete. Uploaded file paths must be canonical repository-relative paths and cannot replace or delete `.github` or `.github/workflows`; uploads to other `.github` files remain supported.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #849](https://github.com/monochange/monochange/pull/849)",
+							"#### Bound OAuth work and reject callback replays\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #847](https://github.com/monochange/monochange/pull/847)\n\n`/login` and `/auth/callback` now consume the anonymous address bucket before server rendering. Valid signed callback state is atomically consumed in SQLite before the provider exchange, so replaying the original cookie cannot trigger more exchanges, including after a process restart. Failed exchanges also consume their state; start a fresh sign-in attempt to retry.\n\nThe application runs migration `006_create_oauth_state_uses` on startup. Consumed states are retained until their signed expiry and pruned during subsequent callbacks. Provider token requests have a ten-second timeout, and each app process permits at most sixteen concurrent exchanges. Saturated requests can retry their existing state because capacity rejection happens before consumption. Existing rate-limit environment variables continue to control the address bucket.",
+							"#### Bound OIDC signing key refreshes independently of token key IDs\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #848](https://github.com/monochange/monochange/pull/848)\n\nAuthentication for `POST /api/release-commits` and `POST /api/release-requests` now rejects unknown signing key IDs from a fresh JWKS cache without contacting GitHub. The cache remains valid for ten minutes. Concurrent refreshes share one request, and a shared retry deadline of thirty seconds prevents failed or cancelled attempts from restarting once per key ID. Invalid tokens can no longer force one provider request per attempt.\n\nA signing key first published by GitHub while the cache is fresh is not fetched or accepted until that ten-minute cache expires.\n\nJWKS responses must have a successful HTTP status and fit within 64 KiB before parsing. Failed refreshes retain the previous key set but do not authorize tokens with expired keys. Deployments and workflow callers need no configuration changes.",
+							"#### Authorize organization access through stable provider identities\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #846](https://github.com/monochange/monochange/pull/846)\n\nBind dashboard organization and project authorization to each installation's stable provider account ID. GitHub membership responses must identify that same account before granting repository access, and legacy installations resolve their identity before membership checks. Organization logins remain display metadata; duplicate stored logins cannot select a tenant through public project routes. No configuration or data migration is required.",
+							"- **Clarify release-record validation in the CLI guide.** The `CommitRelease` reference now keeps mismatch protection enabled in its formatting example. It explains which prepared fields are checked, how rejected records preserve neighboring release records, and when deliberate recovery with `update_release_json = true` is appropriate. Whitespace and JSON key ordering require no configuration change.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #850](https://github.com/monochange/monochange/pull/850)"
+						]
+					}
+				]
+			},
+			"rendered": "## 0.3.4\n\n### 🐛 Fixed\n\n#### Add canonical `monochange format` command\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #854](https://github.com/monochange/monochange/pull/854)\n\nAdds `monochange format` to rewrite `monochange.toml` in the idiomatic layout: top-level sections in a fixed order, `[package.*]` and `[group.*]` tables sorted by id, group members sorted alphabetically, and `[cli.*]` workflows last. Comments stay attached to their tables and the document header stays at the top.\n\nThe command formats the result with taplo using the repository's tab-based, 100-column configuration, so it does not require a separate taplo installation. Use `monochange format --check` to fail CI when the file needs formatting without writing changes. The repository's `lint:monochange` task and CI lint job now run that check.\n\n#### Encrypt GitHub OAuth tokens at rest and scope the hosted API token\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #834](https://github.com/monochange/monochange/pull/834)\n\nTwo changes to the monochange.dev database and hosted API:\n\n- GitHub user access and refresh tokens are now sealed with AES-256-GCM before they are written to the SQLite database, under a new required `TOKEN_ENCRYPTION_KEY` secret (`auth` section for production, generated in development and CI). A database file disclosure no longer leaks live GitHub tokens. Rows written before this change stay readable in plaintext and are replaced with sealed values the next time the token refreshes; rotating the key invalidates stored tokens and users simply sign in again.\n- The deployment-wide `MONOCHANGE_TOKEN` no longer authorizes every connected repository. It only acts on repositories listed in the new `MONOCHANGE_TOKEN_REPOSITORIES` environment variable (`owner/repo`, comma or whitespace separated, case-insensitive). Deployments that rely on the token must list the repositories it may act on, or use GitHub Actions OIDC tokens, which were already restricted per repository.\n\n#### Tighten hosted endpoint verification and startup secret checks\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #833](https://github.com/monochange/monochange/pull/833)\n\nThe hosted release API now rejects three edge cases that previously slipped through verification:\n\n- GitHub Actions OIDC tokens must be signed with RS256. The verifier pinned the algorithm to the token header before, so a token that named any other algorithm selected how its own signature was checked.\n- The server refuses to start when the resolved `JWT_SECRET` is an empty string. An empty secret is a valid HMAC key, and a profile that resolves the secret to nothing would have signed session tokens anyone could forge.\n- The unreachable \"repository mismatch\" check after the connected-repository lookup is gone. Repositories are resolved by exact full name, so the check could never fire.\n\nThe constant-time comparison used for `MONOCHANGE_TOKEN` checks is now shared with the webhook signature path instead of existing as two identical copies.\n\n#### Protect hosted release branches and pull requests\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #852](https://github.com/monochange/monochange/pull/852)\n\nEnforce hosted release authorization before creating or moving any branch. Every hosted commit must name a `<prefix>/release` branch distinct from both the requested base and the repository default. Older clients may still create or fast-forward a valid release branch without naming a base; replacing an existing release branch requires a named base whose head still matches the prepared commit.\n\nHosted pull request updates now require a server-signed marker bound to the PR number, node ID, bot creator, repository IDs, head, and base. Requests cannot adopt an unrelated PR or enable auto-merge on it. Existing release PRs without a marker must be closed and recreated once; rotating the deployment JWT signing secret also requires recreating open release PRs. If GitHub creates a release PR but its marker update fails, close the newly created PR identified in the error before retrying.\n\n- **Preserve workflows in hosted release commits.** Hosted release commits now compare the final `.github/workflows` subtree with the prepared base for both uploaded files and prebuilt trees. Requests fail if workflow contents change, a protected directory becomes a file, or a tree listing is incomplete. Uploaded file paths must be canonical repository-relative paths and cannot replace or delete `.github` or `.github/workflows`; uploads to other `.github` files remain supported.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #849](https://github.com/monochange/monochange/pull/849)\n#### Bound OAuth work and reject callback replays\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #847](https://github.com/monochange/monochange/pull/847)\n\n`/login` and `/auth/callback` now consume the anonymous address bucket before server rendering. Valid signed callback state is atomically consumed in SQLite before the provider exchange, so replaying the original cookie cannot trigger more exchanges, including after a process restart. Failed exchanges also consume their state; start a fresh sign-in attempt to retry.\n\nThe application runs migration `006_create_oauth_state_uses` on startup. Consumed states are retained until their signed expiry and pruned during subsequent callbacks. Provider token requests have a ten-second timeout, and each app process permits at most sixteen concurrent exchanges. Saturated requests can retry their existing state because capacity rejection happens before consumption. Existing rate-limit environment variables continue to control the address bucket.\n\n#### Bound OIDC signing key refreshes independently of token key IDs\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #848](https://github.com/monochange/monochange/pull/848)\n\nAuthentication for `POST /api/release-commits` and `POST /api/release-requests` now rejects unknown signing key IDs from a fresh JWKS cache without contacting GitHub. The cache remains valid for ten minutes. Concurrent refreshes share one request, and a shared retry deadline of thirty seconds prevents failed or cancelled attempts from restarting once per key ID. Invalid tokens can no longer force one provider request per attempt.\n\nA signing key first published by GitHub while the cache is fresh is not fetched or accepted until that ten-minute cache expires.\n\nJWKS responses must have a successful HTTP status and fit within 64 KiB before parsing. Failed refreshes retain the previous key set but do not authorize tokens with expired keys. Deployments and workflow callers need no configuration changes.\n\n#### Authorize organization access through stable provider identities\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #846](https://github.com/monochange/monochange/pull/846)\n\nBind dashboard organization and project authorization to each installation's stable provider account ID. GitHub membership responses must identify that same account before granting repository access, and legacy installations resolve their identity before membership checks. Organization logins remain display metadata; duplicate stored logins cannot select a tenant through public project routes. No configuration or data migration is required.\n\n- **Clarify release-record validation in the CLI guide.** The `CommitRelease` reference now keeps mismatch protection enabled in its formatting example. It explains which prepared fields are checked, how rejected records preserve neighboring release records, and when deliberate recovery with `update_release_json = true` is appropriate. Whitespace and JSON key ordering require no configuration change.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #850](https://github.com/monochange/monochange/pull/850)"
+		},
+		{
+			"owner_id": "monochange_app",
+			"owner_kind": "package",
+			"output": "website_json",
+			"stream": "website",
+			"path": "app/public/releases/0.3.4.json",
+			"format": "json",
+			"notes": {
+				"title": "0.3.4",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Improved",
+						"collapsed": false,
+						"entries": [
+							"- **Keep projects with the correct GitHub organization.** Projects and their settings stay with the correct GitHub organization when a former name is reused by another account.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #846](https://github.com/monochange/monochange/pull/846)",
+							"- **Protect sign-in attempts during retries.** Refreshing a sign-in result can no longer submit the same attempt to GitHub again. If GitHub sign-in fails, start again from the sign-in page. During heavy sign-in traffic, the site may ask you to wait briefly and try again.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #847](https://github.com/monochange/monochange/pull/847)"
+						]
+					}
+				]
+			},
+			"rendered": "{\n  \"title\": \"0.3.4\",\n  \"summary\": [],\n  \"sections\": [\n    {\n      \"title\": \"Improved\",\n      \"collapsed\": false,\n      \"entries\": [\n        {\n          \"summary\": \"Keep projects with the correct GitHub organization\",\n          \"details_markdown\": \"Projects and their settings stay with the correct GitHub organization when a former name is reused by another account.\",\n          \"change_type\": \"website_fix\",\n          \"bump\": \"patch\",\n          \"stream\": \"website\",\n          \"style\": \"compact\",\n          \"provenance\": {\n            \"source_path\": \".changeset/organization-project-ownership.md\",\n            \"changeset_path\": \".changeset/organization-project-ownership.md\",\n            \"change_owner\": {\n              \"label\": \"@ifiokjr\",\n              \"url\": \"https://github.com/ifiokjr\"\n            },\n            \"review_request\": {\n              \"label\": \"PR #846\",\n              \"url\": \"https://github.com/monochange/monochange/pull/846\"\n            },\n            \"introduced_commit\": {\n              \"label\": \"eeaf90a\",\n              \"url\": \"https://github.com/monochange/monochange/commit/eeaf90a563bdb3bb094c642bf36c1bb405ec4182\"\n            }\n          }\n        },\n        {\n          \"summary\": \"Protect sign-in attempts during retries\",\n          \"details_markdown\": \"Refreshing a sign-in result can no longer submit the same attempt to GitHub again. If GitHub sign-in fails, start again from the sign-in page. During heavy sign-in traffic, the site may ask you to wait briefly and try again.\",\n          \"change_type\": \"website_fix\",\n          \"bump\": \"patch\",\n          \"stream\": \"website\",\n          \"style\": \"compact\",\n          \"provenance\": {\n            \"source_path\": \".changeset/sign-in-retries.md\",\n            \"changeset_path\": \".changeset/sign-in-retries.md\",\n            \"change_owner\": {\n              \"label\": \"@ifiokjr\",\n              \"url\": \"https://github.com/ifiokjr\"\n            },\n            \"review_request\": {\n              \"label\": \"PR #847\",\n              \"url\": \"https://github.com/monochange/monochange/pull/847\"\n            },\n            \"introduced_commit\": {\n              \"label\": \"3aee8b0\",\n              \"url\": \"https://github.com/monochange/monochange/commit/3aee8b03925db096fed64d4a4a187c3e5c50ac73\"\n            }\n          }\n        }\n      ]\n    }\n  ]\n}"
+		},
+		{
+			"owner_id": "main",
+			"owner_kind": "group",
+			"output": "default",
+			"stream": "default",
+			"path": "changelog.md",
+			"format": "monochange",
+			"notes": {
+				"title": "[0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)",
+				"summary": [
+					"Grouped release for `main`."
+				],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Add canonical `monochange format` command\n\n_Packages:_ 🟢 _@monochange/skill_, 🟠 _monochange_, 🟠 _monochange_config_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #854](https://github.com/monochange/monochange/pull/854)\n\nAdds `monochange format` to rewrite `monochange.toml` in the idiomatic layout: top-level sections in a fixed order, `[package.*]` and `[group.*]` tables sorted by id, group members sorted alphabetically, and `[cli.*]` workflows last. Comments stay attached to their tables and the document header stays at the top.\n\nThe command formats the result with taplo using the repository's tab-based, 100-column configuration, so it does not require a separate taplo installation. Use `monochange format --check` to fail CI when the file needs formatting without writing changes. The repository's `lint:monochange` task and CI lint job now run that check."
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Verify the complete prepared release record\n\n_Packages:_ 🟢 _monochange_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #850](https://github.com/monochange/monochange/pull/850)\n\nReject modified release records before `CommitRelease`, even when their target IDs and versions still match the prepared release. Tag settings, package publication targets, provider metadata, changelogs, and release values must match the prepared manifest. A valid preparation timestamp and JSON key ordering remain unchanged. Rejected records leave overlapping release records untouched. If the expected record cannot be serialized, validation reports the cause before writing.\n\nPreviously, `monochange step commit-release` could accept a record with matching targets but modified release instructions. It now reports a content mismatch. `PrepareRelease` preserves existing records. Recovery requires restoring the record from a trusted preparation, or explicitly configuring `update_release_json = true` on `CommitRelease` to restore the expected record.\n\nPrepared-release caches retain the originating command so separately invoked `prepare-release`, `commit-release`, and `open-release-request` steps validate the same record. Branch selection and command output continue to describe the current invocation. Older caches still load for inspection; before committing or opening a release request, rerun the original `PrepareRelease` workflow from trusted workspace inputs to establish that identity. Changing the producer command also requires restoring the expected record from trusted preparation or explicitly enabling `update_release_json` repair. Preparation preserves existing record bytes; record command changes remain a content mismatch."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)\n\nGrouped release for `main`.\n\n### 🚀 Feature\n\n#### Add canonical `monochange format` command\n\n_Packages:_ 🟢 _@monochange/skill_, 🟠 _monochange_, 🟠 _monochange_config_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #854](https://github.com/monochange/monochange/pull/854)\n\nAdds `monochange format` to rewrite `monochange.toml` in the idiomatic layout: top-level sections in a fixed order, `[package.*]` and `[group.*]` tables sorted by id, group members sorted alphabetically, and `[cli.*]` workflows last. Comments stay attached to their tables and the document header stays at the top.\n\nThe command formats the result with taplo using the repository's tab-based, 100-column configuration, so it does not require a separate taplo installation. Use `monochange format --check` to fail CI when the file needs formatting without writing changes. The repository's `lint:monochange` task and CI lint job now run that check.\n\n### 🐛 Fixed\n\n#### Verify the complete prepared release record\n\n_Packages:_ 🟢 _monochange_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #850](https://github.com/monochange/monochange/pull/850)\n\nReject modified release records before `CommitRelease`, even when their target IDs and versions still match the prepared release. Tag settings, package publication targets, provider metadata, changelogs, and release values must match the prepared manifest. A valid preparation timestamp and JSON key ordering remain unchanged. Rejected records leave overlapping release records untouched. If the expected record cannot be serialized, validation reports the cause before writing.\n\nPreviously, `monochange step commit-release` could accept a record with matching targets but modified release instructions. It now reports a content mismatch. `PrepareRelease` preserves existing records. Recovery requires restoring the record from a trusted preparation, or explicitly configuring `update_release_json = true` on `CommitRelease` to restore the expected record.\n\nPrepared-release caches retain the originating command so separately invoked `prepare-release`, `commit-release`, and `open-release-request` steps validate the same record. Branch selection and command output continue to describe the current invocation. Older caches still load for inspection; before committing or opening a release request, rerun the original `PrepareRelease` workflow from trusted workspace inputs to establish that identity. Changing the producer command also requires restoring the expected record from trusted preparation or explicitly enabling `update_release_json` repair. Preparation preserves existing record bytes; record command changes remain a content mismatch."
+		},
+		{
+			"owner_id": "monochange",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Add canonical `monochange format` command\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #854](https://github.com/monochange/monochange/pull/854)\n\nAdds `monochange format` to rewrite `monochange.toml` in the idiomatic layout: top-level sections in a fixed order, `[package.*]` and `[group.*]` tables sorted by id, group members sorted alphabetically, and `[cli.*]` workflows last. Comments stay attached to their tables and the document header stays at the top.\n\nThe command formats the result with taplo using the repository's tab-based, 100-column configuration, so it does not require a separate taplo installation. Use `monochange format --check` to fail CI when the file needs formatting without writing changes. The repository's `lint:monochange` task and CI lint job now run that check."
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Verify the complete prepared release record\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #850](https://github.com/monochange/monochange/pull/850)\n\nReject modified release records before `CommitRelease`, even when their target IDs and versions still match the prepared release. Tag settings, package publication targets, provider metadata, changelogs, and release values must match the prepared manifest. A valid preparation timestamp and JSON key ordering remain unchanged. Rejected records leave overlapping release records untouched. If the expected record cannot be serialized, validation reports the cause before writing.\n\nPreviously, `monochange step commit-release` could accept a record with matching targets but modified release instructions. It now reports a content mismatch. `PrepareRelease` preserves existing records. Recovery requires restoring the record from a trusted preparation, or explicitly configuring `update_release_json = true` on `CommitRelease` to restore the expected record.\n\nPrepared-release caches retain the originating command so separately invoked `prepare-release`, `commit-release`, and `open-release-request` steps validate the same record. Branch selection and command output continue to describe the current invocation. Older caches still load for inspection; before committing or opening a release request, rerun the original `PrepareRelease` workflow from trusted workspace inputs to establish that identity. Changing the producer command also requires restoring the expected record from trusted preparation or explicitly enabling `update_release_json` repair. Preparation preserves existing record bytes; record command changes remain a content mismatch."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)\n\n### 🚀 Feature\n\n#### Add canonical `monochange format` command\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #854](https://github.com/monochange/monochange/pull/854)\n\nAdds `monochange format` to rewrite `monochange.toml` in the idiomatic layout: top-level sections in a fixed order, `[package.*]` and `[group.*]` tables sorted by id, group members sorted alphabetically, and `[cli.*]` workflows last. Comments stay attached to their tables and the document header stays at the top.\n\nThe command formats the result with taplo using the repository's tab-based, 100-column configuration, so it does not require a separate taplo installation. Use `monochange format --check` to fail CI when the file needs formatting without writing changes. The repository's `lint:monochange` task and CI lint job now run that check.\n\n### 🐛 Fixed\n\n#### Verify the complete prepared release record\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #850](https://github.com/monochange/monochange/pull/850)\n\nReject modified release records before `CommitRelease`, even when their target IDs and versions still match the prepared release. Tag settings, package publication targets, provider metadata, changelogs, and release values must match the prepared manifest. A valid preparation timestamp and JSON key ordering remain unchanged. Rejected records leave overlapping release records untouched. If the expected record cannot be serialized, validation reports the cause before writing.\n\nPreviously, `monochange step commit-release` could accept a record with matching targets but modified release instructions. It now reports a content mismatch. `PrepareRelease` preserves existing records. Recovery requires restoring the record from a trusted preparation, or explicitly configuring `update_release_json = true` on `CommitRelease` to restore the expected record.\n\nPrepared-release caches retain the originating command so separately invoked `prepare-release`, `commit-release`, and `open-release-request` steps validate the same record. Branch selection and command output continue to describe the current invocation. Older caches still load for inspection; before committing or opening a release request, rerun the original `PrepareRelease` workflow from trusted workspace inputs to establish that identity. Changing the producer command also requires restoring the expected record from trusted preparation or explicitly enabling `update_release_json` repair. Preparation preserves existing record bytes; record command changes remain a content mismatch."
+		},
+		{
+			"owner_id": "monochange_analysis",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_analysis/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_analysis` was updated to 0.21.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_analysis` was updated to 0.21.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_cargo",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_cargo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_cargo` was updated to 0.21.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_cargo` was updated to 0.21.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_changelog",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_changelog/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_changelog` was updated to 0.21.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_changelog` was updated to 0.21.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_classification",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_classification/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "monochange_classification [0.4.9](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.4.9) (2026-10-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_classification` was updated to 0.4.9.**"
+						]
+					}
+				]
+			},
+			"rendered": "## monochange_classification [0.4.9](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.4.9) (2026-10-29)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_classification` was updated to 0.4.9.**"
+		},
+		{
+			"owner_id": "monochange_cocoapods",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_cocoapods/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_cocoapods` was updated to 0.21.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_cocoapods` was updated to 0.21.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_config",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_config/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Add canonical `monochange format` command\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #854](https://github.com/monochange/monochange/pull/854)\n\nAdds `monochange format` to rewrite `monochange.toml` in the idiomatic layout: top-level sections in a fixed order, `[package.*]` and `[group.*]` tables sorted by id, group members sorted alphabetically, and `[cli.*]` workflows last. Comments stay attached to their tables and the document header stays at the top.\n\nThe command formats the result with taplo using the repository's tab-based, 100-column configuration, so it does not require a separate taplo installation. Use `monochange format --check` to fail CI when the file needs formatting without writing changes. The repository's `lint:monochange` task and CI lint job now run that check."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)\n\n### 🚀 Feature\n\n#### Add canonical `monochange format` command\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #854](https://github.com/monochange/monochange/pull/854)\n\nAdds `monochange format` to rewrite `monochange.toml` in the idiomatic layout: top-level sections in a fixed order, `[package.*]` and `[group.*]` tables sorted by id, group members sorted alphabetically, and `[cli.*]` workflows last. Comments stay attached to their tables and the document header stays at the top.\n\nThe command formats the result with taplo using the repository's tab-based, 100-column configuration, so it does not require a separate taplo installation. Use `monochange format --check` to fail CI when the file needs formatting without writing changes. The repository's `lint:monochange` task and CI lint job now run that check."
+		},
+		{
+			"owner_id": "monochange_core",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_core/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_core` was updated to 0.21.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_core` was updated to 0.21.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_dart",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_dart/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_dart` was updated to 0.21.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_dart` was updated to 0.21.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_deno",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_deno/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_deno` was updated to 0.21.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_deno` was updated to 0.21.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_ecmascript",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_ecmascript/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_ecmascript` was updated to 0.21.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_ecmascript` was updated to 0.21.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_forgejo",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_forgejo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_forgejo` was updated to 0.21.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_forgejo` was updated to 0.21.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_gitea",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_gitea/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_gitea` was updated to 0.21.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_gitea` was updated to 0.21.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_github",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_github/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_github` was updated to 0.21.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_github` was updated to 0.21.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_gitlab",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_gitlab/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_gitlab` was updated to 0.21.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_gitlab` was updated to 0.21.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_go",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_go/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_go` was updated to 0.21.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_go` was updated to 0.21.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_gradle",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_gradle/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_gradle` was updated to 0.21.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_gradle` was updated to 0.21.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_graph",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_graph/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_graph` was updated to 0.21.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_graph` was updated to 0.21.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_hosting",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_hosting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_hosting` was updated to 0.21.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_hosting` was updated to 0.21.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_lint",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_lint/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_lint` was updated to 0.21.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_lint` was updated to 0.21.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_linting",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_linting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_linting` was updated to 0.21.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_linting` was updated to 0.21.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_npm",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_npm/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_npm` was updated to 0.21.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_npm` was updated to 0.21.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_publish",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_publish/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_publish` was updated to 0.21.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_publish` was updated to 0.21.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_python",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_python/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_python` was updated to 0.21.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_python` was updated to 0.21.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_semver",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_semver/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_semver` was updated to 0.21.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_semver` was updated to 0.21.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_swift",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_swift/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_swift` was updated to 0.21.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_swift` was updated to 0.21.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_telemetry",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_telemetry/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_telemetry` was updated to 0.21.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_telemetry` was updated to 0.21.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_test_helpers",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_test_helpers/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.21.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.21.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli` was updated to 0.21.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli` was updated to 0.21.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-arm64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-darwin-arm64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.21.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.21.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-x64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-darwin-x64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.21.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.21.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-arm64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.21.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.21.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-arm64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.21.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.21.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-x64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.21.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.21.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-x64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.21.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.21.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-win32-arm64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-win32-arm64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.21.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.21.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-win32-x64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-win32-x64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.21.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.21.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/skill",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__skill/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Add canonical `monochange format` command\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #854](https://github.com/monochange/monochange/pull/854)\n\nAdds `monochange format` to rewrite `monochange.toml` in the idiomatic layout: top-level sections in a fixed order, `[package.*]` and `[group.*]` tables sorted by id, group members sorted alphabetically, and `[cli.*]` workflows last. Comments stay attached to their tables and the document header stays at the top.\n\nThe command formats the result with taplo using the repository's tab-based, 100-column configuration, so it does not require a separate taplo installation. Use `monochange format --check` to fail CI when the file needs formatting without writing changes. The repository's `lint:monochange` task and CI lint job now run that check."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)\n\n### 🐛 Fixed\n\n#### Add canonical `monochange format` command\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #854](https://github.com/monochange/monochange/pull/854)\n\nAdds `monochange format` to rewrite `monochange.toml` in the idiomatic layout: top-level sections in a fixed order, `[package.*]` and `[group.*]` tables sorted by id, group members sorted alphabetically, and `[cli.*]` workflows last. Comments stay attached to their tables and the document header stays at the top.\n\nThe command formats the result with taplo using the repository's tab-based, 100-column configuration, so it does not require a separate taplo installation. Use `monochange format --check` to fail CI when the file needs formatting without writing changes. The repository's `lint:monochange` task and CI lint job now run that check."
+		}
+	],
+	"provider": {
+		"kind": "github",
+		"owner": "monochange",
+		"repo": "monochange",
+		"host": null
+	}
+}

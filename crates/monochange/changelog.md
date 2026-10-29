@@ -4,6 +4,30 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-10-29)
+
+### 🚀 Feature
+
+#### Add canonical `monochange format` command
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #854](https://github.com/monochange/monochange/pull/854)
+
+Adds `monochange format` to rewrite `monochange.toml` in the idiomatic layout: top-level sections in a fixed order, `[package.*]` and `[group.*]` tables sorted by id, group members sorted alphabetically, and `[cli.*]` workflows last. Comments stay attached to their tables and the document header stays at the top.
+
+The command formats the result with taplo using the repository's tab-based, 100-column configuration, so it does not require a separate taplo installation. Use `monochange format --check` to fail CI when the file needs formatting without writing changes. The repository's `lint:monochange` task and CI lint job now run that check.
+
+### 🐛 Fixed
+
+#### Verify the complete prepared release record
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #850](https://github.com/monochange/monochange/pull/850)
+
+Reject modified release records before `CommitRelease`, even when their target IDs and versions still match the prepared release. Tag settings, package publication targets, provider metadata, changelogs, and release values must match the prepared manifest. A valid preparation timestamp and JSON key ordering remain unchanged. Rejected records leave overlapping release records untouched. If the expected record cannot be serialized, validation reports the cause before writing.
+
+Previously, `monochange step commit-release` could accept a record with matching targets but modified release instructions. It now reports a content mismatch. `PrepareRelease` preserves existing records. Recovery requires restoring the record from a trusted preparation, or explicitly configuring `update_release_json = true` on `CommitRelease` to restore the expected record.
+
+Prepared-release caches retain the originating command so separately invoked `prepare-release`, `commit-release`, and `open-release-request` steps validate the same record. Branch selection and command output continue to describe the current invocation. Older caches still load for inspection; before committing or opening a release request, rerun the original `PrepareRelease` workflow from trusted workspace inputs to establish that identity. Changing the producer command also requires restoring the expected record from trusted preparation or explicitly enabling `update_release_json` repair. Preparation preserves existing record bytes; record command changes remain a content mismatch.
+
 ## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)
 
 ### 🚀 Feature

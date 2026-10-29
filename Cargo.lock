@@ -176,9 +176,9 @@ checksum = "f2032f911046de80f0a198e0901378627c33f59ea0ac00e363d481118bd70a53"
 
 [[package]]
 name = "aws-lc-rs"
-version = "1.18.2"
+version = "1.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "faac5829c2b74c28f830747e7818ccfb684261b5f48a1118b1e2a13d36dfab13"
+checksum = "048006790404103c488e6c5616b3e7e702a71292aadda08e8f7698a9e0d2eb53"
 dependencies = [
  "aws-lc-sys",
  "zeroize",
@@ -186,9 +186,9 @@ dependencies = [
 
 [[package]]
 name = "aws-lc-sys"
-version = "0.46.0"
+version = "0.47.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1622d8446a2d4b2ce0c7eefc73dd43a99779028d5ee5c2dd8073a658ba8a2bc"
+checksum = "8bfbe32ac36b3c428696ce315464181bc4029d689fd58e3f2a4e58c252242f52"
 dependencies = [
  "cc",
  "cmake",
@@ -394,9 +394,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.9.0"
+version = "1.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "877bf67ac8e52449eb2f9e98a344ea163beb70dd1f9eebe3cc5357dcfeaee4df"
+checksum = "86e055fa6e3e40ad6187ba25b6855eeb635d5271f8e0f0e1e9a5826b8d75bea0"
 dependencies = [
  "find-msvc-tools",
  "jobserver",
@@ -1316,9 +1316,9 @@ checksum = "e4eba85ea1d0a966a983acd07deee566e67395d2d96b6fb39e62b5a833f1eb0b"
 
 [[package]]
 name = "globset"
-version = "0.4.20"
+version = "0.4.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "07c34a9410465b45bd9787443bc7370f37735bad04b0f0cd57ff1a3186c98988"
+checksum = "f98b0d85522dc0a824cfebbc9594ff4a9b289c568bea0370319dfbdf20ccdd2d"
 dependencies = [
  "aho-corasick",
  "bstr",
@@ -1786,9 +1786,9 @@ dependencies = [
 
 [[package]]
 name = "ignore"
-version = "0.4.33"
+version = "0.4.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "00b69833ed729dc5aa7d19541d96d6cf8e9137194207a04916d658e43168402f"
+checksum = "484be5657551d7868d67587df967fb4fcbe9d266a761cc855aaa148fda0b3cc7"
 dependencies = [
  "crossbeam-deque",
  "globset",
@@ -1823,7 +1823,7 @@ dependencies = [
  "dyn-clone",
  "fuzzy-matcher",
  "unicode-segmentation",
- "unicode-width 0.2.2",
+ "unicode-width 0.2.3",
 ]
 
 [[package]]
@@ -2202,7 +2202,7 @@ dependencies = [
 
 [[package]]
 name = "monochange"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "anstyle",
  "chrono",
@@ -2254,7 +2254,7 @@ dependencies = [
  "serde_json",
  "serde_yaml_ng",
  "shlex",
- "similar 3.2.0",
+ "similar 3.2.1",
  "similar-asserts",
  "temp-env",
  "tempfile",
@@ -2265,13 +2265,13 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "typed-builder",
- "unicode-width 0.2.2",
+ "unicode-width 0.2.3",
  "urlencoding",
 ]
 
 [[package]]
 name = "monochange_analysis"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "insta",
  "monochange_cargo",
@@ -2293,7 +2293,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_book"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "clap",
  "doc-comment",
@@ -2328,7 +2328,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_cargo"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "insta",
  "monochange_config",
@@ -2357,7 +2357,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_changelog"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "insta",
  "minijinja",
@@ -2372,7 +2372,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_classification"
-version = "0.4.8"
+version = "0.4.9"
 dependencies = [
  "insta",
  "monochange_analysis",
@@ -2391,7 +2391,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_cocoapods"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "insta",
  "monochange_core",
@@ -2408,7 +2408,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_config"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "glob",
  "ignore",
@@ -2439,7 +2439,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_core"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "async-trait",
  "glob",
@@ -2464,7 +2464,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_dart"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "insta",
  "monochange_config",
@@ -2486,7 +2486,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_deno"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "insta",
  "monochange_core",
@@ -2506,7 +2506,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_ecmascript"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "monochange_core",
  "oxc_allocator",
@@ -2517,7 +2517,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_forgejo"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "async-trait",
  "etest",
@@ -2538,7 +2538,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_gitea"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "async-trait",
  "etest",
@@ -2559,7 +2559,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_github"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -2586,7 +2586,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_gitlab"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "async-trait",
  "etest",
@@ -2607,7 +2607,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_go"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "insta",
  "monochange_core",
@@ -2624,7 +2624,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_gradle"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "insta",
  "monochange_core",
@@ -2640,7 +2640,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_graph"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "insta",
  "monochange_core",
@@ -2654,7 +2654,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_hosting"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "httpmock",
  "monochange_core",
@@ -2694,7 +2694,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_lint"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "glob",
  "ignore",
@@ -2707,14 +2707,14 @@ dependencies = [
 
 [[package]]
 name = "monochange_linting"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "monochange_core",
 ]
 
 [[package]]
 name = "monochange_npm"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "insta",
  "monochange_config",
@@ -2740,7 +2740,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_publish"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "chrono",
  "insta",
@@ -2758,7 +2758,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_python"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "insta",
  "monochange_core",
@@ -2787,7 +2787,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_semver"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "insta",
  "monochange_core",
@@ -2811,7 +2811,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_swift"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "insta",
  "monochange_core",
@@ -2827,7 +2827,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_telemetry"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "monochange_core",
  "monochange_test_helpers",
@@ -2841,7 +2841,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_test_helpers"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "insta",
  "monochange_core",
@@ -2993,9 +2993,9 @@ dependencies = [
 
 [[package]]
 name = "octocrab"
-version = "0.54.5"
+version = "0.54.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1316aeebcf5959e7442809c5446d97df5b37d87742c9e363b3e9920e0b3fb994"
+checksum = "74361a384f69ad80419be6d2bd57a02c7ae09d3f49acd0609a0ecb11d541e85f"
 dependencies = [
  "arc-swap",
  "base64 0.22.1",
@@ -3056,9 +3056,9 @@ checksum = "d6790f58c7ff633d8771f42965289203411a5e5c68388703c06e14f24770b41e"
 
 [[package]]
 name = "openssl-probe"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c87def4c32ab89d880effc9e097653c8da5d6ef28e6b539d313baaacfbafcbe"
+checksum = "7e036b411754132fd6b74e94b74e9a13c5cf606fa93d1885c35860d3060820b1"
 
 [[package]]
 name = "outref"
@@ -3129,7 +3129,7 @@ dependencies = [
  "smallvec",
  "textwrap",
  "unicode-segmentation",
- "unicode-width 0.2.2",
+ "unicode-width 0.2.3",
 ]
 
 [[package]]
@@ -3355,21 +3355,20 @@ checksum = "9b4f627cb1b25917193a259e49bdad08f671f8d9708acfd5fe0a8c1455d87220"
 
 [[package]]
 name = "pest"
-version = "2.9.4"
+version = "2.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd47a460a9cbc3b3429c7e22bf0d76653e779319bae45a499ca010c9a990bb23"
+checksum = "a8db75153506001cb36ed924f08cadc862eb3f8c4d0d534139f29074769d7660"
 dependencies = [
  "memchr",
- "psm",
- "stacker",
+ "pest_stack_guard",
  "ucd-trie",
 ]
 
 [[package]]
 name = "pest_derive"
-version = "2.9.4"
+version = "2.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "203e46697708f7519ab1608393cf89239cafb46b8e6d08a8ffe359359b11ef44"
+checksum = "20aa17e11fb35664b67d5214a0afac57a360d231b6ec53d6eba0700b27d933b4"
 dependencies = [
  "pest",
  "pest_generator",
@@ -3377,9 +3376,9 @@ dependencies = [
 
 [[package]]
 name = "pest_generator"
-version = "2.9.4"
+version = "2.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e84ae6340a458d3d6cfc73cf328cf3cfe90b2484cd0de25eb66aa954615ed4d5"
+checksum = "626ec5afccf44ccbfeb2b232316510bb55b4bf34d891afcb0fb07d2b17d7fe9d"
 dependencies = [
  "pest",
  "pest_meta",
@@ -3390,11 +3389,21 @@ dependencies = [
 
 [[package]]
 name = "pest_meta"
-version = "2.9.4"
+version = "2.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b57f92f32b3dbce6598fd8f5cdf1f06a6072570b8103fa21728fa9036923e710"
+checksum = "b3f45b6caa65c1b08186832745159c2529994146340a7bf44168095469720f5d"
 dependencies = [
  "pest",
+]
+
+[[package]]
+name = "pest_stack_guard"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "97e6cd2217057fa86b6eaa512917e58089d875b957a31e35e7ab729977e0a5f2"
+dependencies = [
+ "psm",
+ "stacker",
 ]
 
 [[package]]
@@ -3946,9 +3955,9 @@ dependencies = [
 
 [[package]]
 name = "rmcp"
-version = "3.6.0"
+version = "3.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ceb42e9e47443cd83a834dea57b5816d35481417bae72ade5dc5615c59122e26"
+checksum = "f8be15815186873ea063bf005011d16c356804973489e40c39116ae3a2878d1f"
 dependencies = [
  "base64 0.23.1",
  "chrono",
@@ -3970,9 +3979,9 @@ dependencies = [
 
 [[package]]
 name = "rmcp-macros"
-version = "3.6.0"
+version = "3.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2f55ef2d84752d676d735604548fcb65811504e23330d85670b0eff5f8735144"
+checksum = "8b0748e054a5f5598b3213cf72099ae6b2745ba4d996c59ccf455150a7dbb839"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -4066,9 +4075,9 @@ dependencies = [
 
 [[package]]
 name = "rustix"
-version = "1.1.5"
+version = "1.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "891efababe418670775f199f0d233d84843c227a0949a883ce15b37c78d6629d"
+checksum = "e5e76742e5294153d4dde1207dbec5bdd81eef6fabdc0d2118babadabfd858aa"
 dependencies = [
  "bitflags 2.13.2",
  "errno",
@@ -4401,9 +4410,9 @@ dependencies = [
 
 [[package]]
 name = "serial2"
-version = "0.2.38"
+version = "0.2.39"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b16809bc35793b19ce4e0c53924bc0dce3937f15487997cfdaed936004180730"
+checksum = "c924c7ef58d1fb741cfecb65b9b38a9e049841edd1e419544089f0cbb5a127e7"
 dependencies = [
  "cfg-if",
  "libc",
@@ -4528,9 +4537,9 @@ checksum = "bbbb5d9659141646ae647b42fe094daf6c6192d1620870b449d9557f748b2daa"
 
 [[package]]
 name = "similar"
-version = "3.2.0"
+version = "3.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4f66ca1f7aca2474dc10c942eb22feffc897735f54cd1db90138c2fddb490987"
+checksum = "d2f8bec09ae8fae0f4f265a4559a9334be3929d8504e9b536df0a41302bd1733"
 dependencies = [
  "bstr",
  "unicode-segmentation",
@@ -4543,7 +4552,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "997e6ca38e97437973fc9f7f50a50d1274cacd874341a4960fea90067291038c"
 dependencies = [
  "console",
- "similar 3.2.0",
+ "similar 3.2.1",
 ]
 
 [[package]]
@@ -4572,9 +4581,9 @@ checksum = "0c790de23124f9ab44544d7ac05d60440adc586479ce501c1d6d7da3cd8c9cf5"
 
 [[package]]
 name = "smallvec"
-version = "1.16.3"
+version = "1.16.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5b3dc8af474f516a851ff4bd12db780f948b9250ad37211e4eec0bccea54e01b"
+checksum = "d0d5d4b1981b8bbbb7aed204cae5726d683d5d6ac7e74ec54122ea28f315e7c8"
 dependencies = [
  "serde",
 ]
@@ -4764,7 +4773,7 @@ version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fce91f2f0ec87dff7e6bcbbeb267439aa1188703003c6055193c821487400432"
 dependencies = [
- "unicode-width 0.2.2",
+ "unicode-width 0.2.3",
 ]
 
 [[package]]
@@ -4824,7 +4833,7 @@ checksum = "6ecfad6c3abc80a577f2b91c1e412ee57e7a060d430b553c1b0c940974ebcd49"
 dependencies = [
  "icu_segmenter",
  "smawk",
- "unicode-width 0.2.2",
+ "unicode-width 0.2.3",
 ]
 
 [[package]]
@@ -5204,9 +5213,9 @@ checksum = "7dd6e30e90baa6f72411720665d41d89b9a3d039dc45b8faea1ddd07f617f6af"
 
 [[package]]
 name = "unicode-width"
-version = "0.2.2"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4ac048d71ede7ee76d585517add45da530660ef4390e49b098733c6e897f254"
+checksum = "ca718471876992059f251e33aafc334346ada08042b7661dd1fe313a9bced557"
 
 [[package]]
 name = "unsafe-libyaml"
@@ -5253,9 +5262,9 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
 name = "uuid"
-version = "1.28.0"
+version = "1.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7cc1186384beb7dd8eedea376413fd654937285ea6c9cfbb928dc3043ea4b606"
+checksum = "4a0e2d11620c50695fe12bbbfde96b3477fe606e7284c22d505c12ce51214514"
 dependencies = [
  "getrandom 0.4.3",
  "js-sys",
@@ -5415,9 +5424,9 @@ dependencies = [
 
 [[package]]
 name = "webpki-root-certs"
-version = "1.0.10"
+version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "58ec80e73fd8baf57bf0d9615554c75348bda990d6d5bbeab964dd068319fecb"
+checksum = "e49d0e65abc00c142e8f9428da991da9f1a250c39be97459901eb12b9b49f62a"
 dependencies = [
  "rustls-pki-types",
 ]
@@ -5626,7 +5635,7 @@ checksum = "3ad82d2a33cdc9674dc7465672f271e096168fcdbe0f799d9e6db8c5892679dc"
 
 [[package]]
 name = "xtask"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "clap",
  "monochange_classification",
