@@ -4250,10 +4250,58 @@ fn interpolate_cli_command_command(
 		return command.to_string();
 	}
 
-	let template_context = build_cli_template_context(context, step_inputs, variables);
+	let template_context = build_command_interpolation_context(context, step_inputs, variables);
 	let jinja_context =
 		minijinja::Value::from_serialize(serde_json::Value::Object(template_context));
 	render_jinja_template(command, &jinja_context).unwrap_or_else(|_| command.to_string())
+}
+
+/// Build the template context for rendering a command string.
+///
+/// The path-valued variables (`changed_files`, `changesets`) come from the
+/// repository content a merged pull request controls, and a `Command` step may
+/// opt into a shell. Each path is therefore quoted with POSIX single quotes,
+/// which neutralize every shell metacharacter and which the no-shell path's
+/// `shlex` lexer also decodes, so both execution modes reconstruct the same
+/// arguments. Structured namespaces such as `release.*` deliberately stay
+/// unquoted: a config author reading those has chosen the raw data.
+fn build_command_interpolation_context(
+	context: &CliContext,
+	step_inputs: &BTreeMap<String, Vec<String>>,
+	variables: Option<&BTreeMap<String, CommandVariable>>,
+) -> serde_json::Map<String, serde_json::Value> {
+	let mut template_context = build_cli_template_context(context, step_inputs, variables);
+
+	if let Some(prepared) = &context.prepared_release {
+		template_context.insert(
+			"changed_files".to_string(),
+			serde_json::Value::String(quote_command_paths(&prepared.changed_files)),
+		);
+		template_context.insert(
+			"changesets".to_string(),
+			serde_json::Value::String(quote_command_paths(&prepared.changeset_paths)),
+		);
+	}
+
+	template_context
+}
+
+/// Quote one interpolated value so it survives `sh -c` and `shlex` splitting
+/// with every character literal, including spaces and shell metacharacters.
+fn quote_command_interpolation_value(value: &str) -> String {
+	// A single quote cannot appear inside a single-quoted POSIX string; close
+	// the string, escape the quote, and reopen it.
+	format!("'{}'", value.replace('\'', "'\\''"))
+}
+
+/// Quote every path so a hostile changeset or changed-file name cannot
+/// inject a command when the values land in a shell command string.
+fn quote_command_paths(paths: &[std::path::PathBuf]) -> String {
+	paths
+		.iter()
+		.map(|path| quote_command_interpolation_value(&path.display().to_string()))
+		.collect::<Vec<_>>()
+		.join(" ")
 }
 
 fn command_contains_template(command: &str) -> bool {
