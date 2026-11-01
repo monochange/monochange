@@ -13,7 +13,6 @@ use std::path::Path;
 use std::process::Command;
 
 use monochange_core::Ecosystem;
-use monochange_core::MonochangeError;
 use monochange_core::MonochangeResult;
 use monochange_core::WorkspaceConfiguration;
 use serde::Serialize;
@@ -82,15 +81,16 @@ const ECOSYSTEM_TOOLS: &[(Ecosystem, &str)] = &[
 	(Ecosystem::Gradle, "gradle"),
 ];
 
-/// Whether the ecosystem is enabled for this workspace. Settings without an
-/// explicit flag default to enabled, matching discovery behavior.
+/// The ecosystem's settings, which doctor reads for the enabled flag.
 ///
-/// `None` covers an ecosystem this monochange build has no settings field
-/// for, which doctor then skips: it has no tool mapped either.
+/// Returns `None` for an ecosystem this monochange build has no settings
+/// field for; doctor then skips it since it has no tool mapped either.
 fn ecosystem_settings(
 	configuration: &WorkspaceConfiguration,
 	ecosystem: Ecosystem,
 ) -> Option<&monochange_core::EcosystemSettings> {
+	// patch-coverage:ignore-start -- the wildcard arm only fires for Ecosystem
+	// variants added after this match was written; no test can construct one.
 	let settings = match ecosystem {
 		Ecosystem::Cargo => &configuration.cargo,
 		Ecosystem::Npm => &configuration.npm,
@@ -103,6 +103,7 @@ fn ecosystem_settings(
 		Ecosystem::Gradle => &configuration.gradle,
 		_ => return None,
 	};
+	// patch-coverage:ignore-end
 
 	Some(settings)
 }
@@ -166,9 +167,12 @@ pub(crate) fn collect_doctor_report(
 
 	if let Ok(configuration) = configuration {
 		for (ecosystem, tool) in ECOSYSTEM_TOOLS {
+			// patch-coverage:ignore-start -- unreachable while the wildcard arm
+			// above never fires (see the non_exhaustive Ecosystem note).
 			let Some(settings) = ecosystem_settings(configuration, *ecosystem) else {
 				continue;
 			};
+			// patch-coverage:ignore-end
 
 			if !settings.enabled.unwrap_or(true) {
 				continue;
@@ -194,9 +198,16 @@ pub(crate) fn render_doctor_report(
 	format: OutputFormat,
 ) -> MonochangeResult<String> {
 	let report = collect_doctor_report(root, configuration);
+	render_doctor_report_value(&report, format)
+}
 
+/// Render an already-collected report as text or JSON.
+fn render_doctor_report_value(
+	report: &DoctorReport,
+	format: OutputFormat,
+) -> MonochangeResult<String> {
 	if matches!(format, OutputFormat::Json | OutputFormat::JsonMin) {
-		return format.render_json_value(&report, "doctor report");
+		return format.render_json_value(report, "doctor report");
 	}
 
 	let mut text = TextReport::new(TextTheme::for_stdout());
@@ -228,12 +239,5 @@ pub(crate) fn render_doctor_report(
 	};
 	text.summary(outcome, &report.summary_text(), &[]);
 
-	let rendered = text.render();
-	if rendered.trim().is_empty() {
-		return Err(MonochangeError::Discovery(
-			"doctor produced an empty report".to_string(),
-		));
-	}
-
-	Ok(rendered)
+	Ok(text.render())
 }
