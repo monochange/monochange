@@ -136,32 +136,61 @@ fn doctor_renders_text_and_json() {
 
 #[test]
 fn summary_counts_multiple_missing_checks() {
-	let workspace = write_config("");
-	let configuration = load_workspace_configuration(workspace.path());
+	let report = super::DoctorReport {
+		root: "[workspace]".to_string(),
+		checks: vec![
+			DoctorCheck {
+				label: "git".to_string(),
+				status: DoctorStatus::Ok("git version 2.56.0".to_string()),
+			},
+			DoctorCheck {
+				label: "missing-tool-one".to_string(),
+				status: DoctorStatus::Missing("install it".to_string()),
+			},
+			DoctorCheck {
+				label: "missing-tool-two".to_string(),
+				status: DoctorStatus::Missing("install it too".to_string()),
+			},
+		],
+	};
 
-	let mut report = collect_doctor_report(workspace.path(), &configuration);
-	report.checks.push(DoctorCheck {
-		label: "missing-tool-one".to_string(),
-		status: DoctorStatus::Missing("install it".to_string()),
-	});
-	report.checks.push(DoctorCheck {
-		label: "missing-tool-two".to_string(),
-		status: DoctorStatus::Missing("install it too".to_string()),
-	});
-
-	let missing = report
-		.checks
-		.iter()
-		.filter(|check| matches!(check.status, DoctorStatus::Missing(_)))
-		.count();
 	assert!(
-		missing >= 3
-			&& report
-				.summary_text()
-				.starts_with(&format!("{missing} checks need attention")),
-		"missing={missing} summary: {}",
+		report.summary_text().starts_with("2 checks need attention"),
+		"summary: {}",
 		report.summary_text()
 	);
+}
+
+#[test]
+fn summary_reports_a_single_missing_check() {
+	let report = super::DoctorReport {
+		root: "[workspace]".to_string(),
+		checks: vec![
+			DoctorCheck {
+				label: "git".to_string(),
+				status: DoctorStatus::Ok("git version 2.56.0".to_string()),
+			},
+			DoctorCheck {
+				label: "missing-tool-one".to_string(),
+				status: DoctorStatus::Missing("install it".to_string()),
+			},
+		],
+	};
+
+	assert_eq!(report.summary_text(), "1 check needs attention");
+}
+
+#[test]
+fn summary_reports_all_checks_passed_with_no_missing() {
+	let report = super::DoctorReport {
+		root: "[workspace]".to_string(),
+		checks: vec![DoctorCheck {
+			label: "git".to_string(),
+			status: DoctorStatus::Ok("git version 2.56.0".to_string()),
+		}],
+	};
+
+	assert_eq!(report.summary_text(), "all 1 checks passed");
 }
 
 #[test]
