@@ -133,3 +133,74 @@ fn doctor_renders_text_and_json() {
 		.unwrap_or_else(|error| panic!("json report: {error}"));
 	assert!(json.contains("\"checks\""), "json report: {json}");
 }
+
+#[test]
+fn summary_counts_multiple_missing_checks() {
+	let workspace = write_config("");
+	let configuration = load_workspace_configuration(workspace.path());
+
+	let mut report = collect_doctor_report(workspace.path(), &configuration);
+	report.checks.push(DoctorCheck {
+		label: "missing-tool-one".to_string(),
+		status: DoctorStatus::Missing("install it".to_string()),
+	});
+	report.checks.push(DoctorCheck {
+		label: "missing-tool-two".to_string(),
+		status: DoctorStatus::Missing("install it too".to_string()),
+	});
+
+	let missing = 2;
+	assert!(
+		report
+			.summary_text()
+			.starts_with(&format!("{missing} checks need attention")),
+		"summary: {}",
+		report.summary_text()
+	);
+}
+
+#[test]
+#[cfg(unix)]
+fn tool_that_prints_no_version_is_reported_missing() {
+	let dir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let script = dir.path().join("silent-tool");
+	fs::write(&script, "#!/bin/sh\nexit 0\n")
+		.unwrap_or_else(|error| panic!("write script: {error}"));
+	use std::os::unix::fs::PermissionsExt;
+	let mut permissions = fs::metadata(&script)
+		.unwrap_or_else(|error| panic!("metadata: {error}"))
+		.permissions();
+	permissions.set_mode(0o755);
+	fs::set_permissions(&script, permissions).unwrap_or_else(|error| panic!("chmod: {error}"));
+
+	let status = super::tool_version(script.to_str().unwrap_or_default());
+
+	assert!(
+		matches!(&status, DoctorStatus::Missing(reason) if reason.contains("printed no version")),
+		"status: {status:?}"
+	);
+}
+
+#[test]
+fn doctor_renders_the_warning_outcome_for_missing_tools() {
+	let workspace = write_config("");
+	let configuration = load_workspace_configuration(workspace.path());
+
+	let mut report = collect_doctor_report(workspace.path(), &configuration);
+	report.checks.push(DoctorCheck {
+		label: "synthetic-missing-tool".to_string(),
+		status: DoctorStatus::Missing("install it".to_string()),
+	});
+
+	let rendered = super::render_doctor_report_value(&report, OutputFormat::Text)
+		.unwrap_or_else(|error| panic!("render: {error}"));
+
+	assert!(
+		rendered.contains("synthetic-missing-tool — MISSING"),
+		"render: {rendered}"
+	);
+	assert!(
+		rendered.contains("checks need attention"),
+		"render: {rendered}"
+	);
+}
