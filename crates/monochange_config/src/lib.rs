@@ -7076,12 +7076,7 @@ fn validate_floating_tag_templates(
 /// flat message that leaves the offending line to guesswork.
 fn toml_syntax_diagnostic(path: &Path, contents: &str, error: &toml::de::Error) -> MonochangeError {
 	let span = error.span().unwrap_or(0..0);
-	let detail = error.message().to_string();
-	let label = if detail.is_empty() {
-		None
-	} else {
-		Some(detail)
-	};
+	let label = Some(error.message().to_string());
 
 	MonochangeError::Diagnostic(render_source_diagnostic(
 		&path.display().to_string(),
