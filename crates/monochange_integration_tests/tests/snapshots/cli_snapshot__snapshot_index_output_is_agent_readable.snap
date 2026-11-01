@@ -35,21 +35,6 @@ expression: value
       ]
     },
     {
-      "hidden": true,
-      "max_bump": "major",
-      "parser": {
-        "flags_are_posix_noncompliant": false,
-        "option_arg_separators": [
-          " ",
-          "="
-        ],
-        "options_must_precede_arguments": false
-      },
-      "path": [
-        "populate"
-      ]
-    },
-    {
       "hidden": false,
       "max_bump": "major",
       "parser": {
