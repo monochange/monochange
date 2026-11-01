@@ -96,6 +96,30 @@ The server deploy helper requires a full commit SHA, verifies the image exists l
 
 Deploy helpers are installed by `harden-droplet.sh`. For an already hardened server, update the helper separately rather than rerunning account/firewall bootstrapping. Production secrets remain in the runtime vault and the root-owned token file; ordinary updates do not copy or resolve them locally.
 
+## OS updates and reboots
+
+Ubuntu security updates are installed daily by `unattended-upgrades`. Docker and containerd come from Docker's apt repository, which is outside the allowed origins, so those need the manual package pass described below.
+
+The Droplet also reboots itself when an unattended upgrade leaves `/var/run/reboot-required`, so a new kernel is never left installed but inactive:
+
+| Setting         | Value                                                                     |
+| --------------- | ------------------------------------------------------------------------- |
+| Config file     | `/etc/apt/apt.conf.d/51unattended-upgrades-auto-reboot`                   |
+| Reboot time     | `07:30` UTC, after the 06:00–07:00 `apt-daily-upgrade` window             |
+| Logged-in users | A session does not block the reboot (`Automatic-Reboot-WithUsers "true"`) |
+
+`harden-droplet.sh` writes that file, so a replacement Droplet gets the same behaviour. The reboot takes the site down for roughly 20–30 seconds; Compose brings the app and Caddy back because both use `restart: unless-stopped`.
+
+Check the parsed settings, or change the window, with:
+
+```bash
+ssh -F app/deploy/digitalocean/ssh_config monochange-production 'apt-config dump | grep -i "Unattended-Upgrade::Automatic-Reboot"'
+```
+
+For a manual pass, run `apt-get update && apt-get -y dist-upgrade` as root, then reboot only when `/var/run/reboot-required` exists. Kernel updates require the reboot to take effect; Docker updates restart the daemon and containers on their own.
+
+Avoiding downtime entirely needs either a second host behind a load balancer or Ubuntu Pro Livepatch, which applies supported kernel fixes without a reboot. Neither is part of this deployment yet.
+
 ## DNS through the API
 
 DNS currently uses Namecheap's BasicDNS. DigitalOcean's API cannot change records there. Namecheap Email Forwarding is selected and its five MX records and SPF TXT record are active. That service depends on Namecheap DNS, so copying records alone does not preserve the forwarding service. Keep the current delegation until email forwarding is deliberately retired or replaced. Routine app deployments need no DNS changes.

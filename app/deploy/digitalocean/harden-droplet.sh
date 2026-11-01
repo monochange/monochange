@@ -78,6 +78,16 @@ systemctl restart fail2ban
 dpkg-reconfigure -f noninteractive unattended-upgrades
 systemctl enable --now unattended-upgrades
 
+# Reboot automatically when a security upgrade needs a new kernel or core
+# library. apt-daily-upgrade runs at 06:00 UTC with up to 60 minutes of random
+# delay, so 07:30 UTC leaves the upgrade time to finish.
+cat >/etc/apt/apt.conf.d/51unattended-upgrades-auto-reboot <<'EOF'
+Unattended-Upgrade::Automatic-Reboot "true";
+Unattended-Upgrade::Automatic-Reboot-Time "07:30";
+Unattended-Upgrade::Automatic-Reboot-WithUsers "true";
+EOF
+chmod 0644 /etc/apt/apt.conf.d/51unattended-upgrades-auto-reboot
+
 install -d -m 755 /opt/monochange/data /opt/monochange/backups /opt/monochange/caddy/data /opt/monochange/caddy/config
 chown "${DEPLOY_USER}:${DEPLOY_USER}" /opt/monochange
 chown -R "${DEPLOY_USER}:${DEPLOY_USER}" /opt/monochange/data /opt/monochange/backups /opt/monochange/caddy

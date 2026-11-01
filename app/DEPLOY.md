@@ -35,7 +35,7 @@ Recommended hardening baseline:
 - install Docker from the official apt repository;
 - enable UFW and allow only `22`, `80`, and `443`;
 - install and enable `fail2ban`;
-- enable unattended security upgrades;
+- enable unattended security upgrades, with an automatic reboot at `07:30` UTC when one needs it;
 - keep `/opt/monochange/secrets/op_service_account_token` mode `0600`;
 - keep the 1Password service account scoped to the minimal production vault/items;
 - let the entrypoint read the root-only token, then drop privileges to the non-root `app` user before starting the server;
@@ -156,7 +156,7 @@ The script enforces:
 - `AllowUsers deploy root` so `deploy` is used for normal deploys while root remains key-only for privileged maintenance;
 - UFW default-deny incoming, allow `22`, `80`, `443`;
 - fail2ban SSH jail;
-- unattended security upgrades;
+- unattended security upgrades, and an automatic reboot at `07:30` UTC whenever they leave `/var/run/reboot-required`;
 - `/opt/monochange/secrets` mode `0700`;
 - `/opt/monochange/secrets/op_service_account_token` should be written with mode `0600`.
 
