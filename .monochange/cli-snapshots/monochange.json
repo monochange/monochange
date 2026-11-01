@@ -61,9 +61,9 @@
 		},
 		{
 			"path": [
-				"populate"
+				"format"
 			],
-			"hidden": true,
+			"hidden": false,
 			"max_bump": "major",
 			"parser": {
 				"flags_are_posix_noncompliant": false,
@@ -663,6 +663,36 @@
 		{
 			"path": [
 				"check"
+			],
+			"hidden": false,
+			"max_bump": "major",
+			"parser": {
+				"flags_are_posix_noncompliant": false,
+				"options_must_precede_arguments": false,
+				"option_arg_separators": [
+					" ",
+					"="
+				]
+			}
+		},
+		{
+			"path": [
+				"completions"
+			],
+			"hidden": false,
+			"max_bump": "major",
+			"parser": {
+				"flags_are_posix_noncompliant": false,
+				"options_must_precede_arguments": false,
+				"option_arg_separators": [
+					" ",
+					"="
+				]
+			}
+		},
+		{
+			"path": [
+				"doctor"
 			],
 			"hidden": false,
 			"max_bump": "major",
