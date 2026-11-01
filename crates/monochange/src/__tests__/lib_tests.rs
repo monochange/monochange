@@ -293,7 +293,9 @@ where
 			"changeset",
 			"check",
 			"command",
+			"completions",
 			"config",
+			"doctor",
 			"create",
 			"diagnose",
 			"discover",
@@ -18005,4 +18007,39 @@ fn shell_completions_reject_unknown_shells() {
 		Err(error) => error,
 	};
 	assert!(error.to_string().contains("tcsh"));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn completions_and_doctor_dispatch_render_outputs() {
+	let workspace = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	fs::write(
+		workspace.path().join("monochange.toml"),
+		"[ecosystems.deno]\nenabled = false\n",
+	)
+	.unwrap_or_else(|error| panic!("write config: {error}"));
+
+	let completions = run_cli(
+		workspace.path(),
+		[
+			OsString::from("monochange"),
+			OsString::from("completions"),
+			OsString::from("bash"),
+		],
+	)
+	.unwrap_or_else(|error| panic!("completions dispatch: {error}"));
+	assert!(
+		completions.contains("_monochange()"),
+		"completions dispatch: {}",
+		&completions[..completions.len().min(200)]
+	);
+
+	let doctor = run_cli(
+		workspace.path(),
+		[OsString::from("monochange"), OsString::from("doctor")],
+	)
+	.unwrap_or_else(|error| panic!("doctor dispatch: {error}"));
+	assert!(
+		doctor.contains("Environment checks"),
+		"doctor dispatch: {doctor}"
+	);
 }
