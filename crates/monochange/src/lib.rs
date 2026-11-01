@@ -44,6 +44,7 @@ use clap::ValueEnum;
 use clap::error::ErrorKind;
 pub use cli::build_command;
 use cli::build_command_with_cli;
+use cli::build_snapshot_command;
 use cli::cli_commands_for_root;
 use cli::cli_commands_from_config;
 use cli::current_dir_or_dot;
@@ -253,6 +254,7 @@ mod cli_runtime;
 
 mod cli_theme;
 mod command_wizard;
+mod doctor;
 mod git_support;
 mod hosted_sources;
 mod interactive;
@@ -1363,6 +1365,25 @@ async fn dispatch_cli_args(
 	finish_cli_output(rendered, quiet, jq_expression, &matches)
 }
 
+/// Print a completion script for `shell`, built from the commands this
+/// repository's configuration defines so configured workflows complete too.
+fn render_shell_completions(
+	bin_name: &'static str,
+	root: &Path,
+	shell: &str,
+) -> MonochangeResult<String> {
+	let shell = shell.parse::<clap_complete::Shell>().map_err(|error| {
+		MonochangeError::Config(format!("unknown shell `{shell}` for completions: {error}"))
+	})?;
+	let cli = cli_commands_for_root(root);
+	let mut command = build_command_with_cli(bin_name, &cli);
+	let mut buffer = Vec::new();
+	clap_complete::generate(shell, &mut command, bin_name, &mut buffer);
+
+	String::from_utf8(buffer)
+		.map_err(|error| MonochangeError::Io(format!("completion script was not UTF-8: {error}")))
+}
+
 /// Answers the requests that never need the workspace configuration.
 ///
 /// Version output and help for built-in commands are parsed against the default command set before
@@ -1388,7 +1409,7 @@ fn render_config_free_request(
 	if let Some(snapshot_request) = parse_snapshot_request(args) {
 		let configuration = load_workspace_configuration(root);
 		let cli = cli_commands_from_config(&configuration);
-		let command = cli::build_snapshot_command(bin_name, &cli, &snapshot_request.path);
+		let command = build_snapshot_command(bin_name, &cli, &snapshot_request.path);
 
 		return render_snapshot_request(&command, &snapshot_request).map(Some);
 	}
@@ -1594,6 +1615,20 @@ async fn run_cli_subcommand(
 			populate_workspace(root).map(|result| format_populate_workspace_result(&result))
 		}
 		Some(("command", _)) => run_command_wizard_for_cli(root, context.quiet),
+		Some(("completions", completions_matches)) => {
+			let shell = completions_matches
+				.get_one::<String>("shell")
+				.map_or("bash", String::as_str);
+
+			render_shell_completions(context.bin_name, root, shell)
+		}
+		Some(("doctor", doctor_matches)) => {
+			doctor::render_doctor_report(
+				root,
+				&configuration,
+				selected_cli_output_format(doctor_matches)?,
+			)
+		}
 		Some(("skill", skill_matches)) => run_skill_subcommand(context.quiet, skill_matches),
 		Some(("subagents", subagent_matches)) => run_subagents_subcommand(root, subagent_matches),
 		Some(("change", change_matches)) => {
@@ -1755,7 +1790,7 @@ fn run_snapshot_subcommand(
 	let path = command_values(matches);
 
 	render_snapshot_request(
-		&cli::build_snapshot_command(context.bin_name, context.cli, &path),
+		&build_snapshot_command(context.bin_name, context.cli, &path),
 		&SnapshotRequest { path, view },
 	)
 }
