@@ -62,21 +62,28 @@ async fn forced_init_rejects_shared_package_paths_without_overwriting_configurat
 	clippy::disallowed_methods,
 	reason = "tokio::test builds its runtime with Result::expect"
 )]
-async fn populate_explains_empty_defaults_and_preserves_custom_workflows() {
+async fn populate_is_retired_as_an_unrecognized_subcommand() {
 	let fixture = setup_fixture!("monochange/populate-partial-cli");
 	let root = fixture.path();
 	let before = fs::read_to_string(root.join("monochange.toml"))
 		.unwrap_or_else(|error| panic!("read original config: {error}"));
-	let output = run_cli(root, &["populate"])
-		.await
-		.unwrap_or_else(|error| panic!("populate output: {error}"));
-	let output = output.replace(&root.display().to_string(), "[workspace]");
 
-	insta::assert_snapshot!(output);
+	let error = run_cli(root, &["populate"])
+		.await
+		.err()
+		.unwrap_or_else(|| panic!("expected populate to be retired"));
+
+	assert!(
+		error
+			.to_string()
+			.contains("unrecognized subcommand 'populate'"),
+		"error: {error}"
+	);
 	assert_eq!(
 		fs::read_to_string(root.join("monochange.toml"))
 			.unwrap_or_else(|error| panic!("read preserved config: {error}")),
-		before
+		before,
+		"the retired command must not touch the config"
 	);
 }
 
