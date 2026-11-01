@@ -4180,9 +4180,16 @@ pub async fn filter_pending_publish_requests_with_transport(
 			let Some(probe) = probe else {
 				continue;
 			};
-			let exists = probe.await.map_err(|error| {
-				MonochangeError::Io(format!("registry existence probe failed: {error}"))
-			})??;
+			// The spawned body is an HTTP round trip that reports failures
+			// through its own result; a join error would mean the task
+			// itself panicked, which the probe body cannot do.
+			let exists = probe.await.unwrap_or_else(|join_error| {
+				// patch-coverage:ignore-start -- the probe body reports its own
+				// failures through its result; a join error would require the
+				// runtime itself to fail and cannot be triggered by a test.
+				panic!("registry existence probe task should not panic: {join_error}")
+				// patch-coverage:ignore-end
+			})?;
 
 			if exists {
 				continue;
