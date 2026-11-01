@@ -44,6 +44,7 @@ use clap::ValueEnum;
 use clap::error::ErrorKind;
 pub use cli::build_command;
 use cli::build_command_with_cli;
+use cli::build_snapshot_command;
 use cli::cli_commands_for_root;
 use cli::cli_commands_from_config;
 use cli::current_dir_or_dot;
@@ -1408,7 +1409,7 @@ fn render_config_free_request(
 	if let Some(snapshot_request) = parse_snapshot_request(args) {
 		let configuration = load_workspace_configuration(root);
 		let cli = cli_commands_from_config(&configuration);
-		let command = cli::build_snapshot_command(bin_name, &cli, &snapshot_request.path);
+		let command = build_snapshot_command(bin_name, &cli, &snapshot_request.path);
 
 		return render_snapshot_request(&command, &snapshot_request).map(Some);
 	}
@@ -1789,7 +1790,7 @@ fn run_snapshot_subcommand(
 	let path = command_values(matches);
 
 	render_snapshot_request(
-		&cli::build_snapshot_command(context.bin_name, context.cli, &path),
+		&build_snapshot_command(context.bin_name, context.cli, &path),
 		&SnapshotRequest { path, view },
 	)
 }
