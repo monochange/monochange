@@ -4655,6 +4655,37 @@ fn cocoapods_publish_command_falls_back_to_the_manifest_display_path() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+async fn filter_pending_publish_requests_propagates_registry_probe_errors() {
+	use httpmock::MockServer;
+
+	let server = MockServer::start();
+	let mut endpoints = RegistryEndpoints::from_env();
+	endpoints.npm_registry = server.base_url();
+
+	// A 500 from the registry turns into a probe error that the filter
+	// propagates instead of treating the package as publishable.
+	server.mock(|when, then| {
+		when.method(httpmock::Method::GET).path("/erroring-package");
+		then.status(500);
+	});
+
+	let mut failing = sample_publish_request_for_registry(RegistryKind::Npm);
+	failing.package_id = "failing".to_string();
+	failing.package_name = "erroring-package".to_string();
+
+	let client = registry_client().unwrap_or_else(|error| panic!("registry client: {error}"));
+	let error = filter_pending_publish_requests_with_transport(&[failing], &client, &endpoints)
+		.await
+		.err()
+		.unwrap_or_else(|| panic!("expected the registry probe error to propagate"));
+
+	assert!(
+		error.to_string().contains("npm registry lookup"),
+		"error: {error}"
+	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
 async fn filter_pending_publish_requests_probes_registries_concurrently() {
 	use std::time::Duration;
 	use std::time::Instant;
