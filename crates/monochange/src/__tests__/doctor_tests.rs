@@ -238,3 +238,26 @@ fn doctor_renders_the_warning_outcome_for_missing_tools() {
 		"render: {rendered}"
 	);
 }
+
+/// The success outcome must not depend on the host actually having every
+/// ecosystem tool installed, so it is rendered from a synthetic all-pass
+/// report instead of a collected one.
+#[test]
+fn doctor_renders_the_success_outcome_when_all_checks_pass() {
+	let report = super::DoctorReport {
+		root: "[workspace]".to_string(),
+		checks: vec![DoctorCheck {
+			label: "git".to_string(),
+			status: DoctorStatus::Ok("git version 2.56.0".to_string()),
+		}],
+	};
+
+	let rendered = super::render_doctor_report_value(&report, OutputFormat::Text)
+		.unwrap_or_else(|error| panic!("render: {error}"));
+
+	assert!(
+		rendered.contains("all 1 checks passed"),
+		"render: {rendered}"
+	);
+	assert!(!rendered.contains("MISSING"), "render: {rendered}");
+}
