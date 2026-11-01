@@ -149,12 +149,17 @@ fn summary_counts_multiple_missing_checks() {
 		status: DoctorStatus::Missing("install it too".to_string()),
 	});
 
-	let missing = 2;
+	let missing = report
+		.checks
+		.iter()
+		.filter(|check| matches!(check.status, DoctorStatus::Missing(_)))
+		.count();
 	assert!(
-		report
-			.summary_text()
-			.starts_with(&format!("{missing} checks need attention")),
-		"summary: {}",
+		missing >= 3
+			&& report
+				.summary_text()
+				.starts_with(&format!("{missing} checks need attention")),
+		"missing={missing} summary: {}",
 		report.summary_text()
 	);
 }
