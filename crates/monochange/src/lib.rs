@@ -1375,8 +1375,8 @@ fn render_shell_completions(
 	let shell = shell.parse::<clap_complete::Shell>().map_err(|error| {
 		MonochangeError::Config(format!("unknown shell `{shell}` for completions: {error}"))
 	})?;
-	let cli = cli::cli_commands_for_root(root);
-	let mut command = cli::build_command_with_cli(bin_name, &cli);
+	let cli = cli_commands_for_root(root);
+	let mut command = build_command_with_cli(bin_name, &cli);
 	let mut buffer = Vec::new();
 	clap_complete::generate(shell, &mut command, bin_name, &mut buffer);
 
