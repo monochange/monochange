@@ -1,6 +1,5 @@
 ---
 source: crates/monochange/tests/cli_help.rs
-assertion_line: 59
 info:
   program: monochange
   args:
@@ -32,6 +31,7 @@ Visible top-level commands:
   diagnose
   discover
   doctor
+  format
   help
   init
   lint
