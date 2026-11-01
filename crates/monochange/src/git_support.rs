@@ -157,19 +157,10 @@ pub(crate) async fn first_parent_history(
 ///
 /// `first_parent` is `None` at a graft boundary: the root commit, or the cut
 /// of a shallow clone, where git reports no parents for the boundary commit.
+#[derive(Debug)]
 pub(crate) struct FirstParentEntry {
 	pub(crate) commit: String,
 	pub(crate) first_parent: Option<String>,
-}
-
-impl std::fmt::Debug for FirstParentEntry {
-	fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		formatter
-			.debug_struct("FirstParentEntry")
-			.field("commit", &self.commit)
-			.field("first_parent", &self.first_parent)
-			.finish()
-	}
 }
 
 /// First-parent ancestry resolved by one `git log` run.
@@ -177,19 +168,10 @@ impl std::fmt::Debug for FirstParentEntry {
 /// The walk also remembers which commits it contains, so a commit whose
 /// recorded first parent never appears in the walk is recognized as sitting
 /// at a cut boundary — the parent object is not available to diff against.
+#[derive(Debug)]
 pub(crate) struct FirstParentHistory {
 	entries: Vec<FirstParentEntry>,
 	walk_commits: std::collections::HashSet<String>,
-}
-
-impl std::fmt::Debug for FirstParentHistory {
-	fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		formatter
-			.debug_struct("FirstParentHistory")
-			.field("entries", &self.entries)
-			.field("walk_commits", &self.walk_commits)
-			.finish()
-	}
 }
 
 impl FirstParentHistory {
