@@ -35,6 +35,8 @@ Recommended hardening baseline:
 - install Docker from the official apt repository;
 - enable UFW and allow only `22`, `80`, and `443`;
 - install and enable `fail2ban`;
+- install the CVE-2026-98432 nftables mitigation until Ubuntu ships a fixed 24.04 kernel;
+- disable Multipath TCP on the Caddy listener, which removes the listener type used by the demonstrated CVE-2026-98432 exploit;
 - enable unattended security upgrades, with an automatic reboot at `07:30` UTC when one needs it;
 - keep `/opt/monochange/secrets/op_service_account_token` mode `0600`;
 - keep the 1Password service account scoped to the minimal production vault/items;
@@ -139,11 +141,13 @@ Cloud firewall rules:
 
 ## 3. bootstrap and harden the server
 
-Run the hardened setup script on the Droplet. It installs Docker, configures SSH key-only access, creates the `deploy` user, enables UFW/fail2ban/unattended upgrades, creates app directories, and installs backup/deploy helper scripts.
+Run the hardened setup script on the Droplet. It installs Docker, configures SSH key-only access, creates the `deploy` user, enables UFW/fail2ban/unattended upgrades, creates app directories, installs backup/deploy helper scripts, and installs the CVE-2026-98432 interim nftables rule. The mitigation script must sit next to `harden-droplet.sh`.
 
 ```bash
-scp app/deploy/digitalocean/harden-droplet.sh root@$DROPLET_IP:/root/harden-droplet.sh
-ssh root@$DROPLET_IP 'chmod +x /root/harden-droplet.sh && /root/harden-droplet.sh'
+scp app/deploy/digitalocean/harden-droplet.sh \
+  app/deploy/digitalocean/mitigate-cve-2026-98432.sh \
+  root@$DROPLET_IP:/root/
+ssh root@$DROPLET_IP 'chmod +x /root/harden-droplet.sh /root/mitigate-cve-2026-98432.sh && /root/harden-droplet.sh'
 ```
 
 The script enforces:
@@ -156,6 +160,7 @@ The script enforces:
 - `AllowUsers deploy root` so `deploy` is used for normal deploys while root remains key-only for privileged maintenance;
 - UFW default-deny incoming, allow `22`, `80`, `443`;
 - fail2ban SSH jail;
+- the CVE-2026-98432 nftables rule that drops inbound IPv4 TCP packets carrying IP options, with a systemd unit that reloads it at boot; see [CVE-2026-98432 interim mitigation](deploy/digitalocean/OPERATIONS.md#cve-2026-98432-interim-mitigation);
 - unattended security upgrades, and an automatic reboot at `07:30` UTC whenever they leave `/var/run/reboot-required`;
 - `/opt/monochange/secrets` mode `0700`;
 - `/opt/monochange/secrets/op_service_account_token` should be written with mode `0600`.
