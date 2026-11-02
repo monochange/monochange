@@ -19,6 +19,11 @@ services:
     restart: unless-stopped
     depends_on:
       - app
+    environment:
+      # Go 1.24+ enables Multipath TCP on listeners by default. Caddy does not
+      # need MPTCP here, and the demonstrated CVE-2026-98432 exploit requires
+      # an MPTCP listener.
+      GODEBUG: multipathtcp=0
     ports:
       - "80:80"
       - "443:443"

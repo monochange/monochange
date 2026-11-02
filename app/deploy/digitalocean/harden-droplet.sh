@@ -16,6 +16,7 @@ apt-get install -y \
 	curl \
 	fail2ban \
 	gnupg \
+	nftables \
 	sqlite3 \
 	ufw \
 	unattended-upgrades
@@ -134,5 +135,12 @@ set -euo pipefail
 /usr/local/bin/monochange-sqlite-backup
 EOF
 chmod 0755 /etc/cron.daily/monochange-sqlite-backup
+
+MITIGATION_SCRIPT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/mitigate-cve-2026-98432.sh"
+if [ ! -x "${MITIGATION_SCRIPT}" ]; then
+	echo "missing ${MITIGATION_SCRIPT}; copy it next to harden-droplet.sh" >&2
+	exit 1
+fi
+"${MITIGATION_SCRIPT}"
 
 echo "Droplet hardening complete. Use user '${DEPLOY_USER}' for SSH/deploy access."

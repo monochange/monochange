@@ -120,6 +120,41 @@ For a manual pass, run `apt-get update && apt-get -y dist-upgrade` as root, then
 
 Avoiding downtime entirely needs either a second host behind a load balancer or Ubuntu Pro Livepatch, which applies supported kernel fixes without a reboot. Neither is part of this deployment yet.
 
+## CVE-2026-98432 interim mitigation
+
+Ubuntu 24.04 has not released a kernel with the CVE-2026-98432 fix yet. As of 2026-11-02, the [Ubuntu tracker](https://ubuntu.com/security/CVE-2026-98432) lists `linux` for noble as vulnerable with the fix in progress in `6.8.0-149.149`. The Droplet therefore shares the vulnerable host kernel with every container. Do not remove the mitigation until `uname -r` shows the fixed kernel and the Ubuntu page marks the noble `linux` package Released.
+
+`mitigate-cve-2026-98432.sh` installs a persistent nftables table that drops inbound IPv4 TCP packets carrying IP options (`IHL > 5`) in `prerouting` at priority `-310`. The vulnerable kernel path is only reachable from a connection request with IP options. The prerouting hook covers both host services such as SSH and traffic DNATed to Docker-published Caddy ports; an input-only rule would miss Caddy.
+
+It also installs `monochange-cve-2026-98432-mitigation.service`, which loads the table after a reboot. `harden-droplet.sh` installs `nftables` and calls the mitigation script, so a replacement Droplet gets the same rule.
+
+Apply or reapply it on the running Droplet:
+
+```bash
+scp app/deploy/digitalocean/mitigate-cve-2026-98432.sh root@$DROPLET_IP:/root/
+ssh root@$DROPLET_IP '/root/mitigate-cve-2026-98432.sh'
+```
+
+Verify the table and the unit:
+
+```bash
+ssh root@$DROPLET_IP 'nft list table inet cve_2026_98432'
+ssh root@$DROPLET_IP 'systemctl status --no-pager monochange-cve-2026-98432-mitigation.service'
+```
+
+The `counter` on the rule reports matching packets. A non-zero count is expected on a public web host; it is not proof of exploitation.
+
+Compose sets `GODEBUG=multipathtcp=0` on the Caddy container. Go 1.24+ enables MPTCP on listeners by default, and the demonstrated exploit requires an MPTCP listener. This removes that listener type for Caddy, but the underlying bug is not MPTCP-specific, so the nftables rule and kernel update are still required.
+
+After the unattended upgrade installs the fixed kernel, the existing auto-reboot activates it. Confirm the running version, then remove the mitigation:
+
+```bash
+ssh root@$DROPLET_IP 'uname -r'
+ssh root@$DROPLET_IP '/root/mitigate-cve-2026-98432.sh --remove'
+```
+
+`--remove` stops and disables the unit, deletes the table, and removes the unit, helper script, and rules file. Recheck `nft list tables` and `systemctl status` afterward.
+
 ## DNS through the API
 
 DNS currently uses Namecheap's BasicDNS. DigitalOcean's API cannot change records there. Namecheap Email Forwarding is selected and its five MX records and SPF TXT record are active. That service depends on Namecheap DNS, so copying records alone does not preserve the forwarding service. Keep the current delegation until email forwarding is deliberately retired or replaced. Routine app deployments need no DNS changes.
