@@ -1,6 +1,6 @@
 # Feedback widget integration and agent plan approval
 
-**Status**: all feature stages implemented. Feature validation, packaging, CLI contracts, and the full website release build/bundle checks pass. Native builds and device verification require a working platform toolchain. **Related**: [Project feedback](feedback-loop-poc.md), [End-to-end feedback flow](end-to-end-feedback-flow.md).
+**Status**: all feature stages implemented. Feature validation, packaging, CLI contracts, and the full website release build/bundle checks pass. Android and iOS builds pass on CI; interactive device verification requires a working platform toolchain. **Related**: [Project feedback](feedback-loop-poc.md), [End-to-end feedback flow](end-to-end-feedback-flow.md).
 
 ## Goal and flow
 
@@ -160,7 +160,7 @@ The storage decision deliberately reuses the existing versioned project document
 
 No package publication, release workflow, production deployment, or merge is part of this implementation.
 
-Native runtime verification is limited by this machine: device discovery twice returned “Could not communicate with device support. Try refreshing devices.” After clearing Nix SDK overrides, the iOS build finds Xcode but stops at its missing `CoreSimulator.framework` plugin; no Android SDK is installed. Flutter analyzer/unit/widget/example tests and the React Native component test run locally; the added CI workflow builds the Flutter Android/iOS hosts on supported runners. These platform build/runtime checks must be completed on a working native toolchain before shipping.
+Native runtime verification is limited by this machine: device discovery twice returned “Could not communicate with device support. Try refreshing devices.” After clearing Nix SDK overrides, the iOS build finds Xcode but stops at its missing `CoreSimulator.framework` plugin; no Android SDK is installed. Flutter analyzer/unit/widget/example tests and the React Native component test run locally; the added CI workflow successfully builds the Flutter Android/iOS hosts on supported runners. These platform build/runtime checks must be completed on a working native toolchain before shipping.
 
 ## Verification record
 
@@ -173,6 +173,7 @@ Native runtime verification is limited by this machine: device discovery twice r
 - iOS CI follow-up: native builds run in an explicit environment containing system tool paths and required user/cache settings. This excludes Nix SDK, compiler, and linker overrides from Xcode and SwiftPM. A task environment probe verifies their absence, discovers native Xcode, and evaluates the Flutter Swift package manifest locally. Full local builds still reach the separate missing simulator-framework installation described above.
 - Agent-free CLI contracts: all 25 pass with zero model calls. Six expectations were updated to the current usage exit code and renderer messages, preserving the dry-run filesystem checks.
 - Repository lint/build, application clippy with warnings denied, workspace validation, release dry-run/stream inspection, and explicit changed-path changeset verification pass.
+- Release-lint follow-up: a fresh lockfile reproduces the rejected `ar_archive_writer` 0.5.3 license. `deny.toml` now scopes `Apache-2.0 WITH LLVM-exception` to that exact crate/version, matching its [upstream license](https://github.com/rust-lang/ar_archive_writer/blob/v0.5.3/LICENSE.txt). The regenerated dependency graph passes advisories, bans, licenses, and sources checks.
 - Combined root/application Rust coverage enforces 100% of executable changed lines. The separate app workspace is now included in `coverage:all`, preventing its API and UI code from falling outside the patch gate.
 - Installable web, React Native, and worker npm tarballs and the Flutter source archive are in `.monochange/local/packages/`. Packed web exports and the worker executable passed smoke checks. The generated website widget also has a 32 KB raw / 10 KB gzip build budget.
 
