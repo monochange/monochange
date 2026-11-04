@@ -268,6 +268,9 @@ in
           exit 1
         fi
         export PATH="$PATH:/usr/bin"
+        # Resolve package language versions and formatter options before checking a fresh checkout.
+        (cd "$DEVENV_ROOT/packages/monochange__feedback_flutter" && "$feedback_flutter_sdk/bin/flutter" pub get)
+        (cd "$DEVENV_ROOT/packages/monochange__feedback_flutter/example" && "$feedback_flutter_sdk/bin/flutter" pub get)
         "$feedback_flutter_sdk/bin/dart" format --output=none --set-exit-if-changed \
           packages/monochange__feedback_flutter/lib packages/monochange__feedback_flutter/test \
           packages/monochange__feedback_flutter/example/lib packages/monochange__feedback_flutter/example/test
