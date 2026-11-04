@@ -14,7 +14,12 @@
 		"types": [
 			"node",
 			"vitest/globals"
-		]
+		],
+		"paths": {
+			"@monochange/feedback/client": [
+				"./packages/monochange__feedback/src/client.ts"
+			]
+		}
 	},
 	"exclude": [
 		"dist",

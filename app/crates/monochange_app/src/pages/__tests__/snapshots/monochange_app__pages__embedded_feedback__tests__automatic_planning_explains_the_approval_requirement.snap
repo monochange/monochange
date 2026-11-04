@@ -11,7 +11,7 @@ expression: "html.replace(\"><\",\">\\n<\")"
 <p>Project ID: 1. Install the web, React Native, or Flutter SDK using a client token issued by your backend.</p>
 <details>
 <summary>Register an app</summary>
-<form action="/api/embedded_action14215929062930803967" method="post">
+<form action="/api/embedded_action[build-hash]" method="post">
 <input type="hidden" name="organization" value="alice">
 <input type="hidden" name="project" value="pocketbook">
 <input type="hidden" name="action" value="register">
@@ -37,7 +37,7 @@ expression: "html.replace(\"><\",\">\\n<\")"
 <details>
 <summary>Connect a local or self-hosted agent</summary>
 <p>Create a pairing code for your worker. Codes expire after ten minutes and can be used once.</p>
-<form action="/api/embedded_action14215929062930803967" method="post">
+<form action="/api/embedded_action[build-hash]" method="post">
 <input type="hidden" name="organization" value="alice">
 <input type="hidden" name="project" value="pocketbook">
 <input type="hidden" name="action" value="pair_worker">
@@ -55,7 +55,7 @@ expression: "html.replace(\"><\",\">\\n<\")"
 <!>
 <h3>Planning</h3>
 <p>New eligible feature requests are planned automatically. Every implementation still needs your approval.</p>
-<form action="/api/embedded_action14215929062930803967" method="post">
+<form action="/api/embedded_action[build-hash]" method="post">
 <input type="hidden" name="organization" value="alice">
 <input type="hidden" name="project" value="pocketbook">
 <input type="hidden" name="action" value="policy">
@@ -71,7 +71,7 @@ expression: "html.replace(\"><\",\">\\n<\")"
 <button type="submit">Use manual selection</button>
 </form>
 <p>Automatic planning waits for complete triage and skips bugs, held reports, and duplicates. Existing requests are planned only when you select them.</p>
-<form action="/api/embedded_action14215929062930803967" method="post">
+<form action="/api/embedded_action[build-hash]" method="post">
 <input type="hidden" name="organization" value="alice">
 <input type="hidden" name="project" value="pocketbook">
 <input type="hidden" name="action" value="plan">

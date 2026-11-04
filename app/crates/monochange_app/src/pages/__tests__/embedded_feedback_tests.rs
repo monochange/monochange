@@ -59,8 +59,8 @@ async fn integration_settings_and_complete_plan_review_render_as_forms() {
 	};
 
 	let html = crate::tests::render(move ||view! {<EmbeddedContent data=data.clone() organization="alice".to_owned() project="pocketbook".to_owned() action=ServerAction::new() />}).await;
-	// HTML text has no structural redaction selectors; every render has a fresh CSP nonce.
-	insta::with_settings!({ filters => vec![(r#"nonce="[^"]*""#, r#"nonce="[nonce]""#)] }, {
+	// HTML lacks structural redaction selectors; nonces and compiled action hashes vary by build.
+	insta::with_settings!({ filters => vec![(r#"nonce="[^"]*""#, r#"nonce="[nonce]""#), (r"/api/embedded_action[0-9]+", "/api/embedded_action[build-hash]")] }, {
 		insta::assert_snapshot!(html.replace("><", ">\n<"));
 	});
 }
@@ -71,7 +71,7 @@ async fn credentials_and_action_failures_have_accessible_status_messages() {
   {action_notice(Some(Ok(EmbeddedReceipt {message:"Copy this credential now".into(),credential:Some("test-only-one-time-code".into())})))}
   {action_notice(Some(Err(server_fn::ServerFnError::new("Choose a connected repository"))))}
  }).await;
-	insta::with_settings!({filters=>vec![(r#"nonce="[^"]*""#,r#"nonce="[nonce]""#)]},{insta::assert_snapshot!(html.replace("><",">\n<"));});
+	insta::with_settings!({filters=>vec![(r#"nonce="[^"]*""#,r#"nonce="[nonce]""#), (r"/api/embedded_action[0-9]+", "/api/embedded_action[build-hash]")]},{insta::assert_snapshot!(html.replace("><",">\n<"));});
 }
 
 #[tokio::test]
@@ -90,5 +90,5 @@ async fn automatic_planning_explains_the_approval_requirement() {
 		assistant_enabled: true,
 	};
 	let html=crate::tests::render(move ||view! {<EmbeddedContent data=data.clone() organization="alice".to_owned() project="pocketbook".to_owned() action=ServerAction::new() />}).await;
-	insta::with_settings!({filters=>vec![(r#"nonce="[^"]*""#,r#"nonce="[nonce]""#)]},{insta::assert_snapshot!(html.replace("><",">\n<"));});
+	insta::with_settings!({filters=>vec![(r#"nonce="[^"]*""#,r#"nonce="[nonce]""#), (r"/api/embedded_action[0-9]+", "/api/embedded_action[build-hash]")]},{insta::assert_snapshot!(html.replace("><",">\n<"));});
 }
