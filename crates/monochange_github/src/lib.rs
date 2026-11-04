@@ -1945,15 +1945,16 @@ where
 		let status = source.status_code.as_u16();
 
 		if is_github_rate_limit(status, &source.message) {
-			if let Some(delay) = delays.next() {
+			if let Some(&delay) = delays.next() {
+				let delay_seconds = delay.as_secs();
 				tracing::warn!(
 					path,
 					status,
-					delay_seconds = delay.as_secs(),
+					delay_seconds,
 					"GitHub rate limited a git object write; retrying: {}",
 					source.message
 				);
-				tokio::time::sleep(*delay).await;
+				tokio::time::sleep(delay).await;
 				continue;
 			}
 
