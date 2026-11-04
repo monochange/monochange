@@ -1,0 +1,57 @@
+---
+source: crates/monochange_integration_tests/tests/embedded_feedback.rs
+expression: "json!({\"received\":received,\"plan\":plan,\"planning_jobs\":service.planning().jobs.iter().map(|job|json!({\"id\":job.id,\"kind\":job.kind,\"status\":job.status,\"approved_by\":job.approved_by})).collect::<Vec<_>>(),\"final_stage\":service.item(\"fb-1\").unwrap().stage,\"feed\":service.status_feed().feed})"
+---
+{
+  "feed": {
+    "roadmap": [],
+    "shipped": [
+      {
+        "id": "fb-1",
+        "notes_url": "https://example.com/releases/1.1.0",
+        "title": "Export selected invoices as CSV",
+        "version": "1.1.0"
+      }
+    ]
+  },
+  "final_stage": "shipped",
+  "plan": {
+    "acceptance": [
+      "The CSV contains only selected invoices",
+      "The CSV contains invoice dates and totals"
+    ],
+    "changes": [
+      "Add an export action and CSV serializer"
+    ],
+    "checks": [
+      "Run invoice export tests"
+    ],
+    "paths": [
+      "src/**",
+      ".changeset/**"
+    ],
+    "risks": [
+      "Bound the number of invoices in one export"
+    ],
+    "summary": "Export selected invoices"
+  },
+  "planning_jobs": [
+    {
+      "approved_by": "owner",
+      "id": "job-1",
+      "kind": "plan",
+      "status": "approved"
+    },
+    {
+      "approved_by": "owner",
+      "id": "job-2",
+      "kind": "implement",
+      "status": "completed"
+    }
+  ],
+  "received": {
+    "id": "fb-1",
+    "similar": [],
+    "stage": "discussing"
+  }
+}

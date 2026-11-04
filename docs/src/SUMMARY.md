@@ -15,6 +15,8 @@
 - [Release planning](guide/06-release-planning.md)
 - [Website and app release notes](guide/website-release-notes.md)
 - [Build accepted feedback with an agent](guide/feedback-agent-builds.md)
+- [Install feedback in a website or app](guide/feedback-widget.md)
+- [Connect a local or self-hosted feedback agent](guide/feedback-connected-agents.md)
 - [Share tasks with contributors](guide/feedback-shared-tasks.md)
 - [Advanced: Trusted publishing and OIDC](guide/07-trusted-publishing.md)
 - [Advanced: GitHub automation](guide/08-github-automation.md)

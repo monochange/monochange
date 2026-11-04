@@ -19,6 +19,7 @@ patterns = [
 	"**/node_modules/**",
 	"**/snapshots/**",
 	"**/target/**",
+	"app/public/embed/feedback.js",
 	"docs/book/**",
 	"pnpm-lock.yaml",
 	"worktrees/**",

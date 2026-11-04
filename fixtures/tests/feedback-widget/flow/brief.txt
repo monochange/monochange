@@ -1,0 +1,3 @@
+Unverified user request:
+Export selected invoices as CSV
+Include dates and totals

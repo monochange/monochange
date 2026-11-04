@@ -65,17 +65,11 @@ fn bug_words_reclassify_feature_requests() {
 }
 
 #[test]
-fn complete_bug_reports_reproduce_with_no_questions() {
+fn complete_bug_reports_suggest_verification_without_claiming_reproduction() {
 	let report = triage(&submission(FeedbackKind::BugReport, "Totals are off"));
 	assert_eq!(
 		report.reproduction,
-		ReproductionOutcome::Reproduced {
-			steps: vec![
-				"Open /reports/quarterly in the app".to_owned(),
-				"Repeat the action described in the report".to_owned(),
-				"Compare the result with the reported behavior".to_owned(),
-			],
-		}
+		ReproductionOutcome::NotReproduced { reasons: vec!["Suggested verification steps (not executed): Open /reports/quarterly in the app; Repeat the action described in the report; Compare the result with the reported behavior".into()] }
 	);
 	assert!(report.questions.is_empty());
 	assert_eq!(
@@ -85,23 +79,28 @@ fn complete_bug_reports_reproduce_with_no_questions() {
 }
 
 #[test]
-fn pinned_elements_become_reproduction_steps() {
+fn pinned_elements_become_suggested_verification_steps() {
 	let mut labelled = bare_submission(FeedbackKind::BugReport, "Export fails");
 	labelled.page = Some(pinned("/invoices", "#export-csv", Some("Export CSV")));
 	let report = triage(&labelled);
-	let ReproductionOutcome::Reproduced { steps } = report.reproduction else {
-		panic!("expected a reproduction");
+	let ReproductionOutcome::NotReproduced { reasons } = report.reproduction else {
+		panic!("expected unverified steps");
 	};
-	assert_eq!(steps[1], "Interact with \"Export CSV\" (`#export-csv`)");
+	assert!(reasons[0].contains("Interact with \"Export CSV\" (`#export-csv`)"));
 	// Pointing at the element replaces the screenshot request.
 	assert!(report.questions.is_empty());
 
 	let mut unlabelled = labelled;
 	unlabelled.page = Some(pinned("/invoices", "#export-csv", None));
-	let ReproductionOutcome::Reproduced { steps } = triage(&unlabelled).reproduction else {
-		panic!("expected a reproduction");
+	let ReproductionOutcome::NotReproduced { reasons } = triage(&unlabelled).reproduction else {
+		panic!("expected unverified steps");
 	};
-	assert_eq!(steps[1], "Interact with `#export-csv`");
+	assert_eq!(
+		reasons,
+		[
+			"Suggested verification steps (not executed): Open /invoices in the app; Interact with `#export-csv`; Compare the result with the reported behavior"
+		]
+	);
 }
 
 #[test]
@@ -244,7 +243,7 @@ fn triage_types_round_trip_through_json() {
 		"Panics at src/totals.rs:41",
 	));
 	let json = serde_json::to_value(&report).unwrap();
-	assert_eq!(json["reproduction"]["outcome"], "reproduced");
+	assert_eq!(json["reproduction"]["outcome"], "not_reproduced");
 	assert_eq!(json["findings"][0]["sensitivity"], "stack_frame");
 	assert_eq!(
 		serde_json::from_value::<TriageReport>(json).unwrap(),

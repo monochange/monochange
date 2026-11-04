@@ -282,8 +282,8 @@ fn is_private_address(candidate: &str) -> bool {
 	}
 
 	matches!(
-		(octets[0], octets[1]),
-		(10 | 127, _) | (192, 168) | (172, 16..=31)
+		octets.as_slice(),
+		[10 | 127, _, _, _] | [192, 168, _, _] | [172, 16..=31, _, _]
 	)
 }
 

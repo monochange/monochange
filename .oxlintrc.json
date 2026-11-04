@@ -9,6 +9,7 @@
 	"ignorePatterns": [
 		"**/node_modules",
 		"**/dist",
+		"app/public/embed/feedback.js",
 		"**/target",
 		"**/fixtures",
 		"**/snapshots",

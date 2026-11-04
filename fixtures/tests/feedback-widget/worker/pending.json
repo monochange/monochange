@@ -1,0 +1,1 @@
+{"project":1,"endpoint":"https://feedback.example","id":"job-1","result":{"lease":"test-only-lease","failure":"Operator check failed"}}

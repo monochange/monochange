@@ -33,10 +33,13 @@
 
 pub mod disclosure;
 pub mod discussion;
+pub mod embedded;
 pub mod handoff;
 pub mod pipeline;
+pub mod planning;
 pub mod roadmap;
 pub mod similarity;
+
 pub mod submission;
 pub mod tasks;
 pub mod triage;
@@ -117,6 +120,10 @@ pub const SIMILARITY_THRESHOLD_PERCENT: u8 = 30;
 
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum ServiceError {
+	#[error(transparent)]
+	Embedded(#[from] embedded::EmbeddedError),
+	#[error(transparent)]
+	Planning(#[from] planning::PlanningError),
 	#[error("feedback item {0} does not exist")]
 	NotFound(String),
 	#[error("no app is registered with the slug {0}")]
@@ -197,6 +204,10 @@ pub struct ReleaseObservation {
 /// of the project's repositories, so they are supplied when restoring.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct FeedbackState {
+	#[serde(default)]
+	pub embedded: embedded::EmbeddedState,
+	#[serde(default)]
+	pub planning: planning::PlanningState,
 	pub rules: VotingRules,
 	pub apps: Vec<RegisteredApp>,
 	pub items: Vec<FeedbackItem>,
@@ -213,6 +224,8 @@ pub struct FeedbackState {
 /// handlers and `GitHub` webhooks; the state machine guarantees stay
 /// identical.
 pub struct FeedbackService<T: TriageEngine> {
+	embedded: embedded::EmbeddedState,
+	planning: planning::PlanningState,
 	triage: T,
 	policy: DisclosurePolicy,
 	rules: VotingRules,
@@ -232,6 +245,8 @@ impl<T: TriageEngine> FeedbackService<T> {
 		cadence: CadenceSnapshot,
 	) -> Self {
 		Self {
+			embedded: embedded::EmbeddedState::default(),
+			planning: planning::PlanningState::default(),
 			triage,
 			policy,
 			rules,
@@ -252,6 +267,8 @@ impl<T: TriageEngine> FeedbackService<T> {
 		state: FeedbackState,
 	) -> Self {
 		Self {
+			embedded: state.embedded,
+			planning: state.planning,
 			triage,
 			policy,
 			rules: state.rules,
@@ -272,6 +289,8 @@ impl<T: TriageEngine> FeedbackService<T> {
 	/// and deliver them separately.
 	pub fn state(&self) -> FeedbackState {
 		FeedbackState {
+			embedded: self.embedded.clone(),
+			planning: self.planning.clone(),
 			rules: self.rules,
 			apps: self.apps.values().cloned().collect(),
 			items: self.items.clone(),
@@ -282,6 +301,23 @@ impl<T: TriageEngine> FeedbackService<T> {
 
 	pub fn policy(&self) -> DisclosurePolicy {
 		self.policy
+	}
+
+	/// Persistent integration state shares feedback's transaction and retry boundary.
+	pub fn embedded(&self) -> &embedded::EmbeddedState {
+		&self.embedded
+	}
+
+	pub fn embedded_mut(&mut self) -> &mut embedded::EmbeddedState {
+		&mut self.embedded
+	}
+
+	pub fn planning(&self) -> &planning::PlanningState {
+		&self.planning
+	}
+
+	pub fn planning_mut(&mut self) -> &mut planning::PlanningState {
+		&mut self.planning
 	}
 
 	/// Applies a repository visibility change, such as the `GitHub`
@@ -387,6 +423,7 @@ impl<T: TriageEngine> FeedbackService<T> {
 			run_triage(&self.triage, &mut item)?;
 		}
 		let stage = item.stage;
+
 		self.items.push(item);
 		Ok(Receipt { id, stage, similar })
 	}
@@ -561,9 +598,9 @@ impl<T: TriageEngine> FeedbackService<T> {
 	) -> Result<Vec<String>, ServiceError> {
 		let repository = pull_request.repository.as_deref();
 		let closes = repository
-			.map(|repository| handoff::closing_issue_numbers(body, repository))
+			.map(|repository| closing_issue_numbers(body, repository))
 			.unwrap_or_default();
-		let named = handoff::feedback_trailers(body);
+		let named = feedback_trailers(body);
 		let delivered: Vec<(String, Stage)> = self
 			.items
 			.iter()
@@ -729,6 +766,7 @@ impl<T: TriageEngine> FeedbackService<T> {
 			shared_by: maintainer.to_owned(),
 			created_at: now,
 			expires_at,
+
 			status: if reasons.is_empty() {
 				TaskStatus::Listed
 			} else {
@@ -899,12 +937,11 @@ impl<T: TriageEngine> FeedbackService<T> {
 		id: &str,
 		change: impl FnOnce(&mut FeedbackItem, &T) -> Result<R, ServiceError>,
 	) -> Result<R, ServiceError> {
-		let index = self
+		let item = self
 			.items
-			.iter()
-			.position(|item| item.id == id)
+			.iter_mut()
+			.find(|item| item.id == id)
 			.ok_or_else(|| ServiceError::NotFound(id.to_owned()))?;
-		let item = &mut self.items[index];
 		let before = roadmap::public_status_line(item.stage);
 		let result = change(item, &self.triage)?;
 

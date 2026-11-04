@@ -43,7 +43,7 @@ Design: the portal is the first thing a project's users see, so it gets a full p
 ### 3. Polish and notifications
 
 - Email or GitHub notification delivery for status changes (rows are already written to `feedback_notifications`).
-- Embeddable widget (`/embed/feedback.js`) once object storage for screenshots exists.
+- Embeddable widget (`/embed/feedback.js`), starting with text and explicit screen context. The [widget integration proposal](feedback-widget-integration.md) adds host identity, client tokens, mobile integration, and a separate implementation-plan approval gate. Screenshots can follow once object storage exists.
 
 ### 4. Shared compute (experimental)
 

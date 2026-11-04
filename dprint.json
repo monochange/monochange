@@ -36,6 +36,11 @@
 		"textWrap": "never"
 	},
 	"excludes": [
+		"app/public/embed/**",
+		"packages/monochange__feedback_flutter/example/ios/**",
+		"packages/monochange__feedback_flutter/example/android/**",
+		"**/.dart_tool/**",
+		"**/build/**",
 		".templates/**",
 		"**/dist",
 		"docs/book",

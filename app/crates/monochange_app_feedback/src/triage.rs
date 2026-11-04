@@ -110,7 +110,7 @@ const BUG_WORDS: [&str; 11] = [
 
 /// Deterministic engine used for tests, local development, the demo, and as
 /// the fallback when no AI engine is configured. It encodes the minimum
-/// behavior the pipeline relies on: classify, attempt reproduction, ask for
+/// behavior the pipeline relies on: classify, suggest verification, ask for
 /// what is missing, and surface sensitive tokens as findings.
 pub struct RuleBasedTriage;
 
@@ -215,7 +215,12 @@ fn reproduce(
 	}
 
 	steps.push("Compare the result with the reported behavior".to_owned());
-	ReproductionOutcome::Reproduced { steps }
+	ReproductionOutcome::NotReproduced {
+		reasons: vec![format!(
+			"Suggested verification steps (not executed): {}",
+			steps.join("; ")
+		)],
+	}
 }
 
 fn follow_up_questions(

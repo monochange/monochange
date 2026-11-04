@@ -13,6 +13,8 @@
 #[path = "__tests__/github_app_tests.rs"]
 mod tests;
 
+pub mod feedback;
+
 use std::collections::BTreeMap;
 
 use hmac::Hmac;
@@ -822,6 +824,7 @@ async fn plan_release_branch_update(
 	if release_head == request.base_commit {
 		return Ok(ReleaseBranchUpdate::FastForward);
 	}
+
 	let base_branch = request.base_branch.as_deref().ok_or_else(|| {
 		GitHubAppError::BranchMoved(
 			request.branch.clone(),
@@ -1085,6 +1088,7 @@ pub async fn create_release_commit(
 			.await?
 		}
 	};
+
 	ensure_tree_keeps_workflows(http, api_url, installation_token, request, &tree_sha).await?;
 
 	// 4. Commit with the prepared base as its only parent.
@@ -1275,6 +1279,7 @@ pub async fn publish_release_pull_request(
 		let pull: PullRequestResponse = response.json().await?;
 		(pull, SourceChangeRequestOperation::Created)
 	};
+
 	pull.verify_identity(request, repository_id)?;
 	let body = pull.signed_body(binding_secret, &request.body);
 	let stamp = async {

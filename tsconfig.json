@@ -2,6 +2,7 @@
 	"compilerOptions": {
 		"allowImportingTsExtensions": true,
 		"allowJs": false,
+		"jsx": "react-jsx",
 		"checkJs": false,
 		"module": "NodeNext",
 		"moduleResolution": "NodeNext",
@@ -25,6 +26,8 @@
 		"evals/monochange-skill/run.ts",
 		"evals/monochange-skill/lib/**/*.ts",
 		"scripts/**/*.ts",
-		"packages/monochange__cli/src/**/*.ts"
+		"packages/monochange__cli/src/**/*.ts",
+		"packages/monochange__feedback/src/**/*.ts",
+		"packages/monochange__feedback-react-native/src/**/*.tsx"
 	]
 }
