@@ -160,7 +160,7 @@ The storage decision deliberately reuses the existing versioned project document
 
 No package publication, release workflow, production deployment, or merge is part of this implementation.
 
-Native runtime verification is limited by this machine: device discovery twice returned “Could not communicate with device support. Try refreshing devices.” The iOS build tool reports `xcrun: Bad CPU type in executable`, and no Android SDK is installed. Flutter analyzer/unit/widget/example tests and the React Native component test run locally; the added CI workflow builds the Flutter Android/iOS hosts on supported runners. These platform build/runtime checks must be completed on a working native toolchain before shipping.
+Native runtime verification is limited by this machine: device discovery twice returned “Could not communicate with device support. Try refreshing devices.” After clearing Nix SDK overrides, the iOS build finds Xcode but stops at its missing `CoreSimulator.framework` plugin; no Android SDK is installed. Flutter analyzer/unit/widget/example tests and the React Native component test run locally; the added CI workflow builds the Flutter Android/iOS hosts on supported runners. These platform build/runtime checks must be completed on a working native toolchain before shipping.
 
 ## Verification record
 
@@ -170,6 +170,7 @@ Native runtime verification is limited by this machine: device discovery twice r
 - Flutter: analyzer clean; four SDK tests and one example-host test passed. The Rust browser hydration target typechecks, and `cargo leptos build --release --split` builds both browser assets and the optimized server.
 - CI follow-up: reproduced the fresh-checkout formatter failure without Dart package resolution. The Flutter task now resolves SDK and example dependencies before formatting; the same clean copy passes formatting, analysis, and all five tests.
 - Cross-platform CI follow-up: snapshot filters retain the action endpoint name while normalizing its build-specific numeric hash. TypeScript resolves the feedback client from workspace source; type checking passes with its generated `dist` directory absent.
+- iOS CI follow-up: native builds prioritize Apple tools and clear Nix SDK overrides so Flutter can discover the active Xcode. Native Xcode discovery succeeds locally; the full build reaches the separate missing simulator-framework installation described above.
 - Agent-free CLI contracts: all 25 pass with zero model calls. Six expectations were updated to the current usage exit code and renderer messages, preserving the dry-run filesystem checks.
 - Repository lint/build, application clippy with warnings denied, workspace validation, release dry-run/stream inspection, and explicit changed-path changeset verification pass.
 - Combined root/application Rust coverage enforces 100% of executable changed lines. The separate app workspace is now included in `coverage:all`, preventing its API and UI code from falling outside the patch gate.

@@ -299,7 +299,10 @@ in
       exec = ''
         set -euo pipefail
         feedback_flutter_sdk="''${FLUTTER_SDK:-''${FLUTTER_ROOT:-$DEVENV_ROOT/.monochange/local/tooling/flutter}}"
-        export PATH="$PATH:/usr/bin"
+        # Use Apple's Xcode tools ahead of Nix's xcbuild compatibility shims.
+        export PATH="/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
+        # Nix's SDK paths hide the active Xcode and its iOS SDKs from xcrun.
+        unset SDKROOT DEVELOPER_DIR
         cd "$DEVENV_ROOT/packages/monochange__feedback_flutter/example"
         "$feedback_flutter_sdk/bin/flutter" build ios --simulator --no-codesign
       '';
