@@ -2266,6 +2266,14 @@ fn hosted_commit_file(root: &Path, path: &Path) -> MonochangeResult<HostedCommit
 	})
 }
 
+/// How long the hosted `CommitRelease` request may take.
+///
+/// The app makes several GitHub API calls before it answers, and when the
+/// workflow could not build the tree itself it also writes every release file,
+/// so a release touching hundreds of files outlasts the 30 second
+/// [`monochange_hosting::PROVIDER_HTTP_TIMEOUT`] that suits other provider calls.
+const HOSTED_COMMIT_REQUEST_TIMEOUT: Duration = Duration::from_secs(300);
+
 /// POST the hosted commit request and validate the response.
 async fn send_hosted_commit_request(
 	request: &HostedCommitRequest,
@@ -2276,6 +2284,7 @@ async fn send_hosted_commit_request(
 	let client = monochange_hosting::build_http_client("monochange app")?;
 	let response = client
 		.post(format!("{base_url}/api/release-commits"))
+		.timeout(HOSTED_COMMIT_REQUEST_TIMEOUT)
 		.bearer_auth(token)
 		.json(request)
 		.send()

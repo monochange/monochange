@@ -11,6 +11,7 @@ use std::fmt::Write as _;
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::OnceLock;
+use std::time::Duration;
 
 use base64::Engine as _;
 use monochange_core::CommitMessage;
@@ -325,8 +326,30 @@ struct GitHubCreateTreeEntry {
 	mode: &'static str,
 	#[serde(rename = "type")]
 	entry_type: &'static str,
-	/// `None` serializes as `"sha": null`, which GitHub requires to delete the path.
-	sha: Option<String>,
+	#[serde(flatten)]
+	source: GitHubTreeEntrySource,
+}
+
+/// Where a tree entry's blob comes from.
+#[derive(Debug, Serialize)]
+#[serde(untagged)]
+enum GitHubTreeEntrySource {
+	/// An existing blob. `None` serializes as `"sha": null`, which GitHub
+	/// requires to delete the path.
+	Sha { sha: Option<String> },
+	/// UTF-8 text that GitHub stores as a new blob while creating the tree,
+	/// so the file needs no separate blob request.
+	Content { content: String },
+}
+
+impl GitHubTreeEntrySource {
+	/// Bytes of inline content this entry adds to a tree request.
+	fn inline_len(&self) -> usize {
+		match self {
+			Self::Sha { .. } => 0,
+			Self::Content { content } => content.len(),
+		}
+	}
 }
 
 #[derive(Debug, Deserialize)]
@@ -1503,7 +1526,7 @@ async fn create_verified_github_commit_for_release_pull_request(
 				path: relative_path,
 				mode: "100644",
 				entry_type: "blob",
-				sha: None,
+				source: GitHubTreeEntrySource::Sha { sha: None },
 			});
 			continue;
 		}
@@ -1528,20 +1551,13 @@ async fn create_verified_github_commit_for_release_pull_request(
 			(content, mode)
 		};
 
-		let blob_payload = GitHubCreateBlobPayload {
-			content,
-			encoding: "utf-8",
-		};
-		let blob_path = format!("/repos/{}/{}/git/blobs", request.owner, request.repo);
-		let blob: GitHubCreateBlobResponse = post_json(client, &blob_path, &blob_payload)
-			.await
-			.map_err(|error| error.to_string())?;
-
+		// Inline contents let GitHub create every blob within the single tree
+		// request instead of one rate-limited blob request per file.
 		tree_entries.push(GitHubCreateTreeEntry {
 			path: relative_path,
 			mode,
 			entry_type: "blob",
-			sha: Some(blob.sha),
+			source: GitHubTreeEntrySource::Content { content },
 		});
 	}
 
@@ -1713,21 +1729,70 @@ pub fn read_release_tree_files(
 	Ok(files)
 }
 
-/// Upload release files as blobs and create a tree on top of `base_commit`
-/// with the workflow's `GITHUB_TOKEN` (or `GH_TOKEN`).
+/// Inline text bytes sent in one tree request before the rest of the release
+/// is layered on in a further tree request chained through `base_tree`.
+const RELEASE_TREE_INLINE_BYTES_PER_REQUEST: usize = 4 * 1024 * 1024;
+
+/// Waits before retrying a git object write that GitHub rate limited.
+///
+/// GitHub asks clients to wait at least a minute before retrying after a
+/// secondary rate limit without a `retry-after` header, which octocrab's
+/// errors do not expose.
+const RELEASE_TREE_RATE_LIMIT_RETRY_DELAYS: [Duration; 3] = [
+	Duration::from_secs(20),
+	Duration::from_secs(40),
+	Duration::from_secs(60),
+];
+
+/// How [`create_release_tree`] batches and retries its git object writes.
+struct ReleaseTreeLimits<'a> {
+	inline_bytes_per_request: usize,
+	rate_limit_retry_delays: &'a [Duration],
+}
+
+/// Create a tree on top of `base_commit` holding the release files, with the
+/// workflow's `GITHUB_TOKEN` (or `GH_TOKEN`).
+///
+/// UTF-8 files travel inline in the tree request, so GitHub creates their
+/// blobs server-side and a release touching hundreds of files stays within
+/// GitHub's secondary rate limit for content creation. Only non-UTF-8 files
+/// are uploaded as individual blobs. Very large releases are split across a
+/// few tree requests that each build on the previous tree.
 ///
 /// Blobs and trees carry no author and pushing them triggers nothing, so the
 /// monochange GitHub App can then create the release commit from this tree
 /// without receiving any file contents. Returns
-/// [`ReleaseTree::Unavailable`] instead of an error when no token is set or
-/// the token lacks `contents: write`, so callers can fall back to sending the
-/// contents.
+/// [`ReleaseTree::Unavailable`] instead of an error when no token is set, the
+/// token lacks `contents: write`, or GitHub keeps rate limiting the writes
+/// after a bounded backoff, so callers can fall back to sending the contents.
 pub async fn create_release_tree(
 	api_url: Option<&str>,
 	owner: &str,
 	repo: &str,
 	base_commit: &str,
 	files: &[ReleaseTreeFile],
+) -> MonochangeResult<ReleaseTree> {
+	create_release_tree_with_limits(
+		api_url,
+		owner,
+		repo,
+		base_commit,
+		files,
+		&ReleaseTreeLimits {
+			inline_bytes_per_request: RELEASE_TREE_INLINE_BYTES_PER_REQUEST,
+			rate_limit_retry_delays: &RELEASE_TREE_RATE_LIMIT_RETRY_DELAYS,
+		},
+	)
+	.await
+}
+
+async fn create_release_tree_with_limits(
+	api_url: Option<&str>,
+	owner: &str,
+	repo: &str,
+	base_commit: &str,
+	files: &[ReleaseTreeFile],
+	limits: &ReleaseTreeLimits<'_>,
 ) -> MonochangeResult<ReleaseTree> {
 	let Ok(token) = env::var("GITHUB_TOKEN").or_else(|_| env::var("GH_TOKEN")) else {
 		return Ok(ReleaseTree::Unavailable(
@@ -1736,60 +1801,187 @@ pub async fn create_release_tree(
 	};
 	let env_api_url = env::var("GITHUB_API_URL").ok();
 	let client = build_github_client(&token, api_url.or(env_api_url.as_deref()))?;
+	let repository = format!("{owner}/{repo}");
 	let commit_path = format!("/repos/{owner}/{repo}/git/commits/{base_commit}");
 	let base: GitHubGitCommitResponse = get_json(&client, &commit_path).await?;
 	let blob_path = format!("/repos/{owner}/{repo}/git/blobs");
-	let mut tree = Vec::with_capacity(files.len());
+	let mut entries = Vec::with_capacity(files.len());
 
 	for file in files {
-		let sha = match &file.content {
+		let source = match &file.content {
+			None => GitHubTreeEntrySource::Sha { sha: None },
 			Some(content) => {
-				let payload = GitHubCreateBlobPayload {
-					content: base64::engine::general_purpose::STANDARD.encode(content),
-					encoding: "base64",
-				};
-				match client
-					.post::<_, GitHubCreateBlobResponse>(&blob_path, Some(&payload))
-					.await
-				{
-					Ok(blob) => Some(blob.sha),
-					Err(octocrab::Error::GitHub { source, .. })
-						if source.status_code.as_u16() == 403 =>
-					{
-						return Ok(ReleaseTree::Unavailable(format!(
-							"the token cannot create git objects in {owner}/{repo} ({}); grant the job `contents: write`",
-							source.message
-						)));
+				if let Ok(text) = std::str::from_utf8(content) {
+					GitHubTreeEntrySource::Content {
+						content: text.to_string(),
 					}
-					Err(error) => {
-						return Err(MonochangeError::Config(format_github_api_error(
-							"POST", &blob_path, &error,
-						)));
+				} else {
+					let payload = GitHubCreateBlobPayload {
+						content: base64::engine::general_purpose::STANDARD.encode(content),
+						encoding: "base64",
+					};
+					let write = write_git_object::<_, GitHubCreateBlobResponse>(
+						&client,
+						&repository,
+						&blob_path,
+						&payload,
+						limits.rate_limit_retry_delays,
+					)
+					.await?;
+
+					match write {
+						GitObjectWrite::Created(blob) => {
+							GitHubTreeEntrySource::Sha {
+								sha: Some(blob.sha),
+							}
+						}
+						GitObjectWrite::Refused(reason) => {
+							return Ok(ReleaseTree::Unavailable(reason));
+						}
 					}
 				}
 			}
-			None => None,
 		};
-		tree.push(GitHubCreateTreeEntry {
+
+		entries.push(GitHubCreateTreeEntry {
 			path: file.path.clone(),
 			mode: file.mode,
 			entry_type: "blob",
-			sha,
+			source,
 		});
 	}
 
 	let tree_path = format!("/repos/{owner}/{repo}/git/trees");
-	let created: GitHubCreateTreeResponse = post_json(
-		&client,
-		&tree_path,
-		&GitHubCreateTreePayload {
-			base_tree: Some(&base.tree.sha),
-			tree,
-		},
-	)
-	.await?;
+	let mut tree = base.tree.sha;
 
-	Ok(ReleaseTree::Created(created.sha))
+	for chunk in release_tree_chunks(entries, limits.inline_bytes_per_request) {
+		let payload = GitHubCreateTreePayload {
+			base_tree: Some(&tree),
+			tree: chunk,
+		};
+		let write = write_git_object::<_, GitHubCreateTreeResponse>(
+			&client,
+			&repository,
+			&tree_path,
+			&payload,
+			limits.rate_limit_retry_delays,
+		)
+		.await?;
+
+		tree = match write {
+			GitObjectWrite::Created(created) => created.sha,
+			GitObjectWrite::Refused(reason) => return Ok(ReleaseTree::Unavailable(reason)),
+		};
+	}
+
+	Ok(ReleaseTree::Created(tree))
+}
+
+/// Split tree entries into requests carrying at most `inline_bytes` of
+/// inline content each; an entry larger than the budget gets its own request.
+fn release_tree_chunks(
+	entries: Vec<GitHubCreateTreeEntry>,
+	inline_bytes: usize,
+) -> Vec<Vec<GitHubCreateTreeEntry>> {
+	let mut chunks = Vec::new();
+	let mut chunk: Vec<GitHubCreateTreeEntry> = Vec::new();
+	let mut chunk_bytes = 0;
+
+	for entry in entries {
+		let entry_bytes = entry.path.len() + entry.source.inline_len();
+
+		if !chunk.is_empty() && chunk_bytes + entry_bytes > inline_bytes {
+			chunks.push(std::mem::take(&mut chunk));
+			chunk_bytes = 0;
+		}
+
+		chunk_bytes += entry_bytes;
+		chunk.push(entry);
+	}
+
+	if !chunk.is_empty() {
+		chunks.push(chunk);
+	}
+
+	chunks
+}
+
+/// The result of a git object write that did not fail outright.
+enum GitObjectWrite<T> {
+	Created(T),
+	/// GitHub refused the write in a way the hosted fallback can work around.
+	Refused(String),
+}
+
+/// POST a git object, backing off while GitHub rate limits the write.
+///
+/// A rate-limited write is retried after each of `retry_delays`; if GitHub
+/// still rate limits it, or the token lacks `contents: write`, the write is
+/// [`GitObjectWrite::Refused`] with a reason naming the actual cause.
+async fn write_git_object<Body, Response>(
+	client: &Octocrab,
+	repository: &str,
+	path: &str,
+	body: &Body,
+	retry_delays: &[Duration],
+) -> MonochangeResult<GitObjectWrite<Response>>
+where
+	Body: Serialize + ?Sized,
+	Response: DeserializeOwned,
+{
+	let mut delays = retry_delays.iter();
+
+	loop {
+		let error = match client.post::<_, Response>(path, Some(body)).await {
+			Ok(created) => return Ok(GitObjectWrite::Created(created)),
+			Err(error) => error,
+		};
+
+		let octocrab::Error::GitHub { source, .. } = &error else {
+			return Err(MonochangeError::Config(format_github_api_error(
+				"POST", path, &error,
+			)));
+		};
+		let status = source.status_code.as_u16();
+
+		if is_github_rate_limit(status, &source.message) {
+			if let Some(delay) = delays.next() {
+				tracing::warn!(
+					path,
+					status,
+					delay_seconds = delay.as_secs(),
+					"GitHub rate limited a git object write; retrying: {}",
+					source.message
+				);
+				tokio::time::sleep(*delay).await;
+				continue;
+			}
+
+			return Ok(GitObjectWrite::Refused(format!(
+				"GitHub kept rate limiting git object writes in {repository} after {} retries (status {status}: {})",
+				retry_delays.len(),
+				source.message
+			)));
+		}
+
+		if status == 403 {
+			return Ok(GitObjectWrite::Refused(format!(
+				"the token cannot create git objects in {repository} ({}); grant the job `contents: write`",
+				source.message
+			)));
+		}
+
+		return Err(MonochangeError::Config(format_github_api_error(
+			"POST", path, &error,
+		)));
+	}
+}
+
+/// Whether GitHub answered with a primary or secondary rate limit rather
+/// than a permission error. Both arrive as `403` (or `429`) and octocrab's
+/// error drops the headers, so the message is what tells them apart.
+fn is_github_rate_limit(status: u16, message: &str) -> bool {
+	status == 429 || (status == 403 && message.to_ascii_lowercase().contains("rate limit"))
 }
 
 /// Sync existing GitHub releases so retargeted tags point at the new commits.

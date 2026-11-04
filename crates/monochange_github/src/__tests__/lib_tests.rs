@@ -1445,7 +1445,7 @@ async fn release_pull_request_commit_verification_falls_back_when_github_does_no
 	assert!(result.is_err_and(|message| message.contains("without verification (unsigned)")));
 }
 #[tokio::test(flavor = "multi_thread")]
-async fn release_pull_request_commit_verification_creates_blobs_for_varied_file_types() {
+async fn release_pull_request_commit_verification_inlines_varied_file_types_in_one_tree() {
 	let server = MockServer::start();
 	let source = sample_source_with_verified_commits(Some(server.base_url()));
 	let request = sample_pull_request_request();
@@ -1497,29 +1497,12 @@ async fn release_pull_request_commit_verification_creates_blobs_for_varied_file_
 			.header("content-type", "application/json")
 			.body(r#"{"sha":"parent123","message":"parent","tree":{"sha":"parent_tree"},"parents":[],"verification":{"verified":false}}"#);
 	});
-	let blob_regular = server.mock(|when, then| {
+	let blobs = server.mock(|when, then| {
 		when.method(POST)
-			.path("/repos/ifiokjr/monochange/git/blobs")
-			.json_body(json!({"content": "hello", "encoding": "utf-8"}));
+			.path("/repos/ifiokjr/monochange/git/blobs");
 		then.status(201)
 			.header("content-type", "application/json")
-			.body(r#"{"sha":"blob_regular"}"#);
-	});
-	let blob_exec = server.mock(|when, then| {
-		when.method(POST)
-			.path("/repos/ifiokjr/monochange/git/blobs")
-			.json_body(json!({"content": "#!/bin/bash", "encoding": "utf-8"}));
-		then.status(201)
-			.header("content-type", "application/json")
-			.body(r#"{"sha":"blob_exec"}"#);
-	});
-	let blob_symlink = server.mock(|when, then| {
-		when.method(POST)
-			.path("/repos/ifiokjr/monochange/git/blobs")
-			.json_body(json!({"content": "regular.txt", "encoding": "utf-8"}));
-		then.status(201)
-			.header("content-type", "application/json")
-			.body(r#"{"sha":"blob_symlink"}"#);
+			.body(r#"{"sha":"unexpected_blob"}"#);
 	});
 	let create_tree = server.mock(|when, then| {
 		when.method(POST)
@@ -1527,9 +1510,9 @@ async fn release_pull_request_commit_verification_creates_blobs_for_varied_file_
 			.json_body(json!({
 				"base_tree": "parent_tree",
 				"tree": [
-					{"path": "regular.txt", "mode": "100644", "type": "blob", "sha": "blob_regular"},
-					{"path": "exec.sh", "mode": "100755", "type": "blob", "sha": "blob_exec"},
-					{"path": "link", "mode": "120000", "type": "blob", "sha": "blob_symlink"},
+					{"path": "regular.txt", "mode": "100644", "type": "blob", "content": "hello"},
+					{"path": "exec.sh", "mode": "100755", "type": "blob", "content": "#!/bin/bash"},
+					{"path": "link", "mode": "120000", "type": "blob", "content": "regular.txt"},
 					{"path": "deleted.txt", "mode": "100644", "type": "blob", "sha": null},
 				],
 			}));
@@ -1586,9 +1569,7 @@ async fn release_pull_request_commit_verification_creates_blobs_for_varied_file_
 
 	original_commit.assert();
 	parent_commit.assert();
-	blob_regular.assert();
-	blob_exec.assert();
-	blob_symlink.assert();
+	blobs.assert_calls(0);
 	create_tree.assert();
 	create_commit.assert();
 	get_ref.assert();
@@ -1603,7 +1584,7 @@ fn create_tree_entries_delete_paths_with_an_explicit_null_sha() {
 		path: ".changeset/feature.md".to_string(),
 		mode: "100644",
 		entry_type: "blob",
-		sha: None,
+		source: GitHubTreeEntrySource::Sha { sha: None },
 	})
 	.unwrap_or_else(|error| panic!("serialize deleted tree entry: {error}"));
 	assert_eq!(
@@ -1616,7 +1597,9 @@ fn create_tree_entries_delete_paths_with_an_explicit_null_sha() {
 		path: "Cargo.toml".to_string(),
 		mode: "100644",
 		entry_type: "blob",
-		sha: Some("blob_sha".to_string()),
+		source: GitHubTreeEntrySource::Sha {
+			sha: Some("blob_sha".to_string()),
+		},
 	})
 	.unwrap_or_else(|error| panic!("serialize updated tree entry: {error}"));
 	assert_eq!(
@@ -1624,6 +1607,21 @@ fn create_tree_entries_delete_paths_with_an_explicit_null_sha() {
 		json!({"path": "Cargo.toml", "mode": "100644", "type": "blob", "sha": "blob_sha"})
 	);
 	assert!(updated.get("content").is_none());
+
+	let inline = serde_json::to_value(GitHubCreateTreeEntry {
+		path: "changelog.md".to_string(),
+		mode: "100644",
+		entry_type: "blob",
+		source: GitHubTreeEntrySource::Content {
+			content: "# Changelog".to_string(),
+		},
+	})
+	.unwrap_or_else(|error| panic!("serialize inline tree entry: {error}"));
+	assert_eq!(
+		inline,
+		json!({"path": "changelog.md", "mode": "100644", "type": "blob", "content": "# Changelog"})
+	);
+	assert!(inline.get("sha").is_none());
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -1649,17 +1647,10 @@ async fn release_pull_request_commit_verification_uses_root_commit_without_paren
 				r#"{{"sha":"{fallback}","message":"chore(release): prepare release","tree":{{"sha":"tree123"}},"parents":[],"verification":{{"verified":false,"reason":"unsigned"}}}}"#
 			));
 	});
-	let blob = server.mock(|when, then| {
-		when.method(POST)
-			.path("/repos/ifiokjr/monochange/git/blobs")
-			.json_body(json!({"content": "content", "encoding": "utf-8"}));
-		then.status(201)
-			.header("content-type", "application/json")
-			.body(r#"{"sha":"blob1"}"#);
-	});
 	let create_tree = server.mock(|when, then| {
 		when.method(POST)
-			.path("/repos/ifiokjr/monochange/git/trees");
+			.path("/repos/ifiokjr/monochange/git/trees")
+			.json_body_includes(r#"{"tree": [{"content": "content"}]}"#);
 		then.status(201)
 			.header("content-type", "application/json")
 			.body(r#"{"sha":"new_tree"}"#);
@@ -1711,7 +1702,6 @@ async fn release_pull_request_commit_verification_uses_root_commit_without_paren
 	.await;
 
 	original_commit.assert();
-	blob.assert();
 	create_tree.assert();
 	create_commit.assert();
 	get_ref.assert();
@@ -1913,7 +1903,7 @@ fn publish_release_pull_request_falls_back_when_verified_commit_is_unavailable()
 	list_pull_requests.assert();
 	original_commit.assert();
 	parent_commit.assert();
-	create_blob.assert();
+	create_blob.assert_calls(0);
 	create_tree.assert();
 	create_commit.assert();
 	create_pull_request.assert();
@@ -4616,15 +4606,9 @@ fn mock_release_tree_base_commit(server: &MockServer) -> httpmock::Mock<'_> {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn create_release_tree_uploads_base64_blobs_on_the_base_tree() {
+async fn create_release_tree_inlines_text_and_uploads_only_binary_blobs() {
 	let server = MockServer::start();
 	let base_commit = mock_release_tree_base_commit(&server);
-	let text_blob = server.mock(|when, then| {
-		when.method(POST)
-			.path("/repos/acme/widgets/git/blobs")
-			.json_body(json!({ "content": "aGVsbG8=", "encoding": "base64" }));
-		then.status(201).json_body(json!({ "sha": "blob_text" }));
-	});
 	let binary_blob = server.mock(|when, then| {
 		when.method(POST)
 			.path("/repos/acme/widgets/git/blobs")
@@ -4637,7 +4621,7 @@ async fn create_release_tree_uploads_base64_blobs_on_the_base_tree() {
 			.json_body(json!({
 				"base_tree": "base_tree",
 				"tree": [
-					{ "path": "changelog.md", "mode": "100644", "type": "blob", "sha": "blob_text" },
+					{ "path": "changelog.md", "mode": "100644", "type": "blob", "content": "hello" },
 					{ "path": "logo.bin", "mode": "100644", "type": "blob", "sha": "blob_binary" },
 					{ "path": ".changeset/old.md", "mode": "100644", "type": "blob", "sha": null },
 				],
@@ -4657,12 +4641,300 @@ async fn create_release_tree_uploads_base64_blobs_on_the_base_tree() {
 	.await;
 
 	base_commit.assert();
-	text_blob.assert();
 	binary_blob.assert();
 	tree.assert();
 	assert_eq!(
 		result.unwrap_or_else(|error| panic!("create release tree: {error}")),
 		ReleaseTree::Created("release_tree".to_string())
+	);
+}
+
+/// A release the size of a 100-crate workspace: changelogs, manifests, a
+/// lockfile, and consumed changesets.
+fn large_release_tree_files() -> Vec<ReleaseTreeFile> {
+	(0..150)
+		.map(|index| {
+			ReleaseTreeFile {
+				path: format!("crates/crate_{index}/changelog.md"),
+				content: (index % 10 != 0).then(|| format!("# crate_{index}\n").into_bytes()),
+				mode: "100644",
+			}
+		})
+		.collect()
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn create_release_tree_sends_a_large_text_release_in_one_tree_request() {
+	let server = MockServer::start();
+	let base_commit = mock_release_tree_base_commit(&server);
+	let blobs = server.mock(|when, then| {
+		when.method(POST).path("/repos/acme/widgets/git/blobs");
+		then.status(201)
+			.json_body(json!({ "sha": "unexpected_blob" }));
+	});
+	let tree = server.mock(|when, then| {
+		when.method(POST)
+			.path("/repos/acme/widgets/git/trees")
+			.json_body_includes(r#"{ "base_tree": "base_tree" }"#)
+			.is_true(|request| {
+				let body: serde_json::Value =
+					serde_json::from_slice(request.body_ref()).unwrap_or_default();
+				let entries = body["tree"].as_array().cloned().unwrap_or_default();
+				entries.len() == 150
+					&& entries[1]["content"] == "# crate_1\n"
+					&& entries[10]["sha"].is_null()
+					&& entries[10].get("content").is_none()
+			});
+		then.status(201).json_body(json!({ "sha": "release_tree" }));
+	});
+	let base_url = server.base_url();
+
+	let result = temp_env::async_with_vars(
+		[("GITHUB_TOKEN", Some("workflow-token"))],
+		create_release_tree(
+			Some(base_url.as_str()),
+			"acme",
+			"widgets",
+			"base123",
+			&large_release_tree_files(),
+		),
+	)
+	.await;
+
+	base_commit.assert();
+	blobs.assert_calls(0);
+	tree.assert_calls(1);
+	assert_eq!(
+		result.unwrap_or_else(|error| panic!("create release tree: {error}")),
+		ReleaseTree::Created("release_tree".to_string())
+	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn create_release_tree_chains_tree_requests_past_the_inline_budget() {
+	let server = MockServer::start();
+	let base_commit = mock_release_tree_base_commit(&server);
+	let first = server.mock(|when, then| {
+		when.method(POST)
+			.path("/repos/acme/widgets/git/trees")
+			.json_body(json!({
+				"base_tree": "base_tree",
+				"tree": [
+					{ "path": "a.md", "mode": "100644", "type": "blob", "content": "first" },
+					{ "path": "b.md", "mode": "100644", "type": "blob", "sha": null },
+				],
+			}));
+		then.status(201).json_body(json!({ "sha": "partial_tree" }));
+	});
+	let second = server.mock(|when, then| {
+		when.method(POST)
+			.path("/repos/acme/widgets/git/trees")
+			.json_body(json!({
+				"base_tree": "partial_tree",
+				"tree": [
+					{ "path": "c.md", "mode": "100755", "type": "blob", "content": "second" },
+				],
+			}));
+		then.status(201).json_body(json!({ "sha": "release_tree" }));
+	});
+	let files = [
+		ReleaseTreeFile {
+			path: "a.md".to_string(),
+			content: Some(b"first".to_vec()),
+			mode: "100644",
+		},
+		ReleaseTreeFile {
+			path: "b.md".to_string(),
+			content: None,
+			mode: "100644",
+		},
+		ReleaseTreeFile {
+			path: "c.md".to_string(),
+			content: Some(b"second".to_vec()),
+			mode: "100755",
+		},
+	];
+	let base_url = server.base_url();
+
+	let result = temp_env::async_with_vars(
+		[("GITHUB_TOKEN", Some("workflow-token"))],
+		create_release_tree_with_limits(
+			Some(base_url.as_str()),
+			"acme",
+			"widgets",
+			"base123",
+			&files,
+			&ReleaseTreeLimits {
+				inline_bytes_per_request: 13,
+				rate_limit_retry_delays: &[],
+			},
+		),
+	)
+	.await;
+
+	base_commit.assert();
+	first.assert();
+	second.assert();
+	assert_eq!(
+		result.unwrap_or_else(|error| panic!("create release tree: {error}")),
+		ReleaseTree::Created("release_tree".to_string())
+	);
+}
+
+const SECONDARY_RATE_LIMIT_MESSAGE: &str = "You have exceeded a secondary rate limit and have been temporarily blocked from content creation. Please retry your request again later.";
+
+/// Answer the first `rate_limited` tree requests with GitHub's secondary
+/// rate limit and later ones with `release_tree`.
+fn mock_rate_limited_tree(
+	server: &MockServer,
+	rate_limited: usize,
+) -> (httpmock::Mock<'_>, httpmock::Mock<'_>) {
+	let seen = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+	let limited = server.mock(|when, then| {
+		when.method(POST)
+			.path("/repos/acme/widgets/git/trees")
+			.is_true(move |_| {
+				seen.fetch_add(1, std::sync::atomic::Ordering::SeqCst) < rate_limited
+			});
+		then.status(403).json_body(json!({
+			"message": SECONDARY_RATE_LIMIT_MESSAGE,
+			"documentation_url": "https://docs.github.com/rest/overview/rate-limits-for-the-rest-api#about-secondary-rate-limits",
+		}));
+	});
+	let created = server.mock(|when, then| {
+		when.method(POST).path("/repos/acme/widgets/git/trees");
+		then.status(201).json_body(json!({ "sha": "release_tree" }));
+	});
+	(limited, created)
+}
+
+fn text_release_tree_files() -> Vec<ReleaseTreeFile> {
+	vec![ReleaseTreeFile {
+		path: "changelog.md".to_string(),
+		content: Some(b"hello".to_vec()),
+		mode: "100644",
+	}]
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn create_release_tree_retries_a_secondary_rate_limit() {
+	let server = MockServer::start();
+	let base_commit = mock_release_tree_base_commit(&server);
+	let (limited, created) = mock_rate_limited_tree(&server, 2);
+	let base_url = server.base_url();
+
+	let result = temp_env::async_with_vars(
+		[("GITHUB_TOKEN", Some("workflow-token"))],
+		create_release_tree_with_limits(
+			Some(base_url.as_str()),
+			"acme",
+			"widgets",
+			"base123",
+			&text_release_tree_files(),
+			&ReleaseTreeLimits {
+				inline_bytes_per_request: RELEASE_TREE_INLINE_BYTES_PER_REQUEST,
+				rate_limit_retry_delays: &[Duration::ZERO; 3],
+			},
+		),
+	)
+	.await;
+
+	base_commit.assert();
+	limited.assert_calls(2);
+	created.assert_calls(1);
+	assert_eq!(
+		result.unwrap_or_else(|error| panic!("create release tree: {error}")),
+		ReleaseTree::Created("release_tree".to_string())
+	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn create_release_tree_reports_a_persistent_rate_limit_as_a_rate_limit() {
+	let server = MockServer::start();
+	let base_commit = mock_release_tree_base_commit(&server);
+	let (limited, created) = mock_rate_limited_tree(&server, usize::MAX);
+	let base_url = server.base_url();
+
+	let result = temp_env::async_with_vars(
+		[("GITHUB_TOKEN", Some("workflow-token"))],
+		create_release_tree_with_limits(
+			Some(base_url.as_str()),
+			"acme",
+			"widgets",
+			"base123",
+			&text_release_tree_files(),
+			&ReleaseTreeLimits {
+				inline_bytes_per_request: RELEASE_TREE_INLINE_BYTES_PER_REQUEST,
+				rate_limit_retry_delays: &[Duration::ZERO; 2],
+			},
+		),
+	)
+	.await;
+
+	base_commit.assert();
+	limited.assert_calls(3);
+	created.assert_calls(0);
+	let ReleaseTree::Unavailable(reason) =
+		result.unwrap_or_else(|error| panic!("create release tree: {error}"))
+	else {
+		panic!("a persistent rate limit leaves the tree unavailable");
+	};
+	assert_eq!(
+		reason,
+		format!(
+			"GitHub kept rate limiting git object writes in acme/widgets after 2 retries (status 403: {SECONDARY_RATE_LIMIT_MESSAGE})"
+		)
+	);
+
+	assert!(!reason.contains("contents: write"), "{reason}");
+}
+
+#[test]
+fn github_rate_limits_are_told_apart_from_permission_errors() {
+	assert!(is_github_rate_limit(403, SECONDARY_RATE_LIMIT_MESSAGE));
+	assert!(is_github_rate_limit(
+		403,
+		"API rate limit exceeded for installation ID 1."
+	));
+	assert!(is_github_rate_limit(429, "Too Many Requests"));
+	assert!(!is_github_rate_limit(
+		403,
+		"Resource not accessible by integration"
+	));
+	assert!(!is_github_rate_limit(422, "rate limit"));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn create_release_tree_reports_unreadable_tree_responses() {
+	let server = MockServer::start();
+	let base_commit = mock_release_tree_base_commit(&server);
+	let tree = server.mock(|when, then| {
+		when.method(POST).path("/repos/acme/widgets/git/trees");
+		then.status(201).body("not json");
+	});
+	let base_url = server.base_url();
+
+	let result = temp_env::async_with_vars(
+		[("GITHUB_TOKEN", Some("workflow-token"))],
+		create_release_tree(
+			Some(base_url.as_str()),
+			"acme",
+			"widgets",
+			"base123",
+			&text_release_tree_files(),
+		),
+	)
+	.await;
+
+	base_commit.assert();
+	tree.assert();
+	let error = result
+		.err()
+		.map(|error| error.to_string())
+		.unwrap_or_default();
+	assert!(
+		error.contains("GitHub API POST `/repos/acme/widgets/git/trees` failed"),
+		"error names the request: {error}"
 	);
 }
 

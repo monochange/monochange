@@ -631,7 +631,8 @@ async fn release_commit_endpoint_commits_a_tree_built_by_the_workflow(
 	let (status, body) = post_release_commit(&state, API_TOKEN, &request).await;
 
 	assert_eq!(status, expected, "{body}");
-	blobs.assert_calls(usize::from(uploaded_files));
+	blobs.assert_calls(0);
+
 	if expected == StatusCode::OK {
 		assert_eq!(body["commit"], "release-sha");
 		commit.assert();

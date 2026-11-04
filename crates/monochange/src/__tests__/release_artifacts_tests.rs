@@ -2281,15 +2281,15 @@ fn hosted_commit_contents_use_a_tree_built_with_the_workflow_token() {
 	});
 	let blob = server.mock(|when, then| {
 		when.method(httpmock::Method::POST)
-			.path("/repos/acme/widgets/git/blobs")
-			.json_body(serde_json::json!({ "content": "bm90ZXM=", "encoding": "base64" }));
+			.path("/repos/acme/widgets/git/blobs");
 		then.status(201)
-			.json_body(serde_json::json!({ "sha": "blob_notes" }));
+			.json_body(serde_json::json!({ "sha": "unexpected_blob" }));
 	});
 	let tree = server.mock(|when, then| {
 		when.method(httpmock::Method::POST)
 			.path("/repos/acme/widgets/git/trees")
-			.json_body_includes(r#"{"base_tree":"base_tree"}"#);
+			.json_body_includes(r#"{"base_tree":"base_tree"}"#)
+			.json_body_includes(r#"{"tree":[{"path":"changelog.md","content":"notes"}]}"#);
 		then.status(201)
 			.json_body(serde_json::json!({ "sha": "release_tree" }));
 	});
@@ -2309,10 +2309,16 @@ fn hosted_commit_contents_use_a_tree_built_with_the_workflow_token() {
 	.unwrap_or_else(|error| panic!("attach hosted commit contents: {error}"));
 
 	commit.assert();
-	blob.assert();
+	blob.assert_calls(0);
 	tree.assert();
 	assert_eq!(request.tree.as_deref(), Some("release_tree"));
 	assert!(request.files.is_empty(), "no file contents are sent");
+}
+
+#[test]
+fn hosted_commit_request_outlasts_the_provider_timeout() {
+	assert!(HOSTED_COMMIT_REQUEST_TIMEOUT >= Duration::from_secs(120));
+	assert!(HOSTED_COMMIT_REQUEST_TIMEOUT > monochange_hosting::PROVIDER_HTTP_TIMEOUT);
 }
 
 #[test]

@@ -20,6 +20,7 @@ use hmac::Mac;
 use jsonwebtoken::EncodingKey;
 use jsonwebtoken::Header;
 use jsonwebtoken::encode;
+use monochange_core::HostedCommitFile;
 use monochange_core::HostedCommitRequest;
 use monochange_core::SourceChangeRequest;
 use monochange_core::SourceChangeRequestOperation;
@@ -413,24 +414,30 @@ struct InstallationTokenResponse {
 }
 
 #[derive(Debug, Serialize)]
-struct BlobRequest<'a> {
-	content: &'a str,
-	encoding: &'static str,
-}
-
-#[derive(Debug, Serialize)]
-struct TreeEntry {
-	path: String,
-	mode: String,
+struct TreeEntry<'a> {
+	path: &'a str,
+	mode: &'static str,
 	#[serde(rename = "type")]
-	kind: String,
-	sha: Option<String>,
+	kind: &'static str,
+	#[serde(flatten)]
+	source: TreeEntrySource<'a>,
+}
+
+/// What a release tree entry writes at its path.
+#[derive(Debug, Serialize)]
+#[serde(untagged)]
+enum TreeEntrySource<'a> {
+	/// Text GitHub stores as a new blob while creating the tree, so the file
+	/// needs no blob request of its own.
+	Content { content: &'a str },
+	/// Serializes as `"sha": null`, which GitHub requires to delete a path.
+	Deleted { sha: () },
 }
 
 #[derive(Debug, Serialize)]
-struct TreeRequest {
-	base_tree: String,
-	tree: Vec<TreeEntry>,
+struct TreeRequest<'a> {
+	base_tree: &'a str,
+	tree: Vec<TreeEntry<'a>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -851,81 +858,87 @@ async fn plan_release_branch_update(
 	Ok(ReleaseBranchUpdate::Regenerate)
 }
 
-/// Upload the request's file contents as blobs and build a tree on top of
-/// the prepared base commit.
+/// Inline file bytes sent in one tree request before the rest of the release
+/// is layered on in a further tree request chained through `base_tree`.
+const RELEASE_TREE_INLINE_BYTES_PER_REQUEST: usize = 4 * 1024 * 1024;
+
+/// Build a tree holding the request's files on top of the prepared base
+/// commit.
+///
+/// File contents travel inline in the tree request, so GitHub creates the
+/// blobs itself. One blob request per file would trip GitHub's secondary
+/// rate limit for content creation on releases touching more than about 80
+/// files. Releases with more than `inline_bytes` of content are split across
+/// tree requests that each build on the previous tree.
 async fn create_release_tree(
 	http: &reqwest::Client,
 	api_url: &str,
 	installation_token: &str,
 	request: &HostedCommitRequest,
+	inline_bytes: usize,
 ) -> Result<String, GitHubAppError> {
 	let owner = &request.owner;
 	let repo = &request.repository;
-	let base_commit = &request.base_commit;
-	let mut tree = Vec::new();
+	let mut tree = request.base_commit.clone();
 
-	for file in &request.files {
-		match &file.content {
-			Some(content) => {
-				let response = http
-					.post(format!("{api_url}/repos/{owner}/{repo}/git/blobs"))
-					.bearer_auth(installation_token)
-					.header("Accept", "application/vnd.github+json")
-					.json(&BlobRequest {
-						content,
-						encoding: "utf-8",
-					})
-					.send()
-					.await?;
-				if !response.status().is_success() {
-					let status = response.status();
-					let body = response.text().await.unwrap_or_default();
-					return Err(api_error("create blob", status, body));
-				}
+	for chunk in release_tree_chunks(&request.files, inline_bytes) {
+		let response = http
+			.post(format!("{api_url}/repos/{owner}/{repo}/git/trees"))
+			.bearer_auth(installation_token)
+			.header("Accept", "application/vnd.github+json")
+			.json(&TreeRequest {
+				base_tree: &tree,
+				tree: chunk,
+			})
+			.send()
+			.await?;
 
-				let blob: TreeResponse = response.json().await?;
-				tree.push(TreeEntry {
-					path: file.path.clone(),
-					mode: "100644".to_string(),
-					kind: "blob".to_string(),
-					sha: Some(blob.sha),
-				});
-			}
-			None => {
-				// A missing content deletes the path; GitHub expects an
-				// explicit null sha for deletions inside a tree.
-				tree.push(TreeEntry {
-					path: file.path.clone(),
-					mode: "100644".to_string(),
-					kind: "blob".to_string(),
-					sha: None,
-				});
-			}
+		if !response.status().is_success() {
+			let status = response.status();
+			let body = response.text().await.unwrap_or_default();
+
+			return Err(api_error("create tree", status, body));
 		}
+
+		let tree_response: TreeResponse = response.json().await?;
+		tree = tree_response.sha;
 	}
 
-	// Tree on top of the prepared base commit.
-	let response = http
-		.post(format!("{api_url}/repos/{owner}/{repo}/git/trees"))
-		.bearer_auth(installation_token)
-		.header("Accept", "application/vnd.github+json")
-		.json(&TreeRequest {
-			base_tree: base_commit.clone(),
-			tree,
-		})
-		.send()
-		.await?;
+	Ok(tree)
+}
 
-	if !response.status().is_success() {
-		let status = response.status();
-		let body = response.text().await.unwrap_or_default();
+/// Split the release files into tree requests carrying at most
+/// `inline_bytes` of content each. There is always at least one request, so
+/// the result is a tree even when the request lists no files.
+fn release_tree_chunks(files: &[HostedCommitFile], inline_bytes: usize) -> Vec<Vec<TreeEntry<'_>>> {
+	let mut chunks = Vec::new();
+	let mut chunk = Vec::new();
+	let mut chunk_bytes = 0;
 
-		return Err(api_error("create tree", status, body));
+	for file in files {
+		let source = match &file.content {
+			Some(content) => TreeEntrySource::Content { content },
+			None => TreeEntrySource::Deleted { sha: () },
+		};
+
+		let entry_bytes = file.path.len() + file.content.as_ref().map_or(0, String::len);
+
+		if !chunk.is_empty() && chunk_bytes + entry_bytes > inline_bytes {
+			chunks.push(std::mem::take(&mut chunk));
+			chunk_bytes = 0;
+		}
+
+		chunk_bytes += entry_bytes;
+		chunk.push(TreeEntry {
+			path: &file.path,
+			mode: "100644",
+			kind: "blob",
+			source,
+		});
 	}
 
-	let tree_response: TreeResponse = response.json().await?;
-
-	Ok(tree_response.sha)
+	chunks.push(chunk);
+	chunks
 }
 
 /// GET a Git Database object from the repository.
@@ -1058,10 +1071,19 @@ pub async fn create_release_commit(
 	let update = plan_release_branch_update(http, api_url, installation_token, request).await?;
 
 	// 2. The tree: either the one the workflow already built with its own
-	// token, or blobs and a tree created here from the uploaded contents.
+	// token, or one created here from the uploaded contents.
 	let tree_sha = match &request.tree {
 		Some(tree) => tree.clone(),
-		None => create_release_tree(http, api_url, installation_token, request).await?,
+		None => {
+			create_release_tree(
+				http,
+				api_url,
+				installation_token,
+				request,
+				RELEASE_TREE_INLINE_BYTES_PER_REQUEST,
+			)
+			.await?
+		}
 	};
 	ensure_tree_keeps_workflows(http, api_url, installation_token, request, &tree_sha).await?;
 

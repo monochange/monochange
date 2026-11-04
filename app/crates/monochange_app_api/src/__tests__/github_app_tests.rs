@@ -24,7 +24,9 @@ use super::GitHubAppAuth;
 use super::GitHubAppError;
 use super::PendingPermission;
 use super::PermissionLevels;
+use super::RELEASE_TREE_INLINE_BYTES_PER_REQUEST;
 use super::create_release_commit;
+use super::create_release_tree;
 use super::pending_permissions;
 
 fn auth(server: &MockServer) -> GitHubAppAuth {
@@ -450,7 +452,13 @@ fn mock_commit_writes_with<'a>(
 		tree: server.mock(|when, then| {
 			when.method(Method::POST)
 				.path("/repos/acme/actions/git/trees")
-				.json_body_includes(r#"{ "base_tree": "base-sha" }"#);
+				.json_body_includes(r#"{ "base_tree": "base-sha" }"#)
+				.json_body_includes(
+					r#"{ "tree": [
+						{ "path": ".monochange/releases/abc123/release.json", "mode": "100644", "type": "blob", "content": "{}" },
+						{ "path": ".changeset/feature.md", "mode": "100644", "type": "blob", "sha": null }
+					] }"#,
+				);
 			then.status(201)
 				.json_body(serde_json::json!({ "sha": "tree-sha" }));
 		}),
@@ -529,7 +537,7 @@ async fn first_release_commit_creates_the_release_branch(
 		result,
 		(RELEASE_COMMIT.to_string(), true, Some("valid".to_string()))
 	);
-	writes.blob.assert_calls(1);
+	writes.blob.assert_calls(0);
 	writes.tree.assert();
 	writes.commit.assert();
 	create.assert();
@@ -1218,4 +1226,158 @@ async fn retargeted_patch_responses_stop_before_labels_or_auto_merge() {
 	update.assert_calls(1);
 	labels.assert_calls(0);
 	auto_merge.assert_calls(0);
+}
+
+/// A release request touching `count` files, every tenth one deleted.
+fn release_tree_request(count: usize) -> HostedCommitRequest {
+	HostedCommitRequest {
+		files: (0..count)
+			.map(|index| {
+				HostedCommitFile {
+					path: format!("crates/crate_{index}/changelog.md"),
+					content: (index % 10 != 0).then(|| format!("# crate_{index}")),
+				}
+			})
+			.collect(),
+		..release_commit_request(RELEASE_BRANCH, Some("main"))
+	}
+}
+
+async fn build_release_tree(
+	server: &MockServer,
+	request: &HostedCommitRequest,
+	inline_bytes: usize,
+) -> Result<String, GitHubAppError> {
+	create_release_tree(
+		&reqwest::Client::new(),
+		&server.base_url(),
+		"installation-token",
+		request,
+		inline_bytes,
+	)
+	.await
+}
+
+#[tokio::test]
+async fn release_tree_inlines_a_large_release_in_one_request() {
+	let server = MockServer::start();
+	let blobs = server.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/git/blobs");
+		then.status(201)
+			.json_body(serde_json::json!({ "sha": "unexpected-blob" }));
+	});
+	let tree = server.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/git/trees")
+			.json_body_includes(r#"{ "base_tree": "base-sha" }"#)
+			.is_true(|request| {
+				let body: serde_json::Value =
+					serde_json::from_slice(request.body_ref()).unwrap_or_default();
+				let entries = body["tree"].as_array().cloned().unwrap_or_default();
+				entries.len() == 150
+					&& entries[1]["content"] == "# crate_1"
+					&& entries[10]["sha"].is_null()
+					&& entries[10].get("content").is_none()
+			});
+		then.status(201)
+			.json_body(serde_json::json!({ "sha": "tree-sha" }));
+	});
+
+	let result = build_release_tree(
+		&server,
+		&release_tree_request(150),
+		RELEASE_TREE_INLINE_BYTES_PER_REQUEST,
+	)
+	.await;
+
+	assert_eq!(result.unwrap(), "tree-sha");
+	blobs.assert_calls(0);
+	tree.assert_calls(1);
+}
+
+#[tokio::test]
+async fn release_tree_chains_requests_past_the_inline_budget() {
+	let server = MockServer::start();
+	let first = server.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/git/trees")
+			.json_body(serde_json::json!({
+				"base_tree": "base-sha",
+				"tree": [
+					{ "path": "crates/crate_0/changelog.md", "mode": "100644", "type": "blob", "sha": null },
+				],
+			}));
+		then.status(201)
+			.json_body(serde_json::json!({ "sha": "partial-tree" }));
+	});
+	let second = server.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/git/trees")
+			.json_body(serde_json::json!({
+				"base_tree": "partial-tree",
+				"tree": [
+					{ "path": "crates/crate_1/changelog.md", "mode": "100644", "type": "blob", "content": "# crate_1" },
+				],
+			}));
+		then.status(201)
+			.json_body(serde_json::json!({ "sha": "tree-sha" }));
+	});
+
+	let result = build_release_tree(&server, &release_tree_request(2), 30).await;
+
+	assert_eq!(result.unwrap(), "tree-sha");
+	first.assert();
+	second.assert();
+}
+
+#[tokio::test]
+async fn release_tree_without_files_still_creates_a_tree() {
+	let server = MockServer::start();
+	let tree = server.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/git/trees")
+			.json_body(serde_json::json!({ "base_tree": "base-sha", "tree": [] }));
+		then.status(201)
+			.json_body(serde_json::json!({ "sha": "tree-sha" }));
+	});
+
+	let result = build_release_tree(
+		&server,
+		&release_tree_request(0),
+		RELEASE_TREE_INLINE_BYTES_PER_REQUEST,
+	)
+	.await;
+
+	assert_eq!(result.unwrap(), "tree-sha");
+	tree.assert();
+}
+
+#[tokio::test]
+async fn release_tree_reports_tree_failures() {
+	let server = MockServer::start();
+	server.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/git/trees");
+		then.status(403).body(
+			r#"{"message":"You have exceeded a secondary rate limit and have been temporarily blocked from content creation."}"#,
+		);
+	});
+
+	let result = build_release_tree(
+		&server,
+		&release_tree_request(3),
+		RELEASE_TREE_INLINE_BYTES_PER_REQUEST,
+	)
+	.await;
+
+	assert!(
+		matches!(
+			&result,
+			Err(GitHubAppError::Status("create tree", status, body))
+
+				if *status == reqwest::StatusCode::FORBIDDEN && body.contains("secondary rate limit")
+		),
+		"{result:?}"
+	);
 }
