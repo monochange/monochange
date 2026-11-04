@@ -182,3 +182,16 @@ The changes have not been published, deployed, or merged. Native runtime/build v
 ### Website bundle trade-off
 
 The release build adds the integration controls and complete plan review to the existing lazy feedback-console route. Its compressed module grows from 165,937 to 303,067 bytes; total compressed site package contents grow from 1,312,748 to 1,447,392 bytes. Those totals include deferred route modules rather than an initial page transfer. The installable external-site widget remains a separate small JavaScript bundle and never loads the monochange app WASM. The measured split-build baseline is updated in `scripts/website-size-baseline.json`; the existing percentage tolerances stay in force for later changes.
+
+## Iframe installation extension
+
+Requested after the initial SDK implementation: support embedding feedback in an iframe on websites that cannot install an SDK. Reuse the same suggestions, explicit voting, conversations, and plan-approval pipeline. The framed UI should fill its container without a floating launcher or a modal backdrop.
+
+- Add an inline widget presentation and test that it does not take focus until explicitly opened.
+- Provide a pasteable iframe installation and an example without a package-manager dependency.
+- Preserve identity and spam controls. A site with no backend cannot attest its existing users. The user selected monochange sign-in for HTML-only installations. A first-party popup exchanges the existing login for a project-scoped feedback token and returns it only to the originating same-origin frame. Host-app SDK authentication remains available separately.
+- Test the selected authentication boundary, account changes, token expiry, and framing behavior. Document host CSP requirements and deployment prerequisites.
+
+Iframe implementation now includes the hosted HTML/CSS/JavaScript assets, explicit first-party sign-in popup, strict popup origin/source/channel checks, account switching and expiry behavior, portal fallback, and a cookie-authenticated exchange that issues feedback-only sessions. It reuses the existing public portal identity and preserves quota, revocation, integration-capacity, and session-capacity enforcement. Both browser bundles keep the 32 KB raw / 10 KB gzip budget.
+
+Validation for the extension: 169 Node tests and 272 API tests pass; typechecking, SDK builds, application clippy with warnings denied, workspace validation, and release dry-run pass. The added Rust patch has 104/104 executable lines covered without exemptions. Live GitHub OAuth popup verification remains a pre-deployment check; no production deployment or package publication is performed by this work.

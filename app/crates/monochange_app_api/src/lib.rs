@@ -85,6 +85,7 @@ pub const RELEASE_REQUEST_BODY_LIMIT: usize = 2 * 1024 * 1024;
 /// without coupling the bot endpoints to the SSR state type.
 pub fn api_router(state: AppState) -> Router<()> {
 	Router::new()
+		.merge(embedded_api::iframe_router())
 		.merge(
 			embedded_api::router().layer(axum::middleware::from_fn_with_state(
 				state.clone(),

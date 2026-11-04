@@ -46,14 +46,40 @@ await copyFile(
 	"packages/monochange__feedback/dist/embed/feedback.iife.js",
 	"app/public/embed/feedback.js",
 );
-const browserBundle = await readFile("app/public/embed/feedback.js");
+await build({
+	config: false,
+	entry: { "feedback-frame": "packages/monochange__feedback/src/hosted-entry.ts" },
+	outDir: "packages/monochange__feedback/dist/hosted",
+	target: "es2022",
+	platform: "browser",
+	format: "iife",
+	minify: true,
+	dts: false,
+});
+await copyFile(
+	"packages/monochange__feedback/dist/hosted/feedback-frame.iife.js",
+	"app/public/embed/feedback-frame.js",
+);
+await Promise.all(
+	["feedback.html", "feedback-auth.html", "feedback-frame.css"].map((file) =>
+		copyFile(`packages/monochange__feedback/embed/${file}`, `app/public/embed/${file}`),
+	),
+);
+
 const browserBundleBudget = { raw: 32_000, gzip: 10_000 };
-if (
-	browserBundle.length > browserBundleBudget.raw ||
-	gzipSync(browserBundle).length > browserBundleBudget.gzip
-) {
-	throw new Error("The feedback browser bundle exceeds its 32 KB raw / 10 KB gzip budget");
-}
+await Promise.all(
+	["feedback.js", "feedback-frame.js"].map(async (file) => {
+		const browserBundle = await readFile(`app/public/embed/${file}`);
+		if (
+			browserBundle.length > browserBundleBudget.raw ||
+			gzipSync(browserBundle).length > browserBundleBudget.gzip
+		) {
+			throw new Error(
+				`The feedback browser bundle ${file} exceeds its 32 KB raw / 10 KB gzip budget`,
+			);
+		}
+	}),
+);
 await build({
 	config: false,
 	entry: { worker: "packages/monochange__feedback-worker/src/worker.ts" },

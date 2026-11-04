@@ -5,6 +5,7 @@ mod assistant;
 pub use assistant::AssistantConfig;
 mod auth;
 mod client;
+mod iframe;
 mod worker;
 pub use auth::cors;
 
@@ -180,4 +181,11 @@ pub fn router() -> Router<AppState> {
 			.route("/jobs/{id}/result", post(worker::result))
 			.layer(DefaultBodyLimit::max(1024 * 1024)),
 	)
+}
+
+/// The first-party popup endpoint is separate from third-party SDK CORS routes.
+pub(crate) fn iframe_router() -> Router<AppState> {
+	Router::new()
+		.route("/api/feedback/iframe-session", post(iframe::session))
+		.layer(DefaultBodyLimit::max(4096))
 }

@@ -56,3 +56,37 @@ it("renders user content as text, offers explicit votes, and resets its draft", 
 	widget.destroy();
 	expect(document.querySelector("[data-monochange-feedback]")).toBeNull();
 });
+
+it("embeds inline without a launcher, modal backdrop, or automatic focus", () => {
+	HTMLDialogElement.prototype.show = vi.fn(function () {
+		this.open = true;
+	});
+	HTMLDialogElement.prototype.showModal = vi.fn();
+	HTMLDialogElement.prototype.close = function () {
+		this.open = false;
+	};
+	const control = document.createElement("button");
+	document.body.append(control);
+	control.focus();
+	const widget = mountFeedback({
+		endpoint: "https://feedback.example",
+		project: 1,
+		getClientToken: async () => "session",
+		presentation: "inline",
+	});
+	const host = document.querySelector<HTMLElement>("[data-monochange-feedback]")!;
+	const root = host.shadowRoot!;
+	expect(host.dataset.presentation).toBe("inline");
+	expect(root.querySelector("dialog")!.open).toBe(true);
+	expect(root.querySelector(".launcher")).toBeNull();
+	expect(root.querySelector<HTMLButtonElement>("[data-close]")!.hidden).toBe(true);
+	expect(document.activeElement).toBe(control);
+	expect(HTMLDialogElement.prototype.showModal).not.toHaveBeenCalled();
+	widget.close();
+	expect(root.querySelector("dialog")!.open).toBe(false);
+	widget.open();
+	expect(root.querySelector("dialog")!.open).toBe(true);
+	expect(HTMLDialogElement.prototype.showModal).not.toHaveBeenCalled();
+	widget.destroy();
+	control.remove();
+});

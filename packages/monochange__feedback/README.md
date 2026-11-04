@@ -4,6 +4,8 @@ Install `@monochange/feedback` for an accessible Shadow DOM widget or a framewor
 
 Read the [installation guide](https://github.com/monochange/monochange/blob/main/docs/src/guide/feedback-widget.md) for registration, authenticated backend token issuance, custom launchers, themes, translations, and script-tag installation.
 
+For a website builder or CMS that only accepts HTML, paste the hosted iframe from the installation guide. Visitors sign in through monochange; the host needs no SDK, JavaScript, or backend. See `examples/iframe.html` for a complete page.
+
 For a headless integration:
 
 ```ts

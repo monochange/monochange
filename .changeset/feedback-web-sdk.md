@@ -18,3 +18,5 @@ const feedback = mountFeedback({
 ```
 
 Issue short-lived feedback sessions through your authenticated backend. Call `feedback.reset()` on logout or account changes. Backend credentials must never be embedded in client code. Submission retries keep the same idempotency key.
+
+For a feedback page embedded inside an iframe, use `presentation: "inline"`. The form fills its container, omits the floating launcher and close button, and appears without a modal backdrop or automatic focus. Explicit `open()`, `close()`, and account-reset behavior remain available.

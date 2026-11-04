@@ -2,6 +2,33 @@
 
 The web, React Native, and Flutter SDKs connect your app's users to a monochange project's feedback. Users describe a bug or change, see similar requests to upvote, submit a new request, discuss details, and follow delivery status. Their existing app account supplies their identity; they do not need a GitHub account.
 
+## Paste-only iframe (no SDK or host backend)
+
+Use the hosted iframe when a website builder, CMS, or other host only accepts an HTML embed. Visitors sign in through monochange using its existing GitHub sign-in. No host JavaScript, package installation, app registration, or backend credential is needed.
+
+```html
+<iframe
+  src="https://monochange.dev/embed/feedback.html?organization=acme&amp;project=web"
+  title="Share feedback"
+  width="100%"
+  height="640"
+  loading="lazy"
+  referrerpolicy="no-referrer"
+  sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+  style="border:0"
+></iframe>
+```
+
+Replace `acme` and `web` with the organization and project slugs from the public portal URL `/p/acme/web`. For a self-hosted deployment, replace `https://monochange.dev` with its public origin. Set the host's CSP `frame-src` to allow that origin. The iframe needs JavaScript inside the frame, even though the host does not need custom JavaScript. Allow popups and let them escape the frame sandbox so GitHub sign-in can run in its own window. The form scrolls within the height supplied by the host.
+
+Select **Sign in through monochange**, then **Continue to feedback** in the window that opens. After signing in, select **Continue to feedback** again to connect the widget. The sign-in popup uses first-party cookies and sends only a ten-minute, project-scoped feedback session back to the exact originating frame. Third-party cookies are not required. Tokens stay in frame memory and are never sent to the embedding website or placed in URLs, browser storage, or embed markup. If popups are blocked, **Open feedback portal** provides a separate-tab alternative.
+
+Visitors can discuss a bug or idea, find similar requests, upvote, submit, and follow the current request's status in the frame. The public portal's **Your feedback** view provides their account history across visits. The iframe uses the same per-project identity as the public portal, so voting in both places still counts once. It does not link their monochange account to a separate host-app identity.
+
+When the session expires, sign in again to continue; reconnecting the same account preserves the current draft. **Disconnect** removes the frame's token and draft without signing out of monochange in other tabs. Reloading the frame also clears its in-memory state. Maintainers can revoke **Hosted feedback iframe** in the console to stop existing sessions and prevent new ones. Register an SDK integration instead when feedback must use the host app's own user accounts.
+
+Deployment operators must serve the generated `/embed/feedback.html`, `/embed/feedback-auth.html`, `/embed/feedback-frame.js`, and `/embed/feedback-frame.css` assets with the matching API. `MONOCHANGE_GITHUB_CALLBACK_URL` must use the same public origin; the popup exchange rejects other origins. Do not apply `X-Frame-Options: DENY` or a restrictive CSP `frame-ancestors` policy to the feedback frame page. Keep other account pages protected by the deployment's normal policy; the sign-in helper refuses to exchange credentials when framed. Cross-Origin-Opener-Policy must preserve the popup's opener for the return message.
+
 ## Register the app
 
 Open the project's feedback console and choose **Register an app**. Enter a name, an account namespace, and its surfaces. Web integrations need exact HTTPS origins, such as `https://app.example.com`; HTTP is accepted only for localhost development. Wildcards and origins containing a path are rejected.
@@ -56,6 +83,8 @@ feedback.destroy();
 Use `launcher: false` for a custom launcher, or supply an existing element. `target` controls where the widget mounts. The Shadow DOM isolates styles. `locale` sets the dialog language, and `labels` overrides visible strings. Content is rendered as text, never as user-supplied HTML. `open(itemId)` opens a saved submission's status and discussion.
 
 For script-tag installation, load `/embed/feedback.js`, then call `monochangeFeedback.mountFeedback` with the same options. Pin the script to your deployment when you need a fixed client version; versioned package artifacts also contain `dist/embed/feedback.iife.js`. A site's Content Security Policy must allow the script source and the feedback API in `connect-src`. Pass the host document's stylesheet nonce as `styleNonce` when its `style-src` requires a nonce. The widget creates DOM nodes without HTML string injection, so it also works with Trusted Types enforcement.
+
+When rendering the widget inside your own framed page, pass `presentation: "inline"`. The form appears in the page without a launcher, close button, modal backdrop, or automatic focus. The page still needs the authenticated `getClientToken` callback described above. For a hosted iframe without your own token callback, use the paste-only installation above.
 
 Use `FeedbackClient` from `@monochange/feedback/client` for headless integrations. It exports `suggest`, `startConversation`, `sendMessage`, `submit`, `getItem`, `reply`, `vote`, `reset`, and `destroy`.
 

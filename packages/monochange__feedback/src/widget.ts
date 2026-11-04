@@ -8,6 +8,8 @@ import {
 } from "./client.ts";
 
 export interface WidgetOptions extends FeedbackOptions {
+	/** Inline presentation fills an embedded page without opening a modal. */
+	presentation?: "dialog" | "inline";
 	target?: HTMLElement;
 	launcher?: HTMLElement | false;
 	theme?: "light" | "dark" | "auto";
@@ -57,6 +59,7 @@ function createWidgetView(options: WidgetOptions) {
 	const labels = { ...defaultLabels, ...options.labels };
 	const host = document.createElement("div");
 	host.dataset.monochangeFeedback = "";
+	host.dataset.presentation = options.presentation ?? "dialog";
 	const root = host.attachShadow({ mode: "open" });
 	const style = document.createElement("style");
 
@@ -66,6 +69,7 @@ function createWidgetView(options: WidgetOptions) {
 :host([data-theme=dark]){--bg:#241f3b;--fg:#f5f3ff;--muted:#c0b8d8;--rule:#49415f;color-scheme:dark}
 *{box-sizing:border-box}button,textarea,select{font:inherit}button{cursor:pointer;border:1px solid var(--rule);border-radius:10px;padding:10px 14px;background:var(--bg);color:var(--fg)}button:disabled{cursor:wait;opacity:.6}button:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid #a78bfa;outline-offset:2px}.primary{background:var(--brand);border-color:var(--brand);color:#fff}.launcher{position:fixed;right:20px;bottom:20px;z-index:2147483000;box-shadow:0 6px 24px #0003}
 dialog{background:var(--bg);color:var(--fg);border:1px solid var(--rule);border-radius:16px;padding:0;width:min(480px,calc(100vw - 24px));max-height:calc(100dvh - 32px);box-shadow:0 24px 80px #0005}dialog::backdrop{background:#19152e66}header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--rule)}h2{font-size:20px;margin:0}.body{padding:20px;overflow:auto;max-height:calc(100dvh - 130px)}label{display:block;font-weight:600;margin-bottom:8px}textarea{width:100%;min-height:110px;resize:vertical;border:1px solid var(--rule);border-radius:10px;padding:12px;color:var(--fg);background:var(--bg)}select{padding:8px;border:1px solid var(--rule);border-radius:8px;color:var(--fg);background:var(--bg);margin-bottom:14px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.messages p{white-space:pre-wrap;padding:12px;border-radius:10px;background:color-mix(in srgb,var(--brand) 8%,var(--bg));overflow-wrap:anywhere}.messages .user{margin-left:24px;background:color-mix(in srgb,var(--brand) 15%,var(--bg))}.match{border:1px solid var(--rule);border-radius:12px;padding:12px;margin:10px 0}.match p{margin:0 0 8px}small,.status{color:var(--muted)}.error{color:#c23748;white-space:pre-wrap}.hidden{display:none}a{color:var(--brand)}
+:host([data-presentation=inline]){display:block} :host([data-presentation=inline]) dialog{position:static;margin:0;width:100%;max-height:none;border:0;border-radius:0;box-shadow:none} :host([data-presentation=inline]) .body{max-height:none}
 `;
 	const dialog = document.createElement("dialog");
 	dialog.setAttribute("aria-labelledby", "feedback-title");
@@ -98,10 +102,17 @@ dialog{background:var(--bg);color:var(--fg);border:1px solid var(--rule);border-
 			]),
 		]),
 	);
+
+	if (options.presentation === "inline") {
+		dialog.open = true;
+		dialog.querySelector<HTMLButtonElement>("[data-close]")!.hidden = true;
+	}
+
 	root.append(style, dialog);
 	(options.target ?? document.body).append(host);
 	const find = <T extends Element>(selector: string) => dialog.querySelector<T>(selector)!;
 	const input = find<HTMLTextAreaElement>("textarea");
+
 	const kind = find<HTMLSelectElement>("select");
 	const send = find<HTMLButtonElement>("[data-send]");
 	const submit = find<HTMLButtonElement>("[data-submit]");
@@ -161,6 +172,7 @@ class WidgetController implements FeedbackWidget {
 		this.applyTheme();
 		this.bindControls();
 		this.createLauncher();
+		this.opened = options.presentation === "inline";
 	}
 
 	private readonly applyTheme = () => {
@@ -174,7 +186,7 @@ class WidgetController implements FeedbackWidget {
 	private readonly launch = () => this.open();
 
 	private createLauncher() {
-		if (this.options.launcher === false) return;
+		if (this.options.presentation === "inline" || this.options.launcher === false) return;
 		this.launcher = this.options.launcher;
 
 		if (!this.launcher) {
@@ -348,7 +360,11 @@ class WidgetController implements FeedbackWidget {
 		if (this.destroyed) return;
 		this.returnFocus = document.activeElement as HTMLElement;
 
-		if (!this.opened) this.ui.dialog.showModal();
+		if (!this.opened) {
+			if (this.options.presentation === "inline") this.ui.dialog.open = true;
+			else this.ui.dialog.showModal();
+		}
+
 		this.opened = true;
 		this.ui.input.focus();
 

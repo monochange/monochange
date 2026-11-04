@@ -175,6 +175,7 @@ async fn host_identity_drafts_submit_votes_and_rotation_work_through_the_api() {
 	admin::rotate(&state, &scope, &integration.id, false)
 		.await
 		.unwrap();
+
 	assert_eq!(
 		request(
 			&state,
@@ -607,6 +608,7 @@ async fn automatic_planning_stops_at_approval_and_implementation_opens_one_draft
 		.await
 		.unwrap();
 	let implementation = admin::approve(&state, &scope, id, "owner").await.unwrap();
+
 	assert_eq!(
 		admin::approve(&state, &scope, id, "owner").await.unwrap(),
 		implementation
@@ -960,6 +962,7 @@ async fn draft_recovery_and_submission_guard_versions_identity_and_payloads() {
 		.0,
 		StatusCode::CONFLICT
 	);
+
 	assert_eq!(
 		request(
 			&state,
@@ -1777,6 +1780,7 @@ async fn publication_tracking_respects_closed_requests_and_requires_the_issue() 
 	service.start_build(&item).unwrap();
 	worker::record_pull_request(&mut service, &item, pr.clone()).unwrap();
 	service.close(&item, "owner").unwrap();
+
 	worker::record_pull_request(&mut service, &item, pr).unwrap();
 	assert_eq!(service.item(&item).unwrap().stage, Stage::Closed);
 }
@@ -1896,6 +1900,7 @@ async fn planning_rejects_incomplete_requests_stale_repository_heads_and_a_concu
 		.await
 		.unwrap();
 	scheduler.await.unwrap().unwrap();
+
 	assert_eq!(
 		crate::feedback::load(&state, &scope)
 			.await
@@ -1906,4 +1911,337 @@ async fn planning_rejects_incomplete_requests_stale_repository_heads_and_a_concu
 			.len(),
 		1
 	);
+}
+
+/// The popup uses the first-party account, never a caller-supplied identity.
+#[tokio::test]
+async fn iframe_sessions_require_first_party_sign_in_and_share_portal_identity() {
+	let (mut state, scope, _) = setup().await;
+	state.github_callback_url = "https://monochange.example/auth/callback".into();
+	let login = crate::create_token(&state.jwt_secret, 1, 101, "owner").unwrap();
+	let send = |cookie: String, origin: &'static str, input: Value| {
+		let router = crate::api_router(state.clone());
+		async move {
+			let response = router
+				.oneshot(
+					Request::builder()
+						.method("POST")
+						.uri("/api/feedback/iframe-session")
+						.header("origin", origin)
+						.header("content-type", "application/json")
+						.header(
+							"cookie",
+							format!("{}={cookie}", crate::oauth::SESSION_COOKIE_NAME),
+						)
+						.body(Body::from(input.to_string()))
+						.unwrap(),
+				)
+				.await
+				.unwrap();
+			let status = response.status();
+			assert_eq!(response.headers()["cache-control"], "no-store");
+			let body = to_bytes(response.into_body(), 1024 * 1024).await.unwrap();
+			(status, serde_json::from_slice::<Value>(&body).unwrap())
+		}
+	};
+	let input = json!({"organization":"acme", "project":"web"});
+	assert_eq!(
+		send("forged".into(), "https://monochange.example", input.clone())
+			.await
+			.0,
+		StatusCode::UNAUTHORIZED
+	);
+	assert_eq!(
+		send(login.clone(), "https://attacker.example", input.clone())
+			.await
+			.0,
+		StatusCode::UNAUTHORIZED
+	);
+	assert_eq!(
+		send(
+			login.clone(),
+			"https://monochange.example",
+			json!({"organization":"acme", "project":"missing"})
+		)
+		.await
+		.0,
+		StatusCode::NOT_FOUND
+	);
+
+	assert_eq!(
+		send(
+			login.clone(),
+			"https://monochange.example",
+			json!({"organization":"acme", "project":"web", "user_id":"someone-else"})
+		)
+		.await
+		.0,
+		StatusCode::BAD_REQUEST
+	);
+	let (status, session) = send(login.clone(), "https://monochange.example", input.clone()).await;
+	assert_eq!(status, StatusCode::OK);
+	assert_eq!(session["project"], 1);
+	let token = session["token"].as_str().unwrap();
+	let loaded = crate::feedback::load(&state, &scope).await.unwrap();
+	let stored = loaded
+		.service
+		.embedded()
+		.session(&fingerprint(token), now())
+		.unwrap();
+	assert_eq!(
+		stored.subject,
+		crate::feedback::account_viewer_id(
+			&state.jwt_secret,
+			monochange_app_db::projects::GITHUB,
+			101,
+			1
+		)
+	);
+	assert!(stored.expires_at <= now() + 600);
+	let (status, draft) = request(
+		&state,
+		"POST",
+		"/conversations",
+		token,
+		Some("https://monochange.example"),
+		json!({"message":"Export invoices to CSV", "kind":"feature_request"}),
+	)
+	.await;
+	assert_eq!(status, StatusCode::OK);
+	let path = format!(
+		"/conversations/{}",
+		draft["conversation"]["id"].as_str().unwrap()
+	);
+	let response = crate::api_router(state.clone())
+		.oneshot(
+			Request::builder()
+				.uri(format!("/api/v1/feedback/1{path}"))
+				.header("authorization", format!("Bearer {token}"))
+				.header("sec-fetch-site", "same-origin")
+				.body(Body::empty())
+				.unwrap(),
+		)
+		.await
+		.unwrap();
+	assert_eq!(response.status(), StatusCode::OK);
+	assert_eq!(
+		request(&state, "GET", &path, token, None, Value::Null)
+			.await
+			.0,
+		StatusCode::UNAUTHORIZED
+	);
+	assert_eq!(
+		request(
+			&state,
+			"GET",
+			&path,
+			token,
+			Some("https://example.com"),
+			Value::Null
+		)
+		.await
+		.0,
+		StatusCode::UNAUTHORIZED
+	);
+	assert_eq!(
+		send(login.clone(), "https://monochange.example", input.clone())
+			.await
+			.0,
+		StatusCode::OK
+	);
+	crate::feedback::update(&state, &scope, |service| {
+		service
+			.embedded_mut()
+			.rotate("monochange-iframe", "revoked", true)?;
+		Ok(())
+	})
+	.await
+	.unwrap();
+	assert_eq!(
+		send(login, "https://monochange.example", input).await.0,
+		StatusCode::UNAUTHORIZED
+	);
+}
+
+#[tokio::test]
+async fn iframe_exchange_rejects_missing_or_deleted_accounts_and_invalid_deployment_origins() {
+	let (mut state, ..) = setup().await;
+	for (callback, cookie, origin, expected) in [
+		(
+			"https://monochange.example/auth/callback",
+			None,
+			Some("https://monochange.example"),
+			StatusCode::UNAUTHORIZED,
+		),
+		(
+			"https://monochange.example/auth/callback",
+			Some(crate::create_token(&state.jwt_secret, 999, 101, "deleted").unwrap()),
+			Some("https://monochange.example"),
+			StatusCode::UNAUTHORIZED,
+		),
+		(
+			"https://monochange.example/auth/callback",
+			Some(crate::create_token(&state.jwt_secret, 1, 999, "mismatch").unwrap()),
+			Some("https://monochange.example"),
+			StatusCode::UNAUTHORIZED,
+		),
+		(
+			"https://monochange.example/auth/callback",
+			None,
+			None,
+			StatusCode::UNAUTHORIZED,
+		),
+		(
+			"https://monochange.example/auth/callback",
+			None,
+			Some("null"),
+			StatusCode::UNAUTHORIZED,
+		),
+		(
+			"not-a-url",
+			None,
+			Some("https://monochange.example"),
+			StatusCode::BAD_REQUEST,
+		),
+		(
+			"http://insecure.example/auth/callback",
+			None,
+			Some("http://insecure.example"),
+			StatusCode::BAD_REQUEST,
+		),
+	] {
+		state.github_callback_url = callback.into();
+		let mut request = Request::builder()
+			.method("POST")
+			.uri("/api/feedback/iframe-session")
+			.header("content-type", "application/json");
+
+		if let Some(origin) = origin {
+			request = request.header("origin", origin);
+		}
+
+		if let Some(cookie) = cookie {
+			request = request.header(
+				"cookie",
+				format!("{}={cookie}", crate::oauth::SESSION_COOKIE_NAME),
+			);
+		}
+
+		let response = crate::api_router(state.clone())
+			.oneshot(
+				request
+					.body(Body::from(
+						json!({"organization":"acme", "project":"web"}).to_string(),
+					))
+					.unwrap(),
+			)
+			.await
+			.unwrap();
+		assert_eq!(response.status(), expected, "{callback}");
+	}
+}
+
+#[tokio::test]
+async fn iframe_session_refresh_cannot_reset_account_quota() {
+	let (mut state, scope, _) = setup().await;
+	state.github_callback_url = "https://monochange.example/auth/callback".into();
+	let subject = crate::feedback::account_viewer_id(
+		&state.jwt_secret,
+		monochange_app_db::projects::GITHUB,
+		101,
+		1,
+	);
+	crate::feedback::update(&state, &scope, |service| {
+		service
+			.embedded_mut()
+			.quotas
+			.insert(format!("sessions:{subject}"), (now() + 3600, 30));
+		Ok(())
+	})
+	.await
+	.unwrap();
+	let token = crate::create_token(&state.jwt_secret, 1, 101, "owner").unwrap();
+	let response = crate::api_router(state.clone())
+		.oneshot(
+			Request::builder()
+				.method("POST")
+				.uri("/api/feedback/iframe-session")
+				.header("content-type", "application/json")
+				.header("origin", "https://monochange.example")
+				.header(
+					"cookie",
+					format!("{}={token}", crate::oauth::SESSION_COOKIE_NAME),
+				)
+				.body(Body::from(
+					json!({"organization":"acme", "project":"web"}).to_string(),
+				))
+				.unwrap(),
+		)
+		.await
+		.unwrap();
+	assert_eq!(response.status(), StatusCode::TOO_MANY_REQUESTS);
+	assert_eq!(response.headers()["retry-after"], "60");
+}
+
+#[tokio::test]
+async fn iframe_exchange_preserves_integration_and_session_capacity_limits() {
+	for full_integrations in [true, false] {
+		let (mut state, scope, _) = setup().await;
+		state.github_callback_url = "https://monochange.example/auth/callback".into();
+		crate::feedback::update(&state, &scope, |service| {
+			if full_integrations {
+				let existing = service.embedded().integrations[0].clone();
+				service.embedded_mut().integrations = (0..32)
+					.map(|index| {
+						let mut app = existing.clone();
+						app.id = format!("app-{index}");
+						app
+					})
+					.collect();
+			} else {
+				let integration = service.embedded().integrations[0].id.clone();
+				service.embedded_mut().sessions = vec![
+						monochange_app_feedback::embedded::FeedbackSession {
+							token_hash: "existing".into(),
+							integration,
+							subject: "someone".into(),
+							surface: ClientSurface::Web,
+							generation: 0,
+							expires_at: now() + 600,
+						};
+						4096
+					];
+			}
+			Ok(())
+		})
+		.await
+		.unwrap();
+		let token = crate::create_token(&state.jwt_secret, 1, 101, "owner").unwrap();
+		let response = crate::api_router(state.clone())
+			.oneshot(
+				Request::builder()
+					.method("POST")
+					.uri("/api/feedback/iframe-session")
+					.header("content-type", "application/json")
+					.header("origin", "https://monochange.example")
+					.header(
+						"cookie",
+						format!("{}={token}", crate::oauth::SESSION_COOKIE_NAME),
+					)
+					.body(Body::from(
+						json!({"organization":"acme", "project":"web"}).to_string(),
+					))
+					.unwrap(),
+			)
+			.await
+			.unwrap();
+		assert_eq!(
+			response.status(),
+			if full_integrations {
+				StatusCode::CONFLICT
+			} else {
+				StatusCode::TOO_MANY_REQUESTS
+			}
+		);
+	}
 }

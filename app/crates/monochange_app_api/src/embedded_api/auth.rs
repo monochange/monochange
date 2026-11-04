@@ -61,6 +61,15 @@ pub(super) fn session(
 
 	match session.surface {
 		ClientSurface::Web => {
+			// Same-origin GETs omit Origin. Only the hosted frame may use Fetch Metadata.
+			if integration.id == super::iframe::INTEGRATION
+				&& !headers.contains_key("origin")
+				&& headers
+					.get("sec-fetch-site")
+					.is_some_and(|value| value == "same-origin")
+			{
+				return Ok(session);
+			}
 			let origin = headers
 				.get("origin")
 				.and_then(|value| value.to_str().ok())
