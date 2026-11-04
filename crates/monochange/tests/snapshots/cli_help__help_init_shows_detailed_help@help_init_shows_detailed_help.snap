@@ -22,7 +22,7 @@ Options:
       --provider <PROVIDER>
           Source-control provider for release automation workflows
           
-          [possible values: github, gitlab, gitea]
+          [possible values: github, gitlab, gitea, forgejo]
 
   -h, --help
           Print help

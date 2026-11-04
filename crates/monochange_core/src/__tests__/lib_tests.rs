@@ -6028,3 +6028,29 @@ fn native_ecosystem_conversions_and_defaults() {
 		Some("gradle.properties")
 	);
 }
+
+#[test]
+fn ecosystem_discovery_allows_packages_outside_the_workspace_root() {
+	let root = must_ok(tempdir(), "tempdir");
+	let outside = must_ok(tempdir(), "tempdir");
+	let package = PackageRecord::new(
+		Ecosystem::Cargo,
+		"outside",
+		outside.path().join("Cargo.toml"),
+		outside.path().to_path_buf(),
+		None,
+		PublishState::Public,
+	);
+	let configuration = sample_workspace_configuration();
+	let mut warnings = Vec::new();
+	let mut warned_patterns = BTreeSet::new();
+
+	assert!(crate::ecosystem_discovery_allows(
+		root.path(),
+		&configuration,
+		&package,
+		&mut warnings,
+		&mut warned_patterns,
+	));
+	assert!(warnings.is_empty(), "unexpected warnings: {warnings:?}");
+}

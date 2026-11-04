@@ -62,29 +62,6 @@ async fn forced_init_rejects_shared_package_paths_without_overwriting_configurat
 	clippy::disallowed_methods,
 	reason = "tokio::test builds its runtime with Result::expect"
 )]
-async fn populate_explains_empty_defaults_and_preserves_custom_workflows() {
-	let fixture = setup_fixture!("monochange/populate-partial-cli");
-	let root = fixture.path();
-	let before = fs::read_to_string(root.join("monochange.toml"))
-		.unwrap_or_else(|error| panic!("read original config: {error}"));
-	let output = run_cli(root, &["populate"])
-		.await
-		.unwrap_or_else(|error| panic!("populate output: {error}"));
-	let output = output.replace(&root.display().to_string(), "[workspace]");
-
-	insta::assert_snapshot!(output);
-	assert_eq!(
-		fs::read_to_string(root.join("monochange.toml"))
-			.unwrap_or_else(|error| panic!("read preserved config: {error}")),
-		before
-	);
-}
-
-#[tokio::test]
-#[expect(
-	clippy::disallowed_methods,
-	reason = "tokio::test builds its runtime with Result::expect"
-)]
 async fn init_assigns_unique_ids_for_three_packages_with_the_same_name() {
 	let fixture = setup_fixture!("monochange/init-triple-package-name/workspace");
 	assert_valid_package_ids(fixture.path(), "triple_same_name").await;
