@@ -40,6 +40,7 @@ in
       shfmt
       taplo
       unzip
+      which
       zip
       zizmor
     ]
@@ -253,9 +254,63 @@ in
       exec = ''
         set -euo pipefail
         pnpm build
-        pnpm vitest run --exclude 'worktrees/**' scripts/npm/tests/*.test.ts evals/monochange-skill/lib/__tests__/*.test.ts
+        pnpm vitest run --exclude 'worktrees/**' scripts/npm/tests/*.test.ts evals/monochange-skill/lib/__tests__/*.test.ts packages/monochange__feedback-react-native/src/__tests__/*.test.tsx
       '';
       description = "Run npm helper, launcher, and repository utility tests with Vitest.";
+      binary = "bash";
+    };
+    "test:feedback:flutter" = {
+      exec = ''
+        set -euo pipefail
+        feedback_flutter_sdk="''${FLUTTER_SDK:-''${FLUTTER_ROOT:-$DEVENV_ROOT/.monochange/local/tooling/flutter}}"
+        if [ ! -x "$feedback_flutter_sdk/bin/flutter" ]; then
+          echo "Set FLUTTER_SDK to a Flutter 3.35+ SDK to test the feedback package." >&2
+          exit 1
+        fi
+        export PATH="$PATH:/usr/bin"
+        # Resolve package language versions and formatter options before checking a fresh checkout.
+        (cd "$DEVENV_ROOT/packages/monochange__feedback_flutter" && "$feedback_flutter_sdk/bin/flutter" pub get)
+        (cd "$DEVENV_ROOT/packages/monochange__feedback_flutter/example" && "$feedback_flutter_sdk/bin/flutter" pub get)
+        "$feedback_flutter_sdk/bin/dart" format --output=none --set-exit-if-changed \
+          packages/monochange__feedback_flutter/lib packages/monochange__feedback_flutter/test \
+          packages/monochange__feedback_flutter/example/lib packages/monochange__feedback_flutter/example/test
+        cd "$DEVENV_ROOT/packages/monochange__feedback_flutter"
+        "$feedback_flutter_sdk/bin/flutter" analyze
+        "$feedback_flutter_sdk/bin/flutter" test
+        cd example
+        "$feedback_flutter_sdk/bin/flutter" analyze
+        "$feedback_flutter_sdk/bin/flutter" test
+      '';
+      description = "Analyze and test the Flutter feedback SDK and its Android/iOS example.";
+      binary = "bash";
+    };
+    "build:feedback:android" = {
+      exec = ''
+        set -euo pipefail
+        feedback_flutter_sdk="''${FLUTTER_SDK:-''${FLUTTER_ROOT:-$DEVENV_ROOT/.monochange/local/tooling/flutter}}"
+        export PATH="$PATH:/usr/bin"
+        cd "$DEVENV_ROOT/packages/monochange__feedback_flutter/example"
+        "$feedback_flutter_sdk/bin/flutter" build apk --debug
+      '';
+      description = "Build the feedback example for Android without publishing it.";
+      binary = "bash";
+    };
+    "build:feedback:ios" = {
+      exec = ''
+        set -euo pipefail
+        feedback_flutter_sdk="''${FLUTTER_SDK:-''${FLUTTER_ROOT:-$DEVENV_ROOT/.monochange/local/tooling/flutter}}"
+        cd "$DEVENV_ROOT/packages/monochange__feedback_flutter/example"
+        # Xcode and SwiftPM require Apple's SDK, compiler, and linker environment.
+        /usr/bin/env -i \
+          HOME="$HOME" \
+          PATH="/usr/bin:/bin:/usr/sbin:/sbin" \
+          TMPDIR="''${TMPDIR:-/tmp}" \
+          PUB_CACHE="''${PUB_CACHE:-$HOME/.pub-cache}" \
+          LANG="''${LANG:-en_US.UTF-8}" \
+          CI="''${CI:-}" \
+          "$feedback_flutter_sdk/bin/flutter" build ios --simulator --no-codesign
+      '';
+      description = "Build the feedback example for iOS Simulator without signing or publishing it.";
       binary = "bash";
     };
     "test:agent-evals" = {
@@ -292,12 +347,20 @@ in
     "coverage:all" = {
       exec = ''
         set -euo pipefail
+        # Coverage maps do not need debug symbols; both workspaces otherwise exceed runner storage.
+        export CARGO_INCREMENTAL=0
+        export CARGO_PROFILE_DEV_DEBUG=0
+        export CARGO_PROFILE_TEST_DEBUG=0
         ${rustTestCertificateEnvironment}
         mkdir -p target/coverage
         cargo bin cargo-llvm-cov clean --workspace
         cargo bin cargo-llvm-cov test --workspace --exclude xtask --all-features --lib --tests --no-report
         cargo bin cargo-llvm-cov report --ignore-filename-regex 'crates/xtask/' --summary-only --fail-under-lines 70
-        cargo bin cargo-llvm-cov report --ignore-filename-regex 'crates/xtask/' --lcov --output-path target/coverage/lcov.info
+        cargo bin cargo-llvm-cov report --ignore-filename-regex 'crates/xtask/' --lcov --output-path target/coverage/workspace.lcov
+        # The web app is a separate Cargo workspace; include its changed Rust lines in the patch gate.
+        cargo bin cargo-llvm-cov test --manifest-path app/Cargo.toml --workspace --lib --tests --no-report
+        cargo bin cargo-llvm-cov report --manifest-path app/Cargo.toml --lcov --output-path target/coverage/app.lcov
+        cat target/coverage/workspace.lcov target/coverage/app.lcov > target/coverage/lcov.info
       '';
       description = "Run workspace coverage, enforce a 70% line-coverage floor, and write target/coverage/lcov.info.";
       binary = "bash";

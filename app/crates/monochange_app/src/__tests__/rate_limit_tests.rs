@@ -52,6 +52,7 @@ fn router(rate_limit: RateLimit) -> Router {
 
 fn request(method: &str, path: &str, peer: Option<&str>, session: Option<&str>) -> Request<Body> {
 	let mut request = Request::builder().method(method).uri(path);
+
 	if let Some(token) = session {
 		request = request.header(
 			header::COOKIE,
@@ -61,12 +62,15 @@ fn request(method: &str, path: &str, peer: Option<&str>, session: Option<&str>) 
 			),
 		);
 	}
+
 	let mut request = request.body(Body::empty()).unwrap();
+
 	if let Some(peer) = peer {
 		request
 			.extensions_mut()
 			.insert(ConnectInfo(peer.parse::<SocketAddr>().unwrap()));
 	}
+
 	request
 }
 
@@ -397,11 +401,13 @@ async fn requests_without_a_peer_address_share_one_bucket() {
 
 fn address_of(peer: &str, forwarded: &[&str]) -> IpAddr {
 	let mut request = request("GET", TASKS, Some(peer), None);
+
 	for value in forwarded {
 		request
 			.headers_mut()
 			.append("x-forwarded-for", value.parse().unwrap());
 	}
+
 	client_address(&request)
 }
 
@@ -474,4 +480,40 @@ async fn cleanup_drops_idle_buckets() {
 
 	assert!(rate_limit.limits.anonymous.is_empty());
 	assert!(rate_limit.limits.authenticated.is_empty());
+}
+
+#[tokio::test]
+async fn embedded_address_rejections_expose_retry_headers_before_project_lookup() {
+	let app = router(RateLimit::new(
+		config(tier(1, 1), tier(2, 2)),
+		SECRET,
+		[SERVER_FN],
+	));
+	let path = "/api/v1/feedback/1/items/fb-1";
+	let mut input = request("GET", path, None, None);
+	input
+		.headers_mut()
+		.insert("origin", "https://example.com".parse().unwrap());
+	let _ = send(&app, input).await;
+	let mut input = request("GET", path, None, None);
+	input
+		.headers_mut()
+		.insert("origin", "https://example.com".parse().unwrap());
+	let response = send(&app, input).await;
+
+	assert_eq!(response.status(), StatusCode::TOO_MANY_REQUESTS);
+	assert_eq!(
+		header_value(&response, "access-control-allow-origin"),
+		Some("https://example.com")
+	);
+	assert_eq!(
+		header_value(&response, "access-control-expose-headers"),
+		Some("Retry-After")
+	);
+	assert_eq!(header_value(&response, "cache-control"), Some("no-store"));
+	assert!(
+		!response
+			.headers()
+			.contains_key("access-control-allow-credentials")
+	);
 }

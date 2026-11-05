@@ -138,6 +138,7 @@ impl RateLimitConfig {
 		get: impl Fn(&str) -> Option<String>,
 	) -> Result<Self, RateLimitConfigError> {
 		let defaults = Self::default();
+
 		let read = |key: &'static str, default: NonZeroU32| {
 			match get(key).filter(|value| !value.trim().is_empty()) {
 				None => Ok(default),
@@ -205,6 +206,7 @@ impl Decision {
 			self.tier.burst,
 			self.tier.window_seconds()
 		);
+
 		let limit = match self.retry_after {
 			Some(seconds) => {
 				headers.insert(header::RETRY_AFTER, HeaderValue::from(seconds));
@@ -212,17 +214,20 @@ impl Decision {
 			}
 			None => format!("\"{}\";r={}", self.policy, self.remaining),
 		};
+
 		for (name, value) in [(RATELIMIT_POLICY, policy), (RATELIMIT, limit)] {
 			if let Ok(value) = HeaderValue::from_str(&value) {
 				headers.insert(name, value);
 			}
 		}
+
 		headers
 	}
 
 	fn reject(&self, surface: Surface, seconds: u64) -> Response {
 		let unit = if seconds == 1 { "second" } else { "seconds" };
 		let message = format!("Too many requests. Try again in {seconds} {unit}.");
+
 		let mut response = match surface {
 			Surface::ServerFunction => {
 				let body = server_fn::ServerFnError::new(message).ser();
@@ -391,14 +396,37 @@ pub async fn limit(State(rate_limit): State<RateLimit>, request: Request, next: 
 		return next.run(request).await;
 	};
 	let decision = rate_limit.check(&request, surface);
+
 	if let Some(seconds) = decision.retry_after {
 		tracing::debug!(
 			policy = decision.policy,
 			path = request.uri().path(),
 			"rate limited"
 		);
-		return decision.reject(surface, seconds);
+		let mut response = decision.reject(surface, seconds);
+		// Address limits run before project lookup. Only the generic rejection is exposed here;
+		// feedback data still requires the registered origin and integration credential.
+		if request.uri().path().starts_with("/api/v1/feedback/")
+			&& let Some(origin) = request.headers().get("origin")
+		{
+			response
+				.headers_mut()
+				.insert("access-control-allow-origin", origin.clone());
+			response
+				.headers_mut()
+				.append("vary", HeaderValue::from_static("Origin"));
+			response.headers_mut().insert(
+				"access-control-expose-headers",
+				HeaderValue::from_static("Retry-After"),
+			);
+			response
+				.headers_mut()
+				.insert("cache-control", HeaderValue::from_static("no-store"));
+		}
+
+		return response;
 	}
+
 	let mut response = next.run(request).await;
 	response.headers_mut().extend(decision.headers());
 	response
@@ -437,6 +465,7 @@ fn client_address(request: &Request) -> IpAddr {
 	} else {
 		peer
 	};
+
 	match address {
 		IpAddr::V6(address) => IpAddr::V6(Ipv6Addr::from(u128::from(address) & (u128::MAX << 64))),
 		IpAddr::V4(_) => address,
@@ -452,16 +481,19 @@ fn forwarded_client(headers: &HeaderMap) -> Option<IpAddr> {
 		.flat_map(|value| value.split(','))
 		.collect::<Vec<_>>();
 	let mut nearest = None;
+
 	for entry in entries.into_iter().rev() {
 		let Ok(address) = entry.trim().parse::<IpAddr>() else {
 			break;
 		};
 		let address = address.to_canonical();
 		nearest = Some(address);
+
 		if !is_trusted_proxy(address) {
 			break;
 		}
 	}
+
 	nearest
 }
 

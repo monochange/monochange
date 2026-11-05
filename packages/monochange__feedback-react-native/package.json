@@ -1,0 +1,28 @@
+{
+	"name": "@monochange/feedback-react-native",
+	"version": "0.1.0",
+	"type": "module",
+	"description": "Native monochange feedback screens for React Native apps",
+	"license": "Unlicense",
+	"repository": "https://github.com/monochange/monochange",
+	"files": ["dist", "README.md"],
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js",
+			"react-native": "./dist/index.js"
+		}
+	},
+	"dependencies": { "@monochange/feedback": "workspace:^" },
+	"peerDependencies": { "react": ">=18", "react-native": ">=0.76" },
+	"devDependencies": {
+		"@types/react": "^19.1.0",
+		"@types/react-test-renderer": "^19.1.0",
+		"react-test-renderer": "^19.1.0"
+	},
+	"scripts": {
+		"build": "pnpm --dir ../.. build:feedback",
+		"prepack": "pnpm --dir ../.. build:feedback"
+	},
+	"publishConfig": { "access": "public", "provenance": true }
+}

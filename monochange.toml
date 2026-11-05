@@ -386,6 +386,24 @@ type = "npm"
 path = "packages/monochange__cli-win32-x64-msvc"
 type = "npm"
 
+[package."@monochange/feedback"]
+path = "packages/monochange__feedback"
+type = "npm"
+version_format = "namespaced"
+additional_paths = ["scripts/build-feedback.ts"]
+
+[package."@monochange/feedback-react-native"]
+path = "packages/monochange__feedback-react-native"
+type = "npm"
+version_format = "namespaced"
+additional_paths = ["scripts/build-feedback.ts"]
+
+[package."@monochange/feedback-worker"]
+path = "packages/monochange__feedback-worker"
+type = "npm"
+version_format = "namespaced"
+additional_paths = ["scripts/build-feedback.ts"]
+
 # The skill package ships prose: SKILL.md, reference guides, and examples.
 # Classification reads rewritten guidance as API impact because the wording of
 # a skill is its interface, so a documentation pass can be scored as a minor or
@@ -453,6 +471,11 @@ path = "crates/monochange_deno"
 
 [package.monochange_ecmascript]
 path = "crates/monochange_ecmascript"
+
+[package.monochange_feedback]
+path = "packages/monochange__feedback_flutter"
+type = "dart"
+version_format = "namespaced"
 
 [package.monochange_forgejo]
 path = "crates/monochange_forgejo"

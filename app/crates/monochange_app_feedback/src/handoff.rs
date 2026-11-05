@@ -117,8 +117,8 @@ pub fn closing_issue_numbers(body: &str, repository: &str) -> Vec<u64> {
 	let words: Vec<&str> = body.split_whitespace().collect();
 	let mut numbers = Vec::new();
 
-	for pair in words.windows(2) {
-		let keyword = pair[0]
+	for (keyword, reference) in words.iter().zip(words.iter().skip(1)) {
+		let keyword = keyword
 			.trim_start_matches(['(', '*', '_'])
 			.trim_end_matches([':', '*', '_'])
 			.to_ascii_lowercase();
@@ -127,7 +127,7 @@ pub fn closing_issue_numbers(body: &str, repository: &str) -> Vec<u64> {
 			continue;
 		}
 
-		if let Some(number) = issue_reference(pair[1], repository)
+		if let Some(number) = issue_reference(reference, repository)
 			&& !numbers.contains(&number)
 		{
 			numbers.push(number);
@@ -355,6 +355,7 @@ fn agent_branch(id: &str, kind: FeedbackKind) -> String {
 		FeedbackKind::BugReport => "fix",
 		FeedbackKind::FeatureRequest => "feat",
 	};
+
 	format!("{prefix}/feedback-{id}")
 }
 

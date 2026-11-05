@@ -12,12 +12,14 @@
 mod tests;
 
 mod config;
+pub mod embedded_api;
 pub mod feedback;
 pub mod github_app;
 pub mod oauth;
 pub mod oidc;
 pub mod release_api;
 pub mod tasks_api;
+
 pub mod token_vault;
 pub mod webhooks;
 
@@ -83,6 +85,13 @@ pub const RELEASE_REQUEST_BODY_LIMIT: usize = 2 * 1024 * 1024;
 /// without coupling the bot endpoints to the SSR state type.
 pub fn api_router(state: AppState) -> Router<()> {
 	Router::new()
+		.merge(embedded_api::iframe_router())
+		.merge(
+			embedded_api::router().layer(axum::middleware::from_fn_with_state(
+				state.clone(),
+				embedded_api::cors,
+			)),
+		)
 		.route("/api/github/webhooks", post(webhooks::github_webhook))
 		.route(
 			"/api/release-commits",
@@ -157,6 +166,8 @@ pub fn verify_token(secret: &str, token: &str) -> Result<Claims, StatusCode> {
 /// Application state shared across requests.
 #[derive(Clone)]
 pub struct AppState {
+	/// Optional deployment-configured model; tests may inject a mock provider.
+	pub feedback_assistant: Option<embedded_api::AssistantConfig>,
 	pub db: monochange_app_db::DbPool,
 	pub secrets: Arc<AppSecrets>,
 	pub jwt_secret: String,
@@ -250,6 +261,9 @@ impl AppState {
 			.build()?;
 
 		Ok(Self {
+			feedback_assistant: embedded_api::AssistantConfig::from_environment(
+				secrets.openrouter_api_key.as_deref(),
+			),
 			db,
 			secrets: Arc::new(secrets),
 			jwt_secret,

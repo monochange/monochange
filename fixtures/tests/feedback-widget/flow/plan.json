@@ -1,0 +1,8 @@
+{
+  "summary": "Export selected invoices",
+  "acceptance": ["The CSV contains only selected invoices", "The CSV contains invoice dates and totals"],
+  "changes": ["Add an export action and CSV serializer"],
+  "paths": ["src/**", ".changeset/**"],
+  "checks": ["Run invoice export tests"],
+  "risks": ["Bound the number of invoices in one export"]
+}

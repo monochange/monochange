@@ -9,10 +9,12 @@
 pub mod ai;
 pub mod auth;
 pub mod book;
+pub mod embedded;
 pub mod feedback;
 pub mod installation;
 pub mod organizations;
 pub mod portal;
+
 pub mod releases;
 
 pub mod repos;

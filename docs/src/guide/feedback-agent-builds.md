@@ -1,5 +1,7 @@
 # Build accepted feedback with an agent
 
+For the web, React Native, and Flutter integrations with versioned plan approval, use [connected local or self-hosted agents](feedback-connected-agents.md). The workflow below describes the independent GitHub Actions path for projects that have not enabled the connected-agent flow.
+
 A project's maintainer console can hand an accepted feedback item to a coding agent. The agent runs in the repository's own GitHub Actions, opens a draft pull request, and the item moves through review, merge, and release on its own. Nothing merges without a maintainer.
 
 ## How a build runs

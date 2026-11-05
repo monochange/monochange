@@ -2303,6 +2303,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "monochange_app_feedback"
+version = "0.3.3"
+dependencies = [
+ "serde",
+ "thiserror 2.0.21",
+]
+
+[[package]]
 name = "monochange_book"
 version = "0.21.0"
 dependencies = [
@@ -2686,6 +2694,7 @@ dependencies = [
  "insta-cmd",
  "jsonschema",
  "monochange",
+ "monochange_app_feedback",
  "monochange_config",
  "monochange_core",
  "monochange_forgejo",

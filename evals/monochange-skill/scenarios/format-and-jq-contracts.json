@@ -4,7 +4,7 @@
 	"fixture": "rust-workspace",
 	"agent": false,
 	"prompt": "",
-	"expectation": "`monochange discover` emits parseable JSON under `--format json`, exactly one line of JSON under `--format json-min`, and a markdown report under `--format md`; an unknown format is rejected with exit 1. The restricted `--jq` subset keeps field access and `select` working on `config --format json`, while `length` and comma-separated filters print nothing but still exit 0 (FINDINGS defect 6) — pinned so a jq upgrade that starts emitting values is caught. `--quiet` on `step validate` suppresses all output without changing execution. Bare `monochange run` errors while no `[cli.*]` commands are configured. Nothing the checks run mutates the workspace; the one scratch file is removed by the check that created it.",
+	"expectation": "`monochange discover` emits parseable JSON under `--format json`, exactly one line of JSON under `--format json-min`, and an unstyled discovery summary under `--format md`; an unknown format is rejected with usage exit 2. The restricted `--jq` subset keeps field access and `select` working on `config --format json`, while `length` and comma-separated filters print nothing but still exit 0 (FINDINGS defect 6) — pinned so a jq upgrade that starts emitting values is caught. `--quiet` on `step validate` suppresses all output without changing execution. Bare `monochange run` errors while no `[cli.*]` commands are configured. Nothing the checks run mutates the workspace; the one scratch file is removed by the check that created it.",
 	"checks": [
 		{
 			"id": "discover-json-parses",
@@ -22,14 +22,18 @@
 			"id": "discover-md-renders-a-markdown-report",
 			"kind": "command",
 			"command": "monochange discover --format md 2>/dev/null",
-			"expectOutput": ["Workspace discovery for", "Packages: 2", "- cargo: 2"],
-			"why": "The markdown format is the human-readable channel; pin what it actually renders (a summary heading plus list bullets) so drift is visible."
+			"expectOutput": [
+				"Ecosystems",
+				"cargo  2",
+				"Discovered 2 packages · 1 dependency"
+			],
+			"why": "Markdown output strips terminal styling and preserves the current discovery summary and ecosystem counts."
 		},
 		{
 			"id": "unknown-format-is-rejected",
 			"kind": "command",
 			"command": "monochange discover --format bogus",
-			"expectExit": 1,
+			"expectExit": 2,
 			"expectOutput": [
 				"invalid value 'bogus' for '--format <FORMAT>'",
 				"text, json, json-min, md"
@@ -40,14 +44,19 @@
 			"id": "jq-field-access-filters-config-output",
 			"kind": "command",
 			"command": "monochange config --format json --jq '.config.packages[].id' 2>/dev/null",
-			"expectOutput": ["acme-core", "acme-cli"],
+			"expectOutput": [
+				"acme-core",
+				"acme-cli"
+			],
 			"why": "Plain field access is the documented happy path of the restricted `--jq` subset; both fixture package ids must come through."
 		},
 		{
 			"id": "jq-select-still-filters",
 			"kind": "command",
 			"command": "monochange config --format json --jq '.config.packages[] | select(.id == \"acme-core\") | .id' 2>/dev/null",
-			"expectOutput": ["acme-core"],
+			"expectOutput": [
+				"acme-core"
+			],
 			"why": "`select` is the other supported construct; pinning it marks the boundary between what the subset does and does not evaluate."
 		},
 		{
@@ -66,8 +75,11 @@
 			"id": "run-without-cli-config-errors",
 			"kind": "command",
 			"command": "monochange run",
-			"expectExit": 1,
-			"expectOutput": ["error[config.invalid]"],
+			"expectExit": 2,
+			"expectOutput": [
+				"error[cli.usage]",
+				"`monochange run` needs a subcommand"
+			],
 			"why": "There is nothing to run when no `[cli.*]` commands are configured, so bare `run` must fail loudly with a config error rather than exit 0 on an empty plan."
 		}
 	]

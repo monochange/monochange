@@ -12,7 +12,7 @@
 			"command": "rm -f .deploy-ran; monochange run deploy --dry-run; rc=$?; test $rc -eq 0 && test ! -f .deploy-ran",
 			"expectOutput": [
 				"dry-run: would run sh scripts/deploy-program.sh",
-				"completed (dry-run)"
+				"✔ upgrade on-chain program"
 			],
 			"why": "A deploy dry run must be safe to run anywhere: it prints the command it would run and must not execute the mutating side of the deploy script."
 		},

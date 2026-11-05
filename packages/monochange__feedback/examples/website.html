@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Website feedback example</title>
+<body>
+  <h1>Your app</h1>
+  <button id="feedback" type="button">Share feedback</button>
+  <script src="https://monochange.dev/embed/feedback.js"></script>
+  <script>
+    const feedback = monochangeFeedback.mountFeedback({
+      endpoint: "https://monochange.dev",
+      project: 123,
+      launcher: document.getElementById("feedback"),
+      getClientToken: async () => {
+        const response = await fetch("/api/feedback-session", { credentials: "same-origin" });
+        if (!response.ok) throw new Error("Sign in to your app first");
+        return response.json();
+      },
+      getContext: () => ({ route: location.pathname, app_version: "1.0.0" }),
+    });
+    // Your host auth layer calls feedback.reset() on logout or account changes.
+  </script>
+</body>
+</html>

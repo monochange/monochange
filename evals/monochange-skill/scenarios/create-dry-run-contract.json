@@ -4,7 +4,7 @@
 	"fixture": "rust-workspace",
 	"agent": false,
 	"prompt": "",
-	"expectation": "`monochange create --dry-run` and `monochange step create-change-file --dry-run` exit 0, print `Would create changeset` plus the rendered changeset body, and leave no `.changeset/*.md` behind — the dry-run discipline the skill teaches agents to rely on. Without `--dry-run`, `create` writes the file and prints `Created changeset`. `monochange run change` errors while the fixture defines no `[cli.change]`, because `run` subcommands come only from `[cli.*]` config; once a `[cli.change]` wrapper is appended, it honors `--dry-run` exactly like the built-in spelling. The wrapper block is appended and the config restored inside the last check.",
+	"expectation": "`monochange create --dry-run` and `monochange step create-change-file --dry-run` exit 0, print `Would create changeset` plus the rendered changeset body, and leave no `.changeset/*.md` behind \u2014 the dry-run discipline the skill teaches agents to rely on. Without `--dry-run`, `create` writes the file and prints `Created changeset`. `monochange run change` errors while the fixture defines no `[cli.change]`, because `run` subcommands come only from `[cli.*]` config; once a `[cli.change]` wrapper is appended, it honors `--dry-run` exactly like the built-in spelling. The wrapper block is appended and the config restored inside the last check.",
 	"setupFiles": {
 		".mc-cli-change-block.toml": "[cli.change]\n\n[[cli.change.inputs]]\nname = \"interactive\"\ntype = \"boolean\"\nshort = \"i\"\n\n[[cli.change.inputs]]\nname = \"package\"\ntype = \"string_list\"\n\n[[cli.change.inputs]]\nname = \"bump\"\ntype = \"choice\"\nchoices = [\"none\", \"patch\", \"minor\", \"major\"]\ndefault = \"patch\"\n\n[[cli.change.inputs]]\nname = \"reason\"\ntype = \"string\"\n\n[[cli.change.inputs]]\nname = \"type\"\ntype = \"string\"\n\n[[cli.change.inputs]]\nname = \"details\"\ntype = \"string\"\n\n[[cli.change.steps]]\ntype = \"CreateChangeFile\"\ninputs = [\"interactive\", \"package\", \"bump\", \"reason\", \"type\", \"details\"]\n"
 	},
@@ -18,7 +18,7 @@
 				"acme-core: minor",
 				"Add streaming parser support"
 			],
-			"why": "A dry run must exit 0, print the path it would write plus the rendered body, and leave no changeset file — a regression here is exactly the mutation agents were told cannot happen."
+			"why": "A dry run must exit 0, print the path it would write plus the rendered body, and leave no changeset file \u2014 a regression here is exactly the mutation agents were told cannot happen."
 		},
 		{
 			"id": "step-spelling-dry-run-writes-nothing",
@@ -35,16 +35,18 @@
 			"id": "create-write-writes-the-file",
 			"kind": "command",
 			"command": "monochange create --package acme-core --bump minor --reason \"Create writes a real changeset\" && test -n \"$(ls .changeset/*.md 2>/dev/null)\" && grep -q \"Create writes a real changeset\" .changeset/*.md; rc=$?; rm -rf .changeset; exit $rc",
-			"expectOutput": ["Created changeset"],
+			"expectOutput": [
+				"Created changeset"
+			],
 			"why": "The non-dry-run spelling must actually write the changeset with the requested target, bump, and body, so the dry-run contrast is real rather than vacuous."
 		},
 		{
 			"id": "run-change-errors-without-cli-config",
 			"kind": "command",
 			"command": "monochange run change",
-			"expectExit": 1,
+			"expectExit": 2,
 			"expectOutput": [
-				"error[config.invalid]",
+				"error[cli.usage]",
 				"unexpected argument 'change' found"
 			],
 			"why": "Run subcommands come only from `[cli.*]` config; while the fixture defines none, `change` is not even a parseable argument, and an agent relying on `run change` must see this failure."
@@ -57,9 +59,9 @@
 				"Would create changeset",
 				"acme-core: minor",
 				"Wrapped dry run",
-				"running `change` (dry-run)"
+				"\u2714 create change file"
 			],
-			"why": "Once `[cli.change]` wraps the CreateChangeFile step, the configured workflow must honor `--dry-run` identically — the wrapper is what repository CI actually invokes."
+			"why": "Once `[cli.change]` wraps the CreateChangeFile step, the configured workflow must honor `--dry-run` identically \u2014 the wrapper is what repository CI actually invokes."
 		}
 	]
 }

@@ -39,6 +39,13 @@ allow = [
 ]
 confidence-threshold = 0.8
 
+# Fresh release lockfiles select this archive writer through psm's build dependency.
+# Upstream license: https://github.com/rust-lang/ar_archive_writer/blob/v0.5.3/LICENSE.txt
+[[licenses.exceptions]]
+name = "ar_archive_writer"
+version = "=0.5.3"
+allow = ["Apache-2.0 WITH LLVM-exception"]
+
 [bans]
 multiple-versions = "warn"
 wildcards = "deny"

@@ -9,6 +9,14 @@
 
 ## Crate map
 
+### Embedded feedback and connected agents
+
+- `app/crates/monochange_app_feedback` owns deterministic session, conversation, quota, planning-policy, job, lease, and approval contracts. Network calls and credentials in plaintext never belong in this crate.
+- `monochange_app_api::embedded_api` authenticates host backends, client sessions, and workers; applies origin and audience checks; calls a deployment-owned model; and validates returned changes. `github_app::feedback` owns GitHub request shaping for verified commits and draft PRs.
+- Embedded and planning state extends the existing versioned feedback document with serde defaults. This deliberately keeps intake, idempotency, quotas, job claims, and approval under one transactional compare-and-swap instead of introducing a second document with a cross-document race. Credential digests persist; credential plaintext is returned once. Model and GitHub calls remain outside retry closures. Large projects retain the existing document-size and contention limitation and should migrate to per-item rows as a separate storage change.
+- `packages/monochange__feedback` supplies the framework-independent client and browser widget. `packages/monochange__feedback-react-native` and `packages/monochange__feedback_flutter` provide native UI using the same wire contract. `packages/monochange__feedback-worker` exports pinned repository blobs, holds model credentials locally, confines writes to approved paths, and runs checks only in a container without network or host credentials.
+- These app capabilities do not add ecosystem or provider dispatch to the release-planning CLI. The dedicated integration-test crate exercises the feedback domain across its complete lifecycle with file fixtures and Insta snapshots.
+
 ### Orchestration layer
 
 - `crates/monochange` is the top-level CLI and library entrypoint.

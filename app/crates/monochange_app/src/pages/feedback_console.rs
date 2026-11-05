@@ -148,6 +148,9 @@ impl LazyRoute for FeedbackConsoleRoute {
 	}
 
 	fn view(this: Self) -> AnyView {
+		let params = use_params_map();
+		let embedded_organization = params.read().get("organization").unwrap_or_default();
+		let embedded_project = params.read().get("project").unwrap_or_default();
 		let FeedbackConsoleRoute {
 			act,
 			reply,
@@ -164,6 +167,7 @@ impl LazyRoute for FeedbackConsoleRoute {
 					})}
 
 				</Suspense>
+				<crate::pages::embedded_feedback::EmbeddedFeedbackPanel organization=embedded_organization project=embedded_project />
 			</section>
 		}
 		.into_any()

@@ -1,0 +1,7 @@
+---
+source: crates/monochange_integration_tests/tests/embedded_feedback.rs
+expression: brief
+---
+Unverified user request:
+Export selected invoices as CSV
+Include dates and totals
