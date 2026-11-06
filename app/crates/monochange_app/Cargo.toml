@@ -82,6 +82,7 @@ hydrate = ["leptos/hydrate"]
 [dev-dependencies]
 hmac = "0.12"
 httpmock = { workspace = true }
+insta = { version = "1", features = ["json", "filters"] }
 rsa = { version = "0.9", features = ["sha2"] }
 rstest = { workspace = true }
 tempfile = "3"

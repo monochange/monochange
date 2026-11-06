@@ -29,17 +29,16 @@ use crate::github_app;
 #[derive(Debug)]
 struct ConnectedRepository {
 	github_repo_id: i64,
-	full_name: String,
 	installation_github_id: i64,
 }
 
-/// Resolve the repository by full name and return its installation id.
+/// Resolve the GitHub repository and installation ids by repository full name.
 async fn find_connected_repository(
 	state: &AppState,
 	full_name: &str,
 ) -> Result<Option<ConnectedRepository>, String> {
 	let row = sqlx::query(
-		"SELECT r.github_repo_id, r.github_full_name, i.github_installation_id
+		"SELECT r.github_repo_id, i.github_installation_id
 		 FROM repositories r
 		 JOIN installations i ON r.installation_id = i.id
 		 WHERE r.github_full_name = $1",
@@ -51,7 +50,6 @@ async fn find_connected_repository(
 	Ok(row.map(|row| {
 		ConnectedRepository {
 			github_repo_id: row.get("github_repo_id"),
-			full_name: row.get("github_full_name"),
 			installation_github_id: row.get("github_installation_id"),
 		}
 	}))
@@ -109,8 +107,13 @@ async fn authenticate(
 /// Check that an authenticated caller may act on `repository`.
 ///
 /// An OIDC token only grants access to the repository whose workflow minted
-/// it; the API token is deployment-wide.
-fn authorize(caller: &Caller, repository: &str) -> Result<(), (StatusCode, Json<ApiError>)> {
+/// it; the API token only grants access to the repositories the deployment
+/// listed in `MONOCHANGE_TOKEN_REPOSITORIES`.
+fn authorize(
+	state: &AppState,
+	caller: &Caller,
+	repository: &str,
+) -> Result<(), (StatusCode, Json<ApiError>)> {
 	match caller {
 		Caller::ActionsRun {
 			repository: claimed,
@@ -119,6 +122,19 @@ fn authorize(caller: &Caller, repository: &str) -> Result<(), (StatusCode, Json<
 				StatusCode::FORBIDDEN,
 				Json(ApiError::new(format!(
 					"OIDC token is for repository `{claimed}` but the request targets `{repository}`"
+				))),
+			))
+		}
+		Caller::ApiToken
+			if !state
+				.api_token_repositories
+				.as_ref()
+				.is_some_and(|repositories| repositories.contains(&repository.to_lowercase())) =>
+		{
+			Err((
+				StatusCode::FORBIDDEN,
+				Json(ApiError::new(format!(
+					"MONOCHANGE_TOKEN is not scoped to `{repository}`; add the repository to MONOCHANGE_TOKEN_REPOSITORIES or use a GitHub Actions OIDC token"
 				))),
 			))
 		}
@@ -163,7 +179,7 @@ fn validate_api_token(expected: Option<&str>, token: &str) -> Result<(), (Status
 		)
 	})?;
 
-	if constant_time_eq(expected.as_bytes(), token.as_bytes()) {
+	if crate::github_app::constant_time_eq(expected.as_bytes(), token.as_bytes()) {
 		Ok(())
 	} else {
 		Err((
@@ -171,17 +187,6 @@ fn validate_api_token(expected: Option<&str>, token: &str) -> Result<(), (Status
 			"invalid MONOCHANGE_TOKEN".to_string(),
 		))
 	}
-}
-
-fn constant_time_eq(left: &[u8], right: &[u8]) -> bool {
-	if left.len() != right.len() {
-		return false;
-	}
-
-	left.iter()
-		.zip(right)
-		.fold(0u8, |acc, (a, b)| acc | (a ^ b))
-		== 0
 }
 
 fn app_unconfigured() -> (StatusCode, String) {
@@ -214,7 +219,11 @@ fn validate_commit_paths(request: &HostedCommitRequest) -> Result<(), String> {
 	for file in &request.files {
 		let path = &file.path;
 
-		if path.starts_with('/') || path.contains("..") || path.contains('\\') {
+		if path.contains('\\')
+			|| path
+				.split('/')
+				.any(|component| matches!(component, "" | "." | ".."))
+		{
 			return Err(format!(
 				"release file path `{path}` must be repository-relative"
 			));
@@ -224,7 +233,9 @@ fn validate_commit_paths(request: &HostedCommitRequest) -> Result<(), String> {
 			return Err(format!("release file path `{path}` must not touch .git"));
 		}
 
-		if path.starts_with(".github/workflows/") {
+		if matches!(path.as_str(), ".github" | ".github/workflows")
+			|| path.starts_with(".github/workflows/")
+		{
 			return Err(format!(
 				"release file path `{path}` must not modify GitHub workflows"
 			));
@@ -300,7 +311,9 @@ fn release_commit_error_status(error: &github_app::GitHubAppError) -> StatusCode
 			StatusCode::CONFLICT
 		}
 		github_app::GitHubAppError::NotConfigured => StatusCode::SERVICE_UNAVAILABLE,
-		github_app::GitHubAppError::WorkflowsChanged => StatusCode::UNPROCESSABLE_ENTITY,
+		github_app::GitHubAppError::WorkflowsChanged
+		| github_app::GitHubAppError::InvalidReleaseBranch(_)
+		| github_app::GitHubAppError::UnboundPullRequest => StatusCode::UNPROCESSABLE_ENTITY,
 		_ => StatusCode::BAD_GATEWAY,
 	}
 }
@@ -336,7 +349,7 @@ pub async fn create_release_commit(
 		.map_err(|message| (StatusCode::BAD_REQUEST, Json(ApiError::new(message))))?;
 
 	let full_name = format!("{}/{}", request.owner, request.repository);
-	authorize(&caller, &full_name)?;
+	authorize(&state, &caller, &full_name)?;
 	let repository = find_connected_repository(&state, &full_name)
 		.await
 		.map_err(|message| (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiError::new(message))))?
@@ -348,15 +361,6 @@ pub async fn create_release_commit(
 				))),
 			)
 		})?;
-
-	if repository.github_repo_id.to_string() != request.repository
-		&& repository.full_name != full_name
-	{
-		return Err((
-			StatusCode::BAD_REQUEST,
-			Json(ApiError::new("repository mismatch")),
-		));
-	}
 
 	let app = state
 		.github_app
@@ -437,7 +441,7 @@ pub async fn publish_release_request(
 	validate_branch_names(&request.head_branch, Some(&request.base_branch))
 		.map_err(|message| (StatusCode::BAD_REQUEST, Json(ApiError::new(message))))?;
 	let full_name = format!("{}/{}", request.owner, request.repo);
-	authorize(&caller, &full_name)?;
+	authorize(&state, &caller, &full_name)?;
 
 	let repository = find_connected_repository(&state, &full_name)
 		.await
@@ -483,15 +487,21 @@ pub async fn publish_release_request(
 		}));
 	}
 
-	let (number, operation, url) =
-		github_app::publish_release_pull_request(&state.http, &app.api_url, &token, request)
-			.await
-			.map_err(|error| {
-				(
-					StatusCode::BAD_GATEWAY,
-					Json(ApiError::new(error.to_string())),
-				)
-			})?;
+	let (number, operation, url) = github_app::publish_release_pull_request(
+		&state.http,
+		&app.api_url,
+		&token,
+		request,
+		&state.jwt_secret,
+		repository.github_repo_id,
+	)
+	.await
+	.map_err(|error| {
+		(
+			release_commit_error_status(&error),
+			Json(ApiError::new(error.to_string())),
+		)
+	})?;
 
 	tracing::info!(
 		repository = %full_name,

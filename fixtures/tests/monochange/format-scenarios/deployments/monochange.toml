@@ -1,0 +1,10 @@
+[[deployments]]
+name = "docs"
+trigger = "release_published"
+
+[defaults]
+package_type = "npm"
+
+[[deployments]]
+name = "app"
+trigger = "workflow"

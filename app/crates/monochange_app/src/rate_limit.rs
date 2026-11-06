@@ -1,5 +1,5 @@
-//! Per-client rate limits for the app's API: Leptos server functions and the
-//! REST endpoints under `/api`.
+//! Per-client rate limits for Leptos server functions, REST endpoints under
+//! `/api`, and the OAuth pages that initiate provider work during SSR.
 //!
 //! Every limit is a [`governor`] GCRA bucket: a client may spend a burst of
 //! requests at once, and the bucket refills one request at a time at the
@@ -7,7 +7,9 @@
 //! so a busy dashboard never competes with other people behind the same
 //! network address. Everyone else shares a smaller bucket per client address.
 //!
-//! Pages, hydration assets, `/health`, and GitHub webhooks are not limited.
+//! `/login` and `/auth/callback` always spend the address bucket, including
+//! when the browser carries a session. Other pages, hydration assets,
+//! `/health`, and GitHub webhooks are not limited.
 //! GitHub never redelivers a dropped webhook on its own and every delivery is
 //! already authenticated by its signature, so limiting it would only lose
 //! events.
@@ -16,7 +18,7 @@
 //! fields, and a rejection adds `Retry-After`. Server functions reject with an
 //! encoded `ServerFnError`, so the Leptos client shows the message instead of
 //! failing to decode the body; REST endpoints reject with the same JSON
-//! `{"message": ...}` body as their other errors.
+//! `{"message": ...}` body as their other errors. OAuth pages return plain text.
 
 use std::collections::HashSet;
 use std::hash::Hash;
@@ -136,6 +138,7 @@ impl RateLimitConfig {
 		get: impl Fn(&str) -> Option<String>,
 	) -> Result<Self, RateLimitConfigError> {
 		let defaults = Self::default();
+
 		let read = |key: &'static str, default: NonZeroU32| {
 			match get(key).filter(|value| !value.trim().is_empty()) {
 				None => Ok(default),
@@ -181,6 +184,7 @@ enum Client {
 enum Surface {
 	ServerFunction,
 	Rest,
+	OAuth,
 }
 
 /// The outcome of counting one request.
@@ -202,6 +206,7 @@ impl Decision {
 			self.tier.burst,
 			self.tier.window_seconds()
 		);
+
 		let limit = match self.retry_after {
 			Some(seconds) => {
 				headers.insert(header::RETRY_AFTER, HeaderValue::from(seconds));
@@ -209,17 +214,20 @@ impl Decision {
 			}
 			None => format!("\"{}\";r={}", self.policy, self.remaining),
 		};
+
 		for (name, value) in [(RATELIMIT_POLICY, policy), (RATELIMIT, limit)] {
 			if let Ok(value) = HeaderValue::from_str(&value) {
 				headers.insert(name, value);
 			}
 		}
+
 		headers
 	}
 
 	fn reject(&self, surface: Surface, seconds: u64) -> Response {
 		let unit = if seconds == 1 { "second" } else { "seconds" };
 		let message = format!("Too many requests. Try again in {seconds} {unit}.");
+
 		let mut response = match surface {
 			Surface::ServerFunction => {
 				let body = server_fn::ServerFnError::new(message).ser();
@@ -230,6 +238,7 @@ impl Decision {
 					.into_response()
 			}
 			Surface::Rest => Json(ApiError { message }).into_response(),
+			Surface::OAuth => message.into_response(),
 		};
 		*response.status_mut() = StatusCode::TOO_MANY_REQUESTS;
 		response.headers_mut().extend(self.headers());
@@ -286,7 +295,21 @@ impl RateLimit {
 	}
 
 	fn surface(&self, path: &str) -> Option<Surface> {
-		if self.limits.server_fn_paths.contains(path) {
+		// The SSR fallback parses this absolute URL before matching its routes.
+		// Use the same normalization so dot-segment aliases cannot skip the bucket.
+		let rendered_url = format!("http://leptos.dev{path}");
+		let oauth_page = leptos_router::location::RequestUrl::new(&rendered_url)
+			.parse()
+			.is_ok_and(|url| {
+				matches!(
+					url.path().trim_end_matches('/'),
+					"/login" | "/auth/callback"
+				)
+			});
+
+		if oauth_page {
+			Some(Surface::OAuth)
+		} else if self.limits.server_fn_paths.contains(path) {
 			Some(Surface::ServerFunction)
 		} else if path.starts_with("/api/") && path != WEBHOOK_PATH {
 			Some(Surface::Rest)
@@ -295,9 +318,15 @@ impl RateLimit {
 		}
 	}
 
-	fn check(&self, request: &Request) -> Decision {
+	fn check(&self, request: &Request, surface: Surface) -> Decision {
 		let limits = &self.limits;
-		match client(request, &limits.jwt_secret) {
+		let client = if surface == Surface::OAuth {
+			Client::Address(client_address(request))
+		} else {
+			client(request, &limits.jwt_secret)
+		};
+
+		match client {
 			Client::User(id) => {
 				count(
 					&limits.authenticated,
@@ -360,21 +389,44 @@ fn whole_seconds(wait: Duration) -> u64 {
 	(wait.as_millis().div_ceil(1000) as u64).max(1)
 }
 
-/// Count API requests against the caller's bucket, answering `429 Too Many
-/// Requests` once it is empty. Other routes pass through untouched.
+/// Count API and OAuth page requests before server functions or SSR run,
+/// answering `429 Too Many Requests` once the caller's bucket is empty.
 pub async fn limit(State(rate_limit): State<RateLimit>, request: Request, next: Next) -> Response {
 	let Some(surface) = rate_limit.surface(request.uri().path()) else {
 		return next.run(request).await;
 	};
-	let decision = rate_limit.check(&request);
+	let decision = rate_limit.check(&request, surface);
+
 	if let Some(seconds) = decision.retry_after {
 		tracing::debug!(
 			policy = decision.policy,
 			path = request.uri().path(),
 			"rate limited"
 		);
-		return decision.reject(surface, seconds);
+		let mut response = decision.reject(surface, seconds);
+		// Address limits run before project lookup. Only the generic rejection is exposed here;
+		// feedback data still requires the registered origin and integration credential.
+		if request.uri().path().starts_with("/api/v1/feedback/")
+			&& let Some(origin) = request.headers().get("origin")
+		{
+			response
+				.headers_mut()
+				.insert("access-control-allow-origin", origin.clone());
+			response
+				.headers_mut()
+				.append("vary", HeaderValue::from_static("Origin"));
+			response.headers_mut().insert(
+				"access-control-expose-headers",
+				HeaderValue::from_static("Retry-After"),
+			);
+			response
+				.headers_mut()
+				.insert("cache-control", HeaderValue::from_static("no-store"));
+		}
+
+		return response;
 	}
+
 	let mut response = next.run(request).await;
 	response.headers_mut().extend(decision.headers());
 	response
@@ -413,6 +465,7 @@ fn client_address(request: &Request) -> IpAddr {
 	} else {
 		peer
 	};
+
 	match address {
 		IpAddr::V6(address) => IpAddr::V6(Ipv6Addr::from(u128::from(address) & (u128::MAX << 64))),
 		IpAddr::V4(_) => address,
@@ -428,16 +481,19 @@ fn forwarded_client(headers: &HeaderMap) -> Option<IpAddr> {
 		.flat_map(|value| value.split(','))
 		.collect::<Vec<_>>();
 	let mut nearest = None;
+
 	for entry in entries.into_iter().rev() {
 		let Ok(address) = entry.trim().parse::<IpAddr>() else {
 			break;
 		};
 		let address = address.to_canonical();
 		nearest = Some(address);
+
 		if !is_trusted_proxy(address) {
 			break;
 		}
 	}
+
 	nearest
 }
 

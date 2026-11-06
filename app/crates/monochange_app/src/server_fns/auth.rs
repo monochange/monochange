@@ -277,6 +277,26 @@ pub async fn exchange_code(
 	let verified =
 		monochange_app_api::oauth::verify_login_state(&state.jwt_secret, &jar, &state_param)
 			.map_err(|_| server_fn::ServerFnError::new("Invalid or expired OAuth state"))?;
+	let _exchange_slot = state
+		.oauth_exchange_slots
+		.try_acquire()
+		.map_err(|_| server_fn::ServerFnError::new("Sign-in is busy. Try again shortly."))?;
+	let consumed =
+		monochange_app_db::oauth::consume_state(&state.db, &state_param, verified.expires_at)
+			.await
+			.map_err(|error| {
+				tracing::error!(%error, "failed to consume OAuth state");
+				server_fn::ServerFnError::new(
+					"Sign-in is temporarily unavailable. Try again shortly.",
+				)
+			})?;
+
+	if !consumed {
+		return Err(server_fn::ServerFnError::new(
+			"Invalid or expired OAuth state",
+		));
+	}
+
 	let return_to = verified
 		.return_to
 		.unwrap_or_else(|| "/dashboard".to_owned());
@@ -307,6 +327,7 @@ pub async fn exchange_code(
 		))
 		.header("Accept", "application/json")
 		.form(&token_form)
+		.timeout(std::time::Duration::from_secs(10))
 		.send()
 		.await
 		.map_err(|e| server_fn::ServerFnError::new(format!("Token: {e}")))?;
@@ -355,8 +376,13 @@ pub async fn exchange_code(
 	.bind(github_id)
 	.bind(&login)
 	.bind(&avatar)
-	.bind(&token_response.access_token)
-	.bind(&token_response.refresh_token)
+	.bind(state.token_vault.seal(&token_response.access_token))
+	.bind(
+		token_response
+			.refresh_token
+			.as_ref()
+			.map(|token| state.token_vault.seal(token)),
+	)
 	.bind(token_response.access_token_expires_at)
 	.bind(token_response.refresh_token_expires_at)
 	.fetch_one(&state.db)
@@ -400,9 +426,28 @@ pub(crate) async fn github_user_access_token(
 	.fetch_optional(&state.db)
 	.await
 	.map_err(|error| server_fn::ServerFnError::new(format!("DB: {error}")))?;
-	let Some((access_token, refresh_token, access_expires_at, refresh_expires_at)) = stored else {
+	let Some((stored_access_token, stored_refresh_token, access_expires_at, refresh_expires_at)) =
+		stored
+	else {
 		return Err(server_fn::ServerFnError::new("Invalid session"));
 	};
+
+	// Rows written before token sealing existed still hold plaintext values;
+	// the vault passes those through, and the next refresh writes sealed ones.
+	let access_token = state
+		.token_vault
+		.open(&stored_access_token)
+		.map_err(|error| {
+			tracing::warn!(%error, "stored GitHub access token could not be unsealed");
+			server_fn::ServerFnError::new("please sign in again to verify organization access")
+		})?;
+	let refresh_token = stored_refresh_token
+		.map(|token| state.token_vault.open(&token))
+		.transpose()
+		.map_err(|error| {
+			tracing::warn!(%error, "stored GitHub refresh token could not be unsealed");
+			server_fn::ServerFnError::new("please sign in again to verify organization access")
+		})?;
 
 	if access_token.trim().is_empty() {
 		return Err(server_fn::ServerFnError::new(
@@ -452,8 +497,13 @@ pub(crate) async fn github_user_access_token(
 		 github_access_token_expires_at = $3, github_refresh_token_expires_at = $4,
 		 updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = $5",
 	)
-	.bind(&refreshed.access_token)
-	.bind(&refreshed.refresh_token)
+	.bind(state.token_vault.seal(&refreshed.access_token))
+	.bind(
+		refreshed
+			.refresh_token
+			.as_ref()
+			.map(|token| state.token_vault.seal(token)),
+	)
 	.bind(refreshed.access_token_expires_at)
 	.bind(refreshed.refresh_token_expires_at)
 	.bind(user_id)

@@ -1,0 +1,14 @@
+---
+source: crates/monochange_integration_tests/tests/format_scenarios.rs
+expression: formatted
+---
+[defaults]
+package_type = "npm"
+
+[changelog.sections.feat]
+heading = "Features"
+priority = 20
+
+[package.alpha]
+path = "packages/alpha"
+publish = { enabled = true, mode = "builtin", trusted_publishing = true }

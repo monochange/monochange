@@ -1,0 +1,5 @@
+---
+source: crates/monochange_integration_tests/tests/format_configuration.rs
+expression: error.to_string()
+---
+config error: monochange.toml is not formatted; run `monochange format`

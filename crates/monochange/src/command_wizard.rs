@@ -1106,7 +1106,7 @@ fn validate_command_name_message(name: &str) -> Result<(), String> {
 
 	let name = trimmed;
 
-	if monochange_config::RESERVED_CLI_COMMAND_NAMES.contains(&name) {
+	if monochange_config::is_reserved_cli_command_name(name) {
 		return Err(format!(
 			"CLI command `{name}` collides with a reserved built-in command"
 		));

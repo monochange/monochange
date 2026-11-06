@@ -1,0 +1,5 @@
+---
+source: crates/monochange_integration_tests/tests/format_configuration.rs
+expression: check
+---
+monochange.toml is formatted

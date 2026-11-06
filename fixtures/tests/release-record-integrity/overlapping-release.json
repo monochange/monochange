@@ -1,0 +1,42 @@
+{
+	"schema_version": "0.10",
+	"kind": "monochange.releaseRecord",
+	"created_at": "2025-01-01T00:00:00Z",
+	"command": "prepare-release",
+	"version": "1.0.0",
+	"versions": { "pkg-a": "1.0.0", "pkg-b": "2.0.0" },
+	"release_targets": [
+		{
+			"id": "pkg-a",
+			"kind": "package",
+			"version": "1.0.0",
+			"version_format": "primary",
+			"tag": true,
+			"release": true,
+			"tag_name": "v1.0.0",
+			"rendered_title": "Release pkg-a 1.0.0",
+			"rendered_changelog_title": "pkg-a 1.0.0",
+			"members": []
+		},
+		{
+			"id": "pkg-b",
+			"kind": "package",
+			"version": "2.0.0",
+			"version_format": "primary",
+			"tag": true,
+			"release": true,
+			"tag_name": "v2.0.0",
+			"rendered_title": "Release pkg-b 2.0.0",
+			"rendered_changelog_title": "pkg-b 2.0.0",
+			"members": []
+		}
+	],
+	"released_packages": [],
+	"changed_files": [],
+	"package_publications": [],
+	"updated_changelogs": [],
+	"deleted_changesets": [],
+	"changesets": [],
+	"changelogs": [],
+	"provider": null
+}

@@ -1,0 +1,8 @@
+{
+  "kind": "feature_request",
+  "description": "Export selected invoices as CSV",
+  "page": { "route": "/invoices", "app_version": "1.0.0", "locale": "en", "element": { "selector": "invoice-actions", "label": "Invoice actions" } },
+  "attachments": [],
+  "submitter": { "anonymous_id": "host-user-pseudonym", "email": null },
+  "app_slug": "example-app"
+}

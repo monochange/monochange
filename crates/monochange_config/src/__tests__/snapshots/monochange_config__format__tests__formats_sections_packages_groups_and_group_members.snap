@@ -1,0 +1,37 @@
+---
+source: crates/monochange_config/src/__tests__/format_tests.rs
+expression: format_workspace_configuration(UNSORTED_CONFIGURATION).unwrap()
+---
+#:schema ./schema.json
+
+# =============================================================================
+# project configuration
+# =============================================================================
+
+[defaults]
+parent_bump = "patch"
+
+[changelog]
+templates = ["- {{ summary }}"]
+
+[version_scheme.calver]
+template = "{{ year }}.{{ month }}"
+
+[package.alpha]
+path = "packages/alpha"
+
+# The package comment moves with its table.
+[package.zeta]
+path = "packages/zeta"
+
+[group.alpha]
+packages = [
+	"charlie-tool",
+	"delta-tool",
+]
+
+[group.zeta]
+packages = ["alpha-tool", "zeta-tool"]
+
+[cli.release]
+help_text = "Release packages"

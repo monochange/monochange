@@ -92,7 +92,6 @@ use crate::tests::TEST_ENV_LOCK;
 use crate::workspace_ops::build_lockfile_command_executions;
 use crate::workspace_ops::change_type_default_bump;
 use crate::workspace_ops::prepare_release_execution_with_file_diffs;
-use crate::workspace_ops::render_cli_commands_toml;
 use crate::workspace_ops::render_interactive_changeset_markdown;
 
 async fn execute_cli_command(
@@ -293,7 +292,9 @@ where
 			"changeset",
 			"check",
 			"command",
+			"completions",
 			"config",
+			"doctor",
 			"create",
 			"diagnose",
 			"discover",
@@ -305,7 +306,6 @@ where
 			"mcp",
 			"migrate",
 			"new",
-			"populate",
 			"prepare",
 			"preview",
 			"release-records",
@@ -1824,19 +1824,6 @@ fn mcp_and_root_command_support_quiet_and_missing_subcommands() {
 }
 
 #[test]
-fn populate_workspace_result_message_lists_added_commands() {
-	let result = crate::workspace_ops::PopulateWorkspaceResult {
-		path: PathBuf::from("monochange.toml"),
-		added_commands: vec!["release".to_string(), "publish".to_string()],
-	};
-
-	assert_eq!(
-		crate::format_populate_workspace_result(&result),
-		"updated monochange.toml and added 2 default CLI commands: release, publish"
-	);
-}
-
-#[test]
 fn custom_command_diagnostic_colorizes_terminal_output() {
 	assert_eq!(
 		crate::paint("hello", crate::cli_theme::error(), true),
@@ -2181,349 +2168,6 @@ fn init_requires_force_to_overwrite_existing_configuration() {
 	.err()
 	.unwrap_or_else(|| panic!("expected init failure"));
 	assert!(error.to_string().contains("--force"));
-}
-
-#[test]
-fn populate_leaves_existing_configuration_unchanged_without_default_cli_commands() {
-	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	copy_fixture("monochange/populate-no-cli", tempdir.path());
-
-	let output = run_cli(
-		tempdir.path(),
-		[OsString::from("monochange"), OsString::from("populate")],
-	)
-	.unwrap_or_else(|error| panic!("populate output: {error}"));
-	let config = fs::read_to_string(tempdir.path().join("monochange.toml"))
-		.unwrap_or_else(|error| panic!("config: {error}"));
-
-	assert!(output.contains("this version provides no default CLI workflow aliases"));
-	// With empty defaults, populate adds nothing
-	assert!(!config.contains("[cli.release]"));
-}
-
-#[test]
-fn populate_preserves_existing_cli_commands_without_default_cli_commands() {
-	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	copy_fixture("monochange/populate-partial-cli", tempdir.path());
-
-	let output = run_cli(
-		tempdir.path(),
-		[OsString::from("monochange"), OsString::from("populate")],
-	)
-	.unwrap_or_else(|error| panic!("populate output: {error}"));
-	let config = fs::read_to_string(tempdir.path().join("monochange.toml"))
-		.unwrap_or_else(|error| panic!("config: {error}"));
-
-	assert!(output.contains("this version provides no default CLI workflow aliases"));
-	assert!(config.contains("help_text = \"Custom release pipeline\""));
-	assert_eq!(config.matches("[cli.release]").count(), 1);
-	// With empty defaults, no new tables are added beyond existing ones
-	for table in [
-		"[cli.validate]",
-		"[cli.discover]",
-		"[cli.change]",
-		"[cli.versions]",
-		"[cli.placeholder-publish]",
-		"[cli.publish]",
-		"[cli.publish-plan]",
-		"[cli.affected]",
-		"[cli.diagnostics]",
-		"[cli.repair-release]",
-	] {
-		assert!(
-			!config.contains(table),
-			"unexpected populated table `{table}`"
-		);
-	}
-}
-
-#[test]
-fn populate_reports_when_no_default_cli_commands_are_provided() {
-	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	copy_fixture("monochange/populate-all-defaults", tempdir.path());
-	let before = fs::read_to_string(tempdir.path().join("monochange.toml"))
-		.unwrap_or_else(|error| panic!("config before: {error}"));
-
-	let output = run_cli(
-		tempdir.path(),
-		[OsString::from("monochange"), OsString::from("populate")],
-	)
-	.unwrap_or_else(|error| panic!("populate output: {error}"));
-	let after = fs::read_to_string(tempdir.path().join("monochange.toml"))
-		.unwrap_or_else(|error| panic!("config after: {error}"));
-
-	assert!(output.contains("this version provides no default CLI workflow aliases"));
-	assert_eq!(after, before);
-}
-
-#[test]
-fn format_populate_workspace_result_lists_added_commands() {
-	let result = crate::workspace_ops::PopulateWorkspaceResult {
-		path: PathBuf::from("monochange.toml"),
-		added_commands: vec!["release".to_string(), "publish".to_string()],
-	};
-
-	let output = crate::format_populate_workspace_result(&result);
-
-	assert_eq!(
-		output,
-		"updated monochange.toml and added 2 default CLI commands: release, publish"
-	);
-}
-
-#[test]
-fn populate_requires_an_existing_monochange_configuration_file() {
-	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	copy_fixture("monochange/populate-missing-config", tempdir.path());
-
-	let error = run_cli(
-		tempdir.path(),
-		[OsString::from("monochange"), OsString::from("populate")],
-	)
-	.err()
-	.unwrap_or_else(|| panic!("expected populate failure"));
-	assert!(error.to_string().contains("monochange.toml does not exist"));
-}
-
-#[cfg(unix)]
-#[test]
-fn populate_preserves_read_only_configuration_without_default_cli_commands() {
-	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	copy_fixture("monochange/populate-no-cli", tempdir.path());
-	let path = tempdir.path().join("monochange.toml");
-	let mut permissions = fs::metadata(&path)
-		.unwrap_or_else(|error| panic!("metadata: {error}"))
-		.permissions();
-	permissions.set_mode(0o444);
-	fs::set_permissions(&path, permissions).unwrap_or_else(|error| panic!("chmod: {error}"));
-
-	// With empty defaults, populate never writes; it returns success.
-	let output = run_cli(
-		tempdir.path(),
-		[OsString::from("monochange"), OsString::from("populate")],
-	)
-	.unwrap_or_else(|error| panic!("populate output: {error}"));
-	assert!(output.contains("this version provides no default CLI workflow aliases"));
-}
-
-#[test]
-fn populate_rejects_invalid_monochange_toml() {
-	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	copy_fixture("monochange/populate-invalid-config", tempdir.path());
-
-	let error = run_cli(
-		tempdir.path(),
-		[OsString::from("monochange"), OsString::from("populate")],
-	)
-	.err()
-	.unwrap_or_else(|| panic!("expected populate failure"));
-	assert!(error.to_string().contains("failed to parse"));
-}
-
-#[test]
-fn populate_rejects_non_file_configuration_paths() {
-	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	copy_fixture(
-		"monochange/populate-config-path-is-directory",
-		tempdir.path(),
-	);
-
-	let error = run_cli(
-		tempdir.path(),
-		[OsString::from("monochange"), OsString::from("populate")],
-	)
-	.err()
-	.unwrap_or_else(|| panic!("expected populate failure"));
-	assert!(error.to_string().contains("failed to read"));
-}
-
-#[test]
-fn populate_preserves_empty_configuration_without_default_cli_commands() {
-	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	copy_fixture("monochange/populate-empty-config", tempdir.path());
-
-	let output = run_cli(
-		tempdir.path(),
-		[OsString::from("monochange"), OsString::from("populate")],
-	)
-	.unwrap_or_else(|error| panic!("populate output: {error}"));
-	let config = fs::read_to_string(tempdir.path().join("monochange.toml"))
-		.unwrap_or_else(|error| panic!("config: {error}"));
-
-	assert!(output.contains("this version provides no default CLI workflow aliases"));
-	// With empty defaults, populate adds nothing
-	assert!(!config.contains("[cli.validate]"));
-}
-
-#[test]
-fn render_cli_commands_toml_handles_release_and_command_step_variants() {
-	let rendered = render_cli_commands_toml(&[CliCommandDefinition {
-		name: "custom".to_string(),
-		help_text: None,
-		inputs: vec![CliInputDefinition {
-			name: "mode".to_string(),
-			kind: CliInputKind::Choice,
-			help_text: Some("Select the command mode".to_string()),
-			required: true,
-			default: Some("safe".to_string()),
-			choices: vec!["safe".to_string(), "fast".to_string()],
-			short: Some('m'),
-		}],
-		steps: vec![
-			monochange_core::CliStepDefinition::PrepareRelease {
-				name: None,
-				when: Some("{{ inputs.enabled }}".to_string()),
-				always_run: false,
-				inputs: BTreeMap::from([(
-					"format".to_string(),
-					monochange_core::CliStepInputValue::String("json".to_string()),
-				)]),
-				allow_empty_changesets: false,
-			},
-			monochange_core::CliStepDefinition::Command {
-				show_progress: None,
-				name: None,
-				when: None,
-				always_run: false,
-				command: "echo hello".to_string(),
-				dry_run_command: Some("echo dry-run".to_string()),
-				shell: monochange_core::ShellConfig::None,
-				id: Some("none-shell".to_string()),
-				variables: None,
-				inputs: BTreeMap::from([(
-					"enabled".to_string(),
-					monochange_core::CliStepInputValue::Boolean(true),
-				)]),
-			},
-			monochange_core::CliStepDefinition::Command {
-				show_progress: None,
-				name: None,
-				when: None,
-				always_run: false,
-				command: "echo through-shell".to_string(),
-				dry_run_command: None,
-				shell: monochange_core::ShellConfig::Default,
-				id: Some("default-shell".to_string()),
-				variables: Some(BTreeMap::from([
-					(
-						"version_value".to_string(),
-						monochange_core::CommandVariable::Version,
-					),
-					(
-						"group_version_value".to_string(),
-						monochange_core::CommandVariable::GroupVersion,
-					),
-					(
-						"released_packages_value".to_string(),
-						monochange_core::CommandVariable::ReleasedPackages,
-					),
-					(
-						"changed_files_value".to_string(),
-						monochange_core::CommandVariable::ChangedFiles,
-					),
-					(
-						"changesets_value".to_string(),
-						monochange_core::CommandVariable::Changesets,
-					),
-				])),
-				inputs: BTreeMap::from([(
-					"changed_paths".to_string(),
-					monochange_core::CliStepInputValue::List(vec!["src/lib.rs".to_string()]),
-				)]),
-			},
-			monochange_core::CliStepDefinition::Command {
-				show_progress: None,
-				name: None,
-				when: None,
-				always_run: false,
-				command: "echo custom-shell".to_string(),
-				dry_run_command: None,
-				shell: monochange_core::ShellConfig::Custom("bash".to_string()),
-				id: Some("custom-shell".to_string()),
-				variables: None,
-				inputs: BTreeMap::new(),
-			},
-			monochange_core::CliStepDefinition::CommitRelease {
-				name: None,
-				when: None,
-				always_run: false,
-				no_verify: false,
-				update_release_json: false,
-				stage_all: false,
-				commit_backend: monochange_core::ReleaseBackend::default(),
-				hosted_auth: monochange_core::HostedCommitAuth::default(),
-				hosted_url: None,
-				oidc_audience: None,
-				inputs: BTreeMap::from([(
-					"format".to_string(),
-					monochange_core::CliStepInputValue::String("json".to_string()),
-				)]),
-			},
-			monochange_core::CliStepDefinition::PublishRelease {
-				name: None,
-				when: None,
-				always_run: false,
-				inputs: BTreeMap::from([(
-					"format".to_string(),
-					monochange_core::CliStepInputValue::String("text".to_string()),
-				)]),
-			},
-			monochange_core::CliStepDefinition::OpenReleaseRequest {
-				name: None,
-				when: None,
-				always_run: false,
-				no_verify: false,
-				stage_all: false,
-				backend: monochange_core::ReleaseBackend::default(),
-				hosted_auth: monochange_core::HostedCommitAuth::default(),
-				hosted_url: None,
-				inputs: BTreeMap::from([(
-					"format".to_string(),
-					monochange_core::CliStepInputValue::String("json".to_string()),
-				)]),
-			},
-			monochange_core::CliStepDefinition::CommentReleasedIssues {
-				name: None,
-				when: None,
-				always_run: false,
-				inputs: BTreeMap::from([(
-					"format".to_string(),
-					monochange_core::CliStepInputValue::String("text".to_string()),
-				)]),
-			},
-		],
-		dry_run: false,
-	}]);
-
-	assert!(rendered.contains("[cli.custom]"));
-	assert!(rendered.contains("[[cli.custom.inputs]]"));
-	assert!(rendered.contains("name = \"mode\""));
-	assert!(rendered.contains("type = \"choice\""));
-	assert!(rendered.contains("help_text = \"Select the command mode\""));
-	assert!(rendered.contains("required = true"));
-	assert!(rendered.contains("default = \"safe\""));
-	assert!(rendered.contains("choices = [\"safe\", \"fast\"]"));
-
-	assert!(rendered.contains("short = \"m\""));
-	assert!(rendered.contains("[[cli.custom.steps]]"));
-	assert!(rendered.contains("type = \"PrepareRelease\""));
-	assert!(rendered.contains("when = \"{{ inputs.enabled }}\""));
-	assert!(rendered.contains("inputs = { format = \"json\" }"));
-	assert!(rendered.contains("dry_run_command = \"echo dry-run\""));
-	assert!(rendered.contains("inputs = { enabled = true }"));
-	assert!(rendered.contains("shell = true"));
-	assert!(rendered.contains("group_version_value = \"group_version\""));
-	assert!(rendered.contains("released_packages_value = \"released_packages\""));
-	assert!(rendered.contains("changed_files_value = \"changed_files\""));
-	assert!(rendered.contains("changesets_value = \"changesets\""));
-	assert!(rendered.contains("version_value = \"version\""));
-	assert!(rendered.contains("inputs = { changed_paths = [\"src/lib.rs\"] }"));
-	assert!(rendered.contains("shell = \"bash\""));
-	assert!(rendered.contains("type = \"CommitRelease\""));
-	assert!(rendered.contains("type = \"PublishRelease\""));
-	assert!(rendered.contains("type = \"OpenReleaseRequest\""));
-	assert!(rendered.contains("type = \"CommentReleasedIssues\""));
-	assert!(!rendered.contains("name = \"custom\""));
 }
 
 #[test]
@@ -3918,7 +3562,7 @@ fn render_config_step_reports_zero_packages_for_an_empty_workspace() {
 fn template_context_exposes_resolved_config_by_default() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	seed_release_fixture(tempdir.path(), None, false);
-	let mut context = cli_context_for_when_evaluation_tests();
+	let mut context = cli_context_for_tests();
 	context.root = tempdir.path().to_path_buf();
 
 	let template_context = build_cli_template_context(&context, &BTreeMap::new(), None);
@@ -5568,7 +5212,7 @@ fn normalize_when_expression_supports_logical_operators() {
 	);
 }
 
-fn cli_context_for_when_evaluation_tests() -> CliContext {
+pub(crate) fn cli_context_for_tests() -> CliContext {
 	CliContext {
 		root: PathBuf::from("."),
 		dry_run: false,
@@ -5578,6 +5222,7 @@ fn cli_context_for_when_evaluation_tests() -> CliContext {
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: None,
+		originating_command: None,
 		prepared_file_diffs: Vec::new(),
 		release_manifest_path: None,
 		release_requests: Vec::new(),
@@ -5600,7 +5245,7 @@ fn cli_context_for_when_evaluation_tests() -> CliContext {
 
 #[test]
 fn should_execute_cli_step_runs_when_condition_is_true() {
-	let context = cli_context_for_when_evaluation_tests();
+	let context = cli_context_for_tests();
 	let step_inputs = BTreeMap::from([
 		("run".to_string(), vec!["true".to_string()]),
 		("extra".to_string(), vec!["true".to_string()]),
@@ -5625,7 +5270,7 @@ fn should_execute_cli_step_runs_when_condition_is_true() {
 
 #[test]
 fn should_execute_cli_step_can_gate_on_command_inputs_not_declared_by_step() {
-	let mut context = cli_context_for_when_evaluation_tests();
+	let mut context = cli_context_for_tests();
 	context.inputs = BTreeMap::from([
 		("commit".to_string(), vec!["true".to_string()]),
 		("create_pr".to_string(), vec!["true".to_string()]),
@@ -5651,7 +5296,7 @@ fn should_execute_cli_step_can_gate_on_command_inputs_not_declared_by_step() {
 
 #[test]
 fn should_execute_cli_step_prefers_step_inputs_over_command_inputs() {
-	let mut context = cli_context_for_when_evaluation_tests();
+	let mut context = cli_context_for_tests();
 	context.inputs = BTreeMap::from([("run".to_string(), vec!["true".to_string()])]);
 	let step_inputs = BTreeMap::from([("run".to_string(), vec!["false".to_string()])]);
 	let step = monochange_core::CliStepDefinition::Command {
@@ -5674,7 +5319,7 @@ fn should_execute_cli_step_prefers_step_inputs_over_command_inputs() {
 
 #[test]
 fn should_execute_cli_step_skips_when_condition_is_false() {
-	let context = cli_context_for_when_evaluation_tests();
+	let context = cli_context_for_tests();
 	let step_inputs = BTreeMap::from([("run".to_string(), vec!["false".to_string()])]);
 	let step = monochange_core::CliStepDefinition::Command {
 		show_progress: None,
@@ -5696,7 +5341,7 @@ fn should_execute_cli_step_skips_when_condition_is_false() {
 
 #[test]
 fn should_execute_cli_step_skips_for_zero_value() {
-	let context = cli_context_for_when_evaluation_tests();
+	let context = cli_context_for_tests();
 	let step_inputs = BTreeMap::from([("run".to_string(), vec!["0".to_string()])]);
 	let step = monochange_core::CliStepDefinition::Command {
 		show_progress: None,
@@ -5718,7 +5363,7 @@ fn should_execute_cli_step_skips_for_zero_value() {
 
 #[test]
 fn should_execute_cli_step_can_gate_on_number_of_changesets() {
-	let mut context = cli_context_for_when_evaluation_tests();
+	let mut context = cli_context_for_tests();
 	let step_inputs = BTreeMap::new();
 	let step = monochange_core::CliStepDefinition::Command {
 		show_progress: None,
@@ -5750,7 +5395,7 @@ fn should_execute_cli_step_can_gate_on_number_of_changesets() {
 
 #[test]
 fn should_execute_cli_step_trims_and_treats_1_as_true() {
-	let context = cli_context_for_when_evaluation_tests();
+	let context = cli_context_for_tests();
 	let step_inputs = BTreeMap::from([("run".to_string(), vec![" 1 ".to_string()])]);
 	let step = monochange_core::CliStepDefinition::Command {
 		show_progress: None,
@@ -5772,7 +5417,7 @@ fn should_execute_cli_step_trims_and_treats_1_as_true() {
 
 #[test]
 fn should_execute_cli_step_skips_with_not_operator() {
-	let context = cli_context_for_when_evaluation_tests();
+	let context = cli_context_for_tests();
 	let step_inputs = BTreeMap::from([("skip".to_string(), vec!["true".to_string()])]);
 	let step = monochange_core::CliStepDefinition::Command {
 		show_progress: None,
@@ -5794,7 +5439,7 @@ fn should_execute_cli_step_skips_with_not_operator() {
 
 #[test]
 fn should_execute_cli_step_gates_on_release_streams_and_outputs() {
-	let mut context = cli_context_for_when_evaluation_tests();
+	let mut context = cli_context_for_tests();
 	let changelog = |output: &str, stream: &str| {
 		crate::PreparedChangelog {
 			owner_id: "main".to_string(),
@@ -5875,7 +5520,7 @@ fn should_execute_cli_step_gates_on_release_streams_and_outputs() {
 
 #[test]
 fn should_execute_cli_step_rejects_unknown_template_reference() {
-	let context = cli_context_for_when_evaluation_tests();
+	let context = cli_context_for_tests();
 	let step_inputs = BTreeMap::from([("run".to_string(), vec!["true".to_string()])]);
 	let step = monochange_core::CliStepDefinition::Command {
 		show_progress: None,
@@ -5899,7 +5544,7 @@ fn should_execute_cli_step_rejects_unknown_template_reference() {
 
 #[test]
 fn should_execute_cli_step_rejects_non_scalar_condition_value() {
-	let context = cli_context_for_when_evaluation_tests();
+	let context = cli_context_for_tests();
 	let step_inputs =
 		BTreeMap::from([("list".to_string(), vec!["a".to_string(), "b".to_string()])]);
 	let step = monochange_core::CliStepDefinition::Command {
@@ -6822,15 +6467,15 @@ async fn find_release_record_files_at_commit_reports_git_errors() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
 	// Not a git repo — calling git should error
-	let result = crate::git_support::find_release_record_files_at_commit(root, "HEAD").await;
+	let result = crate::git_support::first_parent_history(root, "HEAD").await;
 	assert!(
 		result.is_err(),
 		"expected error for non-git directory, got: {result:?}"
 	);
 	let message = result.unwrap_err().to_string();
 	assert!(
-		message.contains("failed to inspect commit"),
-		"expected 'failed to inspect commit' in error, got: {message}"
+		message.contains("failed to read first-parent commit ancestry"),
+		"expected ancestry error in message, got: {message}"
 	);
 }
 
@@ -6881,9 +6526,21 @@ async fn find_release_record_files_at_commit_falls_back_to_tree_when_parent_is_m
 		.unwrap_or_else(|error| panic!("git clone shallow: {error}"));
 	assert!(status.success(), "git clone shallow failed");
 
-	let files = crate::git_support::find_release_record_files_at_commit(clone_root, "HEAD")
+	let history = crate::git_support::first_parent_history(clone_root, "HEAD")
 		.await
-		.unwrap_or_else(|error| panic!("find release record files: {error}"));
+		.unwrap_or_else(|error| panic!("first-parent history: {error}"));
+	let entry = history
+		.iter()
+		.next()
+		.unwrap_or_else(|| panic!("history must contain HEAD"));
+	assert!(
+		entry.first_parent.is_none(),
+		"a shallow cut must report no parents so discovery falls back to the tree"
+	);
+	let files =
+		crate::git_support::find_release_record_files_at_commit(clone_root, entry, &history)
+			.await
+			.unwrap_or_else(|error| panic!("find release record files: {error}"));
 	assert_eq!(
 		files,
 		vec![".monochange/releases/0000000000000000/release.json"]
@@ -7302,6 +6959,7 @@ fn template_context_exposes_release_commit_namespace() {
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: None,
+		originating_command: None,
 		prepared_file_diffs: Vec::new(),
 		release_manifest_path: None,
 		release_requests: Vec::new(),
@@ -7349,6 +7007,7 @@ fn template_context_exposes_retarget_namespace() {
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: None,
+		originating_command: None,
 		prepared_file_diffs: Vec::new(),
 		release_manifest_path: None,
 		release_requests: Vec::new(),
@@ -7388,6 +7047,7 @@ fn template_context_exposes_publish_namespace() {
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: None,
+		originating_command: None,
 		prepared_file_diffs: Vec::new(),
 		release_manifest_path: None,
 		release_requests: Vec::new(),
@@ -7505,6 +7165,7 @@ fn template_context_exposes_manifest_affected_steps_and_custom_variables() {
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: Some(sample_prepared_release_for_cli_render()),
+		originating_command: None,
 		prepared_file_diffs: Vec::new(),
 		release_manifest_path: Some(PathBuf::from("target/release-manifest.json")),
 		release_requests: Vec::new(),
@@ -7636,6 +7297,7 @@ fn render_cli_command_result_prefers_retarget_report() {
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: None,
+		originating_command: None,
 		prepared_file_diffs: Vec::new(),
 		release_manifest_path: None,
 		release_requests: Vec::new(),
@@ -7677,6 +7339,7 @@ fn render_cli_command_result_renders_release_follow_up_sections() {
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: Some(sample_prepared_release_for_cli_render()),
+		originating_command: None,
 		prepared_file_diffs: Vec::new(),
 		release_manifest_path: Some(PathBuf::from("target/release-manifest.json")),
 		release_requests: Vec::new(),
@@ -7719,6 +7382,7 @@ fn render_cli_command_markdown_result_uses_markdown_sections_for_prepare_release
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: Some(sample_prepared_release_for_cli_render()),
+		originating_command: None,
 		prepared_file_diffs: vec![PreparedFileDiff {
 			path: PathBuf::from("Cargo.toml"),
 			diff: "@@ -1 +1 @@".to_string(),
@@ -7770,6 +7434,7 @@ fn render_cli_command_markdown_result_renders_release_follow_up_sections() {
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: Some(sample_prepared_release_for_cli_render()),
+		originating_command: None,
 		prepared_file_diffs: vec![PreparedFileDiff {
 			path: PathBuf::from("Cargo.toml"),
 			diff: "@@ -1 +1 @@".to_string(),
@@ -9791,17 +9456,6 @@ fn quiet_builtin_commands_return_empty_output() {
 	assert!(init_output.is_empty());
 	assert!(root.join("monochange.toml").exists());
 
-	let populate_output = run_cli(
-		root,
-		[
-			OsString::from("monochange"),
-			OsString::from("--quiet"),
-			OsString::from("populate"),
-		],
-	)
-	.unwrap_or_else(|error| panic!("quiet populate output: {error}"));
-	assert!(populate_output.is_empty());
-
 	let analyze_error = run_cli(
 		root,
 		[
@@ -10769,7 +10423,7 @@ async fn git_stage_paths_reports_git_inspection_failures() {
 	assert!(
 		error
 			.to_string()
-			.contains("failed to inspect tracked git path release.txt")
+			.contains("failed to inspect tracked git paths")
 	);
 }
 
@@ -10856,11 +10510,20 @@ async fn first_parent_commits_returns_head_then_ancestors() {
 	git_in_temp_repo(root, &["commit", "-m", "second"]);
 
 	let head = git_output_in_temp_repo(root, &["rev-parse", "HEAD"]);
-	let commits = crate::git_support::first_parent_commits(root, &head)
+	let history = crate::git_support::first_parent_history(root, &head)
 		.await
-		.unwrap_or_else(|error| panic!("first parent commits: {error}"));
-	assert_eq!(commits.first().map(String::as_str), Some(head.as_str()));
+		.unwrap_or_else(|error| panic!("first parent history: {error}"));
+	let commits: Vec<&str> = history.iter().map(|entry| entry.commit.as_str()).collect();
+	assert_eq!(commits.first().copied(), Some(head.as_str()));
 	assert_eq!(commits.len(), 2);
+	assert_eq!(
+		history
+			.iter()
+			.next()
+			.and_then(|entry| entry.first_parent.as_deref()),
+		commits.get(1).copied(),
+		"the newest commit's first parent must be the next entry"
+	);
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -15218,6 +14881,7 @@ fn tracked_release_pull_request_paths_include_manifest_path_and_deduplicate() {
 		inputs: BTreeMap::new(),
 		last_step_inputs: BTreeMap::new(),
 		prepared_release: None,
+		originating_command: None,
 		prepared_file_diffs: Vec::new(),
 		release_manifest_path: Some(PathBuf::from("Cargo.lock")),
 		release_requests: Vec::new(),
@@ -17035,7 +16699,7 @@ fn validate_release_record_file_reports_error_when_dedupe_cannot_read_releases_d
 		.unwrap_or_else(|error| panic!("write record: {error}"));
 	assert!(record_path.exists());
 
-	// Mutate the file so the fast path (target identity match) is skipped.
+	// Require a repair before testing the later deduplication directory read.
 	let content =
 		fs::read_to_string(&record_path).unwrap_or_else(|error| panic!("read record: {error}"));
 	let mutated = content.replace("pkg-a", "mutated-pkg");
@@ -17047,17 +16711,24 @@ fn validate_release_record_file_reports_error_when_dedupe_cannot_read_releases_d
 	let _ = fs::remove_file(&index_path);
 	clear_dedup_cache();
 
-	// Remove read permission from the releases directory so dedupe cannot iterate.
+	// Allow record traversal and repair, but prevent dedupe from listing siblings.
 	let releases_dir = root.join(".monochange/releases");
 	let mut permissions = fs::metadata(&releases_dir)
 		.unwrap_or_else(|error| panic!("metadata: {error}"))
 		.permissions();
 	let original_mode = permissions.mode();
-	permissions.set_mode(0o000);
+	permissions.set_mode(0o300);
 	fs::set_permissions(&releases_dir, permissions)
 		.unwrap_or_else(|error| panic!("set permissions: {error}"));
 
 	let result = validate_release_record_file(root, None, &manifest, true);
+	// Restore permissions before assertions so tempdir cleanup also works on failure.
+	let mut permissions = fs::metadata(&releases_dir)
+		.unwrap_or_else(|error| panic!("metadata: {error}"))
+		.permissions();
+	permissions.set_mode(original_mode);
+	fs::set_permissions(&releases_dir, permissions)
+		.unwrap_or_else(|error| panic!("restore permissions: {error}"));
 	assert!(
 		result.is_err(),
 		"expected error when dedupe cannot read releases dir, got: {result:?}"
@@ -17067,14 +16738,6 @@ fn validate_release_record_file_reports_error_when_dedupe_cannot_read_releases_d
 		message.contains("read releases dir"),
 		"expected 'read releases dir' in error, got: {message}"
 	);
-
-	// Restore permissions so tempdir cleanup succeeds.
-	let mut permissions = fs::metadata(&releases_dir)
-		.unwrap_or_else(|error| panic!("metadata: {error}"))
-		.permissions();
-	permissions.set_mode(original_mode);
-	fs::set_permissions(&releases_dir, permissions)
-		.unwrap_or_else(|error| panic!("restore permissions: {error}"));
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -17940,4 +17603,74 @@ fn release_commands_still_run_with_defaults_when_configuration_is_missing() {
 	.unwrap_or_else(|error| panic!("config without monochange.toml: {error}"));
 
 	assert!(output.trim_start().starts_with('{'), "{output}");
+}
+
+#[test]
+fn shell_completions_render_for_every_supported_shell() {
+	let workspace = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	fs::write(
+		workspace.path().join("monochange.toml"),
+		"[cli.bench-check]\n[[cli.bench-check.steps]]\ntype = \"Validate\"\n",
+	)
+	.unwrap_or_else(|error| panic!("write config: {error}"));
+
+	for (shell, marker) in [
+		("bash", "_monochange()"),
+		("zsh", "#compdef monochange"),
+		("fish", "__fish_monochange_global_optspecs"),
+		("elvish", "edit:completion"),
+	] {
+		let rendered = crate::render_shell_completions("monochange", workspace.path(), shell)
+			.unwrap_or_else(|error| panic!("completions for {shell}: {error}"));
+		assert!(
+			rendered.contains(marker),
+			"{shell} completions must contain `{marker}`: {}",
+			&rendered[..rendered.len().min(200)]
+		);
+	}
+}
+
+#[test]
+fn shell_completions_reject_unknown_shells() {
+	let workspace = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let error = match crate::render_shell_completions("monochange", workspace.path(), "tcsh") {
+		Ok(rendered) => panic!("tcsh is not a supported shell: {rendered}"),
+		Err(error) => error,
+	};
+	assert!(error.to_string().contains("tcsh"));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn completions_and_doctor_dispatch_render_outputs() {
+	let workspace = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	fs::write(
+		workspace.path().join("monochange.toml"),
+		"[ecosystems.deno]\nenabled = false\n",
+	)
+	.unwrap_or_else(|error| panic!("write config: {error}"));
+
+	let completions = run_cli(
+		workspace.path(),
+		[
+			OsString::from("monochange"),
+			OsString::from("completions"),
+			OsString::from("bash"),
+		],
+	)
+	.unwrap_or_else(|error| panic!("completions dispatch: {error}"));
+	assert!(
+		completions.contains("_monochange()"),
+		"completions dispatch: {}",
+		&completions[..completions.len().min(200)]
+	);
+
+	let doctor = run_cli(
+		workspace.path(),
+		[OsString::from("monochange"), OsString::from("doctor")],
+	)
+	.unwrap_or_else(|error| panic!("doctor dispatch: {error}"));
+	assert!(
+		doctor.contains("Environment checks"),
+		"doctor dispatch: {doctor}"
+	);
 }

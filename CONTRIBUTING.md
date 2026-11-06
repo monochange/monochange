@@ -83,6 +83,10 @@ build:book
 - Cross-ecosystem behavior should remain consistent across Cargo, npm-family, Deno, Dart, Flutter, Python, and Go.
 - `monochange step validate` should stay green alongside the rest of the validation suite.
 
+## Agent skill evals
+
+[`evals/monochange-skill/`](evals/monochange-skill/) is an artifact-graded evaluation harness for the bundled monochange agent skill: 60 scenarios and 315 checks that exercise the skill's guidance against real repositories. Run it with `devenv shell eval:skill` after changing the skill content in `crates/monochange/skill/` or `packages/monochange__skill/`; its own `README.md` and `DESIGN.md` describe the harness and `FINDINGS.md` records notable outcomes.
+
 ## Safety and linting constraints
 
 - `unsafe_code` is denied.

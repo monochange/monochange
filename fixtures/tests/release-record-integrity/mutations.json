@@ -1,0 +1,22 @@
+{
+  "/release_targets/0/tag_name": "attacker-tag",
+  "/release_targets/0/tag": false,
+  "/release_targets/0/release": false,
+  "/release_targets/0/floating_tags": ["major"],
+  "/release_targets/0/members": ["unrelated-package"],
+  "/release_targets/0/rendered_title": "Forged release",
+  "/release_targets/0/rendered_changelog_title": "Forged changelog",
+  "/package_publications": [{ "package": "unrelated-package", "ecosystem": "cargo", "version": "9.9.9" }],
+  "/provider": { "kind": "github", "owner": "other-owner", "repo": "other-repo", "host": null },
+  "/updated_changelogs": ["other/CHANGELOG.md"],
+  "/changelogs": [{
+    "owner_id": "pkg-a", "owner_kind": "package", "output": "default", "stream": "default",
+    "path": "CHANGELOG.md", "format": "monochange",
+    "notes": { "title": "Forged release", "summary": [], "sections": [] }, "rendered": "Forged changelog"
+  }],
+  "/changed_files": ["unrelated-file"],
+  "/released_packages": ["unrelated-package"],
+  "/values": { "release_id": "forged" },
+  "/labels": { "pkg-a": "forged" },
+  "/created_at": "invalid timestamp"
+}

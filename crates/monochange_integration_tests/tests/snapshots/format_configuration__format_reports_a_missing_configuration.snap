@@ -1,0 +1,5 @@
+---
+source: crates/monochange_integration_tests/tests/format_configuration.rs
+expression: message
+---
+io error: failed to read [workspace]/monochange.toml: No such file or directory (os error 2)

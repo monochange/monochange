@@ -1,0 +1,9 @@
+[changesets.classification]
+skip_labels = ["release"]
+
+[changesets.affected]
+required = true
+skip_labels = ["release"]
+
+[defaults]
+package_type = "npm"

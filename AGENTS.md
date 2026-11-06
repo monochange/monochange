@@ -74,6 +74,7 @@ The agent must only write code, open and update pull requests, review code, run 
 - [GitHub templates](docs/agents/github-templates.md)
 - [Testing requirements](docs/agents/testing.md)
 - [Documentation workflow](docs/agents/documentation.md)
+- [Feedback widget integration](docs/agents/feedback-widget.md)
 - [Architecture boundaries](docs/agents/architecture.md)
 - [Product and architecture rules](docs/agents/product-rules.md)
 - [Rust quality and safety](docs/agents/rust-quality.md)

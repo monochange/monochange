@@ -1,0 +1,16 @@
+{
+	"name": "@monochange/feedback-worker",
+	"version": "0.1.0",
+	"type": "module",
+	"description": "Connected local and self-hosted planning and implementation agent for monochange feedback",
+	"license": "Unlicense",
+	"repository": "https://github.com/monochange/monochange",
+	"bin": { "monochange-feedback-worker": "dist/worker.mjs" },
+	"files": ["dist", "README.md"],
+	"engines": { "node": ">=22" },
+	"scripts": {
+		"build": "pnpm --dir ../.. build:feedback",
+		"prepack": "pnpm --dir ../.. build:feedback"
+	},
+	"publishConfig": { "access": "public", "provenance": true }
+}

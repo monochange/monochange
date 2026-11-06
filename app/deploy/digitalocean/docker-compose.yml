@@ -7,6 +7,9 @@ services:
       MONOSECRET_PROFILE: production
       OP_SERVICE_ACCOUNT_TOKEN_FILE: /run/secrets/onepassword_service_account_token
       DATABASE_URL: sqlite:///data/monochange_app.sqlite3
+      # Leave empty to use deterministic conversation replies without model calls.
+      MONOCHANGE_FEEDBACK_MODEL: ${MONOCHANGE_FEEDBACK_MODEL:-}
+      MONOCHANGE_FEEDBACK_COMPLETIONS_URL: ${MONOCHANGE_FEEDBACK_COMPLETIONS_URL:-https://openrouter.ai/api/v1/chat/completions}
     secrets:
       - onepassword_service_account_token
     volumes:
@@ -19,6 +22,11 @@ services:
     restart: unless-stopped
     depends_on:
       - app
+    environment:
+      # Go 1.24+ enables Multipath TCP on listeners by default. Caddy does not
+      # need MPTCP here, and the demonstrated CVE-2026-98432 exploit requires
+      # an MPTCP listener.
+      GODEBUG: multipathtcp=0
     ports:
       - "80:80"
       - "443:443"

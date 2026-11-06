@@ -121,12 +121,15 @@ fn private_issues_keep_internals_but_never_personal_data() {
 
 	assert!(body.contains("- Pinned element: `#export-csv` (\"Export CSV\")"));
 	assert!(body.contains("- Attachments: 3 (open them from the feedback dashboard)"));
-	assert!(body.contains("1. Open /invoices in the app"));
-	assert!(body.contains("2. Interact with \"Export CSV\" (`#export-csv`)"));
+	assert!(body.contains(
+		"Not reproduced: Suggested verification steps (not executed): Open /invoices in the app"
+	));
+	assert!(body.contains("Interact with \"Export CSV\" (`#export-csv`)"));
 	assert!(body.contains("- `src/export.rs:88` — stack frame"));
 	assert!(body.contains("- `https://staging.invoices.dev` — internal address"));
 	assert!(body.contains("- `[redacted]` — personal data"));
 	assert!(body.contains("- **triage:** "));
+
 	assert!(body.contains("- **submitter:** Happens on Firefox too"));
 	assert!(body.contains("- **user:** Me too"));
 	assert!(body.contains("- **maintainer:** Confirmed looking now"));
@@ -241,7 +244,7 @@ fn bug_briefs_fix_on_a_feedback_branch_and_never_merge() {
 			.task
 			.starts_with("Fix: Problem on /invoices: Export crashes")
 	);
-	assert_eq!(brief.reproduction.len(), 3);
+	assert!(brief.reproduction.is_empty());
 	assert_eq!(
 		brief.acceptance_criteria[1],
 		"A regression test covers the reported case"

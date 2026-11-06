@@ -1,0 +1,14 @@
+---
+source: crates/monochange_integration_tests/tests/format_scenarios.rs
+expression: formatted
+---
+[lints]
+use = ["cargo/recommended"]
+
+[[lints.scopes]]
+files = ["crates/**"]
+rules = ["cargo/recommended"]
+
+[[lints.scopes]]
+files = ["packages/**"]
+use = ["npm/recommended"]

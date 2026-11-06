@@ -1,0 +1,8 @@
+[package.Zeta]
+path = "packages/Zeta"
+
+[package.alpha]
+path = "packages/alpha"
+
+[package.Beta]
+path = "packages/Beta"

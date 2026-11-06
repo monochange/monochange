@@ -82,65 +82,146 @@ pub(crate) async fn accessible_repositories(
 		        i.github_account_type, i.target_type, i.organization_id
 		 FROM repositories r
 		 JOIN installations i ON r.installation_id = i.id
-		 WHERE i.user_id = $1
+		 WHERE i.user_id = $1 AND i.provider = $2 AND r.provider = $2
 		 ORDER BY r.github_full_name COLLATE NOCASE",
 	)
 	.bind(user_id)
+	.bind(monochange_app_db::projects::GITHUB)
 	.fetch_all(&state.db)
 	.await
 	.map_err(|e| server_fn::ServerFnError::new(format!("DB: {e}")))?;
 
-	let mut repos = Vec::with_capacity(rows.len());
+	let mut candidates: Vec<_> = rows
+		.into_iter()
+		.map(|row| {
+			AccessibleRepository {
+				info: RepoInfo {
+					id: row.get("id"),
+					github_full_name: row.get("github_full_name"),
+					github_private: row.get("github_private"),
+					plan_tier: row.get("plan_tier"),
+					installation_login: row.get("github_account_login"),
+					installation_suspended: row.get::<String, _>("target_type") == "suspended",
+				},
+				github_repo_id: row.get("github_repo_id"),
+				installation_id: row.get("installation_id"),
+				github_installation_id: row.get("github_installation_id"),
+				account_type: row.get("github_account_type"),
+				organization_id: row.get("organization_id"),
+			}
+		})
+		.collect();
+	link_legacy_installations(state, &mut candidates).await?;
+	let mut repos = Vec::with_capacity(candidates.len());
 	let mut organizations = HashMap::new();
 	let mut access_token = None;
 
-	for row in rows {
-		let installation_login: String = row.get("github_account_login");
-		let account_type: String = row.get("github_account_type");
-
-		if account_type == "Organization" {
-			let allowed = if let Some(allowed) = organizations.get(&installation_login) {
-				*allowed
-			} else {
-				let allowed = if let Some(token) = access_token.as_deref() {
-					organization_owner(state, token, &installation_login).await?
-				} else {
-					let token = super::auth::github_user_access_token(state, user_id).await?;
-					let allowed = organization_owner(state, &token, &installation_login).await?;
-
-					access_token = Some(token);
-					allowed
-				};
-
-				organizations.insert(installation_login.clone(), allowed);
-				allowed
-			};
-
-			if !allowed {
-				continue;
-			}
-		} else if account_type != "User" {
+	for repository in candidates {
+		if repository.account_type == "User" {
+			repos.push(repository);
 			continue;
 		}
 
-		repos.push(AccessibleRepository {
-			info: RepoInfo {
-				id: row.get("id"),
-				github_full_name: row.get("github_full_name"),
-				github_private: row.get("github_private"),
-				plan_tier: row.get("plan_tier"),
-				installation_login,
-				installation_suspended: row.get::<String, _>("target_type") == "suspended",
-			},
-			github_repo_id: row.get("github_repo_id"),
-			installation_id: row.get("installation_id"),
-			github_installation_id: row.get("github_installation_id"),
-			account_type,
-			organization_id: row.get("organization_id"),
-		});
+		if repository.account_type != "Organization" {
+			continue;
+		}
+
+		let Some(organization_id) = repository.organization_id else {
+			continue;
+		};
+		let installation_login = &repository.info.installation_login;
+		let identity = (organization_id, installation_login.clone());
+		let allowed = if let Some(allowed) = organizations.get(&identity) {
+			*allowed
+		} else {
+			let Some(organization) = monochange_app_db::projects::find_organization_by_id(
+				&state.db,
+				monochange_app_db::projects::GITHUB,
+				organization_id,
+			)
+			.await
+			.map_err(|error| server_fn::ServerFnError::new(format!("DB: {error}")))?
+			else {
+				continue;
+			};
+			let token = match access_token {
+				Some(ref token) => token,
+				None => {
+					access_token
+						.insert(super::auth::github_user_access_token(state, user_id).await?)
+				}
+			};
+			let allowed =
+				organization_owner(state, token, installation_login, organization.external_id)
+					.await?;
+			organizations.insert(identity, allowed);
+			allowed
+		};
+
+		if allowed {
+			repos.push(repository);
+		}
 	}
 
 	Ok(repos)
+}
+
+/// Links legacy installations before their provider identity authorizes access.
+/// Failed lookups remain unlinked and cannot authorize organization access.
+#[cfg(not(target_arch = "wasm32"))]
+async fn link_legacy_installations(
+	state: &monochange_app_api::AppState,
+	repositories: &mut [AccessibleRepository],
+) -> Result<(), server_fn::ServerFnError> {
+	let Some(app) = state.github_app.as_ref() else {
+		return Ok(());
+	};
+	let mut unlinked: Vec<(i32, i64)> = repositories
+		.iter()
+		.filter(|repository| repository.organization_id.is_none())
+		.map(|repository| {
+			(
+				repository.installation_id,
+				repository.github_installation_id,
+			)
+		})
+		.collect();
+	unlinked.sort_unstable();
+	unlinked.dedup();
+
+	for (installation_id, github_installation_id) in unlinked {
+		let account = match app
+			.installation_account(&state.http, github_installation_id)
+			.await
+		{
+			Ok(account) => account,
+			Err(error) => {
+				tracing::warn!(%error, installation = github_installation_id, "installation account lookup failed");
+				continue;
+			}
+		};
+		let mut connection = state
+			.db
+			.acquire()
+			.await
+			.map_err(|error| server_fn::ServerFnError::new(format!("DB: {error}")))?;
+		let organization_id = monochange_app_db::projects::link_installation_organization(
+			&mut connection,
+			installation_id,
+			&account,
+		)
+		.await
+		.map_err(|error| server_fn::ServerFnError::new(format!("DB: {error}")))?;
+
+		for repository in repositories
+			.iter_mut()
+			.filter(|repository| repository.installation_id == installation_id)
+		{
+			repository.organization_id = Some(organization_id);
+		}
+	}
+
+	Ok(())
 }
 
 #[server]
@@ -160,16 +241,24 @@ pub async fn list_repos() -> Result<Vec<RepoInfo>, server_fn::ServerFnError> {
 
 // An installer can leave an organization while its app remains installed.
 // Verify their current owner role rather than treating that old link as access.
+// Bind the returned account ID too, because GitHub logins can be reused.
 #[cfg(not(target_arch = "wasm32"))]
 async fn organization_owner(
 	state: &monochange_app_api::AppState,
 	access_token: &str,
 	organization: &str,
+	expected_id: i64,
 ) -> Result<bool, server_fn::ServerFnError> {
 	#[derive(Deserialize)]
 	struct Membership {
 		state: String,
 		role: String,
+		organization: MembershipOrganization,
+	}
+
+	#[derive(Deserialize)]
+	struct MembershipOrganization {
+		id: i64,
 	}
 
 	if access_token.trim().is_empty() {
@@ -217,7 +306,9 @@ async fn organization_owner(
 		server_fn::ServerFnError::new("organization access could not be verified")
 	})?;
 
-	Ok(membership.state == "active" && membership.role == "admin")
+	Ok(membership.state == "active"
+		&& membership.role == "admin"
+		&& membership.organization.id == expected_id)
 }
 
 #[server]

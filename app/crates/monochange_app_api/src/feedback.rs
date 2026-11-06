@@ -270,6 +270,19 @@ pub async fn start_agent_build(
 	scope: &ProjectScope,
 	item_id: &str,
 ) -> Result<BuildRequest, FeedbackError> {
+	let loaded = load(state, scope).await?;
+
+	if !loaded.service.embedded().integrations.is_empty()
+		|| !loaded.service.embedded().workers.is_empty()
+		|| !loaded.service.planning().jobs.is_empty()
+	{
+		return Err(monochange_app_feedback::ServiceError::Planning(
+			monochange_app_feedback::planning::PlanningError::Invalid(
+				"generate and approve an implementation plan in the connected-agent panel",
+			),
+		)
+		.into());
+	}
 	let app = state
 		.github_app
 		.as_ref()
@@ -388,7 +401,7 @@ pub async fn public_project(
 
 /// The scope of project `project_id`, which links `linked` repositories.
 /// Only connected repositories join it; the rest count as disconnected.
-async fn project_scope(
+pub(crate) async fn project_scope(
 	state: &AppState,
 	project_id: i32,
 	linked: i64,

@@ -348,15 +348,16 @@ fn hosted_release_commits_a_tree_built_with_the_workflow_token() {
 	});
 	let blobs = server.mock(|when, then| {
 		when.method(Method::POST)
-			.path("/repos/acme/actions/git/blobs")
-			.body_includes("\"encoding\":\"base64\"");
+			.path("/repos/acme/actions/git/blobs");
 		then.status(201)
 			.json_body(serde_json::json!({ "sha": "release_blob" }));
 	});
+	let tree_body = CapturedBody::default();
 	let tree = server.mock(|when, then| {
 		when.method(Method::POST)
 			.path("/repos/acme/actions/git/trees")
-			.body_includes("\"base_tree\":\"base_tree\"");
+			.body_includes("\"base_tree\":\"base_tree\"")
+			.is_true(capture_body(&tree_body));
 		then.status(201)
 			.json_body(serde_json::json!({ "sha": "release_tree" }));
 	});
@@ -392,8 +393,8 @@ fn hosted_release_commits_a_tree_built_with_the_workflow_token() {
 	);
 
 	base_commit.assert();
-	assert!(blobs.calls() > 0, "release files are uploaded as blobs");
-	tree.assert();
+	blobs.assert_calls(0);
+	tree.assert_calls(1);
 	commit_mock.assert();
 	request_mock.assert();
 	let commit = captured(&commit_body);
@@ -401,6 +402,29 @@ fn hosted_release_commits_a_tree_built_with_the_workflow_token() {
 		"tree": commit["tree"],
 		"files": commit.get("files"),
 	}));
+	// Text files travel inline in the single tree request, so GitHub creates
+	// their blobs without one rate-limited request per file.
+	let entries = captured(&tree_body)["tree"]
+		.as_array()
+		.cloned()
+		.unwrap_or_default()
+		.into_iter()
+		.map(|entry| {
+			let source = match (entry.get("content"), entry.get("sha")) {
+				(Some(_), None) => "inline",
+				(None, Some(serde_json::Value::Null)) => "deleted",
+				_ => "unexpected",
+			};
+
+			serde_json::json!({
+				"path": entry["path"],
+				"mode": entry["mode"],
+				"source": source,
+			})
+		})
+		.collect::<Vec<_>>();
+
+	assert_json_snapshot!("hosted_release_tree_entries", entries);
 }
 
 /// Last JSON body a mock received, captured for snapshot assertions.

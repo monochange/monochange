@@ -46,6 +46,7 @@ async fn state(server: &MockServer) -> Arc<AppState> {
 	let secrets: AppSecrets = serde_json::from_value(serde_json::json!({
 		"database_url": "sqlite::memory:",
 		"jwt_secret": "callback-test-signing-key",
+		"token_encryption_key": "test-token-encryption-key",
 		"github_client_id": "test-client",
 		"github_client_secret": "test-only-client-secret"
 	}))
@@ -245,13 +246,20 @@ async fn dashboard_rechecks_organization_ownership_and_reports_expired_authoriza
 	let membership = server
 		.mock_async(|when, then| {
 			when.method(GET).path("/user/memberships/orgs/acme");
-			then.json_body(serde_json::json!({"state":"active","role":"admin"}));
+			then.json_body(
+				serde_json::json!({"state":"active","role":"admin","organization":{"id":5001}}),
+			);
 		})
 		.await;
 	let state = configured_state(&server).await;
 	sqlx::query("INSERT INTO users (id, github_id, github_login, github_access_token) VALUES (1, 101, 'alice', 'test-only-alice-token')").execute(&state.db).await.unwrap();
 	sqlx::query("INSERT INTO installations (id, user_id, github_installation_id, github_account_login, github_account_type) VALUES (1, 1, 1001, 'acme', 'Organization')").execute(&state.db).await.unwrap();
 	sqlx::query("INSERT INTO repositories (installation_id, github_repo_id, github_full_name, github_private) VALUES (1, 11, 'acme/private', 1)").execute(&state.db).await.unwrap();
+	sqlx::query("INSERT INTO organizations (id, provider, github_id, github_login, account_type) VALUES (1, 'github', 5001, 'acme', 'Organization')").execute(&state.db).await.unwrap();
+	sqlx::query("UPDATE installations SET organization_id = 1 WHERE id = 1")
+		.execute(&state.db)
+		.await
+		.unwrap();
 	let token = monochange_app_api::create_token(&state.jwt_secret, 1, 101, "alice").unwrap();
 
 	let cookie = format!("{}={token}", oauth::SESSION_COOKIE_NAME);
@@ -261,7 +269,9 @@ async fn dashboard_rechecks_organization_ownership_and_reports_expired_authoriza
 	let membership = server
 		.mock_async(|when, then| {
 			when.method(GET).path("/user/memberships/orgs/acme");
-			then.json_body(serde_json::json!({"state":"active","role":"member"}));
+			then.json_body(
+				serde_json::json!({"state":"active","role":"member","organization":{"id":5001}}),
+			);
 		})
 		.await;
 	let revoked = dashboard_html(&app, &cookie).await;
@@ -272,7 +282,9 @@ async fn dashboard_rechecks_organization_ownership_and_reports_expired_authoriza
 	let membership = server
 		.mock_async(|when, then| {
 			when.method(GET).path("/user/memberships/orgs/acme");
-			then.json_body(serde_json::json!({"state":"active","role":"admin"}));
+			then.json_body(
+				serde_json::json!({"state":"active","role":"admin","organization":{"id":5001}}),
+			);
 		})
 		.await;
 	let restored = dashboard_html(&app, &cookie).await;
@@ -326,6 +338,123 @@ fn router(state: Arc<AppState>) -> Router {
 			},
 		))
 		.with_state(options)
+}
+
+fn oauth_limited_router(state: Arc<AppState>) -> Router {
+	use crate::rate_limit::RateLimit;
+	use crate::rate_limit::RateLimitConfig;
+	use crate::rate_limit::RateLimitTier;
+
+	let tier = RateLimitTier {
+		per_minute: std::num::NonZeroU32::new(1).unwrap(),
+		burst: std::num::NonZeroU32::new(1).unwrap(),
+	};
+	let limit = RateLimit::new(
+		RateLimitConfig {
+			anonymous: tier,
+			authenticated: tier,
+		},
+		state.jwt_secret.clone(),
+		std::iter::empty(),
+	);
+
+	router(state).layer(axum::middleware::from_fn_with_state(
+		limit,
+		crate::rate_limit::limit,
+	))
+}
+
+#[rstest::rstest]
+#[case("/./login")]
+#[case("/%2e/login")]
+#[case("/unused/../login")]
+#[case("/unused/%2e%2e/login")]
+#[tokio::test]
+async fn fallback_login_aliases_spend_the_bucket_before_generating_state(#[case] path: &str) {
+	let server = MockServer::start_async().await;
+	let app = oauth_limited_router(state(&server).await);
+	let request = || {
+		let request = Request::builder().uri(path).body(Body::empty()).unwrap();
+		assert_eq!(request.uri().path(), path);
+		request
+	};
+	let first = app.clone().oneshot(request()).await.unwrap();
+
+	// The fallback sets 404 after rendering, so status alone cannot prove no work ran.
+	assert_eq!(first.status(), StatusCode::NOT_FOUND);
+	assert!(first.headers().contains_key(SET_COOKIE));
+	let _ = html(first).await;
+	let second = app.oneshot(request()).await.unwrap();
+
+	assert_eq!(second.status(), StatusCode::TOO_MANY_REQUESTS);
+	assert!(!second.headers().contains_key(SET_COOKIE));
+}
+
+#[rstest::rstest]
+#[case("/auth/./callback")]
+#[case("/%2e/auth/callback")]
+#[case("/auth/%2E/callback")]
+#[case("/unused/../auth/callback")]
+#[case("/unused/%2e%2e/auth/callback")]
+#[tokio::test]
+async fn fallback_callback_aliases_are_limited_before_provider_work(#[case] path: &str) {
+	let server = MockServer::start_async().await;
+	let exchange = server
+		.mock_async(|when, then| {
+			when.method(POST).path("/login/oauth/access_token");
+			then.json_body(serde_json::json!({"error": "bad_verification_code"}));
+		})
+		.await;
+	let state = state(&server).await;
+	let app = oauth_limited_router(state.clone());
+	let request = || {
+		let pending = oauth::login_state(&state.jwt_secret).unwrap();
+		let request = Request::builder()
+			.uri(format!("{path}?code=invalid&state={}", pending.state))
+			.header(COOKIE, pending.cookie.to_string())
+			.body(Body::empty())
+			.unwrap();
+		assert_eq!(request.uri().path(), path);
+		request
+	};
+	let first = app.clone().oneshot(request()).await.unwrap();
+	assert_eq!(first.status(), StatusCode::NOT_FOUND);
+	let _ = html(first).await;
+	exchange.assert_calls_async(1).await;
+	let second = app.oneshot(request()).await.unwrap();
+
+	assert_eq!(second.status(), StatusCode::TOO_MANY_REQUESTS);
+	exchange.assert_calls_async(1).await;
+}
+
+#[rstest::rstest]
+#[case("/%6cogin")]
+#[case("/auth/%63allback")]
+#[case("//login")]
+#[case("//auth/callback")]
+#[case("/auth//callback")]
+#[tokio::test]
+async fn unmatched_static_oauth_aliases_do_not_run_provider_work(#[case] path: &str) {
+	let server = MockServer::start_async().await;
+	let exchange = server
+		.mock_async(|when, then| {
+			when.method(POST).path("/login/oauth/access_token");
+			then.json_body(serde_json::json!({"error": "bad_verification_code"}));
+		})
+		.await;
+	let state = state(&server).await;
+	let pending = oauth::login_state(&state.jwt_secret).unwrap();
+	let request = Request::builder()
+		.uri(format!("{path}?code=invalid&state={}", pending.state))
+		.header(COOKIE, pending.cookie.to_string())
+		.body(Body::empty())
+		.unwrap();
+	assert_eq!(request.uri().path(), path);
+	let response = router(state).oneshot(request).await.unwrap();
+	assert_eq!(response.status(), StatusCode::NOT_FOUND);
+	assert!(!response.headers().contains_key(SET_COOKIE));
+	let _ = html(response).await;
+	exchange.assert_calls_async(0).await;
 }
 
 #[tokio::test]
@@ -531,11 +660,14 @@ async fn configured_dashboard_connects_to_verified_app_and_shows_suspended_repos
 	sqlx::query("INSERT INTO installations (id, user_id, github_installation_id, github_account_login, github_account_type, target_type) VALUES (1, 1, 1001, 'alice', 'User', 'suspended')").execute(&state.db).await.unwrap();
 	sqlx::query("INSERT INTO repositories (installation_id, github_repo_id, github_full_name, github_private) VALUES (1, 11, 'alice/private', 1)").execute(&state.db).await.unwrap();
 	let token = monochange_app_api::create_token(&state.jwt_secret, 1, 101, "alice").unwrap();
-	let response = router(state)
+	let cookie = format!("{}={token}", oauth::SESSION_COOKIE_NAME);
+	let app = router(state.clone());
+	let response = app
+		.clone()
 		.oneshot(
 			Request::builder()
 				.uri("/dashboard")
-				.header(COOKIE, format!("{}={token}", oauth::SESSION_COOKIE_NAME))
+				.header(COOKIE, cookie.clone())
 				.body(Body::empty())
 				.unwrap(),
 		)
@@ -554,8 +686,33 @@ async fn configured_dashboard_connects_to_verified_app_and_shows_suspended_repos
 	assert!(body.contains("href=\"https://github.com/settings/installations/1001\""));
 	// Once for the installation link, once for the requested permissions.
 	metadata.assert_calls_async(2).await;
-	// Once to link the legacy installation's account, once for its permissions.
-	installation.assert_calls_async(2).await;
+	// Concurrent organization and permission resources may both see the legacy row.
+	let installation_calls = installation.calls_async().await;
+	assert!(
+		(2..=3).contains(&installation_calls),
+		"first visit made {installation_calls} installation requests"
+	);
+	let (provider, external_id, account_type, status): (String, i64, String, String) =
+		sqlx::query_as("SELECT o.provider, o.github_id, o.account_type, i.target_type FROM installations i JOIN organizations o ON o.id = i.organization_id WHERE i.id = 1")
+			.fetch_one(&state.db)
+			.await
+			.unwrap();
+	assert_eq!(
+		(
+			provider.as_str(),
+			external_id,
+			account_type.as_str(),
+			status.as_str()
+		),
+		("github", 101, "User", "suspended")
+	);
+
+	let revisit = dashboard_html(&app, &cookie).await;
+	assert!(revisit.contains("alice/private"));
+	assert!(revisit.contains("Installation suspended"));
+	installation
+		.assert_calls_async(installation_calls + 1)
+		.await;
 }
 
 #[tokio::test]
@@ -658,8 +815,20 @@ async fn callback_delivers_session_cookie_before_showing_success_and_dashboard_u
 	.fetch_one(&state.db)
 	.await
 	.unwrap();
-	assert_eq!(stored.0, "test-only-access-token");
-	assert_eq!(stored.1, "test-only-refresh-token");
+	assert!(monochange_app_api::token_vault::TokenVault::is_sealed(
+		&stored.0
+	));
+	assert!(monochange_app_api::token_vault::TokenVault::is_sealed(
+		&stored.1
+	));
+	assert_eq!(
+		state.token_vault.open(&stored.0).unwrap(),
+		"test-only-access-token"
+	);
+	assert_eq!(
+		state.token_vault.open(&stored.1).unwrap(),
+		"test-only-refresh-token"
+	);
 	assert!(stored.2 > chrono::Utc::now().timestamp());
 	assert!(stored.3 > stored.2);
 	let session = cookies
@@ -758,9 +927,14 @@ async fn simultaneous_callbacks_share_one_identity_and_preserve_an_existing_work
 	.fetch_one(&state.db)
 	.await
 	.unwrap();
+	assert_eq!(identity.0, 7);
+	assert_eq!(identity.1, "team");
+	assert!(monochange_app_api::token_vault::TokenVault::is_sealed(
+		&identity.2
+	));
 	assert_eq!(
-		identity,
-		(7, "team".to_string(), "updated-test-token".to_string())
+		state.token_vault.open(&identity.2).unwrap(),
+		"updated-test-token"
 	);
 	assert_eq!(
 		sqlx::query_scalar::<_, i32>(
@@ -827,7 +1001,22 @@ async fn callback_failure_does_not_create_a_session_and_consumes_the_pending_log
 			.unwrap(),
 		0
 	);
-	exchange.assert_async().await;
+	let replay = router(state.clone())
+		.oneshot(
+			Request::builder()
+				.uri(format!(
+					"/auth/callback?code=replayed-code&state={}",
+					pending.state
+				))
+				.header(COOKIE, pending.cookie.to_string())
+				.body(Body::empty())
+				.unwrap(),
+		)
+		.await
+		.unwrap();
+	let replay_body = html(replay).await;
+	exchange.assert_calls_async(1).await;
+	assert!(replay_body.contains("Invalid or expired OAuth state"));
 }
 
 #[tokio::test]
@@ -979,7 +1168,9 @@ async fn organisations_lead_to_projects_that_work_without_javascript() {
 	server
 		.mock_async(|when, then| {
 			when.method(GET).path("/user/memberships/orgs/team");
-			then.json_body(serde_json::json!({"state":"active","role":"admin"}));
+			then.json_body(
+				serde_json::json!({"state":"active","role":"admin","organization":{"id":5001}}),
+			);
 		})
 		.await;
 	let state = configured_state(&server).await;

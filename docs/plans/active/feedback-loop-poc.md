@@ -13,7 +13,7 @@
 
 ## Next
 
-1. **Widget**: `/embed/feedback.js`, a shadow-DOM widget for apps (point at an element, screenshots), backed by REST endpoints with per-app origins and rate limits. This needs object storage for screenshots; until then the editor accepts text only.
+1. **Widget**: `/embed/feedback.js`, a shadow-DOM widget for apps, backed by REST endpoints with per-app origins and rate limits. The [widget integration proposal](feedback-widget-integration.md) covers host-provided user identity, client tokens, similarity and upvoting, mobile surfaces, and plan approval before agent implementation. Start with text and explicit screen context; screenshots can follow when object storage is available.
 2. **Playground** on `/feedback`: the earlier demo, as a per-visitor sandbox.
 3. **Agents** (phase 4): the maintainer marks an item next, a `monochange/actions/agent` workflow plans in the repository's own CI, the owner approves, and progress is mirrored to the item and its issue.
 

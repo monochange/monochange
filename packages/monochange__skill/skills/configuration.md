@@ -396,7 +396,7 @@ lockfile_commands = [
 
 Each `lockfile_commands` entry is a table with `command`, optional `cwd`, and optional `shell`. A bare string is rejected. `shell = false` runs the executable directly, `shell = true` runs through `sh -c`, and `shell = "bash"` uses that binary.
 
-`monochange discover` is the raw inventory: it scans all supported ecosystems regardless of `enabled`, `roots`, or `exclude`. Those fields are parsed but do not filter discovery or registered package ownership. Use explicit `[package.*]` entries or auto-discovery registration instead:
+`monochange discover` is the raw inventory: it honors `[ecosystems.*]` discovery settings — `enabled = false` skips the ecosystem, `roots` restricts it to the listed directories, and `exclude` globs remove matching manifests. Packages outside every root still need explicit `[package.*]` entries to be owned by release planning:
 
 ```toml
 [ecosystems.npm.auto_discover]
@@ -712,5 +712,9 @@ monochange run publish --interactive
 ```
 
 Interactive steps capture no output, so `steps.<id>.stdout` and `steps.<id>.stderr` stay empty and downstream steps cannot read what the command printed.
+
+## Formatting
+
+Run `monochange format` after editing the file. It keeps comments and the document header, orders top-level sections, sorts `[package.*]`, `[group.*]`, `[version_scheme.*]`, `[ecosystems.*]`, and `[cli.*]` tables by id, sorts group members, and leaves CLI workflows at the end. Use `monochange format --check` in CI to fail when the file needs formatting without rewriting it.
 
 Validate custom workflows with `monochange step validate` and inspect them with `monochange help`.

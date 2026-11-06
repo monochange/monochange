@@ -21,6 +21,7 @@ docker run -d --name "$name" -p 127.0.0.1:3000:3000 \
 	-e OP_SERVICE_ACCOUNT_TOKEN_FILE=/run/secrets/onepassword_service_account_token \
 	-e DATABASE_URL=sqlite:///data/monochange_app.sqlite3 \
 	-e JWT_SECRET=ci-docker-test-signing-key-not-a-secret \
+	-e TOKEN_ENCRYPTION_KEY=ci-docker-test-token-encryption-key \
 	-e GITHUB_CLIENT_ID=ci-docker-client -e GITHUB_CLIENT_SECRET=ci-docker-client-secret "$image"
 curl --fail --silent --show-error --retry 20 --retry-all-errors --retry-delay 1 \
 	--retry-max-time 60 --max-time 5 http://127.0.0.1:3000/health | jq -e '.status == "ok" and .http == "up"'

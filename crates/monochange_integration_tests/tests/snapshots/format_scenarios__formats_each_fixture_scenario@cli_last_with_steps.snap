@@ -1,0 +1,16 @@
+---
+source: crates/monochange_integration_tests/tests/format_scenarios.rs
+expression: formatted
+---
+[defaults]
+package_type = "cargo"
+
+[changelog]
+templates = ["- {{ summary }}"]
+
+[package.core]
+path = "crates/core"
+
+[cli.release]
+help_text = "Release"
+steps = [{ type = "Validate" }]

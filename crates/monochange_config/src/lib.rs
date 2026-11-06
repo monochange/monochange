@@ -94,6 +94,9 @@ use semver::Version;
 use serde::Deserialize;
 use serde_yaml_ng::Mapping;
 
+mod format;
+pub use format::format_workspace_configuration;
+
 const CONFIG_FILE: &str = "monochange.toml";
 pub const RESERVED_CLI_COMMAND_NAMES: &[&str] = &[
 	"agent",
@@ -114,6 +117,16 @@ pub const RESERVED_CLI_COMMAND_NAMES: &[&str] = &[
 	"validate",
 	"version",
 ];
+
+/// Returns whether a CLI command name is reserved by a built-in command.
+///
+/// New built-in commands that are not part of the historical
+/// [`RESERVED_CLI_COMMAND_NAMES`] slice should be added here.
+#[must_use]
+pub fn is_reserved_cli_command_name(name: &str) -> bool {
+	name == "format" || RESERVED_CLI_COMMAND_NAMES.contains(&name)
+}
+
 const SUPPORTED_CHANGE_TEMPLATE_VARIABLES: &[&str] = &[
 	"summary",
 	"details",
@@ -1844,9 +1857,8 @@ fn load_raw_configuration(root: &Path) -> MonochangeResult<(String, RawWorkspace
 		String::new()
 	};
 	let raw = if path.exists() {
-		toml::from_str::<RawWorkspaceConfiguration>(&contents).map_err(|error| {
-			MonochangeError::Config(format!("failed to parse {}: {error}", path.display()))
-		})?
+		toml::from_str::<RawWorkspaceConfiguration>(&contents)
+			.map_err(|error| toml_syntax_diagnostic(&path, &contents, &error))?
 	} else {
 		RawWorkspaceConfiguration::default()
 	};
@@ -6474,7 +6486,7 @@ fn validate_cli(cli: &[CliCommandDefinition]) -> MonochangeResult<()> {
 			)));
 		}
 
-		if RESERVED_CLI_COMMAND_NAMES.contains(&cli_command.name.as_str()) {
+		if is_reserved_cli_command_name(&cli_command.name) {
 			return Err(MonochangeError::Config(format!(
 				"CLI command `{}` collides with a reserved built-in command",
 				cli_command.name
@@ -7057,6 +7069,26 @@ fn validate_floating_tag_templates(
 	}
 
 	Ok(())
+}
+
+/// Render a TOML syntax error the way semantic config errors render: a
+/// source snippet with a caret at the span the parser reported, instead of a
+/// flat message that leaves the offending line to guesswork.
+fn toml_syntax_diagnostic(path: &Path, contents: &str, error: &toml::de::Error) -> MonochangeError {
+	let span = error.span().unwrap_or(0..0);
+	let label = Some(error.message().to_string());
+
+	MonochangeError::Diagnostic(render_source_diagnostic(
+		&path.display().to_string(),
+		contents,
+		&format!("failed to parse {}", path.display()),
+		&[LabeledSpan::new(
+			label,
+			span.start,
+			span.end.saturating_sub(span.start),
+		)],
+		None,
+	))
 }
 
 fn render_source_diagnostic(

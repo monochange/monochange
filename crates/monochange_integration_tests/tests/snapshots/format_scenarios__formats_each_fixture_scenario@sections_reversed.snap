@@ -1,0 +1,26 @@
+---
+source: crates/monochange_integration_tests/tests/format_scenarios.rs
+expression: formatted
+---
+[defaults]
+package_type = "npm"
+
+[changelog]
+templates = ["- {{ summary }}"]
+
+[package.alpha]
+path = "packages/alpha"
+
+[package.zeta]
+path = "packages/zeta"
+
+[group.main]
+packages = ["alpha", "zeta"]
+
+[source]
+provider = "github"
+owner = "acme"
+repo = "widgets"
+
+[cli.release]
+help_text = "Release"

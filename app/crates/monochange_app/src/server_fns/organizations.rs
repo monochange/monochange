@@ -75,10 +75,18 @@ pub struct ProjectDetails {
 /// An organisation the user may manage, with its accessible repositories.
 #[cfg(not(target_arch = "wasm32"))]
 struct OrganizationAccess {
+	identity: OrganizationIdentity,
 	login: String,
 	personal: bool,
 	record: Option<monochange_app_db::projects::OrganizationRecord>,
 	repositories: Vec<super::repos::AccessibleRepository>,
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum OrganizationIdentity {
+	Linked(i32),
+	LegacyInstallation(i32),
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -87,61 +95,6 @@ type ServerResult<T> = Result<T, server_fn::ServerFnError>;
 #[cfg(not(target_arch = "wasm32"))]
 fn database_error(error: impl std::fmt::Display) -> server_fn::ServerFnError {
 	server_fn::ServerFnError::new(format!("DB: {error}"))
-}
-
-/// Links installations recorded before organisations existed by asking the
-/// GitHub App for their account. Failures leave the installation unlinked and
-/// are retried on the next visit.
-#[cfg(not(target_arch = "wasm32"))]
-async fn link_legacy_installations(
-	state: &monochange_app_api::AppState,
-	repositories: &mut [super::repos::AccessibleRepository],
-) -> ServerResult<()> {
-	let Some(app) = state.github_app.as_ref() else {
-		return Ok(());
-	};
-	let mut unlinked: Vec<(i32, i64)> = repositories
-		.iter()
-		.filter(|repository| repository.organization_id.is_none())
-		.map(|repository| {
-			(
-				repository.installation_id,
-				repository.github_installation_id,
-			)
-		})
-		.collect();
-	unlinked.sort_unstable();
-	unlinked.dedup();
-
-	for (installation_id, github_installation_id) in unlinked {
-		let account = match app
-			.installation_account(&state.http, github_installation_id)
-			.await
-		{
-			Ok(account) => account,
-			Err(error) => {
-				tracing::warn!(%error, installation = github_installation_id, "installation account lookup failed");
-				continue;
-			}
-		};
-		let mut connection = state.db.acquire().await.map_err(database_error)?;
-		let organization_id = monochange_app_db::projects::link_installation_organization(
-			&mut connection,
-			installation_id,
-			&account,
-		)
-		.await
-		.map_err(database_error)?;
-
-		for repository in repositories
-			.iter_mut()
-			.filter(|repository| repository.installation_id == installation_id)
-		{
-			repository.organization_id = Some(organization_id);
-		}
-	}
-
-	Ok(())
 }
 
 /// Every organisation the signed-in user can manage, grouped from their
@@ -153,28 +106,32 @@ async fn accessible_organizations(
 	let Some(user_id) = super::repos::signed_in_user_id(state).await? else {
 		return Ok(None);
 	};
-	let mut repositories = super::repos::accessible_repositories(state, user_id).await?;
-	link_legacy_installations(state, &mut repositories).await?;
+	let repositories = super::repos::accessible_repositories(state, user_id).await?;
 
 	let mut organizations: Vec<OrganizationAccess> = Vec::new();
 
 	for repository in repositories {
 		let login = repository.info.installation_login.clone();
 
+		let identity = match repository.organization_id {
+			Some(id) => OrganizationIdentity::Linked(id),
+			None => OrganizationIdentity::LegacyInstallation(repository.installation_id),
+		};
+
 		if let Some(organization) = organizations
 			.iter_mut()
-			.find(|organization| organization.login.eq_ignore_ascii_case(&login))
+			.find(|organization| organization.identity == identity)
 		{
 			organization.repositories.push(repository);
 			continue;
 		}
 
 		let record = match repository.organization_id {
-			Some(_) => {
-				monochange_app_db::projects::find_organization(
+			Some(id) => {
+				monochange_app_db::projects::find_organization_by_id(
 					&state.db,
 					monochange_app_db::projects::GITHUB,
-					&login,
+					id,
 				)
 				.await
 				.map_err(database_error)?
@@ -183,6 +140,7 @@ async fn accessible_organizations(
 		};
 
 		organizations.push(OrganizationAccess {
+			identity,
 			personal: repository.account_type == "User",
 			login,
 			record,
@@ -247,10 +205,16 @@ async fn organization_access(
 	let Some((user_id, organizations)) = accessible_organizations(state).await? else {
 		return Ok(None);
 	};
-	Ok(organizations
+	let mut matching = organizations
 		.into_iter()
-		.find(|organization| organization.login.eq_ignore_ascii_case(login))
-		.map(|organization| (user_id, organization)))
+		.filter(|organization| organization.login.eq_ignore_ascii_case(login));
+	let organization = matching.next();
+
+	if matching.next().is_some() {
+		return Err(not_found());
+	}
+
+	Ok(organization.map(|organization| (user_id, organization)))
 }
 
 /// Turns validated full names into project repositories, refusing any the

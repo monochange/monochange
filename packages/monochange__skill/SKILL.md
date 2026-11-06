@@ -58,6 +58,7 @@ The command inventory in this skill is based on `crates/monochange/src/cli.rs`, 
 Built-in commands in the current CLI:
 
 - `monochange init`: create a starter `monochange.toml` from discovered manifests.
+- `monochange format`: sort configuration sections, package and group tables, group members, and CLI workflows; use `--check` in CI.
 - `monochange populate`: legacy default-workflow population command; the current default set is empty, so it preserves an existing config without adding workflows.
 - `monochange skill`: list, read, or install the bundled monochange agent skill.
 - `monochange subagents`: generate repository-local agent or subagent guidance for monochange work.

@@ -1,0 +1,5 @@
+[changelog]
+templates = ["- {{ summary }}", "#### {{ summary }}"]
+
+[defaults]
+package_type = "npm"

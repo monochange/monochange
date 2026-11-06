@@ -21,6 +21,7 @@
 #
 # Run `monochange step validate` to check this file against the workspace.
 # Run `monochange init` to generate a starter config from detected packages.
+# Run `monochange format` to sort sections, packages, groups, and CLI workflows.
 
 # =============================================================================
 # [defaults] - repository-wide defaults applied to every package unless
@@ -788,7 +789,7 @@ enabled = true
 # opening release pull requests, and evaluating changeset policy.
 #
 # Required fields:
-#   provider - "github", "gitlab", or "gitea"
+#   provider - "github", "gitlab", "gitea", or "forgejo"
 #   owner    - repository owner or organization
 #   repo     - repository name
 #

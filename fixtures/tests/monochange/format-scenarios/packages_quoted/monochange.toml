@@ -1,0 +1,11 @@
+[package.monochange_app]
+path = "app"
+
+[package."@acme/ui"]
+path = "packages/ui"
+
+[package.monochange_core]
+path = "crates/core"
+
+[package."@acme/api"]
+path = "packages/api"

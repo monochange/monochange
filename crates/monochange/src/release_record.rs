@@ -20,7 +20,7 @@ use serde::Serialize;
 use crate::OutputFormat;
 use crate::git_support::create_git_tag;
 use crate::git_support::find_release_record_files_at_commit;
-use crate::git_support::first_parent_commits;
+use crate::git_support::first_parent_history;
 use crate::git_support::git_is_ancestor;
 use crate::git_support::move_git_tag;
 use crate::git_support::push_git_tags;
@@ -65,32 +65,29 @@ pub async fn discover_release_record(
 	from: &str,
 ) -> MonochangeResult<ReleaseRecordDiscovery> {
 	let resolved_commit = resolve_git_commit_ref(root, from).await?;
+	let history = first_parent_history(root, &resolved_commit).await?;
 
-	for (distance, commit) in first_parent_commits(root, &resolved_commit)
-		.await?
-		.into_iter()
-		.enumerate()
-	{
+	for (distance, entry) in history.iter().enumerate() {
 		tracing::trace!(
-			commit = &commit[..7],
+			commit = &entry.commit[..7],
 			distance,
 			"scanning for release record files"
 		);
-		let files = find_release_record_files_at_commit(root, &commit).await?;
+		let files = find_release_record_files_at_commit(root, entry, &history).await?;
 
 		if files.is_empty() {
 			continue;
 		}
 
 		let record_path = files.into_iter().next().unwrap_or_default();
-		let json_text = read_git_file_at_commit(root, &commit, &record_path).await?;
+		let json_text = read_git_file_at_commit(root, &entry.commit, &record_path).await?;
 
 		match parse_release_record_json(&json_text) {
 			Ok(record) => {
 				return Ok(ReleaseRecordDiscovery {
 					input_ref: from.to_string(),
 					resolved_commit: resolved_commit.clone(),
-					record_commit: commit,
+					record_commit: entry.commit.clone(),
 					distance,
 					record,
 				});
@@ -98,7 +95,7 @@ pub async fn discover_release_record(
 			Err(monochange_core::ReleaseRecordError::UnsupportedSchemaVersionValue(version)) => {
 				return Err(MonochangeError::Discovery(format!(
 					"release record in commit {} uses unsupported schema_version {} (upgrade monochange to read this record)",
-					crate::short_commit_sha(&commit),
+					crate::short_commit_sha(&entry.commit),
 					version
 				)));
 			}

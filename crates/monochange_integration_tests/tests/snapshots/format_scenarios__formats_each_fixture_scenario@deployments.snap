@@ -1,0 +1,14 @@
+---
+source: crates/monochange_integration_tests/tests/format_scenarios.rs
+expression: formatted
+---
+[defaults]
+package_type = "npm"
+
+[[deployments]]
+name = "docs"
+trigger = "release_published"
+
+[[deployments]]
+name = "app"
+trigger = "workflow"

@@ -8,6 +8,8 @@ use std::sync::OnceLock;
 use axum::body::Body;
 use axum::http::Request;
 use axum::http::StatusCode;
+use hmac::Hmac;
+use hmac::Mac;
 use httpmock::Method;
 use httpmock::MockServer;
 use monochange_core::HostedCommitFile;
@@ -18,6 +20,8 @@ use rsa::pkcs1::EncodeRsaPrivateKey;
 use rsa::pkcs1::LineEnding;
 use rsa::rand_core::OsRng;
 use rstest::rstest;
+use serde::Serialize;
+use sha2::Sha256;
 use tower::ServiceExt;
 
 use super::Caller;
@@ -33,6 +37,25 @@ use crate::RELEASE_COMMIT_BODY_LIMIT;
 use crate::api_router;
 use crate::github_app::GitHubAppAuth;
 use crate::github_app::GitHubAppError;
+
+#[rstest]
+#[case(".github")]
+#[case(".github/workflows")]
+#[case(".github/workflows/ci.yml")]
+#[case(".github//workflows/ci.yml")]
+#[case("./.github/workflows/ci.yml")]
+#[case(".github/../workflows/ci.yml")]
+#[case(".github\\workflows\\ci.yml")]
+#[case("")]
+#[case("folder/")]
+#[test]
+fn workflow_security_paths_and_noncanonical_paths_are_rejected(#[case] path: &str) {
+	for content in [None, Some("replacement".to_string())] {
+		let mut request = request_with_path(path);
+		request.files[0].content = content;
+		assert!(validate_commit_paths(&request).is_err(), "accepted {path}");
+	}
+}
 
 fn request_with_path(path: &str) -> HostedCommitRequest {
 	HostedCommitRequest {
@@ -58,6 +81,8 @@ fn request_with_path(path: &str) -> HostedCommitRequest {
 #[case::release_record(".monochange/releases/829c44b7a1ee8674/release.json")]
 #[case::changeset_deletion(".changeset/feature.md")]
 #[case::package_manifest("crates/core/Cargo.toml")]
+#[case::github_configuration(".github/CODEOWNERS")]
+#[case::dots_inside_filename("docs/version..md")]
 fn release_managed_paths_are_accepted(#[case] path: &str) {
 	assert_eq!(validate_commit_paths(&request_with_path(path)), Ok(()));
 }
@@ -100,6 +125,14 @@ fn moved_branches_are_conflicts() {
 /// Serve a GitHub API that creates the release branch with `verification`.
 fn github_creating_release_branch(verification: &serde_json::Value) -> MockServer {
 	let server = MockServer::start();
+	mock_repository_metadata(&server);
+	server.mock(|when, then| {
+		when.method(Method::GET)
+			.path("/repos/acme/actions/git/commits/base-sha");
+		then.json_body(serde_json::json!({"tree": {"sha": "base-tree"}}));
+	});
+	mock_tree_listing(&server, "base-tree", &[]);
+	mock_tree_listing(&server, "tree-sha", &[]);
 	server.mock(|when, then| {
 		when.method(Method::GET)
 			.path("/repos/acme/actions/git/ref/heads/monochange/release/release");
@@ -183,6 +216,7 @@ async fn unverified_release_commit_is_a_bad_gateway() {
 #[tokio::test]
 async fn stale_release_commit_is_a_conflict() {
 	let server = MockServer::start();
+	mock_repository_metadata(&server);
 	server.mock(|when, then| {
 		when.method(Method::GET)
 			.path("/repos/acme/actions/git/ref/heads/monochange/release/release");
@@ -231,6 +265,7 @@ fn test_private_key() -> &'static str {
 /// App state with `acme/actions` connected to installation 1001, the GitHub
 /// App pointed at `github`, and `api_token` as the configured `MONOCHANGE_TOKEN`.
 async fn release_api_state(github: &MockServer, api_token: &str) -> AppState {
+	mock_repository_metadata(github);
 	let db = monochange_app_db::create_pool("sqlite::memory:")
 		.await
 		.unwrap();
@@ -238,13 +273,14 @@ async fn release_api_state(github: &MockServer, api_token: &str) -> AppState {
 	for statement in [
 		"INSERT INTO users (id, github_id, github_login, github_access_token) VALUES (1, 101, 'acme-admin', 'test-only-user-token')",
 		"INSERT INTO installations (id, user_id, github_installation_id, github_account_login, github_account_type) VALUES (1, 1, 1001, 'acme', 'Organization')",
-		"INSERT INTO repositories (installation_id, github_repo_id, github_full_name, github_private) VALUES (1, 11, 'acme/actions', 0)",
+		"INSERT INTO repositories (id, installation_id, github_repo_id, github_full_name, github_private) VALUES (1, 1, 11, 'acme/actions', 0)",
 	] {
 		sqlx::query(statement).execute(&db).await.unwrap();
 	}
 	let secrets: AppSecrets = serde_json::from_value(serde_json::json!({
 		"database_url": "sqlite::memory:",
 		"jwt_secret": "release-api-test-signing-key",
+		"token_encryption_key": "test-token-encryption-key",
 		"github_client_id": "",
 		"github_client_secret": "",
 		"monochange_token": api_token,
@@ -257,6 +293,14 @@ async fn release_api_state(github: &MockServer, api_token: &str) -> AppState {
 		"test-only-webhook-secret",
 		&github.base_url(),
 	));
+	// The API token may only act on the repositories a deployment lists in
+	// MONOCHANGE_TOKEN_REPOSITORIES; the harness scopes it to `acme/actions`.
+	state.api_token_repositories = Some(
+		["acme/actions"]
+			.iter()
+			.map(|repository| (*repository).to_string())
+			.collect(),
+	);
 	github.mock(|when, then| {
 		when.method(Method::POST)
 			.path("/app/installations/1001/access_tokens")
@@ -265,6 +309,13 @@ async fn release_api_state(github: &MockServer, api_token: &str) -> AppState {
 			.json_body(serde_json::json!({ "token": "installation-token" }));
 	});
 	state
+}
+
+fn mock_repository_metadata(server: &MockServer) {
+	server.mock(|when, then| {
+		when.method(Method::GET).path("/repos/acme/actions");
+		then.json_body(serde_json::json!({"default_branch": "main"}));
+	});
 }
 
 fn mock_branch(github: &MockServer, branch: &str, sha: &str) {
@@ -305,6 +356,7 @@ async fn empty_api_token_secret_requires_oidc() {
 	let secrets: AppSecrets = serde_json::from_value(serde_json::json!({
 		"database_url": "sqlite::memory:",
 		"jwt_secret": "release-api-test-signing-key",
+		"token_encryption_key": "test-token-encryption-key",
 		"github_client_id": "",
 		"github_client_secret": "",
 		"monochange_token": "",
@@ -317,9 +369,55 @@ async fn empty_api_token_secret_requires_oidc() {
 }
 
 #[tokio::test]
+async fn api_token_cannot_act_outside_its_configured_repositories() {
+	let github = MockServer::start();
+	let state = release_api_state(&github, API_TOKEN).await;
+
+	let mut request = request_with_path(".monochange/releases/829c44b7a1ee8674/release.json");
+	request.repository = "unscoped-repository".to_string();
+
+	let (status, body) = post_release_commit(&state, API_TOKEN, &request).await;
+	assert_eq!(status, StatusCode::FORBIDDEN);
+	assert!(
+		body["message"]
+			.as_str()
+			.unwrap()
+			.contains("MONOCHANGE_TOKEN is not scoped to `acme/unscoped-repository`"),
+		"body: {body}"
+	);
+}
+
+#[tokio::test]
+async fn api_token_scope_matches_repository_names_case_insensitively() {
+	let github = MockServer::start();
+	let state = release_api_state(&github, API_TOKEN).await;
+
+	// `Acme/Actions` lowercases onto the scoped `acme/actions`, so
+	// authorization passes; the exact-case repository lookup then misses and
+	// the request ends as a 404 rather than a 403 scope rejection.
+	let mut request = request_with_path(".monochange/releases/829c44b7a1ee8674/release.json");
+	request.owner = "Acme".to_string();
+	request.repository = "Actions".to_string();
+
+	let (status, _) = post_release_commit(&state, API_TOKEN, &request).await;
+	assert_ne!(
+		status,
+		StatusCode::FORBIDDEN,
+		"case-insensitive scope must authorize"
+	);
+}
+
+#[tokio::test]
 async fn release_commit_endpoint_refreshes_an_existing_release_branch() {
 	let github = MockServer::start();
 	let state = release_api_state(&github, API_TOKEN).await;
+	github.mock(|when, then| {
+		when.method(Method::GET)
+			.path("/repos/acme/actions/git/commits/base-sha");
+		then.json_body(serde_json::json!({"tree": {"sha": "base-tree"}}));
+	});
+	mock_tree_listing(&github, "base-tree", &[]);
+	mock_tree_listing(&github, "tree-sha", &[]);
 	mock_branch(
 		&github,
 		"monochange/release/release",
@@ -468,10 +566,25 @@ fn mock_workflow_trees(github: &MockServer, trees: &WorkflowTrees) {
 	release_github: None,
 	release_workflows: None,
 }, StatusCode::UNPROCESSABLE_ENTITY)]
+#[case::workflows_directory_removed(WorkflowTrees {
+	base: "base-tree",
+	base_github: Some("github-tree"),
+	base_workflows: Some("workflows-tree"),
+	release_github: Some("release-github-tree"),
+	release_workflows: None,
+}, StatusCode::UNPROCESSABLE_ENTITY)]
+#[case::workflows_added(WorkflowTrees {
+	base: "base-tree",
+	base_github: Some("github-tree"),
+	base_workflows: None,
+	release_github: Some("release-github-tree"),
+	release_workflows: Some("workflows-tree"),
+}, StatusCode::UNPROCESSABLE_ENTITY)]
 #[tokio::test]
 async fn release_commit_endpoint_commits_a_tree_built_by_the_workflow(
 	#[case] trees: WorkflowTrees,
 	#[case] expected: StatusCode,
+	#[values(false, true)] uploaded_files: bool,
 ) {
 	let github = MockServer::start();
 	let state = release_api_state(&github, API_TOKEN).await;
@@ -487,6 +600,12 @@ async fn release_commit_endpoint_commits_a_tree_built_by_the_workflow(
 			.path("/repos/acme/actions/git/blobs");
 		then.status(201)
 			.json_body(serde_json::json!({ "sha": "blob-sha" }));
+	});
+	github.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/git/trees");
+		then.status(201)
+			.json_body(serde_json::json!({"sha": WORKFLOW_TREE}));
 	});
 	let commit = github.mock(|when, then| {
 		when.method(Method::POST)
@@ -504,13 +623,16 @@ async fn release_commit_endpoint_commits_a_tree_built_by_the_workflow(
 			.json_body(serde_json::json!({ "object": { "sha": "release-sha" } }));
 	});
 	let mut request = request_with_path("crates/core/Cargo.toml");
-	request.files.clear();
-	request.tree = Some(WORKFLOW_TREE.to_string());
+	if !uploaded_files {
+		request.files.clear();
+		request.tree = Some(WORKFLOW_TREE.to_string());
+	}
 
 	let (status, body) = post_release_commit(&state, API_TOKEN, &request).await;
 
 	assert_eq!(status, expected, "{body}");
 	blobs.assert_calls(0);
+
 	if expected == StatusCode::OK {
 		assert_eq!(body["commit"], "release-sha");
 		commit.assert();
@@ -738,12 +860,18 @@ async fn release_commit_endpoint_checks_credentials_before_the_body(
 #[rstest]
 #[case::matching_oidc_repository("acme/actions", true)]
 #[case::other_oidc_repository("acme/other", false)]
-fn oidc_callers_may_only_act_on_their_own_repository(#[case] claimed: &str, #[case] allowed: bool) {
+#[tokio::test]
+async fn oidc_callers_may_only_act_on_their_own_repository(
+	#[case] claimed: &str,
+	#[case] allowed: bool,
+) {
+	let github = MockServer::start();
+	let state = release_api_state(&github, API_TOKEN).await;
 	let caller = Caller::ActionsRun {
 		repository: claimed.to_string(),
 	};
 
-	let result = authorize(&caller, "acme/actions");
+	let result = authorize(&state, &caller, "acme/actions");
 
 	assert_eq!(result.is_ok(), allowed);
 	if let Err((status, body)) = result {
@@ -755,9 +883,21 @@ fn oidc_callers_may_only_act_on_their_own_repository(#[case] claimed: &str, #[ca
 	}
 }
 
-#[test]
-fn api_token_callers_may_act_on_any_connected_repository() {
-	assert!(authorize(&Caller::ApiToken, "acme/actions").is_ok());
+#[tokio::test]
+async fn api_token_callers_may_act_only_on_scoped_repositories() {
+	let github = MockServer::start();
+	let state = release_api_state(&github, API_TOKEN).await;
+
+	assert!(authorize(&state, &Caller::ApiToken, "acme/actions").is_ok());
+
+	let Err((status, body)) = authorize(&state, &Caller::ApiToken, "acme/other") else {
+		panic!("an unscoped repository must reject the API token");
+	};
+	assert_eq!(status, StatusCode::FORBIDDEN);
+	assert_eq!(
+		body.0.message,
+		"MONOCHANGE_TOKEN is not scoped to `acme/other`; add the repository to MONOCHANGE_TOKEN_REPOSITORIES or use a GitHub Actions OIDC token"
+	);
 }
 
 #[rstest]
@@ -846,4 +986,190 @@ async fn release_request_endpoint_rejects_invalid_branch_names() {
 		body["message"],
 		"branch `-release` is not a valid branch name"
 	);
+}
+
+#[tokio::test]
+async fn release_request_endpoint_cannot_adopt_an_unrelated_pull_request() {
+	let github = MockServer::start();
+	let state = release_api_state(&github, API_TOKEN).await;
+	let pull = serde_json::json!({
+		"number": 42, "node_id": "PR_42", "html_url": "https://github.com/acme/actions/pull/42",
+		"body": "An unrelated pull request", "user": {"id": 123, "type": "Bot"},
+		"head": {"ref": "monochange/release/release", "repo": {"id": 11}},
+		"base": {"ref": "main", "repo": {"id": 11}}
+	});
+	github.mock(|when, then| {
+		when.method(Method::GET).path("/repos/acme/actions/pulls");
+		then.json_body(serde_json::json!([pull.clone()]));
+	});
+	let update = github.mock(|when, then| {
+		when.method(Method::PATCH)
+			.path("/repos/acme/actions/pulls/42");
+		then.json_body(pull);
+	});
+	let labels = github.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/issues/42/labels");
+		then.status(200);
+	});
+	let auto_merge = github.mock(|when, then| {
+		when.method(Method::POST).path("/graphql");
+		then.json_body(
+			serde_json::json!({"data": {"enablePullRequestAutoMerge": {"pullRequest": {"number": 42}}}}),
+		);
+	});
+	let payload = serde_json::json!({
+		"request": {
+			"provider": "github", "repository": "acme/actions", "owner": "acme", "repo": "actions",
+			"base_branch": "main", "head_branch": "monochange/release/release",
+			"title": "chore(release): prepare release", "body": "Replacement body",
+			"labels": ["release"], "auto_merge": true,
+			"commit_message": {"subject": "chore(release): prepare release"}
+		}, "tracked_paths": [], "dry_run": false
+	});
+	let response = api_router(state)
+		.oneshot(
+			Request::builder()
+				.method("POST")
+				.uri("/api/release-requests")
+				.header("authorization", format!("Bearer {API_TOKEN}"))
+				.header("content-type", "application/json")
+				.body(Body::from(payload.to_string()))
+				.unwrap(),
+		)
+		.await
+		.unwrap();
+	assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+	update.assert_calls(0);
+	labels.assert_calls(0);
+	auto_merge.assert_calls(0);
+}
+
+/// Sign the v1 identity independently of the production response model.
+fn signed_release_pull_request(head_repository: i64, base_repository: i64) -> serde_json::Value {
+	#[derive(Serialize)]
+	struct Identity<'a> {
+		number: u64,
+		node_id: &'a str,
+		author_id: u64,
+		head_repository: i64,
+		head_branch: &'a str,
+		base_repository: i64,
+		base_branch: &'a str,
+	}
+
+	let identity = Identity {
+		number: 42,
+		node_id: "PR_42",
+		author_id: 123,
+		head_repository,
+		head_branch: "monochange/release/release",
+		base_repository,
+		base_branch: "main",
+	};
+	let mut mac = Hmac::<Sha256>::new_from_slice(b"release-api-test-signing-key").unwrap();
+	mac.update(b"monochange-hosted-release-pr-v1\0");
+	mac.update(&serde_json::to_vec(&identity).unwrap());
+	let signature = hex::encode(mac.finalize().into_bytes());
+	serde_json::json!({
+		"number": 42, "node_id": "PR_42", "html_url": "https://github.com/acme/actions/pull/42",
+		"body": format!("Prepared release\n\n<!-- monochange-release-pr:v1:{signature} -->"),
+		"user": {"id": 123, "type": "Bot"},
+		"head": {"ref": "monochange/release/release", "repo": {"id": head_repository}},
+		"base": {"ref": "main", "repo": {"id": base_repository}}
+	})
+}
+
+#[rstest]
+#[case::provider_identity(11, 11, true)]
+#[case::local_head_identity(1, 11, false)]
+#[case::local_base_identity(11, 1, false)]
+#[case::local_repository_identity(1, 1, false)]
+#[tokio::test]
+async fn release_request_endpoint_binds_the_provider_repository_identity(
+	#[case] head_repository: i64,
+	#[case] base_repository: i64,
+	#[case] allowed: bool,
+) {
+	let github = MockServer::start();
+	let state = release_api_state(&github, API_TOKEN).await;
+	let pull = signed_release_pull_request(head_repository, base_repository);
+	github.mock(|when, then| {
+		when.method(Method::GET)
+			.path("/repos/acme/actions/pulls")
+			.query_param("state", "open")
+			.query_param("head", "acme:monochange/release/release");
+		then.json_body(serde_json::json!([pull.clone()]));
+	});
+	let create = github.mock(|when, then| {
+		when.method(Method::POST).path("/repos/acme/actions/pulls");
+		then.status(201).json_body(pull.clone());
+	});
+	let update = github.mock(|when, then| {
+		when.method(Method::PATCH)
+			.path("/repos/acme/actions/pulls/42")
+			.json_body(serde_json::json!({
+				"title": "chore(release): prepare release", "body": pull["body"], "base": "main"
+			}));
+		then.json_body(pull);
+	});
+	let labels = github.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/issues/42/labels");
+		then.status(200);
+	});
+	let auto_merge = github.mock(|when, then| {
+		when.method(Method::POST).path("/graphql");
+		then.status(200);
+	});
+	let payload = serde_json::json!({
+		"request": {
+			"provider": "github", "repository": "acme/actions", "owner": "acme", "repo": "actions",
+			"base_branch": "main", "head_branch": "monochange/release/release",
+			"title": "chore(release): prepare release", "body": "Prepared release",
+			"labels": ["release"], "auto_merge": true,
+			"commit_message": {"subject": "chore(release): prepare release"}
+		}, "tracked_paths": [], "dry_run": false
+	});
+	let response = api_router(state)
+		.oneshot(
+			Request::builder()
+				.method("POST")
+				.uri("/api/release-requests")
+				.header("authorization", format!("Bearer {API_TOKEN}"))
+				.header("content-type", "application/json")
+				.body(Body::from(payload.to_string()))
+				.unwrap(),
+		)
+		.await
+		.unwrap();
+	let status = response.status();
+	let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+		.await
+		.unwrap();
+	let body: serde_json::Value = serde_json::from_slice(&body).unwrap();
+	assert_eq!(
+		status,
+		if allowed {
+			StatusCode::OK
+		} else {
+			StatusCode::UNPROCESSABLE_ENTITY
+		},
+		"{body}"
+	);
+
+	if allowed {
+		assert_eq!(body["number"], 42);
+		assert_eq!(body["operation"], "updated");
+	} else {
+		assert_eq!(
+			body["message"],
+			"pull request is not a verified monochange release request for this head, base, and repository"
+		);
+	}
+
+	create.assert_calls(0);
+	update.assert_calls(usize::from(allowed));
+	labels.assert_calls(usize::from(allowed));
+	auto_merge.assert_calls(usize::from(allowed));
 }

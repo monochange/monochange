@@ -12,12 +12,15 @@
 mod tests;
 
 mod config;
+pub mod embedded_api;
 pub mod feedback;
 pub mod github_app;
 pub mod oauth;
 pub mod oidc;
 pub mod release_api;
 pub mod tasks_api;
+
+pub mod token_vault;
 pub mod webhooks;
 
 use std::sync::Arc;
@@ -82,6 +85,13 @@ pub const RELEASE_REQUEST_BODY_LIMIT: usize = 2 * 1024 * 1024;
 /// without coupling the bot endpoints to the SSR state type.
 pub fn api_router(state: AppState) -> Router<()> {
 	Router::new()
+		.merge(embedded_api::iframe_router())
+		.merge(
+			embedded_api::router().layer(axum::middleware::from_fn_with_state(
+				state.clone(),
+				embedded_api::cors,
+			)),
+		)
 		.route("/api/github/webhooks", post(webhooks::github_webhook))
 		.route(
 			"/api/release-commits",
@@ -156,6 +166,8 @@ pub fn verify_token(secret: &str, token: &str) -> Result<Claims, StatusCode> {
 /// Application state shared across requests.
 #[derive(Clone)]
 pub struct AppState {
+	/// Optional deployment-configured model; tests may inject a mock provider.
+	pub feedback_assistant: Option<embedded_api::AssistantConfig>,
 	pub db: monochange_app_db::DbPool,
 	pub secrets: Arc<AppSecrets>,
 	pub jwt_secret: String,
@@ -177,10 +189,20 @@ pub struct AppState {
 	/// `MONOCHANGE_TOKEN` accepted by the hosted release endpoints; `None`
 	/// requires GitHub Actions OIDC.
 	pub api_token: Option<String>,
+	/// Repositories the `MONOCHANGE_TOKEN` may act on, from
+	/// `MONOCHANGE_TOKEN_REPOSITORIES` (`owner/repo` entries separated by
+	/// commas or whitespace, compared case-insensitively). `None` leaves the
+	/// token unable to act anywhere, so the shared token never becomes a
+	/// deployment-wide credential by accident.
+	pub api_token_repositories: Option<std::collections::HashSet<String>>,
+	/// Seals GitHub OAuth tokens before they reach the database.
+	pub token_vault: Arc<token_vault::TokenVault>,
 	/// Shared HTTP client for GitHub API calls.
 	pub http: reqwest::Client,
 	/// Serialize refresh-token rotation so one browser session cannot invalidate another request.
 	pub github_token_refresh_lock: Arc<tokio::sync::Mutex<()>>,
+	/// Bound provider work even when callbacks arrive from many addresses.
+	pub oauth_exchange_slots: Arc<tokio::sync::Semaphore>,
 }
 
 impl AppState {
@@ -190,6 +212,13 @@ impl AppState {
 		secrets: AppSecrets,
 	) -> Result<Self, github_app::GitHubAppError> {
 		let jwt_secret = secrets.jwt_secret.clone();
+		// An empty string is a valid HMAC key, so a profile that resolves
+		// JWT_SECRET to nothing would sign forgeable session tokens; the
+		// required-secrets check cannot catch a resolved-but-empty value.
+		if jwt_secret.is_empty() {
+			return Err(github_app::GitHubAppError::EmptyJwtSecret);
+		}
+
 		let github_client_id = secrets.github_client_id.clone();
 		let github_client_secret = secrets.github_client_secret.clone();
 		let github_callback_url = std::env::var("MONOCHANGE_GITHUB_CALLBACK_URL")
@@ -211,6 +240,19 @@ impl AppState {
 			.monochange_token
 			.clone()
 			.filter(|token| !token.is_empty());
+		let api_token_repositories = std::env::var("MONOCHANGE_TOKEN_REPOSITORIES")
+			.ok()
+			.and_then(|raw| {
+				let repositories = raw
+					.split([',', ' ', '\n', '\t'])
+					.map(str::trim)
+					.filter(|entry| !entry.is_empty())
+					.map(str::to_lowercase)
+					.collect::<std::collections::HashSet<_>>();
+				(!repositories.is_empty()).then_some(repositories)
+			});
+		let token_vault = token_vault::TokenVault::new(&secrets.token_encryption_key)
+			.map_err(|_| github_app::GitHubAppError::EmptyTokenEncryptionKey)?;
 		// GitHub rejects API requests without a User-Agent header with 403.
 		let http = reqwest::Client::builder()
 			.user_agent("monochange")
@@ -219,6 +261,9 @@ impl AppState {
 			.build()?;
 
 		Ok(Self {
+			feedback_assistant: embedded_api::AssistantConfig::from_environment(
+				secrets.openrouter_api_key.as_deref(),
+			),
 			db,
 			secrets: Arc::new(secrets),
 			jwt_secret,
@@ -231,8 +276,11 @@ impl AppState {
 			oidc: Arc::new(oidc::OidcVerifier::new(&oidc_audience)),
 			oidc_audience,
 			api_token,
+			api_token_repositories,
+			token_vault: Arc::new(token_vault),
 			http,
 			github_token_refresh_lock: Arc::new(tokio::sync::Mutex::new(())),
+			oauth_exchange_slots: Arc::new(tokio::sync::Semaphore::new(16)),
 		})
 	}
 }

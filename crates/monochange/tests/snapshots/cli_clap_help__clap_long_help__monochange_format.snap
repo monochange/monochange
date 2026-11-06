@@ -1,0 +1,46 @@
+---
+source: crates/monochange/tests/cli_clap_help.rs
+expression: render_help_snapshot(&path)
+---
+Version: [current]
+Command: monochange format
+
+Format monochange.toml with canonical section and package ordering
+
+[1m[97mUsage:[0m [93mmonochange format[0m [95m[OPTIONS][0m
+
+[1m[96mOptions:[0m
+      [93m--check[0m
+          Fail when monochange.toml is not formatted instead of writing changes
+
+  [93m-h[0m, [93m--help[0m
+          Print help
+
+[1m[96mGlobal Options:[0m
+  [93m-q[0m, [93m--quiet[0m
+          Suppress result, progress, and diagnostic output without changing execution
+
+  [93m-v[0m, [93m--verbose[0m
+          Show full result lists and logs, every step timing, and progress notes
+
+      [93m--color[0m[95m [0m[95m<WHEN>[0m
+          Control when output uses color; `auto` honors NO_COLOR, CLICOLOR, and CLICOLOR_FORCE
+
+          [possible values: auto, always, never]
+
+      [93m--progress-format[0m[95m [0m[95m<FORMAT>[0m
+          Control progress output on stderr
+
+          [possible values: auto, unicode, ascii, json]
+
+      [93m--jq[0m[95m [0m[95m<EXPRESSION>[0m
+          Filter explicit JSON output; requires `--format json` or `--format json-min`
+
+      [93m--snapshot[0m
+          Print a normalized JSON snapshot for this command subtree
+
+Examples:
+  monochange format
+  monochange format --check
+
+The formatter keeps comments, orders top-level sections, sorts package and group tables by id, sorts group members, and places [cli.*] workflows last.

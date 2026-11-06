@@ -14,12 +14,14 @@
 		"fmt:check": "oxfmt --check \"**/*.ts\"",
 		"lint": "oxlint --type-aware .",
 		"lint:syntax": "oxlint .",
-		"build": "tsdown",
+		"build": "tsdown && pnpm build:feedback",
+		"build:feedback": "node scripts/build-feedback.ts",
 		"bench:website": "node scripts/benchmark-website.ts run",
 		"size:website": "node scripts/website-size.ts check",
 		"size:website:update": "node scripts/website-size.ts update"
 	},
 	"devDependencies": {
+		"happy-dom": "^20.0.0",
 		"@rslint/tsgo": "^0.5.0",
 		"@types/node": "^24.10.1",
 		"lighthouse": "^13.5.0",

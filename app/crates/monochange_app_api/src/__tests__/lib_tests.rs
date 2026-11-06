@@ -53,6 +53,64 @@ fn test_verify_malformed_token() {
 	assert!(result.is_err());
 }
 
+// ── App state construction tests ──
+mod app_state_tests {
+	use crate::AppSecrets;
+	use crate::AppState;
+	use crate::github_app::GitHubAppError;
+
+	fn secrets_with_jwt(jwt_secret: &str) -> AppSecrets {
+		secrets_with(jwt_secret, "test-token-encryption-key")
+	}
+
+	fn secrets_with(jwt_secret: &str, token_encryption_key: &str) -> AppSecrets {
+		serde_json::from_value(serde_json::json!({
+			"database_url": "sqlite::memory:",
+			"jwt_secret": jwt_secret,
+			"token_encryption_key": token_encryption_key,
+			"github_client_id": "",
+			"github_client_secret": "",
+		}))
+		.unwrap_or_else(|error| panic!("build test secrets: {error}"))
+	}
+
+	#[tokio::test]
+	async fn rejects_empty_jwt_secret() {
+		let db = monochange_app_db::create_pool("sqlite::memory:")
+			.await
+			.unwrap_or_else(|error| panic!("open test database: {error}"));
+		let error = AppState::new(db, secrets_with_jwt(""))
+			.err()
+			.expect("an empty JWT secret must not start the server");
+		assert!(matches!(error, GitHubAppError::EmptyJwtSecret));
+	}
+
+	#[tokio::test]
+	async fn rejects_empty_token_encryption_key() {
+		let db = monochange_app_db::create_pool("sqlite::memory:")
+			.await
+			.unwrap_or_else(|error| panic!("open test database: {error}"));
+		let error = AppState::new(db, secrets_with("signing-key", ""))
+			.err()
+			.expect("an empty token encryption key must not start the server");
+		assert!(matches!(error, GitHubAppError::EmptyTokenEncryptionKey));
+	}
+
+	#[tokio::test]
+	async fn accepts_non_empty_jwt_secret() {
+		let db = monochange_app_db::create_pool("sqlite::memory:")
+			.await
+			.unwrap_or_else(|error| panic!("open test database: {error}"));
+		let state = AppState::new(db, secrets_with_jwt("signing-key"))
+			.unwrap_or_else(|error| panic!("non-empty JWT secret should be accepted: {error}"));
+		assert_eq!(state.jwt_secret, "signing-key");
+		assert!(
+			state.api_token_repositories.is_none(),
+			"without MONOCHANGE_TOKEN_REPOSITORIES the API token acts nowhere"
+		);
+	}
+}
+
 #[rstest]
 fn test_token_is_unique() {
 	let secret = "secret";
@@ -333,6 +391,38 @@ mod oidc_tests {
 	}
 
 	#[tokio::test]
+	async fn rejects_non_rs256_token() {
+		let keys = test_keys();
+		let server = MockServer::start();
+		let verifier = verifier_with(&server, &keys);
+
+		// An HS256 token whose header still names the RSA key id: without the
+		// RS256 pin, the RSA JWK would be selected and the attacker-chosen
+		// algorithm would decide how the signature is checked.
+		let now = chrono::Utc::now().timestamp();
+		let claims = serde_json::json!({
+			"iss": "https://token.actions.githubusercontent.com",
+			"aud": "monochange.dev",
+			"exp": now + 600,
+			"iat": now,
+			"repository": "monochange/monochange",
+			"repository_id": "42",
+			"repository_owner": "monochange",
+		});
+		let token = encode(
+			&Header {
+				alg: Algorithm::HS256,
+				kid: Some("test-key-1".to_string()),
+				..Default::default()
+			},
+			&claims,
+			&EncodingKey::from_secret(b"attacker-controlled-secret"),
+		)
+		.unwrap_or_else(|error| panic!("sign test token: {error}"));
+		assert!(verifier.verify(&token).await.is_err());
+	}
+
+	#[tokio::test]
 	async fn rejects_garbage_token() {
 		let verifier = OidcVerifier::new("monochange.dev");
 		assert!(verifier.verify("not-a-token").await.is_err());
@@ -372,6 +462,10 @@ mod secret_loading_tests {
 		let secrets = resolved.secrets;
 		assert_eq!(secrets.database_url, "sqlite::memory:");
 		assert_eq!(secrets.jwt_secret, "loader-test-signing-key");
+		assert_eq!(
+			secrets.token_encryption_key,
+			"loader-test-token-encryption-key"
+		);
 		assert_eq!(secrets.github_client_id, "loader-test-client-id");
 		assert_eq!(secrets.github_client_secret, "loader-test-client-secret");
 		assert_eq!(
@@ -433,6 +527,7 @@ mod secret_loading_tests {
 				("DATABASE_URL", Vec::new()),
 				("OP_SERVICE_ACCOUNT_TOKEN", Vec::new()),
 				("JWT_SECRET", section("auth")),
+				("TOKEN_ENCRYPTION_KEY", section("auth")),
 				("GITHUB_CLIENT_ID", section("github")),
 				("GITHUB_CLIENT_SECRET", section("github")),
 				("GITHUB_APP_ID", section("github")),

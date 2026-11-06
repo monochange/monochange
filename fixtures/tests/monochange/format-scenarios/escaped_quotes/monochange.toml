@@ -1,0 +1,5 @@
+[package."@acme/quote\"d"]
+path = "packages/quote"
+
+[package.alpha]
+path = "packages/alpha"

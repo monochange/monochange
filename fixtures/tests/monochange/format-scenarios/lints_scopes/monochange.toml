@@ -1,0 +1,10 @@
+[[lints.scopes]]
+files = ["crates/**"]
+rules = ["cargo/recommended"]
+
+[lints]
+use = ["cargo/recommended"]
+
+[[lints.scopes]]
+files = ["packages/**"]
+use = ["npm/recommended"]

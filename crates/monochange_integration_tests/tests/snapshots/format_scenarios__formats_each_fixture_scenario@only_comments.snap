@@ -1,0 +1,7 @@
+---
+source: crates/monochange_integration_tests/tests/format_scenarios.rs
+expression: formatted
+---
+#:schema ./schema.json
+
+# Only comments in this file.

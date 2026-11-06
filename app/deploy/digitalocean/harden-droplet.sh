@@ -16,6 +16,7 @@ apt-get install -y \
 	curl \
 	fail2ban \
 	gnupg \
+	nftables \
 	sqlite3 \
 	ufw \
 	unattended-upgrades
@@ -78,6 +79,16 @@ systemctl restart fail2ban
 dpkg-reconfigure -f noninteractive unattended-upgrades
 systemctl enable --now unattended-upgrades
 
+# Reboot automatically when a security upgrade needs a new kernel or core
+# library. apt-daily-upgrade runs at 06:00 UTC with up to 60 minutes of random
+# delay, so 07:30 UTC leaves the upgrade time to finish.
+cat >/etc/apt/apt.conf.d/51unattended-upgrades-auto-reboot <<'EOF'
+Unattended-Upgrade::Automatic-Reboot "true";
+Unattended-Upgrade::Automatic-Reboot-Time "07:30";
+Unattended-Upgrade::Automatic-Reboot-WithUsers "true";
+EOF
+chmod 0644 /etc/apt/apt.conf.d/51unattended-upgrades-auto-reboot
+
 install -d -m 755 /opt/monochange/data /opt/monochange/backups /opt/monochange/caddy/data /opt/monochange/caddy/config
 chown "${DEPLOY_USER}:${DEPLOY_USER}" /opt/monochange
 chown -R "${DEPLOY_USER}:${DEPLOY_USER}" /opt/monochange/data /opt/monochange/backups /opt/monochange/caddy
@@ -124,5 +135,12 @@ set -euo pipefail
 /usr/local/bin/monochange-sqlite-backup
 EOF
 chmod 0755 /etc/cron.daily/monochange-sqlite-backup
+
+MITIGATION_SCRIPT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/mitigate-cve-2026-98432.sh"
+if [ ! -x "${MITIGATION_SCRIPT}" ]; then
+	echo "missing ${MITIGATION_SCRIPT}; copy it next to harden-droplet.sh" >&2
+	exit 1
+fi
+"${MITIGATION_SCRIPT}"
 
 echo "Droplet hardening complete. Use user '${DEPLOY_USER}' for SSH/deploy access."

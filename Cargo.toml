@@ -1,5 +1,6 @@
 [workspace]
 members = ["crates/*", "docs"]
+exclude = ["app"]
 resolver = "2"
 
 [workspace.package]
@@ -19,6 +20,7 @@ anstyle = { version = "1.0", default-features = false }
 base64 = { version = "0.22", default-features = false, features = ["std"] }
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 clap = { version = "4", default-features = false, features = ["derive"] }
+clap_complete = { version = "4", default-features = false }
 criterion = { version = "0.8.2", default-features = false, features = ["async_tokio"] }
 doc-comment = { version = "0.3", default-features = false }
 etest = { version = "0.3", default-features = false }
@@ -55,6 +57,7 @@ shlex = { version = "2", default-features = false }
 similar = { version = "3.0.0", default-features = false, features = ["inline", "text"] }
 similar-asserts = { version = "2.0.0", default-features = false }
 syn = { version = "3", default-features = false, features = ["full"] }
+taplo = { version = "0.14.0", default-features = false }
 temp-env = { version = "0.3", default-features = false, features = ["async_closure"] }
 tempfile = { version = "3", default-features = false }
 thiserror = { version = "2.0.18", default-features = false }

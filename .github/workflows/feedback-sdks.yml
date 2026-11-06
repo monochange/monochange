@@ -1,0 +1,60 @@
+name: feedback SDKs
+
+on:
+  push:
+    branches: [main]
+    paths: [
+      "packages/monochange__feedback*/**",
+      "scripts/build-feedback.ts",
+      ".github/workflows/feedback-sdks.yml",
+      "devenv.nix",
+      "devenv.yaml",
+    ]
+  pull_request:
+    paths: [
+      "packages/monochange__feedback*/**",
+      "scripts/build-feedback.ts",
+      ".github/workflows/feedback-sdks.yml",
+      "devenv.nix",
+      "devenv.yaml",
+    ]
+  merge_group:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: feedback-sdks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  flutter:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version: "3.47.9"
+          cache: true
+      - name: setup development tools
+        uses: $/.github/actions/devenv
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: analyze and test native SDK
+        run: test:feedback:flutter
+        shell: devenv shell -- bash -e {0}
+      - name: build Android example
+        if: runner.os == 'Linux'
+        run: build:feedback:android
+        shell: devenv shell -- bash -e {0}
+      - name: build iOS example
+        if: runner.os == 'macOS'
+        run: build:feedback:ios
+        shell: devenv shell -- bash -e {0}

@@ -13,6 +13,11 @@ ignore = [
 	# Pulled in by octocrab/jsonwebtoken. monochange uses personal-token auth only,
 	# and there is no patched release available yet.
 	"RUSTSEC-2023-0071",
+	# crypto-bigint 0.5.5 (transitive, via the p256 family) reports timing
+	# variability in operations intended to be constant-time. monochange never
+	# uses these curves on attacker-controlled secrets, and no patched release
+	# exists yet; re-check when crypto-bigint publishes a fix.
+	"RUSTSEC-2026-0387",
 	# unsafe-libyaml is the YAML backend of serde_yaml_ng and has no patched
 	# release; the maintainer tracks it upstream and the crate is not used on
 	# untrusted input paths beyond fixture parsing.
@@ -23,6 +28,7 @@ ignore = [
 allow = [
 	"MIT",
 	"Apache-2.0",
+	"Apache-2.0 WITH LLVM-exception",
 	"Unlicense",
 	"Unicode-3.0",
 	"BSL-1.0",
@@ -32,6 +38,13 @@ allow = [
 	"Zlib",
 ]
 confidence-threshold = 0.8
+
+# Fresh release lockfiles select this archive writer through psm's build dependency.
+# Upstream license: https://github.com/rust-lang/ar_archive_writer/blob/v0.5.3/LICENSE.txt
+[[licenses.exceptions]]
+name = "ar_archive_writer"
+version = "=0.5.3"
+allow = ["Apache-2.0 WITH LLVM-exception"]
 
 [bans]
 multiple-versions = "warn"

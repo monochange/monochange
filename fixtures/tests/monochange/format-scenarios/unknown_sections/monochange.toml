@@ -1,0 +1,8 @@
+[custom.one]
+value = 1
+
+[defaults]
+package_type = "npm"
+
+[custom.two]
+value = 2

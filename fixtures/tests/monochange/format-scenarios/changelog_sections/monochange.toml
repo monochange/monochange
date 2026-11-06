@@ -1,0 +1,10 @@
+[changelog.sections.website_changed]
+heading = "Changed"
+priority = 10
+
+[changelog.sections.website_added]
+heading = "New"
+priority = 20
+
+[changelog]
+templates = ["- {{ summary }}"]

@@ -30,8 +30,10 @@ semver = { workspace = true, default-features = true }
 serde = { workspace = true, default-features = true }
 serde_json = { workspace = true, default-features = true }
 serde_yaml_ng = { workspace = true, default-features = true }
+taplo = { workspace = true }
 thiserror = { workspace = true, default-features = true }
 toml = { workspace = true, default-features = true }
+toml_edit = { workspace = true, features = ["display"] }
 tracing = { workspace = true, default-features = true }
 
 [dev-dependencies]

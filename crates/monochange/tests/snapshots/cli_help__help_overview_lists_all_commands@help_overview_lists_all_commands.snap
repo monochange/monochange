@@ -1,5 +1,6 @@
 ---
 source: crates/monochange/tests/cli_help.rs
+assertion_line: 32
 info:
   program: monochange
   args:
@@ -25,12 +26,14 @@ Release Commands:
 
 Workspace Commands:
   init           Generate monochange.toml with detected packages and groups
+  format         Format monochange.toml with canonical section and package ordering
   discover       Discover packages across supported ecosystems
   config         Render resolved monochange configuration and workspace metadata
   check          Validate configuration, changesets, and run manifest lint rules
   versions       List package and group versions or sync internal dependency constraints
   lint           Inspect and scaffold manifest lint rules
   migrate        Audit or migrate release metadata for monochange repositories
+  doctor         Check the local environment monochange needs and report what is missing
 
 Change Analysis Commands:
   change         Determine the release severity of repository changes
@@ -47,6 +50,7 @@ Automation Commands:
   skill          Read or install the bundled monochange agent skill
   subagents      Generate repo-local monochange subagents and agent guidance files
   snapshot       Print a normalized JSON snapshot of the CLI surface
+  completions    Generate a shell completion script for monochange
   help           Show detailed help for a command
 
 Workflow Commands (monochange.toml):
@@ -88,6 +92,8 @@ Quick Start
 1. Create or update monochange.toml for your workspace:
 
   monochange init
+
+Run monochange format after editing the config to keep sections, packages, groups, and CLI workflows in canonical order.
 
 2. Validate configuration and changeset targets before making release changes:
 

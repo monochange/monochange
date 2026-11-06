@@ -1,0 +1,19 @@
+{
+	"name": "@monochange/feedback",
+	"version": "0.1.0",
+	"type": "module",
+	"description": "Installable monochange feedback client and accessible website widget",
+	"license": "Unlicense",
+	"repository": "https://github.com/monochange/monochange",
+	"files": ["dist", "README.md"],
+	"exports": {
+		".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
+		"./client": { "types": "./dist/client.d.ts", "import": "./dist/client.js" },
+		"./widget": { "types": "./dist/widget.d.ts", "import": "./dist/widget.js" }
+	},
+	"scripts": {
+		"build": "pnpm --dir ../.. build:feedback",
+		"prepack": "pnpm --dir ../.. build:feedback"
+	},
+	"publishConfig": { "access": "public", "provenance": true }
+}

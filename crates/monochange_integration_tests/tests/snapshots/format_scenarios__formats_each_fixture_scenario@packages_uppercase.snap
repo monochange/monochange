@@ -1,0 +1,12 @@
+---
+source: crates/monochange_integration_tests/tests/format_scenarios.rs
+expression: formatted
+---
+[package.Beta]
+path = "packages/Beta"
+
+[package.Zeta]
+path = "packages/Zeta"
+
+[package.alpha]
+path = "packages/alpha"

@@ -44,6 +44,7 @@ use clap::ValueEnum;
 use clap::error::ErrorKind;
 pub use cli::build_command;
 use cli::build_command_with_cli;
+use cli::build_snapshot_command;
 use cli::cli_commands_for_root;
 use cli::cli_commands_from_config;
 use cli::current_dir_or_dot;
@@ -58,6 +59,7 @@ use git_support::git_stage_paths;
 use migration_audit::run_migration_command;
 #[cfg(feature = "cargo")]
 use monochange_cargo::RustSemverProvider;
+use monochange_config::format_workspace_configuration;
 use monochange_config::load_workspace_configuration;
 use monochange_config::resolve_package_reference;
 use monochange_core::BumpSeverity;
@@ -68,7 +70,6 @@ use monochange_core::ChangesetContext;
 use monochange_core::ChangesetPolicyEvaluation;
 use monochange_core::ChangesetRevision;
 use monochange_core::CliCommandDefinition;
-use monochange_core::CliStepDefinition;
 use monochange_core::CommitMessage;
 use monochange_core::DEFAULT_CHANGELOG_OUTPUT;
 use monochange_core::DEFAULT_CHANGELOG_STREAM;
@@ -157,7 +158,6 @@ use subagents::run_subagents;
 pub(crate) use versioned_files::*;
 pub use workspace_ops::AddChangeFileRequest;
 pub use workspace_ops::PlannedChangeFile;
-use workspace_ops::PopulateWorkspaceResult;
 pub use workspace_ops::add_change_file;
 pub(crate) use workspace_ops::add_interactive_change_file;
 pub(crate) use workspace_ops::discover_release_workspace;
@@ -165,7 +165,6 @@ pub use workspace_ops::discover_workspace;
 use workspace_ops::init_workspace;
 pub use workspace_ops::plan_change_file;
 pub use workspace_ops::plan_release;
-use workspace_ops::populate_workspace;
 pub use workspace_ops::prepare_release;
 pub(crate) use workspace_ops::prepare_release_execution_with_configuration;
 pub(crate) use workspace_ops::push_change_target_markdown;
@@ -252,6 +251,7 @@ mod cli_runtime;
 
 mod cli_theme;
 mod command_wizard;
+mod doctor;
 mod git_support;
 mod hosted_sources;
 mod interactive;
@@ -577,6 +577,7 @@ struct CliContext {
 	inputs: BTreeMap<String, Vec<String>>,
 	last_step_inputs: BTreeMap<String, Vec<String>>,
 	prepared_release: Option<PreparedRelease>,
+	originating_command: Option<String>,
 	prepared_file_diffs: Vec<PreparedFileDiff>,
 	release_manifest_path: Option<PathBuf>,
 	release_requests: Vec<SourceReleaseRequest>,
@@ -1234,31 +1235,6 @@ fn render_help_command(
 	render_clap_long_help(bin_name, cli, &path)
 }
 
-fn format_populate_workspace_result(result: &PopulateWorkspaceResult) -> String {
-	if result.added_commands.is_empty() {
-		format!(
-			"left {} unchanged; this version provides no default CLI workflow aliases. Use `monochange command` to define custom workflows",
-			result.path.display()
-		)
-	} else {
-		let mut message = format!(
-			"updated {} and added {} default CLI commands: ",
-			result.path.display(),
-			result.added_commands.len()
-		);
-
-		for (index, command) in result.added_commands.iter().enumerate() {
-			if index > 0 {
-				message.push_str(", ");
-			}
-
-			message.push_str(command);
-		}
-
-		message
-	}
-}
-
 /// control both the argv payload and the workspace root used for config loading
 /// and command execution.
 #[doc(hidden)]
@@ -1361,6 +1337,25 @@ async fn dispatch_cli_args(
 	finish_cli_output(rendered, quiet, jq_expression, &matches)
 }
 
+/// Print a completion script for `shell`, built from the commands this
+/// repository's configuration defines so configured workflows complete too.
+fn render_shell_completions(
+	bin_name: &'static str,
+	root: &Path,
+	shell: &str,
+) -> MonochangeResult<String> {
+	let shell = shell.parse::<clap_complete::Shell>().map_err(|error| {
+		MonochangeError::Config(format!("unknown shell `{shell}` for completions: {error}"))
+	})?;
+	let cli = cli_commands_for_root(root);
+	let mut command = build_command_with_cli(bin_name, &cli);
+	let mut buffer = Vec::new();
+	clap_complete::generate(shell, &mut command, bin_name, &mut buffer);
+
+	String::from_utf8(buffer)
+		.map_err(|error| MonochangeError::Io(format!("completion script was not UTF-8: {error}")))
+}
+
 /// Answers the requests that never need the workspace configuration.
 ///
 /// Version output and help for built-in commands are parsed against the default command set before
@@ -1386,7 +1381,7 @@ fn render_config_free_request(
 	if let Some(snapshot_request) = parse_snapshot_request(args) {
 		let configuration = load_workspace_configuration(root);
 		let cli = cli_commands_from_config(&configuration);
-		let command = cli::build_snapshot_command(bin_name, &cli, &snapshot_request.path);
+		let command = build_snapshot_command(bin_name, &cli, &snapshot_request.path);
 
 		return render_snapshot_request(&command, &snapshot_request).map(Some);
 	}
@@ -1587,10 +1582,22 @@ async fn run_cli_subcommand(
 			init_workspace(root, init_matches.get_flag("force"), provider)
 				.map(|result| result.summary())
 		}
-		Some(("populate", _)) => {
-			populate_workspace(root).map(|result| format_populate_workspace_result(&result))
-		}
+		Some(("format", format_matches)) => run_format_subcommand(root, format_matches),
 		Some(("command", _)) => run_command_wizard_for_cli(root, context.quiet),
+		Some(("completions", completions_matches)) => {
+			let shell = completions_matches
+				.get_one::<String>("shell")
+				.map_or("bash", String::as_str);
+
+			render_shell_completions(context.bin_name, root, shell)
+		}
+		Some(("doctor", doctor_matches)) => {
+			doctor::render_doctor_report(
+				root,
+				&configuration,
+				selected_cli_output_format(doctor_matches)?,
+			)
+		}
 		Some(("skill", skill_matches)) => run_skill_subcommand(context.quiet, skill_matches),
 		Some(("subagents", subagent_matches)) => run_subagents_subcommand(root, subagent_matches),
 		Some(("change", change_matches)) => {
@@ -1752,7 +1759,7 @@ fn run_snapshot_subcommand(
 	let path = command_values(matches);
 
 	render_snapshot_request(
-		&cli::build_snapshot_command(context.bin_name, context.cli, &path),
+		&build_snapshot_command(context.bin_name, context.cli, &path),
 		&SnapshotRequest { path, view },
 	)
 }
@@ -1842,6 +1849,35 @@ fn string_values(matches: &clap::ArgMatches, name: &str) -> Vec<String> {
 		.unwrap_or_default()
 }
 
+/// Rewrites `monochange.toml` in the canonical section and package order.
+fn run_format_subcommand(root: &Path, matches: &clap::ArgMatches) -> MonochangeResult<String> {
+	let path = root.join("monochange.toml");
+	let source = fs::read_to_string(&path).map_err(|error| {
+		MonochangeError::Io(format!("failed to read {}: {error}", path.display()))
+	})?;
+	let formatted = format_workspace_configuration(&source)?;
+
+	if matches.get_flag("check") {
+		if formatted != source {
+			return Err(MonochangeError::Config(
+				"monochange.toml is not formatted; run `monochange format`".to_string(),
+			));
+		}
+
+		return Ok("monochange.toml is formatted".to_string());
+	}
+
+	if formatted == source {
+		return Ok("monochange.toml is already formatted".to_string());
+	}
+
+	fs::write(&path, formatted).map_err(|error| {
+		MonochangeError::Io(format!("failed to write {}: {error}", path.display()))
+	})?;
+
+	Ok("Formatted monochange.toml".to_string())
+}
+
 /// Runs the workspace lint rules, optionally fixing what they find.
 fn run_check_subcommand(
 	root: &Path,
@@ -1859,6 +1895,7 @@ fn run_check_subcommand(
 		root,
 		configuration,
 		matches.get_flag("fix"),
+		matches.get_flag("dry-run"),
 		&string_values(matches, "ecosystem"),
 		&string_values(matches, "only"),
 		format,

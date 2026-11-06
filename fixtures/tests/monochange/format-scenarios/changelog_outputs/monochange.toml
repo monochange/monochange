@@ -1,0 +1,13 @@
+[changelog.outputs.website]
+stream = "website"
+targets = ["app"]
+path = "app/changelog.md"
+
+[changelog.outputs.website_json]
+stream = "website"
+targets = ["app"]
+path = "app/releases.json"
+format = "json"
+
+[changelog.streams.website]
+description = "Website updates"

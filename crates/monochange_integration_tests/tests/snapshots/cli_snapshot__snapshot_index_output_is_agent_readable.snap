@@ -20,7 +20,7 @@ expression: value
       ]
     },
     {
-      "hidden": true,
+      "hidden": false,
       "max_bump": "major",
       "parser": {
         "flags_are_posix_noncompliant": false,
@@ -31,7 +31,7 @@ expression: value
         "options_must_precede_arguments": false
       },
       "path": [
-        "populate"
+        "format"
       ]
     },
     {
@@ -633,6 +633,36 @@ expression: value
       },
       "path": [
         "check"
+      ]
+    },
+    {
+      "hidden": false,
+      "max_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "completions"
+      ]
+    },
+    {
+      "hidden": false,
+      "max_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "doctor"
       ]
     },
     {

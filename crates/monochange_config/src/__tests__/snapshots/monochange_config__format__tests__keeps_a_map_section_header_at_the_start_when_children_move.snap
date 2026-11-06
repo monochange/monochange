@@ -1,0 +1,19 @@
+---
+source: crates/monochange_config/src/__tests__/format_tests.rs
+expression: format_workspace_configuration(source).unwrap()
+---
+[defaults]
+parent_bump = "patch"
+
+# =============================================================================
+# Packages
+# =============================================================================
+#
+# Shared package documentation.
+
+[package.alpha]
+path = "packages/alpha"
+
+# Zeta-specific comment.
+[package.zeta]
+path = "packages/zeta"

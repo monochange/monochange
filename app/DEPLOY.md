@@ -35,7 +35,9 @@ Recommended hardening baseline:
 - install Docker from the official apt repository;
 - enable UFW and allow only `22`, `80`, and `443`;
 - install and enable `fail2ban`;
-- enable unattended security upgrades;
+- install the CVE-2026-98432 nftables mitigation until Ubuntu ships a fixed 24.04 kernel;
+- disable Multipath TCP on the Caddy listener, which removes the listener type used by the demonstrated CVE-2026-98432 exploit;
+- enable unattended security upgrades, with an automatic reboot at `07:30` UTC when one needs it;
 - keep `/opt/monochange/secrets/op_service_account_token` mode `0600`;
 - keep the 1Password service account scoped to the minimal production vault/items;
 - let the entrypoint read the root-only token, then drop privileges to the non-root `app` user before starting the server;
@@ -65,17 +67,18 @@ Create a dedicated `monochange` vault and give the production service account re
 
 The `production` profile in `app/monosecret.toml` reads every credential from the item titled `monochange.dev` in the `monochange` vault. Each value is a field whose label is the secret name, inside a section named after its group. Monosecret matches section and field labels case-insensitively. A startup costs one 1Password auth probe and one batched item read, however many fields the item carries.
 
-| Section   | Field                       | Field type | Required | Value                                                                                                                     |
-| --------- | --------------------------- | ---------- | -------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `auth`    | `JWT_SECRET`                | password   | yes      | Session JWT signing secret                                                                                                |
-| `github`  | `GITHUB_CLIENT_ID`          | text       | yes      | GitHub App client ID                                                                                                      |
-| `github`  | `GITHUB_CLIENT_SECRET`      | password   | yes      | GitHub App client secret                                                                                                  |
-| `github`  | `GITHUB_APP_ID`             | text       | no       | GitHub App ID                                                                                                             |
-| `github`  | `GITHUB_APP_PRIVATE_KEY`    | password   | no       | The complete PEM private key, including the `BEGIN` and `END` lines                                                       |
-| `github`  | `GITHUB_APP_WEBHOOK_SECRET` | password   | no       | GitHub App webhook secret                                                                                                 |
-| `release` | `MONOCHANGE_OIDC_AUDIENCE`  | text       | no       | Audience required in GitHub Actions OIDC tokens; the app uses `monochange.dev` when it is empty                           |
-| `release` | `MONOCHANGE_TOKEN`          | password   | no       | API token the hosted release endpoints accept from CI systems without GitHub Actions OIDC; leave it empty to require OIDC |
-| `ai`      | `OPENROUTER_API_KEY`        | password   | no       | OpenRouter API key                                                                                                        |
+| Section   | Field                       | Field type | Required | Value                                                                                                                                                                                                                      |
+| --------- | --------------------------- | ---------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `auth`    | `JWT_SECRET`                | password   | yes      | Session JWT signing secret                                                                                                                                                                                                 |
+| `auth`    | `TOKEN_ENCRYPTION_KEY`      | password   | yes      | Key that encrypts GitHub OAuth tokens in the database; any non-empty string works, and changing it invalidates stored tokens (users sign in again)                                                                         |
+| `github`  | `GITHUB_CLIENT_ID`          | text       | yes      | GitHub App client ID                                                                                                                                                                                                       |
+| `github`  | `GITHUB_CLIENT_SECRET`      | password   | yes      | GitHub App client secret                                                                                                                                                                                                   |
+| `github`  | `GITHUB_APP_ID`             | text       | no       | GitHub App ID                                                                                                                                                                                                              |
+| `github`  | `GITHUB_APP_PRIVATE_KEY`    | password   | no       | The complete PEM private key, including the `BEGIN` and `END` lines                                                                                                                                                        |
+| `github`  | `GITHUB_APP_WEBHOOK_SECRET` | password   | no       | GitHub App webhook secret                                                                                                                                                                                                  |
+| `release` | `MONOCHANGE_OIDC_AUDIENCE`  | text       | no       | Audience required in GitHub Actions OIDC tokens; the app uses `monochange.dev` when it is empty                                                                                                                            |
+| `release` | `MONOCHANGE_TOKEN`          | password   | no       | API token the hosted release endpoints accept from CI systems without GitHub Actions OIDC; leave it empty to require OIDC. It only acts on repositories listed in the `MONOCHANGE_TOKEN_REPOSITORIES` environment variable |
+| `ai`      | `OPENROUTER_API_KEY`        | password   | no       | OpenRouter API key                                                                                                                                                                                                         |
 
 `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, and `GITHUB_APP_WEBHOOK_SECRET` enable repository connection and must be configured together. The app validates the PEM at startup and refuses to start with a partial set or a malformed key.
 
@@ -138,11 +141,13 @@ Cloud firewall rules:
 
 ## 3. bootstrap and harden the server
 
-Run the hardened setup script on the Droplet. It installs Docker, configures SSH key-only access, creates the `deploy` user, enables UFW/fail2ban/unattended upgrades, creates app directories, and installs backup/deploy helper scripts.
+Run the hardened setup script on the Droplet. It installs Docker, configures SSH key-only access, creates the `deploy` user, enables UFW/fail2ban/unattended upgrades, creates app directories, installs backup/deploy helper scripts, and installs the CVE-2026-98432 interim nftables rule. The mitigation script must sit next to `harden-droplet.sh`.
 
 ```bash
-scp app/deploy/digitalocean/harden-droplet.sh root@$DROPLET_IP:/root/harden-droplet.sh
-ssh root@$DROPLET_IP 'chmod +x /root/harden-droplet.sh && /root/harden-droplet.sh'
+scp app/deploy/digitalocean/harden-droplet.sh \
+  app/deploy/digitalocean/mitigate-cve-2026-98432.sh \
+  root@$DROPLET_IP:/root/
+ssh root@$DROPLET_IP 'chmod +x /root/harden-droplet.sh /root/mitigate-cve-2026-98432.sh && /root/harden-droplet.sh'
 ```
 
 The script enforces:
@@ -155,7 +160,8 @@ The script enforces:
 - `AllowUsers deploy root` so `deploy` is used for normal deploys while root remains key-only for privileged maintenance;
 - UFW default-deny incoming, allow `22`, `80`, `443`;
 - fail2ban SSH jail;
-- unattended security upgrades;
+- the CVE-2026-98432 nftables rule that drops inbound IPv4 TCP packets carrying IP options, with a systemd unit that reloads it at boot; see [CVE-2026-98432 interim mitigation](deploy/digitalocean/OPERATIONS.md#cve-2026-98432-interim-mitigation);
+- unattended security upgrades, and an automatic reboot at `07:30` UTC whenever they leave `/var/run/reboot-required`;
 - `/opt/monochange/secrets` mode `0700`;
 - `/opt/monochange/secrets/op_service_account_token` should be written with mode `0600`.
 
@@ -288,7 +294,7 @@ Releases before the Monosecret migration read one 1Password item per secret, tit
 
 1. **Create the item.** In the `monochange` vault, create a Secure Note titled exactly `monochange.dev`. Add the sections `auth`, `github`, `release`, and `ai`.
 2. **Add the fields.** For each row in the [production secret layout](#production-secret-layout), add a field labelled with the secret name to its section, with the listed field type. Copy the value from the `password` field of the matching `secretspec/monochange_app/production/<KEY>` item. Skip optional fields that have no old item. Do not copy `secretspec/monochange_app/production/DATABASE_URL`; Compose now supplies it. Paste `GITHUB_APP_PRIVATE_KEY` as the complete PEM, including the `BEGIN` and `END` lines.
-3. **Check the item.** The item must hold exactly these fields: `JWT_SECRET` in `auth`; `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, and `GITHUB_APP_WEBHOOK_SECRET` in `github`; optional `MONOCHANGE_OIDC_AUDIENCE` and `MONOCHANGE_TOKEN` in `release`; and optional `OPENROUTER_API_KEY` in `ai`. The production service account keeps read access to the `monochange` vault, and the token file on the server does not change.
+3. **Check the item.** The item must hold exactly these fields: `JWT_SECRET` and `TOKEN_ENCRYPTION_KEY` in `auth`; `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, and `GITHUB_APP_WEBHOOK_SECRET` in `github`; optional `MONOCHANGE_OIDC_AUDIENCE` and `MONOCHANGE_TOKEN` in `release`; and optional `OPENROUTER_API_KEY` in `ai`. The production service account keeps read access to the `monochange` vault, and the token file on the server does not change.
 4. **Install the new Compose file before the image changes.** Monosecret still honours the old `SECRETSPEC_PROVIDER` variable as a provider override, so the new image started with the old Compose file would bypass the item and fail to start. Copy `app/deploy/digitalocean/docker-compose.yml` from the release revision to `/opt/monochange/` as described in [CLI operations](deploy/digitalocean/OPERATIONS.md). Replacing the file does not restart the running container.
 5. **Deploy.** Let the automated website deployment ship the release, or run the manual update from [CLI operations](deploy/digitalocean/OPERATIONS.md). The deploy helper waits for `/health`.
 6. **Verify.** Confirm `curl -fsS https://monochange.dev/health | jq` reports `"status": "ok"`. Check `docker compose logs --tail=100 app` for a clean start with no secret or GitHub App errors. Sign in on `https://monochange.dev`, open the dashboard, and confirm the repository connection link is offered. A missing required field stops the app at startup with an error naming the secret.
@@ -298,7 +304,7 @@ To roll back before step 7, restore the previous Compose file and redeploy the p
 
 ## API rate limits
 
-The app limits its API, the Leptos server functions and the REST endpoints under `/api`, per client. Pages, `/pkg` assets, `/health`, and `/api/github/webhooks` are never limited: GitHub doesn't redeliver a dropped webhook on its own, and each delivery is already authenticated by its signature.
+The app limits Leptos server functions, REST endpoints under `/api`, and the `/login` and `/auth/callback` pages before server rendering. OAuth pages always use the address bucket, including for signed-in visitors. Other pages, `/pkg` assets, `/health`, and `/api/github/webhooks` are never limited: GitHub doesn't redeliver a dropped webhook on its own, and each delivery is already authenticated by its signature.
 
 | Client                    | Counted by                       | Sustained      | Burst |
 | ------------------------- | -------------------------------- | -------------- | ----- |
@@ -306,6 +312,8 @@ The app limits its API, the Leptos server functions and the REST endpoints under
 | Anyone else, including CI | client address (IPv6 by its /64) | 60 per minute  | 30    |
 
 Each limit is a GCRA bucket from the [`governor`](https://docs.rs/governor) crate: a client may spend the burst at once, then it refills at the sustained rate. Limited responses carry the IETF [`RateLimit-Policy` and `RateLimit`](https://datatracker.ietf.org/doc/draft-ietf-httpapi-ratelimit-headers/) fields, and a `429 Too Many Requests` adds `Retry-After` in seconds. Server functions reject with an encoded `ServerFnError`, so the site shows the message; REST endpoints reject with their usual `{"message": ...}` JSON body.
+
+OAuth page rejections return plain text. Callback state is consumed once in SQLite before the provider exchange, so a copied state cookie cannot trigger another exchange, including after a restart. Failed exchanges require a fresh sign-in attempt. The startup migration creates `oauth_state_uses`; expired entries are pruned as callbacks arrive. Token exchanges time out after ten seconds, and each app process allows at most sixteen concurrent exchanges. Capacity rejections preserve the pending state for a retry.
 
 Override any limit with an environment variable on the `app` service; each must be a whole number above zero, and the app refuses to start otherwise.
 

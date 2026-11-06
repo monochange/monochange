@@ -1,0 +1,5 @@
+---
+source: crates/monochange_integration_tests/tests/format_configuration.rs
+expression: message
+---
+io error: failed to write [workspace]/monochange.toml: Permission denied (os error 13)

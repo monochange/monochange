@@ -1,0 +1,9 @@
+[ecosystems.npm]
+enabled = true
+
+[ecosystems.cargo]
+enabled = true
+dependency_version_prefix = "^"
+
+[ecosystems.cargo.publish]
+enabled = true

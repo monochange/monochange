@@ -1,0 +1,31 @@
+---
+source: crates/monochange_integration_tests/tests/hosted_release_commit.rs
+expression: entries
+---
+[
+  {
+    "mode": "100644",
+    "path": ".changeset/feature.md",
+    "source": "deleted"
+  },
+  {
+    "mode": "100644",
+    "path": ".monochange/releases/829c44b7a1ee8674/release.json",
+    "source": "inline"
+  },
+  {
+    "mode": "100644",
+    "path": "Cargo.toml",
+    "source": "inline"
+  },
+  {
+    "mode": "100644",
+    "path": "crates/core/CHANGELOG.md",
+    "source": "inline"
+  },
+  {
+    "mode": "100644",
+    "path": "crates/core/Cargo.toml",
+    "source": "inline"
+  }
+]

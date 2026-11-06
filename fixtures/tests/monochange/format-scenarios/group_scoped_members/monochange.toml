@@ -1,0 +1,11 @@
+[group.main]
+packages = ["@acme/zeta", "@acme/alpha", "@acme/middle"]
+
+[package."@acme/zeta"]
+path = "packages/zeta"
+
+[package."@acme/alpha"]
+path = "packages/alpha"
+
+[package."@acme/middle"]
+path = "packages/middle"

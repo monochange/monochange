@@ -8,6 +8,8 @@
 monochange init
 ```
 
+Run `monochange format` after editing the config to keep sections, packages, groups, and CLI workflows in canonical order.
+
 2. Validate configuration and changeset targets before making release changes:
 
 ```bash

@@ -346,6 +346,10 @@ pub fn run_in_tty_with_env(
 	let mut command = CommandBuilder::new(get_cargo_bin("monochange"));
 	command.cwd(workspace);
 	command.env("NO_COLOR", "1");
+	// Callers may run under `TERM=dumb` (non-interactive agents), which would
+	// silence the animated progress layout these tests assert against. Pin a
+	// capable terminal so the pty captures the layout deterministically.
+	command.env("TERM", "xterm-256color");
 	command.env_remove("RUST_LOG");
 	command.env_remove("GITHUB_ACTIONS");
 

@@ -1,0 +1,8 @@
+[zzz]
+value = true
+
+[alpha]
+value = false
+
+[defaults]
+package_type = "npm"

@@ -13,6 +13,8 @@
 #[path = "__tests__/github_app_tests.rs"]
 mod tests;
 
+pub mod feedback;
+
 use std::collections::BTreeMap;
 
 use hmac::Hmac;
@@ -20,6 +22,7 @@ use hmac::Mac;
 use jsonwebtoken::EncodingKey;
 use jsonwebtoken::Header;
 use jsonwebtoken::encode;
+use monochange_core::HostedCommitFile;
 use monochange_core::HostedCommitRequest;
 use monochange_core::SourceChangeRequest;
 use monochange_core::SourceChangeRequestOperation;
@@ -57,10 +60,32 @@ pub enum GitHubAppError {
 		"the release tree changes `.github/workflows`; release commits must not modify GitHub workflows"
 	)]
 	WorkflowsChanged,
+	#[error("branch `{0}` must be a release branch distinct from the base and default branches")]
+	InvalidReleaseBranch(String),
+	#[error(
+		"pull request is not a verified monochange release request for this head, base, and repository"
+	)]
+	UnboundPullRequest,
+	#[error(
+		"release pull request {url} was created but could not be authenticated; close this newly created release PR and retry: {source}"
+	)]
+	ReleasePullRequestNeedsRecovery {
+		url: String,
+		#[source]
+		source: Box<GitHubAppError>,
+	},
 	#[error("invalid webhook signature")]
 	WebhookSignature,
 	#[error("invalid GitHub app slug")]
 	InvalidAppSlug,
+	#[error(
+		"JWT signing secret is empty; set JWT_SECRET to a non-empty value before starting the server"
+	)]
+	EmptyJwtSecret,
+	#[error(
+		"token encryption key is empty; set TOKEN_ENCRYPTION_KEY to a non-empty value before starting the server"
+	)]
+	EmptyTokenEncryptionKey,
 }
 
 /// Monochange GitHub App credentials resolved from the environment.
@@ -339,7 +364,10 @@ fn access_rank(level: &str) -> u8 {
 }
 
 /// Compare two byte strings without early exit.
-fn constant_time_eq(left: &[u8], right: &[u8]) -> bool {
+///
+/// Shared by webhook signature and API token checks so a secret can never be
+/// probed byte by byte through either path.
+pub(crate) fn constant_time_eq(left: &[u8], right: &[u8]) -> bool {
 	if left.len() != right.len() {
 		return false;
 	}
@@ -388,24 +416,30 @@ struct InstallationTokenResponse {
 }
 
 #[derive(Debug, Serialize)]
-struct BlobRequest<'a> {
-	content: &'a str,
-	encoding: &'static str,
-}
-
-#[derive(Debug, Serialize)]
-struct TreeEntry {
-	path: String,
-	mode: String,
+struct TreeEntry<'a> {
+	path: &'a str,
+	mode: &'static str,
 	#[serde(rename = "type")]
-	kind: String,
-	sha: Option<String>,
+	kind: &'static str,
+	#[serde(flatten)]
+	source: TreeEntrySource<'a>,
+}
+
+/// What a release tree entry writes at its path.
+#[derive(Debug, Serialize)]
+#[serde(untagged)]
+enum TreeEntrySource<'a> {
+	/// Text GitHub stores as a new blob while creating the tree, so the file
+	/// needs no blob request of its own.
+	Content { content: &'a str },
+	/// Serializes as `"sha": null`, which GitHub requires to delete a path.
+	Deleted { sha: () },
 }
 
 #[derive(Debug, Serialize)]
-struct TreeRequest {
-	base_tree: String,
-	tree: Vec<TreeEntry>,
+struct TreeRequest<'a> {
+	base_tree: &'a str,
+	tree: Vec<TreeEntry<'a>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -423,12 +457,16 @@ struct CommitRequest<'a> {
 #[derive(Debug, Deserialize)]
 struct GitTreeListing {
 	tree: Vec<GitTreeListingEntry>,
+	#[serde(default)]
+	truncated: bool,
 }
 
 #[derive(Debug, Deserialize)]
 struct GitTreeListingEntry {
 	path: String,
 	sha: String,
+	#[serde(rename = "type")]
+	kind: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -483,8 +521,107 @@ struct CreateRefRequest<'a> {
 struct PullRequestResponse {
 	number: u64,
 	html_url: String,
+	node_id: String,
 	#[serde(default)]
-	node_id: Option<String>,
+	body: Option<String>,
+	user: PullRequestAuthor,
+	head: PullRequestBranch,
+	base: PullRequestBranch,
+}
+
+#[derive(Debug, Deserialize)]
+struct PullRequestAuthor {
+	id: u64,
+	#[serde(rename = "type")]
+	kind: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct PullRequestBranch {
+	#[serde(rename = "ref")]
+	name: String,
+	repo: PullRequestRepository,
+}
+
+#[derive(Debug, Deserialize)]
+struct PullRequestRepository {
+	id: i64,
+}
+
+/// GitHub assigns these identities; callers cannot copy a marker to another PR.
+#[derive(Serialize)]
+struct ReleasePullRequestIdentity<'a> {
+	number: u64,
+	node_id: &'a str,
+	author_id: u64,
+	head_repository: i64,
+	head_branch: &'a str,
+	base_repository: i64,
+	base_branch: &'a str,
+}
+
+const RELEASE_PR_MARKER: &str = "<!-- monochange-release-pr:v1:";
+
+impl PullRequestResponse {
+	/// Authenticate GitHub-assigned identity separately from caller-controlled prose.
+	fn binding(&self, secret: &str) -> Hmac<Sha256> {
+		let identity = ReleasePullRequestIdentity {
+			number: self.number,
+			node_id: &self.node_id,
+			author_id: self.user.id,
+			head_repository: self.head.repo.id,
+			head_branch: &self.head.name,
+			base_repository: self.base.repo.id,
+			base_branch: &self.base.name,
+		};
+		let mut mac = Hmac::<Sha256>::new_from_slice(secret.as_bytes())
+			.unwrap_or_else(|error| panic!("HMAC accepts any key length: {error}"));
+		mac.update(b"monochange-hosted-release-pr-v1\0");
+		mac.update(
+			&serde_json::to_vec(&identity)
+				.unwrap_or_else(|error| panic!("release PR identity is serializable: {error}")),
+		);
+		mac
+	}
+
+	/// Require the exact repository and branches before trusting a signed marker.
+	fn verify_identity(
+		&self,
+		request: &SourceChangeRequest,
+		repository_id: i64,
+	) -> Result<(), GitHubAppError> {
+		if self.user.kind != "Bot"
+			|| self.node_id.is_empty()
+			|| self.head.repo.id != repository_id
+			|| self.base.repo.id != repository_id
+			|| self.head.name != request.head_branch
+			|| self.base.name != request.base_branch
+		{
+			return Err(GitHubAppError::UnboundPullRequest);
+		}
+		Ok(())
+	}
+
+	/// Refuse adoption unless this deployment previously signed the same PR.
+	fn verify_binding(&self, secret: &str) -> Result<(), GitHubAppError> {
+		let signature = self
+			.body
+			.as_deref()
+			.and_then(|body| body.lines().last())
+			.and_then(|line| line.strip_prefix(RELEASE_PR_MARKER))
+			.and_then(|line| line.strip_suffix(" -->"))
+			.and_then(|signature| hex::decode(signature).ok())
+			.ok_or(GitHubAppError::UnboundPullRequest)?;
+		self.binding(secret)
+			.verify_slice(&signature)
+			.map_err(|_| GitHubAppError::UnboundPullRequest)
+	}
+
+	/// Preserve service provenance when replacing the caller's release notes.
+	fn signed_body(&self, secret: &str, body: &str) -> String {
+		let signature = hex::encode(self.binding(secret).finalize().into_bytes());
+		format!("{body}\n\n{RELEASE_PR_MARKER}{signature} -->")
+	}
 }
 
 #[derive(Debug, Serialize)]
@@ -499,6 +636,7 @@ struct CreatePullRequestRequest<'a> {
 struct UpdatePullRequestRequest<'a> {
 	title: &'a str,
 	body: &'a str,
+	base: &'a str,
 }
 
 #[derive(Debug, Serialize)]
@@ -592,13 +730,11 @@ async fn read_default_branch(
 	http: &reqwest::Client,
 	api_url: &str,
 	token: &str,
-	request: &HostedCommitRequest,
+	owner: &str,
+	repo: &str,
 ) -> Result<String, GitHubAppError> {
 	let response = http
-		.get(format!(
-			"{api_url}/repos/{}/{}",
-			request.owner, request.repository
-		))
+		.get(format!("{api_url}/repos/{owner}/{repo}"))
 		.bearer_auth(token)
 		.header("Accept", "application/vnd.github+json")
 		.send()
@@ -639,21 +775,14 @@ enum ReleaseBranchUpdate {
 /// Decide how the release commit may move the release branch.
 ///
 /// The release branch belongs to monochange and is rebuilt from the base
-/// branch on every run, so an existing release branch is replaced rather than
-/// built upon. Creating a branch or fast-forwarding it from `base_commit`
-/// never discards commits and is always allowed. A forced replacement is
-/// allowed only when every condition holds:
-///
-/// - the request names a base branch (older CLIs do not);
-/// - the branch is shaped like a monochange release branch,
-///   `<branch_prefix>/release`;
-/// - the branch is neither the base branch nor the repository's default
-///   branch, which is read only on this path;
-/// - `base_commit` is still the head of the base branch.
+/// branch on every run. All updates require a release branch distinct from
+/// the named base, when supplied, and the repository's default branch.
+/// Replacing an existing release additionally requires a named base branch
+/// whose head is still `base_commit`.
 ///
 /// A stale run whose base branch moved gets [`GitHubAppError::BaseMoved`] so
-/// the run for the newer commit refreshes the branch; every other refused
-/// replacement gets [`GitHubAppError::BranchMoved`]. Without these checks a
+/// the run for the newer commit refreshes the branch. Invalid branch policy
+/// gets [`GitHubAppError::InvalidReleaseBranch`]. Without these checks a
 /// caller could name `main` as the branch and force it onto another branch's
 /// commit.
 ///
@@ -667,6 +796,18 @@ async fn plan_release_branch_update(
 	token: &str,
 	request: &HostedCommitRequest,
 ) -> Result<ReleaseBranchUpdate, GitHubAppError> {
+	if !is_release_branch_name(&request.branch)
+		|| request.base_branch.as_deref() == Some(request.branch.as_str())
+	{
+		return Err(GitHubAppError::InvalidReleaseBranch(request.branch.clone()));
+	}
+
+	if read_default_branch(http, api_url, token, &request.owner, &request.repository).await?
+		== request.branch
+	{
+		return Err(GitHubAppError::InvalidReleaseBranch(request.branch.clone()));
+	}
+
 	let release_head = read_branch_head(
 		http,
 		api_url,
@@ -684,18 +825,14 @@ async fn plan_release_branch_update(
 		return Ok(ReleaseBranchUpdate::FastForward);
 	}
 
-	let branch_moved = |release_head: String| {
+	let base_branch = request.base_branch.as_deref().ok_or_else(|| {
 		GitHubAppError::BranchMoved(
 			request.branch.clone(),
 			release_head,
 			request.base_commit.clone(),
 		)
-	};
-	let Some(base_branch) = request.base_branch.as_deref().filter(|base_branch| {
-		*base_branch != request.branch && is_release_branch_name(&request.branch)
-	}) else {
-		return Err(branch_moved(release_head));
-	};
+	})?;
+
 	let base_head = read_branch_head(
 		http,
 		api_url,
@@ -721,88 +858,90 @@ async fn plan_release_branch_update(
 		));
 	}
 
-	if read_default_branch(http, api_url, token, request).await? == request.branch {
-		return Err(branch_moved(release_head));
-	}
-
 	Ok(ReleaseBranchUpdate::Regenerate)
 }
 
-/// Upload the request's file contents as blobs and build a tree on top of
-/// the prepared base commit.
+/// Inline file bytes sent in one tree request before the rest of the release
+/// is layered on in a further tree request chained through `base_tree`.
+const RELEASE_TREE_INLINE_BYTES_PER_REQUEST: usize = 4 * 1024 * 1024;
+
+/// Build a tree holding the request's files on top of the prepared base
+/// commit.
+///
+/// File contents travel inline in the tree request, so GitHub creates the
+/// blobs itself. One blob request per file would trip GitHub's secondary
+/// rate limit for content creation on releases touching more than about 80
+/// files. Releases with more than `inline_bytes` of content are split across
+/// tree requests that each build on the previous tree.
 async fn create_release_tree(
 	http: &reqwest::Client,
 	api_url: &str,
 	installation_token: &str,
 	request: &HostedCommitRequest,
+	inline_bytes: usize,
 ) -> Result<String, GitHubAppError> {
 	let owner = &request.owner;
 	let repo = &request.repository;
-	let base_commit = &request.base_commit;
-	let mut tree = Vec::new();
+	let mut tree = request.base_commit.clone();
 
-	for file in &request.files {
-		match &file.content {
-			Some(content) => {
-				let response = http
-					.post(format!("{api_url}/repos/{owner}/{repo}/git/blobs"))
-					.bearer_auth(installation_token)
-					.header("Accept", "application/vnd.github+json")
-					.json(&BlobRequest {
-						content,
-						encoding: "utf-8",
-					})
-					.send()
-					.await?;
-				if !response.status().is_success() {
-					let status = response.status();
-					let body = response.text().await.unwrap_or_default();
-					return Err(api_error("create blob", status, body));
-				}
+	for chunk in release_tree_chunks(&request.files, inline_bytes) {
+		let response = http
+			.post(format!("{api_url}/repos/{owner}/{repo}/git/trees"))
+			.bearer_auth(installation_token)
+			.header("Accept", "application/vnd.github+json")
+			.json(&TreeRequest {
+				base_tree: &tree,
+				tree: chunk,
+			})
+			.send()
+			.await?;
 
-				let blob: TreeResponse = response.json().await?;
-				tree.push(TreeEntry {
-					path: file.path.clone(),
-					mode: "100644".to_string(),
-					kind: "blob".to_string(),
-					sha: Some(blob.sha),
-				});
-			}
-			None => {
-				// A missing content deletes the path; GitHub expects an
-				// explicit null sha for deletions inside a tree.
-				tree.push(TreeEntry {
-					path: file.path.clone(),
-					mode: "100644".to_string(),
-					kind: "blob".to_string(),
-					sha: None,
-				});
-			}
+		if !response.status().is_success() {
+			let status = response.status();
+			let body = response.text().await.unwrap_or_default();
+
+			return Err(api_error("create tree", status, body));
 		}
+
+		let tree_response: TreeResponse = response.json().await?;
+		tree = tree_response.sha;
 	}
 
-	// Tree on top of the prepared base commit.
-	let response = http
-		.post(format!("{api_url}/repos/{owner}/{repo}/git/trees"))
-		.bearer_auth(installation_token)
-		.header("Accept", "application/vnd.github+json")
-		.json(&TreeRequest {
-			base_tree: base_commit.clone(),
-			tree,
-		})
-		.send()
-		.await?;
+	Ok(tree)
+}
 
-	if !response.status().is_success() {
-		let status = response.status();
-		let body = response.text().await.unwrap_or_default();
+/// Split the release files into tree requests carrying at most
+/// `inline_bytes` of content each. There is always at least one request, so
+/// the result is a tree even when the request lists no files.
+fn release_tree_chunks(files: &[HostedCommitFile], inline_bytes: usize) -> Vec<Vec<TreeEntry<'_>>> {
+	let mut chunks = Vec::new();
+	let mut chunk = Vec::new();
+	let mut chunk_bytes = 0;
 
-		return Err(api_error("create tree", status, body));
+	for file in files {
+		let source = match &file.content {
+			Some(content) => TreeEntrySource::Content { content },
+			None => TreeEntrySource::Deleted { sha: () },
+		};
+
+		let entry_bytes = file.path.len() + file.content.as_ref().map_or(0, String::len);
+
+		if !chunk.is_empty() && chunk_bytes + entry_bytes > inline_bytes {
+			chunks.push(std::mem::take(&mut chunk));
+			chunk_bytes = 0;
+		}
+
+		chunk_bytes += entry_bytes;
+		chunk.push(TreeEntry {
+			path: &file.path,
+			mode: "100644",
+			kind: "blob",
+			source,
+		});
 	}
 
-	let tree_response: TreeResponse = response.json().await?;
-
-	Ok(tree_response.sha)
+	chunks.push(chunk);
+	chunks
 }
 
 /// GET a Git Database object from the repository.
@@ -856,18 +995,23 @@ async fn tree_child(
 	)
 	.await?;
 
-	Ok(listing
-		.tree
-		.into_iter()
-		.find(|entry| entry.path == name)
-		.map(|entry| entry.sha))
+	if listing.truncated {
+		return Err(GitHubAppError::WorkflowsChanged);
+	}
+
+	let entry = listing.tree.into_iter().find(|entry| entry.path == name);
+
+	if entry.as_ref().is_some_and(|entry| entry.kind != "tree") {
+		return Err(GitHubAppError::WorkflowsChanged);
+	}
+
+	Ok(entry.map(|entry| entry.sha))
 }
 
-/// Refuse a tree built by the workflow when it changes `.github/workflows`.
+/// Refuse a release tree when it changes `.github/workflows`.
 ///
-/// Uploaded files are checked by path before anything is written; a tree
-/// carries no paths, so its `.github/workflows` entry is compared with the
-/// base commit's instead, one directory level at a time.
+/// Both uploaded files and caller-built trees must preserve the base commit's
+/// workflow subtree, including its object types.
 async fn ensure_tree_keeps_workflows(
 	http: &reqwest::Client,
 	api_url: &str,
@@ -930,14 +1074,22 @@ pub async fn create_release_commit(
 	let update = plan_release_branch_update(http, api_url, installation_token, request).await?;
 
 	// 2. The tree: either the one the workflow already built with its own
-	// token, or blobs and a tree created here from the uploaded contents.
+	// token, or one created here from the uploaded contents.
 	let tree_sha = match &request.tree {
-		Some(tree) => {
-			ensure_tree_keeps_workflows(http, api_url, installation_token, request, tree).await?;
-			tree.clone()
+		Some(tree) => tree.clone(),
+		None => {
+			create_release_tree(
+				http,
+				api_url,
+				installation_token,
+				request,
+				RELEASE_TREE_INLINE_BYTES_PER_REQUEST,
+			)
+			.await?
 		}
-		None => create_release_tree(http, api_url, installation_token, request).await?,
 	};
+
+	ensure_tree_keeps_workflows(http, api_url, installation_token, request, &tree_sha).await?;
 
 	// 4. Commit with the prepared base as its only parent.
 	let message = if request.body.is_empty() {
@@ -1035,10 +1187,10 @@ async fn find_open_pull_request(
 	repo: &str,
 	head_branch: &str,
 ) -> Result<Option<PullRequestResponse>, GitHubAppError> {
+	let head = format!("{owner}:{head_branch}");
 	let response = http
-		.get(format!(
-			"{api_url}/repos/{owner}/{repo}/pulls?state=open&head={owner}%3A{head_branch}"
-		))
+		.get(format!("{api_url}/repos/{owner}/{repo}/pulls"))
+		.query(&[("state", "open"), ("head", head.as_str())])
 		.bearer_auth(token)
 		.header("Accept", "application/vnd.github+json")
 		.send()
@@ -1052,10 +1204,20 @@ async fn find_open_pull_request(
 	}
 
 	let pulls: Vec<PullRequestResponse> = response.json().await?;
+
+	if pulls.len() > 1 {
+		return Err(GitHubAppError::UnboundPullRequest);
+	}
+
 	Ok(pulls.into_iter().next())
 }
 
 /// Open or update the release pull request under the bot identity.
+///
+/// Existing PRs must carry a server-authenticated marker for their immutable
+/// identity, repository, creator, head and base. A newly created PR receives
+/// that marker before labels or auto-merge are applied. Rotating the signing
+/// secret invalidates old markers and requires recreating those release PRs.
 ///
 /// Returns the pull request number, the performed operation, and its URL.
 pub async fn publish_release_pull_request(
@@ -1063,9 +1225,21 @@ pub async fn publish_release_pull_request(
 	api_url: &str,
 	installation_token: &str,
 	request: &SourceChangeRequest,
+	binding_secret: &str,
+	repository_id: i64,
 ) -> Result<(u64, SourceChangeRequestOperation, String), GitHubAppError> {
 	let owner = &request.owner;
 	let repo = &request.repo;
+
+	if !is_release_branch_name(&request.head_branch)
+		|| request.head_branch == request.base_branch
+		|| read_default_branch(http, api_url, installation_token, owner, repo).await?
+			== request.head_branch
+	{
+		return Err(GitHubAppError::InvalidReleaseBranch(
+			request.head_branch.clone(),
+		));
+	}
 
 	let existing = find_open_pull_request(
 		http,
@@ -1078,29 +1252,9 @@ pub async fn publish_release_pull_request(
 	.await?;
 
 	let (pull, operation) = if let Some(existing) = existing {
-		let response = http
-			.patch(format!(
-				"{api_url}/repos/{owner}/{repo}/pulls/{}",
-				existing.number
-			))
-			.bearer_auth(installation_token)
-			.header("Accept", "application/vnd.github+json")
-			.json(&UpdatePullRequestRequest {
-				title: &request.title,
-				body: &request.body,
-			})
-			.send()
-			.await?;
-
-		if !response.status().is_success() {
-			let status = response.status();
-			let body = response.text().await.unwrap_or_default();
-
-			return Err(api_error("update pull request", status, body));
-		}
-
-		let pull: PullRequestResponse = response.json().await?;
-		(pull, SourceChangeRequestOperation::Updated)
+		existing.verify_identity(request, repository_id)?;
+		existing.verify_binding(binding_secret)?;
+		(existing, SourceChangeRequestOperation::Updated)
 	} else {
 		let response = http
 			.post(format!("{api_url}/repos/{owner}/{repo}/pulls"))
@@ -1126,6 +1280,49 @@ pub async fn publish_release_pull_request(
 		(pull, SourceChangeRequestOperation::Created)
 	};
 
+	pull.verify_identity(request, repository_id)?;
+	let body = pull.signed_body(binding_secret, &request.body);
+	let stamp = async {
+		let response = http
+			.patch(format!(
+				"{api_url}/repos/{owner}/{repo}/pulls/{}",
+				pull.number
+			))
+			.bearer_auth(installation_token)
+			.header("Accept", "application/vnd.github+json")
+			.json(&UpdatePullRequestRequest {
+				title: &request.title,
+				body: &body,
+				base: &request.base_branch,
+			})
+			.send()
+			.await?;
+
+		if !response.status().is_success() {
+			let status = response.status();
+			return Err(api_error(
+				"update pull request",
+				status,
+				response.text().await.unwrap_or_default(),
+			));
+		}
+
+		let updated: PullRequestResponse = response.json().await?;
+		updated.verify_identity(request, repository_id)?;
+		updated.verify_binding(binding_secret)
+	}
+	.await;
+	stamp.map_err(|error| {
+		if operation == SourceChangeRequestOperation::Created {
+			GitHubAppError::ReleasePullRequestNeedsRecovery {
+				url: pull.html_url.clone(),
+				source: Box::new(error),
+			}
+		} else {
+			error
+		}
+	})?;
+
 	if !request.labels.is_empty() {
 		let response = http
 			.post(format!(
@@ -1148,10 +1345,9 @@ pub async fn publish_release_pull_request(
 		}
 	}
 
-	if request.auto_merge
-		&& let Some(node_id) = pull.node_id.as_deref()
-	{
-		let _ = enable_pull_request_auto_merge(http, api_url, installation_token, node_id).await;
+	if request.auto_merge {
+		let _ =
+			enable_pull_request_auto_merge(http, api_url, installation_token, &pull.node_id).await;
 	}
 
 	Ok((pull.number, operation, pull.html_url))

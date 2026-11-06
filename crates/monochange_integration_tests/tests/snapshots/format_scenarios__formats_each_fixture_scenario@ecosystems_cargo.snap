@@ -1,0 +1,13 @@
+---
+source: crates/monochange_integration_tests/tests/format_scenarios.rs
+expression: formatted
+---
+[ecosystems.cargo]
+enabled = true
+dependency_version_prefix = "^"
+
+[ecosystems.cargo.publish]
+enabled = true
+
+[ecosystems.npm]
+enabled = true

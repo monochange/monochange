@@ -1,0 +1,13 @@
+---
+source: crates/monochange_integration_tests/tests/format_scenarios.rs
+expression: formatted
+---
+[package.web]
+path = "packages/web"
+
+[[package.web.deployments]]
+name = "nested"
+
+[[deployments]]
+name = "root"
+trigger = "workflow"

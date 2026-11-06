@@ -28,6 +28,11 @@ packages/.tmp/
 .tmp-test-build-packages/
 .tmp-test-populate-packages/
 **/dist/**
+# Flutter SDK and example build products.
+packages/monochange__feedback_flutter/**/.dart_tool/
+packages/monochange__feedback_flutter/**/build/
+packages/monochange__feedback_flutter/.flutter-plugins-dependencies
+packages/monochange__feedback_flutter/pubspec.lock
 node_modules/
 
 # insta snapshots

@@ -1,0 +1,15 @@
+---
+source: crates/monochange_integration_tests/tests/format_scenarios.rs
+expression: formatted
+---
+[package."@acme/alpha"]
+path = "packages/alpha"
+
+[package."@acme/middle"]
+path = "packages/middle"
+
+[package."@acme/zeta"]
+path = "packages/zeta"
+
+[group.main]
+packages = ["@acme/alpha", "@acme/middle", "@acme/zeta"]
