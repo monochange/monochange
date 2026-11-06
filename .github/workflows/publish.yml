@@ -422,3 +422,23 @@ jobs:
         run: gh release edit "$RELEASE_TAG" --draft=false --latest --repo "${{ github.repository }}"
         env:
           GH_TOKEN: ${{ github.token }}
+
+      # The actions repository is a separate release stream. Once the CLI
+      # release is public, ask it to refresh its release PR so any pending
+      # action changesets are ready for the maintainer to release alongside
+      # this CLI release. This handoff never merges that PR: the merge stays a
+      # maintainer decision, and a missing or under-scoped token only warns so
+      # a successful package publish is never failed by the optional handoff.
+      - name: dispatch monochange actions release
+        env:
+          GH_TOKEN: ${{ secrets.MONOCHANGE_ACTIONS_TOKEN }}
+          RELEASE_TAG: ${{ steps.release_tag.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::warning::MONOCHANGE_ACTIONS_TOKEN is not configured; skipping the monochange/actions release handoff for ${RELEASE_TAG}."
+            exit 0
+          fi
+          if ! gh workflow run release.yml --repo monochange/actions --ref main; then
+            echo "::warning::Could not dispatch the monochange/actions release workflow for ${RELEASE_TAG}. Check that MONOCHANGE_ACTIONS_TOKEN can write Actions workflows in monochange/actions."
+          fi
