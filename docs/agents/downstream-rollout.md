@@ -9,10 +9,11 @@ This is the executable form of the request "kick off the release flow, then upda
 The chain is strictly ordered, because each phase consumes an artifact the previous one published.
 
 ```text
-1. monochange release PR merged        -> vX.Y.Z tag + GitHub release + crates.io + npm
+1. monochange release PR merged         -> vX.Y.Z tag + GitHub release + crates.io + npm
+   publish.yml dispatches the actions release refresh when MONOCHANGE_ACTIONS_TOKEN is set
 2. monochange/actions release PR merged -> actions vA.B.C tag
-3. ifiokjr/nixpkgs package.nix bump     -> downstream repos can resolve the new binary
-4. downstream repo updates              -> devenv.lock refresh, monochange/actions pins
+3. ifiokjr/nixpkgs package.nix bump      -> downstream repos can resolve the new binary
+4. downstream repo updates               -> devenv.lock refresh, monochange/actions pins
 5. downstream PRs merged
 ```
 
@@ -85,6 +86,16 @@ Do not delete or re-point the release tag to work around this: the tag is the re
 
 - a `workflow_dispatch` run, which fast-forwards the release PR;
 - a comment of `/merge` on the release PR, which does the same from the issue thread.
+
+The handoff from phase 1 is automatic. After the main `vX.Y.Z` release becomes public, `publish.yml` dispatches `monochange/actions`'s `release.yml`, which refreshes the actions release PR with any pending action changesets. The handoff requires the `MONOCHANGE_ACTIONS_TOKEN` repository or environment secret: a fine-grained token or GitHub App installation token with Actions write access to `monochange/actions`. Without it, the publish succeeds and logs a warning instead. The handoff only prepares the actions release PR; it never merges it, because the merge remains a maintainer decision.
+
+To release the refresh action changes alongside the CLI release, merge the actions release PR through its guarded workflow:
+
+```bash
+gh workflow run release-pr-merge.yml --repo monochange/actions
+```
+
+Or comment `/merge` on the open actions release PR. The merge triggers `release-publish.yml`, which creates the `vA.B.C` tag and GitHub release.
 
 Verify the actions release the same way:
 
