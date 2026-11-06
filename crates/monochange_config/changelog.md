@@ -4,6 +4,31 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-11-06)
+
+### 🚀 Feature
+
+#### Add canonical `monochange format` command
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #854](https://github.com/monochange/monochange/pull/854)
+
+Adds `monochange format` to rewrite `monochange.toml` in the idiomatic layout: top-level sections in a fixed order, `[package.*]` and `[group.*]` tables sorted by id, group members sorted alphabetically, and `[cli.*]` workflows last. Comments stay attached to their tables and the document header stays at the top.
+
+The command formats the result with taplo using the repository's tab-based, 100-column configuration, so it does not require a separate taplo installation. Use `monochange format --check` to fail CI when the file needs formatting without writing changes. The repository's `lint:monochange` task and CI lint job now run that check.
+
+### 🐛 Fixed
+
+#### Preview `check --fix`, print init next steps, and retire `monochange populate`
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #857](https://github.com/monochange/monochange/pull/857)
+
+Three usability fixes:
+
+- `monochange check --fix --dry-run` previews the fixes `--fix` would apply without writing any file. The summary says `would fix N files`, and the check still fails when errors remain on disk, so a dry run never silently passes a workspace that fixing would repair. `--dry-run` now requires `--fix`.
+- `monochange init` prints the next commands to run (validate, discover, create, preview) instead of only naming the file it wrote.
+- The legacy `monochange populate` command is removed. It has been a documented no-op since the default workflow set became empty; scripts calling it now get an unknown-command error and should call the steps they need directly.
+- TOML syntax errors in `monochange.toml` render with the same source snippet semantic errors get: file, line and column, the offending line with a caret, and the parser's reason, instead of a flat `failed to parse` message.
+
 ## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)
 
 ### 🚀 Feature
