@@ -9,6 +9,7 @@
 mod tests;
 
 use leptos::server;
+use leptoskit_rpc::api;
 pub use monochange_shared::OrganizationSummary;
 pub use monochange_shared::ProjectDetails;
 pub use monochange_shared::ProjectRepositoryView;
@@ -293,6 +294,7 @@ pub(crate) async fn maintained_project(
 }
 
 /// The signed-in user's organisations with their repositories and projects.
+#[api(crate = "leptoskit_rpc", tag = "organizations")]
 #[server(endpoint = "list_organizations")]
 pub async fn list_organizations() -> Result<Vec<OrganizationSummary>, server_fn::ServerFnError> {
 	use std::sync::Arc;
@@ -311,6 +313,7 @@ pub async fn list_organizations() -> Result<Vec<OrganizationSummary>, server_fn:
 }
 
 /// One organisation, or `None` when it isn't the user's to manage.
+#[api(crate = "leptoskit_rpc", tag = "organizations")]
 #[server(endpoint = "organization_overview")]
 pub async fn organization_overview(
 	organization: String,
@@ -327,6 +330,7 @@ pub async fn organization_overview(
 
 /// Creates a project from some of an organisation's repositories, then
 /// opens it.
+#[api(crate = "leptoskit_rpc", tag = "organizations")]
 #[server(endpoint = "create_project")]
 pub async fn create_project(
 	organization: String,
@@ -352,11 +356,12 @@ pub async fn create_project(
 	monochange_app_db::projects::create_project(&state.db, record.id, user_id, &draft)
 		.await
 		.map_err(store_error)?;
-	leptos_axum::redirect(&project_path(&access.login, &draft.slug));
+	leptos_axum::redirect(&project_path(&access.login, &draft.slug), false);
 	Ok(())
 }
 
 /// A project with its repositories, or `None` when it isn't the user's.
+#[api(crate = "leptoskit_rpc", tag = "organizations")]
 #[server(endpoint = "project_overview")]
 pub async fn project_overview(
 	organization: String,
@@ -408,6 +413,7 @@ pub async fn project_overview(
 }
 
 /// Renames a project or changes its repositories.
+#[api(crate = "leptoskit_rpc", tag = "organizations")]
 #[server(endpoint = "update_project")]
 pub async fn update_project(
 	organization: String,
@@ -438,11 +444,12 @@ pub async fn update_project(
 	monochange_app_db::projects::update_project(&state.db, existing.id, &draft)
 		.await
 		.map_err(store_error)?;
-	leptos_axum::redirect(&project_path(&access.login, &draft.slug));
+	leptos_axum::redirect(&project_path(&access.login, &draft.slug), false);
 	Ok(())
 }
 
 /// Deletes a project. Its repositories stay connected to monochange.
+#[api(crate = "leptoskit_rpc", tag = "organizations")]
 #[server(endpoint = "delete_project")]
 pub async fn delete_project(
 	organization: String,
@@ -462,6 +469,6 @@ pub async fn delete_project(
 	monochange_app_db::projects::delete_project(&state.db, existing.id)
 		.await
 		.map_err(database_error)?;
-	leptos_axum::redirect(&organization_path(&access.login));
+	leptos_axum::redirect(&organization_path(&access.login), false);
 	Ok(())
 }

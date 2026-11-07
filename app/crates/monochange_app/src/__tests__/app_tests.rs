@@ -14,6 +14,7 @@ use axum::http::Request;
 use axum::http::StatusCode;
 use axum::http::header::ACCEPT;
 use axum::http::header::COOKIE;
+use axum::http::header::HOST;
 use axum::http::header::LOCATION;
 use axum::http::header::SET_COOKIE;
 use axum_extra::extract::cookie::Cookie;
@@ -374,7 +375,13 @@ async fn fallback_login_aliases_spend_the_bucket_before_generating_state(#[case]
 	let server = MockServer::start_async().await;
 	let app = oauth_limited_router(state(&server).await);
 	let request = || {
-		let request = Request::builder().uri(path).body(Body::empty()).unwrap();
+		// Host makes leptos_axum build an absolute RequestUrl so url::Url collapses
+		// `.` / `..` the same way rate_limit::surface classifies these aliases.
+		let request = Request::builder()
+			.uri(path)
+			.header(HOST, "leptos.dev")
+			.body(Body::empty())
+			.unwrap();
 		assert_eq!(request.uri().path(), path);
 		request
 	};
@@ -411,6 +418,7 @@ async fn fallback_callback_aliases_are_limited_before_provider_work(#[case] path
 		let pending = oauth::login_state(&state.jwt_secret).unwrap();
 		let request = Request::builder()
 			.uri(format!("{path}?code=invalid&state={}", pending.state))
+			.header(HOST, "leptos.dev")
 			.header(COOKIE, pending.cookie.to_string())
 			.body(Body::empty())
 			.unwrap();

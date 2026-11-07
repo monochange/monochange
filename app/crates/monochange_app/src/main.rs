@@ -13,6 +13,7 @@
 //!
 //! ```bash
 //! # Development (reads app/.env, then the environment, then local defaults)
+//! # Prefer: MONOSECRET_PROFILE=development leptoskit serve  (from app/)
 //! MONOSECRET_PROFILE=development cargo leptos watch
 //!
 //! # Production (the container entrypoint exports OP_SERVICE_ACCOUNT_TOKEN and
@@ -28,11 +29,12 @@
 
 use std::sync::Arc;
 
-use axum::Router;
-use axum::response::Json;
 use leptos::prelude::*;
-use leptos_axum::LeptosRoutes;
-use leptos_axum::generate_route_list;
+// Server stack via leptoskit re-exports (axum / leptos_axum).
+use leptoskit::server::axum::Router;
+use leptoskit::server::axum::response::Json;
+use leptoskit::server::leptos_axum::LeptosRoutes;
+use leptoskit::server::leptos_axum::generate_route_list;
 use monochange_app::app::App;
 use monochange_app::app::shell;
 use monochange_app_api::AppState;
@@ -153,7 +155,7 @@ async fn main() -> Result<(), MonochangeError> {
 				move || shell(leptos_options.clone())
 			},
 		)
-		.fallback(leptos_axum::file_and_error_handler({
+		.fallback(leptoskit::server::leptos_axum::file_and_error_handler({
 			let state = app_state.clone();
 			move |leptos_options: leptos::prelude::LeptosOptions| {
 				provide_context(leptos_options.clone());
@@ -167,7 +169,7 @@ async fn main() -> Result<(), MonochangeError> {
 		.merge(monochange_app::public_routes::book_redirects())
 		.route(
 			"/health",
-			axum::routing::get(|| {
+			leptoskit::server::axum::routing::get(|| {
 				async move {
 					Json(HealthResponse {
 						status: "ok",
@@ -180,10 +182,10 @@ async fn main() -> Result<(), MonochangeError> {
 		// Class B machine APIs (webhooks, hosted release OIDC, embed SDK, tasks).
 		.merge(monochange_backend::machine_api_router((*app_state).clone()))
 		.merge(ssr_router)
-		.layer(axum::middleware::from_fn(
+		.layer(leptoskit::server::axum::middleware::from_fn(
 			monochange_app::public_routes::pkg_cache_control,
 		))
-		.layer(axum::middleware::from_fn_with_state(
+		.layer(leptoskit::server::axum::middleware::from_fn_with_state(
 			rate_limit,
 			monochange_app::rate_limit::limit,
 		));
@@ -198,7 +200,7 @@ async fn main() -> Result<(), MonochangeError> {
 		.await
 		.map_err(|e| MonochangeError::Server(e.to_string()))?;
 	// Anonymous clients are rate limited by address, which needs the peer.
-	axum::serve(
+	leptoskit::server::axum::serve(
 		listener,
 		app.into_make_service_with_connect_info::<std::net::SocketAddr>(),
 	)

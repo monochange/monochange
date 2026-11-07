@@ -6,7 +6,9 @@ mod tests;
 
 use leptos::prelude::*;
 use leptos::server;
+use leptoskit_rpc::api;
 pub use monochange_shared::SessionUser;
+#[cfg(not(target_arch = "wasm32"))]
 use serde::Deserialize;
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -168,9 +170,7 @@ impl GitHubUserTokenResponse {
 	}
 }
 
-// leptoskit_rpc: add `#[api(crate = "leptoskit::rpc", tag = "auth")]` above
-// once the app links leptoskit_rpc 0.3 (requires Leptos 0.9). Stable
-// `endpoint` already matches the generated-client contract.
+#[api(crate = "leptoskit_rpc", tag = "auth")]
 #[server(endpoint = "get_session")]
 pub async fn get_session() -> Result<Option<SessionUser>, server_fn::ServerFnError> {
 	use std::sync::Arc;
@@ -215,6 +215,7 @@ pub async fn get_session() -> Result<Option<SessionUser>, server_fn::ServerFnErr
 #[allow(clippy::unused_async)]
 /// The GitHub authorization URL. Sign-in returns to `next` afterwards when it
 /// is a path on this site, and to the dashboard otherwise.
+#[api(crate = "leptoskit_rpc", tag = "auth")]
 #[server(endpoint = "get_login_url")]
 pub async fn get_login_url(next: Option<String>) -> Result<String, server_fn::ServerFnError> {
 	use std::sync::Arc;
@@ -255,6 +256,7 @@ pub async fn get_login_url(next: Option<String>) -> Result<String, server_fn::Se
 	Ok(url.into())
 }
 
+#[api(crate = "leptoskit_rpc", tag = "auth")]
 #[server(endpoint = "exchange_code")]
 pub async fn exchange_code(
 	code: String,
@@ -396,7 +398,7 @@ pub async fn exchange_code(
 			.map_err(|error| server_fn::ServerFnError::new(format!("Cookie: {error}")))?,
 	);
 
-	leptos_axum::redirect(&return_to);
+	leptos_axum::redirect(&return_to, false);
 	Ok(SessionUser {
 		github_id,
 		github_login: login,
@@ -510,6 +512,7 @@ pub(crate) async fn github_user_access_token(
 
 // Leptos server functions must be async.
 #[allow(clippy::unused_async)]
+#[api(crate = "leptoskit_rpc", tag = "auth")]
 #[server(endpoint = "logout")]
 pub async fn logout() -> Result<(), server_fn::ServerFnError> {
 	use leptos_axum::ResponseOptions;
@@ -523,6 +526,6 @@ pub async fn logout() -> Result<(), server_fn::ServerFnError> {
 			.map_err(|error| server_fn::ServerFnError::new(format!("Cookie: {error}")))?,
 	);
 
-	leptos_axum::redirect("/");
+	leptos_axum::redirect("/", false);
 	Ok(())
 }

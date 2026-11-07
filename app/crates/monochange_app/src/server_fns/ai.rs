@@ -1,9 +1,11 @@
 //! AI server functions.
 
 use leptos::server;
+use leptoskit_rpc::api;
 
 // Leptos server functions must be async.
 #[allow(clippy::unused_async)]
+#[api(crate = "leptoskit_rpc", tag = "ai")]
 #[server(endpoint = "ai_analyze_issue")]
 pub async fn ai_analyze_issue(
 	repo_full_name: String,

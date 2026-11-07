@@ -14,6 +14,7 @@ mod tests;
 use std::collections::BTreeMap;
 
 use leptos::server;
+use leptoskit_rpc::api;
 use monochange_app_feedback::Notification;
 use monochange_app_feedback::OutboundUpdate;
 use monochange_app_feedback::PublicMessage;
@@ -29,7 +30,7 @@ use serde::Serialize;
 const UPDATE_LIMIT: u32 = 20;
 
 /// One of the visitor's own submissions.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct OwnItem {
 	pub id: String,
 	pub stage: Stage,
@@ -39,13 +40,13 @@ pub struct OwnItem {
 }
 
 /// The signed-in visitor, as only they see themselves on the portal.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct PortalViewer {
 	pub login: String,
 	pub avatar_url: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct PortalSnapshot {
 	pub organization: String,
 	pub project_slug: String,
@@ -158,14 +159,18 @@ fn not_found() -> server_fn::ServerFnError {
 /// Sends a plain form post back to the portal, at `anchor`.
 #[cfg(not(target_arch = "wasm32"))]
 fn back_to_portal(public: &monochange_app_api::feedback::PublicProject, query: &str, anchor: &str) {
-	leptos_axum::redirect(&format!(
-		"{}{query}#{anchor}",
-		portal_path(&public.organization, &public.project.slug)
-	));
+	leptos_axum::redirect(
+		&format!(
+			"{}{query}#{anchor}",
+			portal_path(&public.organization, &public.project.slug)
+		),
+		false,
+	);
 }
 
 /// Everything the portal shows the current visitor, or `None` for an
 /// unknown project.
+#[api(crate = "leptoskit_rpc", tag = "portal")]
 #[server(endpoint = "portal_view")]
 pub async fn portal_view(
 	organization: String,
@@ -262,6 +267,7 @@ pub async fn portal_view(
 }
 
 /// Shares a bug report or feature request through the portal.
+#[api(crate = "leptoskit_rpc", tag = "portal")]
 #[server(endpoint = "share_feedback")]
 pub async fn share_feedback(
 	organization: String,
@@ -305,6 +311,7 @@ pub async fn share_feedback(
 }
 
 /// Adds or removes the visitor's vote.
+#[api(crate = "leptoskit_rpc", tag = "portal")]
 #[server(endpoint = "portal_vote")]
 pub async fn portal_vote(
 	organization: String,
@@ -331,6 +338,7 @@ pub async fn portal_vote(
 }
 
 /// Adds the visitor's message to an item's discussion.
+#[api(crate = "leptoskit_rpc", tag = "portal")]
 #[server(endpoint = "portal_reply")]
 pub async fn portal_reply(
 	organization: String,
@@ -357,6 +365,7 @@ pub async fn portal_reply(
 
 /// Listed requests that look like `text`, so visitors can vote instead of
 /// filing a duplicate.
+#[api(crate = "leptoskit_rpc", tag = "portal")]
 #[server(endpoint = "similar_requests")]
 pub async fn similar_requests(
 	organization: String,
@@ -383,6 +392,7 @@ pub async fn similar_requests(
 /// the longest description the pipeline accepts.
 // Leptos server functions must be async.
 #[allow(clippy::unused_async)]
+#[api(crate = "leptoskit_rpc", tag = "portal")]
 #[server(endpoint = "preview_markdown")]
 pub async fn preview_markdown(text: String) -> Result<String, server_fn::ServerFnError> {
 	if text.chars().count() > monochange_app_feedback::submission::MAX_DESCRIPTION_CHARS {

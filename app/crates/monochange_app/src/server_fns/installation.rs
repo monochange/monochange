@@ -5,6 +5,7 @@
 mod tests;
 
 use leptos::server;
+use leptoskit_rpc::api;
 pub use monochange_shared::PermissionUpdate;
 pub use monochange_shared::RepositoryConnectionStatus;
 
@@ -12,6 +13,7 @@ pub use monochange_shared::RepositoryConnectionStatus;
 ///
 /// # Errors
 /// Returns an error for an invalid session or a failed configured-app lookup.
+#[api(crate = "leptoskit_rpc", tag = "installation")]
 #[server(endpoint = "repository_connection")]
 pub async fn repository_connection() -> Result<RepositoryConnectionStatus, server_fn::ServerFnError>
 {
@@ -68,6 +70,7 @@ pub async fn repository_connection() -> Result<RepositoryConnectionStatus, serve
 ///
 /// # Errors
 /// Returns an error for an invalid session or an unverifiable organisation.
+#[api(crate = "leptoskit_rpc", tag = "installation")]
 #[server(endpoint = "permission_updates")]
 pub async fn permission_updates() -> Result<Vec<PermissionUpdate>, server_fn::ServerFnError> {
 	use std::sync::Arc;

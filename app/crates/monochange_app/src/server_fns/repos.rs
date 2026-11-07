@@ -5,7 +5,9 @@
 mod tests;
 
 use leptos::server;
+use leptoskit_rpc::api;
 pub use monochange_shared::RepoInfo;
+#[cfg(not(target_arch = "wasm32"))]
 use serde::Deserialize;
 
 /// A repository the signed-in user may manage, with the identities projects
@@ -212,6 +214,7 @@ async fn link_legacy_installations(
 	Ok(())
 }
 
+#[api(crate = "leptoskit_rpc", tag = "repos")]
 #[server(endpoint = "list_repos")]
 pub async fn list_repos() -> Result<Vec<RepoInfo>, server_fn::ServerFnError> {
 	use std::sync::Arc;
@@ -299,6 +302,7 @@ async fn organization_owner(
 		&& membership.organization.id == expected_id)
 }
 
+#[api(crate = "leptoskit_rpc", tag = "repos")]
 #[server(endpoint = "get_repo")]
 pub async fn get_repo(full_name: String) -> Result<Option<RepoInfo>, server_fn::ServerFnError> {
 	Ok(list_repos()

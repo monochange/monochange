@@ -21,6 +21,7 @@ pub enum PlanningError {
 
 /// Project owners explicitly opt into automatic feature planning.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct PlanningPolicy {
 	pub automatic_features: bool,
 	pub repository: String,
@@ -43,6 +44,7 @@ impl Default for PlanningPolicy {
 
 /// Only a redacted, pinned brief travels to a worker.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct PlanningBrief {
 	pub item: String,
 	pub version: String,
@@ -53,6 +55,7 @@ pub struct PlanningBrief {
 
 /// Reviewed scope is enforced again when implementation files return.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct ImplementationPlan {
 	pub summary: String,
 	pub acceptance: Vec<String>,
@@ -122,6 +125,7 @@ pub fn safe_path(path: &str) -> bool {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum JobKind {
 	Plan,
@@ -129,6 +133,7 @@ pub enum JobKind {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum JobStatus {
 	Queued,
@@ -146,6 +151,7 @@ pub enum JobStatus {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum ReviewDecision {
 	Reject,
@@ -153,6 +159,7 @@ pub enum ReviewDecision {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct PlanningJob {
 	#[serde(default)]
 	pub retry_of: Option<String>,
@@ -179,6 +186,7 @@ pub struct PlanningJob {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct PlanningAudit {
 	pub actor: String,
 	pub action: String,
@@ -187,6 +195,7 @@ pub struct PlanningAudit {
 
 /// Stored alongside feedback so queueing and intake commit atomically.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct PlanningState {
 	pub policy: PlanningPolicy,
 	pub jobs: Vec<PlanningJob>,

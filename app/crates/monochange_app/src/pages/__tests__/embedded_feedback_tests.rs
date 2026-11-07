@@ -9,6 +9,9 @@ use super::*;
 use crate::server_fns::embedded::IntegrationView;
 use crate::server_fns::embedded::WorkerView;
 
+/// leptoskit_rpc keeps stable `/api/<endpoint>` paths; older Leptos builds appended a hash.
+const SERVER_FN_ACTION: &str = r"/api/embedded_action(?:[0-9]+)?";
+
 #[tokio::test]
 async fn integration_settings_and_complete_plan_review_render_as_forms() {
 	let mut planning = PlanningState::default();
@@ -58,20 +61,46 @@ async fn integration_settings_and_complete_plan_review_render_as_forms() {
 		assistant_enabled: false,
 	};
 
-	let html = crate::tests::render(move ||view! {<EmbeddedContent data=data.clone() organization="alice".to_owned() project="pocketbook".to_owned() action=ServerAction::new() />}).await;
-	// HTML lacks structural redaction selectors; nonces and compiled action hashes vary by build.
-	insta::with_settings!({ filters => vec![(r#"nonce="[^"]*""#, r#"nonce="[nonce]""#), (r"/api/embedded_action[0-9]+", "/api/embedded_action[build-hash]")] }, {
+	let html = crate::tests::render(move || {
+		view! {
+			<EmbeddedContent
+				data=data.clone()
+				organization="alice".to_owned()
+				project="pocketbook".to_owned()
+				action=ServerAction::new()
+			/>
+		}
+	})
+	.await;
+	// HTML lacks structural redaction selectors; nonces vary by build.
+	insta::with_settings!({ filters => vec![
+		(r#"nonce="[^"]*""#, r#"nonce="[nonce]""#),
+		(SERVER_FN_ACTION, "/api/embedded_action"),
+	] }, {
 		insta::assert_snapshot!(html.replace("><", ">\n<"));
 	});
 }
 
 #[tokio::test]
 async fn credentials_and_action_failures_have_accessible_status_messages() {
-	let html=crate::tests::render(||view! {
-  {action_notice(Some(Ok(EmbeddedReceipt {message:"Copy this credential now".into(),credential:Some("test-only-one-time-code".into())})))}
-  {action_notice(Some(Err(server_fn::ServerFnError::new("Choose a connected repository"))))}
- }).await;
-	insta::with_settings!({filters=>vec![(r#"nonce="[^"]*""#,r#"nonce="[nonce]""#), (r"/api/embedded_action[0-9]+", "/api/embedded_action[build-hash]")]},{insta::assert_snapshot!(html.replace("><",">\n<"));});
+	let html = crate::tests::render(|| {
+		view! {
+			{action_notice(Some(Ok(EmbeddedReceipt {
+				message: "Copy this credential now".into(),
+				credential: Some("test-only-one-time-code".into()),
+			})))}
+			{action_notice(Some(Err(server_fn::ServerFnError::new(
+				"Choose a connected repository",
+			))))}
+		}
+	})
+	.await;
+	insta::with_settings!({ filters => vec![
+		(r#"nonce="[^"]*""#, r#"nonce="[nonce]""#),
+		(SERVER_FN_ACTION, "/api/embedded_action"),
+	] }, {
+		insta::assert_snapshot!(html.replace("><", ">\n<"));
+	});
 }
 
 #[tokio::test]
@@ -89,6 +118,21 @@ async fn automatic_planning_explains_the_approval_requirement() {
 		items: vec![],
 		assistant_enabled: true,
 	};
-	let html=crate::tests::render(move ||view! {<EmbeddedContent data=data.clone() organization="alice".to_owned() project="pocketbook".to_owned() action=ServerAction::new() />}).await;
-	insta::with_settings!({filters=>vec![(r#"nonce="[^"]*""#,r#"nonce="[nonce]""#), (r"/api/embedded_action[0-9]+", "/api/embedded_action[build-hash]")]},{insta::assert_snapshot!(html.replace("><",">\n<"));});
+	let html = crate::tests::render(move || {
+		view! {
+			<EmbeddedContent
+				data=data.clone()
+				organization="alice".to_owned()
+				project="pocketbook".to_owned()
+				action=ServerAction::new()
+			/>
+		}
+	})
+	.await;
+	insta::with_settings!({ filters => vec![
+		(r#"nonce="[^"]*""#, r#"nonce="[nonce]""#),
+		(SERVER_FN_ACTION, "/api/embedded_action"),
+	] }, {
+		insta::assert_snapshot!(html.replace("><", ">\n<"));
+	});
 }

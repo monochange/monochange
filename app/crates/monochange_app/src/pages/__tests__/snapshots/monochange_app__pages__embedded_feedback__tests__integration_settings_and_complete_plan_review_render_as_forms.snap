@@ -11,7 +11,7 @@ expression: "html.replace(\"><\", \">\\n<\")"
 <p>Project ID: 1. Install the web, React Native, or Flutter SDK using a client token issued by your backend.</p>
 <details>
 <summary>Register an app</summary>
-<form action="/api/embedded_action[build-hash]" method="post">
+<form action="/api/embedded_action" method="post">
 <input type="hidden" name="organization" value="alice">
 <input type="hidden" name="project" value="pocketbook">
 <input type="hidden" name="action" value="register">
@@ -38,14 +38,14 @@ expression: "html.replace(\"><\", \">\\n<\")"
 <p>Account namespace: accounts · Active</p>
 <p>https://example.com</p>
 <div class="actions">
-<form action="/api/embedded_action[build-hash]" method="post">
+<form action="/api/embedded_action" method="post">
 <input type="hidden" name="organization" value="alice">
 <input type="hidden" name="project" value="pocketbook">
 <input type="hidden" name="action" value="rotate">
 <input type="hidden" name="id" value="web">
 <button type="submit">Rotate credential and expire sessions</button>
 </form>
-<form action="/api/embedded_action[build-hash]" method="post">
+<form action="/api/embedded_action" method="post">
 <input type="hidden" name="organization" value="alice">
 <input type="hidden" name="project" value="pocketbook">
 <input type="hidden" name="action" value="revoke_integration">
@@ -58,7 +58,7 @@ expression: "html.replace(\"><\", \">\\n<\")"
 <details>
 <summary>Connect a local or self-hosted agent</summary>
 <p>Create a pairing code for your worker. Codes expire after ten minutes and can be used once.</p>
-<form action="/api/embedded_action[build-hash]" method="post">
+<form action="/api/embedded_action" method="post">
 <input type="hidden" name="organization" value="alice">
 <input type="hidden" name="project" value="pocketbook">
 <input type="hidden" name="action" value="pair_worker">
@@ -77,7 +77,7 @@ expression: "html.replace(\"><\", \">\\n<\")"
 <h3>Local agent</h3>
 <p>alice/web</p>
 <p>Connected worker · Last contact 3 Nov 2026 12:00 UTC</p>
-<form action="/api/embedded_action[build-hash]" method="post">
+<form action="/api/embedded_action" method="post">
 <input type="hidden" name="organization" value="alice">
 <input type="hidden" name="project" value="pocketbook">
 <input type="hidden" name="action" value="revoke_worker">
@@ -88,7 +88,7 @@ expression: "html.replace(\"><\", \">\\n<\")"
 <!>
 <h3>Planning</h3>
 <p>Choose which requests get a plan. Enable automatic planning to prepare plans for new feature requests.</p>
-<form action="/api/embedded_action[build-hash]" method="post">
+<form action="/api/embedded_action" method="post">
 <input type="hidden" name="organization" value="alice">
 <input type="hidden" name="project" value="pocketbook">
 <input type="hidden" name="action" value="policy">
@@ -104,7 +104,7 @@ expression: "html.replace(\"><\", \">\\n<\")"
 <button type="submit">Automatically plan feature requests</button>
 </form>
 <p>Automatic planning waits for complete triage and skips bugs, held reports, and duplicates. Existing requests are planned only when you select them.</p>
-<form action="/api/embedded_action[build-hash]" method="post">
+<form action="/api/embedded_action" method="post">
 <input type="hidden" name="organization" value="alice">
 <input type="hidden" name="project" value="pocketbook">
 <input type="hidden" name="action" value="plan">
@@ -159,14 +159,14 @@ expression: "html.replace(\"><\", \">\\n<\")"
 <!>
 </ul>
 <p>Accept the request and create its issue before approving implementation. Approval applies to this exact plan revision.</p>
-<form action="/api/embedded_action[build-hash]" method="post">
+<form action="/api/embedded_action" method="post">
 <input type="hidden" name="organization" value="alice">
 <input type="hidden" name="project" value="pocketbook">
 <input type="hidden" name="action" value="approve">
 <input type="hidden" name="id" value="job-1">
 <button type="submit" class="button-primary">Approve and build</button>
 </form>
-<form action="/api/embedded_action[build-hash]" method="post">
+<form action="/api/embedded_action" method="post">
 <input type="hidden" name="organization" value="alice">
 <input type="hidden" name="project" value="pocketbook">
 <input type="hidden" name="action" value="changes">
@@ -176,7 +176,7 @@ expression: "html.replace(\"><\", \">\\n<\")"
 </label>
 <button type="submit">Request changes</button>
 </form>
-<form action="/api/embedded_action[build-hash]" method="post">
+<form action="/api/embedded_action" method="post">
 <input type="hidden" name="organization" value="alice">
 <input type="hidden" name="project" value="pocketbook">
 <input type="hidden" name="action" value="reject">
@@ -194,5 +194,6 @@ expression: "html.replace(\"><\", \">\\n<\")"
 <!>
 </body>
 </html>
-<script nonce="[nonce]">__RESOLVED_RESOURCES=[];__SERIALIZED_ERRORS=[];__PENDING_RESOURCES=[];__RESOURCE_RESOLVERS=[];</script>
-<script nonce="[nonce]">__INCOMPLETE_CHUNKS=[];</script>
+<script nonce="[nonce]">__RESOLVED_RESOURCES={};__SERIALIZED_ERRORS=[];__PENDING_RESOURCES=[];__INCOMPLETE_CHUNKS=[];__RESOURCE_RESOLVERS=[];</script>
+<script nonce="[nonce]">
+</script>

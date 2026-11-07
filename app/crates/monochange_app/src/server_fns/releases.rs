@@ -1,11 +1,13 @@
 //! Website-owned presentation of monochange's structured release notes.
 
 use leptos::server;
+use leptoskit_rpc::api;
 pub use monochange_shared::WebsiteEntry;
 pub use monochange_shared::WebsiteRelease;
 pub use monochange_shared::WebsiteSection;
 
 /// Load the release artifacts shipped with this application image.
+#[api(crate = "leptoskit_rpc", tag = "releases")]
 #[server(endpoint = "get_website_releases")]
 pub async fn get_website_releases() -> Result<Vec<WebsiteRelease>, server_fn::ServerFnError> {
 	let site = std::env::var_os("LEPTOS_SITE_ROOT").map_or_else(
