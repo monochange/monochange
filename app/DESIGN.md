@@ -141,6 +141,8 @@ The flowing three-part mark and exact custom SVG wordmark identify monochange. R
 
 Light pages use a cool mist ground (`--mc-page`). Dark pages use graphite ink. Teal accents (`--mc-*`) connect both themes; the flowing mark may keep its violet lockup while UI chrome uses teal. Panels have modest curves; controls use bold text and visible keyboard focus.
 
+**Landing and marketing chrome** compose layout and color with Tailwind utilities mapped through `@theme` (`bg-hero`, `text-mute`, `font-display`, `bg-brand-700`, …). Do not add new semantic CSS class catalogs for those surfaces; shared `--mc-*` custom properties remain for tokens and legacy pages.
+
 This document records the implemented app in `crates/monochange_app/style/input.css` and its Rust components. The frontmatter contains the reusable values. `.impeccable/design.json` adds component previews, motion, breakpoints, and notes scoped to the public pages. The published book has its own reading layout.
 
 **Key Characteristics:**

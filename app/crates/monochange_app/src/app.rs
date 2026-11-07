@@ -280,11 +280,31 @@ impl LazyRoute for AuthCallbackRoute {
 #[component]
 fn Footer() -> impl IntoView {
 	view! {
-		<footer class="site-footer">
-			<div class="site-width footer-layout">
-				<div><a href="/" class="brand-link" aria-label="monochange home"><img src="/branding/mark.svg" width="36" height="36" alt="" /><img src="/branding/wordmark.svg" width="154" height="29" alt="" class="brand-wordmark brand-wordmark-light" /><img src="/branding/wordmark-dark.svg" width="154" height="29" alt="" class="brand-wordmark brand-wordmark-dark" /></a><p>"Ship every package from one floor."</p></div>
-				<nav aria-label="Footer navigation"><a href="/install">"Install"</a><a href=BOOK_URL>"Read the book"</a><a href="/changelog">"Changelog"</a><a href="/pricing">"It's free"</a><a href=SOURCE_URL class="footer-github"><BrandIcon name="github" />"GitHub"</a></nav>
-				<p class="footer-credit">"Free and open source."<br />"Made by "<a href="https://github.com/ifiokjr">"Ifiok Jr."</a><br /><a href="/changelog">{format!("Website v{}", env!("CARGO_PKG_VERSION"))}</a></p>
+		<footer class="border-t border-rule py-12">
+			<div class="mx-auto grid w-[min(80rem,calc(100%-6rem))] grid-cols-[1fr_auto_1fr] items-start gap-12 max-[1050px]:w-[calc(100%-4rem)] max-[760px]:w-[calc(100%-2.5rem)] max-[760px]:grid-cols-1 max-[760px]:gap-8">
+				<div>
+					<a href="/" class="inline-flex items-center gap-3 text-2xl font-bold tracking-[-0.035em] no-underline" aria-label="monochange home">
+						<img src="/branding/mark.svg" width="36" height="36" alt="" class="shrink-0" />
+						<img src="/branding/wordmark.svg" width="154" height="29" alt="" class="h-auto w-[154px] dark:hidden" />
+						<img src="/branding/wordmark-dark.svg" width="154" height="29" alt="" class="hidden h-auto w-[154px] dark:block" />
+					</a>
+					<p class="mt-2.5 text-[0.95rem] text-mute">"Ship every package from one floor."</p>
+				</div>
+				<nav class="grid grid-cols-2 gap-x-8 gap-y-2.5" aria-label="Footer navigation">
+					<a href="/install" class="hover:text-brand-600 dark:hover:text-brand-400">"Install"</a>
+					<a href=BOOK_URL class="hover:text-brand-600 dark:hover:text-brand-400">"Read the book"</a>
+					<a href="/changelog" class="hover:text-brand-600 dark:hover:text-brand-400">"Changelog"</a>
+					<a href="/pricing" class="hover:text-brand-600 dark:hover:text-brand-400">"It's free"</a>
+					<a href=SOURCE_URL class="inline-flex items-center gap-2.5 hover:text-brand-600 dark:hover:text-brand-400"><BrandIcon name="github" />"GitHub"</a>
+				</nav>
+				<p class="text-right text-mute max-[760px]:text-left">
+					"Free and open source."
+					<br />
+					"Made by "
+					<a href="https://github.com/ifiokjr" class="underline">"Ifiok Jr."</a>
+					<br />
+					<a href="/changelog" class="underline">{format!("Website v{}", env!("CARGO_PKG_VERSION"))}</a>
+				</p>
 			</div>
 		</footer>
 	}
