@@ -43,6 +43,21 @@ fn run_cli(root: &Path, args: &[&str], envs: &[(&str, &str)]) -> std::process::O
 	cmd.env_remove("MONOCHANGE_CI_TOKEN");
 	cmd.env_remove("MONOCHANGE_CI_SECRET");
 	cmd.env_remove("MONOCHANGE_CI_REPO_ID");
+	for name in [
+		"JEV_API_URL",
+		"JEV_API_KEY",
+		"OPENAI_API_URL",
+		"OPENAI_API_KEY",
+		"OPENROUTER_API_URL",
+		"OPENROUTER_API_KEY",
+		"CLOUDFLARE_API_URL",
+		"CLOUDFLARE_API_TOKEN",
+		"CLOUDFLARE_ACCOUNT_ID",
+		"OPENCODE_GO_API_URL",
+		"OPENCODE_GO_API_KEY",
+	] {
+		cmd.env_remove(name);
+	}
 
 	for (key, value) in envs {
 		cmd.env(key, value);
@@ -362,4 +377,127 @@ fn cli_ci_decide_providers_openrouter_cloudflare_and_github_outputs_file() {
 	cloudflare_mock.assert();
 	assert_eq!(report.decision, "n");
 	assert_eq!(report.provider, "cloudflare");
+}
+
+/// Register a JEV webhook mock that approves the job.
+fn mock_jev_env(server: &MockServer) -> httpmock::Mock<'_> {
+	server.mock(|when, then| {
+		when.method(POST).path("/jev");
+		then.status(HTTP_OK)
+			.json_body(json!({"decision": "y", "reason": "jev env approved"}));
+	})
+}
+
+#[test]
+fn cli_ci_env_fallbacks_cover_repo_identity_secret_token_and_jev_endpoint() {
+	let repo = tempdir().unwrap();
+
+	init_git_repo(repo.path(), "https://github.com/monochange/env-repo.git");
+
+	let init_output = run_cli(
+		repo.path(),
+		AUTH_INIT_JSON_ARGS,
+		&[("MONOCHANGE_CI_SECRET", "fixed-secret")],
+	);
+
+	assert!(init_output.status.success());
+
+	let auth: CiAuthReport = serde_json::from_slice(&init_output.stdout).unwrap();
+
+	assert_eq!(auth.repo_id, "github.com/monochange/env-repo");
+
+	let secret_repo = tempdir().unwrap();
+
+	init_git_repo(
+		secret_repo.path(),
+		"https://github.com/monochange/secret-repo.git",
+	);
+
+	let env_secret_output = run_cli(
+		secret_repo.path(),
+		&["ci", "auth", "verify", "--format", "json"],
+		&[("MONOCHANGE_CI_SECRET", "fixed-secret")],
+	);
+
+	assert!(
+		env_secret_output.status.success(),
+		"stderr: {}",
+		String::from_utf8_lossy(&env_secret_output.stderr)
+	);
+
+	let env_secret: CiAuthReport = serde_json::from_slice(&env_secret_output.stdout).unwrap();
+
+	assert_eq!(env_secret.source, "MONOCHANGE_CI_SECRET");
+	assert_eq!(env_secret.repo_id, "github.com/monochange/secret-repo");
+
+	let token_output = run_cli(
+		repo.path(),
+		&["ci", "auth", "verify", "--format", "json"],
+		&[("MONOCHANGE_CI_TOKEN", auth.token.as_str())],
+	);
+
+	assert!(token_output.status.success());
+
+	let token_report: CiAuthReport = serde_json::from_slice(&token_output.stdout).unwrap();
+
+	assert_eq!(token_report.source, "MONOCHANGE_CI_TOKEN");
+
+	let override_output = run_cli(
+		repo.path(),
+		&["ci", "auth", "init", "--force", "--format", "json"],
+		&[(
+			"MONOCHANGE_CI_REPO_ID",
+			"https://github.com/monochange/Overridden.git",
+		)],
+	);
+
+	assert!(override_output.status.success());
+
+	let overridden: CiAuthReport = serde_json::from_slice(&override_output.stdout).unwrap();
+
+	assert_eq!(overridden.repo_id, "github.com/monochange/overridden");
+
+	let blank_output = run_cli(
+		repo.path(),
+		&["ci", "auth", "init", "--force", "--format", "json"],
+		&[("MONOCHANGE_CI_REPO_ID", "   ")],
+	);
+
+	assert!(blank_output.status.success());
+
+	let blank: CiAuthReport = serde_json::from_slice(&blank_output.stdout).unwrap();
+
+	assert_eq!(blank.repo_id, "github.com/monochange/env-repo");
+
+	let server = MockServer::start();
+	let jev_mock = mock_jev_env(&server);
+	let jev_url = server.url("/jev");
+	let decide_output = run_cli(
+		repo.path(),
+		&[
+			"ci",
+			"decide",
+			"--provider",
+			"jev",
+			"--job",
+			"env-jev",
+			"--changed-files",
+			"src/lib.rs",
+			"--format",
+			"json",
+		],
+		&[("JEV_API_URL", jev_url.as_str())],
+	);
+
+	assert!(
+		decide_output.status.success(),
+		"stderr: {}",
+		String::from_utf8_lossy(&decide_output.stderr)
+	);
+
+	let report: CiDecideReport = serde_json::from_slice(&decide_output.stdout).unwrap();
+
+	jev_mock.assert();
+	assert_eq!(report.provider, "jev");
+	assert!(report.run);
 }

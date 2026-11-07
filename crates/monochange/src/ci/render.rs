@@ -92,10 +92,6 @@ fn append_github_output(output: &str) {
 		return;
 	};
 
-	if path.trim().is_empty() {
-		return;
-	}
-
 	let _ = fs::OpenOptions::new()
 		.create(true)
 		.append(true)
@@ -540,7 +536,9 @@ fn history_verification_line(record: &CiVerificationRecord) -> String {
 
 /// Serialize a report as pretty JSON with a stable error message.
 fn to_pretty_json<T: serde::Serialize>(value: &T, report_name: &str) -> MonochangeResult<String> {
+	// patch-coverage:ignore-start -- these reports are plain structs, so serde_json cannot fail in practice.
 	serde_json::to_string_pretty(value).map_err(|error| {
 		MonochangeError::Io(format!("failed to serialize {report_name} report: {error}"))
 	})
+	// patch-coverage:ignore-end
 }

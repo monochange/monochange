@@ -28,6 +28,7 @@ const DETERMINISTIC_TEMPERATURE: f64 = 0.0;
 const CLOUDFLARE_DEFAULT_ACCOUNT: &str = "default";
 
 /// Provider verdict plus the provider and model that produced it.
+#[derive(Debug)]
 pub(super) struct ProviderCallOutcome {
 	pub(super) run: bool,
 	pub(super) reason: String,
@@ -51,10 +52,34 @@ pub(super) struct ProviderOverrides<'a> {
 }
 
 /// Resolved chat-completions endpoint settings for one provider.
-struct ChatEndpoint {
-	url: String,
-	api_key: String,
-	default_model: &'static str,
+pub(super) struct ChatEndpoint {
+	pub(super) url: String,
+	pub(super) api_key: String,
+	pub(super) default_model: &'static str,
+}
+
+/// Providers that speak the `OpenAI` chat-completions protocol.
+///
+/// `graph` and `jev` are routed before this point, so the chat-completions
+/// helpers only ever see these four variants.
+#[derive(Debug, Clone, Copy)]
+pub(super) enum ChatProvider {
+	OpencodeGo,
+	Openrouter,
+	Cloudflare,
+	OpenaiCompatible,
+}
+
+impl ChatProvider {
+	/// Stable provider name used in requests, records, and CLI output.
+	fn as_str(self) -> &'static str {
+		match self {
+			Self::OpencodeGo => "opencode-go",
+			Self::Openrouter => "openrouter",
+			Self::Cloudflare => "cloudflare",
+			Self::OpenaiCompatible => "openai-compatible",
+		}
+	}
 }
 
 /// Ask an external provider whether the job should run.
@@ -68,7 +93,18 @@ pub(super) async fn query_external_decision_provider(
 	match provider {
 		CiDecisionProvider::Graph => Err("graph provider is local".to_string()),
 		CiDecisionProvider::Jev => send_jev_request(&client, overrides, prompt).await,
-		_ => send_chat_completion(&client, provider, overrides, prompt).await,
+		CiDecisionProvider::OpencodeGo => {
+			send_chat_completion(&client, ChatProvider::OpencodeGo, overrides, prompt).await
+		}
+		CiDecisionProvider::Openrouter => {
+			send_chat_completion(&client, ChatProvider::Openrouter, overrides, prompt).await
+		}
+		CiDecisionProvider::Cloudflare => {
+			send_chat_completion(&client, ChatProvider::Cloudflare, overrides, prompt).await
+		}
+		CiDecisionProvider::OpenaiCompatible => {
+			send_chat_completion(&client, ChatProvider::OpenaiCompatible, overrides, prompt).await
+		}
 	}
 }
 
@@ -134,7 +170,7 @@ fn resolve_jev_url(overrides: &ProviderOverrides<'_>) -> Result<String, String> 
 /// Send an OpenAI-compatible chat completion request and parse its decision.
 async fn send_chat_completion(
 	client: &Client,
-	provider: CiDecisionProvider,
+	provider: ChatProvider,
 	overrides: &ProviderOverrides<'_>,
 	prompt: &DecisionPrompt<'_>,
 ) -> Result<ProviderCallOutcome, String> {
@@ -210,21 +246,15 @@ async fn send_and_read(
 }
 
 /// Resolve endpoint settings for one chat-completions provider.
-fn resolve_chat_endpoint(
-	provider: CiDecisionProvider,
+pub(super) fn resolve_chat_endpoint(
+	provider: ChatProvider,
 	overrides: &ProviderOverrides<'_>,
 ) -> Result<ChatEndpoint, String> {
 	match provider {
-		CiDecisionProvider::OpencodeGo => opencode_endpoint(overrides),
-		CiDecisionProvider::Openrouter => openrouter_endpoint(overrides),
-		CiDecisionProvider::Cloudflare => cloudflare_endpoint(overrides),
-		CiDecisionProvider::OpenaiCompatible => openai_compatible_endpoint(overrides),
-		CiDecisionProvider::Jev | CiDecisionProvider::Graph => {
-			Err(format!(
-				"provider `{}` does not use a chat endpoint",
-				provider.as_str()
-			))
-		}
+		ChatProvider::OpencodeGo => opencode_endpoint(overrides),
+		ChatProvider::Openrouter => openrouter_endpoint(overrides),
+		ChatProvider::Cloudflare => cloudflare_endpoint(overrides),
+		ChatProvider::OpenaiCompatible => openai_compatible_endpoint(overrides),
 	}
 }
 

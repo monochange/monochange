@@ -100,7 +100,7 @@ pub(super) async fn run_ci_decide_subcommand(
 
 	auth::save_ci_memory_store(root, &memory)?;
 
-	let report = build_decide_report(&memory.repo_id, records, &input);
+	let report = build_decide_report(&memory.repo_id, records);
 
 	render_decide_report(&report, &input.format)
 }
@@ -560,55 +560,23 @@ fn historical_max_duration(memory: &CiMemoryStore, job: &str) -> Option<u64> {
 }
 
 /// Build the aggregate report, using the first job as the headline decision.
-fn build_decide_report(
-	repo_id: &str,
-	records: Vec<CiDecisionRecord>,
-	input: &DecideInput,
-) -> CiDecideReport {
+fn build_decide_report(repo_id: &str, records: Vec<CiDecisionRecord>) -> CiDecideReport {
 	let overall_run = records.iter().any(|record| record.run);
 	let overall_unconditional = records.iter().any(|record| record.unconditional);
 	let primary = records
 		.first()
 		.cloned()
-		.unwrap_or_else(|| default_decision_record(repo_id, input));
+		.expect("`ci decide` always evaluates at least one job");
 
 	CiDecideReport {
 		repo_id: repo_id.to_string(),
 		decision: decision_label(overall_run).to_string(),
 		run: overall_run,
 		unconditional: overall_unconditional,
-		provider: primary.provider.clone(),
-		model: primary.model.clone(),
-		reason: primary.reason.clone(),
+		provider: primary.provider,
+		model: primary.model,
+		reason: primary.reason,
 		jobs: records,
-	}
-}
-
-/// Empty decision record used when no jobs were evaluated.
-fn default_decision_record(repo_id: &str, input: &DecideInput) -> CiDecisionRecord {
-	CiDecisionRecord {
-		id: "dec-0".to_string(),
-		repo_id: repo_id.to_string(),
-		job: "default".to_string(),
-		decision: "y".to_string(),
-		run: true,
-		unconditional: false,
-		provider: input.provider.as_str().to_string(),
-		model: DEFAULT_OPENCODE_GO_MODEL.to_string(),
-		reason: "default".to_string(),
-		unconditional_reasons: Vec::new(),
-		matched_learned_rules: Vec::new(),
-		affected_packages: Vec::new(),
-		changed_files: Vec::new(),
-		event: None,
-		branch: None,
-		commit: None,
-		consecutive_skips_on_main: 0,
-		duration_red_flag: false,
-		observed_duration_seconds: None,
-		threshold_minutes: input.max_duration_minutes,
-		speed_suggestions: Vec::new(),
-		timestamp: Utc::now().to_rfc3339(),
 	}
 }
 

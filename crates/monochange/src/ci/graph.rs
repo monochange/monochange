@@ -229,7 +229,7 @@ pub(super) fn evaluate_workspace_graph_context(
 }
 
 /// Compute a discovered package's directory relative to the workspace root.
-fn relative_package_dir(record: &PackageRecord, workspace_root: &Path) -> String {
+pub(super) fn relative_package_dir(record: &PackageRecord, workspace_root: &Path) -> String {
 	record
 		.manifest_path
 		.parent()
@@ -239,7 +239,7 @@ fn relative_package_dir(record: &PackageRecord, workspace_root: &Path) -> String
 }
 
 /// Test whether a changed file belongs to a package directory.
-fn package_dir_matches(rel_dir: &str, file: &str) -> bool {
+pub(super) fn package_dir_matches(rel_dir: &str, file: &str) -> bool {
 	if rel_dir.is_empty() || is_doc_or_metadata_path(file) {
 		return false;
 	}
@@ -568,7 +568,9 @@ pub(super) fn detect_changed_files_from_git(
 		.args(&args)
 		.output()
 	else {
+		// patch-coverage:ignore-start -- spawning `git` only fails when the binary is missing from PATH.
 		return Vec::new();
+		// patch-coverage:ignore-end
 	};
 
 	if !output.status.success() {
@@ -583,7 +585,7 @@ pub(super) fn detect_changed_files_from_git(
 }
 
 /// Build the `git diff` revision argument for the supplied refs.
-fn diff_specification(base: Option<&str>, head: Option<&str>) -> String {
+pub(super) fn diff_specification(base: Option<&str>, head: Option<&str>) -> String {
 	match (base, head) {
 		(Some(base_ref), Some(head_ref)) => format!("{base_ref}...{head_ref}"),
 		(Some(base_ref), None) => base_ref.to_string(),

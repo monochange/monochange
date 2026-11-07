@@ -60,6 +60,8 @@ use verify::run_ci_verify_subcommand;
 pub const CI_AUTH_RELATIVE_PATH: &str = ".monochange/ci-auth.json";
 /// Relative path of the CI decision and verification memory store.
 pub const CI_MEMORY_RELATIVE_PATH: &str = ".monochange/ci-memory.json";
+/// Directory that holds the repo-scoped CI state files.
+pub(super) const CI_DIRECTORY_RELATIVE_PATH: &str = ".monochange";
 /// Default chat completions endpoint for the `opencode-go` provider.
 pub const DEFAULT_OPENCODE_GO_API_URL: &str = "https://api.opencode.ai/v1/chat/completions";
 /// Default model identifier for the `opencode-go` and `openai-compatible` providers.

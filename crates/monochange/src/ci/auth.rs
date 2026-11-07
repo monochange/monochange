@@ -19,6 +19,7 @@ use ring::rand::SecureRandom;
 use ring::rand::SystemRandom;
 
 use super::CI_AUTH_RELATIVE_PATH;
+use super::CI_DIRECTORY_RELATIVE_PATH;
 use super::CI_MEMORY_RELATIVE_PATH;
 use super::CiAuthFile;
 use super::CiAuthReport;
@@ -352,9 +353,11 @@ pub(super) fn configured_or_generated_secret() -> MonochangeResult<String> {
 fn generate_random_secret_hex() -> MonochangeResult<String> {
 	let rng = SystemRandom::new();
 	let mut bytes = [0_u8; SECRET_BYTES];
+	// patch-coverage:ignore-start -- the system RNG only fails when the OS entropy source is unavailable.
 	rng.fill(&mut bytes).map_err(|_| {
 		MonochangeError::Io("failed to generate cryptographic secret for CI auth".to_string())
 	})?;
+	// patch-coverage:ignore-end
 
 	Ok(hex_encode(&bytes))
 }
@@ -423,16 +426,17 @@ fn load_ci_auth_file(root: &Path) -> MonochangeResult<Option<CiAuthFile>> {
 /// Persist the auth file with restrictive permissions.
 pub(super) fn save_ci_auth_file(root: &Path, auth: &CiAuthFile) -> MonochangeResult<PathBuf> {
 	let path = ci_auth_file_path(root);
+	let directory = root.join(CI_DIRECTORY_RELATIVE_PATH);
 
-	if let Some(parent) = path.parent() {
-		fs::create_dir_all(parent).map_err(|error| {
-			MonochangeError::Io(format!("failed to create {}: {error}", parent.display()))
-		})?;
-	}
+	fs::create_dir_all(&directory).map_err(|error| {
+		MonochangeError::Io(format!("failed to create {}: {error}", directory.display()))
+	})?;
 
 	let serialized = serde_json::to_string_pretty(auth).map_err(|error| {
+		// patch-coverage:ignore-start -- serializing this plain struct only fails for an invalid custom serializer.
 		MonochangeError::Io(format!("failed to serialize CI auth file: {error}"))
 	})?;
+	// patch-coverage:ignore-end
 
 	fs::write(&path, format!("{serialized}\n")).map_err(|error| {
 		MonochangeError::Io(format!("failed to write {}: {error}", path.display()))
@@ -451,12 +455,14 @@ fn restrict_file_permissions(path: &Path) -> MonochangeResult<()> {
 
 	let permissions = fs::Permissions::from_mode(AUTH_FILE_MODE);
 
+	// patch-coverage:ignore-start -- chmod only fails on filesystems that forbid permission changes.
 	fs::set_permissions(path, permissions).map_err(|error| {
 		MonochangeError::Io(format!(
 			"failed to set 0600 permissions on {}: {error}",
 			path.display()
 		))
 	})
+	// patch-coverage:ignore-end
 }
 
 /// Authenticate a caller against the current repository's canonical identity and secret.
@@ -625,16 +631,17 @@ pub(super) fn save_ci_memory_store(
 	store: &CiMemoryStore,
 ) -> MonochangeResult<PathBuf> {
 	let path = ci_memory_file_path(root);
+	let directory = root.join(CI_DIRECTORY_RELATIVE_PATH);
 
-	if let Some(parent) = path.parent() {
-		fs::create_dir_all(parent).map_err(|error| {
-			MonochangeError::Io(format!("failed to create {}: {error}", parent.display()))
-		})?;
-	}
+	fs::create_dir_all(&directory).map_err(|error| {
+		MonochangeError::Io(format!("failed to create {}: {error}", directory.display()))
+	})?;
 
 	let serialized = serde_json::to_string_pretty(store).map_err(|error| {
+		// patch-coverage:ignore-start -- serializing this plain struct only fails for an invalid custom serializer.
 		MonochangeError::Io(format!("failed to serialize CI memory store: {error}"))
 	})?;
+	// patch-coverage:ignore-end
 
 	fs::write(&path, format!("{serialized}\n")).map_err(|error| {
 		MonochangeError::Io(format!("failed to write {}: {error}", path.display()))
