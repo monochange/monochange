@@ -344,7 +344,7 @@ fn console_view(
 }
 
 /// The project's feedback for its maintainer, or `None` when it isn't theirs.
-#[server]
+#[server(endpoint = "feedback_console")]
 pub async fn feedback_console(
 	organization: String,
 	project: String,
@@ -365,7 +365,7 @@ pub async fn feedback_console(
 
 /// One maintainer decision on an item. Fields not used by `action` are
 /// ignored; empty fields count as missing.
-#[server]
+#[server(endpoint = "feedback_action")]
 #[allow(clippy::too_many_arguments)]
 pub async fn feedback_action(
 	organization: String,
@@ -448,7 +448,7 @@ pub async fn feedback_action(
 }
 
 /// Posts a maintainer reply to an item's discussion.
-#[server]
+#[server(endpoint = "maintainer_reply")]
 pub async fn maintainer_reply(
 	organization: String,
 	project: String,
@@ -472,7 +472,7 @@ pub async fn maintainer_reply(
 }
 
 /// Opts the project into, or out of, the shared compute experiment.
-#[server]
+#[server(endpoint = "set_shared_compute")]
 pub async fn set_shared_compute(
 	organization: String,
 	project: String,
@@ -501,7 +501,7 @@ fn lines(text: &str) -> Vec<String> {
 
 /// Shares an accepted item with contributors as a task. A task that fails
 /// screening is kept, with its reasons, and never lists.
-#[server]
+#[server(endpoint = "share_task")]
 pub async fn share_task(
 	organization: String,
 	project: String,
@@ -538,7 +538,7 @@ pub async fn share_task(
 }
 
 /// Takes a shared task down.
-#[server]
+#[server(endpoint = "withdraw_task")]
 pub async fn withdraw_task(
 	organization: String,
 	project: String,

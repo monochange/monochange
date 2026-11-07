@@ -1,0 +1,19 @@
+[package]
+name = "monochange_backend"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+repository.workspace = true
+description = "Server-only mount helpers for monochange product RPC and Class B machine APIs"
+
+[dependencies]
+axum = { workspace = true }
+monochange_app_api = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["rt", "macros"] }
+
+[lints]
+workspace = true

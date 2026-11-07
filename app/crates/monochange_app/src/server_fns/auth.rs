@@ -6,17 +6,8 @@ mod tests;
 
 use leptos::prelude::*;
 use leptos::server;
+pub use monochange_shared::SessionUser;
 use serde::Deserialize;
-use serde::Serialize;
-
-/// Public session data.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SessionUser {
-	pub github_id: i64,
-	pub github_login: String,
-	pub github_avatar_url: Option<String>,
-	pub plan_tier: String,
-}
 
 #[cfg(not(target_arch = "wasm32"))]
 #[derive(Debug, Default, Deserialize)]
@@ -177,7 +168,10 @@ impl GitHubUserTokenResponse {
 	}
 }
 
-#[server]
+// leptoskit_rpc: add `#[api(crate = "leptoskit::rpc", tag = "auth")]` above
+// once the app links leptoskit_rpc 0.3 (requires Leptos 0.9). Stable
+// `endpoint` already matches the generated-client contract.
+#[server(endpoint = "get_session")]
 pub async fn get_session() -> Result<Option<SessionUser>, server_fn::ServerFnError> {
 	use std::sync::Arc;
 
@@ -221,7 +215,7 @@ pub async fn get_session() -> Result<Option<SessionUser>, server_fn::ServerFnErr
 #[allow(clippy::unused_async)]
 /// The GitHub authorization URL. Sign-in returns to `next` afterwards when it
 /// is a path on this site, and to the dashboard otherwise.
-#[server]
+#[server(endpoint = "get_login_url")]
 pub async fn get_login_url(next: Option<String>) -> Result<String, server_fn::ServerFnError> {
 	use std::sync::Arc;
 
@@ -261,7 +255,7 @@ pub async fn get_login_url(next: Option<String>) -> Result<String, server_fn::Se
 	Ok(url.into())
 }
 
-#[server]
+#[server(endpoint = "exchange_code")]
 pub async fn exchange_code(
 	code: String,
 	state_param: String,
@@ -516,7 +510,7 @@ pub(crate) async fn github_user_access_token(
 
 // Leptos server functions must be async.
 #[allow(clippy::unused_async)]
-#[server]
+#[server(endpoint = "logout")]
 pub async fn logout() -> Result<(), server_fn::ServerFnError> {
 	use leptos_axum::ResponseOptions;
 

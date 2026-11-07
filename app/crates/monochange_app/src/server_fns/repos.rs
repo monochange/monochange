@@ -5,20 +5,8 @@
 mod tests;
 
 use leptos::server;
+pub use monochange_shared::RepoInfo;
 use serde::Deserialize;
-use serde::Serialize;
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RepoInfo {
-	pub id: i32,
-	pub github_full_name: String,
-	pub github_private: bool,
-	pub plan_tier: String,
-	/// GitHub App installation account, e.g. `monochange`.
-	pub installation_login: String,
-	/// Whether the installation is active (`selected`) or suspended.
-	pub installation_suspended: bool,
-}
 
 /// A repository the signed-in user may manage, with the identities projects
 /// and organisations are keyed by.
@@ -224,7 +212,7 @@ async fn link_legacy_installations(
 	Ok(())
 }
 
-#[server]
+#[server(endpoint = "list_repos")]
 pub async fn list_repos() -> Result<Vec<RepoInfo>, server_fn::ServerFnError> {
 	use std::sync::Arc;
 
@@ -311,7 +299,7 @@ async fn organization_owner(
 		&& membership.organization.id == expected_id)
 }
 
-#[server]
+#[server(endpoint = "get_repo")]
 pub async fn get_repo(full_name: String) -> Result<Option<RepoInfo>, server_fn::ServerFnError> {
 	Ok(list_repos()
 		.await?

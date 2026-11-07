@@ -1,0 +1,25 @@
+[package]
+name = "monochange_shared"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+repository.workspace = true
+description = "Wire DTOs shared by the monochange website, future browser extension, and native guests"
+
+[dependencies]
+serde = { workspace = true }
+# Optional JSON Schema so leptoskit_rpc `#[api]` can publish stable OpenAPI later.
+schemars = { workspace = true, optional = true }
+
+[features]
+default = []
+# Enable when annotating product RPCs with leptoskit_rpc `#[api]`.
+schema = ["dep:schemars"]
+
+[dev-dependencies]
+serde_json = { workspace = true }
+
+[lints]
+workspace = true

@@ -4,7 +4,7 @@ use leptos::server;
 
 // Leptos server functions must be async.
 #[allow(clippy::unused_async)]
-#[server]
+#[server(endpoint = "ai_analyze_issue")]
 pub async fn ai_analyze_issue(
 	repo_full_name: String,
 	issue_number: i64,

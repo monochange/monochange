@@ -10,7 +10,9 @@ license = "Unlicense"
 repository = "https://github.com/monochange/monochange"
 
 [workspace.dependencies]
-# Leptos v0.8
+# Leptos — target 0.9.0-rc* for leptoskit_rpc 0.3; keep 0.8 until the UI
+# compile surface (lazy routes, Resource APIs) is migrated. Workspace pins
+# both: active app crates use 0.8; leptoskit packages require 0.9 when linked.
 leptos = { version = "0.8" }
 leptos_axum = "0.8"
 leptos_meta = "0.8"
@@ -18,6 +20,12 @@ leptos_router = "0.8"
 
 # Server functions
 server_fn = "0.8"
+
+# leptoskit SSR + RPC (crates.io 0.3). Link when the Leptos 0.9 bump lands;
+# see app/leptoskit.toml and docs/leptoskit-ssr-rpc-migration.md in the agent store.
+leptoskit = { version = "0.3", default-features = false }
+leptoskit_rpc = { version = "0.3", default-features = false }
+schemars = { version = "1.2", features = ["semver1"] }
 
 # Utilities
 leptos-use = "0.16"
@@ -87,6 +95,8 @@ monochange_app_api = { path = "crates/monochange_app_api" }
 monochange_app_automation = { path = "crates/monochange_app_automation" }
 monochange_app_db = { path = "crates/monochange_app_db" }
 monochange_app_feedback = { path = "crates/monochange_app_feedback" }
+monochange_backend = { path = "crates/monochange_backend" }
+monochange_shared = { path = "crates/monochange_shared" }
 
 # monochange crates (path deps from parent workspace)
 monochange_core = { path = "../crates/monochange_core", version = "0.21.0" }

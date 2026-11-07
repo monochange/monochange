@@ -177,7 +177,8 @@ async fn main() -> Result<(), MonochangeError> {
 				}
 			}),
 		)
-		.merge(monochange_app_api::api_router((*app_state).clone()))
+		// Class B machine APIs (webhooks, hosted release OIDC, embed SDK, tasks).
+		.merge(monochange_backend::machine_api_router((*app_state).clone()))
 		.merge(ssr_router)
 		.layer(axum::middleware::from_fn(
 			monochange_app::public_routes::pkg_cache_control,

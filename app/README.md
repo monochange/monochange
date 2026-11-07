@@ -6,8 +6,12 @@ Leptos SSR web app for monochange release planning.
 
 The app uses SQLite by default, so no database service is required. It loads its secrets through [Monosecret](https://monosecret.dev) from `app/monosecret.toml`. The `development` profile reads the ignored `app/.env` first, then the process environment, then local defaults. It never contacts 1Password.
 
+`app/leptoskit.toml` configures SSR on port 3000 with route-split WASM bundles. Prefer the **leptoskit** CLI when it is installed (same layout as other leptoskit apps); keep **cargo-leptos** as a fallback until CI and Docker switch.
+
 ```bash
-# From the repository root
+# From the repository root — preferred when `leptoskit` is on PATH
+cd app && MONOSECRET_PROFILE=development devenv shell leptoskit serve
+# Fallback (cargo-leptos metadata still present in app/Cargo.toml)
 MONOSECRET_PROFILE=development devenv shell cargo leptos --manifest-path app/crates/monochange_app/Cargo.toml serve
 ```
 
@@ -38,6 +42,7 @@ Every app pull request runs a Lighthouse suite over the core flows (`/`, `/insta
 
 ```bash
 # from the repository root, with pnpm dependencies installed
+# Preferred: `cd app && leptoskit build --release` (split + size optimize from leptoskit.toml)
 cargo leptos --manifest-path app/crates/monochange_app/Cargo.toml build --release --split
 pnpm bench:website          # Lighthouse against a throwaway local server
 pnpm size:website           # compare app/target/site/pkg against the baseline
@@ -46,7 +51,9 @@ pnpm size:website:update    # accept a deliberate size change in the same PR
 
 Budgets live in `scripts/website-budgets.json`; the size baseline in `scripts/website-size-baseline.json`. `pnpm bench:website` needs Chrome or Chromium locally (`CHROME_PATH` is honoured). The app CI job fails on budget violations unless `MONOCHANGE_ALLOW_BENCHMARK_BUDGET_FAILURES=true` is set, mirroring the CLI benchmark escape hatch.
 
-The client is split into per-route WASM chunks (`#[lazy_route]` boundaries, built with `cargo leptos build --split`): the landing and login views stay in the initial bundle while every other route loads its code on first navigation. `/pkg` assets are served with revalidation caching, and the deployment image precompresses them (gzip and brotli) alongside compression at the Caddy edge.
+The client is split into per-route WASM chunks (`#[lazy_route]` boundaries, `split = true` in `leptoskit.toml` / cargo-leptos): the landing and login views stay in the initial bundle while every other route loads its code on first navigation. `/pkg` assets are served with revalidation caching, and the deployment image precompresses them (gzip and brotli) alongside compression at the Caddy edge.
+
+Shared wire DTOs for the website and future extension/native guests live in `crates/monochange_shared`. Class B machine APIs (webhooks, hosted release OIDC, embed SDK) mount through `crates/monochange_backend`.
 
 ## deploy
 

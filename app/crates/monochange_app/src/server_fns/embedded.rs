@@ -53,7 +53,7 @@ fn required(value: Option<&str>) -> Result<&str, server_fn::ServerFnError> {
 		.ok_or_else(|| server_fn::ServerFnError::new("Complete the required fields."))
 }
 
-#[server]
+#[server(endpoint = "embedded_console")]
 pub async fn embedded_console(
 	organization: String,
 	project: String,
@@ -138,7 +138,7 @@ pub async fn embedded_console(
 
 // Leptos maps individual named form fields to server arguments.
 #[allow(clippy::too_many_arguments)]
-#[server]
+#[server(endpoint = "embedded_action")]
 pub async fn embedded_action(
 	organization: String,
 	project: String,
