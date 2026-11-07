@@ -23,8 +23,6 @@ View protected repository CI gate decision and verification history
           Override canonical repository identity
 
       [93m--format[0m[95m [0m[95m<FORMAT>[0m
-          Output format for history report
-
           [default: text]
           [possible values: text, markdown, md, json]
 

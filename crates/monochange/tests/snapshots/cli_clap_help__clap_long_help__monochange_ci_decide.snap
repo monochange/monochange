@@ -104,8 +104,6 @@ Evaluate whether CI jobs should run (y/n) using provider or workspace graph
           Override canonical repository identity
 
       [93m--format[0m[95m [0m[95m<FORMAT>[0m
-          Output format for decision results
-
           [default: text]
           [possible values: text, json, github-outputs]
 
