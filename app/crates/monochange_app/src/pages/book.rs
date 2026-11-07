@@ -32,7 +32,7 @@ impl LazyRoute for BookRoute {
 		view! {
 			<div class="site-width book-layout">
 				<Suspense fallback=|| view! { <p role="status">"Loading the book…"</p> }>
-					{move || chapter.get().map(book_page)}
+					{move || chapter.get().map(|result| view! { <BookPageView result=result /> })}
 				</Suspense>
 			</div>
 		}
@@ -40,7 +40,8 @@ impl LazyRoute for BookRoute {
 	}
 }
 
-fn book_page(result: Result<Option<BookPage>, server_fn::ServerFnError>) -> AnyView {
+#[component]
+fn BookPageView(result: Result<Option<BookPage>, ServerFnError>) -> impl IntoView {
 	match result {
 		Err(_) => {
 			view! { <p role="alert">"The book is unavailable right now. Please try again."</p> }

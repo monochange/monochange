@@ -85,13 +85,13 @@ async fn integration_settings_and_complete_plan_review_render_as_forms() {
 async fn credentials_and_action_failures_have_accessible_status_messages() {
 	let html = crate::tests::render(|| {
 		view! {
-			{action_notice(Some(Ok(EmbeddedReceipt {
+			<ActionNotice result=Some(Ok(EmbeddedReceipt {
 				message: "Copy this credential now".into(),
 				credential: Some("test-only-one-time-code".into()),
-			})))}
-			{action_notice(Some(Err(server_fn::ServerFnError::new(
+			})) />
+			<ActionNotice result=Some(Err(server_fn::ServerFnError::new(
 				"Choose a connected repository",
-			))))}
+			))) />
 		}
 	})
 	.await;

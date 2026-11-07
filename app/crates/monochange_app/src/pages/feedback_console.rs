@@ -361,7 +361,8 @@ fn ActionTarget(
 	}
 }
 
-fn track(stage: Stage) -> impl IntoView {
+#[component]
+fn StageTrack(stage: Stage) -> impl IntoView {
 	let reached = TRACK.iter().position(|step| *step == stage);
 	let off = matches!(stage, Stage::Declined | Stage::Closed | Stage::Quarantined);
 	view! {
@@ -384,11 +385,12 @@ fn author_name(author: &Actor, submitter: &str) -> String {
 	}
 }
 
-fn reproduction(outcome: &ReproductionOutcome) -> AnyView {
+#[component]
+fn ReproductionView(outcome: ReproductionOutcome) -> impl IntoView {
 	match outcome {
 		ReproductionOutcome::Reproduced { steps } => view! {
 			<p>"Reproduced"</p>
-			<ol class="steps">{steps.iter().map(|step| view! { <li>{step.clone()}</li> }).collect::<Vec<_>>()}</ol>
+			<ol class="steps">{steps.into_iter().map(|step| view! { <li>{step}</li> }).collect::<Vec<_>>()}</ol>
 		}.into_any(),
 		ReproductionOutcome::NotReproduced { reasons } => view! { <p>"Not reproduced: " {reasons.join("; ")}</p> }.into_any(),
 		ReproductionOutcome::NeedsEnvironment { missing } => view! { <p>"Needs more context: " {missing.join("; ")}</p> }.into_any(),
@@ -550,7 +552,7 @@ fn ConsoleCard(
 				<span class="console-id">{item.id.clone()}</span>
 				<span class="console-title">{title}</span>
 				<span class="stage-badge" data-stage=stage_label(item.stage)>{stage_label(item.stage)}</span>
-				{track(item.stage)}
+				<StageTrack stage=item.stage />
 			</summary>
 			<div class="console-body">
 				<div class="console-block"><h4>"Report from " <code class="console-viewer">{submitter.clone()}</code></h4><p class="console-quote">{item.submission.description.clone()}</p></div>
@@ -558,7 +560,7 @@ fn ConsoleCard(
 				{item.triage.clone().map(|report| view! {
 					<div class="console-block">
 						<h4>"Triage · " {match report.classification { FeedbackKind::BugReport => "bug", FeedbackKind::FeatureRequest => "feature" }}</h4>
-						{reproduction(&report.reproduction)}
+						<ReproductionView outcome=report.reproduction />
 						{(!report.questions.is_empty()).then(|| view! { <p>"Open questions: " {report.questions.join(" ")}</p> })}
 						{(!report.findings.is_empty()).then(|| view! {
 							<h4>"Sensitive details found"</h4>

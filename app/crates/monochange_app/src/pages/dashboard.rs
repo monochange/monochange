@@ -204,7 +204,7 @@ fn OrganizationCard(
 		<li class="organization-card" hidden=move || matches.get() == 0>
 			<details open=move || open.get()>
 				<summary class="organization-summary">
-					{organization_avatar(&login, organization.avatar_url.clone())}
+					<OrganizationAvatar login=login.clone() avatar_url=organization.avatar_url.clone() />
 					<div><h3>{login.clone()}</h3><p>{summary}</p></div>
 					<ChevronIcon />
 				</summary>
@@ -218,7 +218,11 @@ fn OrganizationCard(
 }
 
 /// The account's avatar, or its initial when GitHub hasn't sent one.
-pub fn organization_avatar(login: &str, avatar_url: Option<String>) -> AnyView {
+#[component]
+pub fn OrganizationAvatar(
+	login: String,
+	#[prop(optional_no_strip)] avatar_url: Option<String>,
+) -> impl IntoView {
 	if let Some(url) = avatar_url {
 		return view! { <img class="organization-avatar" src=url alt="" width="48" height="48" /> }
 			.into_any();

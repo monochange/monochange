@@ -252,11 +252,11 @@ async fn the_tracker_follows_an_item_until_it_ships_or_stops() {
 	assert_eq!(tracker_step(Stage::Declined), None);
 	assert_eq!(tracker_step(Stage::Closed), None);
 
-	let building = render(|| tracker(Stage::InReview)).await;
+	let building = render(|| view! { <PortalTracker stage=Stage::InReview /> }).await;
 	assert_eq!(building.matches("data-state=\"done\"").count(), 3);
 	assert!(building.contains("data-state=\"current\" aria-current=\"step\"><span>Building"));
 	assert_eq!(building.matches("data-state=\"next\"").count(), 1);
-	let declined = render(|| tracker(Stage::Declined)).await;
+	let declined = render(|| view! { <PortalTracker stage=Stage::Declined /> }).await;
 	assert!(declined.contains("portal-closed"), "{declined}");
 	assert!(declined.contains("Declined"));
 	assert!(!declined.contains("portal-tracker"));
@@ -323,8 +323,10 @@ async fn similar_requests_are_offered_for_long_drafts_only() {
 		.unwrap();
 	assert_eq!(matches[0].id, "fb-1");
 
-	assert!(similar_notice(Vec::new()).is_none());
-	let html = render(move || similar_notice(matches.clone())).await;
+	let empty = Owner::new().with(|| view! { <SimilarNotice matches=Vec::new() /> }.to_html());
+	assert!(!empty.contains("Looks familiar"), "{empty}");
+	assert!(!empty.contains("portal-similar"), "{empty}");
+	let html = render(move || view! { <SimilarNotice matches=matches.clone() /> }).await;
 	assert!(html.contains("Looks familiar"), "{html}");
 	assert!(html.contains("href=\"#item-fb-1\""), "{html}");
 }
@@ -336,10 +338,11 @@ async fn previews_render_drafts_and_explain_empty_or_failed_ones() {
 	let html = preview_draft(Some("**Hi**".to_owned())).await.unwrap();
 	assert!(html.contains("<strong>Hi</strong>"));
 
-	let rendered = render(move || preview_pane(Ok(html.clone()))).await;
+	let rendered = render(move || view! { <PreviewPane result=Ok(html.clone()) /> }).await;
 	assert!(rendered.contains("editor-preview book-prose"), "{rendered}");
-	let empty = render(|| preview_pane(Ok(String::new()))).await;
+	let empty = render(|| view! { <PreviewPane result=Ok(String::new()) /> }).await;
 	assert!(empty.contains("Nothing to preview yet."), "{empty}");
-	let failed = render(|| preview_pane(Err(ServerFnError::new("Too long")))).await;
+	let failed =
+		render(|| view! { <PreviewPane result=Err(ServerFnError::new("Too long")) /> }).await;
 	assert!(failed.contains("Too long"), "{failed}");
 }
