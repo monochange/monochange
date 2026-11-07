@@ -33,12 +33,12 @@ use crate::server_fns::auth::SessionUser;
 // Leptos strips literal comments. The inert template below preserves this
 // contract in server output and occupies the same node during hydration.
 const WEBSITE_DIRECTION: &str = "<!--
-THESIS: Show one concrete release plan, avoiding a grid of feature promises.
-OWN-WORLD: Indigo fields, lavender and ink grounds, rounded display type, ruled version rows, and the selected flowing identity.
-STORY: Understand coordinated releases, believe the preview, install the free CLI or open the book.
-FIRST VIEWPORT: Desktop pairs large promise and actions with the full manifest; mobile stacks a compact introduction above readable package/version rows.
-FORM: Shipping manifest, candidate 5 of seven; seed 19d35619. Switching individual/shared versions is the signature interaction.
-FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+THESIS: Brand-first Release floor — ship every package from one calm workspace.
+OWN-WORLD: Mist/graphite grounds, teal accent, hero atmosphere, Bricolage + Hanken, --mc-* tokens.
+STORY: Open the workspace or install the CLI; prove product surfaces before the release-plan demo.
+FIRST VIEWPORT: Full-bleed hero with mark + wordmark, one headline, one sentence, CTAs. No cards or demo in the hero.
+FORM: Product floor → release manifest demo → ecosystems → workflow → close.
+FINISH: Align with docs/landing-design.md; keep auth and dashboard routes intact.
 -->";
 
 /// Server-rendered document shell.
@@ -49,10 +49,10 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
 			<head>
 				<meta charset="utf-8" />
 				<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-				<meta name="theme-color" content="#4f46e5" />
+				<meta name="theme-color" content="#0F766E" />
 				<meta
 					name="description"
-					content="Free, open-source release planning for monorepos. Coordinate changesets, package versions, dependencies, and release notes across six ecosystems."
+					content="Free, open-source release planning for monorepos. Coordinate projects, releases, feedback, and org workspaces across six ecosystems."
 				/>
 				<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 				<link rel="icon" sizes="any" href="/favicon.ico" />
@@ -282,7 +282,7 @@ fn Footer() -> impl IntoView {
 	view! {
 		<footer class="site-footer">
 			<div class="site-width footer-layout">
-				<div><a href="/" class="brand-link" aria-label="monochange home"><img src="/branding/mark.svg" width="36" height="36" alt="" /><img src="/branding/wordmark.svg" width="154" height="29" alt="" class="brand-wordmark brand-wordmark-light" /><img src="/branding/wordmark-dark.svg" width="154" height="29" alt="" class="brand-wordmark brand-wordmark-dark" /></a><p>"Many packages. One release plan."</p></div>
+				<div><a href="/" class="brand-link" aria-label="monochange home"><img src="/branding/mark.svg" width="36" height="36" alt="" /><img src="/branding/wordmark.svg" width="154" height="29" alt="" class="brand-wordmark brand-wordmark-light" /><img src="/branding/wordmark-dark.svg" width="154" height="29" alt="" class="brand-wordmark brand-wordmark-dark" /></a><p>"Ship every package from one floor."</p></div>
 				<nav aria-label="Footer navigation"><a href="/install">"Install"</a><a href=BOOK_URL>"Read the book"</a><a href="/changelog">"Changelog"</a><a href="/pricing">"It's free"</a><a href=SOURCE_URL class="footer-github"><BrandIcon name="github" />"GitHub"</a></nav>
 				<p class="footer-credit">"Free and open source."<br />"Made by "<a href="https://github.com/ifiokjr">"Ifiok Jr."</a><br /><a href="/changelog">{format!("Website v{}", env!("CARGO_PKG_VERSION"))}</a></p>
 			</div>

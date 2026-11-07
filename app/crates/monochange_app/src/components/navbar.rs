@@ -30,9 +30,14 @@ pub fn NavBar() -> impl IntoView {
 		set_mobile_open.set(false);
 	});
 
+	let on_home = move || location.pathname.get() == "/";
+
 	view! {
 		<a href="#main-content" class="skip-link">"Skip to content"</a>
-		<header class="site-header">
+		<header
+			class="site-header"
+			class:is-hero=on_home
+		>
 			<nav class="site-width nav-layout" aria-label="Main navigation" on:keydown=move |event| {
 				if event.key() == "Escape" { set_mobile_open.set(false); }
 			}>

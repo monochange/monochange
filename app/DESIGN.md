@@ -1,24 +1,30 @@
 ---
 name: monochange
-description: A flowing violet identity, rounded display lettering, and readable release plans.
+description: Release floor — mist/graphite grounds, teal signal, rounded display lettering, readable release plans.
 colors:
-  brand-50: "#f5f3ff"
-  brand-100: "#ede9fe"
-  brand-200: "#ddd6fe"
-  brand-300: "#c4b5fd"
-  brand-500: "#8b5cf6"
-  brand-600: "#4f46e5"
-  brand-700: "#4338ca"
-  brand-800: "#3730a3"
-  brand-900: "#312e81"
-  brand-950: "#19152e"
+  brand-50: "#f0fdfa"
+  brand-100: "#ccfbf1"
+  brand-200: "#99f6e4"
+  brand-300: "#5eead4"
+  brand-400: "#2dd4bf"
+  brand-500: "#14b8a6"
+  brand-600: "#0d9488"
+  brand-700: "#0f766e"
+  brand-800: "#115e59"
+  brand-900: "#134e4a"
+  brand-950: "#042f2e"
+  page-light: "#E8EEF4"
+  page-dark: "#0B141F"
   surface-light: "#ffffff"
-  surface-dark: "#241f3b"
-  muted-light: "#5b5472"
-  muted-dark: "#c0b8d8"
-  rule-light: "#d8d2e9"
-  rule-dark: "#49415f"
-  rule-manifest: "#ded8ea"
+  surface-dark: "#152536"
+  muted-light: "#5A6B7D"
+  muted-dark: "#9AADB8"
+  rule-light: "#C5D0DC"
+  rule-dark: "#2A3A4D"
+  hero: "#071018"
+  signal: "#E4B84A"
+  mc-accent: "#0D9488"
+  mc-accent-deep: "#0F766E"
 typography:
   display:
     fontFamily: "Bricolage Grotesque, sans-serif"
@@ -133,7 +139,7 @@ components:
 
 The flowing three-part mark and exact custom SVG wordmark identify monochange. Rounded display lettering gives headings their character. Package names, versions, commands, and repository rows carry the product detail in a readable layout with clear rules between records.
 
-Light pages use a pale lavender ground. Dark pages use an ink ground. The same violet and indigo identity connects both themes, with tinted secondary text and theme-aware borders. Panels have modest curves; controls use bold text and visible keyboard focus.
+Light pages use a cool mist ground (`--mc-page`). Dark pages use graphite ink. Teal accents (`--mc-*`) connect both themes; the flowing mark may keep its violet lockup while UI chrome uses teal. Panels have modest curves; controls use bold text and visible keyboard focus.
 
 This document records the implemented app in `crates/monochange_app/style/input.css` and its Rust components. The frontmatter contains the reusable values. `.impeccable/design.json` adds component previews, motion, breakpoints, and notes scoped to the public pages. The published book has its own reading layout.
 
@@ -146,7 +152,7 @@ This document records the implemented app in `crates/monochange_app/style/input.
 
 ## Colors
 
-Violet identifies the mark, indigo establishes emphasis, and lavender or ink grounds support reading.
+The mark may keep its violet lockup; teal establishes interactive emphasis; mist or graphite grounds support reading.
 
 ### Primary
 
@@ -162,7 +168,7 @@ Violet identifies the mark, indigo establishes emphasis, and lavender or ink gro
 - `muted-light` and `muted-dark` carry secondary text. `rule-light` and `rule-dark` separate sections and rows. `rule-manifest` is the fixed separator inside the white manifest.
 - `brand-100` fills the selected manifest control. `brand-200` fills light-button hover states.
 
-**The Theme Pairing Rule.** Use the existing `--page`, `--surface`, `--ink`, `--muted`, `--rule`, and `--accent` properties for ordinary app content. Keep the manifest and indigo section color pairs intact.
+**The Theme Pairing Rule.** Prefer `--mc-*` tokens (`--mc-page`, `--mc-surface`, `--mc-ink`, `--mc-muted`, `--mc-rule`, `--mc-accent`, `--mc-accent-deep`). Legacy `--page` / `--ink` / `--accent` aliases map to the same values during migration.
 
 ## Typography
 
