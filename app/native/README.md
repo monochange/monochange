@@ -17,7 +17,7 @@ app/native/
 
 ## Design tokens
 
-Native screens map CSS `--mc-*` aliases to Tailwind class strings in `monochange_native_app/src/theme.rs` (page mist, ink, teal accent, 12px controls). Do not reintroduce the legacy violet marketing palette on mobile.
+Native Element trees use **Tailwind utilities** (slate + teal) that map to Release floor `--mc-*` values — see `monochange_native_app/src/theme.rs`. Prefer utilities such as `bg-teal-700` / `bg-slate-100` over inventing semantic CSS class stacks (`.mc-page`, `.button-brand`). Do not reintroduce the legacy violet marketing palette on mobile.
 
 ## Shared RPC
 

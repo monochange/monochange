@@ -1,37 +1,43 @@
-//! Release floor tokens (`--mc-*`) as native Tailwind class strings.
+//! Release floor palette as **Tailwind utilities** for leptoskit guests.
 //!
-//! Source of truth: Project store `docs/landing-design.md`. Keep aliases in
-//! sync with web `:root` / `@theme` so Android and iOS do not fork a purple
-//! palette.
+//! Matches `docs/landing-design.md` brand scale (teal) and ink/mist neutrals.
+//! Prefer these utility strings in `class=` — do not invent semantic CSS
+//! class names (`.mc-page`, `.button-brand`, …) for native/shared Element trees.
+//!
+//! | Design token        | Tailwind utilities                                      |
+//! |---------------------|---------------------------------------------------------|
+//! | `--mc-page`         | `bg-slate-100` / `dark:bg-slate-950`                    |
+//! | `--mc-surface`      | `bg-white` / `dark:bg-slate-900`                        |
+//! | `--mc-ink`          | `text-slate-950` / `dark:text-slate-100`                |
+//! | `--mc-muted`        | `text-slate-500` / `dark:text-slate-400`                |
+//! | `--mc-rule`         | `border-slate-200` / `dark:border-slate-700`            |
+//! | `--mc-accent-deep`  | `bg-teal-700` / `dark:bg-teal-600`                      |
+//! | `--mc-accent`       | `text-teal-600` / `dark:text-teal-400`                  |
+//! | `--mc-accent-soft`  | `bg-teal-100` / `dark:bg-teal-900`                      |
+//! | `--mc-signal`       | `text-amber-400`                                        |
 
-/// Page ground — `--mc-page` light mist / dark graphite.
-pub const PAGE: &str = "flex-1 bg-[#E8EEF4] text-[#0B141F] dark:bg-[#0B141F] dark:text-[#E8EEF4]";
+/// Page shell: mist ground + ink (Release floor `--mc-page` / `--mc-ink`).
+pub const PAGE: &str = "flex-1 bg-slate-100 text-slate-950 dark:bg-slate-950 dark:text-slate-100";
 
-/// Raised panel — `--mc-surface`.
+/// Raised panel surface + rule (`--mc-surface` / `--mc-rule`).
 pub const SURFACE: &str =
-	"rounded-[16px] border border-[#C5D0DC] bg-white p-4 dark:border-[#2A3A4D] dark:bg-[#152536]";
+	"rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900";
 
-/// Primary ink — `--mc-ink` (already on PAGE; use for explicit headings).
-pub const INK: &str = "text-[#0B141F] dark:text-[#E8EEF4]";
+/// Heading ink.
+pub const INK: &str = "text-slate-950 dark:text-slate-100";
 
-/// Secondary copy — `--mc-muted`.
-pub const MUTED: &str = "text-sm text-[#5A6B7D] dark:text-[#9AADB8]";
+/// Secondary copy (`--mc-muted`).
+pub const MUTED: &str = "text-sm text-slate-500 dark:text-slate-400";
 
-/// Hairline rule — `--mc-rule`.
-pub const RULE: &str = "border-[#C5D0DC] dark:border-[#2A3A4D]";
-
-/// Primary button — `--mc-accent-deep` fill, 12px control radius, ≥44px touch.
+/// Primary control (`--mc-accent-deep`, 12px radius, ≥44px touch).
 pub const BUTTON_PRIMARY: &str =
-	"min-h-[48px] rounded-[12px] bg-[#0F766E] px-4 py-3 font-bold text-white dark:bg-[#0D9488]";
+	"min-h-12 rounded-xl bg-teal-700 px-4 py-3 font-bold text-white dark:bg-teal-600";
 
-/// Secondary / outline control.
-pub const BUTTON_SECONDARY: &str = "min-h-[48px] rounded-[12px] border border-[#5eead4] bg-transparent px-4 py-3 font-bold text-[#0F766E] dark:text-[#2DD4BF]";
+/// Outline control on teal brand.
+pub const BUTTON_SECONDARY: &str = "min-h-12 rounded-xl border border-teal-300 bg-transparent px-4 py-3 font-bold text-teal-700 dark:text-teal-400";
 
-/// Soft selected fill — `--mc-accent-soft`.
-pub const ACCENT_SOFT: &str = "bg-[#CCFBF1] dark:bg-[#134E4A]";
+/// Shipping / live signal (`--mc-signal`).
+pub const SIGNAL: &str = "text-amber-400";
 
-/// Rare shipping signal — `--mc-signal`.
-pub const SIGNAL: &str = "text-[#E4B84A]";
-
-/// Product-floor row gap — `--mc-gap-action`.
+/// Section / action gap (`--mc-gap-action` → `1rem`).
 pub const GAP_ACTION: &str = "gap-4";
