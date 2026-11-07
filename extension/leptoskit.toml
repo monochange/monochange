@@ -43,12 +43,17 @@ exclude = []
 include_internal = false
 targets = []
 
-# Align with repo leptoskit component lint policy (see leptoskit-component-lints note).
+# Same `[lint]` gate as `app/leptoskit.toml` (PR #871 / lint:leptoskit). Keep
+# popup/options UI as PascalCase #[component] + view! XML (no builder trees).
 [lint]
+# Prefer view! markup over builder trees for human-authored UI.
 markup = "view"
+# Workspace `lint:clippy` already denies warnings; lint:leptoskit passes
+# `--no-clippy` so this flag only matters for a bare `leptoskit lint` run.
 clippy = true
 
 [lint.rules]
+# Always #[component], always view! XML, PascalCase components.
 component_attribute = "deny"
 markup_style = "deny"
 
