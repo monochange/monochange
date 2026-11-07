@@ -43,6 +43,15 @@ exclude = []
 include_internal = false
 targets = []
 
+# Align with repo leptoskit component lint policy (see leptoskit-component-lints note).
+[lint]
+markup = "view"
+clippy = true
+
+[lint.rules]
+component_attribute = "deny"
+markup_style = "deny"
+
 # Popup glance: session, projects, and release status against the app backend.
 # `server` becomes a host permission and `leptoskit::extension::runtime::server()`.
 [extension]

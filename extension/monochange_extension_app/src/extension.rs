@@ -4,6 +4,9 @@
 //! HTTP RPC stub (swap to `leptoskit::rpc::client::call` when the web port
 //! publishes the same operations). The bearer token lives in extension
 //! storage under [`crate::session::SESSION_KEY`].
+//!
+//! UI trees use PascalCase `#[component]` functions and `view!` markup so
+//! `leptoskit lint` (`component_attribute`, `markup_style`) stays green.
 
 use leptoskit::extension::Background;
 use leptoskit::extension::Surface;
@@ -21,6 +24,7 @@ use crate::popup::ExtensionReply;
 use crate::popup::PopupReady;
 use crate::popup::PopupState;
 use crate::popup::PopupWireState;
+use crate::popup::ProjectRow;
 use crate::session;
 
 /// Opens a surface at its configured route (`/` popup, `/sign-in` options).
@@ -55,30 +59,7 @@ pub fn main(surface: Surface) -> impl Fn() -> Element + Send + Sync + 'static {
 
 	move || {
 		tick.get();
-		match state.get() {
-			PopupState::Loading if for_sign_in => sign_in_loading(),
-			PopupState::Loading => shell(status_block("Loading your workspace…")),
-			PopupState::SignedOut { login_url } if for_sign_in => sign_in_ready(login_url),
-			PopupState::SignedOut { login_url } => shell(signed_out_block(login_url)),
-			PopupState::Ready(ready) if for_sign_in => {
-				shell(
-					View()
-						.class("mc-panel")
-						.child(Text("Signed in").class("mc-title"))
-						.child(
-							Text(format!("Connected as @{}", ready.user.github_login))
-								.class("mc-copy"),
-						)
-						.child(open_button(
-							"Open workspace",
-							format!("{DEFAULT_SERVER}/dashboard"),
-							"mc-button",
-						)),
-				)
-			}
-			PopupState::Ready(ready) => shell(ready_block(ready)),
-			PopupState::Error { message } => shell(status_block(message)),
-		}
+		view! { <SurfaceRoot for_sign_in=for_sign_in state=state.get() /> }
 	}
 }
 
@@ -107,116 +88,234 @@ pub fn background(worker: &Background) {
 	});
 }
 
-fn shell(body: Element) -> Element {
-	View().class("mc-shell").child(chrome_header()).child(body)
+/// Picks the popup or options tree for the current glance state.
+#[component]
+fn SurfaceRoot(for_sign_in: bool, state: PopupState) -> Element {
+	match state {
+		PopupState::Loading if for_sign_in => view! { <SignInLoading /> },
+		PopupState::Loading => {
+			view! {
+				<Shell>
+					<StatusBlock message="Loading your workspace…" />
+				</Shell>
+			}
+		}
+		PopupState::SignedOut { login_url } if for_sign_in => {
+			view! { <SignInReady login_url=login_url /> }
+		}
+		PopupState::SignedOut { login_url } => {
+			view! {
+				<Shell>
+					<SignedOutBlock login_url=login_url />
+				</Shell>
+			}
+		}
+		PopupState::Ready(ready) if for_sign_in => {
+			view! { <SignInConnected login=ready.user.github_login.clone() /> }
+		}
+		PopupState::Ready(ready) => {
+			view! {
+				<Shell>
+					<ReadyBlock ready=ready />
+				</Shell>
+			}
+		}
+		PopupState::Error { message } => {
+			view! {
+				<Shell>
+					<StatusBlock message=message />
+				</Shell>
+			}
+		}
+	}
 }
 
-fn sign_in_loading() -> Element {
-	shell(
-		View()
-			.class("mc-panel")
-			.child(Text("Sign in").class("mc-title"))
-			.child(Text("Preparing GitHub sign-in…").class("mc-status")),
-	)
+/// Brand chrome around a popup body.
+#[component]
+fn Shell(children: Children) -> Element {
+	view! {
+		<View class="mc-shell">
+			<ChromeHeader />
+			{children}
+		</View>
+	}
 }
 
-fn sign_in_ready(login_url: String) -> Element {
-	shell(
-		View()
-			.class("mc-panel")
-			.child(Text("Sign in").class("mc-title"))
-			.child(Text("Connect GitHub to glance at projects and releases.").class("mc-copy"))
-			.child(open_button("Sign in with GitHub", login_url, "mc-button")),
-	)
-}
-
-fn chrome_header() -> Element {
-	View()
-		.class("mc-chrome")
-		.child(
-			Button("monochange")
-				.class("mc-brand mc-brand-name")
-				.on_press(|| {
+/// Compact brand row: mark name + Release floor label.
+#[component]
+fn ChromeHeader() -> Element {
+	view! {
+		<View class="mc-chrome">
+			<Button
+				class="mc-brand mc-brand-name"
+				on:press=|| {
 					wasm_bindgen_futures::spawn_local(async {
 						let _ = tabs::open("https://monochange.dev").await;
 					});
-				}),
-		)
-		.child(Text("Release floor").class("mc-eyebrow"))
+				}
+			>
+				"monochange"
+			</Button>
+			<Text class="mc-eyebrow">"Release floor"</Text>
+		</View>
+	}
 }
 
-fn status_block(message: impl Into<String>) -> Element {
-	View()
-		.class("mc-panel")
-		.child(Text(message.into()).class("mc-status"))
+/// Options page while the login URL is loading.
+#[component]
+fn SignInLoading() -> Element {
+	view! {
+		<Shell>
+			<View class="mc-panel">
+				<Text class="mc-title">"Sign in"</Text>
+				<Text class="mc-status">"Preparing GitHub sign-in…"</Text>
+			</View>
+		</Shell>
+	}
 }
 
-fn signed_out_block(login_url: String) -> Element {
-	View()
-		.class("mc-panel")
-		.child(Text("Ship from one floor").class("mc-title"))
-		.child(
-			Text("Sign in to see projects and the latest release status on monochange.dev.")
-				.class("mc-copy"),
-		)
-		.child(
-			View()
-				.class("mc-actions")
-				.child(open_button("Sign in with GitHub", login_url, "mc-button"))
-				.child(
-					Button("Options")
-						.class("mc-button mc-button-quiet")
-						.on_press(|| {
-							wasm_bindgen_futures::spawn_local(async {
-								let _ = runtime::open_options().await;
-							});
-						}),
-				),
-		)
+/// Options page with a GitHub sign-in action.
+#[component]
+fn SignInReady(#[prop(into)] login_url: String) -> Element {
+	view! {
+		<Shell>
+			<View class="mc-panel">
+				<Text class="mc-title">"Sign in"</Text>
+				<Text class="mc-copy">"Connect GitHub to glance at projects and releases."</Text>
+				<OpenButton label="Sign in with GitHub" url=login_url class="mc-button" />
+			</View>
+		</Shell>
+	}
 }
 
-fn ready_block(ready: PopupReady) -> Element {
+/// Options page when a session is already present.
+#[component]
+fn SignInConnected(#[prop(into)] login: String) -> Element {
+	view! {
+		<Shell>
+			<View class="mc-panel">
+				<Text class="mc-title">"Signed in"</Text>
+				<Text class="mc-copy">{format!("Connected as @{login}")}</Text>
+				<OpenButton
+					label="Open workspace"
+					url=format!("{DEFAULT_SERVER}/dashboard")
+					class="mc-button"
+				/>
+			</View>
+		</Shell>
+	}
+}
+
+/// Quiet status panel.
+#[component]
+fn StatusBlock(#[prop(into)] message: String) -> Element {
+	view! {
+		<View class="mc-panel">
+			<Text class="mc-status">{message}</Text>
+		</View>
+	}
+}
+
+/// Signed-out popup body with sign-in and options actions.
+#[component]
+fn SignedOutBlock(#[prop(into)] login_url: String) -> Element {
+	view! {
+		<View class="mc-panel">
+			<Text class="mc-title">"Ship from one floor"</Text>
+			<Text class="mc-copy">
+				"Sign in to see projects and the latest release status on monochange.dev."
+			</Text>
+			<View class="mc-actions">
+				<OpenButton label="Sign in with GitHub" url=login_url class="mc-button" />
+				<Button
+					class="mc-button mc-button-quiet"
+					on:press=|| {
+						wasm_bindgen_futures::spawn_local(async {
+							let _ = runtime::open_options().await;
+						});
+					}
+				>
+					"Options"
+				</Button>
+			</View>
+		</View>
+	}
+}
+
+/// Signed-in glance: release status and project rows.
+#[component]
+fn ReadyBlock(ready: PopupReady) -> Element {
 	let login = ready.user.github_login.clone();
 	let status = ready.status_line();
 	let project_total = ready.projects();
 	let rows = ready.project_rows();
-
-	let mut list = View()
-		.class("mc-panel")
-		.child(Text(format!("@{login} · {status}")).class("mc-status"));
-	list = list.child(Text(format!("{project_total} projects")).class("mc-eyebrow"));
-
-	if rows.is_empty() {
-		list = list.child(
-			Text("No projects yet. Open the dashboard to group repositories.").class("mc-copy"),
-		);
-	} else {
-		for row in rows.into_iter().take(6) {
-			let title = row.name.clone();
-			let meta = row.meta();
-			list = list.child(
-				View()
-					.class("mc-row")
-					.child(Text(title).class("mc-row-title"))
-					.child(Text(meta).class("mc-row-meta")),
-			);
+	let project_list = if rows.is_empty() {
+		view! {
+			<Text class="mc-copy">
+				"No projects yet. Open the dashboard to group repositories."
+			</Text>
 		}
-	}
+	} else {
+		view! {
+			<View class="gap-0">
+				{rows
+					.into_iter()
+					.take(6)
+					.map(|row| view! { <ProjectRowView row=row /> })
+					.collect::<Vec<_>>()}
+			</View>
+		}
+	};
 
-	list.child(View().class("mc-actions").child(open_button(
-		"Open workspace",
-		format!("{DEFAULT_SERVER}/dashboard"),
-		"mc-button",
-	)))
+	view! {
+		<View class="mc-panel">
+			<Text class="mc-status">{format!("@{login} · {status}")}</Text>
+			<Text class="mc-eyebrow">{format!("{project_total} projects")}</Text>
+			{project_list}
+			<View class="mc-actions">
+				<OpenButton
+					label="Open workspace"
+					url=format!("{DEFAULT_SERVER}/dashboard")
+					class="mc-button"
+				/>
+			</View>
+		</View>
+	}
 }
 
-fn open_button(label: &'static str, url: String, class: &'static str) -> Element {
-	Button(label).class(class).on_press(move || {
-		let url = url.clone();
-		wasm_bindgen_futures::spawn_local(async move {
-			let _ = tabs::open(&url).await;
-		});
-	})
+/// One project line in the glance list.
+#[component]
+fn ProjectRowView(row: ProjectRow) -> Element {
+	let title = row.name.clone();
+	let meta = row.meta();
+	view! {
+		<View class="mc-row">
+			<Text class="mc-row-title">{title}</Text>
+			<Text class="mc-row-meta">{meta}</Text>
+		</View>
+	}
+}
+
+/// Opens a URL in a new tab when pressed.
+#[component]
+fn OpenButton(
+	label: &'static str,
+	#[prop(into)] url: String,
+	#[prop(into)] class: String,
+) -> Element {
+	view! {
+		<Button
+			class=class
+			on:press=move || {
+				let url = url.clone();
+				wasm_bindgen_futures::spawn_local(async move {
+					let _ = tabs::open(&url).await;
+				});
+			}
+		>
+			{label}
+		</Button>
+	}
 }
 
 async fn load_sign_in_state() -> PopupState {
