@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Release floor chrome: --mc-page mist status/nav bars, teal signal via guest UI. -->
+<resources>
+    <color name="mc_page">#E8EEF4</color>
+    <color name="mc_ink">#0B141F</color>
+    <color name="mc_accent_deep">#0F766E</color>
+    <style name="LeptosKitTheme" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:statusBarColor">@color/mc_page</item>
+        <item name="android:navigationBarColor">@color/mc_page</item>
+        <item name="android:colorPrimary">@color/mc_accent_deep</item>
+        <item name="android:windowBackground">@color/mc_page</item>
+    </style>
+</resources>

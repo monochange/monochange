@@ -1,0 +1,57 @@
+[workspace]
+resolver = "2"
+members = [
+	"monochange_rpc",
+	"monochange_native_app",
+	"monochange_native_backend",
+	"android",
+	"ios",
+	".",
+]
+default-members = ["monochange_rpc", "monochange_native_backend", "."]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "Unlicense"
+publish = false
+rust-version = "1.91"
+
+[workspace.dependencies]
+leptos = { version = "0.9.0-rc0", default-features = false }
+leptoskit = { version = "=0.3.0", default-features = false }
+leptoskit_rpc = { version = "=0.3.0", default-features = false }
+leptoskit_plugin_http = { version = "=0.3.0", default-features = false }
+leptoskit_plugin_secure_store = { version = "=0.3.0", default-features = false }
+leptoskit_bridge_ffi = { version = "=0.3.0", default-features = false }
+leptoskit_build = { version = "=0.3.0", default-features = false }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+schemars = "1"
+thiserror = "2"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+axum = { version = "0.8", features = ["tokio"] }
+
+[package]
+name = "monochange_native"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[[bin]]
+name = "monochange_native"
+path = "src/main.rs"
+
+[dependencies]
+axum = { workspace = true }
+leptoskit = { workspace = true, features = ["server", "rpc", "rpc-ssr", "db-sqlite"] }
+monochange_native_backend = { path = "monochange_native_backend" }
+tokio = { workspace = true }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+
+[profile.release.build-override]
+strip = "none"
