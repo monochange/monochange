@@ -1434,6 +1434,67 @@ Adopting monochange in a repository whose app already has a production build num
 
 Re-running `prepare-release` for a version that already has a release record reuses the frozen values instead of stamping counters again, so a repeated run never double-increments.
 
+## CI gatekeeper
+
+The `[ci]` table configures `monochange ci decide`, the conditional CI gatekeeper. Job ids are the GitHub job ids (kebab-case strings), and `[ci.jobs.<id>]` declares what each job builds:
+
+```toml
+[ci]
+provider = "graph" # graph | opencode-go | openrouter | cloudflare | jev | openai-compatible
+model = "deepseek-v4.1" # optional model for AI providers
+ai_can_skip = false # a provider may only turn n into y, never skip a graph `y`
+max_skips_on_main = 5
+unconditional_events = ["schedule", "workflow_dispatch"]
+unconditional_branches = ["release/*", "monochange/release/*", "refs/tags/v*"]
+unconditional_paths = ["Cargo.lock", "rust-toolchain.toml", ".github/workflows/**"]
+ignore_paths = ["**/*.md", "docs/**"] # changes that never trigger a job on their own
+
+[ci.jobs.test-windows]
+packages = [
+	"leptoskit_windows",
+	"gallery",
+	"leptoskit_plugin_*",
+] # roots the job builds; globs allowed
+paths = ["crates/leptoskit_windows/android/**"] # non-package inputs
+always = false
+```
+
+Every key except the job tables is optional; the values above are the defaults.
+
+### Decision semantics
+
+`monochange ci decide` evaluates each job with this precedence:
+
+1. **Unconditional context** — event, branch or ref glob, label, `[ci:full]` commit message, an unconditional path, `--unconditional`, or the `max_skips_on_main` counter tripping on `main` runs every job.
+2. **`always = true`** runs the job.
+3. **Learned rules** (from `monochange ci verify` false negatives) run the job.
+4. **Roots** — a job runs when a changed file is owned by a root package, or by a transitive dependency of a root (normal, dev, and build edges). `packages` lists only roots; globs expand against every workspace package, so a new `leptoskit_plugin_foo` crate is covered with zero config edits. Cargo edges come from `cargo metadata --format-version 1`, which includes unpublished members, crates nested at any depth, `foo.workspace = true` inheritance, renamed dependencies, and `[target.'cfg(..)'.dependencies]`.
+5. **Paths** — any changed file matching the job's `paths` runs it. A job-path claim wins over `ignore_paths`, so a job that explicitly claims `docs/**` still triggers on docs changes.
+6. **Unowned changes** — a changed file owned by no package, claimed by no job's `paths`, and outside `ignore_paths` runs **every** job, with a reason naming the file. Unknown must mean run, never skip.
+7. Otherwise the job is skipped with a reason naming what changed and what the job covers.
+
+A `--job` id that is not configured in `[ci.jobs]` runs with the reason `no ci rule for <id>` plus a warning. With no `--job`, `decide` evaluates every configured job.
+
+### Providers
+
+`provider = "graph"` (the default) is deterministic. The AI providers (`opencode-go`, `openrouter`, `cloudflare`, `jev`, `openai-compatible`) receive **one** request per `decide` run covering every job, with each job's graph verdict and reason, the changed files, and recent history; they answer with `{"<job>": {"run": bool, "reason": string}}`. With `ai_can_skip = false` (the default) a provider `false` on a graph `true` is ignored and recorded in the reason; rules 1–3 are never overridden; a provider failure falls back to the graph verdict.
+
+### GitHub Actions outputs
+
+`--format github-outputs` writes exactly three keys to `$GITHUB_OUTPUT` (or stdout when the variable is unset):
+
+```text
+decisions={"test-windows":true,"docs":false}
+affected-packages=["gallery","ws_support"]
+run-all=false
+```
+
+Gate downstream jobs with `if: fromJSON(needs.<gate>.outputs.decisions)['test-windows']`.
+
+### `monochange ci check`
+
+`monochange ci check [--workflow <path>]...` validates the configuration and exits non-zero listing every problem: an unknown root package, a package glob matching zero workspace packages, a path glob matching zero tracked files, a job with none of `packages`/`paths`/`always`, and a job id that is not kebab-case. With `--workflow`, the workflow text is scanned for `fromJSON(needs.<id>.outputs.decisions)['<job>']` and `...decisions).<job>` references, reporting ids that are used but not configured and configured ids that are never referenced.
+
 ## Package references
 
 <!-- {=configurationPackageReferenceRules} -->

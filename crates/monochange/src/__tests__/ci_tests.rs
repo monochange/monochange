@@ -149,10 +149,28 @@ fn ci_auth_init_verify_token_and_rejects_cross_repo_or_tampered_tokens() {
 	);
 }
 
+/// Write a two-crate cargo workspace plus `[ci]` configuration.
+fn write_ci_workspace(root: &Path, ci_toml: &str) {
+	write_graph_workspace(root);
+
+	let existing = fs::read_to_string(root.join("monochange.toml")).unwrap();
+
+	fs::write(
+		root.join("monochange.toml"),
+		format!("{existing}\n{ci_toml}\n"),
+	)
+	.unwrap();
+}
+
 #[test]
 fn ci_decide_evaluates_unconditional_overrides_and_max_skips_on_main() {
 	let repo = tempdir().unwrap();
+
 	init_git_repo_with_origin(repo.path(), "https://github.com/acme/monorepo.git");
+	write_ci_workspace(
+		repo.path(),
+		"[ci]\nmax_skips_on_main = 2\n\n[ci.jobs.rust-tests]\npackages = [\"app\"]\n\n[ci.jobs.main-gate-job]\npackages = [\"app\"]\n",
+	);
 
 	// 1. Docs-only change on PR should skip (`n`) for rust-tests
 	let out_skip = run_mc(
@@ -160,8 +178,6 @@ fn ci_decide_evaluates_unconditional_overrides_and_max_skips_on_main() {
 		&[
 			"ci",
 			"decide",
-			"--provider",
-			"graph",
 			"--job",
 			"rust-tests",
 			"--branch",
@@ -184,8 +200,6 @@ fn ci_decide_evaluates_unconditional_overrides_and_max_skips_on_main() {
 		&[
 			"ci",
 			"decide",
-			"--provider",
-			"graph",
 			"--job",
 			"rust-tests",
 			"--unconditional",
@@ -207,8 +221,6 @@ fn ci_decide_evaluates_unconditional_overrides_and_max_skips_on_main() {
 		&[
 			"ci",
 			"decide",
-			"--provider",
-			"graph",
 			"--job",
 			"rust-tests",
 			"--event",
@@ -230,8 +242,6 @@ fn ci_decide_evaluates_unconditional_overrides_and_max_skips_on_main() {
 		&[
 			"ci",
 			"decide",
-			"--provider",
-			"graph",
 			"--job",
 			"rust-tests",
 			"--branch",
@@ -253,8 +263,6 @@ fn ci_decide_evaluates_unconditional_overrides_and_max_skips_on_main() {
 		&[
 			"ci",
 			"decide",
-			"--provider",
-			"graph",
 			"--job",
 			"rust-tests",
 			"--commit-message",
@@ -276,8 +284,6 @@ fn ci_decide_evaluates_unconditional_overrides_and_max_skips_on_main() {
 		&[
 			"ci",
 			"decide",
-			"--provider",
-			"graph",
 			"--job",
 			"rust-tests",
 			"--changed-files",
@@ -291,21 +297,17 @@ fn ci_decide_evaluates_unconditional_overrides_and_max_skips_on_main() {
 	assert_eq!(report_path.decision, "y");
 	assert!(report_path.unconditional);
 
-	// 7. Consecutive skips on `main` reaching `--max-skips-on-main` (set to 2)
+	// 7. Consecutive skips on `main` reaching `[ci] max_skips_on_main` (set to 2)
 	for expected_skips in 1..=2 {
 		let out_main_skip = run_mc(
 			repo.path(),
 			&[
 				"ci",
 				"decide",
-				"--provider",
-				"graph",
 				"--job",
 				"main-gate-job",
 				"--branch",
 				"main",
-				"--max-skips-on-main",
-				"2",
 				"--changed-files",
 				"docs/readme.md",
 				"--format",
@@ -324,14 +326,10 @@ fn ci_decide_evaluates_unconditional_overrides_and_max_skips_on_main() {
 		&[
 			"ci",
 			"decide",
-			"--provider",
-			"graph",
 			"--job",
 			"main-gate-job",
 			"--branch",
 			"main",
-			"--max-skips-on-main",
-			"2",
 			"--changed-files",
 			"docs/readme.md",
 			"--format",
@@ -350,8 +348,12 @@ fn ci_verify_false_negative_learns_rule_and_forces_future_decide_to_y() {
 	let repo = tempdir().unwrap();
 	init_git_repo_with_origin(repo.path(), "https://github.com/acme/learn-repo.git");
 	run_mc(repo.path(), &["ci", "auth", "init"]).unwrap();
+	write_ci_workspace(
+		repo.path(),
+		"[ci.jobs.integration-suite]\npaths = [\"crates/core/**\"]\n",
+	);
 
-	// Record a skipped decision (`n`) for `integration-suite` when `scripts/deploy.sh` was ignored by `--job-paths`
+	// Record a skipped decision (`n`) for `integration-suite` when the changed file belongs to `app`, not the job's paths.
 	let decide_initial = run_mc(
 		repo.path(),
 		&[
@@ -361,10 +363,8 @@ fn ci_verify_false_negative_learns_rule_and_forces_future_decide_to_y() {
 			"graph",
 			"--job",
 			"integration-suite",
-			"--job-paths",
-			"crates/**",
 			"--changed-files",
-			"scripts/deploy.sh",
+			"crates/app/src/lib.rs",
 			"--commit",
 			"abc1234",
 			"--format",
@@ -390,7 +390,7 @@ fn ci_verify_false_negative_learns_rule_and_forces_future_decide_to_y() {
 			"--commit",
 			"abc1234",
 			"--changed-files",
-			"scripts/deploy.sh",
+			"crates/app/src/lib.rs",
 			"--format",
 			"json",
 		],
@@ -405,7 +405,7 @@ fn ci_verify_false_negative_learns_rule_and_forces_future_decide_to_y() {
 	assert!(verify_rec.duration_red_flag);
 	assert_ne!(verify_rec.speed_suggestions, Vec::<String>::new());
 
-	// Subsequent `decide` touching `scripts/deploy.sh` must now be forced to `y` (`unconditional: true`) via learned rule!
+	// Subsequent `decide` touching the same file must now be forced to `y` (`unconditional: true`) via learned rule!
 	let decide_after = run_mc(
 		repo.path(),
 		&[
@@ -415,10 +415,8 @@ fn ci_verify_false_negative_learns_rule_and_forces_future_decide_to_y() {
 			"graph",
 			"--job",
 			"integration-suite",
-			"--job-paths",
-			"crates/**",
 			"--changed-files",
-			"scripts/deploy.sh",
+			"crates/app/src/lib.rs",
 			"--format",
 			"json",
 		],
@@ -628,6 +626,10 @@ fn ci_analytics_and_history_enforce_repo_auth_and_report_classifications() {
 	let repo = tempdir().unwrap();
 
 	init_git_repo_with_origin(repo.path(), "https://github.com/acme/analytics-repo.git");
+	write_ci_workspace(
+		repo.path(),
+		"[ci.jobs.unit-tests]\npackages = [\"app\"]\n\n[ci.jobs.lint-job]\npackages = [\"app\"]\n",
+	);
 
 	// Calling analytics before `ci auth init` must fail
 	let uninit_err = run_mc(repo.path(), &["ci", "analytics"]).unwrap_err();
@@ -656,7 +658,7 @@ fn mock_opencode_go(server: &MockServer) -> httpmock::Mock<'_> {
 		then.status(HTTP_OK).json_body(json!({
 			"choices": [{
 				"message": {
-					"content": "{\"decision\":\"n\",\"reason\":\"opencode-go determined job is unaffected\"}"
+					"content": "{\"api-tests\":{\"run\":false,\"reason\":\"opencode-go determined job is unaffected\"}}"
 				}
 			}]
 		}));
@@ -668,8 +670,10 @@ fn mock_jev(server: &MockServer) -> httpmock::Mock<'_> {
 	server.mock(|when, then| {
 		when.method(POST).path("/jev");
 		then.status(HTTP_OK).json_body(json!({
-			"decision": "y",
-			"reason": "jev webhook requested execution"
+			"api-tests": {
+				"run": true,
+				"reason": "jev webhook requested execution"
+			}
 		}));
 	})
 }
@@ -691,7 +695,7 @@ fn run_opencode_go_decide(repo: &Path, server: &MockServer) -> CiDecideReport {
 			"--job",
 			"api-tests",
 			"--changed-files",
-			"src/lib.rs",
+			"crates/app/src/lib.rs",
 			"--format",
 			"json",
 		],
@@ -717,7 +721,7 @@ fn run_jev_decide(repo: &Path, server: &MockServer) -> String {
 			"--job",
 			"api-tests",
 			"--changed-files",
-			"src/lib.rs",
+			"crates/app/src/lib.rs",
 			"--format",
 			"github-outputs",
 		],
@@ -733,20 +737,129 @@ fn ci_decide_supports_opencode_go_and_jev_providers_and_github_outputs_format() 
 	let repo = tempdir().unwrap();
 
 	init_git_repo_with_origin(repo.path(), "https://github.com/acme/provider-test.git");
+	write_ci_workspace(repo.path(), "[ci.jobs.api-tests]\npackages = [\"app\"]\n");
 
+	// The graph wants to run (`app` root is affected) and `ai_can_skip`
+	// defaults to false, so the provider skip must be ignored.
 	let opencode_report = run_opencode_go_decide(repo.path(), &server);
 
 	opencode_mock.assert();
-	assert_eq!(opencode_report.decision, "n");
+	assert_eq!(opencode_mock.calls(), 1, "one request per decide run");
+	assert_eq!(opencode_report.decision, "y");
 	assert_eq!(opencode_report.provider, "opencode-go");
 	assert_eq!(opencode_report.model, DEFAULT_OPENCODE_GO_MODEL);
+	assert!(
+		opencode_report
+			.jobs
+			.first()
+			.is_some_and(|job| job.reason.contains("ai_can_skip = false")),
+		"unexpected reason: {}",
+		opencode_report.reason
+	);
 
 	let jev_output = run_jev_decide(repo.path(), &server);
 
 	jev_mock.assert();
-	assert!(jev_output.contains("decision=y"));
-	assert!(jev_output.contains("run=true"));
-	assert!(jev_output.contains("provider=jev"));
+	assert!(jev_output.contains("decisions={\"api-tests\":true}"));
+	assert!(jev_output.contains("affected-packages=[\"app\"]"));
+	assert!(jev_output.contains("run-all=true"));
+}
+
+#[test]
+fn ci_decide_makes_exactly_one_provider_request_for_every_job() {
+	let server = MockServer::start();
+	let chat_mock = server.mock(|when, then| {
+		when.method(POST).path("/v1/chat/completions");
+		then.status(HTTP_OK).json_body(json!({
+			"choices": [{
+				"message": {
+					"content": "{\"unit\":{\"run\":false,\"reason\":\"unaffected\"},\"e2e\":{\"run\":false,\"reason\":\"unaffected\"}}"
+				}
+			}]
+		}));
+	});
+	let repo = tempdir().unwrap();
+
+	init_git_repo_with_origin(repo.path(), "https://github.com/acme/single-request.git");
+	write_ci_workspace(
+		repo.path(),
+		"[ci.jobs.unit]\npackages = [\"app\"]\n\n[ci.jobs.e2e]\npackages = [\"core\"]\n",
+	);
+
+	let output = run_mc(
+		repo.path(),
+		&[
+			"ci",
+			"decide",
+			"--provider",
+			"opencode-go",
+			"--api-url",
+			&server.url("/v1/chat/completions"),
+			"--api-key",
+			"test-key",
+			"--changed-files",
+			"crates/app/src/lib.rs",
+			"--format",
+			"json",
+		],
+	)
+	.unwrap();
+	let report: CiDecideReport = serde_json::from_str(&output).unwrap();
+
+	assert_eq!(
+		chat_mock.calls(),
+		1,
+		"expected exactly one provider request"
+	);
+	assert_eq!(report.jobs.len(), 2, "both configured jobs evaluated");
+}
+
+#[test]
+fn ci_decide_provider_skip_only_applies_when_ai_can_skip_is_true() {
+	let server = MockServer::start();
+	let chat_mock = server.mock(|when, then| {
+		when.method(POST).path("/v1/chat/completions");
+		then.status(HTTP_OK).json_body(json!({
+			"choices": [{
+				"message": {
+					"content": "{\"api-tests\":{\"run\":false,\"reason\":\"provider skip allowed\"}}"
+				}
+			}]
+		}));
+	});
+	let repo = tempdir().unwrap();
+
+	init_git_repo_with_origin(repo.path(), "https://github.com/acme/ai-can-skip.git");
+	write_ci_workspace(
+		repo.path(),
+		"[ci]\nai_can_skip = true\n\n[ci.jobs.api-tests]\npackages = [\"app\"]\n",
+	);
+
+	let output = run_mc(
+		repo.path(),
+		&[
+			"ci",
+			"decide",
+			"--provider",
+			"opencode-go",
+			"--api-url",
+			&server.url("/v1/chat/completions"),
+			"--api-key",
+			"test-key",
+			"--job",
+			"api-tests",
+			"--changed-files",
+			"crates/app/src/lib.rs",
+			"--format",
+			"json",
+		],
+	)
+	.unwrap();
+	let report: CiDecideReport = serde_json::from_str(&output).unwrap();
+
+	chat_mock.assert();
+	assert_eq!(report.decision, "n");
+	assert_eq!(report.reason, "provider skip allowed");
 }
 
 /// Write a two-crate cargo workspace where `app` depends on `core`.
@@ -783,202 +896,456 @@ fn write_graph_workspace(root: &Path) {
 	.unwrap();
 }
 
+/// Copy the committed gatekeeper fixture workspace into a temp directory.
+///
+/// Tests mutate the copy (adding crates, letting `cargo metadata` write a
+/// `Cargo.lock`) so the committed fixture stays pristine.
+fn gatekeeper_fixture() -> tempfile::TempDir {
+	let dir = tempdir().unwrap();
+	let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/ci/gatekeeper");
+
+	monochange_test_helpers::copy_directory(&fixture, dir.path());
+
+	dir
+}
+
 #[test]
-fn graph_context_marks_configured_and_discovered_packages_affected() {
+fn ci_decide_runs_always_jobs_and_unowned_changes_and_unconfigured_jobs() {
+	let repo = gatekeeper_fixture();
+
+	// A change inside a package: `test-windows` runs (root glob), `lint` runs
+	// (`always = true`), `docs` skips.
+	let output = run_mc(
+		repo.path(),
+		&[
+			"ci",
+			"decide",
+			"--changed-files",
+			"crates/leptoskit_plugin_windowkit/src/lib.rs",
+			"--format",
+			"json",
+		],
+	)
+	.unwrap();
+	let report: CiDecideReport = serde_json::from_str(&output).unwrap();
+
+	assert_eq!(report.jobs.len(), 3, "every configured job is evaluated");
+	assert!(
+		report
+			.jobs
+			.iter()
+			.any(|job| job.job == "test-windows" && job.run)
+	);
+	let lint = report
+		.jobs
+		.iter()
+		.find(|job| job.job == "lint")
+		.unwrap_or_else(|| panic!("lint job missing"));
+	assert!(lint.run);
+	assert_eq!(lint.reason, "`always = true` in `[ci.jobs]`");
+	assert!(report.jobs.iter().any(|job| job.job == "docs" && !job.run));
+
+	// An unowned change runs every configured job.
+	let output = run_mc(
+		repo.path(),
+		&[
+			"ci",
+			"decide",
+			"--changed-files",
+			"scripts/deploy.sh",
+			"--format",
+			"json",
+		],
+	)
+	.unwrap();
+	let report: CiDecideReport = serde_json::from_str(&output).unwrap();
+
+	assert!(
+		report.jobs.iter().all(|job| job.run),
+		"unowned changes run every job"
+	);
+	assert!(
+		report
+			.jobs
+			.iter()
+			.filter(|job| job.job != "lint")
+			.all(|job| {
+				job.reason
+					.contains("unowned changed file `scripts/deploy.sh`")
+			})
+	);
+
+	// An unconfigured `--job` id runs with a warning and the no-rule reason.
+	let output = run_mc(
+		repo.path(),
+		&[
+			"ci",
+			"decide",
+			"--job",
+			"brand-new-job",
+			"--changed-files",
+			"crates/gallery/src/lib.rs",
+			"--format",
+			"json",
+		],
+	)
+	.unwrap();
+	let report: CiDecideReport = serde_json::from_str(&output).unwrap();
+
+	assert_eq!(report.jobs.len(), 1);
+	assert!(report.jobs[0].run);
+	assert_eq!(report.jobs[0].reason, "no ci rule for `brand-new-job`");
+
+	// Neither `--job` nor configured jobs is a configuration error.
+	let empty = tempdir().unwrap();
+
+	support::init_git_repo_with_origin(empty.path(), "https://github.com/acme/empty-ci.git");
+	let error = run_mc(empty.path(), &["ci", "decide"]).unwrap_err();
+
+	assert!(
+		error.to_string().contains("no `[ci.jobs]` configured"),
+		"unexpected error: {error}"
+	);
+}
+
+#[test]
+fn ci_check_reports_every_configuration_problem_class() {
+	let repo = gatekeeper_fixture();
+
+	// Track files so the path-glob check can see them.
+	support::init_git_repo_with_origin(repo.path(), "https://github.com/acme/check.git");
+	fs::write(
+		repo.path().join(".monochange-tmp-marker"),
+		"marker so git add has something",
+	)
+	.unwrap();
+	run_git(repo.path(), &["add", "."]);
+
+	// Inject every problem class into the configuration and workflow wiring.
+	fs::write(
+		repo.path().join("monochange.toml"),
+		"[ci.jobs.test-windows]\npackages = [\"leptoskit_windows\", \"ghost_crate\", \"missing_plugin_*\"]\npaths = [\"docs/**\", \"vanished/**/*.snap\"]\n\n[ci.jobs.Broken_Name]\npackages = [\"leptoskit_windows\"]\n\n[ci.jobs.empty-job]\n",
+	)
+	.unwrap();
+	fs::create_dir_all(repo.path().join(".github/workflows")).unwrap();
+	fs::write(
+		repo.path().join(".github/workflows/ci.yml"),
+		"jobs:\n  gate:\n    outputs:\n      decisions: ${{ steps.gate.outputs.decisions }}\n  a:\n    needs: gate\n    if: fromJSON(needs.gate.outputs.decisions)['ghost-job']\n  b:\n    needs: gate\n    if: fromJSON(needs.gate.outputs.decisions).another-ghost\n",
+	)
+	.unwrap();
+
+	let error = run_mc(
+		repo.path(),
+		&["ci", "check", "--workflow", ".github/workflows/ci.yml"],
+	)
+	.unwrap_err();
+	let problems = error.to_string();
+
+	assert!(
+		problems.contains("ci check found"),
+		"unexpected output: {problems}"
+	);
+	assert!(
+		problems.contains("names unknown root package `ghost_crate`"),
+		"missing unknown-package problem: {problems}"
+	);
+	assert!(
+		problems.contains("package glob `missing_plugin_*` matches zero workspace packages"),
+		"missing zero-match glob problem: {problems}"
+	);
+	assert!(
+		problems.contains("path glob `vanished/**/*.snap` matches zero tracked files"),
+		"missing zero-match path problem: {problems}"
+	);
+	assert!(
+		problems.contains("`empty-job` sets none of `packages`, `paths`, or `always`"),
+		"missing empty-job problem: {problems}"
+	);
+	assert!(
+		problems.contains("job id `Broken_Name` is not kebab-case"),
+		"missing job-id problem: {problems}"
+	);
+	assert!(
+		problems.contains("workflow references job `ghost-job`"),
+		"missing bracket-reference problem: {problems}"
+	);
+	assert!(
+		problems.contains("workflow references job `another-ghost`"),
+		"missing dot-reference problem: {problems}"
+	);
+	assert!(
+		problems.contains("configured job `empty-job` is never referenced"),
+		"missing never-referenced problem: {problems}"
+	);
+
+	// The pristine fixture configuration passes, including its workflow wiring.
+	let repo_ok = gatekeeper_fixture();
+
+	support::init_git_repo_with_origin(repo_ok.path(), "https://github.com/acme/check-ok.git");
+	run_git(repo_ok.path(), &["add", "."]);
+
+	let output = run_mc(
+		repo_ok.path(),
+		&[
+			"ci",
+			"check",
+			"--workflow",
+			".github/workflows/ci.yml",
+			"--format",
+			"json",
+		],
+	)
+	.unwrap();
+	let report: serde_json::Value = serde_json::from_str(&output).unwrap();
+
+	assert_eq!(report["ok"], serde_json::json!(true));
+}
+
+/// Run a git command inside `root`.
+fn run_git(root: &Path, args: &[&str]) {
+	let output = std::process::Command::new("git")
+		.current_dir(root)
+		.args(args)
+		.output()
+		.unwrap();
+
+	assert!(
+		output.status.success(),
+		"git {:?} failed: {}",
+		args,
+		String::from_utf8_lossy(&output.stderr)
+	);
+}
+
+#[test]
+fn graph_context_returns_affected_packages_for_owned_files() {
 	let dir = tempdir().unwrap();
 	let root = dir.path().canonicalize().unwrap();
 
 	write_graph_workspace(&root);
 
-	let graph =
-		graph::evaluate_workspace_graph_context(&root, &["crates/core/src/lib.rs".to_string()]);
+	let settings = monochange_config::load_ci_settings(&root).unwrap();
+	let context =
+		graph::evaluate_graph_context(&root, &["crates/core/src/lib.rs".to_string()], &settings);
 
-	assert!(!graph.docs_or_ignored_only);
-	assert!(
-		graph.affected_package_ids.contains("core"),
-		"expected configured package `core`, got {:?}",
-		graph.affected_package_ids
-	);
-	assert!(
-		graph.affected_package_ids.contains("app"),
-		"expected dependency propagation to `app`, got {:?}",
-		graph.affected_package_ids
-	);
-	assert_eq!(
-		graph.package_names_to_ids.get("core").map(String::as_str),
-		Some("core")
-	);
+	assert_eq!(context.affected_packages(), vec!["core".to_string()]);
+	assert!(!context.ignored_only());
 }
 
 #[test]
-fn graph_context_returns_empty_when_configuration_or_discovery_fails() {
-	let dir = tempdir().unwrap();
-
-	fs::write(dir.path().join("monochange.toml"), "[[[ not valid toml").unwrap();
-
-	let graph = graph::evaluate_workspace_graph_context(
-		dir.path(),
-		&["crates/core/src/lib.rs".to_string()],
-	);
-
-	assert!(graph.affected_package_ids.is_empty());
-	assert!(!graph.docs_or_ignored_only);
-}
-
-#[test]
-fn graph_context_classifies_empty_and_doc_only_changes() {
+fn graph_context_classifies_empty_and_ignored_changes() {
 	let dir = tempdir().unwrap();
 
 	write_graph_workspace(dir.path());
 
-	let empty = graph::evaluate_workspace_graph_context(dir.path(), &[]);
+	let settings = monochange_config::load_ci_settings(dir.path()).unwrap();
+	let empty = graph::evaluate_graph_context(dir.path(), &[], &settings);
 
-	assert!(empty.docs_or_ignored_only);
-	assert!(empty.affected_package_ids.is_empty());
+	assert!(empty.ignored_only());
+	assert!(empty.affected_packages().is_empty());
 
-	let docs_only = graph::evaluate_workspace_graph_context(
+	let docs_only = graph::evaluate_graph_context(
 		dir.path(),
 		&[
 			"docs/guide.md".to_string(),
 			".changeset/acme.md".to_string(),
 		],
+		&settings,
 	);
 
-	assert!(docs_only.docs_or_ignored_only);
-	assert!(docs_only.affected_package_ids.is_empty());
+	assert!(docs_only.ignored_only());
+	assert!(docs_only.affected_packages().is_empty());
 }
 
 #[test]
-fn graph_decision_covers_job_path_package_and_fallback_verdicts() {
-	let mut graph = graph::WorkspaceGraphContext::default();
+fn graph_decision_reports_every_rule_with_a_verdict_source() {
+	let repo = gatekeeper_fixture();
+	let root = repo.path();
+	let settings = monochange_config::load_ci_settings(root).unwrap();
 
-	graph.affected_package_ids.insert("core".to_string());
-	graph.affected_package_ids.insert("app".to_string());
-	graph
-		.package_names_to_ids
-		.insert("core".to_string(), "core".to_string());
-	graph
-		.package_names_to_ids
-		.insert("@acme/web".to_string(), "app".to_string());
-	graph
-		.package_names_to_ids
-		.insert("web".to_string(), "web".to_string());
-
-	let files = vec!["crates/core/src/lib.rs".to_string()];
-	let core_paths = vec!["crates/core/**".to_string()];
-	let docs_paths = vec!["docs/**".to_string()];
-
-	let (run, reason, packages) =
-		graph::evaluate_graph_decision_for_job("core-tests", &[], &[], &[], &graph);
-
-	assert!(!run);
-	assert!(reason.contains("no changed files detected"));
-	assert!(packages.is_empty());
-
-	let (run, reason, packages) =
-		graph::evaluate_graph_decision_for_job("core-tests", &files, &core_paths, &[], &graph);
-
-	assert!(run);
-	assert!(reason.contains("matched job path pattern `crates/core/**`"));
-	assert_eq!(packages, vec!["app".to_string(), "core".to_string()]);
-
-	let (run, reason, packages) =
-		graph::evaluate_graph_decision_for_job("core-tests", &files, &docs_paths, &[], &graph);
-
-	assert!(!run);
-	assert!(reason.contains("no changed files matched configured `--job-paths`"));
-	assert!(packages.is_empty());
-
-	let (run, reason, packages) = graph::evaluate_graph_decision_for_job(
-		"core-tests",
-		&files,
-		&[],
-		&["core".to_string()],
-		&graph,
+	// Root glob match on the plugin crate.
+	let plugin = graph::evaluate_graph_context(
+		root,
+		&["crates/leptoskit_plugin_windowkit/src/lib.rs".to_string()],
+		&settings,
+	);
+	let verdict = graph::evaluate_graph_decision_for_job(
+		"test-windows",
+		settings.jobs.get("test-windows"),
+		&plugin,
 	);
 
-	assert!(run);
-	assert!(reason.contains("matched job `core-tests`"));
-	assert_eq!(packages, vec!["core".to_string()]);
-
-	let (run, _reason, packages) = graph::evaluate_graph_decision_for_job(
-		"core-tests",
-		&files,
-		&[],
-		&["@acme/web".to_string()],
-		&graph,
+	assert!(verdict.run);
+	assert_eq!(verdict.source, graph::VerdictSource::RootDirect);
+	assert_eq!(
+		verdict.affected_packages,
+		vec!["leptoskit_plugin_windowkit".to_string()]
 	);
 
-	assert!(run);
-	assert_eq!(packages, vec!["app".to_string()]);
+	// Unconfigured job ids always run.
+	let unconfigured = graph::evaluate_graph_decision_for_job("not-configured", None, &plugin);
 
-	let (run, reason, packages) = graph::evaluate_graph_decision_for_job(
-		"core-tests",
-		&files,
-		&[],
-		&["missing".to_string()],
-		&graph,
+	assert!(unconfigured.run);
+	assert_eq!(unconfigured.source, graph::VerdictSource::NoRule);
+	assert!(
+		unconfigured
+			.reason
+			.contains("no ci rule for `not-configured`")
 	);
 
-	assert!(!run);
-	assert!(reason.contains("none of the job packages"));
-	assert!(packages.is_empty());
-
-	let mut docs_graph = graph.clone();
-
-	docs_graph.docs_or_ignored_only = true;
-
-	let (run, reason, _) =
-		graph::evaluate_graph_decision_for_job("docs-build", &files, &[], &[], &docs_graph);
-
-	assert!(run);
-	assert!(reason.contains("matched documentation-only changes"));
-
-	let (run, reason, _) =
-		graph::evaluate_graph_decision_for_job("rust-tests", &files, &[], &[], &docs_graph);
-
-	assert!(!run);
-	assert!(reason.contains("only documentation or non-code metadata files changed"));
-
-	for job in [
-		"core",
-		"@acme/web",
-		"core:tests",
-		"tests:core",
-		"app:lint",
-		"lint:app",
-	] {
-		let (run, reason, packages) =
-			graph::evaluate_graph_decision_for_job(job, &files, &[], &[], &graph);
-
-		assert!(run, "expected `{job}` to run: {reason}");
-		assert!(!packages.is_empty());
-	}
-
-	let (run, reason, packages) =
-		graph::evaluate_graph_decision_for_job("web:tests", &files, &[], &[], &graph);
-
-	assert!(!run);
-	assert!(reason.contains("was not affected by the changed files"));
-	assert!(packages.is_empty());
-
-	let (run, reason, packages) =
-		graph::evaluate_graph_decision_for_job("unscoped", &files, &[], &[], &graph);
-
-	assert!(run);
-	assert!(reason.contains("workspace graph detected 2 affected package(s)"));
-	assert_eq!(packages, vec!["app".to_string(), "core".to_string()]);
-
-	let (run, reason, _) = graph::evaluate_graph_decision_for_job(
-		"unscoped",
-		&files,
-		&[],
-		&[],
-		&graph::WorkspaceGraphContext::default(),
+	// Docs change: claimed by the docs job's paths, skipped for root jobs.
+	let docs = graph::evaluate_graph_context(root, &["docs/guide.md".to_string()], &settings);
+	let docs_verdict =
+		graph::evaluate_graph_decision_for_job("docs", settings.jobs.get("docs"), &docs);
+	let windows_verdict = graph::evaluate_graph_decision_for_job(
+		"test-windows",
+		settings.jobs.get("test-windows"),
+		&docs,
 	);
 
-	assert!(run);
-	assert!(reason.contains("running `unscoped` conservatively"));
+	assert!(docs_verdict.run);
+	assert_eq!(docs_verdict.source, graph::VerdictSource::JobPath);
+	assert!(!windows_verdict.run);
+	assert_eq!(windows_verdict.source, graph::VerdictSource::Unaffected);
+
+	// Unowned change: claimed by no package and no job path, so every job runs.
+	let unowned =
+		graph::evaluate_graph_context(root, &["scripts/deploy.sh".to_string()], &settings);
+	let unowned_verdict = graph::evaluate_graph_decision_for_job(
+		"test-windows",
+		settings.jobs.get("test-windows"),
+		&unowned,
+	);
+
+	assert!(unowned_verdict.run);
+	assert_eq!(unowned_verdict.source, graph::VerdictSource::UnownedChange);
+	assert!(
+		unowned_verdict
+			.reason
+			.contains("unowned changed file `scripts/deploy.sh` runs every job")
+	);
+}
+
+#[test]
+fn graph_follows_renamed_workspace_dev_and_target_dependency_edges() {
+	let repo = gatekeeper_fixture();
+	let root = repo.path();
+	let settings = monochange_config::load_ci_settings(root).unwrap();
+	let job = settings.jobs.get("test-windows");
+
+	// `ws_support` is inherited via `ws_support.workspace = true`.
+	let workspace_dep = graph::evaluate_graph_context(
+		root,
+		&["crates/ws_support/src/lib.rs".to_string()],
+		&settings,
+	);
+	let verdict = graph::evaluate_graph_decision_for_job("test-windows", job, &workspace_dep);
+
+	assert!(
+		verdict.run,
+		"workspace dependency edge not followed: {}",
+		verdict.reason
+	);
+	assert_eq!(verdict.source, graph::VerdictSource::RootDependency);
+
+	// `deep_probe` is a dev-dependency of `gallery` (a root), nested four
+	// directories deep and unpublished.
+	let dev_dep = graph::evaluate_graph_context(
+		root,
+		&["crates/tools/deep/probe/src/lib.rs".to_string()],
+		&settings,
+	);
+	let verdict = graph::evaluate_graph_decision_for_job("test-windows", job, &dev_dep);
+
+	assert!(
+		verdict.run,
+		"dev dependency edge not followed: {}",
+		verdict.reason
+	);
+	assert!(verdict.reason.contains("dependency of root"));
+
+	// `tgt_only` only appears under `[target.'cfg(windows)'.dependencies]`.
+	let target_dep =
+		graph::evaluate_graph_context(root, &["crates/tgt_only/src/lib.rs".to_string()], &settings);
+	let verdict = graph::evaluate_graph_decision_for_job("test-windows", job, &target_dep);
+
+	assert!(
+		verdict.run,
+		"target-specific edge not followed: {}",
+		verdict.reason
+	);
+
+	// `gallery` is reached through the renamed dependency `ui = { package =
+	// "gallery" }`; `leptoskit_windows` itself is the affected root.
+	let root_direct = graph::evaluate_graph_context(
+		root,
+		&["crates/leptoskit_windows/src/lib.rs".to_string()],
+		&settings,
+	);
+	let verdict = graph::evaluate_graph_decision_for_job("test-windows", job, &root_direct);
+
+	assert!(verdict.run);
+	assert_eq!(verdict.source, graph::VerdictSource::RootDirect);
+}
+
+#[test]
+fn graph_picks_up_new_root_glob_crates_with_zero_config_edits() {
+	let repo = gatekeeper_fixture();
+	let root = repo.path();
+	let settings_before = fs::read_to_string(root.join("monochange.toml")).unwrap();
+
+	// Add a brand-new plugin crate and register it as a workspace member;
+	// the `[ci]` configuration stays byte-for-byte identical.
+	fs::create_dir_all(root.join("crates/leptoskit_plugin_newkit/src")).unwrap();
+	fs::write(
+		root.join("crates/leptoskit_plugin_newkit/Cargo.toml"),
+		"[package]\nname = \"leptoskit_plugin_newkit\"\nversion = \"0.1.0\"\nedition = \"2021\"\npublish = false\n",
+	)
+	.unwrap();
+	fs::write(
+		root.join("crates/leptoskit_plugin_newkit/src/lib.rs"),
+		"pub fn newkit() {}\n",
+	)
+	.unwrap();
+	let manifest = fs::read_to_string(root.join("Cargo.toml")).unwrap();
+
+	fs::write(
+		root.join("Cargo.toml"),
+		manifest.replace(
+			"\"crates/leptoskit_plugin_windowkit\",",
+			"\"crates/leptoskit_plugin_windowkit\",\n\t\"crates/leptoskit_plugin_newkit\",",
+		),
+	)
+	.unwrap();
+
+	let settings = monochange_config::load_ci_settings(root).unwrap();
+
+	assert_eq!(
+		fs::read_to_string(root.join("monochange.toml")).unwrap(),
+		settings_before,
+		"the [ci] configuration must not change"
+	);
+
+	let context = graph::evaluate_graph_context(
+		root,
+		&["crates/leptoskit_plugin_newkit/src/lib.rs".to_string()],
+		&settings,
+	);
+	let verdict = graph::evaluate_graph_decision_for_job(
+		"test-windows",
+		settings.jobs.get("test-windows"),
+		&context,
+	);
+
+	assert!(
+		verdict.run,
+		"new glob crate not covered: {}",
+		verdict.reason
+	);
+	assert_eq!(
+		verdict.affected_packages,
+		vec!["leptoskit_plugin_newkit".to_string()]
+	);
 }
 
 #[test]
@@ -1533,11 +1900,12 @@ fn block_on<T>(future: impl std::future::Future<Output = T>) -> T {
 }
 
 #[test]
-fn decide_defaults_job_and_detects_changed_files_from_git() {
+fn decide_defaults_to_configured_jobs_and_detects_changed_files_from_git() {
 	let dir = tempdir().unwrap();
 	let root = dir.path();
 
 	init_git_repo_with_origin(root, "https://github.com/acme/default-job.git");
+	write_ci_workspace(root, "[ci.jobs.lint-job]\npackages = [\"app\"]\n");
 	fs::write(root.join("README.md"), "one\n").unwrap();
 	git_commit_all(root, "first");
 	fs::write(root.join("README.md"), "two\n").unwrap();
@@ -1546,50 +1914,41 @@ fn decide_defaults_job_and_detects_changed_files_from_git() {
 	let output = run_mc(
 		root,
 		&[
-			"ci",
-			"decide",
-			"--provider",
-			"graph",
-			"--base",
-			"HEAD~1",
-			"--head",
-			"HEAD",
-			"--format",
-			"json",
+			"ci", "decide", "--base", "HEAD~1", "--head", "HEAD", "--format", "json",
 		],
 	)
 	.unwrap();
 	let report: CiDecideReport = serde_json::from_str(&output).unwrap();
 
 	assert_eq!(report.jobs.len(), 1);
-	assert_eq!(report.jobs[0].job, "default");
+	assert_eq!(report.jobs[0].job, "lint-job");
 	assert_eq!(report.jobs[0].changed_files, vec!["README.md".to_string()]);
 	assert_eq!(report.decision, "n");
 }
 
 #[test]
-fn decide_unconditional_ref_labels_and_custom_patterns_force_runs() {
+fn decide_unconditional_ref_labels_and_configured_paths_force_runs() {
 	let dir = tempdir().unwrap();
 
 	init_git_repo_with_origin(dir.path(), "https://github.com/acme/unconditional.git");
+	write_ci_workspace(
+		dir.path(),
+		"[ci]\nunconditional_paths = [\"custom/*\"]\n\n[ci.jobs.rust-tests]\npackages = [\"app\"]\n",
+	);
 
 	let output = run_mc(
 		dir.path(),
 		&[
 			"ci",
 			"decide",
-			"--provider",
-			"graph",
 			"--job",
 			"release-job",
 			"--ref",
 			"refs/tags/v1.0.0",
 			"--label",
 			"[ci:full]",
-			"--unconditional-paths",
-			"custom/*",
 			"--changed-files",
-			"docs/guide.md",
+			"custom/extra.txt,docs/guide.md",
 			"--duration-seconds",
 			"2000",
 			"--format",
@@ -1602,16 +1961,23 @@ fn decide_unconditional_ref_labels_and_custom_patterns_force_runs() {
 
 	assert!(report.unconditional);
 	assert!(report.jobs[0].duration_red_flag);
-	assert!(reasons.contains("ref `refs/tags/v1.0.0` matches unconditional branch/ref pattern"));
+	assert!(
+		reasons.contains("ref `refs/tags/v1.0.0` matches unconditional branch/ref pattern"),
+		"unexpected reasons: {reasons}"
+	);
 	assert!(reasons.contains("label `[ci:full]` forces unconditional CI"));
+	assert!(
+		reasons.contains(
+			"changed file `custom/extra.txt` matches unconditional path pattern `custom/*`"
+		),
+		"unexpected reasons: {reasons}"
+	);
 
 	let text = run_mc(
 		dir.path(),
 		&[
 			"ci",
 			"decide",
-			"--provider",
-			"graph",
 			"--job",
 			"rust-tests",
 			"--changed-files",
@@ -1671,53 +2037,70 @@ fn decide_falls_back_to_the_graph_when_external_providers_fail() {
 }
 
 #[test]
-fn provider_payloads_cover_text_json_nested_and_error_responses() {
-	assert_eq!(
-		provider::parse_provider_decision_payload("y").unwrap(),
-		(true, "provider returned `y`".to_string())
-	);
-	assert!(provider::parse_provider_decision_payload("YES").unwrap().0);
-	assert_eq!(
-		provider::parse_provider_decision_payload("no").unwrap(),
-		(false, "provider returned `n`".to_string())
-	);
-	assert!(
-		!provider::parse_provider_decision_payload("false")
-			.unwrap()
-			.0
-	);
-
-	let run = provider::parse_provider_decision_payload("{\"decision\":\"run\"}").unwrap();
-
-	assert!(run.0);
-	assert_eq!(run.1, "provider decided to run job");
-
-	let skip = provider::parse_provider_decision_payload("{\"run\":false}").unwrap();
-
-	assert!(!skip.0);
-	assert_eq!(skip.1, "provider decided to skip job");
-
-	let reasoned =
-		provider::parse_provider_decision_payload("{\"decision\":\"y\",\"reason\":\"because\"}")
+fn provider_payloads_cover_direct_nested_fenced_and_error_responses() {
+	let run =
+		provider::parse_provider_decisions(r#"{"job-a": {"run": true, "reason": "affected"}}"#)
 			.unwrap();
 
-	assert_eq!(reasoned.1, "because");
+	assert_eq!(run.get("job-a").map(|decision| decision.run), Some(true));
+	assert_eq!(
+		run.get("job-a").map(|decision| decision.reason.as_str()),
+		Some("affected")
+	);
 
-	let nested = provider::parse_provider_decision_payload(
-		"{\"choices\":[{\"message\":{\"content\":\"n\"}}]}",
+	let default_reason =
+		provider::parse_provider_decisions(r#"{"job-a": {"run": false}}"#).unwrap();
+
+	assert_eq!(
+		default_reason
+			.get("job-a")
+			.map(|decision| decision.reason.as_str()),
+		Some("provider decided to skip job")
+	);
+
+	let decision_alias =
+		provider::parse_provider_decisions(r#"{"job-a": {"decision": "y"}}"#).unwrap();
+
+	assert_eq!(
+		decision_alias.get("job-a").map(|decision| decision.run),
+		Some(true)
+	);
+
+	let nested = provider::parse_provider_decisions(
+		r#"{"choices":[{"message":{"content":"{\"job-a\":{\"run\":false,\"reason\":\"nested\"}}"}}]}"#,
 	)
 	.unwrap();
 
-	assert!(!nested.0);
+	assert_eq!(
+		nested.get("job-a").map(|decision| decision.run),
+		Some(false)
+	);
+	assert_eq!(
+		nested.get("job-a").map(|decision| decision.reason.as_str()),
+		Some("nested")
+	);
 
-	let missing = provider::parse_provider_decision_payload("{\"other\":true}").unwrap_err();
+	let fenced =
+		provider::parse_provider_decisions("```json\n{\"job-a\": {\"run\": true}}\n```").unwrap();
+
+	assert_eq!(fenced.get("job-a").map(|decision| decision.run), Some(true));
+
+	let missing =
+		provider::parse_provider_decisions(r#"{"job-a": {"reason": "no verdict"}}"#).unwrap_err();
 
 	assert!(
-		missing.contains("did not include `decision`"),
+		missing.contains("did not include `run`"),
 		"unexpected error: {missing}"
 	);
 
-	let invalid = provider::parse_provider_decision_payload("not json").unwrap_err();
+	let not_object = provider::parse_provider_decisions(r#"["job-a"]"#).unwrap_err();
+
+	assert!(
+		not_object.contains("was not a JSON object"),
+		"unexpected error: {not_object}"
+	);
+
+	let invalid = provider::parse_provider_decisions("not json").unwrap_err();
 
 	assert!(
 		invalid.contains("invalid JSON response"),
@@ -1732,13 +2115,19 @@ fn provider_requests_send_bearer_auth_and_report_http_failures() {
 		when.method(POST)
 			.path("/jev")
 			.header("authorization", "Bearer secret");
-		then.status(HTTP_OK)
-			.json_body(json!({"decision": "y", "reason": "jev approved"}));
+		then.status(HTTP_OK).json_body(json!({
+			"api-tests": {"run": true, "reason": "jev approved"}
+		}));
 	});
 	let chat_mock = server.mock(|when, then| {
 		when.method(POST).path("/chat");
-		then.status(HTTP_OK)
-			.json_body(json!({"choices": [{"message": {"content": "n"}}]}));
+		then.status(HTTP_OK).json_body(json!({
+			"choices": [{
+				"message": {
+					"content": "{\"api-tests\":{\"run\":false,\"reason\":\"chat skipped\"}}"
+				}
+			}]
+		}));
 	});
 	let failure_mock = server.mock(|when, then| {
 		when.method(POST).path("/fail");
@@ -1747,10 +2136,17 @@ fn provider_requests_send_bearer_auth_and_report_http_failures() {
 
 	let changed_files = vec!["src/lib.rs".to_string()];
 	let affected_packages = vec!["core".to_string()];
+	let recent_history = vec!["api-tests=n".to_string()];
+	let prompt_jobs = vec![provider::PromptJob {
+		id: "api-tests",
+		graph_run: false,
+		graph_reason: "unaffected",
+	}];
 	let prompt = provider::DecisionPrompt {
-		job: "api-tests",
+		jobs: &prompt_jobs,
 		changed_files: &changed_files,
 		affected_packages: &affected_packages,
+		recent_history: &recent_history,
 	};
 
 	let jev_url = server.url("/jev");
@@ -1768,7 +2164,13 @@ fn provider_requests_send_bearer_auth_and_report_http_failures() {
 	.unwrap();
 
 	jev_mock.assert();
-	assert!(jev_outcome.run);
+	assert_eq!(
+		jev_outcome
+			.decisions
+			.get("api-tests")
+			.map(|decision| decision.run),
+		Some(true)
+	);
 	assert_eq!(jev_outcome.provider_used, "jev");
 	assert_eq!(jev_outcome.model_used, "custom-model");
 
@@ -1787,7 +2189,13 @@ fn provider_requests_send_bearer_auth_and_report_http_failures() {
 	.unwrap();
 
 	chat_mock.assert();
-	assert!(!chat_outcome.run);
+	assert_eq!(
+		chat_outcome
+			.decisions
+			.get("api-tests")
+			.map(|decision| decision.run),
+		Some(false)
+	);
 	assert_eq!(chat_outcome.provider_used, "openai-compatible");
 
 	let failure_url = server.url("/fail");
@@ -1839,6 +2247,7 @@ fn provider_endpoint_resolution_covers_every_chat_provider() {
 			("CLOUDFLARE_ACCOUNT_ID", None),
 			("OPENAI_API_URL", None),
 			("OPENAI_API_KEY", None),
+			("JEV_API_URL", None),
 		],
 		assert_provider_endpoint_resolution,
 	);
@@ -1854,14 +2263,14 @@ fn assert_provider_endpoint_resolution() {
 	};
 
 	let opencode =
-		provider::resolve_chat_endpoint(provider::ChatProvider::OpencodeGo, &with_key).unwrap();
+		provider::resolve_chat_endpoint(CiDecisionProvider::OpencodeGo, &with_key).unwrap();
 
 	assert_eq!(opencode.url, DEFAULT_OPENCODE_GO_API_URL);
 	assert_eq!(opencode.api_key, "key");
 	assert_eq!(opencode.default_model, DEFAULT_OPENCODE_GO_MODEL);
 
 	let cloudflare =
-		provider::resolve_chat_endpoint(provider::ChatProvider::Cloudflare, &with_key).unwrap();
+		provider::resolve_chat_endpoint(CiDecisionProvider::Cloudflare, &with_key).unwrap();
 
 	assert_eq!(
 		cloudflare.url,
@@ -1877,14 +2286,14 @@ fn assert_provider_endpoint_resolution() {
 	};
 
 	assert_eq!(
-		provider::resolve_chat_endpoint(provider::ChatProvider::Openrouter, &custom)
+		provider::resolve_chat_endpoint(CiDecisionProvider::Openrouter, &custom)
 			.unwrap()
 			.url,
 		"http://localhost:9/v1/chat/completions"
 	);
 
 	let compatible =
-		provider::resolve_chat_endpoint(provider::ChatProvider::OpenaiCompatible, &custom).unwrap();
+		provider::resolve_chat_endpoint(CiDecisionProvider::OpenaiCompatible, &custom).unwrap();
 
 	assert_eq!(compatible.url, "http://localhost:9/v1/chat/completions");
 	assert_eq!(compatible.default_model, DEFAULT_OPENCODE_GO_MODEL);
@@ -1896,15 +2305,9 @@ fn assert_provider_endpoint_resolution() {
 		account_id: None,
 	};
 
-	assert!(
-		provider::resolve_chat_endpoint(provider::ChatProvider::OpencodeGo, &missing_key).is_err()
-	);
-	assert!(
-		provider::resolve_chat_endpoint(provider::ChatProvider::Openrouter, &missing_key).is_err()
-	);
-	assert!(
-		provider::resolve_chat_endpoint(provider::ChatProvider::Cloudflare, &missing_key).is_err()
-	);
+	assert!(provider::resolve_chat_endpoint(CiDecisionProvider::OpencodeGo, &missing_key).is_err());
+	assert!(provider::resolve_chat_endpoint(CiDecisionProvider::Openrouter, &missing_key).is_err());
+	assert!(provider::resolve_chat_endpoint(CiDecisionProvider::Cloudflare, &missing_key).is_err());
 
 	let no_url = provider::ProviderOverrides {
 		model: None,
@@ -1914,7 +2317,12 @@ fn assert_provider_endpoint_resolution() {
 	};
 
 	assert!(
-		provider::resolve_chat_endpoint(provider::ChatProvider::OpenaiCompatible, &no_url).is_err()
+		provider::resolve_chat_endpoint(CiDecisionProvider::OpenaiCompatible, &no_url).is_err()
+	);
+	assert!(
+		provider::resolve_provider_url(CiDecisionProvider::Jev, &no_url)
+			.unwrap_err()
+			.contains("missing --api-url or JEV_API_URL for jev")
 	);
 }
 
@@ -1937,6 +2345,11 @@ fn verify_classifies_outcomes_from_prior_decisions_and_reuses_learned_rules() {
 
 	init_git_repo_with_origin(root, "https://github.com/acme/verify-repo.git");
 	run_mc(root, &["ci", "auth", "init"]).unwrap();
+	fs::write(
+		root.join("monochange.toml"),
+		"[ci.jobs.prose-job]\npaths = [\"rare/**\"]\n\n[ci.jobs.forced-job]\npaths = [\"rare/**\"]\n\n[ci.jobs.text-job]\npaths = [\"rare/**\"]\n",
+	)
+	.unwrap();
 
 	let code = verify_record(
 		root,
@@ -1974,12 +2387,15 @@ fn verify_classifies_outcomes_from_prior_decisions_and_reuses_learned_rules() {
 		CiVerificationClassification::TrueNegative
 	);
 
+	// An unconfigured job always runs, so a passing verification of it with
+	// no files is a useful run, not a safe skip.
 	let orphan = verify_record(root, &["--job", "orphan-job", "--conclusion", "success"]);
 
 	assert!(orphan.changed_files.is_empty());
+	assert_eq!(orphan.prior_decision, "y");
 	assert_eq!(
 		orphan.classification,
-		CiVerificationClassification::TrueNegative
+		CiVerificationClassification::TruePositive
 	);
 
 	let caught = verify_record(
@@ -2090,6 +2506,11 @@ fn analytics_uses_fallback_minutes_for_unmeasured_durations() {
 
 	init_git_repo_with_origin(root, "https://github.com/acme/analytics-fallback.git");
 	run_mc(root, &["ci", "auth", "init"]).unwrap();
+	fs::write(
+		root.join("monochange.toml"),
+		"[ci.jobs.unmeasured]\npackages = [\"never_a_package\"]\n",
+	)
+	.unwrap();
 	run_mc(
 		root,
 		&[

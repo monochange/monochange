@@ -94,7 +94,18 @@ use semver::Version;
 use serde::Deserialize;
 use serde_yaml_ng::Mapping;
 
+mod ci;
 mod format;
+pub use ci::CI_PROVIDERS;
+pub use ci::CiJob;
+pub use ci::CiSettings;
+pub use ci::DEFAULT_CI_PROVIDER;
+pub use ci::DEFAULT_IGNORE_PATHS;
+pub use ci::DEFAULT_MAX_SKIPS_ON_MAIN;
+pub use ci::DEFAULT_UNCONDITIONAL_BRANCHES;
+pub use ci::DEFAULT_UNCONDITIONAL_EVENTS;
+pub use ci::DEFAULT_UNCONDITIONAL_PATHS;
+pub use ci::load_ci_settings;
 pub use format::format_workspace_configuration;
 
 const CONFIG_FILE: &str = "monochange.toml";
@@ -180,6 +191,9 @@ pub(crate) struct RawWorkspaceConfiguration {
 	lints: WorkspaceLintSettings,
 	#[serde(default)]
 	ecosystems: RawEcosystems,
+	/// Conditional CI gatekeeper settings read by `monochange ci`.
+	#[serde(default)]
+	ci: ci::RawCiConfiguration,
 }
 
 /// Raw `[version_scheme.<id>]` value.
@@ -2427,6 +2441,7 @@ pub fn load_workspace_configuration(root: &Path) -> MonochangeResult<WorkspaceCo
 		version_scheme,
 		lints,
 		ecosystems,
+		ci: _,
 	} = raw;
 	let cli = merge_cli_commands(cli);
 	let default_package_type = defaults.package_type;

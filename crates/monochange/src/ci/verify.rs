@@ -9,17 +9,18 @@ use std::path::Path;
 
 use chrono::Utc;
 use clap::ArgMatches;
+use monochange_config::load_ci_settings;
 use monochange_core::MonochangeResult;
 
 use super::DEFAULT_MAX_DURATION_MINUTES;
 use super::DEFAULT_RUST_MAX_DURATION_MINUTES;
 use super::args;
 use super::auth;
-use super::graph::WorkspaceGraphContext;
+use super::graph::GraphContext;
 use super::graph::derive_learned_patterns_from_files;
 use super::graph::duration_threshold_minutes;
+use super::graph::evaluate_graph_context;
 use super::graph::evaluate_graph_decision_for_job;
-use super::graph::evaluate_workspace_graph_context;
 use super::graph::exceeds_duration_threshold;
 use super::graph::is_main_branch;
 use super::graph::is_rust_job_or_context;
@@ -61,7 +62,7 @@ struct VerifyInput {
 struct VerifyContext<'a> {
 	input: &'a VerifyInput,
 	changed_files: &'a [String],
-	graph: &'a WorkspaceGraphContext,
+	graph: &'a GraphContext,
 	graph_would_run: bool,
 	affected_packages: Vec<String>,
 }
@@ -80,15 +81,16 @@ pub(super) fn run_ci_verify_subcommand(
 	)?;
 	let prior_record = find_prior_decision(&memory, &input);
 	let changed_files = resolve_verify_changed_files(&input, prior_record.as_ref());
-	let graph = evaluate_workspace_graph_context(root, &changed_files);
-	let (graph_would_run, _, affected_packages) =
-		evaluate_graph_decision_for_job(&input.job, &changed_files, &[], &[], &graph);
+	let settings = load_ci_settings(root)?;
+	let graph = evaluate_graph_context(root, &changed_files, &settings);
+	let job_rule = settings.jobs.get(&input.job);
+	let graph_verdict = evaluate_graph_decision_for_job(&input.job, job_rule, &graph);
 	let context = VerifyContext {
 		input: &input,
 		changed_files: &changed_files,
 		graph: &graph,
-		graph_would_run,
-		affected_packages,
+		graph_would_run: graph_verdict.run,
+		affected_packages: graph_verdict.affected_packages,
 	};
 
 	let prior_decision = resolve_prior_decision(prior_record.as_ref(), &context);
@@ -263,10 +265,10 @@ fn passed_verification(
 	job: &str,
 	context: &VerifyContext<'_>,
 ) -> (CiVerificationClassification, String) {
-	let unaffected_and_docs = !context.changed_files.is_empty()
-		&& (context.graph.docs_or_ignored_only || !context.graph_would_run);
+	let unaffected_and_ignored = !context.changed_files.is_empty()
+		&& (context.graph.ignored_only() || !context.graph_would_run);
 
-	if context.input.explicit_redundant || unaffected_and_docs {
+	if context.input.explicit_redundant || unaffected_and_ignored {
 		return (
 			CiVerificationClassification::FalsePositive,
 			format!(

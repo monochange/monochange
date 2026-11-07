@@ -14,6 +14,7 @@
 mod analytics;
 mod args;
 mod auth;
+mod check;
 mod cli;
 mod decide;
 mod graph;
@@ -33,6 +34,7 @@ pub use auth::derive_canonical_repo_id;
 pub use auth::issue_repo_token;
 pub use auth::normalize_repo_identity;
 pub use auth::verify_repo_token;
+use check::run_ci_check_subcommand;
 use clap::ArgMatches;
 pub(crate) use cli::build_ci_subcommand;
 use decide::run_ci_decide_subcommand;
@@ -40,6 +42,11 @@ pub use graph::build_speed_suggestions;
 use history::run_ci_history_subcommand;
 use monochange_core::MonochangeError;
 use monochange_core::MonochangeResult;
+pub use provider::DEFAULT_CLOUDFLARE_MODEL;
+pub use provider::DEFAULT_OPENCODE_GO_API_URL;
+pub use provider::DEFAULT_OPENCODE_GO_MODEL;
+pub use provider::DEFAULT_OPENROUTER_API_URL;
+pub use provider::DEFAULT_OPENROUTER_MODEL;
 pub use types::CiAnalyticsReport;
 pub use types::CiAuthFile;
 pub use types::CiAuthReport;
@@ -62,41 +69,11 @@ pub const CI_AUTH_RELATIVE_PATH: &str = ".monochange/ci-auth.json";
 pub const CI_MEMORY_RELATIVE_PATH: &str = ".monochange/ci-memory.json";
 /// Directory that holds the repo-scoped CI state files.
 pub(super) const CI_DIRECTORY_RELATIVE_PATH: &str = ".monochange";
-/// Default chat completions endpoint for the `opencode-go` provider.
-pub const DEFAULT_OPENCODE_GO_API_URL: &str = "https://api.opencode.ai/v1/chat/completions";
-/// Default model identifier for the `opencode-go` and `openai-compatible` providers.
-pub const DEFAULT_OPENCODE_GO_MODEL: &str = "deepseek-v4.1";
-/// Default chat completions endpoint for the `openrouter` provider.
-pub const DEFAULT_OPENROUTER_API_URL: &str = "https://openrouter.ai/api/v1/chat/completions";
-/// Default model identifier for the `openrouter` provider.
-pub const DEFAULT_OPENROUTER_MODEL: &str = "deepseek/deepseek-chat";
-/// Default Workers AI model identifier for the `cloudflare` provider.
-pub const DEFAULT_CLOUDFLARE_MODEL: &str = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
-/// Consecutive skips allowed on `main` before a forced verification run.
-pub const DEFAULT_MAX_SKIPS_ON_MAIN: u32 = 5;
 /// Default duration red-flag threshold for general CI jobs.
 pub const DEFAULT_MAX_DURATION_MINUTES: u64 = 10;
 /// Default duration red-flag threshold for Rust CI jobs.
 pub const DEFAULT_RUST_MAX_DURATION_MINUTES: u64 = 20;
 
-/// Events that always run every job regardless of the gate decision.
-const DEFAULT_UNCONDITIONAL_EVENTS: &[&str] = &["schedule", "workflow_dispatch"];
-/// Branch and ref globs that always run every job.
-const DEFAULT_UNCONDITIONAL_BRANCHES: &[&str] = &[
-	"release/*",
-	"monochange/release/*",
-	"refs/tags/v*",
-	"refs/heads/release/*",
-	"refs/heads/monochange/release/*",
-];
-/// Changed paths that always run every job because they affect the toolchain.
-const DEFAULT_UNCONDITIONAL_PATHS: &[&str] = &[
-	"Cargo.lock",
-	"rust-toolchain.toml",
-	"rust-toolchain",
-	".github/workflows/*",
-	".github/workflows/**",
-];
 /// Labels and commit-message markers that force a full CI run.
 const UNCONDITIONAL_MARKERS: &[&str] = &[
 	"[ci:full]",
@@ -118,6 +95,7 @@ pub(crate) async fn run_ci_subcommand(
 			run_ci_analytics_subcommand(root, analytics_matches)
 		}
 		Some(("history", history_matches)) => run_ci_history_subcommand(root, history_matches),
+		Some(("check", check_matches)) => run_ci_check_subcommand(root, check_matches),
 		_ => {
 			Err(MonochangeError::Config(
 				"missing `monochange ci` subcommand".to_string(),

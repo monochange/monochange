@@ -2,9 +2,16 @@
 //!
 //! Providers are advisory: every failure is turned into a `Result::Err` so the
 //! caller can fall back to the deterministic workspace graph. Nothing in this
-//! module panics on network, HTTP, or parse errors because a CI gate that fails
-//! closed would block every pipeline behind a provider outage.
+//! module panics on network, HTTP, or parse errors because a CI gate that
+//! fails closed would block every pipeline behind a provider outage.
+//!
+//! Providers are data, not code paths: one preset table describes every
+//! endpoint, one OpenAI-compatible client serves every chat provider, and one
+//! request per `decide` run covers every job. Only `jev` keeps its own request
+//! shape because its webhook wire format genuinely differs from chat
+//! completions.
 
+use std::collections::BTreeMap;
 use std::time::Duration;
 
 use reqwest::Client;
@@ -12,11 +19,6 @@ use serde_json::Value;
 use serde_json::json;
 
 use super::CiDecisionProvider;
-use super::DEFAULT_CLOUDFLARE_MODEL;
-use super::DEFAULT_OPENCODE_GO_API_URL;
-use super::DEFAULT_OPENCODE_GO_MODEL;
-use super::DEFAULT_OPENROUTER_API_URL;
-use super::DEFAULT_OPENROUTER_MODEL;
 
 /// Connection timeout for provider requests.
 const HTTP_CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
@@ -24,26 +26,137 @@ const HTTP_CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(15);
 /// Sampling temperature used for gatekeeper prompts.
 const DETERMINISTIC_TEMPERATURE: f64 = 0.0;
-/// Fallback account segment used when Cloudflare account id is unknown.
+/// Fallback account segment used when a Cloudflare account id is unknown.
 const CLOUDFLARE_DEFAULT_ACCOUNT: &str = "default";
+/// Default chat completions endpoint for the `opencode-go` provider.
+pub const DEFAULT_OPENCODE_GO_API_URL: &str = "https://api.opencode.ai/v1/chat/completions";
+/// Default model identifier for the `opencode-go` and `openai-compatible` providers.
+pub const DEFAULT_OPENCODE_GO_MODEL: &str = "deepseek-v4.1";
+/// Default chat completions endpoint for the `openrouter` provider.
+pub const DEFAULT_OPENROUTER_API_URL: &str = "https://openrouter.ai/api/v1/chat/completions";
+/// Default model identifier for the `openrouter` provider.
+pub const DEFAULT_OPENROUTER_MODEL: &str = "deepseek/deepseek-chat";
+/// Default Workers AI model identifier for the `cloudflare` provider.
+pub const DEFAULT_CLOUDFLARE_MODEL: &str = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
+/// Default Cloudflare Workers AI chat completions URL template.
+const CLOUDFLARE_API_URL_TEMPLATE: &str =
+	"https://api.cloudflare.com/client/v4/accounts/{account}/ai/v1/chat/completions";
+/// Model label recorded for the JEV webhook provider.
+pub const JEV_MODEL_LABEL: &str = "jev-webhook";
 
-/// Provider verdict plus the provider and model that produced it.
-#[derive(Debug)]
-pub(super) struct ProviderCallOutcome {
-	pub(super) run: bool,
-	pub(super) reason: String,
-	pub(super) provider_used: String,
-	pub(super) model_used: String,
+/// How a provider preset resolves its endpoint URL.
+#[derive(Debug, Clone, Copy)]
+enum PresetUrl {
+	/// A fixed chat-completions URL.
+	Fixed(&'static str),
+	/// A URL template containing `{account}`.
+	Account(&'static str),
+	/// No default; the URL must come from a flag or environment variable.
+	Required,
 }
 
-/// Everything about the change being classified.
+/// Everything the shared client needs to know about one provider.
+#[derive(Debug, Clone, Copy)]
+struct ProviderPreset {
+	/// Stable provider name used in requests, records, and CLI output.
+	name: &'static str,
+	/// Default endpoint resolution.
+	url: PresetUrl,
+	/// Environment variables probed for the endpoint URL, in order.
+	url_env: &'static [&'static str],
+	/// Environment variables probed for the API key, in order.
+	api_key_env: &'static [&'static str],
+	/// Whether the request fails when no API key resolves.
+	requires_api_key: bool,
+	/// Model used when neither `[ci]` model nor `--model` overrides it.
+	default_model: &'static str,
+}
+
+/// Preset for the `opencode-go` provider.
+const OPENCODE_GO_PRESET: ProviderPreset = ProviderPreset {
+	name: "opencode-go",
+	url: PresetUrl::Fixed(DEFAULT_OPENCODE_GO_API_URL),
+	url_env: &["OPENCODE_GO_API_URL"],
+	api_key_env: &["OPENCODE_GO_API_KEY"],
+	requires_api_key: true,
+	default_model: DEFAULT_OPENCODE_GO_MODEL,
+};
+
+/// Preset for the `openrouter` provider.
+const OPENROUTER_PRESET: ProviderPreset = ProviderPreset {
+	name: "openrouter",
+	url: PresetUrl::Fixed(DEFAULT_OPENROUTER_API_URL),
+	url_env: &["OPENROUTER_API_URL"],
+	api_key_env: &["OPENROUTER_API_KEY"],
+	requires_api_key: true,
+	default_model: DEFAULT_OPENROUTER_MODEL,
+};
+
+/// Preset for the `cloudflare` provider, which embeds an account id.
+const CLOUDFLARE_PRESET: ProviderPreset = ProviderPreset {
+	name: "cloudflare",
+	url: PresetUrl::Account(CLOUDFLARE_API_URL_TEMPLATE),
+	url_env: &["CLOUDFLARE_API_URL"],
+	api_key_env: &["CLOUDFLARE_API_TOKEN"],
+	requires_api_key: true,
+	default_model: DEFAULT_CLOUDFLARE_MODEL,
+};
+
+/// Preset for the `jev` webhook provider.
+const JEV_PRESET: ProviderPreset = ProviderPreset {
+	name: "jev",
+	url: PresetUrl::Required,
+	url_env: &["JEV_API_URL"],
+	api_key_env: &["JEV_API_KEY"],
+	requires_api_key: false,
+	default_model: JEV_MODEL_LABEL,
+};
+
+/// Preset for a user-supplied OpenAI-compatible server.
+const OPENAI_COMPATIBLE_PRESET: ProviderPreset = ProviderPreset {
+	name: "openai-compatible",
+	url: PresetUrl::Required,
+	url_env: &["OPENAI_API_URL"],
+	api_key_env: &["OPENAI_API_KEY"],
+	requires_api_key: false,
+	default_model: DEFAULT_OPENCODE_GO_MODEL,
+};
+
+/// Look up the preset for a provider.
+fn preset_for(provider: CiDecisionProvider) -> &'static ProviderPreset {
+	match provider {
+		CiDecisionProvider::OpencodeGo | CiDecisionProvider::Graph => &OPENCODE_GO_PRESET,
+		CiDecisionProvider::Openrouter => &OPENROUTER_PRESET,
+		CiDecisionProvider::Cloudflare => &CLOUDFLARE_PRESET,
+		CiDecisionProvider::Jev => &JEV_PRESET,
+		CiDecisionProvider::OpenaiCompatible => &OPENAI_COMPATIBLE_PRESET,
+	}
+}
+
+/// Default model for a provider when no override is configured.
+pub(super) fn default_model_for(provider: CiDecisionProvider) -> &'static str {
+	preset_for(provider).default_model
+}
+
+/// One job entry in a provider prompt.
+pub(super) struct PromptJob<'a> {
+	/// GitHub job id being decided.
+	pub(super) id: &'a str,
+	/// The deterministic graph verdict for this job.
+	pub(super) graph_run: bool,
+	/// Why the graph returned its verdict.
+	pub(super) graph_reason: &'a str,
+}
+
+/// Everything about the change being classified, covering every job at once.
 pub(super) struct DecisionPrompt<'a> {
-	pub(super) job: &'a str,
+	pub(super) jobs: &'a [PromptJob<'a>],
 	pub(super) changed_files: &'a [String],
 	pub(super) affected_packages: &'a [String],
+	pub(super) recent_history: &'a [String],
 }
 
-/// CLI and environment overrides shared by every provider.
+/// CLI, `[ci]`, and environment overrides shared by every provider.
 pub(super) struct ProviderOverrides<'a> {
 	pub(super) model: Option<&'a str>,
 	pub(super) api_url: Option<&'a str>,
@@ -51,38 +164,30 @@ pub(super) struct ProviderOverrides<'a> {
 	pub(super) account_id: Option<&'a str>,
 }
 
+/// A provider verdict for one job.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) struct ProviderDecision {
+	pub(super) run: bool,
+	pub(super) reason: String,
+}
+
+/// Provider verdicts for every covered job plus the provider and model used.
+#[derive(Debug)]
+pub(super) struct ProviderCallOutcome {
+	pub(super) decisions: BTreeMap<String, ProviderDecision>,
+	pub(super) provider_used: String,
+	pub(super) model_used: String,
+}
+
 /// Resolved chat-completions endpoint settings for one provider.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct ChatEndpoint {
 	pub(super) url: String,
 	pub(super) api_key: String,
 	pub(super) default_model: &'static str,
 }
 
-/// Providers that speak the `OpenAI` chat-completions protocol.
-///
-/// `graph` and `jev` are routed before this point, so the chat-completions
-/// helpers only ever see these four variants.
-#[derive(Debug, Clone, Copy)]
-pub(super) enum ChatProvider {
-	OpencodeGo,
-	Openrouter,
-	Cloudflare,
-	OpenaiCompatible,
-}
-
-impl ChatProvider {
-	/// Stable provider name used in requests, records, and CLI output.
-	fn as_str(self) -> &'static str {
-		match self {
-			Self::OpencodeGo => "opencode-go",
-			Self::Openrouter => "openrouter",
-			Self::Cloudflare => "cloudflare",
-			Self::OpenaiCompatible => "openai-compatible",
-		}
-	}
-}
-
-/// Ask an external provider whether the job should run.
+/// Ask an external provider which jobs should run, with one request.
 pub(super) async fn query_external_decision_provider(
 	provider: CiDecisionProvider,
 	overrides: &ProviderOverrides<'_>,
@@ -93,18 +198,7 @@ pub(super) async fn query_external_decision_provider(
 	match provider {
 		CiDecisionProvider::Graph => Err("graph provider is local".to_string()),
 		CiDecisionProvider::Jev => send_jev_request(&client, overrides, prompt).await,
-		CiDecisionProvider::OpencodeGo => {
-			send_chat_completion(&client, ChatProvider::OpencodeGo, overrides, prompt).await
-		}
-		CiDecisionProvider::Openrouter => {
-			send_chat_completion(&client, ChatProvider::Openrouter, overrides, prompt).await
-		}
-		CiDecisionProvider::Cloudflare => {
-			send_chat_completion(&client, ChatProvider::Cloudflare, overrides, prompt).await
-		}
-		CiDecisionProvider::OpenaiCompatible => {
-			send_chat_completion(&client, ChatProvider::OpenaiCompatible, overrides, prompt).await
-		}
+		_ => send_chat_completion(&client, provider, overrides, prompt).await,
 	}
 }
 
@@ -119,22 +213,23 @@ fn build_http_client() -> Result<Client, String> {
 		.map_err(|error| format!("failed to build HTTP client: {error}"))
 }
 
-/// Send the job context to a JEV webhook and parse its decision.
+/// Send every job to a JEV webhook and parse the per-job decisions.
 async fn send_jev_request(
 	client: &Client,
 	overrides: &ProviderOverrides<'_>,
 	prompt: &DecisionPrompt<'_>,
 ) -> Result<ProviderCallOutcome, String> {
-	let url = resolve_jev_url(overrides)?;
-	let api_key = overrides
-		.api_key
-		.map(ToString::to_string)
-		.or_else(|| env_var("JEV_API_KEY"));
-
+	let url = resolve_provider_url(CiDecisionProvider::Jev, overrides)?;
+	let api_key = resolve_api_key(CiDecisionProvider::Jev, overrides);
 	let mut request = client.post(url).json(&json!({
-		"job": prompt.job,
+		"jobs": prompt.jobs.iter().map(|job| json!({
+			"job": job.id,
+			"graph": if job.graph_run { "y" } else { "n" },
+			"reason": job.graph_reason,
+		})).collect::<Vec<_>>(),
 		"changed_files": prompt.changed_files,
 		"affected_packages": prompt.affected_packages,
+		"recent_history": prompt.recent_history,
 	}));
 
 	if let Some(key) = api_key.filter(|key| !key.trim().is_empty()) {
@@ -142,35 +237,19 @@ async fn send_jev_request(
 	}
 
 	let body = send_and_read(request, "jev webhook", "jev").await?;
-	let (run, reason) = parse_provider_decision_payload(&body)?;
+	let decisions = parse_provider_decisions(&body)?;
 
 	Ok(ProviderCallOutcome {
-		run,
-		reason,
+		decisions,
 		provider_used: "jev".to_string(),
-		model_used: overrides.model.unwrap_or("jev-webhook").to_string(),
+		model_used: overrides.model.unwrap_or(JEV_MODEL_LABEL).to_string(),
 	})
 }
 
-/// Resolve the JEV endpoint from the flag or environment.
-fn resolve_jev_url(overrides: &ProviderOverrides<'_>) -> Result<String, String> {
-	overrides
-		.api_url
-		.map(str::trim)
-		.filter(|value| !value.is_empty())
-		.map(ToString::to_string)
-		.or_else(|| {
-			env_var("JEV_API_URL")
-				.map(|value| value.trim().to_string())
-				.filter(|value| !value.is_empty())
-		})
-		.ok_or_else(|| "missing JEV_API_URL or --api-url".to_string())
-}
-
-/// Send an OpenAI-compatible chat completion request and parse its decision.
+/// Send every job in one OpenAI-compatible chat completion request.
 async fn send_chat_completion(
 	client: &Client,
-	provider: ChatProvider,
+	provider: CiDecisionProvider,
 	overrides: &ProviderOverrides<'_>,
 	prompt: &DecisionPrompt<'_>,
 ) -> Result<ProviderCallOutcome, String> {
@@ -187,23 +266,29 @@ async fn send_chat_completion(
 		request = request.bearer_auth(endpoint.api_key.trim());
 	}
 
-	let body = send_and_read(request, provider.as_str(), "provider").await?;
-	let (run, reason) = parse_provider_decision_payload(&body)?;
+	let body = send_and_read(request, preset_for(provider).name, "provider").await?;
+	let decisions = parse_provider_decisions(&body)?;
 
 	Ok(ProviderCallOutcome {
-		run,
-		reason,
-		provider_used: provider.as_str().to_string(),
+		decisions,
+		provider_used: preset_for(provider).name.to_string(),
 		model_used: model,
 	})
 }
 
-/// Build the chat-completions request body for the gatekeeper prompt.
+/// Build the chat-completions request body covering every job.
 fn chat_request_body(model: &str, prompt: &DecisionPrompt<'_>) -> Value {
-	let user_prompt = format!(
-		"Decide if CI job `{}` must run (`y` or `n`). Changed files: {:?}. Affected workspace packages: {:?}. Reply with JSON {{\"decision\":\"y\"|\"n\",\"reason\":\"...\"}}.",
-		prompt.job, prompt.changed_files, prompt.affected_packages
-	);
+	let jobs = prompt
+		.jobs
+		.iter()
+		.map(|job| {
+			json!({
+				"job": job.id,
+				"graph": if job.graph_run { "y" } else { "n" },
+				"reason": job.graph_reason,
+			})
+		})
+		.collect::<Vec<_>>();
 
 	json!({
 		"model": model,
@@ -211,11 +296,14 @@ fn chat_request_body(model: &str, prompt: &DecisionPrompt<'_>) -> Value {
 		"messages": [
 			{
 				"role": "system",
-				"content": "You are monochange's CI gatekeeper. Respond strictly with JSON: {\"decision\": \"y\" | \"n\", \"reason\": \"...\"}."
+				"content": "You are monochange's CI gatekeeper. For each listed job decide whether it must run. Respond strictly with a JSON object mapping each job id to {\"run\": true|false, \"reason\": \"...\"} and no other text."
 			},
 			{
 				"role": "user",
-				"content": user_prompt
+				"content": format!(
+					"Jobs with graph verdicts: {jobs:?}. Changed files: {:?}. Affected workspace packages: {:?}. Recent history: {:?}.",
+					prompt.changed_files, prompt.affected_packages, prompt.recent_history
+				)
 			}
 		]
 	})
@@ -245,173 +333,157 @@ async fn send_and_read(
 		.map_err(|error| format!("failed reading {read_label} response: {error}"))
 }
 
-/// Resolve endpoint settings for one chat-completions provider.
+/// Resolve the endpoint URL for any provider from its preset.
+pub(super) fn resolve_provider_url(
+	provider: CiDecisionProvider,
+	overrides: &ProviderOverrides<'_>,
+) -> Result<String, String> {
+	let preset = preset_for(provider);
+	let explicit = overrides
+		.api_url
+		.map(str::trim)
+		.filter(|value| !value.is_empty())
+		.map(ToString::to_string)
+		.or_else(|| first_env_var(preset.url_env));
+
+	match (preset.url, explicit) {
+		(_, Some(url)) => Ok(url),
+		(PresetUrl::Fixed(url), None) => Ok(url.to_string()),
+		(PresetUrl::Account(template), None) => {
+			let account = overrides
+				.account_id
+				.map(ToString::to_string)
+				.or_else(|| env_var("CLOUDFLARE_ACCOUNT_ID"))
+				.unwrap_or_else(|| CLOUDFLARE_DEFAULT_ACCOUNT.to_string());
+
+			Ok(template.replace("{account}", &account))
+		}
+		(PresetUrl::Required, None) => {
+			Err(format!(
+				"missing --api-url or {} for {}",
+				preset.url_env.first().map_or("an env var", |name| name),
+				preset.name
+			))
+		}
+	}
+}
+
+/// Resolve the API key for a provider from its preset.
+fn resolve_api_key(
+	provider: CiDecisionProvider,
+	overrides: &ProviderOverrides<'_>,
+) -> Option<String> {
+	let preset = preset_for(provider);
+
+	overrides
+		.api_key
+		.map(ToString::to_string)
+		.or_else(|| first_env_var(preset.api_key_env))
+}
+
+/// Resolve endpoint settings for a chat-completions provider.
 pub(super) fn resolve_chat_endpoint(
-	provider: ChatProvider,
+	provider: CiDecisionProvider,
 	overrides: &ProviderOverrides<'_>,
 ) -> Result<ChatEndpoint, String> {
-	match provider {
-		ChatProvider::OpencodeGo => opencode_endpoint(overrides),
-		ChatProvider::Openrouter => openrouter_endpoint(overrides),
-		ChatProvider::Cloudflare => cloudflare_endpoint(overrides),
-		ChatProvider::OpenaiCompatible => openai_compatible_endpoint(overrides),
-	}
-}
-
-/// Endpoint settings for `opencode-go`.
-fn opencode_endpoint(overrides: &ProviderOverrides<'_>) -> Result<ChatEndpoint, String> {
-	let url = overrides
-		.api_url
-		.map(ToString::to_string)
-		.or_else(|| env_var("OPENCODE_GO_API_URL"))
-		.unwrap_or_else(|| DEFAULT_OPENCODE_GO_API_URL.to_string());
-	let api_key = overrides
-		.api_key
-		.map(ToString::to_string)
-		.or_else(|| env_var("OPENCODE_GO_API_KEY"))
-		.ok_or_else(|| "missing OPENCODE_GO_API_KEY or --api-key".to_string())?;
+	let preset = preset_for(provider);
+	let url = resolve_provider_url(provider, overrides)?;
+	let api_key = match resolve_api_key(provider, overrides) {
+		Some(key) => key,
+		None if !preset.requires_api_key => String::new(),
+		None => {
+			return Err(format!(
+				"missing {} or --api-key",
+				preset.api_key_env.first().map_or("an API key", |name| name)
+			));
+		}
+	};
 
 	Ok(ChatEndpoint {
 		url,
 		api_key,
-		default_model: DEFAULT_OPENCODE_GO_MODEL,
+		default_model: preset.default_model,
 	})
 }
 
-/// Endpoint settings for `openrouter`.
-fn openrouter_endpoint(overrides: &ProviderOverrides<'_>) -> Result<ChatEndpoint, String> {
-	let url = overrides
-		.api_url
-		.map(ToString::to_string)
-		.or_else(|| env_var("OPENROUTER_API_URL"))
-		.unwrap_or_else(|| DEFAULT_OPENROUTER_API_URL.to_string());
-	let api_key = overrides
-		.api_key
-		.map(ToString::to_string)
-		.or_else(|| env_var("OPENROUTER_API_KEY"))
-		.ok_or_else(|| "missing OPENROUTER_API_KEY or --api-key".to_string())?;
-
-	Ok(ChatEndpoint {
-		url,
-		api_key,
-		default_model: DEFAULT_OPENROUTER_MODEL,
-	})
-}
-
-/// Endpoint settings for `cloudflare`, which embeds the account id in the URL.
-fn cloudflare_endpoint(overrides: &ProviderOverrides<'_>) -> Result<ChatEndpoint, String> {
-	let account_id = overrides
-		.account_id
-		.map(ToString::to_string)
-		.or_else(|| env_var("CLOUDFLARE_ACCOUNT_ID"))
-		.unwrap_or_else(|| CLOUDFLARE_DEFAULT_ACCOUNT.to_string());
-	let url = overrides
-		.api_url
-		.map(ToString::to_string)
-		.or_else(|| env_var("CLOUDFLARE_API_URL"))
-		.unwrap_or_else(|| {
-			format!(
-				"https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/v1/chat/completions"
-			)
-		});
-	let api_key = overrides
-		.api_key
-		.map(ToString::to_string)
-		.or_else(|| env_var("CLOUDFLARE_API_TOKEN"))
-		.ok_or_else(|| "missing CLOUDFLARE_API_TOKEN or --api-key".to_string())?;
-
-	Ok(ChatEndpoint {
-		url,
-		api_key,
-		default_model: DEFAULT_CLOUDFLARE_MODEL,
-	})
-}
-
-/// Endpoint settings for a user-supplied OpenAI-compatible server.
-fn openai_compatible_endpoint(overrides: &ProviderOverrides<'_>) -> Result<ChatEndpoint, String> {
-	let url = overrides
-		.api_url
-		.map(ToString::to_string)
-		.or_else(|| env_var("OPENAI_API_URL"))
-		.ok_or_else(|| "missing --api-url or OPENAI_API_URL for openai-compatible".to_string())?;
-	let api_key = overrides
-		.api_key
-		.map(ToString::to_string)
-		.or_else(|| env_var("OPENAI_API_KEY"))
-		.unwrap_or_default();
-
-	Ok(ChatEndpoint {
-		url,
-		api_key,
-		default_model: DEFAULT_OPENCODE_GO_MODEL,
-	})
-}
-
-/// Parse a provider payload that may be plain text or a JSON chat envelope.
-pub(super) fn parse_provider_decision_payload(payload: &str) -> Result<(bool, String), String> {
-	let trimmed = payload.trim();
-
-	if let Some(run) = parse_text_decision(trimmed) {
-		let label = if run { "y" } else { "n" };
-
-		return Ok((run, format!("provider returned `{label}`")));
-	}
+/// Parse a provider payload into per-job decisions.
+///
+/// The expected shape is `{"<job>": {"run": bool, "reason": "..."}}`, either
+/// directly (JEV and plain HTTP providers) or nested inside a chat completion
+/// envelope. Models sometimes wrap JSON in code fences; strip them first.
+pub(super) fn parse_provider_decisions(
+	payload: &str,
+) -> Result<BTreeMap<String, ProviderDecision>, String> {
+	let trimmed = strip_code_fences(payload.trim());
 
 	let value: Value =
 		serde_json::from_str(trimmed).map_err(|error| format!("invalid JSON response: {error}"))?;
 
-	parse_json_decision(&value)
-}
-
-/// Parse bare `y` and `n` style responses.
-fn parse_text_decision(trimmed: &str) -> Option<bool> {
-	if matches_ignore_case(trimmed, &["y", "yes", "true"]) {
-		return Some(true);
-	}
-
-	if matches_ignore_case(trimmed, &["n", "no", "false"]) {
-		return Some(false);
-	}
-
-	None
-}
-
-/// Parse a JSON decision, unwrapping a nested chat completion when present.
-fn parse_json_decision(value: &Value) -> Result<(bool, String), String> {
 	if let Some(content) = value
 		.pointer("/choices/0/message/content")
 		.and_then(Value::as_str)
 	{
-		return parse_provider_decision_payload(content);
+		return parse_provider_decisions(content);
 	}
 
-	let run = json_decision_value(value).ok_or_else(|| {
-		"provider response did not include `decision` (`y`/`n`) or `run` boolean".to_string()
-	})?;
-	let reason = value
-		.get("reason")
-		.and_then(Value::as_str)
-		.unwrap_or_else(|| default_decision_reason(run))
-		.to_string();
-
-	Ok((run, reason))
+	decisions_from_object(&value)
 }
 
-/// Read the decision from either a `decision` string or a `run` boolean.
-fn json_decision_value(value: &Value) -> Option<bool> {
-	value
-		.get("decision")
+/// Remove Markdown code fences some models wrap around JSON.
+fn strip_code_fences(payload: &str) -> &str {
+	let without_prefix = payload
+		.strip_prefix("```json")
+		.or_else(|| payload.strip_prefix("```"));
+
+	let body = without_prefix.unwrap_or(payload);
+	let body = body.strip_suffix("```").unwrap_or(body);
+
+	body.trim()
+}
+
+/// Read the per-job decisions out of a JSON object.
+fn decisions_from_object(value: &Value) -> Result<BTreeMap<String, ProviderDecision>, String> {
+	let Some(entries) = value.as_object() else {
+		return Err("provider response was not a JSON object of job decisions".to_string());
+	};
+
+	let mut decisions = BTreeMap::new();
+
+	for (job, entry) in entries {
+		let decision = parse_decision_entry(entry).ok_or_else(|| {
+			format!(
+				"provider decision for `{job}` did not include `run` (`bool`) or `decision` (`y`/`n`)"
+			)
+		})?;
+
+		decisions.insert(job.clone(), decision);
+	}
+
+	Ok(decisions)
+}
+
+/// Parse one job's decision entry.
+fn parse_decision_entry(entry: &Value) -> Option<ProviderDecision> {
+	let run = entry.get("run").and_then(Value::as_bool).or_else(|| {
+		entry
+			.get("decision")
+			.and_then(Value::as_str)
+			.map(|decision| matches_ignore_case(decision, &["y", "yes", "true", "run"]))
+	})?;
+	let reason = entry
+		.get("reason")
 		.and_then(Value::as_str)
-		.map(|decision| matches_ignore_case(decision, &["y", "yes", "true", "run"]))
-		.or_else(|| value.get("run").and_then(Value::as_bool))
+		.map_or_else(|| default_decision_reason(run), ToString::to_string);
+
+	Some(ProviderDecision { run, reason })
 }
 
 /// Default reason used when a provider omits one.
-fn default_decision_reason(run: bool) -> &'static str {
+fn default_decision_reason(run: bool) -> String {
 	if run {
-		"provider decided to run job"
+		"provider decided to run job".to_string()
 	} else {
-		"provider decided to skip job"
+		"provider decided to skip job".to_string()
 	}
 }
 
@@ -420,6 +492,13 @@ fn matches_ignore_case(value: &str, candidates: &[&str]) -> bool {
 	candidates
 		.iter()
 		.any(|candidate| value.eq_ignore_ascii_case(candidate))
+}
+
+/// Read the first non-empty environment variable from `names`.
+fn first_env_var(names: &[&str]) -> Option<String> {
+	names
+		.iter()
+		.find_map(|name| env_var(name).filter(|value| !value.trim().is_empty()))
 }
 
 /// Read a non-empty environment variable.

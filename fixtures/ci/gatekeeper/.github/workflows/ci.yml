@@ -1,0 +1,30 @@
+name: CI
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    outputs:
+      decisions: ${{ steps.gate.outputs.decisions }}
+    steps:
+      - run: monochange ci decide --format github-outputs
+
+  test-windows:
+    needs: gate
+    if: fromJSON(needs.gate.outputs.decisions)['test-windows']
+    runs-on: windows-latest
+    steps:
+      - run: cargo test
+
+  docs:
+    needs: gate
+    if: fromJSON(needs.gate.outputs.decisions).docs
+    runs-on: ubuntu-latest
+    steps:
+      - run: mdbook build
+
+  lint:
+    needs: gate
+    if: fromJSON(needs.gate.outputs.decisions)['lint']
+    runs-on: ubuntu-latest
+    steps:
+      - run: cargo clippy

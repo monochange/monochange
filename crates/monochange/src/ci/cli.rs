@@ -36,6 +36,7 @@ pub(crate) fn build_ci_subcommand() -> Command {
 		.subcommand(build_ci_verify_subcommand())
 		.subcommand(build_ci_analytics_subcommand())
 		.subcommand(build_ci_history_subcommand())
+		.subcommand(build_ci_check_subcommand())
 }
 
 /// Build the `ci auth` subcommand tree.
@@ -87,13 +88,14 @@ fn build_auth_token_subcommand() -> Command {
 /// Build `ci decide`.
 fn build_ci_decide_subcommand() -> Command {
 	Command::new("decide")
-		.about("Evaluate whether CI jobs should run (y/n) using provider or workspace graph")
+		.about(
+			"Evaluate whether configured CI jobs should run (y/n) from [ci] rules and the workspace graph",
+		)
 		.args(decide_target_args())
 		.args(decide_change_args())
 		.args(decide_context_args())
 		.args(decide_unconditional_args())
 		.args(decide_limit_args())
-		.args(decide_scope_args())
 		.args(decide_auth_args())
 		.arg(decide_format_arg())
 }
@@ -105,16 +107,18 @@ fn decide_target_args() -> Vec<Arg> {
 			.long("job")
 			.value_name("JOB")
 			.action(ArgAction::Append)
-			.help("Job name to evaluate; repeat to evaluate multiple jobs"),
+			.help(
+				"Job id to evaluate; repeat to evaluate multiple jobs (defaults to every [ci.jobs] id)",
+			),
 		Arg::new("provider")
 			.long("provider")
 			.value_name("PROVIDER")
-			.default_value("opencode-go")
 			.value_parser(PROVIDER_VALUES)
-			.help("Decision provider to use"),
-		Arg::new("model").long("model").value_name("MODEL").help(
-			"Model identifier for AI decision providers (default: deepseek-v4.1 for opencode-go)",
-		),
+			.help("Decision provider to use (defaults to the [ci] provider, or graph)"),
+		Arg::new("model")
+			.long("model")
+			.value_name("MODEL")
+			.help("Model identifier for AI decision providers (defaults to the [ci] model)"),
 		Arg::new("api-url")
 			.long("api-url")
 			.value_name("URL")
@@ -184,45 +188,19 @@ fn decide_context_args() -> Vec<Arg> {
 	]
 }
 
-/// Flags and patterns that force a full run.
+/// Flags that force a full run.
 fn decide_unconditional_args() -> Vec<Arg> {
 	vec![
 		Arg::new("unconditional")
 			.long("unconditional")
 			.action(ArgAction::SetTrue)
 			.help("Force unconditional execution (`y`) for all evaluated jobs"),
-		Arg::new("unconditional-events")
-			.long("unconditional-events")
-			.value_name("EVENT")
-			.action(ArgAction::Append)
-			.value_delimiter(',')
-			.help("Events that force unconditional runs (defaults to schedule,workflow_dispatch)"),
-		Arg::new("unconditional-branches")
-			.long("unconditional-branches")
-			.value_name("PATTERN")
-			.action(ArgAction::Append)
-			.value_delimiter(',')
-			.help("Branch or ref globs that force unconditional runs"),
-		Arg::new("unconditional-paths")
-			.long("unconditional-paths")
-			.value_name("PATTERN")
-			.action(ArgAction::Append)
-			.value_delimiter(',')
-			.help("Changed file globs that force unconditional runs"),
 	]
 }
 
 /// Skip counters and duration thresholds.
 fn decide_limit_args() -> Vec<Arg> {
 	vec![
-		Arg::new("max-skips-on-main")
-			.long("max-skips-on-main")
-			.value_name("COUNT")
-			.default_value("5")
-			.value_parser(value_parser!(u32))
-			.help(
-				"Maximum consecutive skips on main before forcing an unconditional verification run",
-			),
 		Arg::new("duration-seconds")
 			.long("duration-seconds")
 			.value_name("SECONDS")
@@ -240,24 +218,6 @@ fn decide_limit_args() -> Vec<Arg> {
 			.default_value("20")
 			.value_parser(value_parser!(u64))
 			.help("Duration red-flag threshold in minutes for Rust CI jobs"),
-	]
-}
-
-/// Explicit job scope settings.
-fn decide_scope_args() -> Vec<Arg> {
-	vec![
-		Arg::new("job-paths")
-			.long("job-paths")
-			.value_name("PATTERN")
-			.action(ArgAction::Append)
-			.value_delimiter(',')
-			.help("Explicit file path globs that this job covers"),
-		Arg::new("job-packages")
-			.long("job-packages")
-			.value_name("PACKAGE")
-			.action(ArgAction::Append)
-			.value_delimiter(',')
-			.help("Explicit package IDs or names that this job covers"),
 	]
 }
 
@@ -436,6 +396,21 @@ fn report_duration_args() -> Vec<Arg> {
 			.value_parser(value_parser!(u64))
 			.help("Duration red-flag threshold in minutes for Rust CI jobs"),
 	]
+}
+
+/// Build `ci check`.
+fn build_ci_check_subcommand() -> Command {
+	Command::new("check")
+		.about("Validate [ci] configuration and its wiring into GitHub workflow files")
+		.arg(
+			Arg::new("workflow")
+				.long("workflow")
+				.value_name("PATH")
+				.action(ArgAction::Append)
+				.value_delimiter(',')
+				.help("Workflow file to scan for decisions-output references (repeatable)"),
+		)
+		.arg(text_json_format_arg())
 }
 
 /// Shared `--repo-id` override flag.

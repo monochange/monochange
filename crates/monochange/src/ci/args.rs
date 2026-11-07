@@ -73,14 +73,3 @@ pub(super) fn cli_or_env(matches: &ArgMatches, arg: &str, env_name: &str) -> Opt
 pub(super) fn env_value(name: &str) -> Option<String> {
 	std::env::var(name).ok().filter(|value| !value.is_empty())
 }
-
-/// Start from the built-in defaults and append any repeated CLI patterns.
-pub(super) fn collect_patterns(matches: &ArgMatches, arg: &str, defaults: &[&str]) -> Vec<String> {
-	let mut values: Vec<String> = defaults.iter().map(|value| (*value).to_string()).collect();
-
-	if let Some(extra) = matches.get_many::<String>(arg) {
-		values.extend(extra.cloned());
-	}
-
-	values
-}

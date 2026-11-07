@@ -146,6 +146,36 @@ fn assert_decide_token_rejected(repo: &Path, token: &str) {
 	assert!(!output.status.success());
 }
 
+/// Write the gated workspace and `[ci]` configuration used by end-to-end runs.
+fn write_gated_workspace(repo: &Path) {
+	for directory in ["crates/core/src", "crates/app/src"] {
+		fs::create_dir_all(repo.join(directory)).unwrap();
+	}
+
+	fs::write(
+		repo.join("Cargo.toml"),
+		"[workspace]\nmembers = [\"crates/core\", \"crates/app\"]\nresolver = \"2\"\n",
+	)
+	.unwrap();
+	fs::write(
+		repo.join("crates/core/Cargo.toml"),
+		"[package]\nname = \"core\"\nversion = \"1.0.0\"\nedition = \"2021\"\n",
+	)
+	.unwrap();
+	fs::write(repo.join("crates/core/src/lib.rs"), "pub fn core() {}\n").unwrap();
+	fs::write(
+		repo.join("crates/app/Cargo.toml"),
+		"[package]\nname = \"app\"\nversion = \"1.0.0\"\nedition = \"2021\"\n\n[dependencies]\ncore = { path = \"../core\" }\n",
+	)
+	.unwrap();
+	fs::write(repo.join("crates/app/src/lib.rs"), "pub fn app() {}\n").unwrap();
+	fs::write(
+		repo.join("monochange.toml"),
+		"[ci.jobs.rust-test]\npackages = [\"app\"]\n",
+	)
+	.unwrap();
+}
+
 /// Run a graph-backed decision for one job over the supplied files.
 fn decide_graph(repo: &Path, job: &str, changed_files: &str, commit: &str) -> CiDecideReport {
 	let output = run_cli(
@@ -153,8 +183,6 @@ fn decide_graph(repo: &Path, job: &str, changed_files: &str, commit: &str) -> Ci
 		&[
 			"ci",
 			"decide",
-			"--provider",
-			"graph",
 			"--job",
 			job,
 			"--changed-files",
@@ -236,6 +264,8 @@ fn cli_ci_end_to_end_auth_decide_verify_analytics_and_cross_repo_protection() {
 	init_git_repo(repo_a.path(), "https://github.com/monochange/repo-a.git");
 	init_git_repo(repo_b.path(), "https://github.com/monochange/repo-b.git");
 
+	write_gated_workspace(repo_a.path());
+
 	let auth_a = init_repo_auth(repo_a.path());
 
 	assert_eq!(auth_a.repo_id, "github.com/monochange/repo-a");
@@ -247,6 +277,7 @@ fn cli_ci_end_to_end_auth_decide_verify_analytics_and_cross_repo_protection() {
 	assert_cross_repo_token_rejected(repo_a.path(), &forged_b_token);
 	assert_decide_token_rejected(repo_a.path(), &forged_b_token);
 
+	// `README.md` matches `[ci] ignore_paths`, so the gated job skips.
 	let decide_skip = decide_graph(repo_a.path(), "rust-test", "README.md", "c1");
 
 	assert_eq!(decide_skip.decision, "n");
@@ -277,7 +308,7 @@ fn mock_openrouter(server: &MockServer) -> httpmock::Mock<'_> {
 		then.status(HTTP_OK).json_body(json!({
 			"choices": [{
 				"message": {
-					"content": "{\"decision\":\"y\",\"reason\":\"openrouter matched crate change\"}"
+					"content": "{\"cargo-test\":{\"run\":true,\"reason\":\"openrouter matched crate change\"}}"
 				}
 			}]
 		}));
@@ -290,8 +321,7 @@ fn mock_cloudflare(server: &MockServer) -> httpmock::Mock<'_> {
 		when.method(POST)
 			.path("/client/v4/accounts/acc123/ai/v1/chat/completions");
 		then.status(HTTP_OK).json_body(json!({
-			"decision": "n",
-			"reason": "cloudflare skipped unaffected job"
+			"web-lint": {"run": false, "reason": "cloudflare skipped unaffected job"}
 		}));
 	})
 }
@@ -345,7 +375,7 @@ fn run_cloudflare_decide(repo: &Path, server: &MockServer) -> CiDecideReport {
 			"--job",
 			"web-lint",
 			"--changed-files",
-			"README.md",
+			"crates/core/src/lib.rs",
 			"--format",
 			"json",
 		],
@@ -365,12 +395,19 @@ fn cli_ci_decide_providers_openrouter_cloudflare_and_github_outputs_file() {
 	let repo = tempdir().unwrap();
 
 	init_git_repo(repo.path(), "https://github.com/monochange/providers.git");
+	write_gated_workspace(repo.path());
+	fs::write(
+		repo.path().join("monochange.toml"),
+		"[ci]\nai_can_skip = true\n\n[ci.jobs.cargo-test]\npackages = [\"app\"]\n\n[ci.jobs.web-lint]\npackages = [\"core\"]\n",
+	)
+	.unwrap();
 
 	let written = run_openrouter_decide(repo.path(), &server);
 
 	openrouter_mock.assert();
-	assert!(written.contains("decision=y"));
-	assert!(written.contains("run=true"));
+	assert!(written.contains("decisions={\"cargo-test\":true}"));
+	assert!(written.contains("affected-packages=[\"core\"]"));
+	assert!(written.contains("run-all=true"));
 
 	let report = run_cloudflare_decide(repo.path(), &server);
 
@@ -383,8 +420,9 @@ fn cli_ci_decide_providers_openrouter_cloudflare_and_github_outputs_file() {
 fn mock_jev_env(server: &MockServer) -> httpmock::Mock<'_> {
 	server.mock(|when, then| {
 		when.method(POST).path("/jev");
-		then.status(HTTP_OK)
-			.json_body(json!({"decision": "y", "reason": "jev env approved"}));
+		then.status(HTTP_OK).json_body(json!({
+			"env-jev": {"run": true, "reason": "jev env approved"}
+		}));
 	})
 }
 

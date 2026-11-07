@@ -6,6 +6,7 @@
 //! values to `$GITHUB_OUTPUT` for downstream workflow steps.
 
 use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 use std::fs;
 
 use monochange_core::MonochangeError;
@@ -63,21 +64,29 @@ pub(super) fn render_decide_report(
 }
 
 /// Render the decision report as GitHub Actions step outputs.
+///
+/// Writes exactly three keys: `decisions` (compact JSON mapping each job id to
+/// its boolean verdict), `affected-packages` (JSON array), and `run-all`
+/// (whether every job runs). Consumers gate jobs with
+/// `if: fromJSON(needs.<job>.outputs.decisions)['<job-id>']`.
 fn render_github_outputs(report: &CiDecideReport) -> String {
-	let jobs_map: BTreeMap<&str, &str> = report
+	let decisions: BTreeMap<&str, bool> = report
 		.jobs
 		.iter()
-		.map(|job| (job.job.as_str(), job.decision.as_str()))
+		.map(|job| (job.job.as_str(), job.run))
 		.collect();
-	let jobs_json = serde_json::to_string(&jobs_map).unwrap_or_else(|_| "{}".to_string());
+	let affected: BTreeSet<&str> = report
+		.jobs
+		.iter()
+		.flat_map(|job| job.affected_packages.iter().map(String::as_str))
+		.collect();
+	let decisions_json = serde_json::to_string(&decisions).unwrap_or_else(|_| "{}".to_string());
+	let affected_json = serde_json::to_string(&affected).unwrap_or_else(|_| "[]".to_string());
+	let run_all = report.jobs.iter().all(|job| job.run);
 	let lines = [
-		format!("decision={}", report.decision),
-		format!("run={}", report.run),
-		format!("unconditional={}", report.unconditional),
-		format!("provider={}", report.provider),
-		format!("model={}", report.model),
-		format!("reason={}", report.reason.replace('\n', " ")),
-		format!("jobs={jobs_json}"),
+		format!("decisions={decisions_json}"),
+		format!("affected-packages={affected_json}"),
+		format!("run-all={run_all}"),
 	];
 	let output = lines.join("\n");
 

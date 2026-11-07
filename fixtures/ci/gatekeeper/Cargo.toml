@@ -1,0 +1,13 @@
+[workspace]
+members = [
+	"crates/leptoskit_windows",
+	"crates/gallery",
+	"crates/ws_support",
+	"crates/tgt_only",
+	"crates/leptoskit_plugin_windowkit",
+	"crates/tools/deep/probe",
+]
+resolver = "2"
+
+[workspace.dependencies]
+ws_support = { path = "crates/ws_support" }

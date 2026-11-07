@@ -31,6 +31,7 @@ pub(crate) const ROOT_SECTION_ORDER: &[&str] = &[
 	"prerelease",
 	"changesets",
 	"cli",
+	"ci",
 ];
 
 /// Reorder and format a `monochange.toml` document.

@@ -11,10 +11,11 @@ Evaluate conditional CI gates, verify main branch outcomes, and view repo-scoped
 
 [1m[96mCommands:[0m
   [93mauth[0m       Manage repository-scoped authentication for CI history and analytics
-  [93mdecide[0m     Evaluate whether CI jobs should run (y/n) using provider or workspace graph
+  [93mdecide[0m     Evaluate whether configured CI jobs should run (y/n) from [ci] rules and the workspace graph
   [93mverify[0m     Record actual CI job outcomes and update closed-loop learned rules
   [93manalytics[0m  Compute protected CI decision accuracy, false negatives/positives, and duration analytics
   [93mhistory[0m    View protected repository CI gate decision and verification history
+  [93mcheck[0m      Validate [ci] configuration and its wiring into GitHub workflow files
 
 [1m[96mOptions:[0m
   [93m-h[0m, [93m--help[0m

@@ -2,25 +2,31 @@
 //!
 //! The parsed input is a flat snapshot of everything the decision pipeline
 //! needs, so the evaluator never reaches back into `clap` matches or the
-//! environment while it is running.
+//! environment while it is running. Job scope, provider, and unconditional
+//! patterns come from `[ci]` in `monochange.toml`; CLI flags only override
+//! them for one run.
 
 use std::path::Path;
 
 use clap::ArgMatches;
+use monochange_config::CiSettings;
+use monochange_config::load_ci_settings;
+use monochange_core::MonochangeError;
 use monochange_core::MonochangeResult;
 
 use super::super::DEFAULT_MAX_DURATION_MINUTES;
-use super::super::DEFAULT_MAX_SKIPS_ON_MAIN;
 use super::super::DEFAULT_RUST_MAX_DURATION_MINUTES;
-use super::super::DEFAULT_UNCONDITIONAL_BRANCHES;
-use super::super::DEFAULT_UNCONDITIONAL_EVENTS;
-use super::super::DEFAULT_UNCONDITIONAL_PATHS;
 use super::super::args;
 use super::super::graph::detect_changed_files_from_git;
 use super::super::types::CiDecisionProvider;
+
 /// Everything `ci decide` needs once CLI arguments and environment are resolved.
 pub(super) struct DecideInput {
+	/// Job ids to evaluate, from `--job` or `[ci.jobs]` keys.
 	pub(super) jobs: Vec<String>,
+	/// Resolved `[ci]` settings from `monochange.toml`.
+	pub(super) settings: CiSettings,
+	/// Provider selected by `--provider` or `[ci]` provider.
 	pub(super) provider: CiDecisionProvider,
 	pub(super) model_override: Option<String>,
 	pub(super) api_url_override: Option<String>,
@@ -34,70 +40,80 @@ pub(super) struct DecideInput {
 	pub(super) labels: Vec<String>,
 	pub(super) commit_message: Option<String>,
 	pub(super) unconditional_flag: bool,
-	pub(super) unconditional_events: Vec<String>,
-	pub(super) unconditional_branches: Vec<String>,
-	pub(super) unconditional_paths: Vec<String>,
-	pub(super) max_skips_on_main: u32,
 	pub(super) explicit_duration: Option<u64>,
 	pub(super) max_duration_minutes: u64,
 	pub(super) rust_max_duration_minutes: u64,
-	pub(super) job_paths: Vec<String>,
-	pub(super) job_packages: Vec<String>,
 	pub(super) format: String,
 }
 
-/// Parse CLI arguments and environment into `DecideInput`.
+/// Parse CLI arguments, environment, and `[ci]` configuration into input.
 pub(super) fn parse_decide_input(
 	root: &Path,
 	matches: &ArgMatches,
 ) -> MonochangeResult<DecideInput> {
-	let provider_name = matches
-		.get_one::<String>("provider")
-		.map_or("opencode-go", String::as_str);
-	let mut input = DecideInput::new(CiDecisionProvider::parse(provider_name)?);
+	let settings = load_ci_settings(root)?;
+	let provider = resolve_provider(matches, &settings)?;
+	let jobs = collect_jobs(matches, &settings)?;
+	let mut input = DecideInput {
+		jobs,
+		settings,
+		provider,
+		model_override: None,
+		api_url_override: None,
+		api_key_override: None,
+		account_id_override: None,
+		changed_files: Vec::new(),
+		event: None,
+		branch: None,
+		git_ref: None,
+		commit: None,
+		labels: Vec::new(),
+		commit_message: None,
+		unconditional_flag: false,
+		explicit_duration: None,
+		max_duration_minutes: DEFAULT_MAX_DURATION_MINUTES,
+		rust_max_duration_minutes: DEFAULT_RUST_MAX_DURATION_MINUTES,
+		format: "text".to_string(),
+	};
 
-	input.jobs = collect_jobs(matches);
 	input.changed_files = collect_changed_files(root, matches);
 
 	fill_provider_settings(&mut input, matches);
 	fill_invocation_context(&mut input, matches);
-	fill_unconditional_settings(&mut input, matches);
 	fill_limits(&mut input, matches);
-	fill_scope(&mut input, matches);
+	input.format = args::format_arg(matches).to_string();
 
 	Ok(input)
 }
 
-impl DecideInput {
-	/// Start from empty settings for the selected provider.
-	fn new(provider: CiDecisionProvider) -> Self {
-		Self {
-			jobs: Vec::new(),
-			provider,
-			model_override: None,
-			api_url_override: None,
-			api_key_override: None,
-			account_id_override: None,
-			changed_files: Vec::new(),
-			event: None,
-			branch: None,
-			git_ref: None,
-			commit: None,
-			labels: Vec::new(),
-			commit_message: None,
-			unconditional_flag: false,
-			unconditional_events: Vec::new(),
-			unconditional_branches: Vec::new(),
-			unconditional_paths: Vec::new(),
-			max_skips_on_main: DEFAULT_MAX_SKIPS_ON_MAIN,
-			explicit_duration: None,
-			max_duration_minutes: DEFAULT_MAX_DURATION_MINUTES,
-			rust_max_duration_minutes: DEFAULT_RUST_MAX_DURATION_MINUTES,
-			job_paths: Vec::new(),
-			job_packages: Vec::new(),
-			format: "text".to_string(),
-		}
+/// Resolve the provider from `--provider` or the `[ci]` configuration.
+fn resolve_provider(
+	matches: &ArgMatches,
+	settings: &CiSettings,
+) -> MonochangeResult<CiDecisionProvider> {
+	let provider_name = matches
+		.get_one::<String>("provider")
+		.map_or(settings.provider.as_str(), String::as_str);
+
+	CiDecisionProvider::parse(provider_name)
+}
+
+/// Read repeated job names, defaulting to every configured `[ci.jobs]` key.
+fn collect_jobs(matches: &ArgMatches, settings: &CiSettings) -> MonochangeResult<Vec<String>> {
+	if let Some(values) = matches.get_many::<String>("job") {
+		let jobs: Vec<String> = values.cloned().collect();
+
+		return Ok(jobs);
 	}
+
+	if settings.jobs.is_empty() {
+		return Err(MonochangeError::Config(
+			"no `--job` given and no `[ci.jobs]` configured in monochange.toml; declare the job or pass `--job`"
+				.to_string(),
+		));
+	}
+
+	Ok(settings.jobs.keys().cloned().collect())
 }
 
 /// Provider endpoint and model overrides.
@@ -116,31 +132,11 @@ fn fill_invocation_context(input: &mut DecideInput, matches: &ArgMatches) {
 	input.commit = args::cli_or_env(matches, "commit", "GITHUB_SHA");
 	input.labels = args::collect_strings(matches, "labels");
 	input.commit_message = matches.get_one::<String>("commit-message").cloned();
-}
-
-/// Flags and globs that force a full run.
-fn fill_unconditional_settings(input: &mut DecideInput, matches: &ArgMatches) {
 	input.unconditional_flag = matches.get_flag("unconditional");
-	input.unconditional_events = args::collect_patterns(
-		matches,
-		"unconditional-events",
-		DEFAULT_UNCONDITIONAL_EVENTS,
-	);
-	input.unconditional_branches = args::collect_patterns(
-		matches,
-		"unconditional-branches",
-		DEFAULT_UNCONDITIONAL_BRANCHES,
-	);
-	input.unconditional_paths =
-		args::collect_patterns(matches, "unconditional-paths", DEFAULT_UNCONDITIONAL_PATHS);
 }
 
 /// Skip counters and duration thresholds.
 fn fill_limits(input: &mut DecideInput, matches: &ArgMatches) {
-	input.max_skips_on_main = matches
-		.get_one::<u32>("max-skips-on-main")
-		.copied()
-		.unwrap_or(DEFAULT_MAX_SKIPS_ON_MAIN);
 	input.explicit_duration = matches.get_one::<u64>("duration-seconds").copied();
 	input.max_duration_minutes = args::duration_minutes_arg(
 		matches,
@@ -152,21 +148,6 @@ fn fill_limits(input: &mut DecideInput, matches: &ArgMatches) {
 		"rust-max-duration-minutes",
 		DEFAULT_RUST_MAX_DURATION_MINUTES,
 	);
-}
-
-/// Explicit job scope and output format.
-fn fill_scope(input: &mut DecideInput, matches: &ArgMatches) {
-	input.job_paths = args::collect_strings(matches, "job-paths");
-	input.job_packages = args::collect_strings(matches, "job-packages");
-	input.format = args::format_arg(matches).to_string();
-}
-
-/// Read repeated job names, defaulting to a single `default` job.
-fn collect_jobs(matches: &ArgMatches) -> Vec<String> {
-	matches.get_many::<String>("job").map_or_else(
-		|| vec!["default".to_string()],
-		|values| values.cloned().collect(),
-	)
 }
 
 /// Read explicit changed files, falling back to a git diff when refs are given.

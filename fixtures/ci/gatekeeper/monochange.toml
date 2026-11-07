@@ -1,0 +1,24 @@
+# Fixture workspace for the `monochange ci` gatekeeper tests.
+#
+# Covers every Cargo graph case `ci decide` must handle:
+# - `leptoskit_windows`: an unpublished (`publish = false`) root crate.
+# - `gallery`: a dependency reached through a renamed dependency
+#   (`ui = { package = "gallery" }`).
+# - `ws_support`: a dependency inherited via `ws_support.workspace = true`.
+# - `tgt_only`: a `[target.'cfg(windows)'.dependencies]` dependency.
+# - `tools/deep/probe`: a test probe nested four directories deep, reached
+#   through a dev-dependency.
+# - `leptoskit_plugin_windowkit`: a plugin crate picked up by the
+#   `leptoskit_plugin_*` root glob with zero configuration edits.
+#
+# Tests copy this fixture into a temp directory before running `cargo
+# metadata` so the generated `Cargo.lock` never lands in the repository.
+
+[ci.jobs.test-windows]
+packages = ["leptoskit_windows", "gallery", "leptoskit_plugin_*"]
+
+[ci.jobs.docs]
+paths = ["docs/**"]
+
+[ci.jobs.lint]
+always = true

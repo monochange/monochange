@@ -5,22 +5,21 @@ expression: render_help_snapshot(&path)
 Version: [current]
 Command: monochange ci decide
 
-Evaluate whether CI jobs should run (y/n) using provider or workspace graph
+Evaluate whether configured CI jobs should run (y/n) from [ci] rules and the workspace graph
 
 [1m[97mUsage:[0m [93mmonochange ci decide[0m [95m[OPTIONS][0m
 
 [1m[96mOptions:[0m
       [93m--job[0m[95m [0m[95m<JOB>[0m
-          Job name to evaluate; repeat to evaluate multiple jobs
+          Job id to evaluate; repeat to evaluate multiple jobs (defaults to every [ci.jobs] id)
 
       [93m--provider[0m[95m [0m[95m<PROVIDER>[0m
-          Decision provider to use
+          Decision provider to use (defaults to the [ci] provider, or graph)
 
-          [default: opencode-go]
           [possible values: opencode-go, openrouter, cloudflare, jev, openai-compatible, graph]
 
       [93m--model[0m[95m [0m[95m<MODEL>[0m
-          Model identifier for AI decision providers (default: deepseek-v4.1 for opencode-go)
+          Model identifier for AI decision providers (defaults to the [ci] model)
 
       [93m--api-url[0m[95m [0m[95m<URL>[0m
           Override decision provider endpoint URL
@@ -61,20 +60,6 @@ Evaluate whether CI jobs should run (y/n) using provider or workspace graph
       [93m--unconditional[0m
           Force unconditional execution (`y`) for all evaluated jobs
 
-      [93m--unconditional-events[0m[95m [0m[95m<EVENT>[0m
-          Events that force unconditional runs (defaults to schedule,workflow_dispatch)
-
-      [93m--unconditional-branches[0m[95m [0m[95m<PATTERN>[0m
-          Branch or ref globs that force unconditional runs
-
-      [93m--unconditional-paths[0m[95m [0m[95m<PATTERN>[0m
-          Changed file globs that force unconditional runs
-
-      [93m--max-skips-on-main[0m[95m [0m[95m<COUNT>[0m
-          Maximum consecutive skips on main before forcing an unconditional verification run
-
-          [default: 5]
-
       [93m--duration-seconds[0m[95m [0m[95m<SECONDS>[0m
           Current or expected job duration in seconds for red-flag checking
 
@@ -87,12 +72,6 @@ Evaluate whether CI jobs should run (y/n) using provider or workspace graph
           Duration red-flag threshold in minutes for Rust CI jobs
 
           [default: 20]
-
-      [93m--job-paths[0m[95m [0m[95m<PATTERN>[0m
-          Explicit file path globs that this job covers
-
-      [93m--job-packages[0m[95m [0m[95m<PACKAGE>[0m
-          Explicit package IDs or names that this job covers
 
       [93m--require-auth[0m
           Require repository-scoped authentication before loading or updating CI history

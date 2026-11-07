@@ -1,12 +1,14 @@
 //! The `ci decide` subcommand.
 //!
 //! Deciding is a pipeline of small steps: collect the CLI/environment context,
-//! derive unconditional overrides, ask the graph (or a provider), update the
-//! skip counter, and record the decision. Keeping each step separate makes the
-//! reason string auditable, which is the part CI operators actually read.
+//! derive unconditional overrides, evaluate the deterministic graph for every
+//! job, make at most one provider request covering them all, and record the
+//! results. Keeping each step separate makes the reason string auditable,
+//! which is the part CI operators actually read.
 
 mod input;
 
+use std::collections::BTreeMap;
 use std::path::Path;
 
 use chrono::Utc;
@@ -15,23 +17,25 @@ use input::DecideInput;
 use input::parse_decide_input;
 use monochange_core::MonochangeResult;
 
-use super::DEFAULT_CLOUDFLARE_MODEL;
-use super::DEFAULT_OPENCODE_GO_MODEL;
-use super::DEFAULT_OPENROUTER_MODEL;
 use super::UNCONDITIONAL_MARKERS;
 use super::args;
 use super::auth;
-use super::graph::WorkspaceGraphContext;
+use super::graph::GraphContext;
+use super::graph::GraphVerdict;
+use super::graph::VerdictSource;
 use super::graph::duration_threshold_minutes;
+use super::graph::evaluate_graph_context;
 use super::graph::evaluate_graph_decision_for_job;
-use super::graph::evaluate_workspace_graph_context;
 use super::graph::exceeds_duration_threshold;
 use super::graph::is_main_branch;
 use super::graph::is_rust_job_or_context;
 use super::graph::matches_any_glob;
 use super::graph::optional_duration_suggestions;
 use super::provider::DecisionPrompt;
+use super::provider::PromptJob;
+use super::provider::ProviderDecision;
 use super::provider::ProviderOverrides;
+use super::provider::default_model_for;
 use super::provider::query_external_decision_provider;
 use super::render::render_decide_report;
 use super::types::CiDecideReport;
@@ -39,14 +43,25 @@ use super::types::CiDecisionProvider;
 use super::types::CiDecisionRecord;
 use super::types::CiMemoryStore;
 
-/// Provider and model used when the job name does not select one.
+/// Provider label recorded for the deterministic workspace graph.
 const GRAPH_PROVIDER_LABEL: &str = "graph";
 /// Model label recorded for the deterministic workspace graph.
 const GRAPH_MODEL_LABEL: &str = "workspace-graph";
-/// Model label recorded for the JEV webhook provider.
-const JEV_MODEL_LABEL: &str = "jev-webhook";
 /// Suffix appended when an external provider fails and the graph takes over.
 const GRAPH_FALLBACK_SUFFIX: &str = " (evaluated via deterministic graph fallback)";
+/// How many recent decisions are quoted in a provider prompt.
+const RECENT_HISTORY_LIMIT: usize = 5;
+
+/// One job's forced overrides and deterministic graph verdict.
+struct PreparedJob {
+	id: String,
+	/// Rule 1 and rule 3 reasons; a non-empty list forces a run.
+	unconditional_reasons: Vec<String>,
+	matched_learned_rules: Vec<String>,
+	/// Rule 2: `[ci.jobs.<id>].always`.
+	always: bool,
+	graph: GraphVerdict,
+}
 
 /// Provider verdict for a single job.
 struct JobOutcome {
@@ -54,6 +69,16 @@ struct JobOutcome {
 	reason: String,
 	provider: String,
 	model: String,
+}
+
+/// Result of the single provider phase for a whole decide run.
+enum ProviderPhase {
+	/// No provider request was needed or configured.
+	LocalGraph,
+	/// The provider responded with per-job decisions.
+	Responded(BTreeMap<String, ProviderDecision>, String, String),
+	/// The provider call failed; the graph verdict stands.
+	Failed,
 }
 
 /// Duration history and red-flag details for a single job.
@@ -78,22 +103,15 @@ pub(super) async fn run_ci_decide_subcommand(
 	)?;
 
 	let base_reasons = base_unconditional_reasons(&input);
-	let graph = evaluate_workspace_graph_context(root, &input.changed_files);
+	let graph = evaluate_graph_context(root, &input.changed_files, &input.settings);
 	let on_main = is_main_branch(input.branch.as_deref(), input.git_ref.as_deref());
-	let mut records = Vec::with_capacity(input.jobs.len());
+	let prepared = prepare_jobs(&input, &base_reasons, &graph, on_main, &memory);
+	let phase = run_provider_phase(&input, &prepared, &memory, &graph).await;
 
-	for job in &input.jobs {
-		let record = evaluate_job_decision(
-			root,
-			job,
-			&input,
-			&base_reasons,
-			&graph,
-			on_main,
-			&mut memory,
-		)
-		.await;
+	let mut records = Vec::with_capacity(prepared.len());
 
+	for job in &prepared {
+		let record = build_job_record(root, &input, job, &phase, &mut memory, on_main);
 		memory.decisions.push(record.clone());
 		records.push(record);
 	}
@@ -103,6 +121,102 @@ pub(super) async fn run_ci_decide_subcommand(
 	let report = build_decide_report(&memory.repo_id, records);
 
 	render_decide_report(&report, &input.format)
+}
+
+/// Collect rule 1 and rule 3 state plus the graph verdict for every job.
+fn prepare_jobs(
+	input: &DecideInput,
+	base_reasons: &[String],
+	graph: &GraphContext,
+	on_main: bool,
+	memory: &CiMemoryStore,
+) -> Vec<PreparedJob> {
+	input
+		.jobs
+		.iter()
+		.map(|id| {
+			let job = input.settings.jobs.get(id);
+			let (mut unconditional_reasons, matched_learned_rules, prior_skips) =
+				unconditional_context(id, input, base_reasons, memory);
+			let always = job.is_some_and(|job| job.always);
+			let graph_verdict = evaluate_graph_decision_for_job(id, job, graph);
+
+			if graph_verdict.source == VerdictSource::NoRule {
+				eprintln!("warning: no ci rule for `{id}`; it will run unconditionally");
+			}
+
+			if on_main && prior_skips >= input.settings.max_skips_on_main {
+				unconditional_reasons.push(format!(
+					"consecutive skips on main ({prior_skips}) reached `[ci] max_skips_on_main` ({})",
+					input.settings.max_skips_on_main
+				));
+			}
+
+			PreparedJob {
+				id: id.clone(),
+				unconditional_reasons,
+				matched_learned_rules,
+				always,
+				graph: graph_verdict,
+			}
+		})
+		.collect()
+}
+
+/// Make at most one provider request covering every evaluated job.
+async fn run_provider_phase(
+	input: &DecideInput,
+	prepared: &[PreparedJob],
+	memory: &CiMemoryStore,
+	graph: &GraphContext,
+) -> ProviderPhase {
+	if input.provider == CiDecisionProvider::Graph {
+		return ProviderPhase::LocalGraph;
+	}
+
+	let needs_provider = prepared
+		.iter()
+		.any(|job| job.unconditional_reasons.is_empty() && !job.always);
+
+	if !needs_provider {
+		return ProviderPhase::LocalGraph;
+	}
+
+	let prompt_jobs: Vec<PromptJob<'_>> = prepared
+		.iter()
+		.map(|job| {
+			PromptJob {
+				id: job.id.as_str(),
+				graph_run: job.graph.run,
+				graph_reason: job.graph.reason.as_str(),
+			}
+		})
+		.collect();
+	let affected_packages = graph.affected_packages();
+	let prompt = DecisionPrompt {
+		jobs: &prompt_jobs,
+		changed_files: &input.changed_files,
+		affected_packages: &affected_packages,
+		recent_history: &recent_history(memory),
+	};
+
+	match query_external_decision_provider(input.provider, &overrides_from(input), &prompt).await {
+		Ok(outcome) => {
+			ProviderPhase::Responded(outcome.decisions, outcome.provider_used, outcome.model_used)
+		}
+		Err(_) => ProviderPhase::Failed,
+	}
+}
+
+/// Format the most recent decisions for a provider prompt.
+fn recent_history(memory: &CiMemoryStore) -> Vec<String> {
+	memory
+		.decisions
+		.iter()
+		.rev()
+		.take(RECENT_HISTORY_LIMIT)
+		.map(|decision| format!("{}={}", decision.job, decision.decision))
+		.collect()
 }
 
 /// Collect every unconditional override that applies to the whole invocation.
@@ -129,6 +243,7 @@ fn extend_event_reasons(reasons: &mut Vec<String>, input: &DecideInput) {
 	};
 
 	let matched = input
+		.settings
 		.unconditional_events
 		.iter()
 		.any(|candidate| candidate.eq_ignore_ascii_case(event));
@@ -141,7 +256,7 @@ fn extend_event_reasons(reasons: &mut Vec<String>, input: &DecideInput) {
 /// Add reasons when the branch or full ref always runs.
 fn extend_branch_reasons(reasons: &mut Vec<String>, input: &DecideInput) {
 	if let Some(branch) = input.branch.as_ref()
-		&& let Some(matched) = matches_any_glob(branch, &input.unconditional_branches)
+		&& let Some(matched) = matches_any_glob(branch, &input.settings.unconditional_branches)
 	{
 		reasons.push(format!(
 			"branch `{branch}` matches unconditional branch pattern `{matched}`"
@@ -149,7 +264,7 @@ fn extend_branch_reasons(reasons: &mut Vec<String>, input: &DecideInput) {
 	}
 
 	if let Some(git_ref) = input.git_ref.as_ref()
-		&& let Some(matched) = matches_any_glob(git_ref, &input.unconditional_branches)
+		&& let Some(matched) = matches_any_glob(git_ref, &input.settings.unconditional_branches)
 	{
 		reasons.push(format!(
 			"ref `{git_ref}` matches unconditional branch/ref pattern `{matched}`"
@@ -186,7 +301,7 @@ fn extend_commit_message_reasons(reasons: &mut Vec<String>, input: &DecideInput)
 /// Add a reason for every changed path that always triggers a full run.
 fn extend_path_reasons(reasons: &mut Vec<String>, input: &DecideInput) {
 	for file in &input.changed_files {
-		if let Some(matched) = matches_any_glob(file, &input.unconditional_paths) {
+		if let Some(matched) = matches_any_glob(file, &input.settings.unconditional_paths) {
 			reasons.push(format!(
 				"changed file `{file}` matches unconditional path pattern `{matched}`"
 			));
@@ -207,126 +322,13 @@ fn unconditional_context(
 	job: &str,
 	input: &DecideInput,
 	base_reasons: &[String],
-	on_main: bool,
 	memory: &CiMemoryStore,
 ) -> (Vec<String>, Vec<String>, u32) {
 	let mut reasons = base_reasons.to_vec();
 	let matched_rules = learned_rule_matches(job, &input.changed_files, memory, &mut reasons);
 	let prior_skips = skip_count(memory, job);
 
-	if on_main && prior_skips >= input.max_skips_on_main {
-		reasons.push(format!(
-			"consecutive skips on main ({prior_skips}) reached `--max-skips-on-main` ({})",
-			input.max_skips_on_main
-		));
-	}
-
 	(reasons, matched_rules, prior_skips)
-}
-
-/// Fields that vary per job when assembling the stored decision record.
-struct DecisionRecordParts {
-	run: bool,
-	unconditional: bool,
-	unconditional_reasons: Vec<String>,
-	matched_learned_rules: Vec<String>,
-	provider: String,
-	model: String,
-	reason: String,
-	affected_packages: Vec<String>,
-	consecutive_skips_on_main: u32,
-	duration: DurationAnalysis,
-}
-
-/// Evaluate one job, updating the shared memory store as a side effect.
-async fn evaluate_job_decision(
-	root: &Path,
-	job: &str,
-	input: &DecideInput,
-	base_reasons: &[String],
-	graph: &WorkspaceGraphContext,
-	on_main: bool,
-	memory: &mut CiMemoryStore,
-) -> CiDecisionRecord {
-	let (unconditional_reasons, matched_learned_rules, prior_skips) =
-		unconditional_context(job, input, base_reasons, on_main, memory);
-	let unconditional = !unconditional_reasons.is_empty();
-	let (graph_run, graph_reason, affected_packages) = evaluate_graph_decision_for_job(
-		job,
-		&input.changed_files,
-		&input.job_paths,
-		&input.job_packages,
-		graph,
-	);
-	let graph_inputs = GraphInputs {
-		run: graph_run,
-		reason: &graph_reason,
-		affected_packages: &affected_packages,
-	};
-	let outcome = resolve_job_outcome(
-		job,
-		input,
-		unconditional,
-		&unconditional_reasons,
-		&graph_inputs,
-	)
-	.await;
-	let consecutive_skips_on_main =
-		update_skip_counter(memory, job, on_main, outcome.run, prior_skips);
-	let duration = analyze_duration(root, job, input, memory);
-
-	build_decision_record(
-		memory,
-		input,
-		job,
-		DecisionRecordParts {
-			run: outcome.run,
-			unconditional,
-			unconditional_reasons,
-			matched_learned_rules,
-			provider: outcome.provider,
-			model: outcome.model,
-			reason: outcome.reason,
-			affected_packages,
-			consecutive_skips_on_main,
-			duration,
-		},
-	)
-}
-
-/// Assemble the stored decision record for one job.
-fn build_decision_record(
-	memory: &CiMemoryStore,
-	input: &DecideInput,
-	job: &str,
-	parts: DecisionRecordParts,
-) -> CiDecisionRecord {
-	let sequence = memory.decisions.len() + 1;
-
-	CiDecisionRecord {
-		id: format!("dec-{sequence}-{}", unix_millis()),
-		repo_id: memory.repo_id.clone(),
-		job: job.to_string(),
-		decision: decision_label(parts.run).to_string(),
-		run: parts.run,
-		unconditional: parts.unconditional,
-		provider: parts.provider,
-		model: parts.model,
-		reason: parts.reason,
-		unconditional_reasons: parts.unconditional_reasons,
-		matched_learned_rules: parts.matched_learned_rules,
-		affected_packages: parts.affected_packages,
-		changed_files: input.changed_files.clone(),
-		event: input.event.clone(),
-		branch: input.branch.clone().or_else(|| input.git_ref.clone()),
-		commit: input.commit.clone(),
-		consecutive_skips_on_main: parts.consecutive_skips_on_main,
-		duration_red_flag: parts.duration.red_flag,
-		observed_duration_seconds: parts.duration.observed_seconds,
-		threshold_minutes: parts.duration.threshold_minutes,
-		speed_suggestions: parts.duration.suggestions,
-		timestamp: Utc::now().to_rfc3339(),
-	}
 }
 
 /// Record which learned rules matched this job and why they force a run.
@@ -395,80 +397,140 @@ fn update_skip_counter(
 	next
 }
 
-/// Graph verdict borrowed for provider fallback decisions.
-struct GraphInputs<'a> {
-	run: bool,
-	reason: &'a str,
-	affected_packages: &'a [String],
+/// Evaluate one job end to end and persist its record into `memory`.
+fn build_job_record(
+	root: &Path,
+	input: &DecideInput,
+	job: &PreparedJob,
+	phase: &ProviderPhase,
+	memory: &mut CiMemoryStore,
+	on_main: bool,
+) -> CiDecisionRecord {
+	let prior_skips = skip_count(memory, &job.id);
+	let outcome = resolve_job_outcome(job, input, phase);
+	let consecutive_skips_on_main =
+		update_skip_counter(memory, &job.id, on_main, outcome.run, prior_skips);
+	let duration = analyze_duration(root, &job.id, input, memory);
+	let sequence = memory.decisions.len() + 1;
+	let unconditional = !job.unconditional_reasons.is_empty();
+
+	CiDecisionRecord {
+		id: format!("dec-{sequence}-{}", unix_millis()),
+		repo_id: memory.repo_id.clone(),
+		job: job.id.clone(),
+		decision: decision_label(outcome.run).to_string(),
+		run: outcome.run,
+		unconditional,
+		provider: outcome.provider,
+		model: outcome.model,
+		reason: outcome.reason,
+		unconditional_reasons: job.unconditional_reasons.clone(),
+		matched_learned_rules: job.matched_learned_rules.clone(),
+		affected_packages: job.graph.affected_packages.clone(),
+		changed_files: input.changed_files.clone(),
+		event: input.event.clone(),
+		branch: input.branch.clone().or_else(|| input.git_ref.clone()),
+		commit: input.commit.clone(),
+		consecutive_skips_on_main,
+		duration_red_flag: duration.red_flag,
+		observed_duration_seconds: duration.observed_seconds,
+		threshold_minutes: duration.threshold_minutes,
+		speed_suggestions: duration.suggestions,
+		timestamp: Utc::now().to_rfc3339(),
+	}
 }
 
 /// Resolve the final run/reason/provider/model for a job.
-async fn resolve_job_outcome(
-	job: &str,
+fn resolve_job_outcome(
+	job: &PreparedJob,
 	input: &DecideInput,
-	unconditional: bool,
-	unconditional_reasons: &[String],
-	graph_inputs: &GraphInputs<'_>,
+	phase: &ProviderPhase,
 ) -> JobOutcome {
-	if unconditional {
-		return forced_outcome(input, unconditional_reasons);
+	if !job.unconditional_reasons.is_empty() {
+		return JobOutcome {
+			run: true,
+			reason: format!(
+				"forced unconditional run (`y`): {}",
+				job.unconditional_reasons.join("; ")
+			),
+			provider: input.provider.as_str().to_string(),
+			model: configured_model(input),
+		};
 	}
 
-	if input.provider == CiDecisionProvider::Graph {
-		return graph_outcome(input, graph_inputs);
+	if job.always {
+		return JobOutcome {
+			run: true,
+			reason: "`always = true` in `[ci.jobs]`".to_string(),
+			provider: input.provider.as_str().to_string(),
+			model: configured_model(input),
+		};
 	}
 
-	let provider_result = query_external_decision_provider(
-		input.provider,
-		&overrides_from(input),
-		&prompt_from(input, job, graph_inputs.affected_packages),
-	)
-	.await;
-
-	match provider_result {
-		Ok(outcome) => provider_outcome(outcome),
-		Err(_) => fallback_outcome(input, graph_inputs),
-	}
-}
-
-/// Outcome for a job forced to run by an override.
-fn forced_outcome(input: &DecideInput, unconditional_reasons: &[String]) -> JobOutcome {
-	JobOutcome {
-		run: true,
-		reason: format!(
-			"forced unconditional run (`y`): {}",
-			unconditional_reasons.join("; ")
-		),
-		provider: input.provider.as_str().to_string(),
-		model: configured_model(input),
-	}
-}
-
-/// Outcome for the deterministic workspace graph provider.
-fn graph_outcome(input: &DecideInput, graph_inputs: &GraphInputs<'_>) -> JobOutcome {
-	JobOutcome {
-		run: graph_inputs.run,
-		reason: graph_inputs.reason.to_string(),
-		provider: GRAPH_PROVIDER_LABEL.to_string(),
-		model: configured_model(input),
-	}
-}
-
-/// Outcome reported by an external provider.
-fn provider_outcome(outcome: super::provider::ProviderCallOutcome) -> JobOutcome {
-	JobOutcome {
-		run: outcome.run,
-		reason: outcome.reason,
-		provider: outcome.provider_used,
-		model: outcome.model_used,
+	match phase {
+		ProviderPhase::LocalGraph => graph_outcome(input, &job.graph, ""),
+		ProviderPhase::Failed => graph_outcome(input, &job.graph, GRAPH_FALLBACK_SUFFIX),
+		ProviderPhase::Responded(decisions, provider_used, model_used) => {
+			match decisions.get(&job.id) {
+				None => {
+					let mut outcome = graph_outcome(input, &job.graph, "");
+					outcome
+						.reason
+						.push_str("; provider response omitted this job");
+					outcome.provider.clone_from(provider_used);
+					outcome.model.clone_from(model_used);
+					outcome
+				}
+				Some(decision) => {
+					provider_decision_outcome(job, decision, input, provider_used, model_used)
+				}
+			}
+		}
 	}
 }
 
-/// Outcome used when an external provider fails and the graph takes over.
-fn fallback_outcome(input: &DecideInput, graph_inputs: &GraphInputs<'_>) -> JobOutcome {
+/// Merge one provider decision with the graph verdict.
+fn provider_decision_outcome(
+	job: &PreparedJob,
+	decision: &ProviderDecision,
+	input: &DecideInput,
+	provider_used: &str,
+	model_used: &str,
+) -> JobOutcome {
+	if decision.run {
+		return JobOutcome {
+			run: true,
+			reason: decision.reason.clone(),
+			provider: provider_used.to_string(),
+			model: model_used.to_string(),
+		};
+	}
+
+	if job.graph.run && !input.settings.ai_can_skip {
+		return JobOutcome {
+			run: true,
+			reason: format!(
+				"provider skip ignored (`ai_can_skip = false`); graph verdict: {}",
+				job.graph.reason
+			),
+			provider: provider_used.to_string(),
+			model: model_used.to_string(),
+		};
+	}
+
 	JobOutcome {
-		run: graph_inputs.run,
-		reason: format!("{}{GRAPH_FALLBACK_SUFFIX}", graph_inputs.reason),
+		run: false,
+		reason: decision.reason.clone(),
+		provider: provider_used.to_string(),
+		model: model_used.to_string(),
+	}
+}
+
+/// Outcome based on the deterministic graph verdict.
+fn graph_outcome(input: &DecideInput, graph: &GraphVerdict, suffix: &str) -> JobOutcome {
+	JobOutcome {
+		run: graph.run,
+		reason: format!("{}{suffix}", graph.reason),
 		provider: GRAPH_PROVIDER_LABEL.to_string(),
 		model: configured_model(input),
 	}
@@ -479,7 +541,8 @@ fn configured_model(input: &DecideInput) -> String {
 	input
 		.model_override
 		.clone()
-		.unwrap_or_else(|| default_model(input.provider))
+		.or_else(|| input.settings.model.clone())
+		.unwrap_or_else(|| default_model(input.provider).to_string())
 }
 
 /// Build provider overrides from the parsed input.
@@ -492,32 +555,13 @@ fn overrides_from(input: &DecideInput) -> ProviderOverrides<'_> {
 	}
 }
 
-/// Build the provider prompt for one job.
-fn prompt_from<'a>(
-	input: &'a DecideInput,
-	job: &'a str,
-	affected_packages: &'a [String],
-) -> DecisionPrompt<'a> {
-	DecisionPrompt {
-		job,
-		changed_files: &input.changed_files,
-		affected_packages,
-	}
-}
-
 /// Default model identifier for a provider.
-fn default_model(provider: CiDecisionProvider) -> String {
-	let model = match provider {
-		CiDecisionProvider::OpencodeGo | CiDecisionProvider::OpenaiCompatible => {
-			DEFAULT_OPENCODE_GO_MODEL
-		}
-		CiDecisionProvider::Openrouter => DEFAULT_OPENROUTER_MODEL,
-		CiDecisionProvider::Cloudflare => DEFAULT_CLOUDFLARE_MODEL,
-		CiDecisionProvider::Jev => JEV_MODEL_LABEL,
+fn default_model(provider: CiDecisionProvider) -> &'static str {
+	match provider {
 		CiDecisionProvider::Graph => GRAPH_MODEL_LABEL,
-	};
-
-	model.to_string()
+		CiDecisionProvider::Jev => super::provider::JEV_MODEL_LABEL,
+		other => default_model_for(other),
+	}
 }
 
 /// Analyse observed or historical duration against the job's threshold.
@@ -566,7 +610,7 @@ fn build_decide_report(repo_id: &str, records: Vec<CiDecisionRecord>) -> CiDecid
 	let primary = records
 		.first()
 		.cloned()
-		.expect("`ci decide` always evaluates at least one job");
+		.unwrap_or_else(|| panic!("`ci decide` always evaluates at least one job"));
 
 	CiDecideReport {
 		repo_id: repo_id.to_string(),
