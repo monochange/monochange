@@ -668,6 +668,156 @@ expression: value
     {
       "commands": [
         {
+          "commands": [
+            {
+              "hidden": false,
+              "max_bump": "major",
+              "parser": {
+                "flags_are_posix_noncompliant": false,
+                "option_arg_separators": [
+                  " ",
+                  "="
+                ],
+                "options_must_precede_arguments": false
+              },
+              "path": [
+                "ci",
+                "auth",
+                "init"
+              ]
+            },
+            {
+              "hidden": false,
+              "max_bump": "major",
+              "parser": {
+                "flags_are_posix_noncompliant": false,
+                "option_arg_separators": [
+                  " ",
+                  "="
+                ],
+                "options_must_precede_arguments": false
+              },
+              "path": [
+                "ci",
+                "auth",
+                "verify"
+              ]
+            },
+            {
+              "hidden": false,
+              "max_bump": "major",
+              "parser": {
+                "flags_are_posix_noncompliant": false,
+                "option_arg_separators": [
+                  " ",
+                  "="
+                ],
+                "options_must_precede_arguments": false
+              },
+              "path": [
+                "ci",
+                "auth",
+                "token"
+              ]
+            }
+          ],
+          "hidden": false,
+          "max_bump": "major",
+          "parser": {
+            "flags_are_posix_noncompliant": false,
+            "option_arg_separators": [
+              " ",
+              "="
+            ],
+            "options_must_precede_arguments": false
+          },
+          "path": [
+            "ci",
+            "auth"
+          ]
+        },
+        {
+          "hidden": false,
+          "max_bump": "major",
+          "parser": {
+            "flags_are_posix_noncompliant": false,
+            "option_arg_separators": [
+              " ",
+              "="
+            ],
+            "options_must_precede_arguments": false
+          },
+          "path": [
+            "ci",
+            "decide"
+          ]
+        },
+        {
+          "hidden": false,
+          "max_bump": "major",
+          "parser": {
+            "flags_are_posix_noncompliant": false,
+            "option_arg_separators": [
+              " ",
+              "="
+            ],
+            "options_must_precede_arguments": false
+          },
+          "path": [
+            "ci",
+            "verify"
+          ]
+        },
+        {
+          "hidden": false,
+          "max_bump": "major",
+          "parser": {
+            "flags_are_posix_noncompliant": false,
+            "option_arg_separators": [
+              " ",
+              "="
+            ],
+            "options_must_precede_arguments": false
+          },
+          "path": [
+            "ci",
+            "analytics"
+          ]
+        },
+        {
+          "hidden": false,
+          "max_bump": "major",
+          "parser": {
+            "flags_are_posix_noncompliant": false,
+            "option_arg_separators": [
+              " ",
+              "="
+            ],
+            "options_must_precede_arguments": false
+          },
+          "path": [
+            "ci",
+            "history"
+          ]
+        }
+      ],
+      "hidden": false,
+      "max_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "ci"
+      ]
+    },
+    {
+      "commands": [
+        {
           "hidden": false,
           "max_bump": "major",
           "parser": {

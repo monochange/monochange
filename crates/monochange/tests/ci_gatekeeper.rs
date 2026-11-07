@@ -1,6 +1,5 @@
 #![allow(clippy::disallowed_methods)]
 //! Integration tests for `monochange ci` (`auth`, `decide`, `verify`, `analytics`, `history`).
-
 use std::fs;
 use std::path::Path;
 use std::process::Command as ProcessCommand;
@@ -19,24 +18,42 @@ use monochange::ci::issue_repo_token;
 use serde_json::json;
 use tempfile::tempdir;
 
+/// Successful HTTP status used by the mocked providers.
+const HTTP_OK: u16 = 200;
+/// Arguments that initialise auth and print JSON.
+const AUTH_INIT_JSON_ARGS: &[&str] = &["ci", "auth", "init", "--format", "json"];
+/// Arguments that print the active auth token.
+const AUTH_TOKEN_ARGS: &[&str] = &["ci", "auth", "token"];
+/// Arguments that render analytics as JSON.
+const ANALYTICS_JSON_ARGS: &[&str] = &["ci", "analytics", "--format", "json"];
+/// Arguments that render history as JSON.
+const HISTORY_JSON_ARGS: &[&str] = &["ci", "history", "--format", "json"];
+
+/// Path of the compiled `monochange` binary.
 fn mc_bin() -> std::path::PathBuf {
 	insta_cmd::get_cargo_bin("monochange")
 }
 
+/// Run the CLI in `root` with a clean CI environment plus explicit overrides.
 fn run_cli(root: &Path, args: &[&str], envs: &[(&str, &str)]) -> std::process::Output {
 	let mut cmd = ProcessCommand::new(mc_bin());
+
 	cmd.current_dir(root);
 	cmd.env("NO_COLOR", "1");
 	cmd.env_remove("MONOCHANGE_CI_TOKEN");
 	cmd.env_remove("MONOCHANGE_CI_SECRET");
 	cmd.env_remove("MONOCHANGE_CI_REPO_ID");
-	for (k, v) in envs {
-		cmd.env(k, v);
+
+	for (key, value) in envs {
+		cmd.env(key, value);
 	}
+
 	cmd.args(args);
+
 	cmd.output().unwrap()
 }
 
+/// Create a git repository with an `origin` remote.
 fn init_git_repo(root: &Path, remote_url: &str) {
 	ProcessCommand::new("git")
 		.current_dir(root)
@@ -50,91 +67,100 @@ fn init_git_repo(root: &Path, remote_url: &str) {
 		.unwrap();
 }
 
-#[test]
-fn cli_ci_end_to_end_auth_decide_verify_analytics_and_cross_repo_protection() {
-	let repo_a = tempdir().unwrap();
-	let repo_b = tempdir().unwrap();
-	init_git_repo(repo_a.path(), "https://github.com/monochange/repo-a.git");
-	init_git_repo(repo_b.path(), "https://github.com/monochange/repo-b.git");
+/// Arguments that verify one auth token.
+fn auth_verify_args(token: &str) -> [&str; 5] {
+	["ci", "auth", "verify", "--token", token]
+}
 
-	// 1. Initialize repo-scoped auth in repo_a
-	let init_out = run_cli(
-		repo_a.path(),
-		&["ci", "auth", "init", "--format", "json"],
-		&[],
-	);
+/// Arguments that request analytics with an explicit token.
+fn analytics_token_args(token: &str) -> [&str; 4] {
+	["ci", "analytics", "--token", token]
+}
+
+/// Run `ci auth init --format json` and return the parsed report.
+fn init_repo_auth(repo: &Path) -> CiAuthReport {
+	let output = run_cli(repo, AUTH_INIT_JSON_ARGS, &[]);
+
 	assert!(
-		init_out.status.success(),
+		output.status.success(),
 		"stderr: {}",
-		String::from_utf8_lossy(&init_out.stderr)
+		String::from_utf8_lossy(&output.stderr)
 	);
-	let auth_a: CiAuthReport = serde_json::from_slice(&init_out.stdout).unwrap();
-	assert_eq!(auth_a.repo_id, "github.com/monochange/repo-a");
-	assert!(repo_a.path().join(CI_AUTH_RELATIVE_PATH).is_file());
 
-	// 2. Verify token subcommand prints the exact token
-	let token_out = run_cli(repo_a.path(), &["ci", "auth", "token"], &[]);
-	assert!(token_out.status.success());
+	serde_json::from_slice(&output.stdout).unwrap()
+}
+
+/// Assert that `ci auth token` prints exactly the stored token.
+fn assert_token_output(repo: &Path, auth: &CiAuthReport) {
+	let output = run_cli(repo, AUTH_TOKEN_ARGS, &[]);
+
+	assert!(output.status.success());
 	assert_eq!(
-		String::from_utf8_lossy(&token_out.stdout).trim(),
-		auth_a.token
+		String::from_utf8_lossy(&output.stdout).trim(),
+		auth.token.as_str()
 	);
+}
 
-	// 3. Cross-repo token must be rejected when accessing repo_a with repo_b's token
-	let forged_b_token = issue_repo_token("https://github.com/monochange/repo-b.git", "secret-b");
-	let bad_verify = run_cli(
-		repo_a.path(),
-		&["ci", "auth", "verify", "--token", &forged_b_token],
-		&[],
-	);
-	assert!(!bad_verify.status.success());
-	let stderr = String::from_utf8_lossy(&bad_verify.stderr);
+/// Assert that a token minted for another repository is rejected.
+fn assert_cross_repo_token_rejected(repo: &Path, token: &str) {
+	let output = run_cli(repo, &auth_verify_args(token), &[]);
+
+	assert!(!output.status.success());
+
+	let stderr = String::from_utf8_lossy(&output.stderr);
+
 	assert!(stderr.contains("cross-repo access denied") || stderr.contains("repository mismatch"));
+}
 
-	// 4. `decide` with `--require-auth` and a cross-repo token must be rejected
-	let bad_decide = run_cli(
-		repo_a.path(),
+/// Assert that `ci decide --require-auth` rejects a foreign token.
+fn assert_decide_token_rejected(repo: &Path, token: &str) {
+	let output = run_cli(
+		repo,
 		&[
 			"ci",
 			"decide",
 			"--require-auth",
 			"--token",
-			&forged_b_token,
+			token,
 			"--job",
 			"rust-test",
 		],
 		&[],
 	);
-	assert!(!bad_decide.status.success());
 
-	// 5. `decide` on docs-only change skips (`n`)
-	let decide_skip = run_cli(
-		repo_a.path(),
+	assert!(!output.status.success());
+}
+
+/// Run a graph-backed decision for one job over the supplied files.
+fn decide_graph(repo: &Path, job: &str, changed_files: &str, commit: &str) -> CiDecideReport {
+	let output = run_cli(
+		repo,
 		&[
 			"ci",
 			"decide",
 			"--provider",
 			"graph",
 			"--job",
-			"rust-test",
+			job,
 			"--changed-files",
-			"README.md",
+			changed_files,
 			"--commit",
-			"c1",
+			commit,
 			"--format",
 			"json",
 		],
 		&[],
 	);
-	assert!(decide_skip.status.success());
-	let decide_rep: CiDecideReport = serde_json::from_slice(&decide_skip.stdout).unwrap();
-	assert_eq!(decide_rep.decision, "n");
-	assert!(!decide_rep.run);
-	assert!(repo_a.path().join(CI_MEMORY_RELATIVE_PATH).is_file());
 
-	// 6. `verify` records a false_negative when `rust-test` fails on main for commit `c1`
-	let verify_fn = run_cli(
-		repo_a.path(),
+	assert!(output.status.success());
+
+	serde_json::from_slice(&output.stdout).unwrap()
+}
+
+/// Record a failed verification for `rust-test` against commit `c1`.
+fn verify_rust_test_failure(repo: &Path) -> CiVerificationRecord {
+	let output = run_cli(
+		repo,
 		&[
 			"ci",
 			"verify",
@@ -153,99 +179,121 @@ fn cli_ci_end_to_end_auth_decide_verify_analytics_and_cross_repo_protection() {
 		],
 		&[],
 	);
-	assert!(verify_fn.status.success());
-	let ver_rep: CiVerificationRecord = serde_json::from_slice(&verify_fn.stdout).unwrap();
-	assert_eq!(
-		ver_rep.classification,
-		CiVerificationClassification::FalseNegative
-	);
-	assert!(ver_rep.learned_rule_added.is_some());
-	assert!(ver_rep.duration_red_flag);
 
-	// 7. Next `decide` touching `README.md` is now forced to `y` (`unconditional: true`) due to learned rule
-	let decide_learned = run_cli(
-		repo_a.path(),
-		&[
-			"ci",
-			"decide",
-			"--provider",
-			"graph",
-			"--job",
-			"rust-test",
-			"--changed-files",
-			"README.md",
-			"--commit",
-			"c2",
-			"--format",
-			"json",
-		],
-		&[],
-	);
-	assert!(decide_learned.status.success());
-	let decide_learned_rep: CiDecideReport =
-		serde_json::from_slice(&decide_learned.stdout).unwrap();
-	assert_eq!(decide_learned_rep.decision, "y");
-	assert!(decide_learned_rep.unconditional);
+	assert!(output.status.success());
 
-	// 8. `analytics` and `history` succeed for authenticated local repo and reject wrong token
-	let analytics_bad = run_cli(
-		repo_a.path(),
-		&["ci", "analytics", "--token", &forged_b_token],
-		&[],
-	);
+	serde_json::from_slice(&output.stdout).unwrap()
+}
+
+/// Assert analytics and history output for the authenticated repo.
+fn assert_analytics_and_history(repo: &Path, forged_token: &str) {
+	let analytics_bad = run_cli(repo, &analytics_token_args(forged_token), &[]);
+
 	assert!(!analytics_bad.status.success());
 
-	let analytics_ok = run_cli(repo_a.path(), &["ci", "analytics", "--format", "json"], &[]);
-	assert!(analytics_ok.status.success());
-	let analytics_rep: CiAnalyticsReport = serde_json::from_slice(&analytics_ok.stdout).unwrap();
-	assert!(analytics_rep.authenticated);
-	assert_eq!(analytics_rep.total_decisions, 2);
-	assert_eq!(analytics_rep.false_negatives, 1);
-	assert_eq!(analytics_rep.learned_rules_count, 1);
-	assert_eq!(analytics_rep.slow_jobs.len(), 1);
+	let analytics_ok = run_cli(repo, ANALYTICS_JSON_ARGS, &[]);
 
-	let history_ok = run_cli(repo_a.path(), &["ci", "history", "--format", "json"], &[]);
+	assert!(analytics_ok.status.success());
+
+	let analytics: CiAnalyticsReport = serde_json::from_slice(&analytics_ok.stdout).unwrap();
+
+	assert!(analytics.authenticated);
+	assert_eq!(analytics.total_decisions, 2);
+	assert_eq!(analytics.false_negatives, 1);
+	assert_eq!(analytics.learned_rules_count, 1);
+	assert_eq!(analytics.slow_jobs.len(), 1);
+
+	let history_ok = run_cli(repo, HISTORY_JSON_ARGS, &[]);
+
 	assert!(history_ok.status.success());
-	let history_rep: CiHistoryReport = serde_json::from_slice(&history_ok.stdout).unwrap();
-	assert_eq!(history_rep.decisions.len(), 2);
-	assert_eq!(history_rep.verifications.len(), 1);
+
+	let history: CiHistoryReport = serde_json::from_slice(&history_ok.stdout).unwrap();
+
+	assert_eq!(history.decisions.len(), 2);
+	assert_eq!(history.verifications.len(), 1);
 }
 
 #[test]
-fn cli_ci_decide_providers_openrouter_cloudflare_and_github_outputs_file() {
-	let server = MockServer::start();
-	let openrouter_mock = server.mock(|when, then| {
+fn cli_ci_end_to_end_auth_decide_verify_analytics_and_cross_repo_protection() {
+	let repo_a = tempdir().unwrap();
+	let repo_b = tempdir().unwrap();
+
+	init_git_repo(repo_a.path(), "https://github.com/monochange/repo-a.git");
+	init_git_repo(repo_b.path(), "https://github.com/monochange/repo-b.git");
+
+	let auth_a = init_repo_auth(repo_a.path());
+
+	assert_eq!(auth_a.repo_id, "github.com/monochange/repo-a");
+	assert!(repo_a.path().join(CI_AUTH_RELATIVE_PATH).is_file());
+	assert_token_output(repo_a.path(), &auth_a);
+
+	let forged_b_token = issue_repo_token("https://github.com/monochange/repo-b.git", "secret-b");
+
+	assert_cross_repo_token_rejected(repo_a.path(), &forged_b_token);
+	assert_decide_token_rejected(repo_a.path(), &forged_b_token);
+
+	let decide_skip = decide_graph(repo_a.path(), "rust-test", "README.md", "c1");
+
+	assert_eq!(decide_skip.decision, "n");
+	assert!(!decide_skip.run);
+	assert!(repo_a.path().join(CI_MEMORY_RELATIVE_PATH).is_file());
+
+	let verification = verify_rust_test_failure(repo_a.path());
+
+	assert_eq!(
+		verification.classification,
+		CiVerificationClassification::FalseNegative
+	);
+	assert!(verification.learned_rule_added.is_some());
+	assert!(verification.duration_red_flag);
+
+	let decide_learned = decide_graph(repo_a.path(), "rust-test", "README.md", "c2");
+
+	assert_eq!(decide_learned.decision, "y");
+	assert!(decide_learned.unconditional);
+
+	assert_analytics_and_history(repo_a.path(), &forged_b_token);
+}
+
+/// Register an `OpenRouter` mock that approves the job.
+fn mock_openrouter(server: &MockServer) -> httpmock::Mock<'_> {
+	server.mock(|when, then| {
 		when.method(POST).path("/openrouter");
-		then.status(200).json_body(json!({
+		then.status(HTTP_OK).json_body(json!({
 			"choices": [{
 				"message": {
 					"content": "{\"decision\":\"y\",\"reason\":\"openrouter matched crate change\"}"
 				}
 			}]
 		}));
-	});
-	let cf_mock = server.mock(|when, then| {
+	})
+}
+
+/// Register a Cloudflare mock that rejects the job.
+fn mock_cloudflare(server: &MockServer) -> httpmock::Mock<'_> {
+	server.mock(|when, then| {
 		when.method(POST)
 			.path("/client/v4/accounts/acc123/ai/v1/chat/completions");
-		then.status(200).json_body(json!({
+		then.status(HTTP_OK).json_body(json!({
 			"decision": "n",
 			"reason": "cloudflare skipped unaffected job"
 		}));
-	});
+	})
+}
 
-	let repo = tempdir().unwrap();
-	init_git_repo(repo.path(), "https://github.com/monochange/providers.git");
-	let gh_output = repo.path().join("github_output.txt");
-
-	let out_or = run_cli(
-		repo.path(),
+/// Run an `OpenRouter` decision and return what was written to `$GITHUB_OUTPUT`.
+fn run_openrouter_decide(repo: &Path, server: &MockServer) -> String {
+	let github_output = repo.join("github_output.txt");
+	let api_url = server.url("/openrouter");
+	let output = run_cli(
+		repo,
 		&[
 			"ci",
 			"decide",
 			"--provider",
 			"openrouter",
 			"--api-url",
-			&server.url("/openrouter"),
+			&api_url,
 			"--api-key",
 			"or-secret",
 			"--job",
@@ -255,23 +303,26 @@ fn cli_ci_decide_providers_openrouter_cloudflare_and_github_outputs_file() {
 			"--format",
 			"github-outputs",
 		],
-		&[("GITHUB_OUTPUT", gh_output.to_str().unwrap())],
+		&[("GITHUB_OUTPUT", github_output.to_str().unwrap())],
 	);
-	assert!(out_or.status.success());
-	openrouter_mock.assert();
-	let written = fs::read_to_string(&gh_output).unwrap();
-	assert!(written.contains("decision=y"));
-	assert!(written.contains("run=true"));
 
-	let out_cf = run_cli(
-		repo.path(),
+	assert!(output.status.success());
+
+	fs::read_to_string(github_output).unwrap()
+}
+
+/// Run a Cloudflare decision and return the parsed report.
+fn run_cloudflare_decide(repo: &Path, server: &MockServer) -> CiDecideReport {
+	let api_url = server.url("/client/v4/accounts/acc123/ai/v1/chat/completions");
+	let output = run_cli(
+		repo,
 		&[
 			"ci",
 			"decide",
 			"--provider",
 			"cloudflare",
 			"--api-url",
-			&server.url("/client/v4/accounts/acc123/ai/v1/chat/completions"),
+			&api_url,
 			"--api-key",
 			"cf-secret",
 			"--account-id",
@@ -285,9 +336,30 @@ fn cli_ci_decide_providers_openrouter_cloudflare_and_github_outputs_file() {
 		],
 		&[],
 	);
-	assert!(out_cf.status.success());
-	cf_mock.assert();
-	let rep_cf: CiDecideReport = serde_json::from_slice(&out_cf.stdout).unwrap();
-	assert_eq!(rep_cf.decision, "n");
-	assert_eq!(rep_cf.provider, "cloudflare");
+
+	assert!(output.status.success());
+
+	serde_json::from_slice(&output.stdout).unwrap()
+}
+
+#[test]
+fn cli_ci_decide_providers_openrouter_cloudflare_and_github_outputs_file() {
+	let server = MockServer::start();
+	let openrouter_mock = mock_openrouter(&server);
+	let cloudflare_mock = mock_cloudflare(&server);
+	let repo = tempdir().unwrap();
+
+	init_git_repo(repo.path(), "https://github.com/monochange/providers.git");
+
+	let written = run_openrouter_decide(repo.path(), &server);
+
+	openrouter_mock.assert();
+	assert!(written.contains("decision=y"));
+	assert!(written.contains("run=true"));
+
+	let report = run_cloudflare_decide(repo.path(), &server);
+
+	cloudflare_mock.assert();
+	assert_eq!(report.decision, "n");
+	assert_eq!(report.provider, "cloudflare");
 }

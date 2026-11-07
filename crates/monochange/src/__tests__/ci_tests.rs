@@ -1,38 +1,38 @@
 #![allow(clippy::disallowed_methods)]
 
+#[path = "ci_tests_support.rs"]
+mod support;
+
 use std::fs;
 use std::path::Path;
-use std::process::Command as ProcessCommand;
 
 use httpmock::Method::POST;
 use httpmock::MockServer;
 use serde_json::json;
+use support::init_git_repo_with_origin;
+use support::run_mc;
 use tempfile::tempdir;
 
 use super::*;
-use crate::run_with_args_in_dir;
 
-fn run_mc(root: &Path, args: &[&str]) -> MonochangeResult<String> {
-	let runtime = tokio::runtime::Builder::new_current_thread()
-		.enable_all()
-		.build()
-		.unwrap();
-	let mut full_args = vec![std::ffi::OsString::from("monochange")];
-	full_args.extend(args.iter().map(std::ffi::OsString::from));
-	runtime.block_on(run_with_args_in_dir("monochange", full_args, root))
+/// Successful HTTP status used by the mocked providers.
+const HTTP_OK: u16 = 200;
+/// Arguments that initialise auth and print JSON.
+const AUTH_INIT_JSON_ARGS: &[&str] = &["ci", "auth", "init", "--format", "json"];
+
+/// Arguments that request the newest history entry as JSON.
+const HISTORY_LIMIT_JSON_ARGS: &[&str] = &["ci", "history", "--limit", "1", "--format", "json"];
+
+/// Arguments that request analytics with an explicit token.
+fn analytics_token_json_args(token: &str) -> [&str; 6] {
+	["ci", "analytics", "--token", token, "--format", "json"]
 }
 
-fn init_git_repo_with_origin(root: &Path, origin_url: &str) {
-	ProcessCommand::new("git")
-		.current_dir(root)
-		.args(["init"])
-		.output()
-		.unwrap();
-	ProcessCommand::new("git")
-		.current_dir(root)
-		.args(["remote", "add", "origin", origin_url])
-		.output()
-		.unwrap();
+/// Initialise auth in `repo` and return the parsed report.
+fn init_auth(repo: &Path) -> CiAuthReport {
+	let auth_json = run_mc(repo, AUTH_INIT_JSON_ARGS).unwrap();
+
+	serde_json::from_str(&auth_json).unwrap()
 }
 
 #[test]
@@ -434,26 +434,10 @@ fn ci_verify_false_negative_learns_rule_and_forces_future_decide_to_y() {
 	assert_ne!(rep_after.jobs[0].speed_suggestions, Vec::<String>::new());
 }
 
-#[test]
-fn ci_analytics_and_history_enforce_repo_auth_and_report_classifications() {
-	let repo = tempdir().unwrap();
-	init_git_repo_with_origin(repo.path(), "https://github.com/acme/analytics-repo.git");
-
-	// Calling analytics before `ci auth init` must fail
-	let uninit_err = run_mc(repo.path(), &["ci", "analytics"]).unwrap_err();
-	assert!(
-		uninit_err
-			.to_string()
-			.contains("authentication is not initialized")
-	);
-
-	// Initialize auth
-	let auth_json = run_mc(repo.path(), &["ci", "auth", "init", "--format", "json"]).unwrap();
-	let auth_report: CiAuthReport = serde_json::from_str(&auth_json).unwrap();
-
-	// 1. False negative incident
+/// Record a skipped job that later failed (false negative).
+fn record_false_negative(repo: &Path) {
 	run_mc(
-		repo.path(),
+		repo,
 		&[
 			"ci",
 			"verify",
@@ -474,10 +458,12 @@ fn ci_analytics_and_history_enforce_repo_auth_and_report_classifications() {
 		],
 	)
 	.unwrap();
+}
 
-	// 2. False positive incident (ran `y` on docs-only change and succeeded)
+/// Record a docs-only run that passed (false positive).
+fn record_false_positive(repo: &Path) {
 	run_mc(
-		repo.path(),
+		repo,
 		&[
 			"ci",
 			"decide",
@@ -494,7 +480,7 @@ fn ci_analytics_and_history_enforce_repo_auth_and_report_classifications() {
 	)
 	.unwrap();
 	run_mc(
-		repo.path(),
+		repo,
 		&[
 			"ci",
 			"verify",
@@ -511,10 +497,12 @@ fn ci_analytics_and_history_enforce_repo_auth_and_report_classifications() {
 		],
 	)
 	.unwrap();
+}
 
-	// 3. True negative incident (skipped `n` and verified green)
+/// Record a skipped job that stayed green (true negative).
+fn record_true_negative(repo: &Path) {
 	run_mc(
-		repo.path(),
+		repo,
 		&[
 			"ci",
 			"decide",
@@ -530,7 +518,7 @@ fn ci_analytics_and_history_enforce_repo_auth_and_report_classifications() {
 	)
 	.unwrap();
 	run_mc(
-		repo.path(),
+		repo,
 		&[
 			"ci",
 			"verify",
@@ -547,10 +535,12 @@ fn ci_analytics_and_history_enforce_repo_auth_and_report_classifications() {
 		],
 	)
 	.unwrap();
+}
 
-	// 4. True positive incident (ran `y` on code change and passed)
+/// Record a run on code that passed (true positive).
+fn record_true_positive(repo: &Path) {
 	run_mc(
-		repo.path(),
+		repo,
 		&[
 			"ci",
 			"verify",
@@ -569,96 +559,130 @@ fn ci_analytics_and_history_enforce_repo_auth_and_report_classifications() {
 		],
 	)
 	.unwrap();
+}
 
-	// Reject invalid token on analytics and history
-	let bad_token = issue_repo_token("https://github.com/other/repo.git", "wrong-secret");
+/// Record one incident of each verification classification.
+fn record_classification_fixtures(repo: &Path) {
+	record_false_negative(repo);
+	record_false_positive(repo);
+	record_true_negative(repo);
+	record_true_positive(repo);
+}
+
+/// Assert analytics and history reject a token from another repository.
+fn assert_foreign_token_rejected(repo: &Path, token: &str) {
 	assert!(
-		run_mc(repo.path(), &["ci", "analytics", "--token", &bad_token]).is_err(),
+		run_mc(repo, &["ci", "analytics", "--token", token]).is_err(),
 		"analytics must reject cross-repo token"
 	);
 	assert!(
-		run_mc(repo.path(), &["ci", "history", "--token", &bad_token]).is_err(),
+		run_mc(repo, &["ci", "history", "--token", token]).is_err(),
 		"history must reject cross-repo token"
 	);
+}
 
-	// Valid analytics report in JSON, Markdown, and Text
-	let analytics_json = run_mc(
-		repo.path(),
-		&[
-			"ci",
-			"analytics",
-			"--token",
-			&auth_report.token,
-			"--format",
-			"json",
-		],
-	)
-	.unwrap();
+/// Assert JSON, Markdown, and text analytics output for the fixtures.
+fn assert_analytics_reports(repo: &Path, token: &str) {
+	let analytics_json = run_mc(repo, &analytics_token_json_args(token)).unwrap();
 	let report: CiAnalyticsReport = serde_json::from_str(&analytics_json).unwrap();
+
 	assert!(report.authenticated);
 	assert_eq!(report.total_decisions, 2);
 	assert_eq!(report.run_decisions, 1);
 	assert_eq!(report.skip_decisions, 1);
 	assert_eq!(report.false_negatives, 1);
 	assert_eq!(report.false_positives, 1);
+
 	assert_eq!(report.true_negatives, 1);
 	assert_eq!(report.true_positives, 1);
 	assert_eq!(report.false_negative_incidents.len(), 1);
 	assert_eq!(report.false_positive_incidents.len(), 1);
 	assert!(!report.slow_jobs.is_empty(), "expected slow jobs");
 
-	let analytics_md = run_mc(repo.path(), &["ci", "analytics", "--format", "markdown"]).unwrap();
+	let analytics_md = run_mc(repo, &["ci", "analytics", "--format", "markdown"]).unwrap();
+
 	assert!(analytics_md.contains("# CI Gatekeeper Analytics"));
 	assert!(analytics_md.contains("false_negative"));
 	assert!(analytics_md.contains("false_positive"));
 
-	let analytics_text = run_mc(repo.path(), &["ci", "analytics", "--format", "text"]).unwrap();
+	let analytics_text = run_mc(repo, &["ci", "analytics", "--format", "text"]).unwrap();
+
 	assert!(analytics_text.contains("false_negatives"));
 	assert!(analytics_text.contains("false_positives"));
+}
 
-	let history_json = run_mc(
-		repo.path(),
-		&["ci", "history", "--limit", "1", "--format", "json"],
-	)
-	.unwrap();
+/// Assert that `--limit 1` keeps the newest history entries.
+fn assert_history_limit(repo: &Path) {
+	let history_json = run_mc(repo, HISTORY_LIMIT_JSON_ARGS).unwrap();
 	let history: CiHistoryReport = serde_json::from_str(&history_json).unwrap();
+
 	assert_eq!(history.decisions.len(), 1);
 	assert_eq!(history.verifications.len(), 1);
 }
 
 #[test]
-fn ci_decide_supports_opencode_go_and_jev_providers_and_github_outputs_format() {
-	let server = MockServer::start();
-	let opencode_mock = server.mock(|when, then| {
+fn ci_analytics_and_history_enforce_repo_auth_and_report_classifications() {
+	let repo = tempdir().unwrap();
+
+	init_git_repo_with_origin(repo.path(), "https://github.com/acme/analytics-repo.git");
+
+	// Calling analytics before `ci auth init` must fail
+	let uninit_err = run_mc(repo.path(), &["ci", "analytics"]).unwrap_err();
+
+	assert!(
+		uninit_err
+			.to_string()
+			.contains("authentication is not initialized")
+	);
+
+	let auth_report = init_auth(repo.path());
+
+	record_classification_fixtures(repo.path());
+
+	let bad_token = issue_repo_token("https://github.com/other/repo.git", "wrong-secret");
+
+	assert_foreign_token_rejected(repo.path(), &bad_token);
+	assert_analytics_reports(repo.path(), &auth_report.token);
+	assert_history_limit(repo.path());
+}
+
+/// Register an `opencode-go` mock that skips the job.
+fn mock_opencode_go(server: &MockServer) -> httpmock::Mock<'_> {
+	server.mock(|when, then| {
 		when.method(POST).path("/v1/chat/completions");
-		then.status(200).json_body(json!({
+		then.status(HTTP_OK).json_body(json!({
 			"choices": [{
 				"message": {
 					"content": "{\"decision\":\"n\",\"reason\":\"opencode-go determined job is unaffected\"}"
 				}
 			}]
 		}));
-	});
-	let jev_mock = server.mock(|when, then| {
+	})
+}
+
+/// Register a JEV webhook mock that runs the job.
+fn mock_jev(server: &MockServer) -> httpmock::Mock<'_> {
+	server.mock(|when, then| {
 		when.method(POST).path("/jev");
-		then.status(200).json_body(json!({
+		then.status(HTTP_OK).json_body(json!({
 			"decision": "y",
 			"reason": "jev webhook requested execution"
 		}));
-	});
+	})
+}
 
-	let repo = tempdir().unwrap();
-	init_git_repo_with_origin(repo.path(), "https://github.com/acme/provider-test.git");
-
-	let out_opencode = run_mc(
-		repo.path(),
+/// Run an `opencode-go` decision against the mock server.
+fn run_opencode_go_decide(repo: &Path, server: &MockServer) -> CiDecideReport {
+	let api_url = server.url("/v1/chat/completions");
+	let output = run_mc(
+		repo,
 		&[
 			"ci",
 			"decide",
 			"--provider",
 			"opencode-go",
 			"--api-url",
-			&server.url("/v1/chat/completions"),
+			&api_url,
 			"--api-key",
 			"test-key",
 			"--job",
@@ -670,21 +694,23 @@ fn ci_decide_supports_opencode_go_and_jev_providers_and_github_outputs_format() 
 		],
 	)
 	.unwrap();
-	opencode_mock.assert();
-	let rep_opencode: CiDecideReport = serde_json::from_str(&out_opencode).unwrap();
-	assert_eq!(rep_opencode.decision, "n");
-	assert_eq!(rep_opencode.provider, "opencode-go");
-	assert_eq!(rep_opencode.model, DEFAULT_OPENCODE_GO_MODEL);
 
-	let out_jev = run_mc(
-		repo.path(),
+	serde_json::from_str(&output).unwrap()
+}
+
+/// Run a JEV decision against the mock server and return the GitHub outputs.
+fn run_jev_decide(repo: &Path, server: &MockServer) -> String {
+	let api_url = server.url("/jev");
+
+	run_mc(
+		repo,
 		&[
 			"ci",
 			"decide",
 			"--provider",
 			"jev",
 			"--api-url",
-			&server.url("/jev"),
+			&api_url,
 			"--job",
 			"api-tests",
 			"--changed-files",
@@ -693,9 +719,29 @@ fn ci_decide_supports_opencode_go_and_jev_providers_and_github_outputs_format() 
 			"github-outputs",
 		],
 	)
-	.unwrap();
+	.unwrap()
+}
+
+#[test]
+fn ci_decide_supports_opencode_go_and_jev_providers_and_github_outputs_format() {
+	let server = MockServer::start();
+	let opencode_mock = mock_opencode_go(&server);
+	let jev_mock = mock_jev(&server);
+	let repo = tempdir().unwrap();
+
+	init_git_repo_with_origin(repo.path(), "https://github.com/acme/provider-test.git");
+
+	let opencode_report = run_opencode_go_decide(repo.path(), &server);
+
+	opencode_mock.assert();
+	assert_eq!(opencode_report.decision, "n");
+	assert_eq!(opencode_report.provider, "opencode-go");
+	assert_eq!(opencode_report.model, DEFAULT_OPENCODE_GO_MODEL);
+
+	let jev_output = run_jev_decide(repo.path(), &server);
+
 	jev_mock.assert();
-	assert!(out_jev.contains("decision=y"));
-	assert!(out_jev.contains("run=true"));
-	assert!(out_jev.contains("provider=jev"));
+	assert!(jev_output.contains("decision=y"));
+	assert!(jev_output.contains("run=true"));
+	assert!(jev_output.contains("provider=jev"));
 }
