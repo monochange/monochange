@@ -1,5 +1,8 @@
 ---
 monochange: feat
+monochange_config: feat
+monochange_schema: feat
+monochange_app: website_feature
 ---
 
 # Add a config-driven `monochange ci` gatekeeper with the full workspace graph
