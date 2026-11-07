@@ -1,0 +1,136 @@
+---
+source: crates/monochange/tests/cli_clap_help.rs
+expression: render_help_snapshot(&path)
+---
+Version: [current]
+Command: monochange ci decide
+
+Evaluate whether CI jobs should run (y/n) using provider or workspace graph
+
+[1m[97mUsage:[0m [93mmonochange ci decide[0m [95m[OPTIONS][0m
+
+[1m[96mOptions:[0m
+      [93m--job[0m[95m [0m[95m<JOB>[0m
+          Job name to evaluate; repeat to evaluate multiple jobs
+
+      [93m--provider[0m[95m [0m[95m<PROVIDER>[0m
+          Decision provider to use
+
+          [default: opencode-go]
+          [possible values: opencode-go, openrouter, cloudflare, jev, openai-compatible, graph]
+
+      [93m--model[0m[95m [0m[95m<MODEL>[0m
+          Model identifier for AI decision providers (default: deepseek-v4.1 for opencode-go)
+
+      [93m--api-url[0m[95m [0m[95m<URL>[0m
+          Override decision provider endpoint URL
+
+      [93m--api-key[0m[95m [0m[95m<KEY>[0m
+          API key or token for the decision provider
+
+      [93m--account-id[0m[95m [0m[95m<ACCOUNT_ID>[0m
+          Cloudflare account ID for the cloudflare provider
+
+      [93m--changed-files[0m[95m [0m[95m<PATH>[0m
+          Changed file paths relative to repository root
+
+      [93m--base[0m[95m [0m[95m<REF>[0m
+          Git base ref used to detect changed files when --changed-files is omitted
+
+      [93m--head[0m[95m [0m[95m<REF>[0m
+          Git head ref used to detect changed files when --changed-files is omitted
+
+      [93m--event[0m[95m [0m[95m<EVENT>[0m
+          CI event name (e.g. pull_request, push, schedule, workflow_dispatch)
+
+      [93m--branch[0m[95m [0m[95m<BRANCH>[0m
+          Branch name (e.g. main, release/1.0)
+
+      [93m--ref[0m[95m [0m[95m<REF>[0m
+          Full git ref (e.g. refs/heads/main, refs/tags/v1.0.0)
+
+      [93m--labels[0m[95m [0m[95m<LABEL>[0m
+          Pull request labels
+
+      [93m--commit-message[0m[95m [0m[95m<MESSAGE>[0m
+          Head commit message to inspect for unconditional markers like [ci:full]
+
+      [93m--commit[0m[95m [0m[95m<SHA>[0m
+          Commit SHA associated with this decision
+
+      [93m--unconditional[0m
+          Force unconditional execution (`y`) for all evaluated jobs
+
+      [93m--unconditional-events[0m[95m [0m[95m<EVENT>[0m
+          Events that force unconditional runs (defaults to schedule,workflow_dispatch)
+
+      [93m--unconditional-branches[0m[95m [0m[95m<PATTERN>[0m
+          Branch or ref globs that force unconditional runs
+
+      [93m--unconditional-paths[0m[95m [0m[95m<PATTERN>[0m
+          Changed file globs that force unconditional runs
+
+      [93m--max-skips-on-main[0m[95m [0m[95m<COUNT>[0m
+          Maximum consecutive skips on main before forcing an unconditional verification run
+
+          [default: 5]
+
+      [93m--duration-seconds[0m[95m [0m[95m<SECONDS>[0m
+          Current or expected job duration in seconds for red-flag checking
+
+      [93m--max-duration-minutes[0m[95m [0m[95m<MINUTES>[0m
+          Duration red-flag threshold in minutes for general CI jobs
+
+          [default: 10]
+
+      [93m--rust-max-duration-minutes[0m[95m [0m[95m<MINUTES>[0m
+          Duration red-flag threshold in minutes for Rust CI jobs
+
+          [default: 20]
+
+      [93m--job-paths[0m[95m [0m[95m<PATTERN>[0m
+          Explicit file path globs that this job covers
+
+      [93m--job-packages[0m[95m [0m[95m<PACKAGE>[0m
+          Explicit package IDs or names that this job covers
+
+      [93m--require-auth[0m
+          Require repository-scoped authentication before loading or updating CI history
+
+      [93m--token[0m[95m [0m[95m<TOKEN>[0m
+          Repository-scoped CI auth token
+
+      [93m--repo-id[0m[95m [0m[95m<REPO_ID>[0m
+          Override canonical repository identity
+
+      [93m--format[0m[95m [0m[95m<FORMAT>[0m
+          Output format for decision results
+
+          [default: text]
+          [possible values: text, json, github-outputs]
+
+  [93m-h[0m, [93m--help[0m
+          Print help
+
+[1m[96mGlobal Options:[0m
+  [93m-q[0m, [93m--quiet[0m
+          Suppress result, progress, and diagnostic output without changing execution
+
+  [93m-v[0m, [93m--verbose[0m
+          Show full result lists and logs, every step timing, and progress notes
+
+      [93m--color[0m[95m [0m[95m<WHEN>[0m
+          Control when output uses color; `auto` honors NO_COLOR, CLICOLOR, and CLICOLOR_FORCE
+
+          [possible values: auto, always, never]
+
+      [93m--progress-format[0m[95m [0m[95m<FORMAT>[0m
+          Control progress output on stderr
+
+          [possible values: auto, unicode, ascii, json]
+
+      [93m--jq[0m[95m [0m[95m<EXPRESSION>[0m
+          Filter explicit JSON output; requires `--format json` or `--format json-min`
+
+      [93m--snapshot[0m
+          Print a normalized JSON snapshot for this command subtree

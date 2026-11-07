@@ -419,6 +419,7 @@ writes the MCP config that does so.",
 		.subcommand(build_check_subcommand())
 		.subcommand(build_completions_command())
 		.subcommand(build_doctor_command())
+		.subcommand(crate::ci::build_ci_subcommand())
 		.subcommand(build_help_subcommand());
 
 	command = command
@@ -475,6 +476,7 @@ const HELP_COMMAND_GROUPS: &[(&str, &[&str])] = &[
 			"skill",
 			"subagents",
 			"snapshot",
+			"ci",
 			"completions",
 			"help",
 		],

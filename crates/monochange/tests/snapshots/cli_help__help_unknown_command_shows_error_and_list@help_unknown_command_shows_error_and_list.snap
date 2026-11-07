@@ -24,6 +24,7 @@ Visible top-level commands:
   change
   changeset
   check
+  ci
   command
   completions
   config
