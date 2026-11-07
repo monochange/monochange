@@ -31,6 +31,11 @@ precompress = false
 
 [lint]
 markup = "view"
+clippy = true
+
+[lint.rules]
+component_attribute = "deny"
+markup_style = "deny"
 
 [native]
 update_contract = "mobile-v1"

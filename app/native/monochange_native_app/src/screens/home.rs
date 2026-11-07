@@ -29,8 +29,12 @@ pub fn Home() -> Element {
 			<View class=theme::GAP_ACTION>
 				<ui::Title text="monochange" />
 				<ui::Quiet text="Ship every package from one floor." />
-				{move || render_handshake(handshake.get())}
-				{move || render_projects(projects.get())}
+				{move || {
+					view! { <HandshakeStatus state=handshake.get() /> }
+				}}
+				{move || {
+					view! { <ProjectFloor state=projects.get() /> }
+				}}
 				<View class=format!("flex-row flex-wrap {}", theme::GAP_ACTION)>
 					<ui::Primary
 						label="Refresh handshake"
@@ -47,10 +51,14 @@ pub fn Home() -> Element {
 	}
 }
 
-fn render_handshake(state: Load<AuthHandshake>) -> Element {
+/// Auth handshake panel for the current load state.
+#[component]
+fn HandshakeStatus(state: Load<AuthHandshake>) -> Element {
 	match state {
 		Load::Idle => {
-			view! { <ui::Quiet text="Tap refresh to run the auth handshake over leptoskit_rpc." /> }
+			view! {
+				<ui::Quiet text="Tap refresh to run the auth handshake over leptoskit_rpc." />
+			}
 		}
 		Load::Loading => view! { <ui::Loading what="session" /> },
 		Load::Failed(message) => view! { <ui::Problem message=&message /> },
@@ -64,56 +72,57 @@ fn render_handshake(state: Load<AuthHandshake>) -> Element {
 				}
 				None => format!("Anonymous · {}", handshake.protocol),
 			};
-
 			let status = handshake.status;
 			view! {
-				<View class=theme::SURFACE>
+				<ui::Panel>
 					<ui::Section text="Auth handshake" />
 					<Text class=theme::SIGNAL>{status}</Text>
 					<ui::Quiet text=detail />
-				</View>
+				</ui::Panel>
 			}
 		}
 	}
 }
 
-fn render_projects(state: Load<Vec<ProjectSummary>>) -> Element {
+/// Project floor list for the current load state.
+#[component]
+fn ProjectFloor(state: Load<Vec<ProjectSummary>>) -> Element {
 	match state {
 		Load::Idle => view! { <ui::Quiet text="Projects load after the handshake." /> },
 		Load::Loading => view! { <ui::Loading what="projects" /> },
 		Load::Failed(message) => view! { <ui::Problem message=&message /> },
-
 		Load::Ready(list) if list.is_empty() => {
 			view! {
 				<ui::Quiet text="No projects yet. Connect repositories on the web workspace." />
 			}
 		}
-
 		Load::Ready(list) => {
 			view! {
 				<View class=theme::GAP_ACTION>
 					<ui::Section text="Projects" />
 					{list
 						.into_iter()
-						.map(|project| {
-							let meta = format!(
-								"{}/{} · {} repos",
-								project.organization, project.slug, project.repository_count
-							);
-							view! {
-								<View class=theme::SURFACE>
-									<Text class=format!("text-lg font-bold {}", theme::INK)>
-										{project.name}
-									</Text>
-									<ui::Quiet text=project.description />
-									<ui::Quiet text=meta />
-								</View>
-							}
-						})
+						.map(|project| view! { <ProjectRow project=project /> })
 						.collect::<Fragment>()}
 				</View>
 			}
 		}
+	}
+}
+
+/// One project row on the floor.
+#[component]
+fn ProjectRow(project: ProjectSummary) -> Element {
+	let meta = format!(
+		"{}/{} · {} repos",
+		project.organization, project.slug, project.repository_count
+	);
+	view! {
+		<ui::Panel>
+			<Text class=format!("text-lg font-bold {}", theme::INK)>{project.name}</Text>
+			<ui::Quiet text=project.description />
+			<ui::Quiet text=meta />
+		</ui::Panel>
 	}
 }
 

@@ -23,8 +23,12 @@ pub fn Section(text: impl Into<String>) -> Element {
 }
 
 #[component]
-pub fn Panel() -> Element {
-	view! { <View class=theme::SURFACE /> }
+pub fn Panel(children: Children) -> Element {
+	view! {
+		<View class=theme::SURFACE>
+			{children}
+		</View>
+	}
 }
 
 #[component]
@@ -33,7 +37,6 @@ pub fn Primary(label: &str, enabled: bool, on_press: impl Fn() + Send + Sync + '
 		<Button
 			enabled=enabled
 			class=theme::BUTTON_PRIMARY
-
 			class=if enabled { "" } else { "opacity-50" }
 			on:press=on_press
 		>
