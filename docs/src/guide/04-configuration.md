@@ -1468,7 +1468,7 @@ Every key except the job tables is optional; the values above are the defaults.
 1. **Unconditional context** — event, branch or ref glob, label, `[ci:full]` commit message, an unconditional path, `--unconditional`, or the `max_skips_on_main` counter tripping on `main` runs every job.
 2. **`always = true`** runs the job.
 3. **Learned rules** (from `monochange ci verify` false negatives) run the job.
-4. **Roots** — a job runs when a changed file is owned by a root package, or by a transitive dependency of a root (normal, dev, and build edges). `packages` lists only roots; globs expand against every workspace package, so a new `leptoskit_plugin_foo` crate is covered with zero config edits. Cargo edges come from `cargo metadata --format-version 1`, which includes unpublished members, crates nested at any depth, `foo.workspace = true` inheritance, renamed dependencies, and `[target.'cfg(..)'.dependencies]`.
+4. **Roots** — a job runs when a changed file is owned by a root package, or by a transitive dependency of a root (normal, dev, and build edges). `packages` lists only roots; globs expand against every workspace package, so a new `leptoskit_plugin_foo` crate is covered with zero config edits. Cargo edges come from `cargo metadata --format-version 1 --no-deps --offline`, which resolves offline (the gate never downloads the crates.io index) and includes unpublished members, crates nested at any depth, `foo.workspace = true` inheritance, renamed dependencies, and `[target.'cfg(..)'.dependencies]`. A root `Cargo.toml` that Cargo cannot parse is an error, never a silent fallback to manifest discovery.
 5. **Paths** — any changed file matching the job's `paths` runs it. A job-path claim wins over `ignore_paths`, so a job that explicitly claims `docs/**` still triggers on docs changes.
 6. **Unowned changes** — a changed file owned by no package, claimed by no job's `paths`, and outside `ignore_paths` runs **every** job, with a reason naming the file. Unknown must mean run, never skip.
 7. Otherwise the job is skipped with a reason naming what changed and what the job covers.
@@ -1489,7 +1489,33 @@ affected-packages=["gallery","ws_support"]
 run-all=false
 ```
 
-Gate downstream jobs with `if: fromJSON(needs.<gate>.outputs.decisions)['test-windows']`.
+Gate downstream jobs with `if: fromJSON(needs.<gate>.outputs.decisions)['test-windows']`. A failure to write `$GITHUB_OUTPUT` fails the command instead of silently dropping the outputs.
+
+### Failing safe with `--on-error run-all`
+
+GitHub **skips** every job that needs a failed gate, and a skipped required check counts as passing — so a broken gate would let any PR merge without tests. The recommended gate runs `decide` with `--on-error run-all` so failure means "run everything", visibly:
+
+```yaml
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Decide which jobs run
+        run: monochange ci decide --format github-outputs --on-error run-all
+  test-windows:
+    needs: gate
+    if: fromJSON(needs.gate.outputs.decisions)['test-windows']
+```
+
+`--on-error` controls what happens after argument parsing fails:
+
+- `fail` (the default) exits non-zero with the error.
+- `run-all` prints the error to stderr as a GitHub annotation (`::error title=monochange ci decide::…`), writes `decisions` with every configured job (plus every `--job` id) set to `true`, `affected-packages=[]`, and `run-all=true` to `$GITHUB_OUTPUT`, and exits 0.
+
+If even the fallback write fails, the command exits non-zero.
 
 ### `monochange ci check`
 

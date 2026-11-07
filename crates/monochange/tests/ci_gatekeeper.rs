@@ -426,6 +426,95 @@ fn mock_jev_env(server: &MockServer) -> httpmock::Mock<'_> {
 	})
 }
 
+/// Write a workspace whose root Cargo manifest cannot be parsed by cargo.
+fn break_root_manifest(repo: &Path) {
+	fs::write(repo.join("Cargo.toml"), "this is [not valid toml\n").unwrap();
+}
+
+#[test]
+fn cli_ci_decide_on_error_run_all_writes_outputs_file_and_exits_zero() {
+	let repo = tempdir().unwrap();
+
+	init_git_repo(repo.path(), "https://github.com/monochange/broken-gate.git");
+	write_gated_workspace(repo.path());
+	break_root_manifest(repo.path());
+
+	let github_output = repo.path().join("github_output.txt");
+	let output = run_cli(
+		repo.path(),
+		&[
+			"ci",
+			"decide",
+			"--on-error",
+			"run-all",
+			"--changed-files",
+			"crates/app/src/lib.rs",
+			"--format",
+			"github-outputs",
+		],
+		&[("GITHUB_OUTPUT", github_output.to_str().unwrap())],
+	);
+
+	assert!(
+		output.status.success(),
+		"run-all must exit 0, stderr: {}",
+		String::from_utf8_lossy(&output.stderr)
+	);
+
+	let block = String::from("decisions={\"rust-test\":true}\naffected-packages=[]\nrun-all=true");
+
+	assert_eq!(String::from_utf8_lossy(&output.stdout).trim(), block);
+	assert_eq!(
+		fs::read_to_string(&github_output).unwrap(),
+		format!("{block}\n")
+	);
+
+	let stderr = String::from_utf8_lossy(&output.stderr);
+
+	assert!(
+		stderr.contains("::error title=monochange ci decide::"),
+		"missing annotation: {stderr}"
+	);
+	assert!(
+		stderr.contains("cargo metadata failed"),
+		"missing cargo stderr: {stderr}"
+	);
+}
+
+#[test]
+fn cli_ci_decide_fails_loudly_by_default_when_the_graph_cannot_be_built() {
+	let repo = tempdir().unwrap();
+
+	init_git_repo(
+		repo.path(),
+		"https://github.com/monochange/broken-gate-default.git",
+	);
+	write_gated_workspace(repo.path());
+	break_root_manifest(repo.path());
+
+	let output = run_cli(
+		repo.path(),
+		&[
+			"ci",
+			"decide",
+			"--job",
+			"rust-test",
+			"--changed-files",
+			"crates/app/src/lib.rs",
+		],
+		&[],
+	);
+
+	assert!(
+		!output.status.success(),
+		"default `--on-error fail` must exit non-zero"
+	);
+
+	let stderr = String::from_utf8_lossy(&output.stderr);
+
+	assert!(stderr.contains("cargo metadata failed"), "stderr: {stderr}");
+}
+
 #[test]
 fn cli_ci_env_fallbacks_cover_repo_identity_secret_token_and_jev_endpoint() {
 	let repo = tempdir().unwrap();

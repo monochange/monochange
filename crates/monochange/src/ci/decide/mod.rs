@@ -5,16 +5,25 @@
 //! job, make at most one provider request covering them all, and record the
 //! results. Keeping each step separate makes the reason string auditable,
 //! which is the part CI operators actually read.
+//!
+//! The pipeline is wrapped by an error policy: `--on-error fail` (the default)
+//! keeps failures loud, while `--on-error run-all` fails open because GitHub
+//! skips dependent jobs when the gate fails, and a skipped required check
+//! counts as passing.
 
 mod input;
 
 use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 use std::path::Path;
+use std::path::PathBuf;
 
 use chrono::Utc;
 use clap::ArgMatches;
 use input::DecideInput;
 use input::parse_decide_input;
+use monochange_config::load_ci_settings;
+use monochange_core::MonochangeError;
 use monochange_core::MonochangeResult;
 
 use super::UNCONDITIONAL_MARKERS;
@@ -38,6 +47,8 @@ use super::provider::ProviderOverrides;
 use super::provider::default_model_for;
 use super::provider::query_external_decision_provider;
 use super::render::render_decide_report;
+use super::render::render_fail_safe_outputs;
+use super::render::write_github_outputs;
 use super::types::CiDecideReport;
 use super::types::CiDecisionProvider;
 use super::types::CiDecisionRecord;
@@ -51,6 +62,17 @@ const GRAPH_MODEL_LABEL: &str = "workspace-graph";
 const GRAPH_FALLBACK_SUFFIX: &str = " (evaluated via deterministic graph fallback)";
 /// How many recent decisions are quoted in a provider prompt.
 const RECENT_HISTORY_LIMIT: usize = 5;
+/// GitHub annotation prefix that renders the error on the workflow run.
+const FAIL_SAFE_ANNOTATION: &str = "::error title=monochange ci decide::";
+
+/// Reaction to pipeline errors after argument parsing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum OnError {
+	/// Exit non-zero so the failure is loud.
+	Fail,
+	/// Emit run-all outputs and exit 0 so every gated job still runs.
+	RunAll,
+}
 
 /// One job's forced overrides and deterministic graph verdict.
 struct PreparedJob {
@@ -94,7 +116,48 @@ pub(super) async fn run_ci_decide_subcommand(
 	root: &Path,
 	matches: &ArgMatches,
 ) -> MonochangeResult<String> {
-	let input = parse_decide_input(root, matches)?;
+	let github_output = github_output_path();
+	let outcome = decide_pipeline(root, matches, github_output.as_deref()).await;
+
+	match outcome {
+		Ok(output) => Ok(output),
+		Err(error) => {
+			match on_error_arg(matches) {
+				OnError::Fail => Err(error),
+				OnError::RunAll => {
+					fail_safe_decide(root, matches, github_output.as_deref(), &error)
+				}
+			}
+		}
+	}
+}
+
+/// Read `$GITHUB_OUTPUT` once per decide run; empty values count as unset.
+fn github_output_path() -> Option<PathBuf> {
+	std::env::var_os("GITHUB_OUTPUT")
+		.filter(|value| !value.is_empty())
+		.map(PathBuf::from)
+}
+
+/// Parse the `--on-error` flag; clap restricts the accepted values.
+fn on_error_arg(matches: &ArgMatches) -> OnError {
+	if matches
+		.get_one::<String>("on-error")
+		.is_some_and(|value| value == "run-all")
+	{
+		return OnError::RunAll;
+	}
+
+	OnError::Fail
+}
+
+/// Run the full decision pipeline, propagating every step's errors.
+async fn decide_pipeline(
+	root: &Path,
+	matches: &ArgMatches,
+	github_output: Option<&Path>,
+) -> MonochangeResult<String> {
+	let input = parse_decide_input(root, matches, github_output)?;
 	let mut memory = auth::load_ci_memory_store(
 		root,
 		args::repo_id_override(matches),
@@ -103,7 +166,7 @@ pub(super) async fn run_ci_decide_subcommand(
 	)?;
 
 	let base_reasons = base_unconditional_reasons(&input);
-	let graph = evaluate_graph_context(root, &input.changed_files, &input.settings);
+	let graph = evaluate_graph_context(root, &input.changed_files, &input.settings)?;
 	let on_main = is_main_branch(input.branch.as_deref(), input.git_ref.as_deref());
 	let prepared = prepare_jobs(&input, &base_reasons, &graph, on_main, &memory);
 	let phase = run_provider_phase(&input, &prepared, &memory, &graph).await;
@@ -120,7 +183,43 @@ pub(super) async fn run_ci_decide_subcommand(
 
 	let report = build_decide_report(&memory.repo_id, records);
 
-	render_decide_report(&report, &input.format)
+	render_decide_report(&report, &input.format, input.github_output.as_deref())
+}
+
+/// Turn a pipeline error into the `--on-error run-all` fallback.
+///
+/// Prints a GitHub annotation so the failure is visible on the run, then emits
+/// outputs that run every covered job and exits 0 — a failed gate job would
+/// otherwise skip every dependent job, and a skipped required check counts as
+/// passing. A failure of this fallback itself still exits non-zero.
+fn fail_safe_decide(
+	root: &Path,
+	matches: &ArgMatches,
+	github_output: Option<&Path>,
+	error: &MonochangeError,
+) -> MonochangeResult<String> {
+	eprintln!("{FAIL_SAFE_ANNOTATION}{error}");
+
+	let jobs = fail_safe_job_ids(root, matches);
+	let outputs = render_fail_safe_outputs(&jobs)?;
+
+	write_github_outputs(github_output, &outputs)?;
+
+	Ok(outputs)
+}
+
+/// Job ids covered by the fallback: every configured job plus every `--job`.
+///
+/// Configuration loading is best effort here: when the config is what broke,
+/// only the explicitly requested job ids are known.
+fn fail_safe_job_ids(root: &Path, matches: &ArgMatches) -> Vec<String> {
+	let mut jobs: BTreeSet<String> = args::collect_strings(matches, "job").into_iter().collect();
+
+	if let Ok(settings) = load_ci_settings(root) {
+		jobs.extend(settings.jobs.keys().cloned());
+	}
+
+	jobs.into_iter().collect()
 }
 
 /// Collect rule 1 and rule 3 state plus the graph verdict for every job.
@@ -560,7 +659,7 @@ fn default_model(provider: CiDecisionProvider) -> &'static str {
 	match provider {
 		CiDecisionProvider::Graph => GRAPH_MODEL_LABEL,
 		CiDecisionProvider::Jev => super::provider::JEV_MODEL_LABEL,
-		other => default_model_for(other),
+		other => default_model_for(other).expect("external providers have an endpoint preset"),
 	}
 }
 

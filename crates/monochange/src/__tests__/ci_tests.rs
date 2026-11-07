@@ -765,6 +765,297 @@ fn ci_decide_supports_opencode_go_and_jev_providers_and_github_outputs_format() 
 	assert!(jev_output.contains("run-all=true"));
 }
 
+/// Build a minimal decide report for renderer tests.
+fn decide_report_for_render() -> CiDecideReport {
+	let record = CiDecisionRecord {
+		id: "dec-1".to_string(),
+		repo_id: "github.com/acme/render".to_string(),
+		job: "test-windows".to_string(),
+		decision: "y".to_string(),
+		run: true,
+		unconditional: false,
+		provider: "graph".to_string(),
+		model: "workspace-graph".to_string(),
+		reason: "changed files affect root package `app`".to_string(),
+		unconditional_reasons: Vec::new(),
+		matched_learned_rules: Vec::new(),
+		affected_packages: vec!["app".to_string()],
+		changed_files: vec!["crates/app/src/lib.rs".to_string()],
+		event: None,
+		branch: None,
+		commit: None,
+		consecutive_skips_on_main: 0,
+		duration_red_flag: false,
+		observed_duration_seconds: None,
+		threshold_minutes: 10,
+		speed_suggestions: Vec::new(),
+		timestamp: "2026-01-01T00:00:00Z".to_string(),
+	};
+
+	CiDecideReport {
+		repo_id: record.repo_id.clone(),
+		decision: "y".to_string(),
+		run: true,
+		unconditional: false,
+		provider: record.provider.clone(),
+		model: record.model.clone(),
+		reason: record.reason.clone(),
+		jobs: vec![record],
+	}
+}
+
+#[test]
+fn github_outputs_render_writes_the_outputs_file_only_when_a_path_is_given() {
+	let report = decide_report_for_render();
+
+	// No path configured: the block is only returned, never written.
+	let stdout_only = render::render_decide_report(&report, "github-outputs", None).unwrap();
+
+	assert_eq!(
+		stdout_only,
+		"decisions={\"test-windows\":true}\naffected-packages=[\"app\"]\nrun-all=true"
+	);
+
+	// Path configured: the same block is appended to that file.
+	let dir = tempdir().unwrap();
+	let outputs = dir.path().join("github_output.txt");
+	let written = render::render_decide_report(&report, "github-outputs", Some(&outputs)).unwrap();
+
+	assert_eq!(written, stdout_only);
+	assert_eq!(
+		fs::read_to_string(&outputs).unwrap(),
+		format!("{stdout_only}\n")
+	);
+
+	// An unwritable outputs path is an error, not a discarded write.
+	let missing = dir.path().join("missing-dir/outputs.txt");
+	let failure = render::render_decide_report(&report, "github-outputs", Some(&missing));
+
+	assert!(
+		failure
+			.as_ref()
+			.is_err_and(|error| error.to_string().contains("$GITHUB_OUTPUT")),
+		"unexpected result: {failure:?}"
+	);
+}
+
+#[test]
+fn fail_safe_outputs_cover_every_requested_job() {
+	let outputs = render::render_fail_safe_outputs(&["a".to_string(), "b".to_string()]).unwrap();
+
+	assert_eq!(
+		outputs,
+		"decisions={\"a\":true,\"b\":true}\naffected-packages=[]\nrun-all=true"
+	);
+}
+
+/// A type whose serialization always fails, to exercise output error paths.
+struct Unserializable;
+
+impl serde::Serialize for Unserializable {
+	fn serialize<S: serde::Serializer>(&self, _: S) -> Result<S::Ok, S::Error> {
+		Err(serde::ser::Error::custom("intentional failure"))
+	}
+}
+
+#[test]
+fn github_output_serialization_failures_are_reported() {
+	let error = render::serialize_output_value(&Unserializable, "decisions").unwrap_err();
+
+	assert!(
+		error
+			.to_string()
+			.contains("failed to serialize `decisions` output"),
+		"unexpected error: {error}"
+	);
+}
+
+#[test]
+fn graph_provider_has_no_endpoint_preset() {
+	let overrides = provider::ProviderOverrides {
+		model: None,
+		api_url: None,
+		api_key: None,
+		account_id: None,
+	};
+
+	assert_eq!(
+		provider::resolve_provider_url(CiDecisionProvider::Graph, &overrides),
+		Err("graph provider is local and has no endpoint".to_string())
+	);
+	assert!(provider::resolve_chat_endpoint(CiDecisionProvider::Graph, &overrides).is_err());
+	assert!(provider::default_model_for(CiDecisionProvider::Graph).is_none());
+}
+
+#[test]
+fn chat_endpoint_allows_providers_without_a_required_api_key() {
+	let overrides = provider::ProviderOverrides {
+		model: None,
+		api_url: Some("http://localhost/v1/chat/completions"),
+		api_key: None,
+		account_id: None,
+	};
+	let endpoint =
+		provider::resolve_chat_endpoint(CiDecisionProvider::OpenaiCompatible, &overrides).unwrap();
+
+	assert_eq!(endpoint.api_key, "");
+	assert_eq!(endpoint.url, "http://localhost/v1/chat/completions");
+	assert_eq!(endpoint.default_model, DEFAULT_OPENCODE_GO_MODEL);
+}
+
+#[test]
+fn ci_decide_on_error_run_all_emits_run_all_outputs_for_every_covered_job() {
+	let repo = tempdir().unwrap();
+
+	init_git_repo_with_origin(repo.path(), "https://github.com/acme/broken-cargo.git");
+	write_ci_workspace(repo.path(), "[ci.jobs.rust-tests]\npackages = [\"app\"]\n");
+	fs::write(repo.path().join("Cargo.toml"), "this is [not valid toml\n").unwrap();
+
+	// Default `--on-error fail`: the cargo failure stays loud.
+	let failure = run_mc(
+		repo.path(),
+		&[
+			"ci",
+			"decide",
+			"--changed-files",
+			"crates/app/src/lib.rs",
+			"--format",
+			"github-outputs",
+		],
+	)
+	.unwrap_err();
+
+	assert!(
+		failure.to_string().contains("cargo metadata failed"),
+		"unexpected error: {failure}"
+	);
+
+	// `--on-error run-all`: every configured job plus every `--job` id runs
+	// and the command reports success.
+	let outputs = run_mc(
+		repo.path(),
+		&[
+			"ci",
+			"decide",
+			"--on-error",
+			"run-all",
+			"--job",
+			"extra-job",
+			"--changed-files",
+			"crates/app/src/lib.rs",
+			"--format",
+			"github-outputs",
+		],
+	)
+	.unwrap();
+
+	assert_eq!(
+		outputs,
+		"decisions={\"extra-job\":true,\"rust-tests\":true}\naffected-packages=[]\nrun-all=true"
+	);
+}
+
+#[test]
+fn ci_decide_skips_the_provider_request_when_every_job_is_unconditional() {
+	let repo = tempdir().unwrap();
+
+	init_git_repo_with_origin(repo.path(), "https://github.com/acme/all-unconditional.git");
+	write_ci_workspace(repo.path(), "[ci.jobs.api-tests]\npackages = [\"app\"]\n");
+
+	// No provider endpoint is configured: a request here would fail the phase
+	// and append the fallback suffix to the reason.
+	let output = run_mc(
+		repo.path(),
+		&[
+			"ci",
+			"decide",
+			"--provider",
+			"opencode-go",
+			"--unconditional",
+			"--job",
+			"api-tests",
+			"--changed-files",
+			"docs/guide.md",
+			"--format",
+			"json",
+		],
+	)
+	.unwrap();
+	let report: CiDecideReport = serde_json::from_str(&output).unwrap();
+
+	assert!(report.unconditional);
+	assert!(report.run);
+	assert!(
+		report.reason.contains("explicit `--unconditional` flag"),
+		"unexpected reason: {}",
+		report.reason
+	);
+	assert!(
+		!report.reason.contains("deterministic graph fallback"),
+		"no provider request should have been attempted: {}",
+		report.reason
+	);
+}
+
+#[test]
+fn ci_decide_falls_back_to_the_graph_when_the_provider_response_omits_a_job() {
+	let server = MockServer::start();
+	let chat_mock = server.mock(|when, then| {
+		when.method(POST).path("/v1/chat/completions");
+		then.status(HTTP_OK).json_body(json!({
+			"choices": [{
+				"message": {
+					"content": "{\"unit\":{\"run\":false,\"reason\":\"provider skipped unit\"}}"
+				}
+			}]
+		}));
+	});
+	let repo = tempdir().unwrap();
+
+	init_git_repo_with_origin(repo.path(), "https://github.com/acme/omitted-job.git");
+	write_ci_workspace(
+		repo.path(),
+		"[ci]\nai_can_skip = true\n\n[ci.jobs.unit]\npackages = [\"app\"]\n\n[ci.jobs.e2e]\npackages = [\"core\"]\n",
+	);
+
+	// `crates/core` is owned by the `e2e` root, so its graph verdict is `run`
+	// even though the provider response never mentions the job.
+	let output = run_mc(
+		repo.path(),
+		&[
+			"ci",
+			"decide",
+			"--provider",
+			"opencode-go",
+			"--api-url",
+			&server.url("/v1/chat/completions"),
+			"--api-key",
+			"test-key",
+			"--changed-files",
+			"crates/core/src/lib.rs",
+			"--format",
+			"json",
+		],
+	)
+	.unwrap();
+	let report: CiDecideReport = serde_json::from_str(&output).unwrap();
+
+	chat_mock.assert();
+
+	let e2e = report
+		.jobs
+		.iter()
+		.find(|job| job.job == "e2e")
+		.unwrap_or_else(|| panic!("e2e job missing"));
+
+	assert!(
+		e2e.reason.contains("provider response omitted this job"),
+		"unexpected reason: {}",
+		e2e.reason
+	);
+	assert!(e2e.run, "the graph verdict must stand: {}", e2e.reason);
+}
+
 #[test]
 fn ci_decide_makes_exactly_one_provider_request_for_every_job() {
 	let server = MockServer::start();
@@ -1101,6 +1392,46 @@ fn ci_check_reports_every_configuration_problem_class() {
 	assert_eq!(report["ok"], serde_json::json!(true));
 }
 
+#[test]
+fn ci_check_renders_text_success_and_json_problems() {
+	let repo = gatekeeper_fixture();
+
+	support::init_git_repo_with_origin(repo.path(), "https://github.com/acme/check-formats.git");
+	run_git(repo.path(), &["add", "."]);
+
+	// Without `--workflow` no workflow scan runs; text is the default format.
+	let text = run_mc(repo.path(), &["ci", "check"]).unwrap();
+
+	assert!(
+		text.contains("ci configuration valid: 3 job(s) checked (graph: cargo metadata)"),
+		"unexpected text output: {text}"
+	);
+
+	// An unreadable workflow becomes a problem; JSON rendering carries it.
+	let error = run_mc(
+		repo.path(),
+		&[
+			"ci",
+			"check",
+			"--workflow",
+			".github/workflows/missing.yml",
+			"--format",
+			"json",
+		],
+	)
+	.unwrap_err();
+	let problems = error.to_string();
+
+	assert!(
+		problems.contains("could not read workflow"),
+		"missing problem: {problems}"
+	);
+	assert!(
+		problems.contains("\"ok\":false"),
+		"expected JSON problems payload: {problems}"
+	);
+}
+
 /// Run a git command inside `root`.
 fn run_git(root: &Path, args: &[&str]) {
 	let output = std::process::Command::new("git")
@@ -1126,7 +1457,8 @@ fn graph_context_returns_affected_packages_for_owned_files() {
 
 	let settings = monochange_config::load_ci_settings(&root).unwrap();
 	let context =
-		graph::evaluate_graph_context(&root, &["crates/core/src/lib.rs".to_string()], &settings);
+		graph::evaluate_graph_context(&root, &["crates/core/src/lib.rs".to_string()], &settings)
+			.unwrap();
 
 	assert_eq!(context.affected_packages(), vec!["core".to_string()]);
 	assert!(!context.ignored_only());
@@ -1139,7 +1471,7 @@ fn graph_context_classifies_empty_and_ignored_changes() {
 	write_graph_workspace(dir.path());
 
 	let settings = monochange_config::load_ci_settings(dir.path()).unwrap();
-	let empty = graph::evaluate_graph_context(dir.path(), &[], &settings);
+	let empty = graph::evaluate_graph_context(dir.path(), &[], &settings).unwrap();
 
 	assert!(empty.ignored_only());
 	assert!(empty.affected_packages().is_empty());
@@ -1151,7 +1483,8 @@ fn graph_context_classifies_empty_and_ignored_changes() {
 			".changeset/acme.md".to_string(),
 		],
 		&settings,
-	);
+	)
+	.unwrap();
 
 	assert!(docs_only.ignored_only());
 	assert!(docs_only.affected_packages().is_empty());
@@ -1168,7 +1501,8 @@ fn graph_decision_reports_every_rule_with_a_verdict_source() {
 		root,
 		&["crates/leptoskit_plugin_windowkit/src/lib.rs".to_string()],
 		&settings,
-	);
+	)
+	.unwrap();
 	let verdict = graph::evaluate_graph_decision_for_job(
 		"test-windows",
 		settings.jobs.get("test-windows"),
@@ -1194,7 +1528,8 @@ fn graph_decision_reports_every_rule_with_a_verdict_source() {
 	);
 
 	// Docs change: claimed by the docs job's paths, skipped for root jobs.
-	let docs = graph::evaluate_graph_context(root, &["docs/guide.md".to_string()], &settings);
+	let docs =
+		graph::evaluate_graph_context(root, &["docs/guide.md".to_string()], &settings).unwrap();
 	let docs_verdict =
 		graph::evaluate_graph_decision_for_job("docs", settings.jobs.get("docs"), &docs);
 	let windows_verdict = graph::evaluate_graph_decision_for_job(
@@ -1210,7 +1545,7 @@ fn graph_decision_reports_every_rule_with_a_verdict_source() {
 
 	// Unowned change: claimed by no package and no job path, so every job runs.
 	let unowned =
-		graph::evaluate_graph_context(root, &["scripts/deploy.sh".to_string()], &settings);
+		graph::evaluate_graph_context(root, &["scripts/deploy.sh".to_string()], &settings).unwrap();
 	let unowned_verdict = graph::evaluate_graph_decision_for_job(
 		"test-windows",
 		settings.jobs.get("test-windows"),
@@ -1238,7 +1573,8 @@ fn graph_follows_renamed_workspace_dev_and_target_dependency_edges() {
 		root,
 		&["crates/ws_support/src/lib.rs".to_string()],
 		&settings,
-	);
+	)
+	.unwrap();
 	let verdict = graph::evaluate_graph_decision_for_job("test-windows", job, &workspace_dep);
 
 	assert!(
@@ -1254,7 +1590,8 @@ fn graph_follows_renamed_workspace_dev_and_target_dependency_edges() {
 		root,
 		&["crates/tools/deep/probe/src/lib.rs".to_string()],
 		&settings,
-	);
+	)
+	.unwrap();
 	let verdict = graph::evaluate_graph_decision_for_job("test-windows", job, &dev_dep);
 
 	assert!(
@@ -1266,7 +1603,8 @@ fn graph_follows_renamed_workspace_dev_and_target_dependency_edges() {
 
 	// `tgt_only` only appears under `[target.'cfg(windows)'.dependencies]`.
 	let target_dep =
-		graph::evaluate_graph_context(root, &["crates/tgt_only/src/lib.rs".to_string()], &settings);
+		graph::evaluate_graph_context(root, &["crates/tgt_only/src/lib.rs".to_string()], &settings)
+			.unwrap();
 	let verdict = graph::evaluate_graph_decision_for_job("test-windows", job, &target_dep);
 
 	assert!(
@@ -1281,7 +1619,8 @@ fn graph_follows_renamed_workspace_dev_and_target_dependency_edges() {
 		root,
 		&["crates/leptoskit_windows/src/lib.rs".to_string()],
 		&settings,
-	);
+	)
+	.unwrap();
 	let verdict = graph::evaluate_graph_decision_for_job("test-windows", job, &root_direct);
 
 	assert!(verdict.run);
@@ -1330,7 +1669,8 @@ fn graph_picks_up_new_root_glob_crates_with_zero_config_edits() {
 		root,
 		&["crates/leptoskit_plugin_newkit/src/lib.rs".to_string()],
 		&settings,
-	);
+	)
+	.unwrap();
 	let verdict = graph::evaluate_graph_decision_for_job(
 		"test-windows",
 		settings.jobs.get("test-windows"),
@@ -1346,6 +1686,211 @@ fn graph_picks_up_new_root_glob_crates_with_zero_config_edits() {
 		verdict.affected_packages,
 		vec!["leptoskit_plugin_newkit".to_string()]
 	);
+}
+
+#[test]
+fn cargo_graph_decides_offline_with_an_external_dependency_present() {
+	let dir = tempdir().unwrap();
+
+	write_ci_workspace(dir.path(), "[ci.jobs.app-tests]\npackages = [\"app\"]\n");
+
+	// `serde` has no `path`, so it must be ignored as an internal edge while
+	// still resolving offline: `--no-deps` never consults the crates.io index.
+	fs::write(
+		dir.path().join("crates/app/Cargo.toml"),
+		"[package]\nname = \"app\"\nversion = \"1.0.0\"\nedition = \"2021\"\n\n[dependencies]\ncore = { path = \"../core\" }\nserde = \"1\"\n",
+	)
+	.unwrap();
+
+	let graph = graph::build_workspace_graph(dir.path()).unwrap();
+
+	assert_eq!(graph.source_label(), "cargo metadata");
+	let identifiers = graph.package_identifiers();
+
+	assert!(identifiers.contains(&"app".to_string()));
+	assert!(identifiers.contains(&"core".to_string()));
+
+	let settings = monochange_config::load_ci_settings(dir.path()).unwrap();
+	let context = graph::evaluate_graph_context(
+		dir.path(),
+		&["crates/core/src/lib.rs".to_string()],
+		&settings,
+	)
+	.unwrap();
+	let verdict = graph::evaluate_graph_decision_for_job(
+		"app-tests",
+		settings.jobs.get("app-tests"),
+		&context,
+	);
+
+	assert!(
+		verdict.run,
+		"path edge to `core` not followed: {}",
+		verdict.reason
+	);
+	assert_eq!(verdict.source, graph::VerdictSource::RootDependency);
+}
+
+#[test]
+fn cargo_graph_reports_cargo_stderr_when_the_root_manifest_is_broken() {
+	let dir = tempdir().unwrap();
+
+	fs::write(dir.path().join("Cargo.toml"), "this is [not valid toml\n").unwrap();
+	fs::write(
+		dir.path().join("monochange.toml"),
+		"[ci.jobs.app-tests]\npackages = [\"app\"]\n",
+	)
+	.unwrap();
+
+	let error = graph::build_workspace_graph(dir.path()).unwrap_err();
+	let message = error.to_string();
+
+	assert!(
+		message.contains("cargo metadata failed"),
+		"unexpected error: {message}"
+	);
+	assert!(
+		message.contains("Cargo.toml"),
+		"cargo's own stderr must be part of the error: {message}"
+	);
+}
+
+/// Write a workspace whose root manifest is also the `app` package, with a
+/// diamond: `app` depends on `core` and `util`, and both depend on `shared`.
+fn write_diamond_workspace(root: &Path) {
+	for directory in [
+		"src",
+		"crates/core/src",
+		"crates/util/src",
+		"crates/shared/src",
+	] {
+		fs::create_dir_all(root.join(directory)).unwrap();
+	}
+
+	fs::write(
+		root.join("Cargo.toml"),
+		"[package]\nname = \"app\"\nversion = \"1.0.0\"\nedition = \"2021\"\n\n[workspace]\nmembers = [\"crates/core\", \"crates/util\", \"crates/shared\"]\nresolver = \"2\"\n\n[dependencies]\ncore = { path = \"crates/core\" }\nutil = { path = \"crates/util\" }\n",
+	)
+	.unwrap();
+	fs::write(root.join("src/lib.rs"), "pub fn app() {}\n").unwrap();
+
+	for (name, extra) in [
+		("core", "shared = { path = \"../shared\" }"),
+		("util", "shared = { path = \"../shared\" }"),
+		("shared", ""),
+	] {
+		fs::write(
+			root.join(format!("crates/{name}/Cargo.toml")),
+			format!(
+				"[package]\nname = \"{name}\"\nversion = \"1.0.0\"\nedition = \"2021\"\n\n[dependencies]\n{extra}\n"
+			),
+		)
+		.unwrap();
+		fs::write(
+			root.join(format!("crates/{name}/src/lib.rs")),
+			format!("pub fn {name}() {{}}\n"),
+		)
+		.unwrap();
+	}
+
+	fs::write(
+		root.join("monochange.toml"),
+		"[ci.jobs.app-tests]\npackages = [\"app\"]\n",
+	)
+	.unwrap();
+}
+
+#[test]
+fn graph_walks_diamond_edges_and_accepts_a_root_package() {
+	let dir = tempdir().unwrap();
+
+	write_diamond_workspace(dir.path());
+
+	let settings = monochange_config::load_ci_settings(dir.path()).unwrap();
+	let context = graph::evaluate_graph_context(
+		dir.path(),
+		&["crates/shared/src/lib.rs".to_string()],
+		&settings,
+	)
+	.unwrap();
+	let verdict = graph::evaluate_graph_decision_for_job(
+		"app-tests",
+		settings.jobs.get("app-tests"),
+		&context,
+	);
+
+	assert!(
+		verdict.run,
+		"shared is a dependency of both diamond branches: {}",
+		verdict.reason
+	);
+	assert_eq!(verdict.source, graph::VerdictSource::RootDependency);
+}
+
+#[test]
+fn graph_uses_manifest_discovery_for_non_cargo_workspaces() {
+	let dir = tempdir().unwrap();
+	let root = dir.path();
+
+	for package in ["a", "b"] {
+		fs::create_dir_all(root.join(format!("packages/{package}"))).unwrap();
+	}
+	fs::write(
+		root.join("package.json"),
+		"{\"name\": \"root\", \"private\": true, \"workspaces\": [\"packages/*\"]}\n",
+	)
+	.unwrap();
+	fs::write(
+		root.join("packages/a/package.json"),
+		"{\"name\": \"@acme/a\", \"version\": \"1.0.0\"}\n",
+	)
+	.unwrap();
+	fs::write(
+		root.join("packages/b/package.json"),
+		"{\"name\": \"@acme/b\", \"version\": \"1.0.0\", \"dependencies\": {\"@acme/a\": \"1.0.0\"}}\n",
+	)
+	.unwrap();
+	fs::write(
+		root.join("monochange.toml"),
+		"[ci.jobs.web]\npackages = [\"@acme/b\"]\n",
+	)
+	.unwrap();
+
+	let graph = graph::build_workspace_graph(root).unwrap();
+
+	assert_eq!(
+		graph.source_label(),
+		"manifest discovery",
+		"a non-Cargo workspace resolves its edges through discovery"
+	);
+
+	let settings = monochange_config::load_ci_settings(root).unwrap();
+	let context =
+		graph::evaluate_graph_context(root, &["packages/a/index.js".to_string()], &settings)
+			.unwrap();
+	let verdict = graph::evaluate_graph_decision_for_job("web", settings.jobs.get("web"), &context);
+
+	assert!(
+		verdict.run,
+		"npm dependency edge not followed: {}",
+		verdict.reason
+	);
+}
+
+#[test]
+fn graph_without_cargo_or_a_valid_config_reports_no_dependency_source() {
+	let dir = tempdir().unwrap();
+
+	fs::write(
+		dir.path().join("monochange.toml"),
+		"this is [not valid toml\n",
+	)
+	.unwrap();
+
+	let graph = graph::build_workspace_graph(dir.path()).unwrap();
+
+	assert_eq!(graph.source_label(), "no dependency source");
+	assert!(graph.package_identifiers().is_empty());
 }
 
 #[test]
@@ -1376,10 +1921,19 @@ fn graph_package_dir_helpers_cover_root_and_outside_workspace_records() {
 		None,
 		PublishState::Public,
 	);
+	let parentless = PackageRecord::new(
+		Ecosystem::Cargo,
+		"parentless",
+		std::path::PathBuf::from("/"),
+		root.to_path_buf(),
+		None,
+		PublishState::Public,
+	);
 
 	assert_eq!(graph::relative_package_dir(&inside, root), "crates/core");
 	assert_eq!(graph::relative_package_dir(&at_root, root), "");
 	assert_eq!(graph::relative_package_dir(&outside, root), "../outside");
+	assert_eq!(graph::relative_package_dir(&parentless, root), "");
 	assert_eq!(
 		graph::relative_package_dir(&inside, &root.join("nested")),
 		""
@@ -1409,19 +1963,19 @@ fn detect_changed_files_and_diff_specifications_use_git() {
 	fs::write(root.join("second.txt"), "second\n").unwrap();
 	git_commit_all(root, "second");
 
-	let both = graph::detect_changed_files_from_git(root, Some("HEAD~1"), Some("HEAD"));
+	let both = graph::detect_changed_files_from_git(root, Some("HEAD~1"), Some("HEAD")).unwrap();
 
 	assert_eq!(both, vec!["second.txt".to_string()]);
 
-	let base_only = graph::detect_changed_files_from_git(root, Some("HEAD~1"), None);
+	let base_only = graph::detect_changed_files_from_git(root, Some("HEAD~1"), None).unwrap();
 
 	assert_eq!(base_only, vec!["second.txt".to_string()]);
 
-	let head_only = graph::detect_changed_files_from_git(root, None, Some("HEAD"));
+	let head_only = graph::detect_changed_files_from_git(root, None, Some("HEAD")).unwrap();
 
 	assert!(head_only.is_empty());
 	assert_eq!(
-		graph::detect_changed_files_from_git(root, None, None),
+		graph::detect_changed_files_from_git(root, None, None).unwrap(),
 		Vec::<String>::new()
 	);
 
@@ -1432,10 +1986,26 @@ fn detect_changed_files_and_diff_specifications_use_git() {
 }
 
 #[test]
-fn detect_changed_files_returns_empty_outside_a_git_repository() {
+fn detect_changed_files_errors_outside_a_git_repository_and_on_bad_refs() {
 	let dir = tempdir().unwrap();
 
-	assert!(graph::detect_changed_files_from_git(dir.path(), Some("HEAD"), None).is_empty());
+	let outside = graph::detect_changed_files_from_git(dir.path(), Some("HEAD"), None);
+
+	assert!(outside.is_err(), "diffing outside a repository must error");
+
+	let repo = tempdir().unwrap();
+
+	init_git_repo_with_origin(repo.path(), "https://github.com/acme/bad-ref.git");
+	fs::write(repo.path().join("file.txt"), "content\n").unwrap();
+	git_commit_all(repo.path(), "commit");
+
+	let bad_ref = graph::detect_changed_files_from_git(repo.path(), Some("no-such-ref"), None);
+
+	assert!(bad_ref.is_err(), "an unknown ref must error, not skip jobs");
+	assert!(
+		bad_ref.unwrap_err().to_string().contains("git diff failed"),
+		"expected git's stderr in the error"
+	);
 }
 
 #[test]

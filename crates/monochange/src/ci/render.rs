@@ -8,6 +8,8 @@
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::fs;
+use std::io::Write;
+use std::path::Path;
 
 use monochange_core::MonochangeError;
 use monochange_core::MonochangeResult;
@@ -52,13 +54,17 @@ pub(super) fn render_auth_report(
 }
 
 /// Render the decision report for the requested output format.
+///
+/// `github_output` is the `$GITHUB_OUTPUT` path read once at the CLI boundary;
+/// `github-outputs` appends the same block it returns to that file.
 pub(super) fn render_decide_report(
 	report: &CiDecideReport,
 	format: &str,
+	github_output: Option<&Path>,
 ) -> MonochangeResult<String> {
 	match format {
 		"json" => to_pretty_json(report, "decide"),
-		"github-outputs" => Ok(render_github_outputs(report)),
+		"github-outputs" => render_github_outputs(report, github_output),
 		_ => Ok(render_decide_text(report)),
 	}
 }
@@ -69,7 +75,10 @@ pub(super) fn render_decide_report(
 /// its boolean verdict), `affected-packages` (JSON array), and `run-all`
 /// (whether every job runs). Consumers gate jobs with
 /// `if: fromJSON(needs.<job>.outputs.decisions)['<job-id>']`.
-fn render_github_outputs(report: &CiDecideReport) -> String {
+fn render_github_outputs(
+	report: &CiDecideReport,
+	github_output: Option<&Path>,
+) -> MonochangeResult<String> {
 	let decisions: BTreeMap<&str, bool> = report
 		.jobs
 		.iter()
@@ -80,8 +89,8 @@ fn render_github_outputs(report: &CiDecideReport) -> String {
 		.iter()
 		.flat_map(|job| job.affected_packages.iter().map(String::as_str))
 		.collect();
-	let decisions_json = serde_json::to_string(&decisions).unwrap_or_else(|_| "{}".to_string());
-	let affected_json = serde_json::to_string(&affected).unwrap_or_else(|_| "[]".to_string());
+	let decisions_json = serialize_output_value(&decisions, "decisions")?;
+	let affected_json = serialize_output_value(&affected, "affected-packages")?;
 	let run_all = report.jobs.iter().all(|job| job.run);
 	let lines = [
 		format!("decisions={decisions_json}"),
@@ -90,26 +99,65 @@ fn render_github_outputs(report: &CiDecideReport) -> String {
 	];
 	let output = lines.join("\n");
 
-	append_github_output(&output);
+	write_github_outputs(github_output, &output)?;
 
-	output
+	Ok(output)
 }
 
-/// Append one output block to `$GITHUB_OUTPUT` when the file is configured.
-fn append_github_output(output: &str) {
-	let Ok(path) = std::env::var("GITHUB_OUTPUT") else {
-		return;
+/// Render the `--on-error run-all` fallback outputs for the covered jobs.
+///
+/// Every job runs, nothing is reported affected, and `run-all` is `true` so
+/// workflows can also treat the pair as "gate failed open".
+pub(super) fn render_fail_safe_outputs(job_ids: &[String]) -> MonochangeResult<String> {
+	let decisions: BTreeMap<&str, bool> = job_ids.iter().map(|id| (id.as_str(), true)).collect();
+	let decisions_json = serialize_output_value(&decisions, "decisions")?;
+
+	Ok(format!(
+		"decisions={decisions_json}\naffected-packages=[]\nrun-all=true"
+	))
+}
+
+/// Serialize one GitHub output value with a stable error message.
+pub(super) fn serialize_output_value<T: serde::Serialize>(
+	value: &T,
+	key: &str,
+) -> MonochangeResult<String> {
+	serde_json::to_string(value).map_err(|error| {
+		MonochangeError::Io(format!("failed to serialize `{key}` output: {error}"))
+	})
+}
+
+/// Append one outputs block to `$GITHUB_OUTPUT` when the path is configured.
+///
+/// Write failures are returned instead of discarded: a gate step that silently
+/// loses its outputs would skip every dependent job.
+pub(super) fn write_github_outputs(
+	github_output: Option<&Path>,
+	output: &str,
+) -> MonochangeResult<()> {
+	let Some(path) = github_output else {
+		return Ok(());
 	};
 
-	let _ = fs::OpenOptions::new()
+	let mut file = fs::OpenOptions::new()
 		.create(true)
 		.append(true)
 		.open(path)
-		.and_then(|mut file| {
-			use std::io::Write;
+		.map_err(|error| {
+			MonochangeError::Io(format!(
+				"failed to open $GITHUB_OUTPUT `{}`: {error}",
+				path.display()
+			))
+		})?;
 
-			writeln!(file, "{output}")
-		});
+	file.write_fmt(format_args!("{output}\n")).map_err(|error| {
+		// patch-coverage:ignore-start -- failing a write to an already-open file needs a full or
+		// failing disk, and the multi-line terminator carries a zero-count llvm-cov region.
+		MonochangeError::Io(format!(
+			"failed to write $GITHUB_OUTPUT `{}`: {error}",
+			path.display()
+		))
+	}) // patch-coverage:ignore-end
 }
 
 /// Render the decision report as human-readable text.

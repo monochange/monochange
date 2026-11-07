@@ -82,7 +82,7 @@ pub(super) fn run_ci_verify_subcommand(
 	let prior_record = find_prior_decision(&memory, &input);
 	let changed_files = resolve_verify_changed_files(&input, prior_record.as_ref());
 	let settings = load_ci_settings(root)?;
-	let graph = evaluate_graph_context(root, &changed_files, &settings);
+	let graph = evaluate_graph_context(root, &changed_files, &settings)?;
 	let job_rule = settings.jobs.get(&input.job);
 	let graph_verdict = evaluate_graph_decision_for_job(&input.job, job_rule, &graph);
 	let context = VerifyContext {

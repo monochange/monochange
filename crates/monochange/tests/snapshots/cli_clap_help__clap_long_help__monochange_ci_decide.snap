@@ -86,6 +86,12 @@ Evaluate whether configured CI jobs should run (y/n) from [ci] rules and the wor
           [default: text]
           [possible values: text, json, github-outputs]
 
+      [93m--on-error[0m[95m [0m[95m<MODE>[0m
+          Reaction to errors after argument parsing: `fail` exits non-zero, `run-all` emits run-all outputs and exits 0
+
+          [default: fail]
+          [possible values: fail, run-all]
+
   [93m-h[0m, [93m--help[0m
           Print help
 

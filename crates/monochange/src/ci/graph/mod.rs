@@ -2,12 +2,16 @@
 //!
 //! The graph decides which packages a change touches by classifying changed
 //! files against workspace packages and walking the dependency edges between
-//! them. Cargo edges come from `cargo metadata --format-version 1`, the
-//! authoritative resolver: it includes unpublished members, crates nested at
-//! any depth, `foo.workspace = true` inheritance, renamed dependencies, and
-//! `[target.'cfg(..)'.dependencies]` sections. When Cargo is unavailable the
-//! graph falls back to monochange's manifest discovery, and when even that
-//! fails an unowned change runs every job — unknown must mean run, never skip.
+//! them. Cargo edges come from `cargo metadata --format-version 1 --no-deps
+//! --offline`, the authoritative resolver: it includes unpublished members,
+//! crates nested at any depth, `foo.workspace = true` inheritance, renamed
+//! dependencies, and `[target.'cfg(..)'.dependencies]` sections without any
+//! re-implementation here, and it never touches the network. When a root
+//! `Cargo.toml` exists but Cargo cannot describe the workspace, that failure
+//! is an error rather than a silent fallback. monochange's manifest discovery
+//! still supplies the packages and edges of every other ecosystem, and when
+//! even that finds nothing an unowned change runs every job — unknown must
+//! mean run, never skip.
 
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
@@ -18,6 +22,8 @@ use glob::Pattern;
 use monochange_config::CiJob;
 use monochange_config::CiSettings;
 use monochange_config::load_workspace_configuration;
+use monochange_core::MonochangeError;
+use monochange_core::MonochangeResult;
 use monochange_core::PackagePathMatch;
 use monochange_core::PackagePathMatcher;
 use monochange_core::PackageRecord;
@@ -339,13 +345,13 @@ fn normalized_files(changed_files: &[String]) -> Vec<String> {
 /// Build the workspace graph for `root`.
 ///
 /// Cargo metadata is authoritative for Cargo workspaces; monochange's
-/// discovery adds every other ecosystem's packages and edges. Each source is
-/// best effort: a missing or broken source degrades the graph instead of
-/// failing the decision, and unowned changes still run every job.
-pub(super) fn build_workspace_graph(root: &Path) -> WorkspaceGraph {
+/// discovery adds every other ecosystem's packages and edges. A root
+/// `Cargo.toml` that Cargo cannot resolve is an error — the gate must not
+/// quietly decide from a degraded graph.
+pub(super) fn build_workspace_graph(root: &Path) -> MonochangeResult<WorkspaceGraph> {
 	let mut graph = WorkspaceGraph::empty();
 
-	if let Some(cargo) = cargo_metadata_graph(root) {
+	if let Some(cargo) = cargo_metadata_graph(root)? {
 		graph.source = Some(GraphSource::CargoMetadata);
 		graph.merge(cargo);
 	}
@@ -356,7 +362,7 @@ pub(super) fn build_workspace_graph(root: &Path) -> WorkspaceGraph {
 		graph.source = Some(GraphSource::DiscoveredManifests);
 	}
 
-	graph
+	Ok(graph)
 }
 
 /// Evaluate changed files against the workspace graph and `[ci]` settings.
@@ -369,9 +375,9 @@ pub(super) fn evaluate_graph_context(
 	root: &Path,
 	changed_files: &[String],
 	settings: &CiSettings,
-) -> GraphContext {
+) -> MonochangeResult<GraphContext> {
 	let files = normalized_files(changed_files);
-	let graph = build_workspace_graph(root);
+	let graph = build_workspace_graph(root)?;
 	let job_paths: Vec<&Vec<String>> = settings
 		.jobs
 		.values()
@@ -411,7 +417,7 @@ pub(super) fn evaluate_graph_context(
 		}
 	}
 
-	context
+	Ok(context)
 }
 
 /// Evaluate the deterministic graph verdict for one configured job.
@@ -478,12 +484,11 @@ fn root_verdict(job: &CiJob, context: &GraphContext) -> Option<GraphVerdict> {
 			));
 		}
 
-		let dependency = context.owning_packages.iter().find(|package| {
-			context
-				.graph
-				.transitive_dependencies(&root)
-				.contains(*package)
-		});
+		let dependencies = context.graph.transitive_dependencies(&root);
+		let dependency = context
+			.owning_packages
+			.iter()
+			.find(|package| dependencies.contains(*package));
 
 		if let Some(dependency) = dependency {
 			return Some(run_verdict(
@@ -730,34 +735,46 @@ pub(super) fn optional_duration_suggestions(
 }
 
 /// Resolve changed files from git when they were not passed explicitly.
+///
+/// A failing or unspawnable git diff is an error, not an empty change set:
+/// empty would report every job unaffected and skip them all.
 pub(super) fn detect_changed_files_from_git(
 	root: &Path,
 	base: Option<&str>,
 	head: Option<&str>,
-) -> Vec<String> {
+) -> MonochangeResult<Vec<String>> {
 	let mut args = vec!["diff".to_string(), "--name-only".to_string()];
 
 	args.push(diff_specification(base, head));
 
-	let Ok(output) = ProcessCommand::new("git")
+	let output = match ProcessCommand::new("git")
 		.current_dir(root)
 		.args(&args)
 		.output()
-	else {
+	{
+		Ok(output) => output,
 		// patch-coverage:ignore-start -- spawning `git` only fails when the binary is missing from PATH.
-		return Vec::new();
-		// patch-coverage:ignore-end
+		Err(error) => {
+			return Err(MonochangeError::Io(format!(
+				"failed to run git diff in `{}`: {error}",
+				root.display()
+			)));
+		} // patch-coverage:ignore-end
 	};
 
 	if !output.status.success() {
-		return Vec::new();
+		return Err(MonochangeError::Io(format!(
+			"git diff failed in `{}`: {}",
+			root.display(),
+			String::from_utf8_lossy(&output.stderr).trim()
+		)));
 	}
 
-	String::from_utf8_lossy(&output.stdout)
+	Ok(String::from_utf8_lossy(&output.stdout)
 		.lines()
 		.map(normalize_changed_path)
 		.filter(|line| !line.is_empty())
-		.collect()
+		.collect())
 }
 
 /// Build the `git diff` revision argument for the supplied refs.

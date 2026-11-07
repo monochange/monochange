@@ -122,20 +122,28 @@ const OPENAI_COMPATIBLE_PRESET: ProviderPreset = ProviderPreset {
 	default_model: DEFAULT_OPENCODE_GO_MODEL,
 };
 
-/// Look up the preset for a provider.
-fn preset_for(provider: CiDecisionProvider) -> &'static ProviderPreset {
+/// Look up the preset for an external provider.
+///
+/// The local graph provider has no endpoint, so it is unrepresentable here:
+/// `None` forces every caller to reject it instead of silently borrowing
+/// another provider's endpoint.
+fn preset_for(provider: CiDecisionProvider) -> Option<&'static ProviderPreset> {
 	match provider {
-		CiDecisionProvider::OpencodeGo | CiDecisionProvider::Graph => &OPENCODE_GO_PRESET,
-		CiDecisionProvider::Openrouter => &OPENROUTER_PRESET,
-		CiDecisionProvider::Cloudflare => &CLOUDFLARE_PRESET,
-		CiDecisionProvider::Jev => &JEV_PRESET,
-		CiDecisionProvider::OpenaiCompatible => &OPENAI_COMPATIBLE_PRESET,
+		CiDecisionProvider::OpencodeGo => Some(&OPENCODE_GO_PRESET),
+		CiDecisionProvider::Openrouter => Some(&OPENROUTER_PRESET),
+		CiDecisionProvider::Cloudflare => Some(&CLOUDFLARE_PRESET),
+		CiDecisionProvider::Jev => Some(&JEV_PRESET),
+		CiDecisionProvider::OpenaiCompatible => Some(&OPENAI_COMPATIBLE_PRESET),
+		CiDecisionProvider::Graph => None,
 	}
 }
 
-/// Default model for a provider when no override is configured.
-pub(super) fn default_model_for(provider: CiDecisionProvider) -> &'static str {
-	preset_for(provider).default_model
+/// Error returned when preset-dependent helpers receive the local graph.
+const GRAPH_PROVIDER_ERROR: &str = "graph provider is local and has no endpoint";
+
+/// Default model for an external provider when no override is configured.
+pub(super) fn default_model_for(provider: CiDecisionProvider) -> Option<&'static str> {
+	preset_for(provider).map(|preset| preset.default_model)
 }
 
 /// One job entry in a provider prompt.
@@ -253,6 +261,7 @@ async fn send_chat_completion(
 	overrides: &ProviderOverrides<'_>,
 	prompt: &DecisionPrompt<'_>,
 ) -> Result<ProviderCallOutcome, String> {
+	let preset = preset_for(provider).ok_or(GRAPH_PROVIDER_ERROR.to_string())?;
 	let endpoint = resolve_chat_endpoint(provider, overrides)?;
 	let model = overrides
 		.model
@@ -266,12 +275,12 @@ async fn send_chat_completion(
 		request = request.bearer_auth(endpoint.api_key.trim());
 	}
 
-	let body = send_and_read(request, preset_for(provider).name, "provider").await?;
+	let body = send_and_read(request, preset.name, "provider").await?;
 	let decisions = parse_provider_decisions(&body)?;
 
 	Ok(ProviderCallOutcome {
 		decisions,
-		provider_used: preset_for(provider).name.to_string(),
+		provider_used: preset.name.to_string(),
 		model_used: model,
 	})
 }
@@ -338,7 +347,9 @@ pub(super) fn resolve_provider_url(
 	provider: CiDecisionProvider,
 	overrides: &ProviderOverrides<'_>,
 ) -> Result<String, String> {
-	let preset = preset_for(provider);
+	let Some(preset) = preset_for(provider) else {
+		return Err(GRAPH_PROVIDER_ERROR.to_string());
+	};
 	let explicit = overrides
 		.api_url
 		.map(str::trim)
@@ -373,7 +384,7 @@ fn resolve_api_key(
 	provider: CiDecisionProvider,
 	overrides: &ProviderOverrides<'_>,
 ) -> Option<String> {
-	let preset = preset_for(provider);
+	let preset = preset_for(provider)?;
 
 	overrides
 		.api_key
@@ -386,7 +397,9 @@ pub(super) fn resolve_chat_endpoint(
 	provider: CiDecisionProvider,
 	overrides: &ProviderOverrides<'_>,
 ) -> Result<ChatEndpoint, String> {
-	let preset = preset_for(provider);
+	let Some(preset) = preset_for(provider) else {
+		return Err(GRAPH_PROVIDER_ERROR.to_string());
+	};
 	let url = resolve_provider_url(provider, overrides)?;
 	let api_key = match resolve_api_key(provider, overrides) {
 		Some(key) => key,

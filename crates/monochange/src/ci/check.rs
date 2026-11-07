@@ -32,7 +32,7 @@ pub(super) fn run_ci_check_subcommand(
 	matches: &ArgMatches,
 ) -> MonochangeResult<String> {
 	let settings = load_ci_settings(root)?;
-	let graph = build_workspace_graph(root);
+	let graph = build_workspace_graph(root)?;
 	let problems = collect_problems(root, &settings, &graph, matches);
 
 	if problems.is_empty() {
@@ -249,8 +249,10 @@ fn render_success(
 			"jobs": settings.jobs.keys().collect::<Vec<_>>(),
 		}))
 		.map_err(|error| {
+			// patch-coverage:ignore-start -- serializing this json! value cannot fail in practice, and the
+			// multi-line terminator carries a zero-count llvm-cov region.
 			MonochangeError::Io(format!("failed to serialize check report: {error}"))
-		});
+		}); // patch-coverage:ignore-end
 	}
 
 	Ok(format!(

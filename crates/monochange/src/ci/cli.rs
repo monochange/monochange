@@ -18,6 +18,8 @@ const PROVIDER_VALUES: [&str; 6] = [
 	"openai-compatible",
 	"graph",
 ];
+/// Accepted reactions to `ci decide` pipeline errors.
+const ON_ERROR_VALUES: [&str; 2] = ["fail", "run-all"];
 /// Accepted aliases for `--prior-decision`.
 const PRIOR_DECISION_VALUES: [&str; 6] = ["y", "n", "true", "false", "run", "skip"];
 /// Accepted conclusions for `ci verify`.
@@ -98,6 +100,7 @@ fn build_ci_decide_subcommand() -> Command {
 		.args(decide_limit_args())
 		.args(decide_auth_args())
 		.arg(decide_format_arg())
+		.arg(decide_on_error_arg())
 }
 
 /// Decision target and provider settings.
@@ -437,6 +440,22 @@ fn decide_format_arg() -> Arg {
 		.value_name("FORMAT")
 		.default_value("text")
 		.value_parser(["text", "json", "github-outputs"])
+}
+
+/// `--on-error` flag controlling how `ci decide` reacts to pipeline errors.
+///
+/// The default keeps gate failures loud; `run-all` fails open because GitHub
+/// skips dependent jobs when the gate fails, and a skipped required check
+/// counts as passing.
+fn decide_on_error_arg() -> Arg {
+	Arg::new("on-error")
+		.long("on-error")
+		.value_name("MODE")
+		.default_value("fail")
+		.value_parser(ON_ERROR_VALUES)
+		.help(
+			"Reaction to errors after argument parsing: `fail` exits non-zero, `run-all` emits run-all outputs and exits 0",
+		)
 }
 
 /// `--format` flag that also supports Markdown.

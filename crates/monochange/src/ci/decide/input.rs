@@ -7,6 +7,7 @@
 //! them for one run.
 
 use std::path::Path;
+use std::path::PathBuf;
 
 use clap::ArgMatches;
 use monochange_config::CiSettings;
@@ -44,12 +45,18 @@ pub(super) struct DecideInput {
 	pub(super) max_duration_minutes: u64,
 	pub(super) rust_max_duration_minutes: u64,
 	pub(super) format: String,
+	/// `$GITHUB_OUTPUT` path read once at the CLI boundary, when configured.
+	pub(super) github_output: Option<PathBuf>,
 }
 
 /// Parse CLI arguments, environment, and `[ci]` configuration into input.
+///
+/// `github_output` comes from the caller so the whole run reads
+/// `$GITHUB_OUTPUT` exactly once, including the `--on-error run-all` path.
 pub(super) fn parse_decide_input(
 	root: &Path,
 	matches: &ArgMatches,
+	github_output: Option<&Path>,
 ) -> MonochangeResult<DecideInput> {
 	let settings = load_ci_settings(root)?;
 	let provider = resolve_provider(matches, &settings)?;
@@ -74,9 +81,10 @@ pub(super) fn parse_decide_input(
 		max_duration_minutes: DEFAULT_MAX_DURATION_MINUTES,
 		rust_max_duration_minutes: DEFAULT_RUST_MAX_DURATION_MINUTES,
 		format: "text".to_string(),
+		github_output: github_output.map(PathBuf::from),
 	};
 
-	input.changed_files = collect_changed_files(root, matches);
+	input.changed_files = collect_changed_files(root, matches)?;
 
 	fill_provider_settings(&mut input, matches);
 	fill_invocation_context(&mut input, matches);
@@ -151,7 +159,10 @@ fn fill_limits(input: &mut DecideInput, matches: &ArgMatches) {
 }
 
 /// Read explicit changed files, falling back to a git diff when refs are given.
-fn collect_changed_files(root: &Path, matches: &ArgMatches) -> Vec<String> {
+///
+/// A failing git diff is an error, not an empty change set: empty would skip
+/// every gated job.
+fn collect_changed_files(root: &Path, matches: &ArgMatches) -> MonochangeResult<Vec<String>> {
 	let explicit = args::collect_normalized_paths(matches, "changed-files");
 	let base_ref = matches.get_one::<String>("base").map(String::as_str);
 	let head_ref = matches.get_one::<String>("head").map(String::as_str);
@@ -160,5 +171,5 @@ fn collect_changed_files(root: &Path, matches: &ArgMatches) -> Vec<String> {
 		return detect_changed_files_from_git(root, base_ref, head_ref);
 	}
 
-	explicit
+	Ok(explicit)
 }
