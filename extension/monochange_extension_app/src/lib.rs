@@ -1,6 +1,6 @@
 //! monochange browser extension app surfaces.
 //!
-//! Default builds compile the popup model and CSS-token helpers without
+//! Default builds compile the popup model and theme/Tailwind helpers without
 //! leptoskit (so `cargo test` stays light). `leptoskit build --platform
 //! extension` enables the `extension` feature, which mounts the popup,
 //! options page, and background worker through `leptoskit::extension::entry!`.

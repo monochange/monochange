@@ -1,38 +1,6 @@
-/* Release floor tokens — keep in sync with docs/landing-design.md (--mc-*). */
-
-:root {
-	--mc-page: #e8eef4;
-	--mc-surface: #ffffff;
-	--mc-ink: #0b141f;
-	--mc-muted: #5a6b7d;
-	--mc-rule: #c5d0dc;
-	--mc-accent: #0d9488;
-	--mc-accent-deep: #0f766e;
-	--mc-accent-soft: #ccfbf1;
-	--mc-hero: #071018;
-	--mc-hero-fg: #e8eef4;
-	--mc-hero-muted: #9aadb8;
-	--mc-signal: #e4b84a;
-	--mc-glow: rgba(13, 148, 136, 0.35);
-	--mc-radius-strategy: 8px;
-	--mc-radius-nav: 10px;
-	--mc-radius-control: 12px;
-	--mc-radius-panel: 16px;
-	--mc-gap-action: 1rem;
-	color-scheme: light;
-}
-
-:root.dark {
-	--mc-page: #0b141f;
-	--mc-surface: #152536;
-	--mc-ink: #e8eef4;
-	--mc-muted: #9aadb8;
-	--mc-rule: #2a3a4d;
-	--mc-accent: #2dd4bf;
-	--mc-accent-deep: #0d9488;
-	--mc-accent-soft: #134e4a;
-	color-scheme: dark;
-}
+/* Document base only. Chrome layout/color uses Tailwind utilities + [theme]
+   `--mc-*` tokens (installed at extension start). Keep fonts here because
+   leptoskit does not ship @font-face via utilities yet. */
 
 @font-face {
 	font-family: "Bricolage Grotesque";
@@ -55,201 +23,20 @@
 	font-display: swap;
 }
 
-*,
-*::before,
-*::after {
-	box-sizing: border-box;
-}
-
 html,
 body {
 	margin: 0;
 	min-width: 320px;
-	background: var(--mc-page);
-	color: var(--mc-ink);
+	background: var(--mc-page, #e8eef4);
+	color: var(--mc-ink, #0b141f);
 	font-family: "Hanken Grotesk", sans-serif;
 	line-height: 1.6;
 	-webkit-font-smoothing: antialiased;
 }
 
-h1,
-h2 {
-	font-family: "Bricolage Grotesque", sans-serif;
-	font-weight: 800;
-	letter-spacing: -0.035em;
-	line-height: 1.06;
-	text-wrap: balance;
-	margin: 0;
-}
-
-a {
-	color: var(--mc-accent);
-	font-weight: 700;
-	text-underline-offset: 0.22em;
-}
-
 :focus-visible {
-	outline: 3px solid var(--mc-accent);
+	outline: 3px solid var(--mc-accent, #0d9488);
 	outline-offset: 4px;
-}
-
-.mc-shell {
-	min-width: 320px;
-	max-width: 380px;
-	min-height: 420px;
-	padding: 1.25rem 1.35rem 1.5rem;
-	display: flex;
-	flex-direction: column;
-	gap: 1.25rem;
-	background:
-		radial-gradient(120% 80% at 100% -10%, var(--mc-glow), transparent 55%),
-		var(--mc-page);
-}
-
-.mc-chrome {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 0.75rem;
-	padding-bottom: 0.85rem;
-	border-bottom: 1px solid var(--mc-rule);
-}
-
-.mc-brand {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.65rem;
-	text-decoration: none;
-	color: var(--mc-ink);
-}
-
-.mc-brand img {
-	width: 28px;
-	height: 28px;
-	flex: none;
-}
-
-.mc-brand-name {
-	font-family: "Bricolage Grotesque", sans-serif;
-	font-weight: 800;
-	font-size: 1.15rem;
-	letter-spacing: -0.035em;
-}
-
-.mc-eyebrow {
-	margin: 0;
-	color: var(--mc-muted);
-	font-size: 0.85rem;
-	font-weight: 700;
-}
-
-.mc-title {
-	font-size: 1.55rem;
-}
-
-.mc-copy {
-	margin: 0;
-	color: var(--mc-muted);
-	font-size: 0.95rem;
-	max-width: 34ch;
-}
-
-.mc-panel {
-	background: var(--mc-surface);
-	border: 1px solid var(--mc-rule);
-	border-radius: var(--mc-radius-panel);
-	padding: 1rem 1.1rem;
-	display: flex;
-	flex-direction: column;
-	gap: 0.75rem;
-}
-
-.mc-row {
-	display: flex;
-	align-items: baseline;
-	justify-content: space-between;
-	gap: 0.75rem;
-	padding-block: 0.55rem;
-	border-bottom: 1px solid var(--mc-rule);
-}
-
-.mc-row:last-child {
-	border-bottom: none;
-	padding-bottom: 0;
-}
-
-.mc-row:first-child {
-	padding-top: 0;
-}
-
-.mc-row-title {
-	font-weight: 700;
-}
-
-.mc-row-meta {
-	color: var(--mc-muted);
-	font-size: 0.85rem;
-	text-align: right;
-}
-
-.mc-signal {
-	color: var(--mc-signal);
-	font-weight: 700;
-	font-variant-numeric: tabular-nums;
-}
-
-.mc-actions {
-	display: flex;
-	flex-wrap: wrap;
-	gap: var(--mc-gap-action);
-	margin-top: 0.25rem;
-}
-
-.mc-button {
-	min-height: 48px;
-	padding: 0.85rem 1.35rem;
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	border: none;
-	border-radius: var(--mc-radius-control);
-	background: var(--mc-accent-deep);
-	color: #ffffff;
-	font-family: inherit;
-	font-weight: 700;
-	line-height: 1.4;
-	text-decoration: none;
-	cursor: pointer;
-	transition: background-color 0.18s ease, color 0.18s ease;
-}
-
-.mc-button:hover {
-	background: var(--mc-accent);
-}
-
-.mc-button-quiet {
-	background: var(--mc-accent-soft);
-	color: var(--mc-ink);
-}
-
-.mc-button-quiet:hover {
-	background: var(--mc-accent);
-	color: #ffffff;
-}
-
-.mc-status {
-	margin: 0;
-	font-size: 0.9rem;
-	color: var(--mc-muted);
-}
-
-.mc-status[data-tone="live"] {
-	color: var(--mc-accent-deep);
-	font-weight: 700;
-}
-
-.mc-status[data-tone="error"] {
-	color: #b91c1c;
 }
 
 @media (prefers-reduced-motion: reduce) {

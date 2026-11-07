@@ -54,8 +54,14 @@ Point `[extension].server` in `leptoskit.toml` at a local app (`http://127.0.0.1
 
 ## Design
 
-Popup chrome uses the shared CSS variables:
-
-`--mc-page`, `--mc-surface`, `--mc-ink`, `--mc-muted`, `--mc-rule`, `--mc-accent`, `--mc-accent-deep`, `--mc-accent-soft`, `--mc-signal`, and the control/panel radii.
+Release floor tokens live in `leptoskit.toml` `[theme]` (and `chrome::THEME_*`). Popup/options UI uses **Tailwind utility classes** with `var(--mc-*)` — not semantic `.mc-*` CSS sheets. `assets/app.css` only carries fonts and document base styles.
 
 Brand lockup: mark asset + lowercase **monochange** wordmark text in the compact header (full SVG wordmark remains on the website).
+
+## Lint
+
+```bash
+leptoskit lint --deny-warnings --no-clippy
+```
+
+`[lint]` denies `component_attribute` and `markup_style` (`markup = "view"`).

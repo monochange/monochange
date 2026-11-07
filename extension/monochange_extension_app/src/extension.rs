@@ -7,6 +7,8 @@
 //!
 //! UI trees use PascalCase `#[component]` functions and `view!` markup so
 //! `leptoskit lint` (`component_attribute`, `markup_style`) stays green.
+//! Styling is Tailwind utilities over `[theme]` `--mc-*` tokens (not semantic
+//! CSS class sheets).
 
 use leptoskit::extension::Background;
 use leptoskit::extension::Surface;
@@ -19,6 +21,7 @@ use monochange_extension_shared::RpcClient;
 use monochange_extension_shared::RpcError;
 
 use crate::DEFAULT_SERVER;
+use crate::chrome;
 use crate::popup::ExtensionMessage;
 use crate::popup::ExtensionReply;
 use crate::popup::PopupReady;
@@ -29,6 +32,9 @@ use crate::session;
 
 /// Opens a surface at its configured route (`/` popup, `/sign-in` options).
 pub fn main(surface: Surface) -> impl Fn() -> Element + Send + Sync + 'static {
+	let (colors, lengths) = chrome::theme_maps();
+	let _ = Theme::install_maps(&colors, &lengths);
+
 	let route = surface.route().to_owned();
 	let state = RwSignal::new(PopupState::Loading);
 	let tick = RwSignal::new(0_u32);
@@ -134,7 +140,7 @@ fn SurfaceRoot(for_sign_in: bool, state: PopupState) -> Element {
 #[component]
 fn Shell(children: Children) -> Element {
 	view! {
-		<View class="mc-shell">
+		<View class=chrome::SHELL>
 			<ChromeHeader />
 			{children}
 		</View>
@@ -145,9 +151,9 @@ fn Shell(children: Children) -> Element {
 #[component]
 fn ChromeHeader() -> Element {
 	view! {
-		<View class="mc-chrome">
+		<View class=chrome::CHROME>
 			<Button
-				class="mc-brand mc-brand-name"
+				class=chrome::BRAND
 				on:press=|| {
 					wasm_bindgen_futures::spawn_local(async {
 						let _ = tabs::open("https://monochange.dev").await;
@@ -156,7 +162,7 @@ fn ChromeHeader() -> Element {
 			>
 				"monochange"
 			</Button>
-			<Text class="mc-eyebrow">"Release floor"</Text>
+			<Text class=chrome::EYEBROW>"Release floor"</Text>
 		</View>
 	}
 }
@@ -166,9 +172,9 @@ fn ChromeHeader() -> Element {
 fn SignInLoading() -> Element {
 	view! {
 		<Shell>
-			<View class="mc-panel">
-				<Text class="mc-title">"Sign in"</Text>
-				<Text class="mc-status">"Preparing GitHub sign-in…"</Text>
+			<View class=chrome::PANEL>
+				<Text class=chrome::TITLE>"Sign in"</Text>
+				<Text class=chrome::STATUS>"Preparing GitHub sign-in…"</Text>
 			</View>
 		</Shell>
 	}
@@ -179,10 +185,10 @@ fn SignInLoading() -> Element {
 fn SignInReady(#[prop(into)] login_url: String) -> Element {
 	view! {
 		<Shell>
-			<View class="mc-panel">
-				<Text class="mc-title">"Sign in"</Text>
-				<Text class="mc-copy">"Connect GitHub to glance at projects and releases."</Text>
-				<OpenButton label="Sign in with GitHub" url=login_url class="mc-button" />
+			<View class=chrome::PANEL>
+				<Text class=chrome::TITLE>"Sign in"</Text>
+				<Text class=chrome::COPY>"Connect GitHub to glance at projects and releases."</Text>
+				<OpenButton label="Sign in with GitHub" url=login_url quiet=false />
 			</View>
 		</Shell>
 	}
@@ -193,13 +199,13 @@ fn SignInReady(#[prop(into)] login_url: String) -> Element {
 fn SignInConnected(#[prop(into)] login: String) -> Element {
 	view! {
 		<Shell>
-			<View class="mc-panel">
-				<Text class="mc-title">"Signed in"</Text>
-				<Text class="mc-copy">{format!("Connected as @{login}")}</Text>
+			<View class=chrome::PANEL>
+				<Text class=chrome::TITLE>"Signed in"</Text>
+				<Text class=chrome::COPY>{format!("Connected as @{login}")}</Text>
 				<OpenButton
 					label="Open workspace"
 					url=format!("{DEFAULT_SERVER}/dashboard")
-					class="mc-button"
+					quiet=false
 				/>
 			</View>
 		</Shell>
@@ -210,8 +216,8 @@ fn SignInConnected(#[prop(into)] login: String) -> Element {
 #[component]
 fn StatusBlock(#[prop(into)] message: String) -> Element {
 	view! {
-		<View class="mc-panel">
-			<Text class="mc-status">{message}</Text>
+		<View class=chrome::PANEL>
+			<Text class=chrome::STATUS>{message}</Text>
 		</View>
 	}
 }
@@ -220,15 +226,15 @@ fn StatusBlock(#[prop(into)] message: String) -> Element {
 #[component]
 fn SignedOutBlock(#[prop(into)] login_url: String) -> Element {
 	view! {
-		<View class="mc-panel">
-			<Text class="mc-title">"Ship from one floor"</Text>
-			<Text class="mc-copy">
+		<View class=chrome::PANEL>
+			<Text class=chrome::TITLE>"Ship from one floor"</Text>
+			<Text class=chrome::COPY>
 				"Sign in to see projects and the latest release status on monochange.dev."
 			</Text>
-			<View class="mc-actions">
-				<OpenButton label="Sign in with GitHub" url=login_url class="mc-button" />
+			<View class=chrome::ACTIONS>
+				<OpenButton label="Sign in with GitHub" url=login_url quiet=false />
 				<Button
-					class="mc-button mc-button-quiet"
+					class=chrome::BUTTON_QUIET
 					on:press=|| {
 						wasm_bindgen_futures::spawn_local(async {
 							let _ = runtime::open_options().await;
@@ -251,7 +257,7 @@ fn ReadyBlock(ready: PopupReady) -> Element {
 	let rows = ready.project_rows();
 	let project_list = if rows.is_empty() {
 		view! {
-			<Text class="mc-copy">
+			<Text class=chrome::COPY>
 				"No projects yet. Open the dashboard to group repositories."
 			</Text>
 		}
@@ -268,15 +274,15 @@ fn ReadyBlock(ready: PopupReady) -> Element {
 	};
 
 	view! {
-		<View class="mc-panel">
-			<Text class="mc-status">{format!("@{login} · {status}")}</Text>
-			<Text class="mc-eyebrow">{format!("{project_total} projects")}</Text>
+		<View class=chrome::PANEL>
+			<Text class=chrome::STATUS_LIVE>{format!("@{login} · {status}")}</Text>
+			<Text class=chrome::EYEBROW>{format!("{project_total} projects")}</Text>
 			{project_list}
-			<View class="mc-actions">
+			<View class=chrome::ACTIONS>
 				<OpenButton
 					label="Open workspace"
 					url=format!("{DEFAULT_SERVER}/dashboard")
-					class="mc-button"
+					quiet=false
 				/>
 			</View>
 		</View>
@@ -289,20 +295,21 @@ fn ProjectRowView(row: ProjectRow) -> Element {
 	let title = row.name.clone();
 	let meta = row.meta();
 	view! {
-		<View class="mc-row">
-			<Text class="mc-row-title">{title}</Text>
-			<Text class="mc-row-meta">{meta}</Text>
+		<View class=chrome::ROW>
+			<Text class="font-bold text-[var(--mc-ink)]">{title}</Text>
+			<Text class="text-sm text-right text-[var(--mc-muted)]">{meta}</Text>
 		</View>
 	}
 }
 
 /// Opens a URL in a new tab when pressed.
 #[component]
-fn OpenButton(
-	label: &'static str,
-	#[prop(into)] url: String,
-	#[prop(into)] class: String,
-) -> Element {
+fn OpenButton(label: &'static str, #[prop(into)] url: String, quiet: bool) -> Element {
+	let class = if quiet {
+		chrome::BUTTON_QUIET
+	} else {
+		chrome::BUTTON
+	};
 	view! {
 		<Button
 			class=class

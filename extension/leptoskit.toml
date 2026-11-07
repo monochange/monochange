@@ -52,6 +52,30 @@ clippy = true
 component_attribute = "deny"
 markup_style = "deny"
 
+# Release floor tokens — shared `--mc-*` for Tailwind `var(--…)` utilities.
+# Keep in sync with docs/landing-design.md and `chrome::THEME_*`.
+[theme.colors]
+mc-page = "#E8EEF4"
+mc-surface = "#FFFFFF"
+mc-ink = "#0B141F"
+mc-muted = "#5A6B7D"
+mc-rule = "#C5D0DC"
+mc-accent = "#0D9488"
+mc-accent-deep = "#0F766E"
+mc-accent-soft = "#CCFBF1"
+mc-hero = "#071018"
+mc-hero-fg = "#E8EEF4"
+mc-hero-muted = "#9AADB8"
+mc-signal = "#E4B84A"
+mc-glow = "#0D948859"
+
+[theme.lengths]
+mc-radius-strategy = "8px"
+mc-radius-nav = "10px"
+mc-radius-control = "12px"
+mc-radius-panel = "16px"
+mc-gap-action = "1rem"
+
 # Popup glance: session, projects, and release status against the app backend.
 # `server` becomes a host permission and `leptoskit::extension::runtime::server()`.
 [extension]

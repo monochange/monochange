@@ -3,11 +3,15 @@ use monochange_extension_shared::ProjectSummary;
 use monochange_extension_shared::SessionUser;
 use monochange_extension_shared::WebsiteRelease;
 
-use crate::chrome::CHROME_CLASSES;
+use crate::chrome::BUTTON;
 use crate::chrome::MC_ACCENT_LIGHT;
 use crate::chrome::MC_PAGE_LIGHT;
+use crate::chrome::PANEL;
 use crate::chrome::REQUIRED_MC_TOKENS;
-use crate::chrome::css_defines_mc_tokens;
+use crate::chrome::SHELL;
+use crate::chrome::THEME_COLORS;
+use crate::chrome::leptoskit_toml_declares_theme;
+use crate::chrome::theme_maps;
 use crate::popup::PopupReady;
 use crate::popup::PopupState;
 use crate::popup::PopupWireState;
@@ -15,24 +19,54 @@ use crate::popup::ProjectRow;
 use crate::session::bearer_from_kept;
 
 #[test]
-fn app_css_publishes_every_release_floor_token() {
+fn theme_maps_cover_every_release_floor_token() {
+	let (colors, lengths) = theme_maps();
+	for token in REQUIRED_MC_TOKENS {
+		let name = token.trim_start_matches('-');
+		assert!(
+			colors.contains_key(name) || lengths.contains_key(name),
+			"theme maps missing {token}"
+		);
+	}
+	assert_eq!(
+		colors.get("mc-page").map(String::as_str),
+		Some(MC_PAGE_LIGHT)
+	);
+	assert_eq!(
+		colors.get("mc-accent").map(String::as_str),
+		Some(MC_ACCENT_LIGHT)
+	);
+	assert_eq!(THEME_COLORS.len(), colors.len());
+}
+
+#[test]
+fn leptoskit_toml_declares_shared_mc_theme() {
+	let toml = include_str!("../../../leptoskit.toml");
+	assert!(
+		leptoskit_toml_declares_theme(toml),
+		"leptoskit.toml [theme] must list Release floor --mc-* tokens"
+	);
+}
+
+#[test]
+fn chrome_uses_tailwind_var_utilities_not_semantic_sheets() {
+	for class in [SHELL, PANEL, BUTTON] {
+		assert!(
+			class.contains("var(--mc-"),
+			"expected Tailwind var(--mc-*) utility in {class}"
+		);
+		assert!(
+			!class
+				.split_whitespace()
+				.any(|part| part.starts_with("mc-") && !part.contains('[') && !part.contains(':')),
+			"unexpected semantic mc-* sheet class in {class}"
+		);
+	}
 	let css = include_str!("../../../assets/app.css");
 	assert!(
-		css_defines_mc_tokens(css),
-		"assets/app.css must define {:?}",
-		REQUIRED_MC_TOKENS
+		!css.contains(".mc-shell"),
+		"assets/app.css must not define semantic chrome sheets"
 	);
-	assert!(
-		css.to_ascii_lowercase()
-			.contains(&MC_PAGE_LIGHT.to_ascii_lowercase())
-	);
-	assert!(
-		css.to_ascii_lowercase()
-			.contains(&MC_ACCENT_LIGHT.to_ascii_lowercase())
-	);
-	for class in CHROME_CLASSES {
-		assert!(css.contains(class), "assets/app.css must style .{class}");
-	}
 }
 
 #[test]
