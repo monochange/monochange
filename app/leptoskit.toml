@@ -1,0 +1,32 @@
+#:schema https://leptoskit.dev/schemas/leptoskit.v0.schema.json
+
+schema_version = 0
+
+# Website UI lint gate. Full leptoskit app/build/serve config lands with the
+# SSR port; this file is enough for `leptoskit lint` / `lint:leptoskit` to
+# enforce component conventions on `app/crates/**` today.
+#
+# Sibling surfaces (extension/, app/native/, …) copy the same `[lint]` block
+# into their own leptoskit.toml. See docs/agents/tooling.md.
+
+[app]
+name = "monochange_app"
+version = "0.3.3"
+default_platform = "web"
+platforms = ["web"]
+render = "ssr"
+
+[build]
+client_package = "monochange_app"
+
+[lint]
+# Prefer view! markup over builder trees for human-authored UI.
+markup = "view"
+# Workspace `lint:clippy` already denies warnings; lint:leptoskit passes
+# `--no-clippy` so this flag only matters for a bare `leptoskit lint` run.
+clippy = true
+
+[lint.rules]
+# Always #[component], always view! XML, PascalCase components.
+component_attribute = "deny"
+markup_style = "deny"

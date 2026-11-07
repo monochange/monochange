@@ -17,6 +17,7 @@ Rust verification tasks (`test:cargo`, `test:cargo:expensive`, `test:docs`, `tes
 - `build:all`
 - `lint:all`
 - `lint:architecture`
+- `lint:leptoskit`
 - `test:all`
 - `test:agent-evals`
 - `test:node`
@@ -66,6 +67,14 @@ Use `--model`/`MONOCHANGE_EVAL_MODEL`, `--agent-bin`/`MONOCHANGE_EVAL_AGENT_BIN`
 - `monostyle rules`: list every rule and its threshold.
 
 The 80 threshold is a project-wide score, passed as `--fail-under 80`; a `fail-under` key in `monostyle.toml` would instead set a floor for every individual file. Scores come from `monostyle.toml` at the repository root; only set fields override monostyle's defaults, and generated or vendored trees are ignored through `[rules.ignore]`. `lint:monostyle` runs as part of `lint:all`, and `fix:monostyle` runs as part of `fix:all`. The fixes are whitespace-only and deliberately do not conflict with rustfmt, dprint, or oxfmt.
+
+### leptoskit UI component lints
+
+- `lint:leptoskit`: run the official [`leptoskit lint`](https://leptoskit.dev/docs/guide/23-linting.html) rules for every `leptoskit.toml` in the repository (`component_attribute` and `markup_style` with `markup = "view"` denied). Install the CLI with `cargo bin --install` (`leptoskit_cli` is pinned in `[workspace.metadata.bin]`), or `cargo binstall leptoskit_cli --locked --no-confirm`.
+- Local one-shot from a project directory: `leptoskit lint --deny-warnings --no-clippy` (workspace `lint:clippy` remains the clippy gate).
+- Copy the `[lint]` / `[lint.rules]` block from `app/leptoskit.toml` into each new leptoskit surface (`extension/`, `app/native/`, …).
+
+`lint:leptoskit` runs as part of `lint:all`, `lint:push`, and the CI lint job.
 
 ### Autofix
 

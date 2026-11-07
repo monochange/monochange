@@ -508,6 +508,7 @@ in
         run_step "gitleaks detect" ${pkgs.gitleaks}/bin/gitleaks detect --verbose --redact
         run_step "lint:rust-cfg-test" ${currentDir}/.devenv/profile/bin/lint:rust-cfg-test
         run_step "lint:clippy" ${currentDir}/.devenv/profile/bin/lint:clippy
+        run_step "lint:leptoskit" ${currentDir}/.devenv/profile/bin/lint:leptoskit
         run_step "schema:check" ${currentDir}/.devenv/profile/bin/schema:check
         run_step "lint:format" ${currentDir}/.devenv/profile/bin/lint:format
         run_step "lint:architecture" ${currentDir}/.devenv/profile/bin/lint:architecture
@@ -536,6 +537,7 @@ in
 
         run_step "lint:rust-cfg-test" lint:rust-cfg-test
         run_step "lint:clippy" lint:clippy
+        run_step "lint:leptoskit" lint:leptoskit
         run_step "schema:check" schema:check
         run_step "lint:format" lint:format
         run_step "lint:architecture" lint:architecture
@@ -594,6 +596,14 @@ in
         cargo clippy --workspace --all-features --all-targets -- -D warnings
       '';
       description = "Check that all rust lints are passing with warnings denied.";
+      binary = "bash";
+    };
+    "lint:leptoskit" = {
+      exec = ''
+        set -euo pipefail
+        ${currentDir}/scripts/lint-leptoskit.sh
+      '';
+      description = "Run leptoskit component lints (#[component], view! markup, PascalCase) for every leptoskit.toml.";
       binary = "bash";
     };
     "lint:architecture" = {

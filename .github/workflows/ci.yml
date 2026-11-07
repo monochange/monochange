@@ -56,6 +56,10 @@ jobs:
         run: lint:clippy
         shell: devenv shell -- bash -e {0}
 
+      - name: lint leptoskit
+        run: lint:leptoskit
+        shell: devenv shell -- bash -e {0}
+
       - name: lint formatting
         run: lint:format
         shell: devenv shell -- bash -e {0}
@@ -692,6 +696,11 @@ jobs:
       - name: lint clippy
         if: steps.release_commit.outputs.created == 'true'
         run: lint:clippy
+        shell: devenv shell -- bash -e {0}
+
+      - name: lint leptoskit
+        if: steps.release_commit.outputs.created == 'true'
+        run: lint:leptoskit
         shell: devenv shell -- bash -e {0}
 
       - name: lint formatting

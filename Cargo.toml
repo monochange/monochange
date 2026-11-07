@@ -123,6 +123,8 @@ cargo-insta = { version = "1.47.2" }
 cargo-llvm-cov = { version = "0.8.5" }
 cargo-nextest = { version = "0.9.132" }
 cargo-semver-checks = { version = "0.47.0" }
+# Official leptoskit CLI (`leptoskit` / `lk`); used by lint:leptoskit.
+leptoskit_cli = { version = "0.3.0" }
 
 [workspace.lints.rust]
 rust_2021_compatibility = { level = "warn", priority = -1 }
