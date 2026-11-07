@@ -1,0 +1,67 @@
+#:schema https://leptoskit.dev/schemas/leptoskit.v0.schema.json
+
+schema_version = 0
+plugins = []
+
+[app]
+name = "monochange"
+version = "0.1.0"
+default_platform = "extension"
+# Extension-first scaffold; the web SSR port owns the full site. Code push stays
+# off while the extension platform is enabled (store policy).
+platforms = ["extension"]
+render = "csr"
+icon = "assets/mark.svg"
+
+[serve]
+address = "127.0.0.1"
+port = 3000
+
+[build]
+client_package = "monochange_extension_app"
+features = []
+rustflags = []
+
+[bundle]
+optimize = "fast"
+split = true
+wasm_opt = true
+precompress = true
+
+[codepush]
+enabled = false
+allow_http = false
+server = ""
+channel = "production"
+mandatory = false
+staging_dir = "codepush"
+public_keys = []
+
+[rpc]
+servers = []
+exclude = []
+include_internal = false
+targets = []
+
+# Popup glance: session, projects, and release status against the app backend.
+# `server` becomes a host permission and `leptoskit::extension::runtime::server()`.
+[extension]
+name = "monochange"
+description = "Sign in to monochange and glance at projects and release status beside any tab."
+browsers = ["chromium", "firefox"]
+server = "https://monochange.dev"
+permissions = ["storage"]
+optional_host_permissions = ["http://127.0.0.1:3000/*", "http://localhost:3000/*"]
+
+[extension.popup]
+route = "/"
+
+[extension.options]
+route = "/sign-in"
+
+[extension.background]
+events = ["runtime.message", "runtime.installed"]
+
+[extension.firefox]
+id = "monochange@monochange.dev"
+data_collection = ["personallyIdentifyingInfo"]

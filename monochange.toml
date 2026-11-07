@@ -440,6 +440,14 @@ release_title = "monochange.dev {{ version }}"
 changelog_version_title = "{{ version }}"
 ignore_ecosystem_versioned_files = true
 
+# leptoskit browser extension (separate Cargo workspace under extension/).
+[package.monochange_extension]
+path = "extension/monochange_extension_app"
+additional_paths = ["extension/**"]
+publish = { enabled = false }
+changelog = false
+ignore_ecosystem_versioned_files = true
+
 [package.monochange_cargo]
 path = "crates/monochange_cargo"
 
