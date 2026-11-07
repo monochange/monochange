@@ -2,7 +2,7 @@
 monochange: feat
 ---
 
-# Add `monochange ci` for conditional CI gating, outcome verification, and repo-scoped analytics
+# Add `monochange ci` for conditional CI gating, verification, and analytics
 
 `monochange ci` adds four subcommands to gate CI jobs, verify main-branch outcomes, and inspect decision accuracy with repository-scoped authentication:
 
