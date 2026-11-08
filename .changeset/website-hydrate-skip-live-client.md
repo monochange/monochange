@@ -1,14 +1,23 @@
 ---
-monochange_app: fix
+monochange_app: minor
 ---
 
-# Stop hydrate from requesting missing live and `_bg` assets
+# Expose a `_bg.wasm` pkg alias and stop unused live hydrate traffic
 
-Website hydrate no longer calls `leptoskit_rpc::client::configure`, and the production server now serves cargo-leptos's on-disk `pkg/<name>.wasm` at the `pkg/<name>_bg.wasm` URL. Together these stop the app-ci Lighthouse console gate from failing on hundreds of 404s after the leptoskit SSR wave.
+`public_routes::pkg_wasm_bg_alias` is a new public helper that maps cargo-leptos's on-disk `pkg/<name>.wasm` to the `pkg/<name>_bg.wasm` URL HydrationScripts may emit when `LEPTOS_OUTPUT_NAME` was unset while compiling `leptos`. Production `main` mounts it, and website hydrate no longer calls `leptoskit_rpc::client::configure`, so Lighthouse stops failing on hundreds of console 404s after the leptoskit SSR wave.
 
 `configure` always starts a `LiveClient` that reconnects to `/live` (then `/live/events`). This website only exposes product RPCs as Leptos `#[server]` / `#[api]` over `POST /api/<endpoint>` and never mounts the live transport, so those reconnects were pure console noise. Product server functions are unchanged.
 
-HydrationScripts appends `_bg` to the wasm filename when `LEPTOS_OUTPUT_NAME` was unset while compiling `leptos` (common with shared CI/dep caches). cargo-leptos still writes `<output>.wasm` only. Production now remaps the `_bg` URL the same way the ignored Chrome fixture has since #761:
+```rust
+use leptos::prelude::LeptosOptions;
+use monochange_app::public_routes::pkg_wasm_bg_alias;
+
+let options = /* LeptosOptions from get_configuration */;
+let (route, file) = pkg_wasm_bg_alias(&options);
+// route == "/pkg/monochange_app_bg.wasm"
+// file serves site_root/pkg/monochange_app.wasm
+Router::new().route_service(&route, file);
+```
 
 ```text
 # before (404 when HydrationScripts asked for _bg)
