@@ -17,6 +17,13 @@ use crate::server_fns::portal::navigation_sign_in_path;
 const SITE: &str = "mx-auto w-[min(80rem,calc(100%-6rem))] max-[1050px]:w-[calc(100%-4rem)] max-[760px]:w-[calc(100%-2.5rem)]";
 const BTN_BRAND: &str = "inline-flex min-h-12 shrink-0 items-center justify-center gap-4 whitespace-nowrap rounded-xl bg-brand-700 px-[1.35rem] py-[0.85rem] font-bold leading-snug text-white no-underline transition-colors hover:bg-brand-800";
 
+/// Collapse the mobile menu when Escape is pressed.
+fn close_mobile_nav_on_key(key: &str, set_mobile_open: WriteSignal<bool>) {
+	if key == "Escape" {
+		set_mobile_open.set(false);
+	}
+}
+
 /// Public navigation, including a direct link to the published book.
 #[component]
 pub fn NavBar() -> impl IntoView {
@@ -51,9 +58,7 @@ pub fn NavBar() -> impl IntoView {
 			<nav
 				class=format!("{SITE} relative flex min-h-[88px] items-center justify-between gap-8 max-[900px]:min-h-[76px] max-[900px]:flex-wrap max-[900px]:gap-4")
 				aria-label="Main navigation"
-				on:keydown=move |event| {
-					if event.key() == "Escape" { set_mobile_open.set(false); }
-				}
+				on:keydown=move |event| close_mobile_nav_on_key(&event.key(), set_mobile_open)
 			>
 				<a href="/" class="inline-flex items-center gap-3 text-2xl font-bold tracking-[-0.035em] no-underline max-[900px]:gap-2.5 max-[900px]:text-[1.3rem]" aria-label="monochange home">
 					<img src="/branding/mark.svg" width="36" height="36" alt="" class="shrink-0" />
@@ -170,3 +175,7 @@ fn SessionLinks(
 		</Suspense>
 	}
 }
+
+#[cfg(test)]
+#[path = "__tests__/navbar_tests.rs"]
+mod tests;

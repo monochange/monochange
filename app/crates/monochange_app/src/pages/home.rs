@@ -10,6 +10,7 @@ use crate::components::arrow::ArrowIcon;
 use crate::components::brand_icon::BrandIcon;
 use crate::links::BOOK_URL;
 use crate::links::SOURCE_URL;
+use crate::server_fns::auth::SessionUser;
 use crate::server_fns::auth::get_session;
 
 const SITE: &str = "mx-auto w-[min(80rem,calc(100%-6rem))] max-[1050px]:w-[calc(100%-4rem)] max-[760px]:w-[calc(100%-2.5rem)]";
@@ -22,17 +23,21 @@ const TEXT_LINK: &str =
 const DISPLAY: &str = "font-display text-[clamp(2.4rem,3.2vw,3.4rem)] font-extrabold tracking-[-0.035em] leading-[1.06]";
 const FLOOR_ROW: &str = "group grid min-h-12 grid-cols-[2.5rem_minmax(0,14rem)_minmax(0,1fr)_auto] items-baseline gap-x-6 gap-y-1 border-b border-rule py-[1.45rem] text-inherit no-underline transition-[color,padding] hover:pl-1.5 hover:text-brand-600 max-[760px]:grid-cols-[2.5rem_minmax(0,1fr)_auto] max-[760px]:gap-x-3.5 dark:hover:text-brand-400";
 
+/// Path for the hero/workspace CTA from the current session resource value.
+fn workspace_href_for(
+	session: Option<Result<Option<SessionUser>, server_fn::ServerFnError>>,
+) -> String {
+	session
+		.and_then(Result::ok)
+		.flatten()
+		.map_or_else(|| "/login".to_owned(), |_| "/dashboard".to_owned())
+}
+
 /// Explain the release workspace before asking visitors to install it.
 #[component]
 pub fn HomePage() -> impl IntoView {
 	let session = Resource::new_blocking(|| (), |()| get_session());
-	let workspace_href = Memo::new(move |_| {
-		session
-			.get()
-			.and_then(Result::ok)
-			.flatten()
-			.map_or_else(|| "/login".to_owned(), |_| "/dashboard".to_owned())
-	});
+	let workspace_href = Memo::new(move |_| workspace_href_for(session.get()));
 
 	view! {
 		<Title text="monochange — Release planning for monorepos" />
@@ -261,20 +266,57 @@ fn ClosingSection() -> impl IntoView {
 	}
 }
 
+/// Tailwind classes for the example version-strategy toggle.
+fn strategy_button_class(pressed: bool) -> String {
+	format!(
+		"min-h-11 rounded-lg px-3.5 py-2.5 text-[0.9rem] font-bold {} {}",
+		if pressed {
+			"bg-brand-100 text-brand-700 dark:bg-brand-900 dark:text-brand-200"
+		} else {
+			"text-mute hover:bg-page"
+		},
+		""
+	)
+}
+
+/// Current/next versions for the illustrative Cargo package row.
+fn core_versions(shared: bool) -> (&'static str, &'static str) {
+	if shared {
+		("1.4.2", "1.5.0")
+	} else {
+		("0.8.1", "0.9.0")
+	}
+}
+
+/// Current/next versions for the illustrative Dart package row.
+fn mobile_versions(shared: bool) -> (&'static str, &'static str) {
+	if shared {
+		("1.4.2", "1.5.0")
+	} else {
+		("2.1.0", "2.1.1")
+	}
+}
+
+/// Caption under the example release table.
+fn strategy_copy(shared: bool) -> &'static str {
+	if shared {
+		"A version group gives these packages one shared release identity."
+	} else {
+		"Each package keeps its own version, in one coordinated plan."
+	}
+}
+
+fn select_individual_versions(set_shared: WriteSignal<bool>) {
+	set_shared.set(false);
+}
+
+fn select_shared_version(set_shared: WriteSignal<bool>) {
+	set_shared.set(true);
+}
+
 #[component]
 fn ReleaseManifest() -> impl IntoView {
 	let (shared, set_shared) = signal(false);
-	let strategy_btn = |pressed: bool| {
-		format!(
-			"min-h-11 rounded-lg px-3.5 py-2.5 text-[0.9rem] font-bold {} {}",
-			if pressed {
-				"bg-brand-100 text-brand-700 dark:bg-brand-900 dark:text-brand-200"
-			} else {
-				"text-mute hover:bg-page"
-			},
-			""
-		)
-	};
 
 	view! {
 		<div class="animate-[manifest-arrive_0.7s_cubic-bezier(0.16,1,0.3,1)] rounded-2xl border border-rule bg-surface p-8 text-ink shadow-[0_24px_48px_color-mix(in_srgb,var(--mc-ink)_12%,transparent)] max-[1050px]:p-[1.4rem]">
@@ -284,16 +326,16 @@ fn ReleaseManifest() -> impl IntoView {
 			</div>
 			<div class="my-6 flex flex-wrap gap-1.5 max-[760px]:my-4" role="group" aria-label="Example version strategy">
 				<button
-					class=move || strategy_btn(!shared.get())
+					class=move || strategy_button_class(!shared.get())
 					aria-pressed=move || (!shared.get()).to_string()
-					on:click=move |_| set_shared.set(false)
+					on:click=move |_| select_individual_versions(set_shared)
 				>
 					"Individual versions"
 				</button>
 				<button
-					class=move || strategy_btn(shared.get())
+					class=move || strategy_button_class(shared.get())
 					aria-pressed=move || shared.get().to_string()
-					on:click=move |_| set_shared.set(true)
+					on:click=move |_| select_shared_version(set_shared)
 				>
 					"Shared version"
 				</button>
@@ -324,28 +366,22 @@ fn ReleaseManifest() -> impl IntoView {
 								<strong class="block text-[1.1rem] max-[760px]:text-[0.95rem]">"acme-core"</strong>
 								<span class="block text-[0.8rem] font-normal text-mute"><BrandIcon name="rust" />"Cargo"</span>
 							</th>
-							<td class="whitespace-nowrap text-[0.95rem] max-[760px]:text-[0.85rem]">{move || if shared.get() { "1.4.2" } else { "0.8.1" }}</td>
-							<td class="whitespace-nowrap text-[0.95rem] font-bold text-brand-700 max-[760px]:text-[0.85rem]">{move || if shared.get() { "1.5.0" } else { "0.9.0" }}</td>
+							<td class="whitespace-nowrap text-[0.95rem] max-[760px]:text-[0.85rem]">{move || core_versions(shared.get()).0}</td>
+							<td class="whitespace-nowrap text-[0.95rem] font-bold text-brand-700 max-[760px]:text-[0.85rem]">{move || core_versions(shared.get()).1}</td>
 						</tr>
 						<tr class="border-b border-rule">
 							<th scope="row" class="py-[1.15rem] max-[760px]:py-[0.85rem]">
 								<strong class="block text-[1.1rem] max-[760px]:text-[0.95rem]">"acme-mobile"</strong>
 								<span class="block text-[0.8rem] font-normal text-mute"><BrandIcon name="dart" />"Dart"</span>
 							</th>
-							<td class="whitespace-nowrap text-[0.95rem] max-[760px]:text-[0.85rem]">{move || if shared.get() { "1.4.2" } else { "2.1.0" }}</td>
-							<td class="whitespace-nowrap text-[0.95rem] font-bold text-brand-700 max-[760px]:text-[0.85rem]">{move || if shared.get() { "1.5.0" } else { "2.1.1" }}</td>
+							<td class="whitespace-nowrap text-[0.95rem] max-[760px]:text-[0.85rem]">{move || mobile_versions(shared.get()).0}</td>
+							<td class="whitespace-nowrap text-[0.95rem] font-bold text-brand-700 max-[760px]:text-[0.85rem]">{move || mobile_versions(shared.get()).1}</td>
 						</tr>
 					</tbody>
 				</table>
 			</div>
 			<p class="mt-[1.2rem] min-h-14 max-w-[48ch] text-[0.85rem] text-mute">
-				{move || {
-					if shared.get() {
-						"A version group gives these packages one shared release identity."
-					} else {
-						"Each package keeps its own version, in one coordinated plan."
-					}
-				}}
+				{move || strategy_copy(shared.get())}
 			</p>
 			<div class="flex justify-between gap-4 pt-3 text-[0.85rem] font-bold text-brand-700">
 				<span>"Preview first."</span>
@@ -354,3 +390,7 @@ fn ReleaseManifest() -> impl IntoView {
 		</div>
 	}
 }
+
+#[cfg(test)]
+#[path = "__tests__/home_tests.rs"]
+mod tests;
