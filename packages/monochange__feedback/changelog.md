@@ -1,8 +1,16 @@
----
-"@monochange/feedback": major
----
+# Changelog
 
-# Install feedback on any website
+All notable changes to this project will be documented in this file.
+
+This changelog is managed by [monochange](https://github.com/monochange/monochange).
+
+## @monochange/feedback [0.2.0](https://github.com/monochange/monochange/releases/tag/@monochange/feedback/v0.2.0) (2026-11-08)
+
+### 💥 Breaking Change
+
+#### Install feedback on any website
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #860](https://github.com/monochange/monochange/pull/860)
 
 The first release provides `FeedbackClient` for headless integrations and `mountFeedback` for an accessible Shadow DOM widget. Users can discuss a request, find similar requests, upvote, submit, and follow delivery updates without a GitHub account.
 

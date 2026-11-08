@@ -1,6 +1,6 @@
 name: monochange_feedback
 description: Native feedback conversations, similar requests, voting, and delivery updates for Flutter apps.
-version: 0.1.0
+version: 0.2.0
 homepage: https://monochange.dev
 repository: https://github.com/monochange/monochange/tree/main/packages/monochange__feedback_flutter
 environment:

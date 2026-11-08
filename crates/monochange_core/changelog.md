@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-11-08)
+
+### 🚀 Feature
+
+#### Honor ecosystems discovery settings and accept forgejo for init
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #857](https://github.com/monochange/monochange/pull/857)
+
+`[ecosystems.<id>]` discovery settings now shape `monochange discover` and the release paths built on it:
+
+- `enabled = false` skips that ecosystem entirely.
+- `roots = ["crates", "packages"]` restricts discovery to packages whose manifests live under the listed directories.
+- `exclude = ["tools/**"]` removes packages whose manifests match any glob. A glob that fails to compile warns once and matches nothing instead of silently dropping the filter.
+
+Previously these fields were parsed but discovery scanned every supported ecosystem regardless. `monochange init --provider` also accepts `forgejo` alongside `github`, `gitlab`, and `gitea`.
+
 ## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)
 
 ### 💥 Breaking Change

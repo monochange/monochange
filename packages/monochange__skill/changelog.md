@@ -9,6 +9,52 @@
 - Replaced obsolete examples with current `monochange.toml`, changeset, release-preview, and publishing workflow examples.
 - Added the release-aware change-classification workflow, including confidence, completeness, comparison baselines, cargo-semver-checks follow-up, and changeset validation.
 
+## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-11-08)
+
+### 🚀 Feature
+
+#### Add `monochange completions` and `monochange doctor`
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #840](https://github.com/monochange/monochange/pull/840)
+
+Two new commands close the two most common first-hour gaps:
+
+- `monochange completions <bash|zsh|fish|elvish|powershell>` prints a shell completion script. The script is generated from the commands the current repository's `monochange.toml` defines, so config-defined workflows complete alongside the built-ins. Install it with your shell's completion mechanism, for example `monochange completions zsh > "${fpath[1]}/_monochange"`.
+- `monochange doctor` checks the local environment in one place: git availability, `monochange.toml` parsing, and the toolchain behind every ecosystem enabled in the workspace (`cargo`, `node`, `deno`, `dart`, `python3`, `go`, `swift`, `pod`, `gradle`). Each check reports the tool's version or how to install it, with `--format json` for tooling. Checks are local only — nothing contacts the network.
+
+### 🐛 Fixed
+
+#### Preview `check --fix`, print init next steps, and retire `monochange populate`
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #857](https://github.com/monochange/monochange/pull/857)
+
+Three usability fixes:
+
+- `monochange check --fix --dry-run` previews the fixes `--fix` would apply without writing any file. The summary says `would fix N files`, and the check still fails when errors remain on disk, so a dry run never silently passes a workspace that fixing would repair. `--dry-run` now requires `--fix`.
+- `monochange init` prints the next commands to run (validate, discover, create, preview) instead of only naming the file it wrote.
+- The legacy `monochange populate` command is removed. It has been a documented no-op since the default workflow set became empty; scripts calling it now get an unknown-command error and should call the steps they need directly.
+- TOML syntax errors in `monochange.toml` render with the same source snippet semantic errors get: file, line and column, the offending line with a caret, and the parser's reason, instead of a flat `failed to parse` message.
+
+#### Honor ecosystems discovery settings and accept forgejo for init
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #857](https://github.com/monochange/monochange/pull/857)
+
+`[ecosystems.<id>]` discovery settings now shape `monochange discover` and the release paths built on it:
+
+- `enabled = false` skips that ecosystem entirely.
+- `roots = ["crates", "packages"]` restricts discovery to packages whose manifests live under the listed directories.
+- `exclude = ["tools/**"]` removes packages whose manifests match any glob. A glob that fails to compile warns once and matches nothing instead of silently dropping the filter.
+
+Previously these fields were parsed but discovery scanned every supported ecosystem regardless. `monochange init --provider` also accepts `forgejo` alongside `github`, `gitlab`, and `gitea`.
+
+#### Add canonical `monochange format` command
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #854](https://github.com/monochange/monochange/pull/854)
+
+Adds `monochange format` to rewrite `monochange.toml` in the idiomatic layout: top-level sections in a fixed order, `[package.*]` and `[group.*]` tables sorted by id, group members sorted alphabetically, and `[cli.*]` workflows last. Comments stay attached to their tables and the document header stays at the top.
+
+The command formats the result with taplo using the repository's tab-based, 100-column configuration, so it does not require a separate taplo installation. Use `monochange format --check` to fail CI when the file needs formatting without writing changes. The repository's `lint:monochange` task and CI lint job now run that check.
+
 ## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)
 
 ### Changed
