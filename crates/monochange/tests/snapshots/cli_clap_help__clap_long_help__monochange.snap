@@ -1,6 +1,5 @@
 ---
 source: crates/monochange/tests/cli_clap_help.rs
-assertion_line: 151
 expression: render_help_snapshot(&path)
 ---
 Version: [current]
@@ -45,6 +44,7 @@ monochange discovers packages across Cargo, npm/pnpm/Bun, Deno, Dart/Flutter, Py
   [93mskill[0m          Read or install the bundled monochange agent skill
   [93msubagents[0m      Generate repo-local monochange subagents and agent guidance files
   [93msnapshot[0m       Print a normalized JSON snapshot of the CLI surface
+  [93mci[0m             Evaluate conditional CI gates, verify main branch outcomes, and view repo-scoped analytics
   [93mcompletions[0m    Generate a shell completion script for monochange
   [93mhelp[0m           Show detailed help for a command
 

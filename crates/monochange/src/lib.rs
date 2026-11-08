@@ -246,6 +246,7 @@ mod analyze;
 
 mod changeset_policy;
 mod changesets;
+pub mod ci;
 mod cli;
 mod cli_runtime;
 
@@ -1598,6 +1599,7 @@ async fn run_cli_subcommand(
 				selected_cli_output_format(doctor_matches)?,
 			)
 		}
+		Some(("ci", ci_matches)) => ci::run_ci_subcommand(root, ci_matches).await,
 		Some(("skill", skill_matches)) => run_skill_subcommand(context.quiet, skill_matches),
 		Some(("subagents", subagent_matches)) => run_subagents_subcommand(root, subagent_matches),
 		Some(("change", change_matches)) => {

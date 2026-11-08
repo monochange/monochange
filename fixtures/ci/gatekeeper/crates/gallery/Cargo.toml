@@ -1,0 +1,7 @@
+[package]
+name = "gallery"
+version = "0.1.0"
+edition = "2021"
+
+[dev-dependencies]
+deep_probe = { path = "../tools/deep/probe" }

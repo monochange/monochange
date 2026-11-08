@@ -1859,6 +1859,19 @@
 				}
 			]
 		},
+		"RawCiJobPackage": {
+			"anyOf": [
+				{
+					"description": "Bare name: every feature, every edge (the conservative string form).",
+					"type": "string"
+				},
+				{
+					"$ref": "#/$defs/ci_job_package",
+					"description": "Table form pinning the cargo feature selection the job builds."
+				}
+			],
+			"description": "Raw `[ci.jobs.<id>].packages` entry: a bare name or a feature table."
+		},
 		"RegistryKind": {
 			"enum": [
 				"crates_io",
@@ -2501,6 +2514,159 @@
 			},
 			"required": [
 				"section"
+			],
+			"type": "object"
+		},
+		"ci_configuration": {
+			"additionalProperties": false,
+			"description": "Raw `[ci]` table exactly as written in `monochange.toml`.",
+			"properties": {
+				"ai_can_skip": {
+					"default": false,
+					"description": "Whether a provider verdict may skip a job the graph wants to run.\nDefaults to `false`: providers may only turn `n` into `y`.",
+					"type": "boolean"
+				},
+				"ignore_paths": {
+					"default": [
+						"**/*.md",
+						"docs/**"
+					],
+					"description": "Changed paths that never trigger a job on their own.",
+					"items": {
+						"type": "string"
+					},
+					"type": "array"
+				},
+				"jobs": {
+					"additionalProperties": {
+						"$ref": "#/$defs/ci_job"
+					},
+					"description": "Jobs keyed by their GitHub job id.",
+					"type": "object"
+				},
+				"max_skips_on_main": {
+					"default": 5,
+					"description": "Consecutive skips allowed on `main` before a forced verification run.",
+					"format": "uint32",
+					"minimum": 0,
+					"type": "integer"
+				},
+				"model": {
+					"default": null,
+					"description": "Model identifier for AI decision providers.",
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"provider": {
+					"default": null,
+					"description": "Decision provider: graph, opencode-go, openrouter, cloudflare, jev, or\nopenai-compatible. Defaults to `graph`.",
+					"type": [
+						"string",
+						"null"
+					]
+				},
+				"unconditional_branches": {
+					"default": [
+						"release/*",
+						"monochange/release/*",
+						"refs/tags/v*"
+					],
+					"description": "Branch and ref globs that force every job to run.",
+					"items": {
+						"type": "string"
+					},
+					"type": "array"
+				},
+				"unconditional_events": {
+					"default": [
+						"schedule",
+						"workflow_dispatch"
+					],
+					"description": "Events that force every job to run.",
+					"items": {
+						"type": "string"
+					},
+					"type": "array"
+				},
+				"unconditional_paths": {
+					"default": [
+						"Cargo.lock",
+						"rust-toolchain.toml",
+						".github/workflows/**"
+					],
+					"description": "Changed paths that force every job to run.",
+					"items": {
+						"type": "string"
+					},
+					"type": "array"
+				}
+			},
+			"type": "object"
+		},
+		"ci_job": {
+			"additionalProperties": false,
+			"description": "Raw `[ci.jobs.<id>]` table.",
+			"properties": {
+				"always": {
+					"default": false,
+					"description": "Whether the job always runs regardless of the graph.",
+					"type": "boolean"
+				},
+				"packages": {
+					"description": "Root packages (ids, names, or globs) whose changes run the job.",
+					"items": {
+						"$ref": "#/$defs/RawCiJobPackage"
+					},
+					"type": "array"
+				},
+				"paths": {
+					"default": [],
+					"description": "Non-package file globs whose changes run the job.",
+					"items": {
+						"type": "string"
+					},
+					"type": "array"
+				}
+			},
+			"type": "object"
+		},
+		"ci_job_package": {
+			"additionalProperties": false,
+			"description": "Raw feature-selection table of one `packages` entry.",
+			"properties": {
+				"all_features": {
+					"default": false,
+					"description": "Build with every feature; excludes `features` and `default_features`.",
+					"type": "boolean"
+				},
+				"default_features": {
+					"default": null,
+					"description": "Whether the root's default feature is enabled; defaults to `true`.",
+					"type": [
+						"boolean",
+						"null"
+					]
+				},
+				"features": {
+					"default": null,
+					"description": "Extra features to enable on the root.",
+					"items": {
+						"type": "string"
+					},
+					"type": [
+						"array",
+						"null"
+					]
+				},
+				"name": {
+					"description": "Root package id, name, or glob.",
+					"type": "string"
+				}
+			},
+			"required": [
+				"name"
 			],
 			"type": "object"
 		},
@@ -3477,6 +3643,10 @@
 					]
 				}
 			}
+		},
+		"ci": {
+			"$ref": "#/$defs/ci_configuration",
+			"description": "Conditional CI gatekeeper settings read by `monochange ci`."
 		},
 		"cli": {
 			"additionalProperties": {

@@ -1,0 +1,10 @@
+# An excluded crate: a path dependency that is deliberately not a workspace
+# member, so member features referencing it (`outside/thing`) resolve to no
+# workspace edge.
+[package]
+name = "outside"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+thing = []

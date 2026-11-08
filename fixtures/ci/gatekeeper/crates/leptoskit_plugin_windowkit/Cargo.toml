@@ -1,0 +1,5 @@
+[package]
+name = "leptoskit_plugin_windowkit"
+version = "0.1.0"
+edition = "2021"
+publish = false

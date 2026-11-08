@@ -50,6 +50,7 @@ Automation Commands:
   skill        Read or install the bundled monochange agent skill
   subagents    Generate repo-local monochange subagents and agent guidance files
   snapshot     Print a normalized JSON snapshot of the CLI surface
+  ci           Evaluate conditional CI gates, verify main branch outcomes, and view repo-scoped analytics
   completions  Generate a shell completion script for monochange
   help         Show detailed help for a command
 

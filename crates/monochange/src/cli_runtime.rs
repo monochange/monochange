@@ -5362,7 +5362,7 @@ fn cli_command_output_format(
 #[must_use = "the output format result must be checked"]
 pub(crate) fn parse_output_format(value: &str) -> MonochangeResult<OutputFormat> {
 	match value {
-		"text" => Ok(OutputFormat::Text),
+		"text" | "github-outputs" => Ok(OutputFormat::Text),
 		"markdown" | "md" => Ok(OutputFormat::Markdown),
 		"json" => Ok(OutputFormat::Json),
 		"json-min" => Ok(OutputFormat::JsonMin),

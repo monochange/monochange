@@ -1,0 +1,24 @@
+[package]
+name = "facade"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = []
+nightly = ["dep:opt_hidden", "mid/extra", "opt_dep?/boosted", "plain"]
+# A value that only names another feature of this crate.
+plain = []
+
+[dependencies]
+mid = { path = "../mid", default-features = false }
+opt_dep = { path = "../opt_dep", optional = true }
+opt_hidden = { path = "../opt_hidden", optional = true, features = ["extra_kit"] }
+
+[dev-dependencies]
+testkit = { path = "../testkit" }
+
+# The same optional crate again under a target table with its own feature list:
+# activating `opt_dep` builds both entries, so `boosted` (and `opt_boosted`)
+# builds too.
+[target.'cfg(windows)'.dependencies]
+opt_dep = { path = "../opt_dep", optional = true, features = ["boosted"] }
