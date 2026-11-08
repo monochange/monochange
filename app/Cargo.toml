@@ -78,6 +78,7 @@ axum-extra = { version = "0.10", features = ["cookie"] }
 time = "0.3"
 
 # WASM
+any_spawner = { version = "0.3", default-features = false, features = ["wasm-bindgen"] }
 console_error_panic_hook = "0.1"
 console_log = "1"
 log = "0.4"

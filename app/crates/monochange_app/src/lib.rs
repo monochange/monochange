@@ -39,6 +39,9 @@ mod tests;
 pub fn hydrate() {
 	console_error_panic_hook::set_once();
 	_ = console_log::init_with_level(log::Level::Debug);
+	// leptoskit_rpc::configure installs the live client and may spawn before
+	// hydrate_lazy runs, so the wasm executor must be ready first.
+	_ = any_spawner::Executor::init_wasm_bindgen();
 	leptoskit_rpc::client::configure(leptoskit_rpc::client::ClientConfig::new());
 
 	// Lazy routes hydrate through their own chunk-loading mount; hydrate_body
