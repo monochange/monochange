@@ -1,0 +1,70 @@
+#:schema https://leptoskit.dev/schemas/leptoskit.v0.schema.json
+
+schema_version = 0
+
+# Native-first leptoskit surface for monochange. Web SSR remains the existing
+# cargo-leptos app until the sibling web port lands; this workspace still lists
+# `web` so shared RPC types stay one package graph.
+
+[app]
+name = "monochange_native"
+version = "0.1.0"
+default_platform = "android"
+platforms = ["android", "ios", "web"]
+render = "csr"
+
+[serve]
+address = "127.0.0.1"
+port = 3010
+
+[build]
+client_package = "monochange_native_app"
+features = []
+rustflags = []
+
+[bundle]
+optimize = "fast"
+split = false
+# wasm-opt is optional for local scaffolds; enable when binaryen is installed.
+wasm_opt = false
+precompress = false
+
+[lint]
+markup = "view"
+clippy = true
+
+[lint.rules]
+component_attribute = "deny"
+markup_style = "deny"
+
+[native]
+update_contract = "mobile-v1"
+package_id = "dev.monochange.app"
+viewport_width = 390.0
+viewport_height = 844.0
+plugins = ["http", "secure-store"]
+
+# Origins the HTTP plugin may call. Hosted builds add the production origin
+# and set MONOCHANGE_SERVER at compile time.
+[native.plugin-options.http]
+origins = ["http://127.0.0.1:3000", "http://127.0.0.1:3010", "https://monochange.dev"]
+
+[codepush]
+enabled = false
+allow_http = false
+server = ""
+channel = "production"
+mandatory = false
+staging_dir = "codepush"
+public_keys = []
+
+[rpc]
+title = "monochange native RPC"
+description = "Auth handshake and project list shared with the web port."
+servers = ["http://127.0.0.1:3010", "https://monochange.dev"]
+exclude = []
+include_internal = false
+targets = []
+
+[auth]
+app_name = "monochange"

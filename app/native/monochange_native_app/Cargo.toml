@@ -1,0 +1,41 @@
+[package]
+name = "monochange_native_app"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "monochange native guest screens (Android / iOS wasm)."
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+[features]
+default = ["rpc-client"]
+# Shared RPC client wiring (host check + every runtime surface).
+rpc-client = ["leptoskit/rpc", "monochange_rpc/client"]
+native = [
+	"rpc-client",
+	"leptoskit/guest",
+	"dep:leptoskit_plugin_http",
+	"dep:leptoskit_plugin_secure_store",
+	"dep:futures-executor",
+	"dep:futures-util",
+]
+ios = ["native", "leptoskit/ios"]
+android = ["native", "leptoskit/android"]
+web = ["rpc-client", "leptoskit/web", "dep:leptos"]
+csr = ["web", "leptos/csr"]
+
+[dependencies]
+futures-executor = { version = "0.3", optional = true }
+futures-util = { version = "0.3", default-features = false, features = ["std"], optional = true }
+leptos = { workspace = true, optional = true }
+leptoskit = { workspace = true }
+leptoskit_plugin_http = { workspace = true, features = ["guest"], optional = true }
+leptoskit_plugin_secure_store = { workspace = true, features = ["guest"], optional = true }
+monochange_rpc = { path = "../monochange_rpc" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[build-dependencies]
+leptoskit_build = { workspace = true }
