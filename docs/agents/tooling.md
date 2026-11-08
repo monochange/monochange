@@ -73,6 +73,7 @@ The 80 threshold is a project-wide score, passed as `--fail-under 80`; a `fail-u
 - `lint:leptoskit`: run the official [`leptoskit lint`](https://leptoskit.dev/docs/guide/23-linting.html) rules for every `leptoskit.toml` in the repository (`component_attribute` and `markup_style` with `markup = "view"` denied). Install the CLI with `cargo bin --install` (`leptoskit_cli` is pinned in `[workspace.metadata.bin]`), or `cargo binstall leptoskit_cli --locked --no-confirm`.
 - Local one-shot from a project directory: `leptoskit lint --deny-warnings --no-clippy` (workspace `lint:clippy` remains the clippy gate).
 - Copy the `[lint]` / `[lint.rules]` block from `app/leptoskit.toml` into each new leptoskit surface (`extension/`, `app/native/`, …).
+- `app/leptoskit.toml` is lint-only today (no `[app]`/`[build]`). Website builds still use cargo-leptos via `[package.metadata.leptos]` (`cargo leptos --manifest-path crates/monochange_app/Cargo.toml build` from `app/` in app-ci) until the SSR port owns a full leptoskit config.
 
 `lint:leptoskit` runs as part of `lint:all`, `lint:push`, and the CI lint job.
 
