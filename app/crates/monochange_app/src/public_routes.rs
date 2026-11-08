@@ -16,7 +16,7 @@ use tower_http::services::ServeFile;
 use crate::links::BOOK_URL;
 
 /// Route + file service that maps cargo-leptos's on-disk `pkg/<name>.wasm` to the
-/// `pkg/<name>_bg.wasm` URL HydrationScripts emits when `LEPTOS_OUTPUT_NAME` was
+/// `pkg/<name>_bg.wasm` URL `HydrationScripts` emits when `LEPTOS_OUTPUT_NAME` was
 /// unset while compiling `leptos` (shared CI/dep caches often hit this).
 ///
 /// Without this alias the browser 404s the hydrate wasm even though
