@@ -785,6 +785,19 @@ rules = { "npm/workspace-protocol" = "off" }
 enabled = true
 versioned_files = ["Cargo.toml"]
 
+# `app/` is a second Cargo workspace whose members depend on released
+# workspace crates by path, so a release bump also stale-dates `app/Cargo.lock`
+# and every `--locked` app build on the release pull request fails. Refresh
+# both lockfiles with real cargo resolution during release preparation instead
+# of only rewriting the root lockfile in place.
+[[ecosystems.cargo.lockfile_commands]]
+command = "cargo generate-lockfile"
+cwd = "."
+
+[[ecosystems.cargo.lockfile_commands]]
+command = "cargo generate-lockfile"
+cwd = "app"
+
 [ecosystems.npm]
 enabled = true
 
