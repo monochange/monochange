@@ -25,14 +25,13 @@ const FLOOR_ROW: &str = "group grid min-h-12 grid-cols-[2.5rem_minmax(0,14rem)_m
 /// Explain the release workspace before asking visitors to install it.
 #[component]
 pub fn HomePage() -> impl IntoView {
-	let session = Resource::new_blocking(|| (), |_| get_session());
+	let session = Resource::new_blocking(|| (), |()| get_session());
 	let workspace_href = Memo::new(move |_| {
 		session
 			.get()
 			.and_then(Result::ok)
 			.flatten()
-			.map(|_| "/dashboard".to_owned())
-			.unwrap_or_else(|| "/login".to_owned())
+			.map_or_else(|| "/login".to_owned(), |_| "/dashboard".to_owned())
 	});
 
 	view! {
