@@ -1,4 +1,20 @@
+#![allow(clippy::disallowed_methods)]
+
 use super::*;
+
+#[tokio::test]
+async fn book_route_view_wraps_resolved_chapter_in_site_layout() {
+	let html = crate::tests::render(|| {
+		let chapter = Resource::new_blocking(|| (), |()| async { Ok::<_, ServerFnError>(None) });
+		book_route_view(chapter)
+	})
+	.await;
+	assert!(html.contains("book-layout"), "{html}");
+	assert!(
+		html.contains("Chapter not found") || html.contains("Loading the book"),
+		"{html}"
+	);
+}
 
 #[test]
 fn chapter_errors_distinguish_not_found_and_unavailable() {

@@ -24,24 +24,30 @@ impl LazyRoute for ChangelogRoute {
 
 	fn view(this: Self) -> AnyView {
 		let ChangelogRoute { releases } = this;
-		view! {
-			<Title text="What's new — monochange" />
-			<section class="site-width release-intro">
-				<p class="eyebrow">"The website, version by version"</p>
-				<h1>"What's new."</h1>
-				<p>"Updates that make monochange.dev better for you. The CLI has its own "<a href="https://github.com/monochange/monochange/releases">"release notes"</a>"."</p>
-			</section>
-			<section class="site-width release-layout" aria-label="Website release history">
-				<div class="release-history">
-					<Suspense fallback=|| view! { <p role="status">"Loading release notes…"</p> }>
-						{move || releases.get().map(|result| view! { <ReleaseHistory result=result /> })}
-					</Suspense>
-				</div>
-				<aside class="release-example"><img src="/branding/mark.svg" width="64" height="64" alt="" /><h2>"Your notes. Your layout."</h2><p>"This page uses monochange's generated JSON. Use the same release notes in your own website, app, or update feed."</p><a class="text-link" href="/book/guide/website-release-notes">"Build your own changelog"</a></aside>
-			</section>
-		}
-		.into_any()
+		changelog_route_view(releases)
 	}
+}
+
+fn changelog_route_view(
+	releases: Resource<Result<Vec<WebsiteRelease>, server_fn::ServerFnError>>,
+) -> AnyView {
+	view! {
+		<Title text="What's new — monochange" />
+		<section class="site-width release-intro">
+			<p class="eyebrow">"The website, version by version"</p>
+			<h1>"What's new."</h1>
+			<p>"Updates that make monochange.dev better for you. The CLI has its own "<a href="https://github.com/monochange/monochange/releases">"release notes"</a>"."</p>
+		</section>
+		<section class="site-width release-layout" aria-label="Website release history">
+			<div class="release-history">
+				<Suspense fallback=|| view! { <p role="status">"Loading release notes…"</p> }>
+					{move || releases.get().map(|result| view! { <ReleaseHistory result=result /> })}
+				</Suspense>
+			</div>
+			<aside class="release-example"><img src="/branding/mark.svg" width="64" height="64" alt="" /><h2>"Your notes. Your layout."</h2><p>"This page uses monochange's generated JSON. Use the same release notes in your own website, app, or update feed."</p><a class="text-link" href="/book/guide/website-release-notes">"Build your own changelog"</a></aside>
+		</section>
+	}
+	.into_any()
 }
 
 #[component]

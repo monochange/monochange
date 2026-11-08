@@ -5,6 +5,25 @@ use super::*;
 use crate::server_fns::releases::load_releases;
 
 #[tokio::test]
+async fn changelog_route_view_wraps_release_history_layout() {
+	let html = crate::tests::render(|| {
+		let releases = Resource::new_blocking(
+			|| (),
+			|()| async { Ok::<_, ServerFnError>(Vec::<WebsiteRelease>::new()) },
+		);
+		changelog_route_view(releases)
+	})
+	.await;
+	assert!(html.contains("What's new."), "{html}");
+	assert!(html.contains("release-history"), "{html}");
+	assert!(
+		html.contains("Our first versioned release is on its way.")
+			|| html.contains("Loading release notes"),
+		"{html}"
+	);
+}
+
+#[tokio::test]
 async fn generated_history_renders_links_and_safe_formatted_notes() {
 	let directory = tempfile::tempdir().unwrap();
 	let fixture = std::fs::read_to_string(concat!(

@@ -9,7 +9,7 @@ use super::*;
 use crate::server_fns::embedded::IntegrationView;
 use crate::server_fns::embedded::WorkerView;
 
-/// leptoskit_rpc keeps stable `/api/<endpoint>` paths; older Leptos builds appended a hash.
+/// `leptoskit_rpc` keeps stable `/api/<endpoint>` paths; older Leptos builds appended a hash.
 const SERVER_FN_ACTION: &str = r"/api/embedded_action(?:[0-9]+)?";
 
 #[tokio::test]

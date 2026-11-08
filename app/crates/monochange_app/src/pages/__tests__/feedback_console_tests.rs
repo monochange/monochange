@@ -269,3 +269,18 @@ async fn items_without_tasks_or_a_share_form_show_no_task_block() {
 	assert!(html.contains("Contributor tasks"), "{html}");
 	assert!(!html.contains("Share with contributors"), "{html}");
 }
+
+#[tokio::test]
+async fn reproduced_outcomes_list_each_reproduction_step() {
+	let html = render(move || {
+		view! {
+			<ReproductionView outcome=ReproductionOutcome::Reproduced {
+				steps: vec!["Open invoices".to_owned(), "Compare totals".to_owned()],
+			} />
+		}
+	})
+	.await;
+	assert!(html.contains("Reproduced"), "{html}");
+	assert!(html.contains("<li>Open invoices</li>"), "{html}");
+	assert!(html.contains("<li>Compare totals</li>"), "{html}");
+}

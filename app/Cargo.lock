@@ -4139,6 +4139,8 @@ version = "0.3.3"
 dependencies = [
  "axum",
  "monochange_app_api",
+ "monochange_app_db",
+ "serde_json",
  "tokio",
 ]
 

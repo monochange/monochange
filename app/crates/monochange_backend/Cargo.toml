@@ -13,6 +13,8 @@ axum = { workspace = true }
 monochange_app_api = { workspace = true }
 
 [dev-dependencies]
+monochange_app_db = { workspace = true }
+serde_json = { workspace = true }
 tokio = { workspace = true, features = ["rt", "macros"] }
 
 [lints]

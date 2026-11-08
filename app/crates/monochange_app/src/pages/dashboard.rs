@@ -232,8 +232,12 @@ pub fn OrganizationAvatar(
 		.chars()
 		.next()
 		.map_or('?', |character| character.to_ascii_uppercase());
-	view! { <span class="organization-avatar" aria-hidden="true">{initial.to_string()}</span> }
-		.into_any()
+	view! {
+		<span class="organization-avatar" title=login aria-hidden="true">
+			{initial.to_string()}
+		</span>
+	}
+	.into_any()
 }
 
 /// Accounts whose installation is waiting for an owner to approve the app's
