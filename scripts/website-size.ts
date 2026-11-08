@@ -13,7 +13,9 @@
 // `check` fails when the gzip transfer total grows beyond 1%, or when any
 // transferred file (`.wasm`/`.js`/`.css`) that existed in the baseline grows
 // beyond 5% — WASM codegen varies slightly across build platforms, so the
-// per-file guard is looser than the total. Set
+// per-file guard is looser than the total. Anonymous wasm-split chunks
+// (`chunk_N.wasm`) are renumbered between builds, so they share one aggregate
+// 5% guard instead of per-file checks. Set
 // MONOCHANGE_WEBSITE_SIZE_TOLERANCE (fraction) to adjust the total tolerance.
 
 import { readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
@@ -88,6 +90,19 @@ function render(
 	return lines.join("\n");
 }
 
+// wasm-split numbers its shared chunks by position, so any code change can
+// renumber them: `chunk_43.wasm` in one build is `chunk_44.wasm` in the next.
+// Comparing them by name reports phantom growth, so they are guarded as one
+// aggregate instead. Named route splits (`split___<route>_<hash>.wasm`) keep
+// stable names and stay per-file.
+const ANONYMOUS_CHUNK = /^chunk_\d+\.wasm$/u;
+
+function anonymousChunkGzipBytes(measurement: SiteMeasurement): number {
+	return Object.entries(measurement.files)
+		.filter(([name]) => ANONYMOUS_CHUNK.test(name))
+		.reduce((sum, [, file]) => sum + file.gzipBytes, 0);
+}
+
 function compare(baseline: SiteMeasurement, current: SiteMeasurement, tolerance: number): string[] {
 	const differences = [];
 	const grown =
@@ -102,15 +117,25 @@ function compare(baseline: SiteMeasurement, current: SiteMeasurement, tolerance:
 	// enforcement applies only to the files browsers actually transfer and
 	// allows wider variance than the total; the total stays the tight guard.
 	const perFileTolerance = Math.max(tolerance, FILE_TOLERANCE);
+	const exceeds = (before: number, after: number) =>
+		after - before > Math.ceil(before * perFileTolerance);
+	const percent = `${(perFileTolerance * 100).toFixed(2)}%`;
 	for (const [name, before] of Object.entries(baseline.files)) {
-		if (!/\.(?:wasm|js|css)$/u.test(name)) continue;
+		if (!/\.(?:wasm|js|css)$/u.test(name) || ANONYMOUS_CHUNK.test(name)) continue;
 		const after = current.files[name];
 		if (!after) continue;
-		if (after.gzipBytes - before.gzipBytes > Math.ceil(before.gzipBytes * perFileTolerance)) {
+		if (exceeds(before.gzipBytes, after.gzipBytes)) {
 			differences.push(
-				`${name} gzip grew from ${before.gzipBytes} to ${after.gzipBytes} bytes (tolerance ${(perFileTolerance * 100).toFixed(2)}%)`,
+				`${name} gzip grew from ${before.gzipBytes} to ${after.gzipBytes} bytes (tolerance ${percent})`,
 			);
 		}
+	}
+	const chunksBefore = anonymousChunkGzipBytes(baseline);
+	const chunksAfter = anonymousChunkGzipBytes(current);
+	if (exceeds(chunksBefore, chunksAfter)) {
+		differences.push(
+			`anonymous wasm-split chunks (chunk_N.wasm) gzip grew from ${chunksBefore} to ${chunksAfter} bytes (tolerance ${percent})`,
+		);
 	}
 	return differences;
 }
