@@ -256,6 +256,15 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      # monochange publishes the Flutter feedback package with
+      # `flutter pub publish`; `devenv shell` resets PATH, so the publish:check
+      # script resolves this SDK through the FLUTTER_ROOT the action exports.
+      - name: setup flutter for publishing verification
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version: "3.47.9"
+          cache: true
+
       - name: setup
         uses: $/.github/actions/devenv
         with:

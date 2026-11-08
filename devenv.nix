@@ -181,6 +181,14 @@ in
     "publish:check" = {
       exec = ''
         set -euo pipefail
+        # `devenv shell` resets PATH, and monochange publishes Dart and Flutter
+        # packages through `dart`/`flutter` from the ambient toolchain. Expose
+        # the Flutter SDK the workflows install (subosito/flutter-action sets
+        # FLUTTER_ROOT) so those publish commands resolve inside the shell.
+        feedback_flutter_sdk="''${FLUTTER_SDK:-''${FLUTTER_ROOT:-$DEVENV_ROOT/.monochange/local/tooling/flutter}}"
+        if [ -x "$feedback_flutter_sdk/bin/flutter" ]; then
+          export PATH="$feedback_flutter_sdk/bin:$PATH"
+        fi
         monochange publish packages --dry-run
       '';
       description = "Check that publication is valid for this project";
