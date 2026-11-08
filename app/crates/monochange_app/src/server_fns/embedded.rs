@@ -1,6 +1,7 @@
 //! Maintainer controls for embedded clients, connected workers, and plan review.
 
 use leptos::server;
+use leptoskit_rpc::api;
 use monochange_app_feedback::planning::PlanningJob;
 use monochange_app_feedback::planning::PlanningPolicy;
 use serde::Deserialize;
@@ -10,7 +11,7 @@ use serde::Serialize;
 #[path = "__tests__/embedded_tests.rs"]
 mod tests;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct IntegrationView {
 	pub id: String,
 	pub name: String,
@@ -19,7 +20,7 @@ pub struct IntegrationView {
 	pub revoked: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct WorkerView {
 	pub id: String,
 	pub name: String,
@@ -28,7 +29,7 @@ pub struct WorkerView {
 	pub revoked: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct EmbeddedView {
 	pub project_id: i32,
 	pub integrations: Vec<IntegrationView>,
@@ -40,7 +41,7 @@ pub struct EmbeddedView {
 	pub assistant_enabled: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct EmbeddedReceipt {
 	pub message: String,
 	pub credential: Option<String>,
@@ -53,7 +54,8 @@ fn required(value: Option<&str>) -> Result<&str, server_fn::ServerFnError> {
 		.ok_or_else(|| server_fn::ServerFnError::new("Complete the required fields."))
 }
 
-#[server]
+#[api(crate = "leptoskit_rpc", tag = "embedded")]
+#[server(endpoint = "embedded_console")]
 pub async fn embedded_console(
 	organization: String,
 	project: String,
@@ -138,7 +140,8 @@ pub async fn embedded_console(
 
 // Leptos maps individual named form fields to server arguments.
 #[allow(clippy::too_many_arguments)]
-#[server]
+#[api(crate = "leptoskit_rpc", tag = "embedded")]
+#[server(endpoint = "embedded_action")]
 pub async fn embedded_action(
 	organization: String,
 	project: String,

@@ -5,28 +5,16 @@
 mod tests;
 
 use leptos::server;
-use serde::Deserialize;
-use serde::Serialize;
-
-/// Whether the current visitor can connect repositories through the GitHub App.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum RepositoryConnectionStatus {
-	/// The visitor must establish a website session before connecting repositories.
-	SignedOut,
-	/// This deployment has no configured GitHub App.
-	Unavailable,
-	/// GitHub has confirmed the configured app's installation page.
-	Available {
-		/// Trusted GitHub page where the user chooses an account and repositories.
-		installation_url: String,
-	},
-}
+use leptoskit_rpc::api;
+pub use monochange_shared::PermissionUpdate;
+pub use monochange_shared::RepositoryConnectionStatus;
 
 /// Resolve repository setup without exposing app credentials or installation tokens.
 ///
 /// # Errors
 /// Returns an error for an invalid session or a failed configured-app lookup.
-#[server]
+#[api(crate = "leptoskit_rpc", tag = "installation")]
+#[server(endpoint = "repository_connection")]
 pub async fn repository_connection() -> Result<RepositoryConnectionStatus, server_fn::ServerFnError>
 {
 	use std::sync::Arc;
@@ -72,18 +60,6 @@ pub async fn repository_connection() -> Result<RepositoryConnectionStatus, serve
 	})
 }
 
-/// A connected account whose GitHub App installation hasn't approved the
-/// app's current permissions.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct PermissionUpdate {
-	/// The GitHub account login, e.g. `monochange`.
-	pub account: String,
-	/// GitHub page where an owner of the account reviews the request.
-	pub review_url: String,
-	/// The missing access, e.g. `Actions: write (now none), Checks: write (now read)`.
-	pub missing: String,
-}
-
 /// Connected accounts whose installation still runs on older permissions.
 ///
 /// GitHub keeps every installation on the permissions it accepted until an
@@ -94,7 +70,8 @@ pub struct PermissionUpdate {
 ///
 /// # Errors
 /// Returns an error for an invalid session or an unverifiable organisation.
-#[server]
+#[api(crate = "leptoskit_rpc", tag = "installation")]
+#[server(endpoint = "permission_updates")]
 pub async fn permission_updates() -> Result<Vec<PermissionUpdate>, server_fn::ServerFnError> {
 	use std::sync::Arc;
 

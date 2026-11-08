@@ -117,16 +117,19 @@ async fn similar_to_draft(
 
 /// Points at existing requests a draft resembles, so the visitor can vote
 /// instead of filing a duplicate.
-fn similar_notice(matches: Vec<SimilarItem>) -> Option<AnyView> {
-	(!matches.is_empty()).then(|| {
-		view! {
-			<div class="portal-similar" aria-live="polite">
-				<p>"Looks familiar — you can vote for these on the roadmap instead"</p>
-				<ul>{matches.into_iter().map(|item| view! { <li><a href=format!("#item-{}", item.id)>{with_redaction_bars(&item.title)}</a><span class="chip">{format!("{} votes", item.votes)}</span></li> }).collect::<Vec<_>>()}</ul>
-			</div>
-		}
-		.into_any()
-	})
+#[component]
+fn SimilarNotice(matches: Vec<SimilarItem>) -> impl IntoView {
+	if matches.is_empty() {
+		return ().into_any();
+	}
+
+	view! {
+		<div class="portal-similar" aria-live="polite">
+			<p>"Looks familiar — you can vote for these on the roadmap instead"</p>
+			<ul>{matches.into_iter().map(|item| view! { <li><a href=format!("#item-{}", item.id)>{with_redaction_bars(&item.title)}</a><span class="chip">{format!("{} votes", item.votes)}</span></li> }).collect::<Vec<_>>()}</ul>
+		</div>
+	}
+	.into_any()
 }
 
 /// The editor's rendered preview, or nothing for an empty draft.
@@ -137,7 +140,8 @@ async fn preview_draft(text: Option<String>) -> Result<String, ServerFnError> {
 	}
 }
 
-fn preview_pane(result: Result<String, ServerFnError>) -> AnyView {
+#[component]
+fn PreviewPane(result: Result<String, ServerFnError>) -> impl IntoView {
 	match result {
 		Ok(html) if !html.is_empty() => {
 			view! { <div class="editor-preview book-prose" inner_html=html></div> }.into_any()
@@ -555,7 +559,8 @@ fn Thread(
 }
 
 /// The tracker under one of the visitor's items.
-fn tracker(stage: Stage) -> AnyView {
+#[component]
+fn PortalTracker(stage: Stage) -> impl IntoView {
 	let Some(current) = tracker_step(stage) else {
 		return view! { <p class="portal-closed">{monochange_app_feedback::roadmap::public_status_line(stage)}</p> }.into_any();
 	};
@@ -602,7 +607,7 @@ fn OwnRow(
 			<div class="portal-own-head"><span class="portal-id">{own.id.clone()}</span>{awaiting.then(|| view! { <span class="portal-needs-you">"Needs your answer"</span> })}</div>
 			<h4>{with_redaction_bars(&own.update.title)}</h4>
 			<p class="portal-status">{with_redaction_bars(&own.update.body)}</p>
-			{tracker(own.stage)}
+			<PortalTracker stage=own.stage />
 			{question}
 		</li>
 	}
@@ -635,7 +640,7 @@ fn ShareForm(
 			</fieldset>
 			<MarkdownEditor name="description" label="Tell us more" text=text set_text=set_text />
 			<Suspense fallback=|| ()>
-				{move || similar.get().and_then(Result::ok).and_then(similar_notice)}
+				{move || similar.get().and_then(Result::ok).map(|matches| view! { <SimilarNotice matches=matches /> })}
 			</Suspense>
 			{move || share.value().get().and_then(Result::err).map(|error| view! { <p class="form-error" role="alert">{action_error(&error)}</p> })}
 			<div class="portal-form-foot">
@@ -700,7 +705,7 @@ pub fn MarkdownEditor(
 				on:input=move |event| set_text.set(event_target_value(&event))
 			></textarea>
 			<Suspense fallback=|| view! { <p class="editor-preview" role="status">"Rendering preview…"</p> }>
-				{move || previewing.get().then(|| preview.get().map(preview_pane))}
+				{move || previewing.get().then(|| preview.get().map(|result| view! { <PreviewPane result=result /> }))}
 			</Suspense>
 		</div>
 	}

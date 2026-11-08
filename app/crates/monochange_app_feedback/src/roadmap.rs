@@ -20,6 +20,7 @@ use crate::submission::FeedbackKind;
 pub const TITLE_LIMIT: usize = 96;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum PublicStatus {
 	InProgress,
@@ -33,6 +34,7 @@ pub enum PublicStatus {
 /// the code has merged; before that an accepted item is planned, not
 /// scheduled.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(tag = "window", rename_all = "snake_case")]
 pub enum ShipWindow {
 	Released {
@@ -50,11 +52,13 @@ pub enum ShipWindow {
 /// The repository's release cadence as known by the release automation,
 /// such as `"v2.4 · around 21 October"`.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct CadenceSnapshot {
 	pub next_release_label: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct RoadmapEntry {
 	pub id: String,
 	pub kind: FeedbackKind,
@@ -67,6 +71,7 @@ pub struct RoadmapEntry {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct ShippedEntry {
 	pub id: String,
 	pub title: String,
@@ -75,6 +80,7 @@ pub struct ShippedEntry {
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct StatusFeed {
 	pub roadmap: Vec<RoadmapEntry>,
 	pub shipped: Vec<ShippedEntry>,
@@ -82,6 +88,7 @@ pub struct StatusFeed {
 
 /// An item the gate refused to publish. Maintainer-facing only.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Withheld {
 	pub id: String,
 	pub reason: String,
@@ -89,6 +96,7 @@ pub struct Withheld {
 
 /// The public feed plus the maintainer-side record of what was left out.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct FeedRender {
 	pub feed: StatusFeed,
 	pub withheld: Vec<Withheld>,

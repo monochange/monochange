@@ -10,17 +10,19 @@ license = "Unlicense"
 repository = "https://github.com/monochange/monochange"
 
 [workspace.dependencies]
-# Leptos v0.8
-leptos = { version = "0.8" }
-leptos_axum = "0.8"
-leptos_meta = "0.8"
-leptos_router = "0.8"
+# Leptos 0.9 matches leptoskit / leptoskit_rpc 0.3 (^0.9.0-rc0).
+leptos = { version = "0.9.0-rc1", default-features = false }
+leptos_axum = "0.9.0-rc1"
+leptos_meta = "0.9.0-rc1"
+leptos_router = { version = "0.9.0-rc1", default-features = false }
 
-# Server functions
-server_fn = "0.8"
+# Server functions (aligned with leptos 0.9)
+server_fn = { version = "0.9.0-rc1", default-features = false }
 
-# Utilities
-leptos-use = "0.16"
+# leptoskit SSR + RPC (crates.io 0.3)
+leptoskit = { version = "0.3", default-features = false }
+leptoskit_rpc = { version = "0.3", default-features = false }
+schemars = { version = "1.2", features = ["semver1"] }
 
 # Testing
 rstest = "0.27"
@@ -76,6 +78,7 @@ axum-extra = { version = "0.10", features = ["cookie"] }
 time = "0.3"
 
 # WASM
+any_spawner = { version = "0.3", default-features = false, features = ["wasm-bindgen"] }
 console_error_panic_hook = "0.1"
 console_log = "1"
 log = "0.4"
@@ -87,6 +90,8 @@ monochange_app_api = { path = "crates/monochange_app_api" }
 monochange_app_automation = { path = "crates/monochange_app_automation" }
 monochange_app_db = { path = "crates/monochange_app_db" }
 monochange_app_feedback = { path = "crates/monochange_app_feedback" }
+monochange_backend = { path = "crates/monochange_backend" }
+monochange_shared = { path = "crates/monochange_shared" }
 
 # monochange crates (path deps from parent workspace)
 monochange_core = { path = "../crates/monochange_core", version = "0.21.0" }

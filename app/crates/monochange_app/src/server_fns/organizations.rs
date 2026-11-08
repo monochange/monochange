@@ -9,68 +9,15 @@
 mod tests;
 
 use leptos::server;
-use serde::Deserialize;
-use serde::Serialize;
-
-use super::repos::RepoInfo;
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ProjectSummary {
-	pub slug: String,
-	pub name: String,
-	pub description: String,
-	pub repository_count: i64,
-}
-
-/// One connected account and what the user can do with it.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct OrganizationSummary {
-	pub login: String,
-	/// A personal account rather than a GitHub organisation.
-	pub personal: bool,
-	pub avatar_url: Option<String>,
-	/// Projects need the account's stable id. Installations recorded before
-	/// organisations existed get it from GitHub on first visit; until then
-	/// this is `false`.
-	pub supports_projects: bool,
-	pub repositories: Vec<RepoInfo>,
-	pub projects: Vec<ProjectSummary>,
-}
-
-impl OrganizationSummary {
-	pub fn path(&self) -> String {
-		organization_path(&self.login)
-	}
-}
-
-pub fn organization_path(login: &str) -> String {
-	format!("/dashboard/{login}")
-}
-
-pub fn project_path(organization: &str, project: &str) -> String {
-	format!("/dashboard/{organization}/projects/{project}")
-}
-
-pub fn feedback_console_path(organization: &str, project: &str) -> String {
-	format!("{}/feedback", project_path(organization, project))
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ProjectRepositoryView {
-	pub full_name: String,
-	/// `None` while the repository is disconnected from monochange.
-	pub private: Option<bool>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ProjectDetails {
-	pub organization: String,
-	pub personal: bool,
-	pub project: ProjectSummary,
-	pub repositories: Vec<ProjectRepositoryView>,
-	/// The organisation's accessible repositories, for editing the selection.
-	pub available: Vec<RepoInfo>,
-}
+use leptoskit_rpc::api;
+pub use monochange_shared::OrganizationSummary;
+pub use monochange_shared::ProjectDetails;
+pub use monochange_shared::ProjectRepositoryView;
+pub use monochange_shared::ProjectSummary;
+pub use monochange_shared::RepoInfo;
+pub use monochange_shared::feedback_console_path;
+pub use monochange_shared::organization_path;
+pub use monochange_shared::project_path;
 
 /// An organisation the user may manage, with its accessible repositories.
 #[cfg(not(target_arch = "wasm32"))]
@@ -347,7 +294,8 @@ pub(crate) async fn maintained_project(
 }
 
 /// The signed-in user's organisations with their repositories and projects.
-#[server]
+#[api(crate = "leptoskit_rpc", tag = "organizations")]
+#[server(endpoint = "list_organizations")]
 pub async fn list_organizations() -> Result<Vec<OrganizationSummary>, server_fn::ServerFnError> {
 	use std::sync::Arc;
 
@@ -365,7 +313,8 @@ pub async fn list_organizations() -> Result<Vec<OrganizationSummary>, server_fn:
 }
 
 /// One organisation, or `None` when it isn't the user's to manage.
-#[server]
+#[api(crate = "leptoskit_rpc", tag = "organizations")]
+#[server(endpoint = "organization_overview")]
 pub async fn organization_overview(
 	organization: String,
 ) -> Result<Option<OrganizationSummary>, server_fn::ServerFnError> {
@@ -381,7 +330,8 @@ pub async fn organization_overview(
 
 /// Creates a project from some of an organisation's repositories, then
 /// opens it.
-#[server]
+#[api(crate = "leptoskit_rpc", tag = "organizations")]
+#[server(endpoint = "create_project")]
 pub async fn create_project(
 	organization: String,
 	name: String,
@@ -406,12 +356,13 @@ pub async fn create_project(
 	monochange_app_db::projects::create_project(&state.db, record.id, user_id, &draft)
 		.await
 		.map_err(store_error)?;
-	leptos_axum::redirect(&project_path(&access.login, &draft.slug));
+	leptos_axum::redirect(&project_path(&access.login, &draft.slug), false);
 	Ok(())
 }
 
 /// A project with its repositories, or `None` when it isn't the user's.
-#[server]
+#[api(crate = "leptoskit_rpc", tag = "organizations")]
+#[server(endpoint = "project_overview")]
 pub async fn project_overview(
 	organization: String,
 	project: String,
@@ -462,7 +413,8 @@ pub async fn project_overview(
 }
 
 /// Renames a project or changes its repositories.
-#[server]
+#[api(crate = "leptoskit_rpc", tag = "organizations")]
+#[server(endpoint = "update_project")]
 pub async fn update_project(
 	organization: String,
 	project: String,
@@ -492,12 +444,13 @@ pub async fn update_project(
 	monochange_app_db::projects::update_project(&state.db, existing.id, &draft)
 		.await
 		.map_err(store_error)?;
-	leptos_axum::redirect(&project_path(&access.login, &draft.slug));
+	leptos_axum::redirect(&project_path(&access.login, &draft.slug), false);
 	Ok(())
 }
 
 /// Deletes a project. Its repositories stay connected to monochange.
-#[server]
+#[api(crate = "leptoskit_rpc", tag = "organizations")]
+#[server(endpoint = "delete_project")]
 pub async fn delete_project(
 	organization: String,
 	project: String,
@@ -516,6 +469,6 @@ pub async fn delete_project(
 	monochange_app_db::projects::delete_project(&state.db, existing.id)
 		.await
 		.map_err(database_error)?;
-	leptos_axum::redirect(&organization_path(&access.login));
+	leptos_axum::redirect(&organization_path(&access.login), false);
 	Ok(())
 }

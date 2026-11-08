@@ -2,12 +2,36 @@
 
 schema_version = 0
 
-# Website UI lint gate only. Keep this file free of [app]/[build] until the
-# SSR port owns full leptoskit config; cargo-leptos still reads
-# [package.metadata.leptos] in crates/monochange_app/Cargo.toml.
+# monochange.dev website: Leptos SSR + hydrate, nested under app/.
+# Prefer `leptoskit dev` / `leptoskit build` when the CLI is installed; keep
+# `cargo leptos` as a fallback until CI and Docker switch fully.
 #
-# Sibling surfaces (extension/, app/native/, …) copy the same `[lint]` block
-# into their own leptoskit.toml. See docs/agents/tooling.md.
+# Sibling surfaces (extension/, app/native/, …) copy the same `[lint]` /
+# `[lint.rules]` block into their own leptoskit.toml. See docs/agents/tooling.md.
+
+[app]
+name = "monochange_app"
+version = "0.3.3"
+default_platform = "web"
+platforms = ["web"]
+render = "ssr"
+
+[serve]
+address = "0.0.0.0"
+port = 3000
+
+[build]
+# UI crate: screens, routes, hydrate entry (cdylib + lib).
+client_package = "monochange_app"
+features = []
+rustflags = []
+
+[bundle]
+# Match the existing cargo-leptos split routes (`#[lazy_route]`).
+optimize = "size"
+split = true
+wasm_opt = true
+precompress = true
 
 [lint]
 # Prefer view! markup over builder trees for human-authored UI.
@@ -20,3 +44,15 @@ clippy = true
 # Always #[component], always view! XML, PascalCase components.
 component_attribute = "deny"
 markup_style = "deny"
+
+# Product RPCs: annotate `#[server]` with leptoskit_rpc `#[api]` as the Leptos
+# 0.9 upgrade lands. Machine Class B routes stay on Axum via monochange_backend.
+[rpc]
+title = "monochange"
+servers = ["https://monochange.dev"]
+exclude = []
+include_internal = false
+targets = []
+
+[codepush]
+enabled = false

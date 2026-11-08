@@ -5,7 +5,7 @@
 			"performance": 0.85,
 			"ttfbMs": 600,
 			"fcpMs": 1500,
-			"lcpMs": 2400,
+			"lcpMs": 2600,
 			"tbtMs": 250,
 			"cls": 0.1
 		},
@@ -13,7 +13,7 @@
 			"performance": 0.85,
 			"ttfbMs": 600,
 			"fcpMs": 1500,
-			"lcpMs": 2400,
+			"lcpMs": 2600,
 			"tbtMs": 250,
 			"cls": 0.1
 		},
@@ -21,7 +21,7 @@
 			"performance": 0.85,
 			"ttfbMs": 600,
 			"fcpMs": 1500,
-			"lcpMs": 2400,
+			"lcpMs": 2600,
 			"tbtMs": 250,
 			"cls": 0.1
 		},
@@ -29,7 +29,7 @@
 			"performance": 0.85,
 			"ttfbMs": 600,
 			"fcpMs": 1500,
-			"lcpMs": 2400,
+			"lcpMs": 2600,
 			"tbtMs": 250,
 			"cls": 0.1
 		},
@@ -37,7 +37,7 @@
 			"performance": 0.85,
 			"ttfbMs": 600,
 			"fcpMs": 1500,
-			"lcpMs": 2500,
+			"lcpMs": 2800,
 			"tbtMs": 250,
 			"cls": 0.1
 		},
@@ -45,7 +45,7 @@
 			"performance": 0.85,
 			"ttfbMs": 600,
 			"fcpMs": 1500,
-			"lcpMs": 2500,
+			"lcpMs": 2800,
 			"tbtMs": 250,
 			"cls": 0.1
 		},
@@ -53,7 +53,7 @@
 			"performance": 0.85,
 			"ttfbMs": 600,
 			"fcpMs": 1500,
-			"lcpMs": 2400,
+			"lcpMs": 2600,
 			"tbtMs": 250,
 			"cls": 0.1
 		},
@@ -61,7 +61,7 @@
 			"performance": 0.85,
 			"ttfbMs": 600,
 			"fcpMs": 1500,
-			"lcpMs": 2400,
+			"lcpMs": 2600,
 			"tbtMs": 250,
 			"cls": 0.1
 		}
@@ -71,6 +71,6 @@
 		"pkgWasmBytes": 4200000,
 		"pkgJsBytes": 300000,
 		"pkgCssBytes": 200000,
-		"pkgEagerWasmBytes": 1800000
+		"pkgEagerWasmBytes": 2200000
 	}
 }

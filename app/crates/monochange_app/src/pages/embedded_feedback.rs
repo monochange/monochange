@@ -27,7 +27,7 @@ pub fn EmbeddedFeedbackPanel(organization: String, project: String) -> impl Into
 	view! {
 		<section class="repository-section" aria-labelledby="embedded-feedback-heading">
 			<h2 id="embedded-feedback-heading">"Website and app feedback"</h2>
-			{move || action_notice(action.value().get())}
+			{move || view! { <ActionNotice result=action.value().get() /> }}
 
 			<Suspense fallback=|| view! { <p>"Loading integrations and plans…"</p> }>
 				{move || data.get().map(|result| match result {
@@ -40,13 +40,13 @@ pub fn EmbeddedFeedbackPanel(organization: String, project: String) -> impl Into
 	}
 }
 
-fn action_notice(
-	result: Option<Result<EmbeddedReceipt, server_fn::ServerFnError>>,
-) -> impl IntoView {
-	result.map(|result| match result {
-  Ok(receipt) => view! { <div role="status"><p>{receipt.message}</p>{receipt.credential.map(|token| view! { <pre class="command-block"><code>{token}</code></pre> })}</div> }.into_any(),
-  Err(error) => view! { <p role="alert" class="form-error">{error.to_string()}</p> }.into_any(),
- })
+#[component]
+fn ActionNotice(result: Option<Result<EmbeddedReceipt, ServerFnError>>) -> impl IntoView {
+	match result {
+		Some(Ok(receipt)) => view! { <div role="status"><p>{receipt.message}</p>{receipt.credential.map(|token| view! { <pre class="command-block"><code>{token}</code></pre> })}</div> }.into_any(),
+		Some(Err(error)) => view! { <p role="alert" class="form-error">{error.to_string()}</p> }.into_any(),
+		None => ().into_any(),
+	}
 }
 
 #[component]

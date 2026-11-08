@@ -234,10 +234,7 @@ async fn server_functions_reject_with_an_error_the_leptos_client_decodes() {
 
 	assert_eq!(rejected.status(), StatusCode::TOO_MANY_REQUESTS);
 	assert_eq!(header_value(&rejected, "retry-after"), Some("1"));
-	assert_eq!(
-		header_value(&rejected, "content-type"),
-		Some("text/plain; charset=utf-8")
-	);
+	assert_eq!(header_value(&rejected, "content-type"), Some("text/plain"));
 	let body = body(rejected).await;
 	assert_eq!(
 		body,

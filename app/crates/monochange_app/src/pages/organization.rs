@@ -12,7 +12,7 @@ use crate::components::repository_list::RepositoryFilters;
 use crate::components::repository_list::RepositoryPager;
 use crate::components::repository_list::RepositoryPicker;
 use crate::components::repository_list::use_repository_filter;
-use crate::pages::dashboard::organization_avatar;
+use crate::pages::dashboard::OrganizationAvatar;
 use crate::projects::MAX_DESCRIPTION_CHARS;
 use crate::projects::MAX_NAME_CHARS;
 use crate::repository_filter::count_matches;
@@ -91,7 +91,7 @@ fn OrganizationContent(organization: OrganizationSummary) -> impl IntoView {
 	view! {
 		<nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/dashboard">"Workspace"</a><span aria-hidden="true">"/"</span><span aria-current="page">{login.clone()}</span></nav>
 		<div class="workspace-heading">
-			{organization_avatar(&login, organization.avatar_url.clone())}
+			<OrganizationAvatar login=login.clone() avatar_url=organization.avatar_url.clone() />
 			<div><h1>{login.clone()}</h1><p>{kind} " · " {organization.repositories.len()} " connected repositories"</p></div>
 		</div>
 		<section class="repository-section" aria-labelledby="projects-title">

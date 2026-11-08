@@ -32,6 +32,7 @@ use crate::triage::screen_untrusted;
 pub const REDACTED: &str = "[redacted]";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum RepositoryVisibility {
 	Public,
@@ -40,6 +41,7 @@ pub enum RepositoryVisibility {
 
 /// Who reads a piece of generated text. See the module docs for the matrix.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum Surface {
 	Portal,
@@ -48,6 +50,7 @@ pub enum Surface {
 
 /// Why a token must not appear on some surface.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum Sensitivity {
 	InternalPath,
@@ -86,6 +89,7 @@ impl Sensitivity {
 /// What an outbound portal update may reveal beyond the redaction matrix.
 /// Derived from repository visibility so no call site can forget it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct DisclosurePolicy {
 	pub visibility: RepositoryVisibility,
 	pub share_issue_links: bool,
@@ -106,6 +110,7 @@ impl DisclosurePolicy {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(tag = "type", content = "url", rename_all = "snake_case")]
 pub enum PublicLink {
 	Issue(String),
@@ -116,6 +121,7 @@ pub enum PublicLink {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct OutboundDraft {
 	pub title: String,
 	pub body: String,
@@ -125,6 +131,7 @@ pub struct OutboundDraft {
 
 /// A portal update that has passed the gate.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct OutboundUpdate {
 	pub title: String,
 	pub body: String,
@@ -140,6 +147,7 @@ pub enum DisclosureError {
 
 /// Text after redaction, plus what was removed so maintainers can see why.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Redaction {
 	pub text: String,
 	pub removed: Vec<Sensitivity>,

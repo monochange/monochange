@@ -1,32 +1,14 @@
 //! Website-owned presentation of monochange's structured release notes.
 
 use leptos::server;
-use serde::Deserialize;
-use serde::Serialize;
-
-/// A published website version and its user-facing sections.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct WebsiteRelease {
-	pub version: String,
-	pub summary: Vec<String>,
-	pub sections: Vec<WebsiteSection>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct WebsiteSection {
-	pub title: String,
-	pub entries: Vec<WebsiteEntry>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct WebsiteEntry {
-	pub summary: String,
-	/// Sanitized on the server before crossing the rendering boundary.
-	pub details_html: String,
-}
+use leptoskit_rpc::api;
+pub use monochange_shared::WebsiteEntry;
+pub use monochange_shared::WebsiteRelease;
+pub use monochange_shared::WebsiteSection;
 
 /// Load the release artifacts shipped with this application image.
-#[server]
+#[api(crate = "leptoskit_rpc", tag = "releases")]
+#[server(endpoint = "get_website_releases")]
 pub async fn get_website_releases() -> Result<Vec<WebsiteRelease>, server_fn::ServerFnError> {
 	let site = std::env::var_os("LEPTOS_SITE_ROOT").map_or_else(
 		|| std::path::PathBuf::from("target/site"),

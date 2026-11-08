@@ -5,6 +5,7 @@
 mod tests;
 
 use leptos::server;
+use leptoskit_rpc::api;
 use monochange_app_feedback::FeedbackItem;
 use monochange_app_feedback::RepositoryVisibility;
 use monochange_app_feedback::SimilarItem;
@@ -13,7 +14,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 /// What a maintainer can do to an item right now.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ConsoleAction {
 	Resume,
@@ -119,7 +120,7 @@ pub fn console_actions(item: &FeedbackItem) -> Vec<ConsoleAction> {
 	}
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ConsoleItem {
 	pub item: FeedbackItem,
 	/// The title users see, or `None` while the item isn't listed.
@@ -139,7 +140,7 @@ pub struct ConsoleItem {
 
 /// A shared task as its maintainer sees it, already worded on the server so
 /// the console's eager bundle carries no task model or screening messages.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ConsoleTask {
 	pub id: String,
 	pub title: String,
@@ -151,7 +152,7 @@ pub struct ConsoleTask {
 	pub withdrawable: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct ConsoleView {
 	pub organization: String,
 	pub project_name: String,
@@ -344,7 +345,8 @@ fn console_view(
 }
 
 /// The project's feedback for its maintainer, or `None` when it isn't theirs.
-#[server]
+#[api(crate = "leptoskit_rpc", tag = "feedback")]
+#[server(endpoint = "feedback_console")]
 pub async fn feedback_console(
 	organization: String,
 	project: String,
@@ -365,7 +367,8 @@ pub async fn feedback_console(
 
 /// One maintainer decision on an item. Fields not used by `action` are
 /// ignored; empty fields count as missing.
-#[server]
+#[api(crate = "leptoskit_rpc", tag = "feedback")]
+#[server(endpoint = "feedback_action")]
 #[allow(clippy::too_many_arguments)]
 pub async fn feedback_action(
 	organization: String,
@@ -448,7 +451,8 @@ pub async fn feedback_action(
 }
 
 /// Posts a maintainer reply to an item's discussion.
-#[server]
+#[api(crate = "leptoskit_rpc", tag = "feedback")]
+#[server(endpoint = "maintainer_reply")]
 pub async fn maintainer_reply(
 	organization: String,
 	project: String,
@@ -472,7 +476,8 @@ pub async fn maintainer_reply(
 }
 
 /// Opts the project into, or out of, the shared compute experiment.
-#[server]
+#[api(crate = "leptoskit_rpc", tag = "feedback")]
+#[server(endpoint = "set_shared_compute")]
 pub async fn set_shared_compute(
 	organization: String,
 	project: String,
@@ -501,7 +506,8 @@ fn lines(text: &str) -> Vec<String> {
 
 /// Shares an accepted item with contributors as a task. A task that fails
 /// screening is kept, with its reasons, and never lists.
-#[server]
+#[api(crate = "leptoskit_rpc", tag = "feedback")]
+#[server(endpoint = "share_task")]
 pub async fn share_task(
 	organization: String,
 	project: String,
@@ -538,7 +544,8 @@ pub async fn share_task(
 }
 
 /// Takes a shared task down.
-#[server]
+#[api(crate = "leptoskit_rpc", tag = "feedback")]
+#[server(endpoint = "withdraw_task")]
 pub async fn withdraw_task(
 	organization: String,
 	project: String,

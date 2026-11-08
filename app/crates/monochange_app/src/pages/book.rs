@@ -29,18 +29,25 @@ impl LazyRoute for BookRoute {
 
 	fn view(this: Self) -> AnyView {
 		let BookRoute { chapter } = this;
-		view! {
-			<div class="site-width book-layout">
-				<Suspense fallback=|| view! { <p role="status">"Loading the book…"</p> }>
-					{move || chapter.get().map(book_page)}
-				</Suspense>
-			</div>
-		}
-		.into_any()
+		book_route_view(chapter)
 	}
 }
 
-fn book_page(result: Result<Option<BookPage>, server_fn::ServerFnError>) -> AnyView {
+fn book_route_view(
+	chapter: Resource<Result<Option<BookPage>, server_fn::ServerFnError>>,
+) -> AnyView {
+	view! {
+		<div class="site-width book-layout">
+			<Suspense fallback=|| view! { <p role="status">"Loading the book…"</p> }>
+				{move || chapter.get().map(|result| view! { <BookPageView result=result /> })}
+			</Suspense>
+		</div>
+	}
+	.into_any()
+}
+
+#[component]
+fn BookPageView(result: Result<Option<BookPage>, ServerFnError>) -> impl IntoView {
 	match result {
 		Err(_) => {
 			view! { <p role="alert">"The book is unavailable right now. Please try again."</p> }
