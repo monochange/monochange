@@ -93,7 +93,11 @@ monochange_core = { path = "../crates/monochange_core", version = "0.21.0" }
 monochange_github = { path = "../crates/monochange_github", version = "0.21.0" }
 monochange_hosting = { path = "../crates/monochange_hosting", version = "0.21.0" }
 
-# cargo-leptos metadata
+# cargo-leptos loads [[workspace.metadata.leptos]] arrays only. This object
+# form is intentionally ignored; live config is [package.metadata.leptos] in
+# crates/monochange_app/Cargo.toml (site-root = "target/site"). Do not convert
+# this table to an array with site-root under crates/ — cargo-leptos erases
+# site-root on every build.
 [workspace.metadata.leptos]
 name = "monochange_app"
 bin-name = "monochange_app"
@@ -101,7 +105,7 @@ bin-package = "monochange_app"
 lib-name = "monochange_app"
 lib-package = "monochange_app"
 bin-repository = "https://github.com/monochange/monochange"
-site-root = "crates/monochange_app"
+site-root = "target/site"
 site-pkg-dir = "pkg"
 assets-dir = "public"
 style-file = "style/output.css"

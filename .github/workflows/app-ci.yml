@@ -97,8 +97,26 @@ jobs:
           GITHUB_CLIENT_ID: "ci-test-client-id"
           GITHUB_CLIENT_SECRET: "ci-test-client-secret"
 
+      # Preinstall the standalone CLI so cargo-leptos uses PATH instead of its
+      # download cache (which has failed here with spawn ENOENT after install).
+      - name: install tailwindcss
+        run: |
+          set -euo pipefail
+          arch="$(dpkg --print-architecture)"
+          case "$arch" in
+            amd64) tw_arch=x64 ;;
+            arm64) tw_arch=arm64 ;;
+            *) echo "unsupported architecture: $arch" >&2; exit 1 ;;
+          esac
+          curl -fsSLO "https://github.com/tailwindlabs/tailwindcss/releases/download/v4.2.1/tailwindcss-linux-${tw_arch}"
+          chmod +x "tailwindcss-linux-${tw_arch}"
+          sudo mv "tailwindcss-linux-${tw_arch}" /usr/local/bin/tailwindcss
+          tailwindcss --help >/dev/null
+
       - name: cargo leptos build
-        run: cargo leptos build
+        # Explicit package manifest matches app/README and keeps site paths on
+        # [package.metadata.leptos] (site-root = target/site).
+        run: cargo leptos --manifest-path crates/monochange_app/Cargo.toml build
 
   app-coverage:
     timeout-minutes: 60
@@ -269,9 +287,23 @@ jobs:
             pnpm --version
           } | tee /tmp/website-build-provenance.txt
 
+      - name: install tailwindcss
+        run: |
+          set -euo pipefail
+          arch="$(dpkg --print-architecture)"
+          case "$arch" in
+            amd64) tw_arch=x64 ;;
+            arm64) tw_arch=arm64 ;;
+            *) echo "unsupported architecture: $arch" >&2; exit 1 ;;
+          esac
+          curl -fsSLO "https://github.com/tailwindlabs/tailwindcss/releases/download/v4.2.1/tailwindcss-linux-${tw_arch}"
+          chmod +x "tailwindcss-linux-${tw_arch}"
+          sudo mv "tailwindcss-linux-${tw_arch}" /usr/local/bin/tailwindcss
+          tailwindcss --help >/dev/null
+
       - name: build release site
         working-directory: app
-        run: cargo leptos build --release --split
+        run: cargo leptos --manifest-path crates/monochange_app/Cargo.toml build --release --split
 
       - name: check website bundle size
         run: |

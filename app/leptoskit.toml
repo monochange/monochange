@@ -1,0 +1,22 @@
+#:schema https://leptoskit.dev/schemas/leptoskit.v0.schema.json
+
+schema_version = 0
+
+# Website UI lint gate only. Keep this file free of [app]/[build] until the
+# SSR port owns full leptoskit config; cargo-leptos still reads
+# [package.metadata.leptos] in crates/monochange_app/Cargo.toml.
+#
+# Sibling surfaces (extension/, app/native/, …) copy the same `[lint]` block
+# into their own leptoskit.toml. See docs/agents/tooling.md.
+
+[lint]
+# Prefer view! markup over builder trees for human-authored UI.
+markup = "view"
+# Workspace `lint:clippy` already denies warnings; lint:leptoskit passes
+# `--no-clippy` so this flag only matters for a bare `leptoskit lint` run.
+clippy = true
+
+[lint.rules]
+# Always #[component], always view! XML, PascalCase components.
+component_attribute = "deny"
+markup_style = "deny"

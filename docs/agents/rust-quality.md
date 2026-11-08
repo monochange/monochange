@@ -7,6 +7,7 @@ Use this guide when writing or refactoring Rust in monochange. It internalizes t
 - `unsafe_code` is denied.
 - `unstable_features` is denied.
 - Keep formatting and clippy checks passing.
+- For Leptos / leptoskit UI crates, keep `lint:leptoskit` passing: components use `#[component]`, PascalCase names, and `view!` markup (`markup = "view"` in the nearest `leptoskit.toml`).
 - Run `fix:all` after Rust changes, then run the relevant validation commands.
 - Return `Result` for expected failures instead of panicking.
 - Do not use `.unwrap()` in production code.
