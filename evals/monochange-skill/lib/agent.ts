@@ -11,7 +11,7 @@
 //    operator's personal settings, hooks, and plugins out of the run, and
 //    `--strict-mcp-config` keeps their MCP servers out.
 
-import { spawn } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import process from "node:process";
@@ -121,6 +121,160 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 	return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
+/// Mutable evidence accumulated while reading transcript records.
+interface TranscriptState {
+	parts: string[];
+	commands: string[];
+	usage: RunUsage;
+	finalMessage: string;
+	completed: boolean;
+	error: string | undefined;
+	runtimeVersion: string | undefined;
+	effectiveModel: string | undefined;
+}
+
+/// Record the initialization banner that names the runtime and effective model.
+function readInitRecord(record: Record<string, unknown>, state: TranscriptState): void {
+	const version = record["claude_code_version"];
+
+	if (typeof version === "string") state.runtimeVersion = version;
+
+	const model = record["model"];
+
+	if (typeof model === "string") state.effectiveModel = model;
+}
+
+/// Record a tool invocation; only Bash inputs are graded as submitted commands.
+function readToolUse(block: Record<string, unknown>, state: TranscriptState): void {
+	const input = block["input"];
+	const serialized = typeof input === "string" ? input : JSON.stringify(input ?? "");
+	const name = typeof block["name"] === "string" ? block["name"] : "";
+	state.parts.push(name ? `${name} ${serialized}` : serialized);
+
+	if (name !== "Bash") {
+		return;
+	}
+
+	if (typeof input === "string") {
+		state.commands.push(input);
+
+		return;
+	}
+
+	if (isRecord(input) && typeof input["command"] === "string")
+		state.commands.push(input["command"]);
+}
+
+/// Record one assistant content block, which is either authored text or a tool call.
+function readContentBlock(block: unknown, state: TranscriptState, texts: string[]): void {
+	if (!isRecord(block)) {
+		return;
+	}
+
+	if (block["type"] === "text" && typeof block["text"] === "string") {
+		state.parts.push(block["text"]);
+		texts.push(block["text"]);
+	}
+
+	if (block["type"] === "tool_use") readToolUse(block, state);
+}
+
+/// Record one assistant turn whose text becomes the latest candidate final message.
+function readAssistantRecord(record: Record<string, unknown>, state: TranscriptState): void {
+	const message = record["message"];
+
+	if (!isRecord(message)) {
+		return;
+	}
+
+	const content = message["content"];
+
+	if (!Array.isArray(content)) {
+		return;
+	}
+
+	state.usage.turns += 1;
+	const texts: string[] = [];
+
+	for (const block of content) {
+		readContentBlock(block, state, texts);
+	}
+
+	state.finalMessage = texts.join("\n");
+}
+
+/// Apply the token counts a terminal record reports over the running totals.
+function readReportedUsage(reported: unknown, usage: RunUsage): void {
+	if (!isRecord(reported)) {
+		return;
+	}
+
+	for (const [field, key] of [
+		["inputTokens", "input_tokens"],
+		["outputTokens", "output_tokens"],
+		["cacheReadTokens", "cache_read_input_tokens"],
+		["cacheCreationTokens", "cache_creation_input_tokens"],
+	] as const) {
+		const value = reported[key];
+
+		if (typeof value === "number") usage[field] = value;
+	}
+}
+
+/// Record the terminal result, which finalizes usage and any runtime error.
+function readResultRecord(record: Record<string, unknown>, state: TranscriptState): void {
+	state.completed = true;
+	readReportedUsage(record["usage"], state.usage);
+
+	const result = record["result"];
+
+	if (typeof result === "string") state.finalMessage = result;
+
+	const cost = record["total_cost_usd"];
+
+	if (typeof cost === "number") state.usage.costUsd = cost;
+
+	const turns = record["num_turns"];
+
+	if (typeof turns === "number") state.usage.turns = turns;
+
+	if (record["subtype"] !== "success" || record["is_error"] !== false) {
+		state.error = `agent runtime error: ${JSON.stringify(record["errors"] ?? result ?? record["subtype"])}`;
+	}
+}
+
+/// Dispatch one transcript line; unparseable banners and unknown records carry no evidence.
+function readTranscriptLine(line: string, state: TranscriptState): void {
+	let record: unknown;
+
+	try {
+		record = JSON.parse(line);
+	} catch {
+		// A runtime banner is not an assistant-authored transcript record.
+		return;
+	}
+
+	if (!isRecord(record)) {
+		return;
+	}
+
+	const type = record["type"];
+
+	if (type === "system" && record["subtype"] === "init") {
+		readInitRecord(record, state);
+
+		return;
+	}
+
+	if (type === "assistant") {
+		readAssistantRecord(record, state);
+
+		return;
+	}
+
+	if (type === "result") readResultRecord(record, state);
+}
+
 /// Parse saved and live transcripts identically; tool results never count as agent evidence.
 export function parseAgentTranscript(
 	stdout: string,
@@ -135,118 +289,39 @@ export function parseAgentTranscript(
 	| "runtimeVersion"
 	| "effectiveModel"
 > {
-	const parts: string[] = [];
-	const commands: string[] = [];
-	const usage: RunUsage = {
-		inputTokens: 0,
-		outputTokens: 0,
-		cacheReadTokens: 0,
-		cacheCreationTokens: 0,
-		costUsd: 0,
-		turns: 0,
+	const state: TranscriptState = {
+		parts: [],
+		commands: [],
+		usage: {
+			inputTokens: 0,
+			outputTokens: 0,
+			cacheReadTokens: 0,
+			cacheCreationTokens: 0,
+			costUsd: 0,
+			turns: 0,
+		},
+		finalMessage: "",
+		completed: false,
+		error: undefined,
+		runtimeVersion: undefined,
+		effectiveModel: undefined,
 	};
-	let finalMessage = "";
-	let completed = false;
-	let error: string | undefined;
-	let runtimeVersion: string | undefined;
-	let effectiveModel: string | undefined;
 
 	for (const line of stdout.split("\n")) {
-		let record: unknown;
-
-		try {
-			record = JSON.parse(line);
-		} catch {
-			// A runtime banner is not an assistant-authored transcript record.
-			continue;
-		}
-
-		if (!isRecord(record)) {
-			continue;
-		}
-
-		if (record["type"] === "system" && record["subtype"] === "init") {
-			if (typeof record["claude_code_version"] === "string")
-				runtimeVersion = record["claude_code_version"];
-
-			if (typeof record["model"] === "string") effectiveModel = record["model"];
-		}
-
-		if (record["type"] === "assistant" && isRecord(record["message"])) {
-			const content = record["message"]["content"];
-
-			if (!Array.isArray(content)) {
-				continue;
-			}
-
-			usage.turns += 1;
-			const texts: string[] = [];
-
-			for (const block of content) {
-				if (!isRecord(block)) {
-					continue;
-				}
-
-				if (block["type"] === "text" && typeof block["text"] === "string") {
-					parts.push(block["text"]);
-					texts.push(block["text"]);
-				}
-
-				if (block["type"] === "tool_use") {
-					const input = block["input"];
-					const serialized = typeof input === "string" ? input : JSON.stringify(input ?? "");
-					const name = typeof block["name"] === "string" ? block["name"] : "";
-					parts.push(name ? `${name} ${serialized}` : serialized);
-
-					if (name === "Bash") {
-						if (typeof input === "string") commands.push(input);
-						else if (isRecord(input) && typeof input["command"] === "string")
-							commands.push(input["command"]);
-					}
-				}
-			}
-
-			finalMessage = texts.join("\n");
-		}
-
-		if (record["type"] === "result") {
-			completed = true;
-			const reported = record["usage"];
-
-			if (isRecord(reported)) {
-				for (const [field, key] of [
-					["inputTokens", "input_tokens"],
-					["outputTokens", "output_tokens"],
-					["cacheReadTokens", "cache_read_input_tokens"],
-					["cacheCreationTokens", "cache_creation_input_tokens"],
-				] as const) {
-					const value = reported[key];
-
-					if (typeof value === "number") usage[field] = value;
-				}
-			}
-
-			if (typeof record["result"] === "string") finalMessage = record["result"];
-
-			if (typeof record["total_cost_usd"] === "number") usage.costUsd = record["total_cost_usd"];
-
-			if (typeof record["num_turns"] === "number") usage.turns = record["num_turns"];
-
-			if (record["subtype"] !== "success" || record["is_error"] !== false) {
-				error = `agent runtime error: ${JSON.stringify(record["errors"] ?? record["result"] ?? record["subtype"])}`;
-			}
-		}
+		readTranscriptLine(line, state);
 	}
 
 	return {
-		transcript: parts.join("\n"),
-		commands: commands.join("\n"),
-		commandInputs: commands,
-		finalMessage,
-		usage,
-		runtimeVersion,
-		effectiveModel,
-		error: error ?? (completed ? undefined : "agent transcript has no terminal result record"),
+		transcript: state.parts.join("\n"),
+		commands: state.commands.join("\n"),
+		commandInputs: state.commands,
+		finalMessage: state.finalMessage,
+		usage: state.usage,
+		runtimeVersion: state.runtimeVersion,
+		effectiveModel: state.effectiveModel,
+		error:
+			state.error ??
+			(state.completed ? undefined : "agent transcript has no terminal result record"),
 	};
 }
 
@@ -289,15 +364,8 @@ export function readSavedAgent(directory: string): AgentRunResult {
 	};
 }
 
-/// Run one headless agent session and return its transcript.
-export async function runAgent(options: AgentRunOptions): Promise<AgentRunResult> {
-	const startedAt = Date.now();
-	prepareSkill(options.workdir, options.skillVariant, options.skillSource);
-
-	// Transcripts are saved under the results tree; the real HOME is left
-	// untouched so the runtime resolves its own credentials normally.
-	mkdirSync(options.transcriptDir, { recursive: true });
-
+/// Build the headless runtime arguments; only an appended system prompt is optional.
+function agentArguments(options: AgentRunOptions): string[] {
 	const args = [
 		"-p",
 		options.prompt,
@@ -315,12 +383,84 @@ export async function runAgent(options: AgentRunOptions): Promise<AgentRunResult
 		...options.allowedTools,
 	];
 
-	if (options.appendSystemPrompt) {
-		args.push("--append-system-prompt", options.appendSystemPrompt);
+	if (options.appendSystemPrompt) args.push("--append-system-prompt", options.appendSystemPrompt);
+
+	return args;
+}
+
+/// Terminate the agent and, on POSIX, every tool process that inherited its group.
+function killAgent(child: ChildProcess): void {
+	if (process.platform === "win32" || child.pid === undefined) {
+		child.kill("SIGKILL");
+
+		return;
 	}
 
+	try {
+		process.kill(-child.pid, "SIGKILL");
+	} catch (error) {
+		// The process can exit just before its timer fires.
+		if (!(error instanceof Error && "code" in error && error.code === "ESRCH")) {
+			throw error;
+		}
+	}
+}
+
+/// Accumulated output of one agent process.
+interface AgentStreams {
+	stdout: string;
+	stderr: string;
+}
+
+/// Capture a child's output until it exits; a spawn failure counts as exit 1.
+async function collectAgentOutput(
+	child: ChildProcess,
+): Promise<{ streams: AgentStreams; exit: number }> {
+	const streams: AgentStreams = { stdout: "", stderr: "" };
+
+	child.stdout?.on("data", (chunk: Buffer) => {
+		streams.stdout += chunk.toString("utf8");
+	});
+	child.stderr?.on("data", (chunk: Buffer) => {
+		streams.stderr += chunk.toString("utf8");
+	});
+
+	const exit = await new Promise<number>((resolveExit) => {
+		child.on("close", (code) => resolveExit(code ?? 1));
+		child.on("error", (error) => {
+			streams.stderr += error.message;
+			resolveExit(1);
+		});
+	});
+
+	return { streams, exit };
+}
+
+/// Persist the raw streams so a run can be regraded without the agent.
+function writeStreams(directory: string, stdout: string, stderr: string): void {
+	writeFileSync(join(directory, "transcript.jsonl"), stdout);
+	writeFileSync(join(directory, "stderr.txt"), stderr);
+}
+
+/// Persist the outcome record read by `readSavedAgent` during a replay.
+function writeOutcome(directory: string, result: AgentRunResult): void {
+	writeFileSync(
+		join(directory, "outcome.json"),
+		`${JSON.stringify({ exit: result.exit, timedOut: result.timedOut, error: result.error, durationMs: result.durationMs, requestedModel: result.requestedModel }, null, "\t")}\n`,
+	);
+}
+
+/// Run one headless agent session and return its transcript.
+export async function runAgent(options: AgentRunOptions): Promise<AgentRunResult> {
+	const startedAt = Date.now();
+	prepareSkill(options.workdir, options.skillVariant, options.skillSource);
+
+	// Transcripts are saved under the results tree; the real HOME is left
+	// untouched so the runtime resolves its own credentials normally.
+	mkdirSync(options.transcriptDir, { recursive: true });
+
 	const binDir = dirname(options.monochangeCli);
-	const child = spawn(options.agentBin ?? "claude", args, {
+	const child = spawn(options.agentBin ?? "claude", agentArguments(options), {
 		cwd: options.workdir,
 		env: {
 			...process.env,
@@ -333,59 +473,27 @@ export async function runAgent(options: AgentRunOptions): Promise<AgentRunResult
 		detached: process.platform !== "win32",
 	});
 
-	let stdout = "";
-	let stderr = "";
 	let timedOut = false;
 
 	const timer = setTimeout(() => {
 		timedOut = true;
-
-		if (process.platform === "win32" || child.pid === undefined) {
-			child.kill("SIGKILL");
-			return;
-		}
-
-		try {
-			process.kill(-child.pid, "SIGKILL");
-		} catch (error) {
-			// The process can exit just before its timer fires.
-			if (!(error instanceof Error && "code" in error && error.code === "ESRCH")) {
-				throw error;
-			}
-		}
+		killAgent(child);
 	}, options.timeoutSeconds * 1000);
 
-	child.stdout.on("data", (chunk: Buffer) => {
-		stdout += chunk.toString("utf8");
-	});
-	child.stderr.on("data", (chunk: Buffer) => {
-		stderr += chunk.toString("utf8");
-	});
-
-	const exit = await new Promise<number>((resolveExit) => {
-		child.on("close", (code) => resolveExit(code ?? 1));
-		child.on("error", (error) => {
-			stderr += error.message;
-			resolveExit(1);
-		});
-	});
+	const { streams, exit } = await collectAgentOutput(child);
 	clearTimeout(timer);
 
-	writeFileSync(join(options.transcriptDir, "transcript.jsonl"), stdout);
-	writeFileSync(join(options.transcriptDir, "stderr.txt"), stderr);
+	writeStreams(options.transcriptDir, streams.stdout, streams.stderr);
 
 	const result: AgentRunResult = {
-		...parseAgentTranscript(stdout),
+		...parseAgentTranscript(streams.stdout),
 		exit,
 		timedOut,
-		stderr,
+		stderr: streams.stderr,
 		durationMs: Date.now() - startedAt,
 		requestedModel: options.model,
 	};
-	writeFileSync(
-		join(options.transcriptDir, "outcome.json"),
-		`${JSON.stringify({ exit, timedOut, error: result.error, durationMs: result.durationMs, requestedModel: result.requestedModel }, null, "\t")}\n`,
-	);
+	writeOutcome(options.transcriptDir, result);
 
 	return result;
 }
