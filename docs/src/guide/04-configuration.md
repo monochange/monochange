@@ -1461,6 +1461,24 @@ always = false
 
 Every key except the job tables is optional; the values above are the defaults.
 
+### Feature-aware job roots
+
+A bare string root conservatively follows every dependency edge, optional ones included. That overshoots for facade crates: when one crate optionally depends on half the workspace, a job that only runs `cargo check -p facade --no-default-features` would trigger on almost any change. A table entry pins the exact feature selection the job builds, and only the dependencies that selection actually activates run the job:
+
+```toml
+[ci.jobs.nightly]
+packages = [
+	"leptoskit_rpc", # string = all features (conservative, unchanged)
+	{ name = "leptoskit", features = ["nightly", "leptos"] }, # default features + these
+	{ name = "leptoskit_use", default_features = false }, # no default features
+	{ name = "leptoskit", all_features = true }, # same as the string form
+]
+```
+
+Keys: `name` (required; globs allowed but must keep the all-features form), `features` (default `[]`), `default_features` (default `true`), and `all_features` (default `false`; setting it together with `features` or `default_features` is a configuration error). List the crate once per way the job builds it — the union of every selection decides.
+
+Resolution mirrors cargo: optional dependencies count only when the selection activates them, `dep:name`, `name/feat`, and `name?/feat` feature syntax is expanded transitively, features reaching a crate through different paths are unioned, the root's normal, build, and dev edges all count (the job compiles the root's tests) while transitive dependencies contribute only normal and build edges, and target-specific edges are kept. A feature name the package does not define falls back to all-features for that root with a warning in the decision reason — unknown must mean run, never skip.
+
 ### Decision semantics
 
 `monochange ci decide` evaluates each job with this precedence:
@@ -1468,7 +1486,7 @@ Every key except the job tables is optional; the values above are the defaults.
 1. **Unconditional context** — event, branch or ref glob, label, `[ci:full]` commit message, an unconditional path, `--unconditional`, or the `max_skips_on_main` counter tripping on `main` runs every job.
 2. **`always = true`** runs the job.
 3. **Learned rules** (from `monochange ci verify` false negatives) run the job.
-4. **Roots** — a job runs when a changed file is owned by a root package, or by a transitive dependency of a root (normal, dev, and build edges). `packages` lists only roots; globs expand against every workspace package, so a new `leptoskit_plugin_foo` crate is covered with zero config edits. Cargo edges come from `cargo metadata --format-version 1 --no-deps --offline`, which resolves offline (the gate never downloads the crates.io index) and includes unpublished members, crates nested at any depth, `foo.workspace = true` inheritance, renamed dependencies, and `[target.'cfg(..)'.dependencies]`. A root `Cargo.toml` that Cargo cannot parse is an error, never a silent fallback to manifest discovery.
+4. **Roots** — a job runs when a changed file is owned by a root package, or by a transitive dependency of a root (normal, dev, and build edges). `packages` lists only roots; globs expand against every workspace package, so a new `leptoskit_plugin_foo` crate is covered with zero config edits. Cargo edges come from `cargo metadata --format-version 1 --no-deps --offline`, which resolves offline (the gate never downloads the crates.io index) and includes unpublished members, crates nested at any depth, `foo.workspace = true` inheritance, renamed dependencies, and `[target.'cfg(..)'.dependencies]`. A root `Cargo.toml` that Cargo cannot parse is an error, never a silent fallback to manifest discovery. Feature-aware roots (see above) resolve the exact closure cargo builds for their selection instead of following every edge.
 5. **Paths** — any changed file matching the job's `paths` runs it. A job-path claim wins over `ignore_paths`, so a job that explicitly claims `docs/**` still triggers on docs changes.
 6. **Unowned changes** — a changed file owned by no package, claimed by no job's `paths`, and outside `ignore_paths` runs **every** job, with a reason naming the file. Unknown must mean run, never skip.
 7. Otherwise the job is skipped with a reason naming what changed and what the job covers.

@@ -10,12 +10,27 @@
 #   through a dev-dependency.
 # - `leptoskit_plugin_windowkit`: a plugin crate picked up by the
 #   `leptoskit_plugin_*` root glob with zero configuration edits.
+# - `facade` and its cluster (`mid`, `shared`, `shared_extra`, `opt_dep`,
+#   `opt_hidden`, `hidden_leaf`, `opt_boosted`, `testkit`, `mid_dev_only`):
+#   the feature-aware root cases. `facade` hides `opt_hidden` behind
+#   `dep:opt_hidden` (whose entry also enables `opt_hidden`'s `extra_kit`,
+#   pulling `hidden_leaf`), reaches `opt_dep` only through its implicit
+#   optional feature, adds `mid/extra` and the conditional `opt_dep?/boosted`
+#   under `nightly`, builds `testkit` as a root dev-dependency that re-enables
+#   `mid`'s defaults, and never builds `mid_dev_only` (a dev-dependency of a
+#   transitive dependency).
+# - `external_ref` + the excluded `outside` crate: feature values that
+#   reference dependencies outside the workspace (`outside/thing`,
+#   `dep:outside`) must resolve to no workspace edge, not a fallback.
 #
 # Tests copy this fixture into a temp directory before running `cargo
 # metadata` so the generated `Cargo.lock` never lands in the repository.
 
 [ci.jobs.test-windows]
 packages = ["leptoskit_windows", "gallery", "leptoskit_plugin_*"]
+
+[ci.jobs.facade-nightly]
+packages = [{ name = "facade", features = ["nightly"] }]
 
 [ci.jobs.docs]
 paths = ["docs/**"]

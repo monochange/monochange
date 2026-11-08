@@ -1,0 +1,18 @@
+[package]
+name = "facade"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = []
+nightly = ["dep:opt_hidden", "mid/extra", "opt_dep?/boosted", "plain"]
+# A value that only names another feature of this crate.
+plain = []
+
+[dependencies]
+mid = { path = "../mid", default-features = false }
+opt_dep = { path = "../opt_dep", optional = true }
+opt_hidden = { path = "../opt_hidden", optional = true, features = ["extra_kit"] }
+
+[dev-dependencies]
+testkit = { path = "../testkit" }

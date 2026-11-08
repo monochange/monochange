@@ -98,6 +98,7 @@ mod ci;
 mod format;
 pub use ci::CI_PROVIDERS;
 pub use ci::CiJob;
+pub use ci::CiJobPackage;
 pub use ci::CiSettings;
 pub use ci::DEFAULT_CI_PROVIDER;
 pub use ci::DEFAULT_IGNORE_PATHS;
@@ -105,6 +106,7 @@ pub use ci::DEFAULT_MAX_SKIPS_ON_MAIN;
 pub use ci::DEFAULT_UNCONDITIONAL_BRANCHES;
 pub use ci::DEFAULT_UNCONDITIONAL_EVENTS;
 pub use ci::DEFAULT_UNCONDITIONAL_PATHS;
+pub use ci::FeatureSelection;
 pub use ci::load_ci_settings;
 pub use format::format_workspace_configuration;
 

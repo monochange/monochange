@@ -8,6 +8,7 @@
 use std::path::Path;
 
 use clap::ArgMatches;
+use monochange_config::CiJobPackage;
 use monochange_config::CiSettings;
 use monochange_config::load_ci_settings;
 use monochange_core::MonochangeError;
@@ -84,7 +85,7 @@ fn collect_problems(
 /// Validate one job's root package entries.
 fn package_problems(
 	job_id: &str,
-	packages: &[String],
+	packages: &[CiJobPackage],
 	identifiers: &[String],
 ) -> Vec<CiCheckProblem> {
 	packages
@@ -92,7 +93,7 @@ fn package_problems(
 		.filter_map(|entry| {
 			let matched = identifiers
 				.iter()
-				.any(|identifier| glob_match(identifier, entry));
+				.any(|identifier| glob_match(identifier, &entry.name));
 
 			if matched {
 				return None;
@@ -100,10 +101,13 @@ fn package_problems(
 
 			Some(CiCheckProblem {
 				kind: "package",
-				message: if entry.contains('*') || entry.contains('?') {
-					format!("job `{job_id}` package glob `{entry}` matches zero workspace packages")
+				message: if entry.name.contains('*') || entry.name.contains('?') {
+					format!(
+						"job `{job_id}` package glob `{}` matches zero workspace packages",
+						entry.name
+					)
 				} else {
-					format!("job `{job_id}` names unknown root package `{entry}`")
+					format!("job `{job_id}` names unknown root package `{}`", entry.name)
 				},
 			})
 		})

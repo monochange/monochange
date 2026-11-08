@@ -67,15 +67,70 @@ pub struct CiSettings {
 /// `packages` lists only the ROOT packages the job builds or tests; globs are
 /// allowed and expand against every workspace package. Transitive, dev, and
 /// build dependencies of a root also run the job, so a new crate matching a
-/// root glob is covered with zero configuration edits.
+/// root glob is covered with zero configuration edits. Table entries pin the
+/// cargo feature selection the job actually builds so optional dependencies
+/// only run the job when the selection activates them.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct CiJob {
 	/// Root packages (ids, names, or globs) whose changes run this job.
-	pub packages: Vec<String>,
+	pub packages: Vec<CiJobPackage>,
 	/// Non-package file globs whose changes run this job.
 	pub paths: Vec<String>,
 	/// Whether the job always runs regardless of the graph.
 	pub always: bool,
+}
+
+/// The cargo feature selection a job builds a root package with.
+///
+/// The string form of a `packages` entry resolves to [`FeatureSelection::AllFeatures`]:
+/// the conservative pre-selection behaviour that follows every edge, including
+/// optional ones.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum FeatureSelection {
+	/// Build with every feature; every dependency edge counts.
+	AllFeatures,
+	/// Build with the package's `default` feature (when it defines one) plus
+	/// these features.
+	DefaultsPlus(Vec<String>),
+	/// Build with exactly these features, without the defaults.
+	Only(Vec<String>),
+}
+
+/// One `[ci.jobs.<id>].packages` entry: a root package and the feature
+/// selection the job builds it with.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CiJobPackage {
+	/// Root package id, name, or glob.
+	pub name: String,
+	/// Cargo feature selection the job builds this root with.
+	pub selection: FeatureSelection,
+}
+
+impl CiJobPackage {
+	/// Human-readable label used in decision reasons.
+	///
+	/// The all-features form keeps the bare name so string entries read
+	/// exactly as before; feature-aware entries spell out their selection.
+	#[must_use]
+	pub fn label(&self) -> String {
+		match &self.selection {
+			FeatureSelection::AllFeatures => self.name.clone(),
+			FeatureSelection::DefaultsPlus(features) => {
+				if features.is_empty() {
+					format!("{} (default features)", self.name)
+				} else {
+					format!("{} (default + {})", self.name, features.join(","))
+				}
+			}
+			FeatureSelection::Only(features) => {
+				if features.is_empty() {
+					format!("{} (no default features)", self.name)
+				} else {
+					format!("{} ({})", self.name, features.join(","))
+				}
+			}
+		}
+	}
 }
 
 /// Raw `[ci]` table exactly as written in `monochange.toml`.
@@ -141,13 +196,78 @@ impl Default for RawCiConfiguration {
 pub(crate) struct RawCiJob {
 	/// Root packages (ids, names, or globs) whose changes run the job.
 	#[serde(default)]
-	packages: Vec<String>,
+	packages: Vec<RawCiJobPackage>,
 	/// Non-package file globs whose changes run the job.
 	#[serde(default)]
 	paths: Vec<String>,
 	/// Whether the job always runs regardless of the graph.
 	#[serde(default)]
 	always: bool,
+}
+
+/// Raw `[ci.jobs.<id>].packages` entry: a bare name or a feature table.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[cfg_attr(feature = "schema", schemars(untagged))]
+#[derive(Debug, Clone)]
+pub(crate) enum RawCiJobPackage {
+	/// Bare name: every feature, every edge (the conservative string form).
+	Name(String),
+	/// Table form pinning the cargo feature selection the job builds.
+	Table(RawCiJobPackageTable),
+}
+
+impl<'de> Deserialize<'de> for RawCiJobPackage {
+	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+	where
+		D: serde::Deserializer<'de>,
+	{
+		struct RawCiJobPackageVisitor;
+
+		impl<'de> serde::de::Visitor<'de> for RawCiJobPackageVisitor {
+			type Value = RawCiJobPackage;
+
+			fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+				formatter
+					.write_str("a package name string or a feature-selection table with `name`")
+			}
+
+			fn visit_str<E>(self, value: &str) -> Result<Self::Value, E> {
+				Ok(RawCiJobPackage::Name(value.to_string()))
+			}
+
+			fn visit_map<A>(self, map: A) -> Result<Self::Value, A::Error>
+			where
+				A: serde::de::MapAccess<'de>,
+			{
+				let table = RawCiJobPackageTable::deserialize(
+					serde::de::value::MapAccessDeserializer::new(map),
+				)?;
+
+				Ok(RawCiJobPackage::Table(table))
+			}
+		}
+
+		deserializer.deserialize_any(RawCiJobPackageVisitor)
+	}
+}
+
+/// Raw feature-selection table of one `packages` entry.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(feature = "schema", schemars(rename = "ci_job_package"))]
+pub(crate) struct RawCiJobPackageTable {
+	/// Root package id, name, or glob.
+	name: String,
+	/// Extra features to enable on the root.
+	#[serde(default)]
+	features: Option<Vec<String>>,
+	/// Whether the root's default feature is enabled; defaults to `true`.
+	#[serde(default)]
+	default_features: Option<bool>,
+	/// Build with every feature; excludes `features` and `default_features`.
+	#[serde(default)]
+	all_features: bool,
 }
 
 /// Load `[ci]` settings from `monochange.toml`, applying defaults.
@@ -188,17 +308,61 @@ fn resolve_ci_settings(raw: RawCiConfiguration) -> MonochangeResult<CiSettings> 
 			.jobs
 			.into_iter()
 			.map(|(id, job)| {
-				(
+				let packages = job
+					.packages
+					.into_iter()
+					.map(|package| resolve_job_package(&id, package))
+					.collect::<MonochangeResult<Vec<_>>>()?;
+
+				Ok((
 					id,
 					CiJob {
-						packages: job.packages,
+						packages,
 						paths: job.paths,
 						always: job.always,
 					},
-				)
+				))
 			})
-			.collect(),
+			.collect::<MonochangeResult<BTreeMap<_, _>>>()?,
 	})
+}
+
+/// Resolve one `packages` entry, rejecting contradictory selections.
+///
+/// `all_features = true` excludes `features` and `default_features`, and globs
+/// must keep the all-features form because a glob expands to many packages
+/// that share no feature set.
+fn resolve_job_package(job_id: &str, package: RawCiJobPackage) -> MonochangeResult<CiJobPackage> {
+	let (name, selection) = match package {
+		RawCiJobPackage::Name(name) => (name, FeatureSelection::AllFeatures),
+		RawCiJobPackage::Table(table) => {
+			if table.all_features && (table.features.is_some() || table.default_features.is_some())
+			{
+				return Err(MonochangeError::Config(format!(
+					"job `{job_id}` package `{}` sets `all_features = true` together with `features` or `default_features`; choose one form",
+					table.name
+				)));
+			}
+
+			let selection = if table.all_features {
+				FeatureSelection::AllFeatures
+			} else if table.default_features.unwrap_or(true) {
+				FeatureSelection::DefaultsPlus(table.features.unwrap_or_default())
+			} else {
+				FeatureSelection::Only(table.features.unwrap_or_default())
+			};
+
+			(table.name, selection)
+		}
+	};
+
+	if selection != FeatureSelection::AllFeatures && name.contains(['*', '?', '[', ']']) {
+		return Err(MonochangeError::Config(format!(
+			"job `{job_id}` package `{name}` combines a glob with a feature selection; globs always resolve to every feature"
+		)));
+	}
+
+	Ok(CiJobPackage { name, selection })
 }
 
 /// Raw default for `max_skips_on_main`.

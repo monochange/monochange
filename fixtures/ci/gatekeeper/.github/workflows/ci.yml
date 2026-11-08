@@ -15,6 +15,13 @@ jobs:
     steps:
       - run: cargo test
 
+  facade-nightly:
+    needs: gate
+    if: fromJSON(needs.gate.outputs.decisions)['facade-nightly']
+    runs-on: ubuntu-latest
+    steps:
+      - run: cargo check -p facade --features nightly
+
   docs:
     needs: gate
     if: fromJSON(needs.gate.outputs.decisions).docs

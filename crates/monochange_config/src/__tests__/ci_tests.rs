@@ -66,7 +66,20 @@ always = true
 	assert_eq!(settings.max_skips_on_main, 2);
 	assert_eq!(
 		settings.jobs["test-windows"].packages,
-		["leptoskit_windows", "gallery", "leptoskit_plugin_*"]
+		[
+			CiJobPackage {
+				name: "leptoskit_windows".to_string(),
+				selection: FeatureSelection::AllFeatures,
+			},
+			CiJobPackage {
+				name: "gallery".to_string(),
+				selection: FeatureSelection::AllFeatures,
+			},
+			CiJobPackage {
+				name: "leptoskit_plugin_*".to_string(),
+				selection: FeatureSelection::AllFeatures,
+			},
+		]
 	);
 	assert_eq!(
 		settings.jobs["test-windows"].paths,
@@ -74,6 +87,164 @@ always = true
 	);
 	assert!(!settings.jobs["test-windows"].always);
 	assert!(settings.jobs["docs"].always);
+}
+
+#[test]
+fn load_ci_settings_parses_feature_selection_tables() {
+	let dir = config_dir(
+		r#"
+[ci.jobs.nightly]
+packages = [
+	"leptoskit_rpc",
+	{ name = "leptoskit", features = ["nightly", "leptos"] },
+	{ name = "leptoskit_use", default_features = false },
+	{ name = "leptoskit", all_features = true },
+	{ name = "leptoskit_query", features = ["nightly"], default_features = false },
+	{ name = "leptoskit_macro" },
+]
+"#,
+	);
+
+	let settings = load_ci_settings(dir.path()).unwrap();
+
+	assert_eq!(
+		settings.jobs["nightly"].packages,
+		[
+			CiJobPackage {
+				name: "leptoskit_rpc".to_string(),
+				selection: FeatureSelection::AllFeatures,
+			},
+			CiJobPackage {
+				name: "leptoskit".to_string(),
+				selection: FeatureSelection::DefaultsPlus(vec![
+					"nightly".to_string(),
+					"leptos".to_string()
+				]),
+			},
+			CiJobPackage {
+				name: "leptoskit_use".to_string(),
+				selection: FeatureSelection::Only(Vec::new()),
+			},
+			CiJobPackage {
+				name: "leptoskit".to_string(),
+				selection: FeatureSelection::AllFeatures,
+			},
+			CiJobPackage {
+				name: "leptoskit_query".to_string(),
+				selection: FeatureSelection::Only(vec!["nightly".to_string()]),
+			},
+			CiJobPackage {
+				name: "leptoskit_macro".to_string(),
+				selection: FeatureSelection::DefaultsPlus(Vec::new()),
+			},
+		]
+	);
+}
+
+#[test]
+fn load_ci_settings_rejects_contradictory_feature_selections() {
+	let all_features_and_features = config_dir(
+		"[ci.jobs.nightly]\npackages = [{ name = \"leptoskit\", all_features = true, features = [\"nightly\"] }]\n",
+	);
+	let error = load_ci_settings(all_features_and_features.path()).unwrap_err();
+
+	assert!(
+		error.to_string().contains(
+			"job `nightly` package `leptoskit` sets `all_features = true` together with `features` or `default_features`"
+		),
+		"unexpected error: {error}"
+	);
+
+	let all_features_and_defaults = config_dir(
+		"[ci.jobs.nightly]\npackages = [{ name = \"leptoskit\", all_features = true, default_features = true }]\n",
+	);
+	let error = load_ci_settings(all_features_and_defaults.path()).unwrap_err();
+
+	assert!(
+		error.to_string().contains(
+			"job `nightly` package `leptoskit` sets `all_features = true` together with `features` or `default_features`"
+		),
+		"unexpected error: {error}"
+	);
+
+	let glob_with_features = config_dir(
+		"[ci.jobs.nightly]\npackages = [{ name = \"leptoskit_plugin_*\", features = [\"nightly\"] }]\n",
+	);
+	let error = load_ci_settings(glob_with_features.path()).unwrap_err();
+
+	assert!(
+		error.to_string().contains(
+			"job `nightly` package `leptoskit_plugin_*` combines a glob with a feature selection"
+		),
+		"unexpected error: {error}"
+	);
+
+	let unknown_table_field =
+		config_dir("[ci.jobs.nightly]\npackages = [{ name = \"leptoskit\", extra = true }]\n");
+	let error = load_ci_settings(unknown_table_field.path()).unwrap_err();
+
+	assert!(
+		error.to_string().contains("unknown field"),
+		"unexpected error: {error}"
+	);
+
+	let wrong_entry_type = config_dir("[ci.jobs.nightly]\npackages = [1]\n");
+	let error = load_ci_settings(wrong_entry_type.path()).unwrap_err();
+
+	assert!(
+		error
+			.to_string()
+			.contains("a package name string or a feature-selection table"),
+		"unexpected error: {error}"
+	);
+}
+
+#[test]
+fn job_package_labels_spell_out_the_feature_selection() {
+	let cases = [
+		(
+			CiJobPackage {
+				name: "leptoskit".to_string(),
+				selection: FeatureSelection::AllFeatures,
+			},
+			"leptoskit",
+		),
+		(
+			CiJobPackage {
+				name: "leptoskit".to_string(),
+				selection: FeatureSelection::DefaultsPlus(Vec::new()),
+			},
+			"leptoskit (default features)",
+		),
+		(
+			CiJobPackage {
+				name: "leptoskit".to_string(),
+				selection: FeatureSelection::DefaultsPlus(vec![
+					"nightly".to_string(),
+					"leptos".to_string(),
+				]),
+			},
+			"leptoskit (default + nightly,leptos)",
+		),
+		(
+			CiJobPackage {
+				name: "leptoskit_use".to_string(),
+				selection: FeatureSelection::Only(Vec::new()),
+			},
+			"leptoskit_use (no default features)",
+		),
+		(
+			CiJobPackage {
+				name: "leptoskit_rpc".to_string(),
+				selection: FeatureSelection::Only(vec!["nightly".to_string()]),
+			},
+			"leptoskit_rpc (nightly)",
+		),
+	];
+
+	for (package, expected) in cases {
+		assert_eq!(package.label(), expected);
+	}
 }
 
 #[test]
@@ -112,7 +283,13 @@ fn raw_defaults_apply_when_keys_are_omitted() {
 			.map(|value| (*value).to_string())
 			.collect::<Vec<_>>()
 	);
-	assert_eq!(settings.jobs["lint"].packages, ["core"]);
+	assert_eq!(
+		settings.jobs["lint"].packages,
+		[CiJobPackage {
+			name: "core".to_string(),
+			selection: FeatureSelection::AllFeatures,
+		}]
+	);
 	assert!(settings.jobs["lint"].paths.is_empty());
 	assert!(!settings.jobs["lint"].always);
 }

@@ -20,7 +20,9 @@ use std::process::Command as ProcessCommand;
 
 use glob::Pattern;
 use monochange_config::CiJob;
+use monochange_config::CiJobPackage;
 use monochange_config::CiSettings;
+use monochange_config::FeatureSelection;
 use monochange_config::load_workspace_configuration;
 use monochange_core::MonochangeError;
 use monochange_core::MonochangeResult;
@@ -30,8 +32,10 @@ use monochange_core::PackageRecord;
 use monochange_core::materialize_dependency_edges;
 
 mod cargo;
+mod features;
 
 use cargo::cargo_metadata_graph;
+use features::resolve_feature_closure;
 
 use crate::changeset_policy::normalize_changed_path;
 use crate::discover_workspace;
@@ -100,6 +104,58 @@ struct GraphPackage {
 	rel_dir: String,
 }
 
+/// A workspace member's cargo feature table and dependency entries, the data
+/// feature-aware root resolution needs beyond plain edges.
+#[derive(Debug, Clone, Default)]
+pub(super) struct CargoMember {
+	/// Feature name → the feature values cargo expands it to.
+	pub(super) features: BTreeMap<String, Vec<String>>,
+	/// Dependency entries pointing at other workspace members.
+	pub(super) dependencies: Vec<CargoDependency>,
+}
+
+/// One member dependency entry resolved to its workspace target.
+#[derive(Debug, Clone)]
+pub(super) struct CargoDependency {
+	/// Manifest key (rename-aware) that feature syntax addresses.
+	pub(super) name: String,
+	/// Target member's package name, resolved through the entry's `path`.
+	pub(super) target: String,
+	/// Whether the entry is an optional dependency.
+	pub(super) optional: bool,
+	/// Whether the entry enables the target's default feature.
+	pub(super) uses_default_features: bool,
+	/// Features the entry activates on the target.
+	pub(super) features: Vec<String>,
+	/// Whether the entry is a normal, build, or dev dependency.
+	pub(super) kind: CargoDependencyKind,
+}
+
+/// The cargo dependency kinds `cargo metadata` reports.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum CargoDependencyKind {
+	/// A `[dependencies]` entry.
+	Normal,
+	/// A `[build-dependencies]` entry.
+	Build,
+	/// A `[dev-dependencies]` entry.
+	Dev,
+}
+
+impl CargoDependencyKind {
+	/// Whether an edge of this kind is built when `owner` is the job root.
+	///
+	/// The job compiles the root's tests, so the root's dev edges count; a
+	/// transitive dependency's dev edges are never built by `cargo check` or
+	/// `cargo test -p <root>`.
+	pub(super) fn built_for(self, owner_is_root: bool) -> bool {
+		match self {
+			Self::Normal | Self::Build => true,
+			Self::Dev => owner_is_root,
+		}
+	}
+}
+
 /// Workspace packages, their aliases, and the dependency edges between them.
 #[derive(Debug, Clone, Default)]
 pub(super) struct WorkspaceGraph {
@@ -109,6 +165,9 @@ pub(super) struct WorkspaceGraph {
 	aliases: BTreeMap<String, String>,
 	/// Canonical id → canonical ids it directly depends on.
 	deps: BTreeMap<String, BTreeSet<String>>,
+	/// Member name → cargo feature table and dependency entries, when the
+	/// workspace resolves through `cargo metadata`.
+	cargo: BTreeMap<String, CargoMember>,
 	/// Configured packages whose ownership follows their path settings.
 	configured_matchers: Vec<(String, PackagePathMatcher)>,
 	source: Option<GraphSource>,
@@ -167,29 +226,45 @@ impl WorkspaceGraph {
 	/// Expand `[ci.jobs.<id>].packages` entries against every workspace package.
 	///
 	/// Globs match both canonical ids and package names, so
-	/// `leptoskit_plugin_*` picks up a newly added crate with zero config edits.
-	fn expand_roots(&self, patterns: &[String]) -> Vec<String> {
+	/// `leptoskit_plugin_*` picks up a newly added crate with zero config
+	/// edits. Each returned entry keeps its feature selection; glob entries
+	/// are validated to the all-features form at configuration load. Repeated
+	/// roots keep every distinct selection so a job that builds one crate
+	/// several ways unions them.
+	fn expand_roots(&self, packages: &[CiJobPackage]) -> Vec<CiJobPackage> {
 		let identifiers = self.package_identifiers();
-		let mut roots = BTreeSet::new();
+		let mut roots: Vec<CiJobPackage> = Vec::new();
+		let mut push_root = |root: CiJobPackage| {
+			if !roots.contains(&root) {
+				roots.push(root);
+			}
+		};
 
-		for pattern in patterns {
-			if contains_glob_metacharacters(pattern) {
-				roots.extend(
-					identifiers
-						.iter()
-						.filter(|identifier| glob_match(identifier, pattern))
-						.map(|identifier| self.canonical_id(identifier)),
-				);
+		for package in packages {
+			if contains_glob_metacharacters(&package.name) {
+				for identifier in identifiers
+					.iter()
+					.filter(|identifier| glob_match(identifier, &package.name))
+					.map(|identifier| self.canonical_id(identifier))
+				{
+					push_root(CiJobPackage {
+						name: identifier,
+						selection: package.selection.clone(),
+					});
+				}
 			} else {
-				let canonical = self.canonical_id(pattern);
+				let canonical = self.canonical_id(&package.name);
 
 				if self.packages.contains_key(&canonical) {
-					roots.insert(canonical);
+					push_root(CiJobPackage {
+						name: canonical,
+						selection: package.selection.clone(),
+					});
 				}
 			}
 		}
 
-		roots.into_iter().collect()
+		roots
 	}
 
 	/// Transitive workspace dependencies of `root`, following every edge kind.
@@ -212,6 +287,30 @@ impl WorkspaceGraph {
 		}
 
 		visited
+	}
+
+	/// A member's cargo feature data, when the workspace resolves through
+	/// `cargo metadata`.
+	fn cargo_member(&self, name: &str) -> Option<&CargoMember> {
+		self.cargo.get(name)
+	}
+
+	/// Dependencies a job root builds: every edge for all-features roots, the
+	/// feature-aware closure cargo would actually build otherwise.
+	fn root_dependencies(&self, root: &CiJobPackage) -> (BTreeSet<String>, Vec<String>) {
+		match &root.selection {
+			FeatureSelection::AllFeatures => (self.transitive_dependencies(&root.name), Vec::new()),
+			FeatureSelection::DefaultsPlus(features) => {
+				let closure = resolve_feature_closure(self, &root.name, features, true);
+
+				(closure.packages, closure.warnings)
+			}
+			FeatureSelection::Only(features) => {
+				let closure = resolve_feature_closure(self, &root.name, features, false);
+
+				(closure.packages, closure.warnings)
+			}
+		}
 	}
 
 	/// Canonical ids of every package owning `file`.
@@ -281,6 +380,10 @@ impl WorkspaceGraph {
 
 		for (from, to) in &remapped {
 			self.aliases.insert(from.clone(), to.clone());
+		}
+
+		for (name, member) in other.cargo {
+			self.cargo.entry(name).or_insert(member);
 		}
 
 		for (dependent, dependencies) in other.deps {
@@ -436,8 +539,11 @@ pub(super) fn evaluate_graph_decision_for_job(
 	};
 
 	let affected = context.affected_packages();
+	let roots = root_verdict(job, context);
 
-	if let Some(verdict) = root_verdict(job, context) {
+	if let Some(mut verdict) = roots.verdict {
+		append_reason_warnings(&mut verdict.reason, &roots.warnings);
+
 		return verdict;
 	}
 
@@ -461,7 +567,7 @@ pub(super) fn evaluate_graph_decision_for_job(
 		);
 	}
 
-	skip_verdict(job_id, job, &affected)
+	skip_verdict(job_id, job, &affected, &roots.warnings)
 }
 
 /// Verdict for a job with no `[ci.jobs]` entry: unknown always runs.
@@ -473,53 +579,106 @@ fn no_rule_verdict(job_id: &str) -> GraphVerdict {
 	)
 }
 
+/// Result of evaluating every root entry of one job.
+struct RootEvaluation {
+	/// The first root-connected run verdict, when any root matched.
+	verdict: Option<GraphVerdict>,
+	/// Fallback warnings from resolving this job's feature-aware roots.
+	warnings: Vec<String>,
+}
+
 /// Rules 4a and 4b: a root owns a changed file, or depends on one that does.
-fn root_verdict(job: &CiJob, context: &GraphContext) -> Option<GraphVerdict> {
+fn root_verdict(job: &CiJob, context: &GraphContext) -> RootEvaluation {
+	let mut warnings = Vec::new();
+
 	for root in context.graph.expand_roots(&job.packages) {
-		if context.owning_packages.contains(&root) {
-			return Some(run_verdict(
-				VerdictSource::RootDirect,
-				format!("changed files affect root package `{root}`"),
-				vec![root],
-			));
+		if context.owning_packages.contains(&root.name) {
+			return RootEvaluation {
+				verdict: Some(run_verdict(
+					VerdictSource::RootDirect,
+					format!("changed files affect root package `{}`", root.name),
+					vec![root.name],
+				)),
+				warnings,
+			};
 		}
 
-		let dependencies = context.graph.transitive_dependencies(&root);
+		let (dependencies, entry_warnings) = context.graph.root_dependencies(&root);
+
+		warnings.extend(entry_warnings);
+
 		let dependency = context
 			.owning_packages
 			.iter()
 			.find(|package| dependencies.contains(*package));
 
 		if let Some(dependency) = dependency {
-			return Some(run_verdict(
-				VerdictSource::RootDependency,
-				format!("changed files affect `{dependency}`, a dependency of root `{root}`"),
-				vec![dependency.clone()],
-			));
+			return RootEvaluation {
+				verdict: Some(run_verdict(
+					VerdictSource::RootDependency,
+					format!(
+						"changed files affect `{dependency}`, a dependency of root `{}`",
+						append_selection(&root)
+					),
+					vec![dependency.clone()],
+				)),
+				warnings,
+			};
 		}
 	}
 
-	None
+	RootEvaluation {
+		verdict: None,
+		warnings,
+	}
+}
+
+/// Render a root name with its feature selection for a decision reason.
+fn append_selection(root: &CiJobPackage) -> String {
+	match root.selection {
+		FeatureSelection::AllFeatures => root.name.clone(),
+		_ => root.label(),
+	}
 }
 
 /// Rule 7: nothing connected the change to this job.
-fn skip_verdict(job_id: &str, job: &CiJob, affected: &[String]) -> GraphVerdict {
-	let reason = if affected.is_empty() {
+fn skip_verdict(
+	job_id: &str,
+	job: &CiJob,
+	affected: &[String],
+	warnings: &[String],
+) -> GraphVerdict {
+	let mut reason = if affected.is_empty() {
 		"every changed file is ignored by `[ci] ignore_paths` or already unconditional".to_string()
 	} else {
 		format!(
 			"changed files affect {} but `{job_id}` covers roots [{}] and paths [{}]",
 			join_quoted(affected),
-			job.packages.join(", "),
+			job.packages
+				.iter()
+				.map(CiJobPackage::label)
+				.collect::<Vec<_>>()
+				.join(", "),
 			job.paths.join(", ")
 		)
 	};
+
+	append_reason_warnings(&mut reason, warnings);
 
 	GraphVerdict {
 		run: false,
 		source: VerdictSource::Unaffected,
 		reason,
 		affected_packages: Vec::new(),
+	}
+}
+
+/// Append feature-resolution warnings to a decision reason.
+fn append_reason_warnings(reason: &mut String, warnings: &[String]) {
+	if !warnings.is_empty() {
+		reason.push_str(" (warning: ");
+		reason.push_str(&warnings.join("; "));
+		reason.push(')');
 	}
 }
 

@@ -1,4 +1,5 @@
 [workspace]
+exclude = ["outside"]
 members = [
 	"crates/leptoskit_windows",
 	"crates/gallery",
@@ -6,6 +7,17 @@ members = [
 	"crates/tgt_only",
 	"crates/leptoskit_plugin_windowkit",
 	"crates/tools/deep/probe",
+	"crates/facade",
+	"crates/mid",
+	"crates/shared",
+	"crates/shared_extra",
+	"crates/opt_dep",
+	"crates/opt_hidden",
+	"crates/opt_boosted",
+	"crates/testkit",
+	"crates/external_ref",
+	"crates/hidden_leaf",
+	"crates/mid_dev_only",
 ]
 resolver = "2"
 

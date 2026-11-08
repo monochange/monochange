@@ -1859,6 +1859,19 @@
 				}
 			]
 		},
+		"RawCiJobPackage": {
+			"anyOf": [
+				{
+					"description": "Bare name: every feature, every edge (the conservative string form).",
+					"type": "string"
+				},
+				{
+					"$ref": "#/$defs/ci_job_package",
+					"description": "Table form pinning the cargo feature selection the job builds."
+				}
+			],
+			"description": "Raw `[ci.jobs.<id>].packages` entry: a bare name or a feature table."
+		},
 		"RegistryKind": {
 			"enum": [
 				"crates_io",
@@ -2602,10 +2615,9 @@
 					"type": "boolean"
 				},
 				"packages": {
-					"default": [],
 					"description": "Root packages (ids, names, or globs) whose changes run the job.",
 					"items": {
-						"type": "string"
+						"$ref": "#/$defs/RawCiJobPackage"
 					},
 					"type": "array"
 				},
@@ -2618,6 +2630,44 @@
 					"type": "array"
 				}
 			},
+			"type": "object"
+		},
+		"ci_job_package": {
+			"additionalProperties": false,
+			"description": "Raw feature-selection table of one `packages` entry.",
+			"properties": {
+				"all_features": {
+					"default": false,
+					"description": "Build with every feature; excludes `features` and `default_features`.",
+					"type": "boolean"
+				},
+				"default_features": {
+					"default": null,
+					"description": "Whether the root's default feature is enabled; defaults to `true`.",
+					"type": [
+						"boolean",
+						"null"
+					]
+				},
+				"features": {
+					"default": null,
+					"description": "Extra features to enable on the root.",
+					"items": {
+						"type": "string"
+					},
+					"type": [
+						"array",
+						"null"
+					]
+				},
+				"name": {
+					"description": "Root package id, name, or glob.",
+					"type": "string"
+				}
+			},
+			"required": [
+				"name"
+			],
 			"type": "object"
 		},
 		"cli_command": {

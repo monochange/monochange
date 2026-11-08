@@ -1220,7 +1220,7 @@ fn ci_decide_runs_always_jobs_and_unowned_changes_and_unconfigured_jobs() {
 	.unwrap();
 	let report: CiDecideReport = serde_json::from_str(&output).unwrap();
 
-	assert_eq!(report.jobs.len(), 3, "every configured job is evaluated");
+	assert_eq!(report.jobs.len(), 4, "every configured job is evaluated");
 	assert!(
 		report
 			.jobs
@@ -1315,7 +1315,7 @@ fn ci_check_reports_every_configuration_problem_class() {
 	// Inject every problem class into the configuration and workflow wiring.
 	fs::write(
 		repo.path().join("monochange.toml"),
-		"[ci.jobs.test-windows]\npackages = [\"leptoskit_windows\", \"ghost_crate\", \"missing_plugin_*\"]\npaths = [\"docs/**\", \"vanished/**/*.snap\"]\n\n[ci.jobs.Broken_Name]\npackages = [\"leptoskit_windows\"]\n\n[ci.jobs.empty-job]\n",
+		"[ci.jobs.test-windows]\npackages = [\"leptoskit_windows\", \"ghost_crate\", \"missing_plugin_*\", { name = \"ghost_table\" }, { name = \"gone_plugin_*\", all_features = true }]\npaths = [\"docs/**\", \"vanished/**/*.snap\"]\n\n[ci.jobs.Broken_Name]\npackages = [\"leptoskit_windows\"]\n\n[ci.jobs.empty-job]\n",
 	)
 	.unwrap();
 	fs::create_dir_all(repo.path().join(".github/workflows")).unwrap();
@@ -1343,6 +1343,14 @@ fn ci_check_reports_every_configuration_problem_class() {
 	assert!(
 		problems.contains("package glob `missing_plugin_*` matches zero workspace packages"),
 		"missing zero-match glob problem: {problems}"
+	);
+	assert!(
+		problems.contains("names unknown root package `ghost_table`"),
+		"missing unknown-table-package problem: {problems}"
+	);
+	assert!(
+		problems.contains("package glob `gone_plugin_*` matches zero workspace packages"),
+		"missing zero-match table-glob problem: {problems}"
 	);
 	assert!(
 		problems.contains("path glob `vanished/**/*.snap` matches zero tracked files"),
@@ -1403,7 +1411,7 @@ fn ci_check_renders_text_success_and_json_problems() {
 	let text = run_mc(repo.path(), &["ci", "check"]).unwrap();
 
 	assert!(
-		text.contains("ci configuration valid: 3 job(s) checked (graph: cargo metadata)"),
+		text.contains("ci configuration valid: 4 job(s) checked (graph: cargo metadata)"),
 		"unexpected text output: {text}"
 	);
 
@@ -1688,6 +1696,384 @@ fn graph_picks_up_new_root_glob_crates_with_zero_config_edits() {
 	);
 }
 
+/// Overwrite the fixture's `[ci]` configuration with one `facade` root job.
+fn write_facade_job(root: &Path, packages_toml: &str) -> monochange_config::CiSettings {
+	fs::write(
+		root.join("monochange.toml"),
+		format!("[ci.jobs.facade-job]\npackages = [{packages_toml}]\n"),
+	)
+	.unwrap();
+
+	monochange_config::load_ci_settings(root).unwrap()
+}
+
+/// Evaluate one changed file against the `facade-job` root entry.
+fn facade_verdict(
+	root: &Path,
+	settings: &monochange_config::CiSettings,
+	file: &str,
+) -> graph::GraphVerdict {
+	let context = graph::evaluate_graph_context(root, &[file.to_string()], settings).unwrap();
+
+	graph::evaluate_graph_decision_for_job("facade-job", settings.jobs.get("facade-job"), &context)
+}
+
+/// Assert a table of changed-file expectations against the facade job.
+fn assert_facade_closure(
+	root: &Path,
+	settings: &monochange_config::CiSettings,
+	expectations: &[(&str, bool)],
+) {
+	for (file, expected) in expectations {
+		let verdict = facade_verdict(root, settings, file);
+
+		assert_eq!(verdict.run, *expected, "{file}: {}", verdict.reason);
+	}
+}
+
+#[test]
+fn feature_aware_roots_follow_only_the_edges_the_selection_builds() {
+	let repo = gatekeeper_fixture();
+	let root = repo.path();
+
+	// `default_features = false` builds no optional dependency: `opt_dep`
+	// (implicit optional feature), `opt_hidden` (`dep:`), and their leaves
+	// stay out. The root's normal edge `mid` and root dev-edge `testkit`
+	// still build, and `testkit` re-enables `mid`'s defaults so `shared`
+	// joins through feature unification even though `facade`'s own `mid`
+	// entry disables them.
+	let no_defaults = write_facade_job(root, r#"{ name = "facade", default_features = false }"#);
+
+	assert_facade_closure(
+		root,
+		&no_defaults,
+		&[
+			("crates/mid/src/lib.rs", true),
+			("crates/testkit/src/lib.rs", true),
+			("crates/shared/src/lib.rs", true),
+			("crates/opt_dep/src/lib.rs", false),
+			("crates/opt_hidden/src/lib.rs", false),
+			("crates/hidden_leaf/src/lib.rs", false),
+			("crates/shared_extra/src/lib.rs", false),
+			("crates/opt_boosted/src/lib.rs", false),
+			("crates/mid_dev_only/src/lib.rs", false),
+		],
+	);
+
+	// `features = ["nightly"]` activates `dep:opt_hidden` (whose dependency
+	// entry enables `opt_hidden`'s `extra_kit`, pulling `hidden_leaf`) and
+	// `mid/extra` (`shared_extra`), while `opt_dep?/boosted` stays dormant
+	// because nothing else activates `opt_dep`. `mid_dev_only` is a dev edge
+	// of a transitive dependency and never builds.
+	let nightly = write_facade_job(root, r#"{ name = "facade", features = ["nightly"] }"#);
+
+	assert_facade_closure(
+		root,
+		&nightly,
+		&[
+			("crates/opt_hidden/src/lib.rs", true),
+			("crates/hidden_leaf/src/lib.rs", true),
+			("crates/shared_extra/src/lib.rs", true),
+			("crates/shared/src/lib.rs", true),
+			("crates/opt_dep/src/lib.rs", false),
+			("crates/opt_boosted/src/lib.rs", false),
+			("crates/mid_dev_only/src/lib.rs", false),
+		],
+	);
+
+	// Adding the implicit `opt_dep` feature activates the optional dep and
+	// arms `opt_dep?/boosted`, whose `boosted` pulls `opt_boosted`.
+	let nightly_with_opt_dep = write_facade_job(
+		root,
+		r#"{ name = "facade", features = ["nightly", "opt_dep"] }"#,
+	);
+
+	assert_facade_closure(
+		root,
+		&nightly_with_opt_dep,
+		&[
+			("crates/opt_dep/src/lib.rs", true),
+			("crates/opt_boosted/src/lib.rs", true),
+			("crates/mid_dev_only/src/lib.rs", false),
+		],
+	);
+
+	// A package without a `default` feature starts its selection empty.
+	let empty_selection = write_facade_job(root, r#"{ name = "opt_dep", features = [] }"#);
+
+	assert_facade_closure(
+		root,
+		&empty_selection,
+		&[("crates/opt_boosted/src/lib.rs", false)],
+	);
+}
+
+#[test]
+fn repeated_roots_union_their_feature_selections() {
+	let repo = gatekeeper_fixture();
+	let root = repo.path();
+
+	// One job that builds `facade` both ways covers the union: `opt_hidden`
+	// only builds under `nightly`, so the no-defaults entry alone would skip
+	// it, while `opt_dep` builds under neither selection.
+	let settings = write_facade_job(
+		root,
+		r#"{ name = "facade", default_features = false }, { name = "facade", features = ["nightly"] }"#,
+	);
+
+	assert_facade_closure(
+		root,
+		&settings,
+		&[
+			("crates/opt_hidden/src/lib.rs", true),
+			("crates/shared_extra/src/lib.rs", true),
+			("crates/opt_dep/src/lib.rs", false),
+		],
+	);
+}
+
+#[test]
+fn all_features_entries_match_the_string_form() {
+	let repo = gatekeeper_fixture();
+	let root = repo.path();
+
+	// Both forms follow every edge: optional deps, their leaves, and even
+	// `mid_dev_only`, the dev edge of a transitive dependency.
+	for packages_toml in [r#""facade""#, r#"{ name = "facade", all_features = true }"#] {
+		let settings = write_facade_job(root, packages_toml);
+
+		assert_facade_closure(
+			root,
+			&settings,
+			&[
+				("crates/mid/src/lib.rs", true),
+				("crates/opt_dep/src/lib.rs", true),
+				("crates/opt_hidden/src/lib.rs", true),
+				("crates/hidden_leaf/src/lib.rs", true),
+				("crates/opt_boosted/src/lib.rs", true),
+				("crates/shared_extra/src/lib.rs", true),
+				("crates/mid_dev_only/src/lib.rs", true),
+			],
+		);
+	}
+}
+
+#[test]
+fn unknown_features_fall_back_to_all_features_with_a_warning() {
+	let repo = gatekeeper_fixture();
+	let root = repo.path();
+	let settings = write_facade_job(root, r#"{ name = "facade", features = ["bogus"] }"#);
+
+	// The conservative fallback runs the job for crates no real selection
+	// would build and explains why in the reason.
+	let run = facade_verdict(root, &settings, "crates/opt_dep/src/lib.rs");
+
+	assert!(run.run);
+	assert!(
+		run.reason
+			.contains("feature `bogus` is not defined by root package `facade`"),
+		"missing fallback warning: {}",
+		run.reason
+	);
+	assert!(
+		run.reason.contains("(warning: "),
+		"warning not appended to the reason: {run:?}"
+	);
+
+	// The skip verdict carries the same warning and spells out the selection.
+	let skip = facade_verdict(root, &settings, "crates/gallery/src/lib.rs");
+
+	assert!(!skip.run);
+	assert!(
+		skip.reason.contains("treating the root as all features"),
+		"missing warning on skip: {}",
+		skip.reason
+	);
+	assert!(
+		skip.reason.contains("facade (default + bogus)"),
+		"skip reason should spell out the feature selection: {}",
+		skip.reason
+	);
+}
+
+#[test]
+fn feature_selections_on_non_cargo_packages_follow_every_edge_with_a_warning() {
+	let dir = tempdir().unwrap();
+	let root = dir.path();
+
+	for package in ["a", "b"] {
+		fs::create_dir_all(root.join(format!("packages/{package}"))).unwrap();
+	}
+	fs::write(
+		root.join("package.json"),
+		"{\"name\": \"root\", \"private\": true, \"workspaces\": [\"packages/*\"]}\n",
+	)
+	.unwrap();
+	fs::write(
+		root.join("packages/a/package.json"),
+		"{\"name\": \"@acme/a\", \"version\": \"1.0.0\"}\n",
+	)
+	.unwrap();
+	fs::write(
+		root.join("packages/b/package.json"),
+		"{\"name\": \"@acme/b\", \"version\": \"1.0.0\", \"dependencies\": {\"@acme/a\": \"1.0.0\"}}\n",
+	)
+	.unwrap();
+	fs::write(
+		root.join("monochange.toml"),
+		"[ci.jobs.web]\npackages = [{ name = \"@acme/b\", features = [\"x\"] }]\n",
+	)
+	.unwrap();
+
+	let settings = monochange_config::load_ci_settings(root).unwrap();
+	let context =
+		graph::evaluate_graph_context(root, &["packages/a/index.js".to_string()], &settings)
+			.unwrap();
+	let verdict = graph::evaluate_graph_decision_for_job("web", settings.jobs.get("web"), &context);
+
+	assert!(
+		verdict.run,
+		"non-cargo feature selection must stay conservative: {}",
+		verdict.reason
+	);
+	assert!(
+		verdict.reason.contains("has no cargo feature metadata"),
+		"missing metadata warning: {}",
+		verdict.reason
+	);
+}
+
+#[test]
+fn feature_values_referencing_external_dependencies_add_no_workspace_edges() {
+	let repo = gatekeeper_fixture();
+	let root = repo.path();
+	let settings = write_facade_job(root, r#"{ name = "external_ref", features = ["ext"] }"#);
+
+	// `ext` expands to `outside/thing` and `dep:outside`, which name the
+	// excluded crate outside the workspace: no member edge, and crucially no
+	// all-features fallback warning.
+	let direct = facade_verdict(root, &settings, "crates/external_ref/src/lib.rs");
+
+	assert!(direct.run);
+	assert_eq!(direct.source, graph::VerdictSource::RootDirect);
+	assert!(
+		!direct.reason.contains("(warning: "),
+		"external references must not fall back: {direct:?}"
+	);
+
+	let unrelated = facade_verdict(root, &settings, "crates/opt_dep/src/lib.rs");
+
+	assert!(!unrelated.run);
+	assert!(
+		!unrelated.reason.contains("(warning: "),
+		"skip reason must stay warning-free: {}",
+		unrelated.reason
+	);
+}
+
+#[test]
+fn unknown_features_enabled_on_dependencies_fall_back_with_a_warning() {
+	// `cargo metadata --no-deps` does not validate the features a dependency
+	// entry or a `name/feat` value enables on its target, so both forms can
+	// name features the target does not define. Each mechanism gets its own
+	// workspace.
+	let cases = [
+		// The dependency entry itself enables an undefined feature.
+		(
+			"[features]\n",
+			"core = { path = \"../core\", features = [\"ghost_feature\"] }\n",
+			"{ name = \"app\" }",
+			"feature `ghost_feature` is not defined by package `core`",
+		),
+		// A `name/feat` value enables an undefined feature on a member.
+		(
+			"[features]\nbad = [\"core/ghost_feature\"]\n",
+			"core = { path = \"../core\" }\n",
+			"{ name = \"app\", features = [\"bad\"] }",
+			"feature `ghost_feature` is not defined by package `core`",
+		),
+	];
+
+	for (features_section, dependency_line, selection, expected_warning) in cases {
+		let dir = tempdir().unwrap();
+
+		write_ci_workspace(dir.path(), "[ci.jobs.app-tests]\npackages = [\"app\"]\n");
+		fs::write(
+			dir.path().join("crates/app/Cargo.toml"),
+			format!(
+				"[package]\nname = \"app\"\nversion = \"1.0.0\"\nedition = \"2021\"\n\n{features_section}\n[dependencies]\n{dependency_line}"
+			),
+		)
+		.unwrap();
+		fs::write(
+			dir.path().join("monochange.toml"),
+			format!("[ci.jobs.app-tests]\npackages = [{selection}]\n"),
+		)
+		.unwrap();
+
+		let settings = monochange_config::load_ci_settings(dir.path()).unwrap();
+		let context = graph::evaluate_graph_context(
+			dir.path(),
+			&["crates/core/src/lib.rs".to_string()],
+			&settings,
+		)
+		.unwrap();
+		let verdict = graph::evaluate_graph_decision_for_job(
+			"app-tests",
+			settings.jobs.get("app-tests"),
+			&context,
+		);
+
+		assert!(
+			verdict.run,
+			"the fallback must keep the job running: {}",
+			verdict.reason
+		);
+		assert!(
+			verdict.reason.contains(expected_warning),
+			"missing fallback warning: {}",
+			verdict.reason
+		);
+	}
+}
+
+#[test]
+fn ci_decide_reports_feature_fallback_warnings_in_job_reasons() {
+	let repo = gatekeeper_fixture();
+
+	fs::write(
+		repo.path().join("monochange.toml"),
+		"[ci.jobs.facade-job]\npackages = [{ name = \"facade\", features = [\"bogus\"] }]\n",
+	)
+	.unwrap();
+
+	let output = run_mc(
+		repo.path(),
+		&[
+			"ci",
+			"decide",
+			"--job",
+			"facade-job",
+			"--changed-files",
+			"crates/opt_dep/src/lib.rs",
+			"--format",
+			"json",
+		],
+	)
+	.unwrap();
+	let report: CiDecideReport = serde_json::from_str(&output).unwrap();
+
+	assert_eq!(report.jobs.len(), 1);
+	assert!(report.jobs[0].run);
+	assert!(
+		report.jobs[0]
+			.reason
+			.contains("feature `bogus` is not defined by root package `facade`"),
+		"missing fallback warning: {}",
+		report.jobs[0].reason
+	);
+}
+
 #[test]
 fn cargo_graph_decides_offline_with_an_external_dependency_present() {
 	let dir = tempdir().unwrap();
@@ -1696,9 +2082,32 @@ fn cargo_graph_decides_offline_with_an_external_dependency_present() {
 
 	// `serde` has no `path`, so it must be ignored as an internal edge while
 	// still resolving offline: `--no-deps` never consults the crates.io index.
+	// `outside` has a `path`, but one pointing at a crate that is not a
+	// workspace member, so it is skipped as an internal edge too.
 	fs::write(
 		dir.path().join("crates/app/Cargo.toml"),
-		"[package]\nname = \"app\"\nversion = \"1.0.0\"\nedition = \"2021\"\n\n[dependencies]\ncore = { path = \"../core\" }\nserde = \"1\"\n",
+		"[package]\nname = \"app\"\nversion = \"1.0.0\"\nedition = \"2021\"\n\n[dependencies]\ncore = { path = \"../core\" }\nserde = \"1\"\noutside = { path = \"../../outside\" }\n",
+	)
+	.unwrap();
+	fs::create_dir_all(dir.path().join("outside/src")).unwrap();
+	fs::write(
+		dir.path().join("outside/Cargo.toml"),
+		"[package]\nname = \"outside\"\nversion = \"1.0.0\"\nedition = \"2021\"\n",
+	)
+	.unwrap();
+	fs::write(
+		dir.path().join("outside/src/lib.rs"),
+		"pub fn outside() {}\n",
+	)
+	.unwrap();
+
+	// Excluding the crate keeps it out of `workspace_members`, so the
+	// dependency entry carries a `path` that resolves to no member.
+	let workspace_manifest = fs::read_to_string(dir.path().join("Cargo.toml")).unwrap();
+
+	fs::write(
+		dir.path().join("Cargo.toml"),
+		workspace_manifest.replace("[workspace]\n", "[workspace]\nexclude = [\"outside\"]\n"),
 	)
 	.unwrap();
 

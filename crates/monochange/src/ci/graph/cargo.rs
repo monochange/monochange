@@ -20,6 +20,9 @@ use monochange_core::MonochangeError;
 use monochange_core::MonochangeResult;
 use serde::Deserialize;
 
+use super::CargoDependency;
+use super::CargoDependencyKind;
+use super::CargoMember;
 use super::WorkspaceGraph;
 
 /// Resolve the Cargo workspace graph via `cargo metadata --no-deps --offline`.
@@ -98,19 +101,41 @@ fn build_graph(metadata: &CargoMetadata) -> WorkspaceGraph {
 	}
 
 	for package in &member_packages {
+		let mut cargo_member = CargoMember {
+			features: package.features.clone(),
+			dependencies: Vec::new(),
+		};
+
 		for dependency in &package.dependencies {
 			let Some(path) = &dependency.path else {
 				continue;
 			};
 
-			if let Some(target) = names_by_dir.get(dependency_dir(path).as_path()) {
-				graph
-					.deps
-					.entry(package.name.clone())
-					.or_default()
-					.insert(target.to_string());
-			}
+			let Some(target) = names_by_dir.get(dependency_dir(path).as_path()) else {
+				continue;
+			};
+
+			graph
+				.deps
+				.entry(package.name.clone())
+				.or_default()
+				.insert(target.to_string());
+			cargo_member.dependencies.push(CargoDependency {
+				// Feature syntax addresses dependencies by their manifest
+				// key, so a renamed dependency is `rename`, not `name`.
+				name: dependency
+					.rename
+					.clone()
+					.unwrap_or_else(|| dependency.name.clone()),
+				target: target.to_string(),
+				optional: dependency.optional,
+				uses_default_features: dependency.uses_default_features,
+				features: dependency.features.clone(),
+				kind: dependency.kind(),
+			});
 		}
+
+		graph.cargo.insert(package.name.clone(), cargo_member);
 	}
 
 	graph
@@ -176,14 +201,37 @@ struct MetadataPackage {
 	name: String,
 	manifest_path: String,
 	#[serde(default)]
+	features: BTreeMap<String, Vec<String>>,
+	#[serde(default)]
 	dependencies: Vec<MetadataDependency>,
 }
 
 /// One `packages[].dependencies[]` entry from `cargo metadata`.
 #[derive(Debug, Deserialize)]
 struct MetadataDependency {
+	name: String,
+	#[serde(default)]
+	rename: Option<String>,
 	#[serde(default)]
 	path: Option<String>,
+	#[serde(default)]
+	optional: bool,
+	uses_default_features: bool,
+	#[serde(default)]
+	features: Vec<String>,
+	#[serde(default)]
+	kind: Option<String>,
+}
+
+impl MetadataDependency {
+	/// The dependency kind; a missing `kind` means a normal dependency.
+	fn kind(&self) -> CargoDependencyKind {
+		match self.kind.as_deref() {
+			Some("dev") => CargoDependencyKind::Dev,
+			Some("build") => CargoDependencyKind::Build,
+			_ => CargoDependencyKind::Normal,
+		}
+	}
 }
 
 #[cfg(test)]
