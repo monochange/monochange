@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-11-08)
+
+### 🐛 Fixed
+
+- **Probe registries concurrently while filtering pending publishes.** Publish readiness and placeholder flows check every package against its registry before publishing, one HTTP round trip at a time. Those probes now run eight at a time, so a release with many packages spends the longest single registry round trip (plus a bounded tail) instead of the sum of every package's latency. Results keep the input order, external-mode packages stay unprobed, and errors surface exactly as before. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #838](https://github.com/monochange/monochange/pull/838)
+
 ## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)
 
 ### 💥 Breaking Change

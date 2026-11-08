@@ -3,7 +3,7 @@
 	"kind": "cli-surface",
 	"tool": {
 		"name": "monochange",
-		"version": "0.21.0"
+		"version": "0.21.1"
 	},
 	"provenance": {
 		"extractor": "clap",
@@ -64,21 +64,6 @@
 				"format"
 			],
 			"hidden": false,
-			"max_bump": "major",
-			"parser": {
-				"flags_are_posix_noncompliant": false,
-				"options_must_precede_arguments": false,
-				"option_arg_separators": [
-					" ",
-					"="
-				]
-			}
-		},
-		{
-			"path": [
-				"populate"
-			],
-			"hidden": true,
 			"max_bump": "major",
 			"parser": {
 				"flags_are_posix_noncompliant": false,
@@ -689,6 +674,202 @@
 					"="
 				]
 			}
+		},
+		{
+			"path": [
+				"completions"
+			],
+			"hidden": false,
+			"max_bump": "major",
+			"parser": {
+				"flags_are_posix_noncompliant": false,
+				"options_must_precede_arguments": false,
+				"option_arg_separators": [
+					" ",
+					"="
+				]
+			}
+		},
+		{
+			"path": [
+				"doctor"
+			],
+			"hidden": false,
+			"max_bump": "major",
+			"parser": {
+				"flags_are_posix_noncompliant": false,
+				"options_must_precede_arguments": false,
+				"option_arg_separators": [
+					" ",
+					"="
+				]
+			}
+		},
+		{
+			"path": [
+				"ci"
+			],
+			"hidden": false,
+			"max_bump": "major",
+			"parser": {
+				"flags_are_posix_noncompliant": false,
+				"options_must_precede_arguments": false,
+				"option_arg_separators": [
+					" ",
+					"="
+				]
+			},
+			"commands": [
+				{
+					"path": [
+						"ci",
+						"auth"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					},
+					"commands": [
+						{
+							"path": [
+								"ci",
+								"auth",
+								"init"
+							],
+							"hidden": false,
+							"max_bump": "major",
+							"parser": {
+								"flags_are_posix_noncompliant": false,
+								"options_must_precede_arguments": false,
+								"option_arg_separators": [
+									" ",
+									"="
+								]
+							}
+						},
+						{
+							"path": [
+								"ci",
+								"auth",
+								"verify"
+							],
+							"hidden": false,
+							"max_bump": "major",
+							"parser": {
+								"flags_are_posix_noncompliant": false,
+								"options_must_precede_arguments": false,
+								"option_arg_separators": [
+									" ",
+									"="
+								]
+							}
+						},
+						{
+							"path": [
+								"ci",
+								"auth",
+								"token"
+							],
+							"hidden": false,
+							"max_bump": "major",
+							"parser": {
+								"flags_are_posix_noncompliant": false,
+								"options_must_precede_arguments": false,
+								"option_arg_separators": [
+									" ",
+									"="
+								]
+							}
+						}
+					]
+				},
+				{
+					"path": [
+						"ci",
+						"decide"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					}
+				},
+				{
+					"path": [
+						"ci",
+						"verify"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					}
+				},
+				{
+					"path": [
+						"ci",
+						"analytics"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					}
+				},
+				{
+					"path": [
+						"ci",
+						"history"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					}
+				},
+				{
+					"path": [
+						"ci",
+						"check"
+					],
+					"hidden": false,
+					"max_bump": "major",
+					"parser": {
+						"flags_are_posix_noncompliant": false,
+						"options_must_precede_arguments": false,
+						"option_arg_separators": [
+							" ",
+							"="
+						]
+					}
+				}
+			]
 		},
 		{
 			"path": [
