@@ -1,5 +1,5 @@
 ---
-monochange_app: none
+monochange_app: patch
 ---
 
 # Enforce leptoskit component lint rules in CI
