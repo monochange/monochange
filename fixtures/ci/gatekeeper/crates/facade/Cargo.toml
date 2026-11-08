@@ -16,3 +16,9 @@ opt_hidden = { path = "../opt_hidden", optional = true, features = ["extra_kit"]
 
 [dev-dependencies]
 testkit = { path = "../testkit" }
+
+# The same optional crate again under a target table with its own feature list:
+# activating `opt_dep` builds both entries, so `boosted` (and `opt_boosted`)
+# builds too.
+[target.'cfg(windows)'.dependencies]
+opt_dep = { path = "../opt_dep", optional = true, features = ["boosted"] }

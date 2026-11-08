@@ -167,10 +167,8 @@ fn fixed_point(
 					// activated feature resolves through the table above. This branch only serves
 					// metadata producers that omit implicit entries, where missing it would drop an
 					// edge the selection really builds.
-					if let Some(dependency) = member.dependencies.iter().find(|dependency| {
-						&dependency.name == feature
-							&& dependency.optional
-							&& implicit_feature_visible(member, feature)
+					for dependency in member_dependencies(member, feature).filter(|dependency| {
+						dependency.optional && implicit_feature_visible(member, feature)
 					}) {
 						changed |=
 							activate(graph, &mut state, &mut packages, &member_name, dependency)?;
@@ -181,16 +179,14 @@ fn fixed_point(
 
 			// Follow every active edge, unioning its features into the target.
 			for dependency_name in &current.active_deps {
-				// patch-coverage:ignore-start -- active_deps only receives names inserted by the
-				// non-optional loop (kind-checked) or by feature syntax (normal/build dependencies
-				// only: cargo forbids optional dev-dependencies), so the lookup always matches.
-				if let Some(dependency) = member.dependencies.iter().find(|dependency| {
-					&dependency.name == dependency_name && dependency.kind.built_for(is_root_member)
-				}) {
+				// Every entry under this key counts: a crate listed both normally and in
+				// a target table carries a feature list per entry.
+				for dependency in member_dependencies(member, dependency_name)
+					.filter(|dependency| dependency.kind.built_for(is_root_member))
+				{
 					changed |=
 						activate(graph, &mut state, &mut packages, &member_name, dependency)?;
 				}
-				// patch-coverage:ignore-end
 			}
 		}
 	}
@@ -265,23 +261,28 @@ fn apply_feature_value(
 	value: &str,
 ) -> Result<bool, String> {
 	if let Some(dependency_name) = value.strip_prefix(DEP_PREFIX) {
-		let Some(dependency) = find_member_dependency(member, dependency_name) else {
-			return Ok(false);
-		};
+		let mut changed = false;
 
-		return activate(graph, state, packages, member_name, dependency);
+		for dependency in member_dependencies(member, dependency_name) {
+			changed |= activate(graph, state, packages, member_name, dependency)?;
+		}
+
+		return Ok(changed);
 	}
 
 	if let Some((name_part, target_feature)) = value.split_once('/') {
 		let conditional = name_part.ends_with('?');
 		let dependency_name = name_part.trim_end_matches('?');
-		let Some(dependency) = find_member_dependency(member, dependency_name) else {
+		let entries: Vec<&CargoDependency> = member_dependencies(member, dependency_name).collect();
+		let Some(dependency) = entries.first() else {
 			return Ok(false);
 		};
 		let mut changed = false;
 
 		if !conditional {
-			changed |= activate(graph, state, packages, member_name, dependency)?;
+			for entry in &entries {
+				changed |= activate(graph, state, packages, member_name, entry)?;
+			}
 		}
 
 		let edge_active = state
@@ -342,16 +343,22 @@ fn enable_feature(
 		.insert(feature.to_string()))
 }
 
-/// Find a dependency entry by its manifest key, ignoring entries whose
-/// target is outside the workspace (those carry no member edges).
-fn find_member_dependency<'a>(
+/// Every dependency entry with this manifest key. Entries whose target is
+/// outside the workspace were never recorded, so they carry no member edges.
+///
+/// One key can have several entries: the same crate listed under
+/// `[dependencies]` and a `[target.'cfg(..)'.dependencies]` table, or as both
+/// a normal and a build dependency, each with its own feature list. Activating
+/// the key activates all of them, because following only the first would drop
+/// the features the others enable and could skip a job that really builds them.
+fn member_dependencies<'a>(
 	member: &'a CargoMember,
-	dependency_name: &str,
-) -> Option<&'a CargoDependency> {
+	dependency_name: &'a str,
+) -> impl Iterator<Item = &'a CargoDependency> + 'a {
 	member
 		.dependencies
 		.iter()
-		.find(|dependency| dependency.name == dependency_name)
+		.filter(move |dependency| dependency.name == dependency_name)
 }
 
 /// Whether `feature` names an explicit feature or the implicit feature of an

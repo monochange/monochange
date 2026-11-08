@@ -1806,6 +1806,22 @@ fn feature_aware_roots_follow_only_the_edges_the_selection_builds() {
 		&empty_selection,
 		&[("crates/opt_boosted/src/lib.rs", false)],
 	);
+
+	// `facade` lists `opt_dep` twice: once plainly and once under a target
+	// table that enables `boosted`. Activating `opt_dep` (without `nightly`,
+	// so `opt_dep?/boosted` stays dormant) must follow both entries, so
+	// `opt_boosted` builds through the target entry's feature list.
+	let duplicate_entries =
+		write_facade_job(root, r#"{ name = "facade", features = ["opt_dep"] }"#);
+
+	assert_facade_closure(
+		root,
+		&duplicate_entries,
+		&[
+			("crates/opt_dep/src/lib.rs", true),
+			("crates/opt_boosted/src/lib.rs", true),
+		],
+	);
 }
 
 #[test]
