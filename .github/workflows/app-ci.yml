@@ -51,6 +51,10 @@ jobs:
   check:
     timeout-minutes: 40
     runs-on: ubuntu-latest
+    # Full test debuginfo makes monochange_app's test link exceed rust-lld's
+    # 32-bit .debug_macro relocations in ring (R_X86_64_32 out of range).
+    env:
+      CARGO_PROFILE_TEST_DEBUG: "0"
     defaults:
       run:
         working-directory: app
@@ -123,6 +127,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CARGO_BUILD_JOBS: 1
+      # Match devenv coverage: drop test debuginfo so llvm-cov can link ring.
+      CARGO_PROFILE_TEST_DEBUG: "0"
       COVERAGE_BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before || github.sha }}
       COVERAGE_HEAD: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
 
