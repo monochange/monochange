@@ -472,6 +472,14 @@ path = "crates/monochange_deno"
 [package.monochange_ecmascript]
 path = "crates/monochange_ecmascript"
 
+# leptoskit browser extension (separate Cargo workspace under extension/).
+[package.monochange_extension]
+path = "extension/monochange_extension_app"
+additional_paths = ["extension/**"]
+publish = { enabled = false }
+changelog = false
+ignore_ecosystem_versioned_files = true
+
 [package.monochange_feedback]
 path = "packages/monochange__feedback_flutter"
 type = "dart"

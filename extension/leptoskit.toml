@@ -1,0 +1,105 @@
+#:schema https://leptoskit.dev/schemas/leptoskit.v0.schema.json
+
+schema_version = 0
+plugins = []
+
+[app]
+name = "monochange"
+version = "0.1.0"
+default_platform = "extension"
+# Extension-first scaffold; the web SSR port owns the full site. Code push stays
+# off while the extension platform is enabled (store policy).
+platforms = ["extension"]
+render = "csr"
+icon = "assets/mark.svg"
+
+[serve]
+address = "127.0.0.1"
+port = 3000
+
+[build]
+client_package = "monochange_extension_app"
+features = []
+rustflags = []
+
+[bundle]
+optimize = "fast"
+split = true
+wasm_opt = true
+precompress = true
+
+[codepush]
+enabled = false
+allow_http = false
+server = ""
+channel = "production"
+mandatory = false
+staging_dir = "codepush"
+public_keys = []
+
+[rpc]
+servers = []
+exclude = []
+include_internal = false
+targets = []
+
+# Same `[lint]` gate as `app/leptoskit.toml` (PR #871 / lint:leptoskit). Keep
+# popup/options UI as PascalCase #[component] + view! XML (no builder trees).
+[lint]
+# Prefer view! markup over builder trees for human-authored UI.
+markup = "view"
+# Workspace `lint:clippy` already denies warnings; lint:leptoskit passes
+# `--no-clippy` so this flag only matters for a bare `leptoskit lint` run.
+clippy = true
+
+[lint.rules]
+# Always #[component], always view! XML, PascalCase components.
+component_attribute = "deny"
+markup_style = "deny"
+
+# Release floor tokens — shared `--mc-*` for Tailwind `var(--…)` utilities.
+# Keep in sync with docs/landing-design.md and `chrome::THEME_*`.
+[theme.colors]
+mc-page = "#E8EEF4"
+mc-surface = "#FFFFFF"
+mc-ink = "#0B141F"
+mc-muted = "#5A6B7D"
+mc-rule = "#C5D0DC"
+mc-accent = "#0D9488"
+mc-accent-deep = "#0F766E"
+mc-accent-soft = "#CCFBF1"
+mc-hero = "#071018"
+mc-hero-fg = "#E8EEF4"
+mc-hero-muted = "#9AADB8"
+mc-signal = "#E4B84A"
+mc-glow = "#0D948859"
+
+[theme.lengths]
+mc-radius-strategy = "8px"
+mc-radius-nav = "10px"
+mc-radius-control = "12px"
+mc-radius-panel = "16px"
+mc-gap-action = "1rem"
+
+# Popup glance: session, projects, and release status against the app backend.
+# `server` becomes a host permission and `leptoskit::extension::runtime::server()`.
+[extension]
+name = "monochange"
+description = "Sign in to monochange and glance at projects and release status beside any tab."
+browsers = ["chromium", "firefox"]
+server = "https://monochange.dev"
+permissions = ["storage"]
+optional_host_permissions = ["http://127.0.0.1:3000/*", "http://localhost:3000/*"]
+
+[extension.popup]
+route = "/"
+
+[extension.options]
+route = "/sign-in"
+
+[extension.background]
+events = ["runtime.message", "runtime.installed"]
+
+[extension.firefox]
+id = "monochange@monochange.dev"
+data_collection = ["personallyIdentifyingInfo"]

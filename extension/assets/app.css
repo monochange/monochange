@@ -1,0 +1,49 @@
+/* Document base only. Chrome layout/color uses Tailwind utilities + [theme]
+   `--mc-*` tokens (installed at extension start). Keep fonts here because
+   leptoskit does not ship @font-face via utilities yet. */
+
+@font-face {
+	font-family: "Bricolage Grotesque";
+	src: url("/fonts/bricolage-800.ttf") format("truetype");
+	font-weight: 800;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "Hanken Grotesk";
+	src: url("/fonts/hanken-400.ttf") format("truetype");
+	font-weight: 400;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "Hanken Grotesk";
+	src: url("/fonts/hanken-700.ttf") format("truetype");
+	font-weight: 700;
+	font-display: swap;
+}
+
+html,
+body {
+	margin: 0;
+	min-width: 320px;
+	background: var(--mc-page, #e8eef4);
+	color: var(--mc-ink, #0b141f);
+	font-family: "Hanken Grotesk", sans-serif;
+	line-height: 1.6;
+	-webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+	outline: 3px solid var(--mc-accent, #0d9488);
+	outline-offset: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation: none !important;
+		transition: none !important;
+	}
+}
