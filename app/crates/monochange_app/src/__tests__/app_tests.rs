@@ -1129,13 +1129,19 @@ async fn browser_flow_fixture_server() {
 	sqlx::query("INSERT INTO installations (id, user_id, github_installation_id, github_account_login, github_account_type) VALUES (1, 1, 1001, 'alice', 'User')").execute(&state.db).await.unwrap();
 	sqlx::query("INSERT INTO repositories (installation_id, github_repo_id, github_full_name, github_private) VALUES (1, 11, 'alice/public', 0), (1, 12, 'alice/private', 1)").execute(&state.db).await.unwrap();
 
-	let site = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../target/site");
+	let options = LeptosOptions::builder()
+		.output_name("monochange_app")
+		.site_root(
+			std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+				.join("../../../target/site")
+				.to_string_lossy()
+				.into_owned(),
+		)
+		.build();
+	let (wasm_bg_route, wasm_bg_file) = crate::public_routes::pkg_wasm_bg_alias(&options);
 	let app = router(state)
 		.merge(crate::public_routes::book_redirects())
-		.route_service(
-			"/pkg/monochange_app_bg.wasm",
-			tower_http::services::ServeFile::new(site.join("pkg/monochange_app.wasm")),
-		);
+		.route_service(&wasm_bg_route, wasm_bg_file);
 	let listener = tokio::net::TcpListener::bind("127.0.0.1:3103")
 		.await
 		.unwrap();

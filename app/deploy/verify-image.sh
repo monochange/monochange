@@ -27,7 +27,7 @@ curl --fail --silent --show-error --retry 20 --retry-all-errors --retry-delay 1 
 	--retry-max-time 60 --max-time 5 http://127.0.0.1:3000/health | jq -e '.status == "ok" and .http == "up"'
 docker exec "$name" sh -c 'test "$(awk "/^Uid:/{print \$2}" /proc/1/status)" = 1000'
 docker exec "$name" sh -c 'test "$(awk "/^NoNewPrivs:/{print \$2}" /proc/1/status)" = 1'
-for path in / /changelog /book /book/guide/02-setup /book-assets/branding/logo-280.png /icons/github.svg /icons/rust.svg /pkg/monochange_app.js /pkg/monochange_app.wasm /pkg/monochange_app.css /pkg/__wasm_split_manifest.json; do
+for path in / /changelog /book /book/guide/02-setup /book-assets/branding/logo-280.png /icons/github.svg /icons/rust.svg /pkg/monochange_app.js /pkg/monochange_app.wasm /pkg/monochange_app_bg.wasm /pkg/monochange_app.css /pkg/__wasm_split_manifest.json; do
 	curl --fail --silent --show-error "http://127.0.0.1:3000$path" -o /dev/null
 done
 # The image precompresses pkg assets; the file handler must offer them to

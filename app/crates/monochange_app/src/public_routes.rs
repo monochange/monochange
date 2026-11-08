@@ -1,5 +1,7 @@
 //! Public documentation redirects and assets embedded with the book.
 
+use std::path::PathBuf;
+
 use axum::Router;
 use axum::extract::Path;
 use axum::http::StatusCode;
@@ -8,8 +10,27 @@ use axum::response::IntoResponse;
 use axum::response::Redirect;
 use axum::response::Response;
 use axum::routing::get;
+use leptos::prelude::LeptosOptions;
+use tower_http::services::ServeFile;
 
 use crate::links::BOOK_URL;
+
+/// Route + file service that maps cargo-leptos's on-disk `pkg/<name>.wasm` to the
+/// `pkg/<name>_bg.wasm` URL HydrationScripts emits when `LEPTOS_OUTPUT_NAME` was
+/// unset while compiling `leptos` (shared CI/dep caches often hit this).
+///
+/// Without this alias the browser 404s the hydrate wasm even though
+/// `monochange_app.wasm` is present; the ignored Chrome fixture has needed the
+/// same remap since #761.
+pub fn pkg_wasm_bg_alias(options: &LeptosOptions) -> (String, ServeFile) {
+	let mut route = options.site_pkg_dir_route_base();
+	route.push_str(&options.output_name);
+	route.push_str("_bg.wasm");
+	let file = PathBuf::from(options.site_root.as_ref())
+		.join(options.site_pkg_dir.as_ref())
+		.join(format!("{}.wasm", options.output_name));
+	(route, ServeFile::new(file))
+}
 
 /// Documentation destinations served without authentication or application state.
 pub fn book_redirects() -> Router {

@@ -1,14 +1,17 @@
 // The tokio and rstest macros construct their test runtimes with `expect`.
 #![allow(clippy::disallowed_methods)]
 
+use axum::Router;
 use axum::body::Body;
 use axum::http::Request;
 use axum::http::StatusCode;
 use axum::http::header::LOCATION;
+use leptos::prelude::LeptosOptions;
 use rstest::rstest;
 use tower::ServiceExt;
 
 use super::book_redirects;
+use super::pkg_wasm_bg_alias;
 
 #[rstest]
 #[case("/docs", "/book")]
@@ -46,6 +49,38 @@ async fn other_routes_are_not_redirected_to_documentation() {
 		.unwrap();
 
 	assert_eq!(response.status(), StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn hydrate_bg_wasm_url_serves_cargo_leptos_output_file() {
+	let site = tempfile::tempdir().unwrap();
+	let pkg = site.path().join("pkg");
+	std::fs::create_dir_all(&pkg).unwrap();
+	std::fs::write(pkg.join("monochange_app.wasm"), b"wasm-bytes").unwrap();
+
+	let options = LeptosOptions::builder()
+		.output_name("monochange_app")
+		.site_root(site.path().to_string_lossy().into_owned())
+		.site_pkg_dir("pkg")
+		.build();
+	let (route, file) = pkg_wasm_bg_alias(&options);
+	assert_eq!(route, "/pkg/monochange_app_bg.wasm");
+
+	let app = Router::new().route_service(&route, file);
+	let response = app
+		.oneshot(
+			Request::builder()
+				.uri("/pkg/monochange_app_bg.wasm")
+				.body(Body::empty())
+				.unwrap(),
+		)
+		.await
+		.unwrap();
+	assert_eq!(response.status(), StatusCode::OK);
+	let body = axum::body::to_bytes(response.into_body(), 1024)
+		.await
+		.unwrap();
+	assert_eq!(&body[..], b"wasm-bytes");
 }
 
 #[tokio::test]

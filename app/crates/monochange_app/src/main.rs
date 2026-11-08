@@ -133,6 +133,8 @@ async fn main() -> Result<(), MonochangeError> {
 	let conf = get_configuration(None).map_err(|e| MonochangeError::Server(e.to_string()))?;
 	let leptos_options = conf.leptos_options.clone();
 	let routes = generate_route_list(App);
+	let (wasm_bg_route, wasm_bg_file) =
+		monochange_app::public_routes::pkg_wasm_bg_alias(&leptos_options);
 
 	// Build the axum application
 	// The SSR routes run on the LeptosOptions state; the hosted API routes
@@ -167,6 +169,9 @@ async fn main() -> Result<(), MonochangeError> {
 
 	let app = Router::<()>::new()
 		.merge(monochange_app::public_routes::book_redirects())
+		// HydrationScripts may request `*_bg.wasm` while cargo-leptos only
+		// writes `<output>.wasm`; serve the on-disk file under the `_bg` URL.
+		.route_service(&wasm_bg_route, wasm_bg_file)
 		.route(
 			"/health",
 			leptoskit::server::axum::routing::get(|| {
