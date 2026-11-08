@@ -51,9 +51,14 @@ in
 
   enterShell = ''
     set -euo pipefail
-    # Builds share one content-addressed cache across worktrees. `mbx` manages
+    # Builds share one content-addressed cache across worktrees; `mbx` manages
     # `target/` on disk, so reclaim space with `mbx gc`, not by deleting `target/`.
-    export PATH="${custom.mbx}/libexec/mbx:${currentDir}/.bin/rust-nightly/cargo-semver-checks/0.47.0/bin:$DEVENV_PROFILE/bin:$PATH"
+    # CI keeps plain Cargo so its own target/ restore and upload steps keep working.
+    if [ -z "''${CI:-}" ]; then
+      export PATH="${custom.mbx}/libexec/mbx:${currentDir}/.bin/rust-nightly/cargo-semver-checks/0.47.0/bin:$DEVENV_PROFILE/bin:$PATH"
+    else
+      export PATH="${currentDir}/.bin/rust-nightly/cargo-semver-checks/0.47.0/bin:$DEVENV_PROFILE/bin:$PATH"
+    fi
   '';
 
   # disable dotenv since it interferes with variable interpolation in the shell
