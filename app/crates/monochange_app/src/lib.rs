@@ -34,13 +34,17 @@ mod tests;
 ///
 /// leptoskit SSR apps call this from `HydrationScripts`. Product RPCs share
 /// the page origin with Class B Axum routes via the leptoskit_rpc web client.
+///
+/// `leptoskit_rpc::client::configure` starts the live client, which calls
+/// `any_spawner::Executor::spawn_local` immediately — so the wasm-bindgen
+/// executor must be installed before configure, not only inside
+/// `hydrate_lazy`.
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen::prelude::wasm_bindgen]
 pub fn hydrate() {
 	console_error_panic_hook::set_once();
 	_ = console_log::init_with_level(log::Level::Debug);
-	// leptoskit_rpc::configure installs the live client and may spawn before
-	// hydrate_lazy runs, so the wasm executor must be ready first.
+	// Err(AlreadySet) is fine if something else installed it first.
 	_ = any_spawner::Executor::init_wasm_bindgen();
 	leptoskit_rpc::client::configure(leptoskit_rpc::client::ClientConfig::new());
 
