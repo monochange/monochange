@@ -234,7 +234,10 @@ function collectRouteMetrics(lhr) {
 function consoleErrors(lhr) {
 	const items = lhr.audits?.["errors-in-console"]?.details?.items ?? [];
 	return items
-		.map((item) => item.messages?.join(" ") ?? item.description ?? "console error")
+		.map((item) => {
+			const message = item.messages?.join(" ") ?? item.description ?? "console error";
+			return item.url ? `${message} (${item.url})` : message;
+		})
 		.filter((message) => message.length > 0);
 }
 

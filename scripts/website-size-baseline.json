@@ -1,254 +1,278 @@
 {
 	"files": {
 		"__wasm_split.______________________.js": {
-			"bytes": 15703,
-			"gzipBytes": 1703
+			"bytes": 17354,
+			"gzipBytes": 1789
 		},
 		"__wasm_split_manifest.json": {
-			"bytes": 3502,
-			"gzipBytes": 575
+			"bytes": 3822,
+			"gzipBytes": 609
 		},
 		"chunk_11.wasm": {
-			"bytes": 870,
-			"gzipBytes": 543
+			"bytes": 968,
+			"gzipBytes": 586
 		},
 		"chunk_12.wasm": {
-			"bytes": 617,
-			"gzipBytes": 478
+			"bytes": 618,
+			"gzipBytes": 474
 		},
 		"chunk_13.wasm": {
 			"bytes": 190,
 			"gzipBytes": 168
 		},
 		"chunk_14.wasm": {
-			"bytes": 434,
-			"gzipBytes": 338
+			"bytes": 780,
+			"gzipBytes": 502
 		},
 		"chunk_15.wasm": {
-			"bytes": 375,
-			"gzipBytes": 306
+			"bytes": 535,
+			"gzipBytes": 427
 		},
 		"chunk_16.wasm": {
+			"bytes": 589,
+			"gzipBytes": 418
+		},
+		"chunk_17.wasm": {
+			"bytes": 950,
+			"gzipBytes": 674
+		},
+		"chunk_18.wasm": {
 			"bytes": 1250,
 			"gzipBytes": 756
 		},
-		"chunk_17.wasm": {
-			"bytes": 190,
-			"gzipBytes": 168
-		},
-		"chunk_18.wasm": {
-			"bytes": 190,
-			"gzipBytes": 168
-		},
 		"chunk_19.wasm": {
-			"bytes": 1190,
-			"gzipBytes": 771
+			"bytes": 190,
+			"gzipBytes": 168
 		},
 		"chunk_20.wasm": {
-			"bytes": 403,
-			"gzipBytes": 334
+			"bytes": 190,
+			"gzipBytes": 168
 		},
 		"chunk_21.wasm": {
-			"bytes": 512,
-			"gzipBytes": 412
+			"bytes": 780,
+			"gzipBytes": 558
 		},
 		"chunk_22.wasm": {
-			"bytes": 627,
-			"gzipBytes": 446
+			"bytes": 5365,
+			"gzipBytes": 2497
 		},
 		"chunk_23.wasm": {
-			"bytes": 827,
-			"gzipBytes": 560
+			"bytes": 604,
+			"gzipBytes": 425
 		},
 		"chunk_24.wasm": {
-			"bytes": 342,
-			"gzipBytes": 285
+			"bytes": 1004,
+			"gzipBytes": 707
 		},
 		"chunk_25.wasm": {
-			"bytes": 190,
-			"gzipBytes": 168
+			"bytes": 512,
+			"gzipBytes": 410
 		},
 		"chunk_26.wasm": {
-			"bytes": 1827,
-			"gzipBytes": 1041
+			"bytes": 1759,
+			"gzipBytes": 1057
 		},
 		"chunk_27.wasm": {
-			"bytes": 816,
-			"gzipBytes": 521
+			"bytes": 2244,
+			"gzipBytes": 1124
 		},
 		"chunk_28.wasm": {
-			"bytes": 190,
-			"gzipBytes": 168
+			"bytes": 343,
+			"gzipBytes": 287
 		},
 		"chunk_29.wasm": {
 			"bytes": 190,
 			"gzipBytes": 168
 		},
 		"chunk_30.wasm": {
-			"bytes": 5291,
-			"gzipBytes": 2374
+			"bytes": 890,
+			"gzipBytes": 640
 		},
 		"chunk_31.wasm": {
-			"bytes": 1173,
-			"gzipBytes": 797
+			"bytes": 3794,
+			"gzipBytes": 1983
 		},
 		"chunk_32.wasm": {
-			"bytes": 522,
-			"gzipBytes": 416
+			"bytes": 991,
+			"gzipBytes": 615
 		},
 		"chunk_33.wasm": {
-			"bytes": 472,
-			"gzipBytes": 364
+			"bytes": 190,
+			"gzipBytes": 168
 		},
 		"chunk_34.wasm": {
-			"bytes": 571,
-			"gzipBytes": 438
+			"bytes": 190,
+			"gzipBytes": 168
 		},
 		"chunk_35.wasm": {
-			"bytes": 484,
-			"gzipBytes": 351
+			"bytes": 7649,
+			"gzipBytes": 3255
 		},
 		"chunk_36.wasm": {
-			"bytes": 530,
-			"gzipBytes": 425
+			"bytes": 1449,
+			"gzipBytes": 935
 		},
 		"chunk_37.wasm": {
-			"bytes": 631,
-			"gzipBytes": 423
+			"bytes": 1110,
+			"gzipBytes": 771
 		},
 		"chunk_38.wasm": {
-			"bytes": 68499,
-			"gzipBytes": 28644
+			"bytes": 732,
+			"gzipBytes": 489
 		},
 		"chunk_39.wasm": {
-			"bytes": 572,
-			"gzipBytes": 397
+			"bytes": 571,
+			"gzipBytes": 435
 		},
 		"chunk_40.wasm": {
-			"bytes": 3440,
-			"gzipBytes": 1977
+			"bytes": 857,
+			"gzipBytes": 506
 		},
 		"chunk_41.wasm": {
-			"bytes": 4403,
-			"gzipBytes": 2331
+			"bytes": 1035,
+			"gzipBytes": 749
 		},
 		"chunk_42.wasm": {
-			"bytes": 373,
-			"gzipBytes": 318
+			"bytes": 1208,
+			"gzipBytes": 595
 		},
 		"chunk_43.wasm": {
-			"bytes": 707,
-			"gzipBytes": 450
+			"bytes": 104295,
+			"gzipBytes": 43793
 		},
 		"chunk_44.wasm": {
-			"bytes": 190,
-			"gzipBytes": 168
+			"bytes": 697,
+			"gzipBytes": 461
 		},
 		"chunk_45.wasm": {
-			"bytes": 1292,
-			"gzipBytes": 820
+			"bytes": 3829,
+			"gzipBytes": 2192
 		},
 		"chunk_46.wasm": {
-			"bytes": 3046,
-			"gzipBytes": 1538
+			"bytes": 4965,
+			"gzipBytes": 2644
 		},
 		"chunk_47.wasm": {
+			"bytes": 373,
+			"gzipBytes": 317
+		},
+		"chunk_48.wasm": {
+			"bytes": 707,
+			"gzipBytes": 453
+		},
+		"chunk_49.wasm": {
 			"bytes": 190,
 			"gzipBytes": 168
 		},
-		"chunk_48.wasm": {
-			"bytes": 11634,
-			"gzipBytes": 5130
-		},
-		"chunk_49.wasm": {
-			"bytes": 388,
-			"gzipBytes": 325
-		},
 		"chunk_50.wasm": {
-			"bytes": 7340,
-			"gzipBytes": 3509
+			"bytes": 1871,
+			"gzipBytes": 1140
 		},
 		"chunk_51.wasm": {
-			"bytes": 2291,
-			"gzipBytes": 1173
+			"bytes": 3963,
+			"gzipBytes": 2042
 		},
 		"chunk_52.wasm": {
-			"bytes": 957,
-			"gzipBytes": 659
+			"bytes": 190,
+			"gzipBytes": 168
 		},
 		"chunk_53.wasm": {
-			"bytes": 4672,
-			"gzipBytes": 2245
+			"bytes": 20147,
+			"gzipBytes": 8545
 		},
 		"chunk_54.wasm": {
-			"bytes": 21350,
-			"gzipBytes": 10231
+			"bytes": 1146,
+			"gzipBytes": 782
 		},
 		"chunk_55.wasm": {
-			"bytes": 2663,
-			"gzipBytes": 1312
+			"bytes": 9053,
+			"gzipBytes": 4181
+		},
+		"chunk_56.wasm": {
+			"bytes": 2291,
+			"gzipBytes": 1168
+		},
+		"chunk_57.wasm": {
+			"bytes": 2276,
+			"gzipBytes": 1357
+		},
+		"chunk_58.wasm": {
+			"bytes": 630,
+			"gzipBytes": 451
+		},
+		"chunk_59.wasm": {
+			"bytes": 4673,
+			"gzipBytes": 2251
+		},
+		"chunk_60.wasm": {
+			"bytes": 34280,
+			"gzipBytes": 15797
+		},
+		"chunk_61.wasm": {
+			"bytes": 4480,
+			"gzipBytes": 2182
 		},
 		"monochange_app.css": {
 			"bytes": 115284,
 			"gzipBytes": 18984
 		},
 		"monochange_app.d.ts": {
-			"bytes": 6002,
-			"gzipBytes": 1555
+			"bytes": 5174,
+			"gzipBytes": 1414
 		},
 		"monochange_app.js": {
-			"bytes": 32176,
-			"gzipBytes": 8761
+			"bytes": 28083,
+			"gzipBytes": 7821
 		},
 		"monochange_app.wasm": {
-			"bytes": 2158360,
-			"gzipBytes": 732767
+			"bytes": 1829026,
+			"gzipBytes": 598287
 		},
 		"monochange_app_bg.wasm.d.ts": {
-			"bytes": 3469,
-			"gzipBytes": 679
+			"bytes": 2743,
+			"gzipBytes": 596
 		},
 		"split___auth_callback_route_view_17242783178260986175.wasm": {
-			"bytes": 19474,
-			"gzipBytes": 8401
+			"bytes": 33272,
+			"gzipBytes": 13549
 		},
 		"split___book_route_view_17666993872358248534.wasm": {
-			"bytes": 37930,
-			"gzipBytes": 16617
+			"bytes": 63769,
+			"gzipBytes": 27311
 		},
 		"split___changelog_route_view_18050757885357555981.wasm": {
-			"bytes": 36376,
-			"gzipBytes": 16357
+			"bytes": 59868,
+			"gzipBytes": 26231
 		},
 		"split___dashboard_route_view_14578883471362314054.wasm": {
-			"bytes": 136980,
-			"gzipBytes": 54933
+			"bytes": 208255,
+			"gzipBytes": 84421
 		},
 		"split___feedback_console_route_view_12301044783406046755.wasm": {
-			"bytes": 552659,
-			"gzipBytes": 217289
+			"bytes": 758979,
+			"gzipBytes": 300741
 		},
 		"split___install_route_view_9651537698978891125.wasm": {
-			"bytes": 8679,
-			"gzipBytes": 4200
+			"bytes": 18052,
+			"gzipBytes": 8050
 		},
 		"split___organization_route_view_12043108128510937669.wasm": {
-			"bytes": 74364,
-			"gzipBytes": 31697
+			"bytes": 108384,
+			"gzipBytes": 46448
 		},
 		"split___portal_route_view_10696437552729085034.wasm": {
-			"bytes": 322467,
-			"gzipBytes": 132443
+			"bytes": 491783,
+			"gzipBytes": 204013
 		},
 		"split___pricing_route_view_14841084612111332454.wasm": {
-			"bytes": 8130,
-			"gzipBytes": 3959
+			"bytes": 17948,
+			"gzipBytes": 8051
 		},
 		"split___project_route_view_3868267120568309570.wasm": {
-			"bytes": 95109,
-			"gzipBytes": 38015
+			"bytes": 130419,
+			"gzipBytes": 52004
 		}
 	},
-	"totalBytes": 3781575,
-	"totalGzipBytes": 1363717
+	"totalBytes": 4131998,
+	"totalGzipBytes": 1513294
 }

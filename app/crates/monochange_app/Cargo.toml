@@ -100,7 +100,7 @@ ssr = [
 	"leptoskit_rpc/ssr",
 ]
 # Browser: hydrate + leptoskit_rpc web client.
-hydrate = ["leptos/hydrate", "leptoskit_rpc/web"]
+hydrate = ["leptos/hydrate", "leptos/lazy", "leptoskit_rpc/web"]
 
 [dev-dependencies]
 hmac = "0.12"
