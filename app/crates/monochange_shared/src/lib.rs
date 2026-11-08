@@ -1,7 +1,7 @@
 //! Shared wire types for monochange product surfaces.
 //!
 //! The website WASM client, and future browser-extension / native guests, should
-//! depend on this crate for session and dashboard DTOs. Keep Axum, SQLite, OAuth
+//! depend on this crate for session and dashboard DTOs. Keep Axum, `SQLite`, OAuth
 //! cookie builders, and GitHub App signing out of this crate.
 //!
 //! Product RPCs live as Leptos `#[server]` functions (migrating to

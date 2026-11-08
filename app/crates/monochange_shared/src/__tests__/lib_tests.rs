@@ -1,3 +1,5 @@
+#![allow(clippy::disallowed_methods)]
+
 use crate::OrganizationSummary;
 use crate::ProjectSummary;
 use crate::RepoInfo;
