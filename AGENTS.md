@@ -8,6 +8,7 @@
 - Fix all warnings: `fix:all`
 - Build: `build:all`
 - Quality/typecheck: `lint:all`
+- Rust builds run through `mbx` (mr boxington), supplied by the devenv shell with its Cargo shim ahead of `cargo` on `PATH`. Dependencies come from a shared content-addressed cache instead of being recompiled per worktree, and `mbx` places `target/` under `~/Library/Caches/mbx/targets` as a symlink. Reclaim disk with `mbx gc` (`mbx gc --dry-run` to preview), never by deleting `target/` or setting `CARGO_TARGET_DIR`.
 - Validation: `monochange step validate`
 - Patch coverage: every pull request must keep patch coverage at 100% for executable changed lines. Add or adjust tests until `coverage:patch` is green.
 - Rust unit tests inside crate `src/` trees must live in a `__tests__/` directory next to the module under test, with file names matching `__tests__/<module_name>_tests.rs` (`lib.rs` → `__tests__/lib_tests.rs`, `mod.rs` → `__tests__/mod_tests.rs`). Reference them with `#[cfg(test)] #[path = "__tests__/<module_name>_tests.rs"] mod tests;` instead of inline test modules or sibling `__tests.rs` files. This rule does not apply to integration tests in `<crate>/tests/`; leave those files in the standard integration-test layout.
