@@ -378,6 +378,17 @@ jobs:
         with:
           version: 12
 
+      # monochange publishes the Flutter feedback package with
+      # `flutter pub publish`; the composite publish action runs the monochange
+      # CLI with the runner PATH, where this action installs the SDK. Keep
+      # caching off like the node setup above: the publish job must not depend
+      # on restore-key caches.
+      - name: setup flutter for publish
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version: "3.47.9"
+          cache: false
+
       - name: publish packages
         uses: monochange/actions@77fe97c0119e8c16e429d6f5cf94859b097cdcf8 # v0.10.1
         env:

@@ -14,3 +14,10 @@ dev_dependencies:
   flutter_lints: ^5.0.0
   flutter_test:
     sdk: flutter
+
+# The SDK renders Material icons (see lib/src/sheet.dart), so the Material
+# Design icon font declaration is required. The top-level `flutter` section is
+# also what monochange uses to detect Flutter packages and publish them with
+# `flutter pub publish` instead of `dart pub publish`.
+flutter:
+  uses-material-design: true
