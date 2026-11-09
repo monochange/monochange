@@ -170,6 +170,7 @@ fn response_fixture() -> HostedWorkflowDispatchResponse {
 
 #[test]
 fn run_dispatches_through_the_token_backend() {
+	use std::ffi::OsString;
 	use std::sync::PoisonError;
 
 	let server = MockServer::start();
@@ -191,44 +192,39 @@ fn run_dispatches_through_the_token_backend() {
 			"ref": "main"
 		}));
 	});
-	let command = crate::build_command("monochange");
-	let matches = command
-		.try_get_matches_from([
-			"monochange",
-			"gh",
-			"workflow",
-			"run",
-			"release.yml",
-			"--repo",
-			"monochange/actions",
-			"--ref",
-			"main",
-			"--dry-run",
-			"--hosted-auth",
-			"token",
-			"--hosted-url",
-			&server.base_url(),
-			"--format",
-			"json",
-		])
-		.unwrap();
-	let run_matches = matches
-		.subcommand_matches("gh")
-		.and_then(|matches| matches.subcommand_matches("workflow"))
-		.and_then(|matches| matches.subcommand_matches("run"))
-		.expect("gh workflow run matches");
+	let root = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let hosted_url = server.base_url();
 
 	let _env_lock = TEST_ENV_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
-	crate::tests::block_on_in_context(temp_env::async_with_vars(
+	let output = crate::tests::block_on_in_context(temp_env::async_with_vars(
 		[("MONOCHANGE_TOKEN", Some("monochange-token"))],
-		async {
-			let output = super::run(run_matches)
-				.await
-				.unwrap_or_else(|error| panic!("dispatch: {error}"));
-			let value: serde_json::Value = serde_json::from_str(&output).unwrap();
-			assert_eq!(value["status"], "dry_run");
-		},
-	));
+		crate::run_with_args_in_dir(
+			"monochange",
+			[
+				OsString::from("monochange"),
+				OsString::from("gh"),
+				OsString::from("workflow"),
+				OsString::from("run"),
+				OsString::from("release.yml"),
+				OsString::from("--repo"),
+				OsString::from("monochange/actions"),
+				OsString::from("--ref"),
+				OsString::from("main"),
+				OsString::from("--dry-run"),
+				OsString::from("--hosted-auth"),
+				OsString::from("token"),
+				OsString::from("--hosted-url"),
+				OsString::from(&hosted_url),
+				OsString::from("--format"),
+				OsString::from("json"),
+			],
+			root.path(),
+		),
+	))
+	.unwrap_or_else(|error| panic!("dispatch: {error}"));
+	let value: serde_json::Value = serde_json::from_str(&output)
+		.unwrap_or_else(|error| panic!("dispatch output was not JSON: {error}\n{output}"));
+	assert_eq!(value["status"], "dry_run");
 	mock.assert();
 }
 
@@ -260,6 +256,18 @@ async fn send_reports_http_and_json_failures() {
 		.expect_err("invalid JSON must surface");
 	assert!(
 		error.to_string().contains("response was invalid JSON"),
+		"{error}"
+	);
+
+	let options =
+		resolve_hosted_commit_options(HostedCommitAuth::Token, Some("http://127.0.0.1:1"), None);
+	let error = send_workflow_dispatch(&request(), &options, "monochange-token")
+		.await
+		.expect_err("connection failure must surface");
+	assert!(
+		error
+			.to_string()
+			.contains("hosted workflow dispatch request failed"),
 		"{error}"
 	);
 }

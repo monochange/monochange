@@ -1,0 +1,80 @@
+---
+source: crates/monochange/tests/cli_clap_help.rs
+expression: render_help_snapshot(&path)
+---
+Version: [current]
+Command: monochange gh workflow run
+
+Dispatch a workflow in a connected repository through the monochange app
+
+[1m[97mUsage:[0m [93mmonochange gh workflow run[0m [95m[OPTIONS][0m [93m--repo[0m[95m [0m[95m<OWNER/REPO>[0m [95m<WORKFLOW>[0m
+
+[1m[96mArguments:[0m
+  [95m<WORKFLOW>[0m
+          Workflow file name (for example `release.yml`) or numeric workflow id
+
+[1m[96mOptions:[0m
+      [93m--repo[0m[95m [0m[95m<OWNER/REPO>[0m
+          Target repository full name
+
+      [93m--ref[0m[95m [0m[95m<REF>[0m
+          Git ref to dispatch the workflow from
+
+          [default: main]
+
+  [93m-f[0m, [93m--field[0m[95m [0m[95m<KEY=VALUE>[0m
+          Workflow input as KEY=VALUE; repeat for multiple inputs
+
+      [93m--hosted-url[0m[95m [0m[95m<URL>[0m
+          Base URL of the hosted monochange app
+
+      [93m--hosted-auth[0m[95m [0m[95m<MODE>[0m
+          Authentication for the hosted app: OIDC or MONOCHANGE_TOKEN
+
+          [default: auto]
+          [possible values: auto, oidc, token]
+
+      [93m--oidc-audience[0m[95m [0m[95m<AUDIENCE>[0m
+          Audience required in the GitHub Actions OIDC token
+
+      [93m--format[0m[95m [0m[95m<FORMAT>[0m
+          Output format
+
+          [default: text]
+          [possible values: text, json, json-min, md]
+
+  [93m-h[0m, [93m--help[0m
+          Print help
+
+[1m[96mRelease Options:[0m
+      [93m--dry-run[0m
+          Validate the dispatch without starting a workflow run
+
+[1m[96mGlobal Options:[0m
+  [93m-q[0m, [93m--quiet[0m
+          Suppress result, progress, and diagnostic output without changing execution
+
+  [93m-v[0m, [93m--verbose[0m
+          Show full result lists and logs, every step timing, and progress notes
+
+      [93m--color[0m[95m [0m[95m<WHEN>[0m
+          Control when output uses color; `auto` honors NO_COLOR, CLICOLOR, and CLICOLOR_FORCE
+
+          [possible values: auto, always, never]
+
+      [93m--progress-format[0m[95m [0m[95m<FORMAT>[0m
+          Control progress output on stderr
+
+          [possible values: auto, unicode, ascii, json]
+
+      [93m--jq[0m[95m [0m[95m<EXPRESSION>[0m
+          Filter explicit JSON output; requires `--format json` or `--format json-min`
+
+      [93m--snapshot[0m
+          Print a normalized JSON snapshot for this command subtree
+
+Examples:
+  monochange gh workflow run release.yml --repo monochange/actions --ref main
+  monochange gh workflow run release-pr-merge.yml --repo monochange/actions -f pull_request=103
+
+The target repository must be connected to the monochange GitHub App, and a GitHub Actions caller may only target repositories in the same app installation.
