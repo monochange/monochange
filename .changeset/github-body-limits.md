@@ -1,5 +1,4 @@
 ---
-monochange_core: minor
 monochange_hosting: minor
 monochange_github: patch
 monochange_schema: patch
