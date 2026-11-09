@@ -52,8 +52,6 @@ fn validate_workflow_dispatch_request(
 		));
 	}
 
-	let mut total_bytes = 0;
-
 	for (name, value) in &request.inputs {
 		validate_input_name(name)?;
 
@@ -63,14 +61,6 @@ fn validate_workflow_dispatch_request(
 				value.len()
 			));
 		}
-
-		total_bytes += name.len() + value.len();
-	}
-
-	if total_bytes > 60 * 1024 {
-		return Err(format!(
-			"workflow inputs total {total_bytes} bytes; the maximum is 61440"
-		));
 	}
 
 	Ok(())
@@ -136,6 +126,25 @@ fn validate_input_name(name: &str) -> Result<(), String> {
 	}
 }
 
+/// Resolve a connected repository or return the supplied missing-repository
+/// error. Database failures are always a server error.
+async fn connected_repository(
+	state: &AppState,
+	full_name: &str,
+	missing_status: StatusCode,
+	missing_message: String,
+) -> Result<ConnectedRepository, (StatusCode, Json<ApiError>)> {
+	release_api::find_connected_repository(state, full_name)
+		.await
+		.map_err(|message| {
+			(
+				StatusCode::INTERNAL_SERVER_ERROR,
+				Json(ApiError::new(message)),
+			)
+		})?
+		.ok_or_else(|| (missing_status, Json(ApiError::new(missing_message))))
+}
+
 /// Authorize a workflow dispatch and return the target repository connection.
 ///
 /// OIDC callers may target any repository in the same GitHub App installation
@@ -146,41 +155,25 @@ async fn authorize_workflow_dispatch(
 	caller: &Caller,
 	target: &str,
 ) -> Result<ConnectedRepository, (StatusCode, Json<ApiError>)> {
-	let target_repository = release_api::find_connected_repository(state, target)
-		.await
-		.map_err(|message| {
-			(
-				StatusCode::INTERNAL_SERVER_ERROR,
-				Json(ApiError::new(message)),
-			)
-		})?
-		.ok_or_else(|| {
-			(
-				StatusCode::NOT_FOUND,
-				Json(ApiError::new(format!(
-					"repository `{target}` has no monochange GitHub App installation"
-				))),
-			)
-		})?;
+	let target_repository = connected_repository(
+		state,
+		target,
+		StatusCode::NOT_FOUND,
+		format!("repository `{target}` has no monochange GitHub App installation"),
+	)
+	.await?;
 
 	match caller {
 		Caller::ActionsRun { repository } => {
-			let caller_repository = release_api::find_connected_repository(state, repository)
-				.await
-				.map_err(|message| {
-					(
-						StatusCode::INTERNAL_SERVER_ERROR,
-						Json(ApiError::new(message)),
-					)
-				})?
-				.ok_or_else(|| {
-					(
-						StatusCode::FORBIDDEN,
-						Json(ApiError::new(format!(
-							"OIDC token repository `{repository}` has no monochange GitHub App installation"
-						))),
-					)
-				})?;
+			let caller_repository = connected_repository(
+				state,
+				repository,
+				StatusCode::FORBIDDEN,
+				format!(
+					"OIDC token repository `{repository}` has no monochange GitHub App installation"
+				),
+			)
+			.await?;
 
 			if caller_repository.installation_github_id != target_repository.installation_github_id
 			{

@@ -53,6 +53,19 @@ fn request(repository: &str) -> HostedWorkflowDispatchRequest {
 }
 
 async fn state(github: &MockServer) -> AppState {
+	state_with_token(
+		github,
+		201,
+		serde_json::json!({ "token": "installation-token" }),
+	)
+	.await
+}
+
+async fn state_with_token(
+	github: &MockServer,
+	token_status: u16,
+	token_body: serde_json::Value,
+) -> AppState {
 	let db = monochange_app_db::create_pool("sqlite::memory:")
 		.await
 		.unwrap();
@@ -93,8 +106,7 @@ async fn state(github: &MockServer) -> AppState {
 		when.method(Method::POST)
 			.path("/app/installations/1001/access_tokens")
 			.header("user-agent", "monochange");
-		then.status(201)
-			.json_body(serde_json::json!({ "token": "installation-token" }));
+		then.status(token_status).json_body(token_body);
 	});
 	state
 }
@@ -196,6 +208,22 @@ fn numeric_workflow_ids_and_valid_inputs_are_accepted() {
 	]);
 
 	assert_eq!(validate_workflow_dispatch_request(&request), Ok(()));
+
+	request.workflow = "RELEASE.YAML".to_string();
+	assert_eq!(validate_workflow_dispatch_request(&request), Ok(()));
+}
+
+#[test]
+fn empty_and_overlong_workflows_are_rejected() {
+	for workflow in [String::new(), "a".repeat(256)] {
+		let mut request = request("actions");
+		request.workflow = workflow;
+		assert!(
+			validate_workflow_dispatch_request(&request)
+				.expect_err("invalid workflow length must fail")
+				.contains("file name or numeric workflow id")
+		);
+	}
 }
 
 #[test]
@@ -260,6 +288,41 @@ async fn oidc_callers_may_not_dispatch_across_installations() {
 	assert_eq!(
 		body.0.message,
 		"OIDC token repository `acme/monochange` and target `other/actions` are not in the same monochange GitHub App installation"
+	);
+}
+
+#[tokio::test]
+async fn oidc_caller_without_an_installation_is_forbidden() {
+	let github = MockServer::start();
+	let state = state(&github).await;
+	let caller = Caller::ActionsRun {
+		repository: "missing/repository".to_string(),
+	};
+
+	let (status, body) = authorize_workflow_dispatch(&state, &caller, "acme/actions")
+		.await
+		.expect_err("unconnected caller must fail");
+	assert_eq!(status, StatusCode::FORBIDDEN);
+	assert_eq!(
+		body.0.message,
+		"OIDC token repository `missing/repository` has no monochange GitHub App installation"
+	);
+}
+
+#[tokio::test]
+async fn repository_lookup_failures_are_internal_server_errors() {
+	let github = MockServer::start();
+	let state = state(&github).await;
+	state.db.close().await;
+
+	let (status, body) = authorize_workflow_dispatch(&state, &Caller::ApiToken, "acme/actions")
+		.await
+		.expect_err("closed database must fail");
+	assert_eq!(status, StatusCode::INTERNAL_SERVER_ERROR);
+	assert!(
+		body.0.message.contains("repository lookup failed"),
+		"{}",
+		body.0.message
 	);
 }
 
@@ -364,6 +427,61 @@ async fn github_rejections_preserve_actionable_statuses() {
 	assert_eq!(
 		body["message"],
 		"GitHub API `dispatch workflow` failed with status 404 Not Found: {\"message\":\"Not Found\"}"
+	);
+}
+
+#[tokio::test]
+async fn workflow_rejections_cover_unprocessable_and_server_errors() {
+	let github = MockServer::start();
+	let state = state(&github).await;
+	github.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/actions/workflows/invalid.yml/dispatches");
+		then.status(422)
+			.json_body(serde_json::json!({"message": "Invalid request"}));
+	});
+	github.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/actions/workflows/broken.yml/dispatches");
+		then.status(500)
+			.json_body(serde_json::json!({"message": "Server error"}));
+	});
+
+	let mut invalid = request("actions");
+	invalid.workflow = "invalid.yml".to_string();
+	let (status, body) = post_dispatch(&state, API_TOKEN, &invalid).await;
+	assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{body}");
+
+	let mut broken = request("actions");
+	broken.workflow = "broken.yml".to_string();
+	let (status, body) = post_dispatch(&state, API_TOKEN, &broken).await;
+	assert_eq!(status, StatusCode::BAD_GATEWAY, "{body}");
+	assert!(
+		body["message"]
+			.as_str()
+			.is_some_and(|message| message.contains("status 500")),
+		"{body}"
+	);
+}
+
+#[tokio::test]
+async fn installation_token_failures_are_bad_gateway() {
+	let github = MockServer::start();
+	let state = state_with_token(
+		&github,
+		500,
+		serde_json::json!({"message": "installation token unavailable"}),
+	)
+	.await;
+
+	let (status, body) = post_dispatch(&state, API_TOKEN, &request("actions")).await;
+
+	assert_eq!(status, StatusCode::BAD_GATEWAY, "{body}");
+	assert!(
+		body["message"]
+			.as_str()
+			.is_some_and(|message| message.contains("failed to mint installation token")),
+		"{body}"
 	);
 }
 
