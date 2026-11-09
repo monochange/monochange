@@ -10,7 +10,7 @@ license = "Unlicense"
 repository = "https://github.com/monochange/monochange"
 
 [workspace.dependencies]
-# Leptos 0.9 matches leptoskit / leptoskit_rpc 0.3 (^0.9.0-rc0).
+# Leptos 0.9 matches upstream leptoskit / leptoskit_rpc.
 leptos = { version = "0.9.0-rc1", default-features = false }
 leptos_axum = "0.9.0-rc1"
 leptos_meta = "0.9.0-rc1"
@@ -19,9 +19,10 @@ leptos_router = { version = "0.9.0-rc1", default-features = false }
 # Server functions (aligned with leptos 0.9)
 server_fn = { version = "0.9.0-rc1", default-features = false }
 
-# leptoskit SSR + RPC (crates.io 0.3)
-leptoskit = { version = "0.3", default-features = false }
-leptoskit_rpc = { version = "0.3", default-features = false }
+# leptoskit SSR + RPC from upstream main. Cargo.lock pins the reviewed commit;
+# run `cargo update -p leptoskit -p leptoskit_rpc` to pick up upstream fixes.
+leptoskit = { git = "https://github.com/leptoskit/leptoskit", branch = "main", default-features = false }
+leptoskit_rpc = { git = "https://github.com/leptoskit/leptoskit", branch = "main", default-features = false }
 schemars = { version = "1.2", features = ["semver1"] }
 
 # Testing

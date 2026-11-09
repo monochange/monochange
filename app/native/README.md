@@ -32,7 +32,7 @@ Types live in `monochange_rpc` so the web SSR port can import the same payloads 
 
 | Target                   | Required on the build machine                                                                                                                                   |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Shared Rust / guest wasm | Rust nightly matching `rust-toolchain.toml`, `wasm32-unknown-unknown`, `leptoskit` CLI 0.3.x                                                                    |
+| Shared Rust / guest wasm | Rust nightly matching `rust-toolchain.toml`, `wasm32-unknown-unknown`, the upstream `leptoskit` CLI pinned in `[workspace.metadata.bin]`                        |
 | Android APK              | Java 17+, Android SDK **platform 36**, CMake, NDK, `ANDROID_HOME` (optional `ANDROID_NDK_HOME`), `rustup target add aarch64-linux-android x86_64-linux-android` |
 | iOS app                  | **macOS** with Xcode + iOS Simulator runtime, `rustup target add aarch64-apple-ios-sim aarch64-apple-ios` (or `x86_64-apple-ios` on Intel)                      |
 
@@ -46,9 +46,11 @@ Release signing secrets (not available here; set only on a signing host):
 ## Develop / build (when toolchains are present)
 
 ```bash
+# from the repository root, install the CLI at the revision pinned in
+# [workspace.metadata.bin], then put the managed binary on PATH
+devenv shell cargo bin --install
+export PATH="$PWD/.bin/rust-nightly/leptoskit_cli/0.3.0/bin:$PATH"
 cd app/native
-# install CLI once (needs the repo nightly toolchain)
-cargo install leptoskit_cli --version 0.3.0 --locked
 
 leptoskit doctor                  # reports missing Android/iOS tools
 leptoskit native prepare android  # regenerates .leptoskit/android/

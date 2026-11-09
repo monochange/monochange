@@ -40,10 +40,12 @@ cd extension
 cargo test -p monochange_extension_shared -p monochange_extension_app
 ```
 
-Package for Chromium and Firefox (requires `leptoskit` CLI 0.3):
+Package for Chromium and Firefox (requires the upstream `leptoskit` CLI):
 
 ```bash
-cargo install leptoskit_cli --version 0.3.0 --locked
+# from the repository root
+devenv shell cargo bin --install
+export PATH="$PWD/.bin/rust-nightly/leptoskit_cli/0.3.0/bin:$PATH"
 cd extension
 leptoskit build --platform extension
 # → .leptoskit/extension/chromium and firefox

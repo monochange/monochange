@@ -7,27 +7,35 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$root"
 
 resolve_leptoskit() {
-	if command -v leptoskit >/dev/null 2>&1; then
-		command -v leptoskit
+	# Prefer cargo-run-bin's install, which is pinned to the upstream Git
+	# revision in [workspace.metadata.bin]. A bare `leptoskit` on PATH may be an
+	# older crates.io release, so it is never selected implicitly.
+	local candidate
+	candidate="$(find "$root/.bin" -type f -name leptoskit 2>/dev/null | sort | tail -n 1 || true)"
+
+	if [[ -n "${candidate}" && -x "${candidate}" ]]; then
+		printf '%s\n' "${candidate}"
+
 		return 0
 	fi
 
-	# cargo-run-bin installs under .bin/<toolchain>/<crate>/<version>/bin/
 	if command -v cargo >/dev/null 2>&1; then
 		cargo bin --install >/dev/null
 	fi
 
-	local candidate
 	candidate="$(find "$root/.bin" -type f -name leptoskit 2>/dev/null | sort | tail -n 1 || true)"
+
 	if [[ -n "${candidate}" && -x "${candidate}" ]]; then
 		printf '%s\n' "${candidate}"
+
 		return 0
 	fi
 
-	echo "error: leptoskit CLI not found. Install with:" >&2
-	echo "  cargo bin --install   # after leptoskit_cli is listed in [workspace.metadata.bin]" >&2
-	echo "  # or: cargo binstall leptoskit_cli --locked --no-confirm" >&2
-	echo "  # or: cargo install leptoskit_cli --locked" >&2
+	echo "error: leptoskit CLI not found in .bin. Install the revision pinned in" >&2
+	echo "  [workspace.metadata.bin] with:" >&2
+	echo "  cargo bin --install" >&2
+	echo "  # or: cargo install --git https://github.com/leptoskit/leptoskit --rev <rev> --locked leptoskit_cli" >&2
+
 	return 1
 }
 
