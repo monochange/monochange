@@ -410,6 +410,12 @@ async fn a_resolution_outage_answers_503_and_never_calls_downstream() {
 	use std::sync::atomic::AtomicBool;
 	use std::sync::atomic::Ordering;
 
+	let _subscriber = tracing::subscriber::set_default(
+		tracing_subscriber::fmt()
+			.with_max_level(tracing::Level::ERROR)
+			.with_test_writer()
+			.finish(),
+	);
 	let state = state().await;
 	insert_user(&state, 1, 101).await;
 
