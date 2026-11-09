@@ -197,6 +197,25 @@ pub async fn bearer_gate(
 		);
 	};
 
+	// A presented bearer that failed resolution is a rejected credential,
+	// not an anonymous request: the read-only surface answers 401 instead
+	// of each server function reporting a generic error. The resolver
+	// already guaranteed the bearer never fell back to a cookie. A forged
+	// cookie (no Authorization header) keeps reaching the server functions
+	// so the pinned browser signed-out UX is unchanged.
+	if is_server_fn
+		&& matches!(principal, Principal::Invalid)
+		&& request
+			.headers()
+			.contains_key(axum::http::header::AUTHORIZATION)
+	{
+		return gate_rejection(
+			StatusCode::UNAUTHORIZED,
+			"invalid or expired credentials",
+			is_server_fn,
+		);
+	}
+
 	if !matches!(principal, Principal::Client(_)) {
 		return next.run(request).await;
 	}

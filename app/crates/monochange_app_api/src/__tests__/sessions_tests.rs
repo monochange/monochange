@@ -340,6 +340,7 @@ fn middleware_router(state: Arc<AppState>) -> axum::Router {
 	axum::Router::new()
 		.route("/api/get_session", post(middleware_echo))
 		.route("/health", get(middleware_echo))
+		.route("/dashboard", get(middleware_echo))
 		.layer(axum::middleware::from_fn_with_state(
 			state,
 			crate::sessions::principal_middleware,
@@ -392,7 +393,83 @@ async fn the_principal_middleware_resolves_each_request_once() {
 	let body = send("POST", &HeaderMap::new(), "/api/get_session").await;
 	assert_eq!(&body[..], b"anonymous");
 
-	// Outside the API surface the middleware still answers, anonymously.
-	let body = send("GET", &bearer, "/health").await;
+	// SSR page paths resolve the same credentials as the API surface: a
+	// signed-in cookie renders signed in and a bearer stays a client.
+	let body = send("GET", &browser_headers, "/dashboard").await;
+	assert_eq!(&body[..], b"browser:1");
+	let body = send("GET", &bearer, "/dashboard").await;
+	assert_eq!(&body[..], b"client:1");
+	let body = send("GET", &HeaderMap::new(), "/dashboard").await;
 	assert_eq!(&body[..], b"anonymous");
+	let body = send("GET", &bearer, "/health").await;
+	assert_eq!(&body[..], b"client:1");
+}
+
+#[tokio::test]
+async fn a_resolution_outage_answers_503_and_never_calls_downstream() {
+	use std::sync::atomic::AtomicBool;
+	use std::sync::atomic::Ordering;
+
+	let state = state().await;
+	insert_user(&state, 1, 101).await;
+
+	// Take the database away: every credential resolution now fails.
+	state.db.close().await;
+
+	let reached = Arc::new(AtomicBool::new(false));
+	let marker = reached.clone();
+	let router = axum::Router::new()
+		.route(
+			"/dashboard",
+			axum::routing::get(move || {
+				marker.store(true, Ordering::SeqCst);
+				async { "dashboard" }
+			}),
+		)
+		.layer(axum::middleware::from_fn_with_state(
+			Arc::new(state.clone()),
+			crate::sessions::principal_middleware,
+		));
+
+	let send = |headers: HeaderMap, router: axum::Router| {
+		async move {
+			let mut request = axum::extract::Request::builder()
+				.method("GET")
+				.uri("/dashboard")
+				.body(axum::body::Body::empty())
+				.unwrap();
+			*request.headers_mut() = headers;
+			router.oneshot(request).await.unwrap()
+		}
+	};
+
+	// A presented cookie must not be read as anonymous or invalid: the
+	// outage is an unavailable service, and downstream never runs.
+	let mut cookie_headers = HeaderMap::new();
+	cookie_headers.insert(
+		header::COOKIE,
+		format!("{}={}", SESSION_COOKIE_NAME, browser_token(&state, 0))
+			.parse()
+			.unwrap(),
+	);
+	let response = send(cookie_headers, router.clone()).await;
+	assert_eq!(
+		response.status(),
+		axum::http::StatusCode::SERVICE_UNAVAILABLE
+	);
+	assert!(!reached.load(Ordering::SeqCst));
+
+	// A bearer outage is equally unavailable.
+	let response = send(bearer_headers("mcd_any"), router.clone()).await;
+	assert_eq!(
+		response.status(),
+		axum::http::StatusCode::SERVICE_UNAVAILABLE
+	);
+	assert!(!reached.load(Ordering::SeqCst));
+
+	// A request with no credentials never touches the database and still
+	// reaches downstream as anonymous.
+	let response = send(HeaderMap::new(), router).await;
+	assert_eq!(response.status(), axum::http::StatusCode::OK);
+	assert!(reached.load(Ordering::SeqCst));
 }

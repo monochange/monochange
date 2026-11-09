@@ -2,10 +2,9 @@
 
 #![allow(clippy::disallowed_methods)]
 
+use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::Mutex;
-
-use async_trait::async_trait;
 
 use crate::ApiClient;
 use crate::ApiError;
@@ -43,7 +42,6 @@ impl MockTransport {
 	}
 }
 
-#[async_trait]
 impl Transport for MockTransport {
 	async fn post(
 		&self,
@@ -66,6 +64,45 @@ impl Transport for MockTransport {
 	}
 }
 
+/// One recorded send from [`RcTransport`]: the URL and the bearer it went
+/// with.
+type Sent = (String, Option<String>);
+
+/// A transport whose future holds `Rc` across an `await`, the shape a
+/// browser `JsValue`/`JsFuture` transport has on a single-threaded wasm
+/// host. Compiling and running this through [`ApiClient`] proves the trait
+/// imposes no `Send` future requirement.
+struct RcTransport {
+	sent: Rc<std::cell::RefCell<Vec<Sent>>>,
+}
+
+impl RcTransport {
+	fn new() -> Self {
+		Self {
+			sent: Rc::new(std::cell::RefCell::new(Vec::new())),
+		}
+	}
+}
+
+impl Transport for RcTransport {
+	async fn post(
+		&self,
+		url: &str,
+		bearer: Option<&str>,
+		_content_type: &str,
+		_body: &str,
+	) -> Result<HttpResponse, ApiError> {
+		let held = self.sent.clone();
+		tokio::task::yield_now().await;
+		held.borrow_mut()
+			.push((url.to_string(), bearer.map(str::to_string)));
+		Ok(HttpResponse {
+			status: 200,
+			body: "null".into(),
+		})
+	}
+}
+
 fn ok(body: &str) -> HttpResponse {
 	HttpResponse {
 		status: 200,
@@ -80,6 +117,26 @@ fn session_response() -> HttpResponse {
 	ok(&format!(
 		r#"{{"id":"mcs_1","access_token":"mcd_token","expires_at":1900000000,"user":{USER_JSON}}}"#
 	))
+}
+
+fn exchange_request() -> ClientTokenRequest {
+	ClientTokenRequest {
+		client: ClientKind::Native,
+		code: "one-time-code".into(),
+		code_verifier: "verifier".into(),
+		redirect_uri: "dev.monochange.app:/auth/native/return".into(),
+	}
+}
+
+#[tokio::test]
+async fn a_transport_future_may_hold_rc_across_await() {
+	let transport = RcTransport::new();
+	let client = ApiClient::new(transport, BASE);
+	let session = client.session_user().await.unwrap();
+	assert!(session.is_none());
+	let sent = client.transport.sent.borrow();
+	assert_eq!(sent.len(), 1);
+	assert_eq!(sent[0].0, format!("{BASE}/api/get_session"));
 }
 
 #[tokio::test]
@@ -107,72 +164,65 @@ async fn requests_use_the_shared_wire_shapes() {
 }
 
 #[tokio::test]
-async fn exchange_posts_json_and_stores_the_session() {
+async fn exchange_posts_json_and_returns_the_session_for_the_caller() {
 	let transport = MockTransport::new(session_response());
 	let client = ApiClient::new(transport.clone(), BASE);
-	client
-		.exchange(ClientTokenRequest {
-			client: ClientKind::Native,
-			code: "one-time-code".into(),
-			code_verifier: "verifier".into(),
-			redirect_uri: "dev.monochange.app:/auth/native/return".into(),
-		})
-		.await
-		.unwrap();
+	let session = client.exchange(exchange_request()).await.unwrap();
 
 	let requests = transport.requests();
 	assert_eq!(requests[0].url, format!("{BASE}/api/client-sessions/token"));
+	assert_eq!(requests[0].bearer, None, "the exchange sends no bearer");
 	assert_eq!(requests[0].content_type, "application/json");
 	assert!(requests[0].body.contains("\"code\":\"one-time-code\""));
 	assert!(requests[0].body.contains("\"client\":\"native\""));
 	assert!(requests[0].body.contains("\"code_verifier\":\"verifier\""));
-	assert_eq!(client.access_token().as_deref(), Some("mcd_token"));
-	assert_eq!(client.session().unwrap().user.github_login, "monochange");
+
+	assert_eq!(session.id, "mcs_1");
+	assert_eq!(session.access_token, "mcd_token");
+	assert_eq!(session.user.github_login, "monochange");
+	assert!(
+		client.bearer().is_none(),
+		"the exchange must not mutate the client's credential"
+	);
 }
 
 #[tokio::test]
-async fn organizations_use_the_bearer_after_an_exchange() {
+async fn exchange_omits_authorization_even_with_a_bearer() {
 	let transport = MockTransport::new(session_response());
-	let client = ApiClient::new(transport.clone(), BASE);
-	client
-		.exchange(ClientTokenRequest {
-			client: ClientKind::Native,
-			code: "one-time-code".into(),
-			code_verifier: "verifier".into(),
-			redirect_uri: "dev.monochange.app:/auth/native/return".into(),
-		})
-		.await
-		.unwrap();
-	// The exchange consumed the only canned response; give it another.
-	*transport.response.lock().unwrap() = Some(ok("[]"));
+	let client = ApiClient::with_bearer(transport.clone(), BASE, "mcd_stale");
+	let _session = client.exchange(exchange_request()).await.unwrap();
+
+	let requests = transport.requests();
+	assert_eq!(
+		requests[0].bearer, None,
+		"a stale stored credential must not ride the exchange"
+	);
+}
+
+#[tokio::test]
+async fn a_restored_bearer_authenticates_product_reads() {
+	let transport = MockTransport::new(ok("[]"));
+	let client = ApiClient::with_bearer(transport.clone(), BASE, "mcd_restored");
+	assert_eq!(client.bearer(), Some("mcd_restored"));
 	let _ = client.organizations().await.unwrap();
 
 	let requests = transport.requests();
-	assert_eq!(requests[1].url, format!("{BASE}/api/list_organizations"));
-	assert_eq!(requests[1].bearer.as_deref(), Some("mcd_token"));
+	assert_eq!(requests[0].url, format!("{BASE}/api/list_organizations"));
+	assert_eq!(requests[0].bearer.as_deref(), Some("mcd_restored"));
 }
 
 #[tokio::test]
-async fn revoke_sends_the_bearer_and_clears_the_credential() {
-	let transport = MockTransport::new(session_response());
+async fn revoke_sends_the_supplied_bearer() {
+	let transport = MockTransport::new(ok("null"));
 	let client = ApiClient::new(transport.clone(), BASE);
-	client
-		.exchange(ClientTokenRequest {
-			client: ClientKind::Native,
-			code: "one-time-code".into(),
-			code_verifier: "verifier".into(),
-			redirect_uri: "dev.monochange.app:/auth/native/return".into(),
-		})
-		.await
-		.unwrap();
-	*transport.response.lock().unwrap() = Some(ok("null"));
-	client.revoke().await.unwrap();
-	assert!(client.access_token().is_none());
+	client.revoke("mcd_token").await.unwrap();
+
+	let requests = transport.requests();
 	assert_eq!(
-		transport.requests()[1].url,
+		requests[0].url,
 		format!("{BASE}/api/client-sessions/revoke")
 	);
-	assert_eq!(transport.requests()[1].bearer.as_deref(), Some("mcd_token"));
+	assert_eq!(requests[0].bearer.as_deref(), Some("mcd_token"));
 }
 
 #[tokio::test]
@@ -204,39 +254,15 @@ async fn website_releases_parse() {
 }
 
 #[tokio::test]
-async fn revoke_without_a_credential_is_harmless_and_sends_nothing() {
-	let transport = MockTransport::new(ok("null"));
-	let client = ApiClient::new(transport.clone(), BASE);
-	client.revoke().await.unwrap();
-	assert!(transport.requests().is_empty());
-	assert!(client.access_token().is_none());
-}
-
-#[tokio::test]
-async fn a_failed_revocation_is_an_error_and_keeps_the_credential() {
-	let transport = MockTransport::new(session_response());
-	let client = ApiClient::new(transport.clone(), BASE);
-	client
-		.exchange(ClientTokenRequest {
-			client: ClientKind::Native,
-			code: "one-time-code".into(),
-			code_verifier: "verifier".into(),
-			redirect_uri: "dev.monochange.app:/auth/native/return".into(),
-		})
-		.await
-		.unwrap();
-	*transport.response.lock().unwrap() = Some(HttpResponse {
+async fn a_failed_revocation_is_an_error_for_the_caller_to_keep_its_credential() {
+	let transport = MockTransport::new(HttpResponse {
 		status: 500,
 		body: "unavailable".into(),
 	});
+	let client = ApiClient::new(transport, BASE);
 
-	let error = client.revoke().await.unwrap_err();
+	let error = client.revoke("mcd_token").await.unwrap_err();
 	assert!(matches!(error, ApiError::Status { status: 500, .. }));
-	assert_eq!(
-		client.access_token().as_deref(),
-		Some("mcd_token"),
-		"a failed revocation must not clear the local credential"
-	);
 }
 
 #[test]

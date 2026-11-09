@@ -13,7 +13,6 @@ serde = { workspace = true }
 # Optional JSON Schema so leptoskit_rpc `#[api]` can publish stable OpenAPI later.
 schemars = { workspace = true, optional = true }
 # Client session handoff: PKCE helpers and the platform-neutral API client.
-async-trait = { workspace = true, optional = true }
 base64 = { version = "0.22", optional = true }
 serde_json = { workspace = true, optional = true }
 sha2 = { version = "0.10", optional = true }
@@ -26,7 +25,6 @@ default = []
 schema = ["dep:schemars"]
 # The browser-extension / native client session handoff contract and transport.
 client = [
-	"dep:async-trait",
 	"dep:base64",
 	"dep:serde_json",
 	"dep:sha2",

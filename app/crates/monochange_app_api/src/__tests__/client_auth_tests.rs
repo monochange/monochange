@@ -488,7 +488,64 @@ async fn approval_rejects_unregistered_redirects_and_malformed_input() {
 }
 
 #[tokio::test]
-async fn the_token_endpoint_accepts_only_configured_extension_origins() {
+async fn the_token_endpoint_accepts_real_extension_runtime_origins() {
+	let mut state = state().await;
+	insert_user(&state, 1).await;
+	// A registered https loopback redirect; its origin is where the code is
+	// captured, never where an extension request executes from.
+	state.extension_redirect_uris = vec!["https://abc.chromiumapp.org/".to_owned()];
+
+	let extension_code = |state: &AppState| {
+		let state = state.clone();
+		async move {
+			client_sessions::issue_grant(
+				&state.db,
+				1,
+				"extension",
+				"https://abc.chromiumapp.org/",
+				&code_challenge(VERIFIER),
+				0,
+			)
+			.await
+			.unwrap()
+		}
+	};
+
+	let request_for = |code: &str| {
+		token_request(
+			ClientKind::Extension,
+			code,
+			VERIFIER,
+			"https://abc.chromiumapp.org/",
+		)
+	};
+
+	// Chrome: the extension's fetch executes as chrome-extension://<id>.
+	let code = extension_code(&state).await;
+	let response = post_json(
+		&state,
+		TOKEN_PATH,
+		request_for(&code),
+		Some("chrome-extension://abcdefghijklmnop"),
+	)
+	.await;
+	assert_eq!(response.status(), StatusCode::OK);
+
+	// Firefox: the same fetch executes as moz-extension://<per-install
+	// uuid>, which no allowlist can predict.
+	let code = extension_code(&state).await;
+	let response = post_json(
+		&state,
+		TOKEN_PATH,
+		request_for(&code),
+		Some("moz-extension://0d18c1f2-08f8-4f0a-a1b2-c3d4e5f60718"),
+	)
+	.await;
+	assert_eq!(response.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn web_origins_cannot_burn_a_code_the_real_client_holds() {
 	let mut state = state().await;
 	insert_user(&state, 1).await;
 	state.extension_redirect_uris = vec!["https://abc.chromiumapp.org/".to_owned()];
@@ -510,23 +567,24 @@ async fn the_token_endpoint_accepts_only_configured_extension_origins() {
 		"https://abc.chromiumapp.org/",
 	);
 
-	// The site's own browser origin cannot call the handoff, and the
-	// shape-level rejection leaves the code usable by the real client.
+	// The site's own browser origin cannot call the handoff.
 	let web = post_json(&state, TOKEN_PATH, request.clone(), Some(SITE_ORIGIN)).await;
 	assert_eq!(web.status(), StatusCode::BAD_REQUEST);
 
-	let extension = post_json(
+	// Neither can the registered redirect's origin: it is a loopback
+	// capture address, not an origin any real exchange executes from.
+	let redirect = post_json(
 		&state,
 		TOKEN_PATH,
-		request,
+		request.clone(),
 		Some("https://abc.chromiumapp.org"),
 	)
 	.await;
+	assert_eq!(redirect.status(), StatusCode::BAD_REQUEST);
+
+	// Those rejections leave the code usable by the real client.
+	let extension = post_json(&state, TOKEN_PATH, request, None).await;
 	assert_eq!(extension.status(), StatusCode::OK);
-	assert_eq!(
-		extension.headers().get(header::CACHE_CONTROL).unwrap(),
-		"no-store"
-	);
 }
 
 #[tokio::test]

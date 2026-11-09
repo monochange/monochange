@@ -148,10 +148,20 @@ fn extension_redirect_shape(redirect_uri: &str) -> Result<(), ()> {
 	Ok(())
 }
 
-/// The token endpoint rejects web `Origin` headers. Native sends none; any
-/// present `Origin` must be the exact origin of a configured extension
-/// redirect, so the site's own browser origin cannot call the handoff.
-fn origin_allowed(state: &AppState, headers: &HeaderMap) -> bool {
+/// The token endpoint's `Origin` rule.
+///
+/// Native guests send no `Origin`, which is accepted. An extension's
+/// exchange runs from its own runtime origin — `chrome-extension://<id>`
+/// on Chromium or `moz-extension://<uuid>` on Firefox, where the UUID is
+/// per install — and the browser sets `Origin` from that scheme, which
+/// scripts cannot forge. Both schemes are accepted as-is because no
+/// allowlist can predict the per-install values. Every web origin
+/// (`https`, `http`, `null`, …) is rejected: a web page must not burn a
+/// code the real client holds the verifier for. The registered `https`
+/// redirect (for example `https://<id>.chromiumapp.org/`) is only the
+/// loopback address the code is captured at, never the origin a request
+/// executes from, so it is not trusted here.
+fn origin_allowed(headers: &HeaderMap) -> bool {
 	let Some(origin) = headers
 		.get(header::ORIGIN)
 		.and_then(|value| value.to_str().ok())
@@ -159,11 +169,7 @@ fn origin_allowed(state: &AppState, headers: &HeaderMap) -> bool {
 		return true;
 	};
 
-	state
-		.extension_redirect_uris
-		.iter()
-		.filter_map(|uri| url::Url::parse(uri).ok())
-		.any(|url| url.origin().ascii_serialization() == origin)
+	origin.starts_with("chrome-extension://") || origin.starts_with("moz-extension://")
 }
 
 /// Exchange a one-time code for this client's opaque session.
@@ -180,7 +186,7 @@ pub async fn exchange(
 	}
 
 	// A cross-site browser POST must not burn the code for the real client.
-	if !origin_allowed(&state, &headers) {
+	if !origin_allowed(&headers) {
 		return Err(HandoffError::invalid());
 	}
 

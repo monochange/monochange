@@ -527,6 +527,224 @@ async fn client_tokens_keep_the_read_only_surface_and_self_revocation() {
 	assert_eq!(response.status(), StatusCode::OK);
 }
 
+/// The SSR chain at `GET /dashboard`: the real principal middleware and
+/// bearer gate resolve the request, then the page's server functions run
+/// against those request parts exactly as `leptos_axum` provides them.
+async fn dashboard_session(request: axum::extract::Request) -> String {
+	let owner = Owner::new();
+	let response_options = ResponseOptions::default();
+	let (parts, _body) = request.into_parts();
+	owner.with(|| {
+		provide_context(parts);
+		provide_context(response_options);
+	});
+	let session = owner.with(|| ScopedFuture::new(get_session())).await;
+	match session {
+		Ok(Some(user)) => format!("user:{}", user.github_login),
+		Ok(None) => "anonymous".to_owned(),
+		Err(error) => format!("error:{error}"),
+	}
+}
+
+fn chain_router(state: Arc<AppState>) -> Router {
+	use axum::middleware::from_fn;
+	use axum::middleware::from_fn_with_state;
+	use axum::routing::get;
+	use axum::routing::post;
+
+	Router::new()
+		.route("/dashboard", get(dashboard_session))
+		.route("/api/get_session", post(|| async { "stub-session" }))
+		.route(
+			"/api/sign_out_everywhere",
+			post(|| async { "stub-browser-only" }),
+		)
+		// The same layer order main.rs mounts: the resolver runs first and
+		// the gate sees the principal it inserted.
+		.layer(from_fn(bearer_gate))
+		.layer(from_fn_with_state(
+			state,
+			monochange_app_api::sessions::principal_middleware,
+		))
+}
+
+#[tokio::test]
+async fn the_ssr_chain_resolves_the_signed_in_browser_user() {
+	let state = state().await;
+	let router = chain_router(state.clone());
+
+	let request = Request::builder()
+		.method("GET")
+		.uri("/dashboard")
+		.header(COOKIE, cookie(&state, 1, 100))
+		.body(Body::empty())
+		.unwrap();
+	let response = router.clone().oneshot(request).await.unwrap();
+	let body = axum::body::to_bytes(response.into_body(), 128)
+		.await
+		.unwrap();
+	assert_eq!(&body[..], b"user:alice");
+
+	// No credentials render anonymous, not an error.
+	let request = Request::builder()
+		.method("GET")
+		.uri("/dashboard")
+		.body(Body::empty())
+		.unwrap();
+	let response = router.clone().oneshot(request).await.unwrap();
+	let body = axum::body::to_bytes(response.into_body(), 128)
+		.await
+		.unwrap();
+	assert_eq!(&body[..], b"anonymous");
+}
+
+#[tokio::test]
+async fn the_ssr_chain_reports_forged_credentials_and_never_falls_back() {
+	let state = state().await;
+	let router = chain_router(state.clone());
+
+	// A forged cookie is the pinned browser signed-out UX: an error, never
+	// an anonymous dashboard.
+	let forged = format!("{}=forged", oauth::SESSION_COOKIE_NAME);
+	let request = Request::builder()
+		.method("GET")
+		.uri("/dashboard")
+		.header(COOKIE, forged)
+		.body(Body::empty())
+		.unwrap();
+	let response = router.clone().oneshot(request).await.unwrap();
+	let body = axum::body::to_bytes(response.into_body(), 256)
+		.await
+		.unwrap();
+	let text = String::from_utf8(body.to_vec()).unwrap();
+	assert!(
+		text.starts_with("error:") && text.contains("Invalid session"),
+		"got {text}"
+	);
+
+	// A malformed bearer never falls back to the valid cookie behind it.
+	let request = Request::builder()
+		.method("GET")
+		.uri("/dashboard")
+		.header(COOKIE, cookie(&state, 1, 100))
+		.header(header::AUTHORIZATION, "Bearer mcd_wrong")
+		.body(Body::empty())
+		.unwrap();
+	let response = router.oneshot(request).await.unwrap();
+	let body = axum::body::to_bytes(response.into_body(), 256)
+		.await
+		.unwrap();
+	let text = String::from_utf8(body.to_vec()).unwrap();
+	assert!(
+		text.starts_with("error:") && text.contains("Invalid session"),
+		"got {text}"
+	);
+}
+
+#[tokio::test]
+async fn rejected_bearers_get_401_and_browser_only_paths_stay_403_on_real_routes() {
+	let state = state().await;
+	let router = chain_router(state.clone());
+
+	// An expired client credential answers 401 on the read-only surface
+	// instead of a generic server-fn error body.
+	client_session(&state, 1, "mcd_expired").await;
+	client_sessions::revoke_session(&state.db, "mcd_expired")
+		.await
+		.unwrap();
+	let request = Request::builder()
+		.method("POST")
+		.uri("/api/get_session")
+		.header(header::AUTHORIZATION, "Bearer mcd_expired")
+		.body(Body::empty())
+		.unwrap();
+	let response = router.clone().oneshot(request).await.unwrap();
+	assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+	// A malformed bearer never falls back to the valid cookie behind it.
+	let request = Request::builder()
+		.method("POST")
+		.uri("/api/get_session")
+		.header(COOKIE, cookie(&state, 1, 100))
+		.header(header::AUTHORIZATION, "Basic nonsense")
+		.body(Body::empty())
+		.unwrap();
+	let response = router.clone().oneshot(request).await.unwrap();
+	assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+	// A valid device credential stays off browser-only endpoints: 403.
+	client_session(&state, 1, "mcd_live").await;
+	let request = Request::builder()
+		.method("POST")
+		.uri("/api/sign_out_everywhere")
+		.header(header::AUTHORIZATION, "Bearer mcd_live")
+		.body(Body::empty())
+		.unwrap();
+	let response = router.clone().oneshot(request).await.unwrap();
+	assert_eq!(response.status(), StatusCode::FORBIDDEN);
+
+	// A rejected bearer on an SSR path keeps the pinned browser UX: the
+	// gate only rewrites server-function requests.
+	let request = Request::builder()
+		.method("GET")
+		.uri("/dashboard")
+		.header(COOKIE, cookie(&state, 1, 100))
+		.header(header::AUTHORIZATION, "Bearer mcd_wrong")
+		.body(Body::empty())
+		.unwrap();
+	let response = router.clone().oneshot(request).await.unwrap();
+	let body = axum::body::to_bytes(response.into_body(), 256)
+		.await
+		.unwrap();
+	let text = String::from_utf8(body.to_vec()).unwrap();
+	assert!(
+		text.starts_with("error:") && text.contains("Invalid session"),
+		"got {text}"
+	);
+
+	// A forged cookie (no Authorization header) still reaches the server
+	// functions on the API surface.
+	let request = Request::builder()
+		.method("POST")
+		.uri("/api/get_session")
+		.header(COOKIE, format!("{}=forged", oauth::SESSION_COOKIE_NAME))
+		.body(Body::empty())
+		.unwrap();
+	let response = router.oneshot(request).await.unwrap();
+	assert_eq!(response.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn a_resolution_outage_on_a_server_fn_path_answers_503_in_leptos_encoding() {
+	use server_fn::error::FromServerFnError;
+
+	let state = state().await;
+	let router = chain_router(state.clone());
+
+	state.db.close().await;
+
+	let request = Request::builder()
+		.method("POST")
+		.uri("/api/get_session")
+		.header(COOKIE, cookie(&state, 1, 100))
+		.body(Body::empty())
+		.unwrap();
+	let response = router.oneshot(request).await.unwrap();
+	assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+
+	// The body uses the Leptos server-function error encoding, so the wasm
+	// client decodes the outage instead of reporting a transport failure.
+	let parts = server_fn::ServerFnError::new("encoding probe").ser();
+	assert_eq!(
+		response.headers().get(header::CONTENT_TYPE).unwrap(),
+		parts.content_type
+	);
+	let body = axum::body::to_bytes(response.into_body(), 4096)
+		.await
+		.unwrap();
+	assert!(!body.is_empty());
+}
+
 #[tokio::test]
 async fn browser_and_anonymous_principals_pass_the_gate() {
 	let browser = Principal::Browser(BrowserPrincipal {

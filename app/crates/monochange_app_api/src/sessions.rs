@@ -15,6 +15,7 @@ use axum::response::Response;
 use axum_extra::extract::cookie::CookieJar;
 use monochange_shared::ClientKind;
 use monochange_shared::SessionUser;
+use server_fn::error::FromServerFnError;
 use sqlx::Row;
 
 use crate::AppState;
@@ -207,26 +208,61 @@ pub async fn resolve_browser(state: &AppState, token: &str) -> Result<Principal,
 	}))
 }
 
-/// Axum middleware that resolves the request once and stores the principal in
-/// request extensions for the server functions.
+/// Axum middleware that resolves the request once and stores the principal
+/// in request extensions for the server functions — SSR pages, API calls,
+/// and the handoff alike, so the same credential renders the same identity
+/// everywhere. Requests without credentials stay anonymous without touching
+/// the database. A resolver failure answers 503 itself: an outage must not
+/// masquerade as an anonymous or invalid session downstream.
 pub async fn principal_middleware(
 	State(state): State<Arc<AppState>>,
 	mut request: Request,
 	next: Next,
 ) -> Response {
-	let path = request.uri().path().to_owned();
-	let principal = if path.starts_with("/api/") || path == crate::client_auth::APPROVE_PATH {
-		let headers = request.headers().clone();
-		let cookies = CookieJar::from_headers(&headers);
-		resolve_parts(&state, &headers, &cookies)
-			.await
-			.unwrap_or(Principal::Invalid)
-	} else {
-		Principal::Anonymous
-	};
+	let headers = request.headers().clone();
+	let cookies = CookieJar::from_headers(&headers);
 
-	request.extensions_mut().insert(principal);
-	next.run(request).await
+	match resolve_parts(&state, &headers, &cookies).await {
+		Ok(principal) => {
+			request.extensions_mut().insert(principal);
+			next.run(request).await
+		}
+		Err(error) => {
+			tracing::error!(
+				error = %error,
+				path = %request.uri().path(),
+				"session resolution unavailable"
+			);
+			unavailable(request.uri().path())
+		}
+	}
+}
+
+/// The 503 a resolution outage answers with. Server-function paths carry
+/// the Leptos error encoding so clients decode the failure; everything
+/// else answers plain JSON.
+fn unavailable(path: &str) -> Response {
+	use axum::http::StatusCode;
+	use axum::response::IntoResponse;
+
+	const MESSAGE: &str = "Session resolution is temporarily unavailable";
+
+	if server_fn::axum::server_fn_paths().any(|(server_fn_path, _)| server_fn_path == path) {
+		let parts = server_fn::ServerFnError::new(MESSAGE).ser();
+		let mut response = (
+			[(axum::http::header::CONTENT_TYPE, parts.content_type)],
+			axum::body::Body::from(parts.body),
+		)
+			.into_response();
+		*response.status_mut() = StatusCode::SERVICE_UNAVAILABLE;
+		response
+	} else {
+		(
+			StatusCode::SERVICE_UNAVAILABLE,
+			axum::Json(serde_json::json!({ "error": MESSAGE })),
+		)
+			.into_response()
+	}
 }
 
 #[cfg(test)]

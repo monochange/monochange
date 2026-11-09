@@ -4075,6 +4075,7 @@ dependencies = [
  "rstest",
  "serde",
  "serde_json",
+ "server_fn",
  "sha2 0.10.9",
  "sqlx",
  "thiserror",
@@ -4221,7 +4222,6 @@ dependencies = [
 name = "monochange_shared"
 version = "0.4.0"
 dependencies = [
- "async-trait",
  "base64 0.22.1",
  "schemars",
  "serde",
