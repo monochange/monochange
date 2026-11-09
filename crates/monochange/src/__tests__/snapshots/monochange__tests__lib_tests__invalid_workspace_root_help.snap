@@ -36,6 +36,7 @@ Change Analysis Commands:
 Automation Commands:
   run          Run workflow commands defined in monochange.toml
   step         Run built-in release workflow steps
+  gh           Run GitHub operations through the monochange app
   command      Open an interactive dashboard for adding or editing config-defined CLI commands
   mcp          Start the monochange MCP (Model Context Protocol) server over stdin/stdout
   skill        Read or install the bundled monochange agent skill

@@ -27,13 +27,13 @@ use crate::github_app;
 
 /// A repository row joined with its installation.
 #[derive(Debug)]
-struct ConnectedRepository {
-	github_repo_id: i64,
-	installation_github_id: i64,
+pub(crate) struct ConnectedRepository {
+	pub(crate) github_repo_id: i64,
+	pub(crate) installation_github_id: i64,
 }
 
 /// Resolve the GitHub repository and installation ids by repository full name.
-async fn find_connected_repository(
+pub(crate) async fn find_connected_repository(
 	state: &AppState,
 	full_name: &str,
 ) -> Result<Option<ConnectedRepository>, String> {
@@ -57,7 +57,7 @@ async fn find_connected_repository(
 
 /// The caller identity accepted by the hosted endpoints.
 #[derive(Debug, PartialEq, Eq)]
-enum Caller {
+pub(crate) enum Caller {
 	/// A GitHub Actions run, proven by an OIDC token for this repository.
 	ActionsRun { repository: String },
 	/// A `MONOCHANGE_TOKEN` API token.
@@ -68,7 +68,7 @@ enum Caller {
 ///
 /// This runs before the request body is read, so a caller without valid
 /// credentials can never make the server buffer a release payload.
-async fn authenticate(
+pub(crate) async fn authenticate(
 	state: &AppState,
 	headers: &axum::http::HeaderMap,
 ) -> Result<Caller, (StatusCode, Json<ApiError>)> {
@@ -146,7 +146,7 @@ fn authorize(
 ///
 /// Called only after [`authenticate`] succeeds, so unauthenticated callers
 /// never make the server buffer their body.
-async fn read_json_body<T: serde::de::DeserializeOwned>(
+pub(crate) async fn read_json_body<T: serde::de::DeserializeOwned>(
 	body: axum::body::Body,
 	limit: usize,
 ) -> Result<T, (StatusCode, Json<ApiError>)> {
@@ -189,7 +189,7 @@ fn validate_api_token(expected: Option<&str>, token: &str) -> Result<(), (Status
 	}
 }
 
-fn app_unconfigured() -> (StatusCode, String) {
+pub(crate) fn app_unconfigured() -> (StatusCode, String) {
 	(
 		StatusCode::SERVICE_UNAVAILABLE,
 		"the monochange GitHub App is not configured on this deployment".to_string(),
@@ -203,7 +203,7 @@ pub struct ApiError {
 }
 
 impl ApiError {
-	fn new(message: impl Into<String>) -> Self {
+	pub(crate) fn new(message: impl Into<String>) -> Self {
 		Self {
 			message: message.into(),
 		}
@@ -269,7 +269,7 @@ fn validate_commit_contents(request: &HostedCommitRequest) -> Result<(), String>
 /// Branch names are interpolated into GitHub API paths and queries, so
 /// anything that could change the URL (`?`, `#`, `%`, `..`) or that Git
 /// itself forbids is refused before any request is made.
-fn validate_branch_name(field: &str, branch: &str) -> Result<(), String> {
+pub(crate) fn validate_branch_name(field: &str, branch: &str) -> Result<(), String> {
 	let forbidden = |character: char| {
 		character.is_control()
 			|| matches!(
