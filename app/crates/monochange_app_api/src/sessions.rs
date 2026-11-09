@@ -228,12 +228,9 @@ pub async fn principal_middleware(
 			next.run(request).await
 		}
 		Err(error) => {
-			tracing::error!(
-				error = %error,
-				path = %request.uri().path(),
-				"session resolution unavailable"
-			);
-			unavailable(request.uri().path())
+			let path = request.uri().path();
+			tracing::error!(error = %error, path, "session resolution unavailable");
+			unavailable(path)
 		}
 	}
 }
