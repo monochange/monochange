@@ -437,3 +437,21 @@ The `--provider` flag supports three source providers:
 All providers configure the `[source]` section in `monochange.toml` with appropriate settings for releases and pull/merge requests. GitLab and Gitea require manual CI configuration since they don't support GitHub Actions workflow files.
 
 If you are comparing provider-specific CI layouts or designing a long-running release PR branch, continue with [Advanced: CI, package publishing, and release PR flows](./13-ci-and-publishing.md).
+
+## Large release notes
+
+GitHub accepts release bodies up to 125,000 characters. monochange keeps metadata and complete Markdown release entries until the next entry would exceed that limit, then appends a link to the full changelog at the release tag. The link is included in the size budget. A single oversized entry, or a non-Markdown body that cannot be split safely, is replaced by the link. Changelog files remain complete.
+
+Release PR descriptions use GitHub's 65,536-character cap. Notes are dropped from the end with a changelog pointer. If even the target list or pointer cannot fit, the body becomes an “and more...” notice directing reviewers to the changelog files in the PR.
+
+You can lower either cap:
+
+```toml
+[source.releases]
+max_body_chars = 100000
+
+[source.pull_requests]
+max_body_chars = 60000
+```
+
+Values above GitHub's limits are clamped. For very small caps that cannot fit a continuation notice, the notice itself is shortened to the requested character count. These limits apply to monochange-rendered bodies, not GitHub-generated notes.

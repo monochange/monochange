@@ -1,0 +1,7 @@
+---
+source: crates/monochange_github/src/__tests__/body_tests.rs
+expression: "bounded_release_body(&source, &manifest, &target, &body)"
+---
+
+
+For more, [view the changelog for the full details](https://github.example/ifiokjr/monochange/blob/core%2Fv1.2.0/notes/full%20details.md).
