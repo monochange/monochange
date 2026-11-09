@@ -159,6 +159,12 @@ Verification (2026-11-09, this recovery unit, all exit 0 unless noted):
 
 Known limits: native guests and the extension still consume nothing of this — wiring them to the shared client, real consent UI, and screen integration are the next unit; `sign_out_everywhere` has no page yet; the extension handoff stays off until its redirect URI is configured; `eval:skill:contract`'s baseline attribution remains unverified from the migration run and was not touched.
 
+The parent verified the follow-up SSR, browser-transport, credential-restoration, and authentication-status corrections. A standalone API test exposed a missing `server_fn/axum` feature, which is now explicit. The outage test uses a scoped tracing subscriber, and the middleware reuses one request-path value for its diagnostic and response. The final app workspace run passed 873 tests with one existing ignored browser fixture. A clean report against the source at `61fe24d8` covers **988/988 executable changed lines (100.00%)** relative to `5dfbf72a3`.
+
+Earlier coverage attempts mixed compiled copies with stale source line mappings. `cargo-llvm-cov clean --workspace` had warned that its artifact directory lacked `CACHEDIR.TAG` while returning success. Restoring the standard marker in that verified coverage-artifact directory let the tool clean its own outputs; the subsequent report passed. No coverage exclusions or thresholds changed. The local evidence is `.monochange/local/session-clean-coverage.log`.
+
+The device inventory now confirms that this machine offers both iOS simulators and Android emulators. The earlier SDK-unavailability statement was an assumption, not a completed platform check. Platform builds and runtime checks belong to the remaining client-integration unit.
+
 ## Risks and open questions
 
 - Upstream `main` is a moving branch. It advanced to `f33c3764e2a3836560d9e22f54b6be6595d8ba65` after this change resolved and verified `a93214ed`; the lockfiles and CLI pin keep the reviewed commit until a deliberate `cargo update` and review.
