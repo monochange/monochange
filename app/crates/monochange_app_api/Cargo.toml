@@ -17,10 +17,12 @@ chrono = { workspace = true }
 hex = "0.4"
 hmac = "0.12"
 jsonwebtoken = { workspace = true }
+leptoskit_plugin_web_auth = { workspace = true }
 monochange_app_db = { workspace = true }
 monochange_app_feedback = { workspace = true }
 monochange_core = { workspace = true }
 monochange_github = { workspace = true }
+monochange_shared = { workspace = true, features = ["client"] }
 monosecret = { workspace = true }
 monosecret_derive = { workspace = true }
 reqwest = { workspace = true, features = ["query"] }

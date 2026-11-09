@@ -154,7 +154,7 @@ pub(crate) mod feedback {
 
 		if let Some(user) = user {
 			let (github_id, login) = account(user);
-			let token = create_token(&state.jwt_secret, user, github_id, login).unwrap();
+			let token = create_token(&state.jwt_secret, user, github_id, login, 0).unwrap();
 			request.headers_mut().insert(
 				COOKIE,
 				format!("{}={token}", oauth::SESSION_COOKIE_NAME)

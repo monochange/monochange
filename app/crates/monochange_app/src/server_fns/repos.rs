@@ -28,30 +28,17 @@ pub(crate) struct AccessibleRepository {
 /// # Errors
 /// Returns `Invalid session` for a forged, expired, or orphaned token.
 #[cfg(not(target_arch = "wasm32"))]
-pub(crate) async fn signed_in_user_id(
-	state: &monochange_app_api::AppState,
-) -> Result<Option<i32>, server_fn::ServerFnError> {
-	use axum_extra::extract::cookie::CookieJar;
-	use leptos_axum::extract;
+pub(crate) async fn signed_in_user_id() -> Result<Option<i32>, server_fn::ServerFnError> {
+	let principal = super::principal().await?;
 
-	let jar: CookieJar = extract().await?;
-	let Some(token) = jar
-		.get(monochange_app_api::oauth::SESSION_COOKIE_NAME)
-		.map(|cookie| cookie.value().to_string())
-	else {
-		return Ok(None);
-	};
-	let claims = monochange_app_api::verify_token(&state.jwt_secret, &token)
-		.map_err(|_| server_fn::ServerFnError::new("Invalid session"))?;
-	let user: Option<i64> = sqlx::query_scalar("SELECT github_id FROM users WHERE id = $1")
-		.bind(claims.sub)
-		.fetch_optional(&state.db)
-		.await
-		.map_err(|error| server_fn::ServerFnError::new(format!("DB: {error}")))?;
-
-	match user {
-		Some(github_id) if github_id == claims.github_id => Ok(Some(claims.sub)),
-		_ => Err(server_fn::ServerFnError::new("Invalid session")),
+	match principal {
+		monochange_app_api::sessions::Principal::Anonymous => Ok(None),
+		// Both a rejected credential and a stale one refuse to authorize.
+		monochange_app_api::sessions::Principal::Invalid
+		| monochange_app_api::sessions::Principal::Stale => {
+			Err(server_fn::ServerFnError::new("Invalid session"))
+		}
+		_ => Ok(principal.user_id()),
 	}
 }
 
@@ -220,7 +207,7 @@ pub async fn list_repos() -> Result<Vec<RepoInfo>, server_fn::ServerFnError> {
 	use std::sync::Arc;
 
 	let state: Arc<monochange_app_api::AppState> = leptos::prelude::expect_context();
-	let Some(user_id) = signed_in_user_id(&state).await? else {
+	let Some(user_id) = signed_in_user_id().await? else {
 		return Ok(vec![]);
 	};
 	Ok(accessible_repositories(&state, user_id)

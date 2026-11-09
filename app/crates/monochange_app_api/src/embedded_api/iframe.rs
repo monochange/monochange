@@ -51,19 +51,12 @@ pub(super) async fn session(
 	let login = cookies
 		.get(crate::oauth::SESSION_COOKIE_NAME)
 		.ok_or(EmbeddedError::Unauthorized)?;
-	let claims = crate::verify_token(&state.jwt_secret, login.value())
+	let principal = crate::sessions::resolve_browser(&state, login.value())
+		.await
 		.map_err(|_| EmbeddedError::Unauthorized)?;
-	let exists: bool =
-		sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM users WHERE id = ? AND github_id = ?)")
-			.bind(claims.sub)
-			.bind(claims.github_id)
-			.fetch_one(&state.db)
-			.await
-			.map_err(feedback::FeedbackError::Store)?;
-
-	if !exists {
+	let crate::sessions::Principal::Browser(claims) = principal else {
 		return Err(EmbeddedError::Unauthorized.into());
-	}
+	};
 
 	let public = feedback::public_project(&state, &input.organization, &input.project)
 		.await?

@@ -23,6 +23,7 @@ server_fn = { version = "0.9.0-rc1", default-features = false }
 # run `cargo update -p leptoskit -p leptoskit_rpc` to pick up upstream fixes.
 leptoskit = { git = "https://github.com/leptoskit/leptoskit", branch = "main", default-features = false }
 leptoskit_rpc = { git = "https://github.com/leptoskit/leptoskit", branch = "main", default-features = false }
+leptoskit_plugin_web_auth = { git = "https://github.com/leptoskit/leptoskit", branch = "main", default-features = false }
 schemars = { version = "1.2", features = ["semver1"] }
 
 # Testing
