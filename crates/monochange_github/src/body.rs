@@ -63,7 +63,7 @@ fn entry_boundaries(body: &str) -> Vec<usize> {
 					if marker == open
 						&& count >= width && trimmed.trim_end().chars().all(|c| c == marker) =>
 				{
-					fence = None
+					fence = None;
 				}
 				_ => {}
 			}

@@ -7,7 +7,7 @@ fn boundaries_ignore_code_fences_and_nested_headings() {
 		.into_iter()
 		.map(|end| body.get(..end).unwrap_or_default())
 		.collect::<Vec<_>>();
-	insta::assert_debug_snapshot!(prefixes);
+	insta::assert_snapshot!(prefixes.join("\n--- boundary ---\n"));
 	assert_eq!(entry_boundaries(""), [] as [usize; 0]);
 }
 
