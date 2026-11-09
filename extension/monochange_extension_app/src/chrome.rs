@@ -62,23 +62,23 @@ pub const CHROME: &str =
 	"flex-row items-center justify-between gap-3 pb-3 border-b border-[var(--mc-rule)]";
 
 /// Brand control typography (display weight; leptoskit utilities top out at bold/700).
-pub const BRAND: &str = "font-bold text-[1.15rem] tracking-tight text-[var(--mc-ink)]";
+pub const BRAND: &str = "font-bold text-[1.15rem] text-[var(--mc-ink)]";
 
 /// Secondary chrome label.
 pub const EYEBROW: &str = "text-sm font-bold text-[var(--mc-muted)]";
 
 /// Panel title.
-pub const TITLE: &str = "text-[1.55rem] font-bold tracking-tight text-[var(--mc-ink)]";
+pub const TITLE: &str = "text-[1.55rem] font-bold text-[var(--mc-ink)]";
 
 /// Supporting copy.
-pub const COPY: &str = "text-[0.95rem] text-[var(--mc-muted)] max-w-[34ch]";
+pub const COPY: &str = "text-[0.95rem] text-[var(--mc-muted)] max-w-[17rem]";
 
 /// Raised surface panel.
 pub const PANEL: &str = "gap-3 p-4 rounded-[var(--mc-radius-panel)] bg-[var(--mc-surface)] border border-[var(--mc-rule)]";
 
 /// Ruled project row.
 pub const ROW: &str =
-	"flex-row items-baseline justify-between gap-3 py-2 border-b border-[var(--mc-rule)]";
+	"flex-row items-center justify-between gap-3 py-2 border-b border-[var(--mc-rule)]";
 
 /// Primary action.
 pub const BUTTON: &str = "min-h-12 items-center justify-center px-[1.35rem] py-[0.85rem] rounded-[var(--mc-radius-control)] bg-[var(--mc-accent-deep)] text-white font-bold active:bg-[var(--mc-accent)]";

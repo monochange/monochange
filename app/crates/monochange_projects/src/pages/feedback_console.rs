@@ -198,7 +198,7 @@ fn ConsoleContent(
 	view! {
 		<Title text=format!("Feedback · {} — monochange", view.project_name) />
 		<nav class="breadcrumbs" aria-label="Breadcrumb">
-			<a href="/dashboard">"Workspace"</a><span aria-hidden="true">"/"</span>
+			<a href="/projects">"Workspace"</a><span aria-hidden="true">"/"</span>
 			<a href=organization_path(&organization)>{organization.clone()}</a><span aria-hidden="true">"/"</span>
 			<a href=project_path(&organization, &project)>{view.project_name.clone()}</a><span aria-hidden="true">"/"</span>
 			<span aria-current="page">"Feedback"</span>

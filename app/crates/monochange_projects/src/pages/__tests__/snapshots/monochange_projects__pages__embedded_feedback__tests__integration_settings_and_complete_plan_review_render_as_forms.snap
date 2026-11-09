@@ -1,5 +1,5 @@
 ---
-source: crates/monochange_app/src/pages/__tests__/embedded_feedback_tests.rs
+source: crates/monochange_projects/src/pages/__tests__/embedded_feedback_tests.rs
 expression: "html.replace(\"><\", \">\\n<\")"
 ---
 <!DOCTYPE html>

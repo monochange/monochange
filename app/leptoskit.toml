@@ -28,7 +28,7 @@ rustflags = []
 
 [bundle]
 # Match the existing cargo-leptos split routes (`#[lazy_route]`).
-optimize = "size"
+optimize = "smallest"
 split = true
 wasm_opt = true
 precompress = true

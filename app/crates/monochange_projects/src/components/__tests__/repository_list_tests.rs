@@ -105,7 +105,7 @@ async fn long_lists_show_the_first_page() {
 
 #[test]
 fn lists_scroll_with_the_page() {
-	let stylesheet = include_str!("../../../style/input.css");
+	let stylesheet = include_str!("../../../../monochange_app/style/input.css");
 	let page_rules = stylesheet
 		.lines()
 		.filter(|line| line.contains(".repository-page"))

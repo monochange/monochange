@@ -199,7 +199,7 @@ async fn organisations_group_the_repositories_a_user_manages() {
 		summary,
 		[("alice", true, true, 2), ("team", false, true, 1)]
 	);
-	assert_eq!(organizations[0].path(), "/dashboard/alice");
+	assert_eq!(organizations[0].path(), "/projects/alice");
 
 	assert!(
 		organizations
@@ -390,7 +390,7 @@ async fn projects_are_created_viewed_edited_and_deleted() {
 	.unwrap();
 	assert_eq!(
 		location(&response).as_deref(),
-		Some("/dashboard/alice/projects/invoices-billing")
+		Some("/projects/alice/projects/invoices-billing")
 	);
 
 	let overview = owner
@@ -440,7 +440,7 @@ async fn projects_are_created_viewed_edited_and_deleted() {
 		.unwrap();
 	assert_eq!(
 		location(&response).as_deref(),
-		Some("/dashboard/alice/projects/web")
+		Some("/projects/alice/projects/web")
 	);
 	let renamed = owner
 		.with(|| ScopedFuture::new(project_overview("alice".to_owned(), "web".to_owned())))
@@ -454,7 +454,7 @@ async fn projects_are_created_viewed_edited_and_deleted() {
 		.with(|| ScopedFuture::new(delete_project("alice".to_owned(), "web".to_owned())))
 		.await
 		.unwrap();
-	assert_eq!(location(&response).as_deref(), Some("/dashboard/alice"));
+	assert_eq!(location(&response).as_deref(), Some("/projects/alice"));
 	assert!(
 		owner
 			.with(|| ScopedFuture::new(project_overview("alice".to_owned(), "web".to_owned())))

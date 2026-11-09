@@ -124,6 +124,10 @@ async fn connect_request_previews_a_valid_handoff_for_the_browser_user() {
 		.await
 		.unwrap()
 		.unwrap();
+	assert_eq!(
+		preview.denial_url,
+		format!("{NATIVE_REDIRECT}?error=access_denied&state=state-1234567890")
+	);
 	assert_eq!(preview.client, ClientKind::Native);
 	assert_eq!(preview.user.github_id, 100);
 	assert_eq!(preview.user.github_login, "alice");
@@ -765,4 +769,44 @@ async fn browser_and_anonymous_principals_pass_the_gate() {
 	assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
 	let response = send_method_to_gate("GET", "/health", None).await;
 	assert_eq!(response.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn account_switch_keeps_only_a_same_origin_consent_return() {
+	let state = state().await;
+	let browser = cookie(&state, 1, 100);
+	for next in [
+		"https://other.example/connect",
+		"//other.example",
+		"/dashboard",
+		"/connect?x=bad\n",
+	] {
+		let (owner, _) = context(&state, Some(browser.clone()), Some(SITE_ORIGIN));
+		assert!(
+			owner
+				.with(|| ScopedFuture::new(super::switch_connect_account(next.into())))
+				.await
+				.is_err()
+		);
+	}
+	let next = "/connect?client=native&state=request-123456789";
+	let (owner, response) = context(&state, Some(browser), Some(SITE_ORIGIN));
+	owner
+		.with(|| ScopedFuture::new(super::switch_connect_account(next.into())))
+		.await
+		.unwrap();
+	assert_eq!(response.0.read().unwrap().headers[header::LOCATION], next);
+	assert!(
+		response.0.read().unwrap().headers[SET_COOKIE]
+			.to_str()
+			.unwrap()
+			.contains("Max-Age=0")
+	);
+	let (owner, _) = context(&state, None, Some(SITE_ORIGIN));
+	assert!(
+		owner
+			.with(|| ScopedFuture::new(super::switch_connect_account(next.into())))
+			.await
+			.is_err()
+	);
 }

@@ -15,3 +15,8 @@ leptoskit_bridge_ffi = { workspace = true, features = ["app"] }
 [dependencies]
 leptoskit_plugin_http = { workspace = true }
 leptoskit_plugin_secure_store = { workspace = true }
+
+leptoskit_plugin_crypto = { workspace = true }
+leptoskit_plugin_web_auth = { workspace = true }
+
+leptoskit_plugin_linking = { workspace = true }

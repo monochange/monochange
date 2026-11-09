@@ -12,7 +12,7 @@ use crate::components::repository_list::RepositoryFilters;
 use crate::components::repository_list::RepositoryPager;
 use crate::components::repository_list::RepositoryPicker;
 use crate::components::repository_list::use_repository_filter;
-use crate::pages::dashboard::OrganizationAvatar;
+use crate::pages::home::OrganizationAvatar;
 use crate::projects::MAX_DESCRIPTION_CHARS;
 use crate::projects::MAX_NAME_CHARS;
 use crate::repository_filter::count_matches;
@@ -43,13 +43,27 @@ impl LazyRoute for OrganizationRoute {
 	fn data() -> Self {
 		let params = use_params_map();
 		let login = Memo::new(move |_| params.read().get("organization").unwrap_or_default());
-		let overview = Resource::new_blocking(move || login.get(), organization_overview);
+		let overview = Resource::new_blocking(
+			move || login.get(),
+			|login| {
+				async move {
+					if login.is_empty() {
+						Ok(None)
+					} else {
+						organization_overview(login).await
+					}
+				}
+			},
+		);
 		Self { login, overview }
 	}
 
 	fn view(this: Self) -> AnyView {
 		let OrganizationRoute { login, overview } = this;
-		view! {
+		if login.get_untracked().is_empty() {
+			view! { <crate::pages::home::ProjectsHome /> }.into_any()
+		} else {
+			view! {
 			<Title text=move || format!("{} — monochange", login.get()) />
 			<section class="site-width dashboard-section">
 				<Suspense fallback=|| view! { <p role="status">"Loading organisation…"</p> }>
@@ -63,6 +77,7 @@ impl LazyRoute for OrganizationRoute {
 			</section>
 		}
 		.into_any()
+		}
 	}
 }
 
@@ -71,7 +86,7 @@ impl LazyRoute for OrganizationRoute {
 pub fn Unavailable(title: &'static str, message: &'static str) -> impl IntoView {
 	view! {
 		<div class="status-page">
-			<div><h1>{title}</h1><p>{message}</p><div class="actions"><a href="/dashboard" class="button button-brand">"Back to your workspace"</a></div></div>
+			<div><h1>{title}</h1><p>{message}</p><div class="actions"><a href="/projects" class="button button-brand">"Back to your workspace"</a></div></div>
 		</div>
 	}
 }
@@ -89,7 +104,7 @@ fn OrganizationContent(organization: OrganizationSummary) -> impl IntoView {
 	let total = organization.repositories.len();
 	let searchable = StoredValue::new(organization.repositories.clone());
 	view! {
-		<nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/dashboard">"Workspace"</a><span aria-hidden="true">"/"</span><span aria-current="page">{login.clone()}</span></nav>
+		<nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/projects">"Workspace"</a><span aria-hidden="true">"/"</span><span aria-current="page">{login.clone()}</span></nav>
 		<div class="workspace-heading">
 			<OrganizationAvatar login=login.clone() avatar_url=organization.avatar_url.clone() />
 			<div><h1>{login.clone()}</h1><p>{kind} " · " {organization.repositories.len()} " connected repositories"</p></div>

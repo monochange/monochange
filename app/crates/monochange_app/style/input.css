@@ -637,3 +637,5 @@ button.button:disabled { opacity: .55; cursor: progress; }
 .book-edit { display: inline-flex; align-items: center; min-height: 44px; margin-top: 2rem; color: var(--muted); font-size: .9rem; }
 @media (max-width: 900px) { .book-layout { grid-template-columns: 1fr; gap: 2rem; padding-top: 1.5rem; } .book-sidebar { position: static; max-height: none; border-bottom: 1px solid var(--rule); padding-bottom: 1rem; } .book-chapters-toggle { display: block; } .book-chapter-navigation { display: none; } .book-chapter-navigation.is-open { display: block; max-height: 50vh; overflow-y: auto; } .book-home { margin-bottom: .5rem; } }
 
+
+@source "../../monochange_projects/src/**/*.rs";

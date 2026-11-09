@@ -71,7 +71,7 @@ fn ProjectContent(details: ProjectDetails) -> impl IntoView {
 		<Title text=format!("{} — monochange", project.name) />
 		<section class="site-width dashboard-section">
 			<nav class="breadcrumbs" aria-label="Breadcrumb">
-				<a href="/dashboard">"Workspace"</a><span aria-hidden="true">"/"</span>
+				<a href="/projects">"Workspace"</a><span aria-hidden="true">"/"</span>
 				<a href=organization_path(&organization)>{organization.clone()}</a><span aria-hidden="true">"/"</span>
 				<span aria-current="page">{project.name.clone()}</span>
 			</nav>

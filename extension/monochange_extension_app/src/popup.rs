@@ -80,6 +80,7 @@ impl ProjectRow {
 /// Messages the popup sends the background worker.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum ExtensionMessage {
+	SignIn,
 	/// Reload session + glance data.
 	Refresh,
 	/// Forget the local bearer after server logout.

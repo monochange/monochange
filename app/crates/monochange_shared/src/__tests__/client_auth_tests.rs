@@ -144,3 +144,31 @@ fn client_session_info_round_trips_json() {
 	assert_eq!(decoded.client, ClientKind::Extension);
 	assert_eq!(decoded.last_used_at, Some(1_700_000_100));
 }
+
+fn handoff() -> super::ClientHandoff {
+	super::ClientHandoff {
+		client: ClientKind::Native,
+		redirect_uri: "dev.monochange.app:/auth/native/return".into(),
+		state: "request-state-123456".into(),
+		verifier: "verifier".into(),
+	}
+}
+#[test]
+fn handoff_validates_callback_state_and_denial_before_exchange() {
+	let valid = "dev.monochange.app:/auth/native/return?code=one-time&state=request-state-123456";
+	assert_eq!(handoff().consume(valid).unwrap().code, "one-time");
+	for callback in [
+		"not a url",
+		"other.app:/auth/native/return?code=x&state=request-state-123456",
+		"dev.monochange.app:/other?code=x&state=request-state-123456",
+		"dev.monochange.app:/auth/native/return?code=x&state=request-state-123456#fragment",
+		"dev.monochange.app:/auth/native/return?code=x&state=wrong",
+		"dev.monochange.app:/auth/native/return?code=x&state=request-state-123456&state=request-state-123456",
+		"dev.monochange.app:/auth/native/return?error=access_denied&state=request-state-123456",
+		"dev.monochange.app:/auth/native/return?state=request-state-123456",
+		"dev.monochange.app:/auth/native/return?code=&state=request-state-123456",
+		"dev.monochange.app:/auth/native/return?code=x&code=y&state=request-state-123456",
+	] {
+		assert!(handoff().consume(callback).is_err(), "{callback}");
+	}
+}

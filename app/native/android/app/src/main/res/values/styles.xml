@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Release floor chrome: --mc-page mist status/nav bars, teal signal via guest UI. -->
+<!-- Release floor chrome: mc-page mist status/nav bars, teal signal via guest UI. -->
 <resources>
     <color name="mc_page">#E8EEF4</color>
     <color name="mc_ink">#0B141F</color>

@@ -313,7 +313,7 @@ fn router(state: Arc<AppState>) -> Router {
 		.output_name("monochange_app")
 		.site_root(
 			std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-				.join("../../../target/site")
+				.join("../../target/site")
 				.to_string_lossy()
 				.into_owned(),
 		)
@@ -340,6 +340,9 @@ fn router(state: Arc<AppState>) -> Router {
 			},
 		))
 		.with_state(options)
+		.layer(axum::middleware::from_fn(
+			crate::public_routes::legacy_projects,
+		))
 }
 
 fn oauth_limited_router(state: Arc<AppState>) -> Router {
@@ -1130,7 +1133,7 @@ async fn browser_flow_fixture_server() {
 	sqlx::query("INSERT INTO installations (id, user_id, github_installation_id, github_account_login, github_account_type) VALUES (1, 1, 1001, 'alice', 'User')").execute(&state.db).await.unwrap();
 	sqlx::query("INSERT INTO repositories (installation_id, github_repo_id, github_full_name, github_private) VALUES (1, 11, 'alice/public', 0), (1, 12, 'alice/private', 1)").execute(&state.db).await.unwrap();
 
-	let site = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../target/site");
+	let site = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../target/site");
 	let app = router(state)
 		.merge(crate::public_routes::book_redirects())
 		.route_service(
@@ -1220,7 +1223,7 @@ async fn organisations_lead_to_projects_that_work_without_javascript() {
 
 	let dashboard = dashboard_html(&app, &cookie).await;
 	assert!(
-		dashboard.contains("href=\"/dashboard/alice\""),
+		dashboard.contains("href=\"/projects/alice\""),
 		"{dashboard}"
 	);
 	assert!(dashboard.contains("src=\"https://avatars.example/alice.png\""));
@@ -1228,14 +1231,14 @@ async fn organisations_lead_to_projects_that_work_without_javascript() {
 	assert!(dashboard.contains("0 projects"));
 	assert!(dashboard.contains("alice/api"));
 
-	let organization = page_html(&app, "/dashboard/alice", &cookie).await;
+	let organization = page_html(&app, "/projects/alice", &cookie).await;
 	assert!(organization.contains("New project"));
 	assert!(organization.contains("name=\"repositories[]\""));
 	assert!(organization.contains("No projects yet"));
-	assert!(organization.contains("/dashboard/alice/projects/invoices"));
-	let team = page_html(&app, "/dashboard/team", &cookie).await;
+	assert!(organization.contains("/projects/alice/projects/invoices"));
+	let team = page_html(&app, "/projects/team", &cookie).await;
 	assert!(team.contains("GitHub organisation"));
-	let legacy = page_html(&app, "/dashboard/legacy", &cookie).await;
+	let legacy = page_html(&app, "/projects/legacy", &cookie).await;
 
 	assert!(legacy.contains("still confirming this account with GitHub"));
 	assert!(!legacy.contains("Create project"));
@@ -1260,18 +1263,18 @@ async fn organisations_lead_to_projects_that_work_without_javascript() {
 	assert_eq!(response.status(), StatusCode::FOUND);
 	assert_eq!(
 		response.headers()[LOCATION],
-		"/dashboard/alice/projects/invoices"
+		"/projects/alice/projects/invoices"
 	);
 
-	let project = page_html(&app, "/dashboard/alice/projects/invoices", &cookie).await;
+	let project = page_html(&app, "/projects/alice/projects/invoices", &cookie).await;
 	assert!(project.contains("Billing apps"));
 	assert!(project.contains("alice/web"));
 	assert!(project.contains("Edit project"));
 	assert!(project.contains("Delete this project"));
 	assert!(!project.contains("Disconnected"));
 
-	let listed = page_html(&app, "/dashboard/alice", &cookie).await;
-	assert!(listed.contains("href=\"/dashboard/alice/projects/invoices\""));
+	let listed = page_html(&app, "/projects/alice", &cookie).await;
+	assert!(listed.contains("href=\"/projects/alice/projects/invoices\""));
 	assert!(dashboard_html(&app, &cookie).await.contains("1 project<"));
 
 	// Removing a repository from the installation keeps it in the project.
@@ -1285,23 +1288,23 @@ async fn organisations_lead_to_projects_that_work_without_javascript() {
 		}),
 	)
 	.await;
-	let disconnected = page_html(&app, "/dashboard/alice/projects/invoices", &cookie).await;
+	let disconnected = page_html(&app, "/projects/alice/projects/invoices", &cookie).await;
 	assert!(disconnected.contains("Disconnected"));
 	assert!(disconnected.contains("come back when the GitHub App is installed on them again"));
 
-	let missing = page_html(&app, "/dashboard/alice/projects/missing", &cookie).await;
+	let missing = page_html(&app, "/projects/alice/projects/missing", &cookie).await;
 	assert!(missing.contains("Project not found"));
-	let stranger = page_html(&app, "/dashboard/someone-else", &cookie).await;
+	let stranger = page_html(&app, "/projects/someone-else", &cookie).await;
 	assert!(stranger.contains("Organisation not found"));
 
 	let forged = format!("{}=forged", oauth::SESSION_COOKIE_NAME);
 	assert!(
-		page_html(&app, "/dashboard/alice", &forged)
+		page_html(&app, "/projects/alice", &forged)
 			.await
 			.contains("This organisation couldn't be loaded")
 	);
 	assert!(
-		page_html(&app, "/dashboard/alice/projects/invoices", &forged)
+		page_html(&app, "/projects/alice/projects/invoices", &forged)
 			.await
 			.contains("This project couldn't be loaded")
 	);
@@ -1532,7 +1535,7 @@ async fn feedback_journey() {
 	// The maintainer console draws every stage.
 	let console = page_html(
 		&app,
-		"/dashboard/alice/projects/pocketbook/feedback",
+		"/projects/alice/projects/pocketbook/feedback",
 		&session,
 	)
 	.await;
@@ -1564,7 +1567,7 @@ async fn feedback_journey() {
 			"console is missing {expected:?}"
 		);
 	}
-	let project = page_html(&app, "/dashboard/alice/projects/pocketbook", &session).await;
+	let project = page_html(&app, "/projects/alice/projects/pocketbook", &session).await;
 	assert!(project.contains("Open the feedback console"));
 	assert!(project.contains("href=\"/p/alice/pocketbook\""));
 
@@ -1673,7 +1676,7 @@ async fn feedback_journey() {
 			.contains("This feedback portal doesn't exist")
 	);
 	assert!(
-		page_html(&app, "/dashboard/alice/projects/missing/feedback", &session)
+		page_html(&app, "/projects/alice/projects/missing/feedback", &session)
 			.await
 			.contains("Project not found")
 	);
@@ -1681,7 +1684,7 @@ async fn feedback_journey() {
 	assert!(
 		page_html(
 			&app,
-			"/dashboard/alice/projects/pocketbook/feedback",
+			"/projects/alice/projects/pocketbook/feedback",
 			&forged
 		)
 		.await
@@ -1696,4 +1699,311 @@ async fn feedback_journey() {
 			.await
 			.contains("Feedback couldn't be loaded")
 	);
+}
+
+#[tokio::test]
+async fn projects_have_their_own_shell_and_legacy_links_redirect() {
+	let server = MockServer::start_async().await;
+	let state = configured_state(&server).await;
+	let app = router(state);
+	let projects = page_html(&app, "/projects", "").await;
+	assert!(projects.contains("monochange projects"));
+	assert!(projects.contains("Your next project starts here"));
+	assert!(!projects.contains("aria-label=\"Main navigation\""));
+	for (old, new) in [
+		("/dashboard/alice", "/projects/alice"),
+		(
+			"/dashboard/alice/projects/demo",
+			"/projects/alice/projects/demo",
+		),
+		(
+			"/dashboard/alice/projects/demo/feedback",
+			"/projects/alice/projects/demo/feedback",
+		),
+	] {
+		let response = app
+			.clone()
+			.oneshot(Request::builder().uri(old).body(Body::empty()).unwrap())
+			.await
+			.unwrap();
+		assert!(
+			response.status().is_redirection(),
+			"{old}: {}",
+			response.status()
+		);
+		assert_eq!(response.headers()[LOCATION], new);
+	}
+}
+
+#[tokio::test]
+async fn consent_requires_a_valid_request_and_preserves_login_return_query() {
+	let server = MockServer::start_async().await;
+	let state = configured_state(&server).await;
+	let app = router(state.clone());
+	let consent = page_html(&app, "/connect?client=native&redirect_uri=dev.monochange.app%3A%2Fauth%2Fnative%2Freturn&code_challenge=challenge&code_challenge_method=S256&state=state", "").await;
+	assert!(consent.contains("Sign in to review this connection request"));
+	assert!(consent.contains("next=%2Fconnect%3Fclient%3Dnative"));
+	let invalid = page_html(&app, "/connect?code_challenge_method=plain", "").await;
+	assert!(invalid.contains("This connection request is invalid"));
+	let account = page_html(&app, "/account", "").await;
+	assert!(account.contains("Account and devices"));
+	assert!(account.contains("Your devices couldn"));
+}
+
+#[derive(Clone)]
+struct MountedTransport(Router);
+impl monochange_shared::Transport for MountedTransport {
+	async fn post(
+		&self,
+		url: &str,
+		bearer: Option<&str>,
+		content_type: &str,
+		body: &str,
+	) -> Result<monochange_shared::HttpResponse, monochange_shared::ApiError> {
+		let url = url::Url::parse(url).unwrap();
+		let mut request = Request::builder()
+			.method("POST")
+			.uri(url.path())
+			.header("Content-Type", content_type)
+			.header(ACCEPT, "application/json");
+		if let Some(token) = bearer {
+			request = request.header("Authorization", format!("Bearer {token}"));
+		}
+		let response = self
+			.0
+			.clone()
+			.oneshot(request.body(Body::from(body.to_owned())).unwrap())
+			.await
+			.unwrap();
+		Ok(monochange_shared::HttpResponse {
+			status: response.status().as_u16(),
+			body: html(response).await,
+		})
+	}
+}
+#[tokio::test]
+async fn restored_shared_client_reads_the_mounted_session_and_revocation_returns_401() {
+	let server = MockServer::start_async().await;
+	let state = configured_state(&server).await;
+	seeded_feedback(&state).await;
+	let bearer = "mcd_test-restored-client-token";
+	monochange_app_db::client_sessions::create_session(&state.db, 1, "native", 0, bearer)
+		.await
+		.unwrap();
+	let client = monochange_shared::ApiClient::with_bearer(
+		MountedTransport(
+			router(state.clone())
+				.layer(axum::middleware::from_fn(
+					crate::server_fns::session::bearer_gate,
+				))
+				.layer(axum::middleware::from_fn_with_state(
+					state.clone(),
+					monochange_app_api::sessions::principal_middleware,
+				)),
+		),
+		"https://site.example",
+		bearer,
+	);
+	assert_eq!(
+		client.session_user().await.unwrap().unwrap().github_login,
+		"alice"
+	);
+	assert_eq!(client.organizations().await.unwrap()[0].projects.len(), 2);
+	assert_eq!(
+		client
+			.project("alice", "pocketbook")
+			.await
+			.unwrap()
+			.unwrap()
+			.project
+			.name,
+		"Pocketbook"
+	);
+	monochange_app_db::client_sessions::revoke_session(&state.db, bearer)
+		.await
+		.unwrap();
+	assert!(matches!(
+		client.session_user().await,
+		Err(monochange_shared::ApiError::Status { status: 401, .. })
+	));
+}
+
+#[tokio::test]
+async fn signed_in_consent_and_devices_share_the_projects_account() {
+	let server = MockServer::start_async().await;
+	let state = configured_state(&server).await;
+	seeded_feedback(&state).await;
+	let bearer = "mcd_fixture-device-token";
+	monochange_app_db::client_sessions::create_session(&state.db, 1, "native", 0, bearer)
+		.await
+		.unwrap();
+	let token = monochange_app_api::create_token(&state.jwt_secret, 1, 101, "alice", 0).unwrap();
+	let cookie = format!("{}={token}", oauth::SESSION_COOKIE_NAME);
+	let app = router(state.clone());
+	let api =
+		monochange_shared::ApiClient::new(MountedTransport(app.clone()), "https://site.example");
+	let url = api.connect_url(
+		monochange_shared::ClientKind::Native,
+		"dev.monochange.app:/auth/native/return",
+		&monochange_shared::code_challenge("known-verifier-known-verifier-known-verifier-known"),
+		"fixture-state-123456",
+	);
+	let url = url::Url::parse(&url).unwrap();
+	let consent = page_html(
+		&app,
+		&format!("{}?{}", url.path(), url.query().unwrap()),
+		&cookie,
+	)
+	.await;
+	assert!(consent.contains("Continue as alice"), "{consent}");
+	assert!(consent.contains("action=\"/connect/approve\""));
+	assert!(consent.contains("access_denied"));
+	assert!(!consent.contains(bearer));
+	let approval_form = consent
+		.split("action=\"/connect/approve\"")
+		.nth(1)
+		.unwrap()
+		.split("</form>")
+		.next()
+		.unwrap();
+	let mut body = url::form_urlencoded::Serializer::new(String::new());
+	for input in approval_form.split("<input").skip(1) {
+		let name = input
+			.split("name=\"")
+			.nth(1)
+			.unwrap()
+			.split('"')
+			.next()
+			.unwrap();
+		let value = input
+			.split("value=\"")
+			.nth(1)
+			.unwrap()
+			.split('"')
+			.next()
+			.unwrap();
+		body.append_pair(name, value);
+	}
+	let approval = monochange_app_api::api_router((*state).clone())
+		.oneshot(
+			Request::builder()
+				.method("POST")
+				.uri("/connect/approve")
+				.header(axum::http::header::ORIGIN, state.site_origin().unwrap())
+				.header(COOKIE, &cookie)
+				.header(
+					axum::http::header::CONTENT_TYPE,
+					"application/x-www-form-urlencoded",
+				)
+				.body(Body::from(body.finish()))
+				.unwrap(),
+		)
+		.await
+		.unwrap();
+	assert_eq!(approval.status(), StatusCode::SEE_OTHER);
+	let callback = url::Url::parse(approval.headers()[LOCATION].to_str().unwrap()).unwrap();
+	assert_eq!(callback.scheme(), "dev.monochange.app");
+	assert!(
+		callback
+			.query_pairs()
+			.any(|(name, value)| name == "state" && value == "fixture-state-123456")
+	);
+	let account = page_html(&app, "/account", &cookie).await;
+	assert!(account.contains("native · expires"));
+	assert!(account.contains("Revoke"));
+	assert!(!account.contains(bearer));
+	monochange_app_db::client_sessions::revoke_session(&state.db, bearer)
+		.await
+		.unwrap();
+	let empty_account = page_html(&app, "/account", &cookie).await;
+	assert!(empty_account.contains("No connected devices"));
+	let projects = page_html(&app, "/projects", &cookie).await;
+	assert!(projects.contains("Pocketbook"));
+	assert!(projects.contains("/projects/alice/projects/pocketbook"));
+	let response = app
+		.oneshot(
+			Request::builder()
+				.uri("/dashboard/alice/projects/pocketbook/feedback?stage=accepted")
+				.body(Body::empty())
+				.unwrap(),
+		)
+		.await
+		.unwrap();
+	assert_eq!(
+		response.headers()[LOCATION],
+		"/projects/alice/projects/pocketbook/feedback?stage=accepted"
+	);
+}
+
+#[tokio::test]
+async fn an_unavailable_database_shows_a_projects_error_instead_of_an_empty_workspace() {
+	let server = MockServer::start_async().await;
+	let state = configured_state(&server).await;
+	let token = monochange_app_api::create_token(&state.jwt_secret, 1, 101, "alice", 0).unwrap();
+	let cookie = format!("{}={token}", oauth::SESSION_COOKIE_NAME);
+	state.db.close().await;
+	let content = page_html(&router(state), "/projects", &cookie).await;
+	assert!(content.contains("Projects couldn"));
+	assert!(!content.contains("Your next project starts here"));
+}
+
+/// A loopback-only authority for native device checks. The injected browser
+/// cookie stands in for OAuth for one dummy account; bearer resolution,
+/// consent, grants, exchange, project reads and revocation use real handlers.
+#[tokio::test]
+#[ignore = "manual loopback fixture for isolated native device verification"]
+async fn native_projects_fixture_server() {
+	async fn fixture_browser(
+		axum::extract::State(cookie): axum::extract::State<String>,
+		mut request: axum::extract::Request,
+		next: axum::middleware::Next,
+	) -> axum::response::Response {
+		if (request.method() == axum::http::Method::GET
+			&& !request.uri().path().starts_with("/api/"))
+			|| request.uri().path() == "/connect/approve"
+			|| (request
+				.headers()
+				.get(axum::http::header::ORIGIN)
+				.and_then(|value| value.to_str().ok())
+				== Some("http://127.0.0.1:3010")
+				&& !request
+					.headers()
+					.contains_key(axum::http::header::AUTHORIZATION))
+		{
+			request
+				.headers_mut()
+				.insert(COOKIE, cookie.parse().unwrap());
+		}
+		next.run(request).await
+	}
+	let github = MockServer::start_async().await;
+	let mut state = configured_state(&github).await;
+	Arc::get_mut(&mut state).unwrap().github_callback_url =
+		"http://127.0.0.1:3010/auth/callback".into();
+	// Keep the in-memory database alive across pauses during device checks.
+	let _database_lifetime = state.db.acquire().await.unwrap();
+	if let Ok(redirect) = std::env::var("MONOCHANGE_FIXTURE_EXTENSION_REDIRECT") {
+		Arc::get_mut(&mut state).unwrap().extension_redirect_uris = vec![redirect];
+	}
+	seeded_feedback(&state).await;
+	let token = monochange_app_api::create_token(&state.jwt_secret, 1, 101, "alice", 0).unwrap();
+	let cookie = format!("{}={token}", oauth::SESSION_COOKIE_NAME);
+	let app = router(state.clone())
+		.merge(monochange_app_api::api_router((*state).clone()))
+		.layer(axum::middleware::from_fn(
+			crate::server_fns::session::bearer_gate,
+		))
+		.layer(axum::middleware::from_fn_with_state(
+			state,
+			monochange_app_api::sessions::principal_middleware,
+		))
+		.layer(axum::middleware::from_fn_with_state(
+			cookie,
+			fixture_browser,
+		));
+	let listener = tokio::net::TcpListener::bind("127.0.0.1:3010")
+		.await
+		.unwrap();
+	println!("NATIVE_PROJECTS_FIXTURE http://127.0.0.1:3010; dummy account alice");
+	axum::serve(listener, app).await.unwrap();
 }

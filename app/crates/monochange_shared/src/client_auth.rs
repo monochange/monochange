@@ -122,6 +122,8 @@ pub struct ClientSessionInfo {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct ConnectPreview {
+	/// Registered callback containing only `access_denied` and the validated state.
+	pub denial_url: String,
 	pub user: SessionUser,
 	pub client: ClientKind,
 }
@@ -176,3 +178,43 @@ pub fn is_valid_state(state: &str) -> bool {
 #[cfg(test)]
 #[path = "__tests__/client_auth_tests.rs"]
 mod tests;
+
+/// In-memory, single-use binding for an interactive client sign-in.
+/// Consuming this value prevents a callback being exchanged twice by a client.
+pub struct ClientHandoff {
+	pub client: ClientKind,
+	pub redirect_uri: String,
+	pub state: String,
+	pub verifier: String,
+}
+impl ClientHandoff {
+	/// Validate the complete callback before releasing its code for exchange.
+	pub fn consume(self, callback: &str) -> Result<ClientTokenRequest, &'static str> {
+		let mut url = url::Url::parse(callback).map_err(|_| "Invalid callback")?;
+		let query: Vec<(String, String)> = url
+			.query_pairs()
+			.map(|(k, v)| (k.into_owned(), v.into_owned()))
+			.collect();
+		url.set_query(None);
+		if url.as_str() != self.redirect_uri {
+			return Err("Unexpected callback address");
+		}
+		let states: Vec<_> = query.iter().filter(|(key, _)| key == "state").collect();
+		if states.len() != 1 || states[0].1 != self.state {
+			return Err("Unexpected sign-in state");
+		}
+		if query.iter().any(|(key, _)| key == "error") {
+			return Err("Sign-in was denied or cancelled");
+		}
+		let codes: Vec<_> = query.iter().filter(|(key, _)| key == "code").collect();
+		if codes.len() != 1 || codes[0].1.is_empty() {
+			return Err("Missing or ambiguous sign-in code");
+		}
+		Ok(ClientTokenRequest {
+			client: self.client,
+			code: codes[0].1.clone(),
+			code_verifier: self.verifier,
+			redirect_uri: self.redirect_uri,
+		})
+	}
+}

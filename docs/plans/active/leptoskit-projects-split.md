@@ -1,6 +1,6 @@
 # leptoskit projects split
 
-Status: dependency migration implemented by this change; surface and identity split pending. Created: 2026-11-09 Baseline: `origin/main` at `9dd2d1d0397b6e7907e5cb08b3939929db008c67`. Upstream: `https://github.com/leptoskit/leptoskit` `main` at `a93214edc8e5f6c7999c628285093f15cf188639` (2026-11-09).
+Status: dependency migration, shared authority, and projects consumers implemented. Final acceptance remains blocked by the split-loader size gate and iOS simulator boot failure. Created: 2026-11-09 Baseline: `origin/main` at `9dd2d1d0397b6e7907e5cb08b3939929db008c67`. Upstream: `https://github.com/leptoskit/leptoskit` `main` at `a93214edc8e5f6c7999c628285093f15cf188639` (2026-11-09).
 
 ## Goal
 
@@ -11,13 +11,13 @@ Move every monochange workspace to leptoskit directly from the upstream Git repo
 
 backed by one authoritative identity and session service. Users sign in once and every surface sees the same account, organizations, projects, and repository connections.
 
-This change implements only the upstream dependency migration. The split and the authentication work below are marked pending and are not implemented here.
+The upstream migration and authority are the signed baseline. The consumer implementation below adds the separate projects surface and native/extension session handoff; it does not change production. Earlier verification sections are historical receipts for those prior units.
 
 ## Non-goals for this change
 
-- No surface split, route split, new domain, DNS change, or production change.
+- No separate domain, DNS change, deployment, or production account changes.
 - No new identity provider, session database, or token format.
-- No design change to the existing website or extension UI.
+- Preserve the landing design while separating the projects shell.
 - No release, publish, tag, or deployment operation.
 - No unrelated dependency upgrades or formatting sweeps.
 
@@ -40,7 +40,7 @@ This change implements only the upstream dependency migration. The split and the
 
 - A separate workspace with a Leptos 0.9 CSR wasm guest (`monochange_native_app`), shared RPC types and operations in `monochange_rpc`, Android/iOS host crates, and a skeletal `monochange_native` server binary.
 - `session_probe` always returns an anonymous handshake and `list_projects` returns one hard-coded demo project. The native guest has no real identity, no cookie, and no access to the website database.
-- `monochange_native_app` is checked by default; `android` and `ios` are platform host crates that need SDKs unavailable on this machine.
+- `monochange_native_app` is checked by default; `android` and `ios` are platform host crates. The current implementation has built both with the installed SDKs; see the device evidence below.
 
 ### Extension (`extension/`)
 
@@ -65,7 +65,7 @@ This change implements only the upstream dependency migration. The split and the
 - Point the lint/build CLI at the same repository and revision; keep `lint:leptoskit` using that binary rather than a stale crates.io install.
 - Apply only compatibility edits required by the new upstream APIs. Stop and report if the migration becomes architectural.
 
-### 2. Shared client contract (implemented 2026-11-09, consumers pending)
+### 2. Shared client contract (implemented; consumers connected 2026-11-10)
 
 - [x] Extract the session handoff DTOs into `app/crates/monochange_shared` (`client_auth.rs`: `ClientKind`, `ClientTokenRequest`, `ClientSession`, `ClientSessionInfo`, `ConnectPreview`; PKCE helpers behind the `client` feature). The existing project/release DTOs were already shared; the platform-neutral `ApiClient`/`Transport` in `api.rs` covers session, organizations, project, website releases, connect URL, exchange, and revoke.
 - [x] Define the session handoff protocol and its threat model (see the implementation section below): browser approve → one-time code → verifier exchange → scoped bearer; replay, forge, burn, origin, and epoch cases are tested.
@@ -79,7 +79,7 @@ This change implements only the upstream dependency migration. The split and the
 - [x] The authorization funnel is one resolver on the existing SQLite database: `users` stay keyed on the stable GitHub ID, the existing GitHub token vault and OAuth callback are untouched, and no second accounts/identities tables were added. `monochange_app/server_fns` (get_session, signed_in_user_id), the embedded iframe check, the new browser-only session functions, and the bearer gate all resolve through `monochange_app_api::sessions`.
 - [x] The host-only secure cookie keeps its name and attributes for web; non-browser surfaces use hashed opaque client tokens bound to the same `users.id` and `session_epoch`.
 
-### 4. Surface split (pending)
+### 4. Surface split (implemented 2026-11-10)
 
 - [ ] Split the projects client from the landing/GitHub connection site without duplicating auth code or design tokens.
 - [ ] Move native and extension from demo/anonymous data to the shared service.
@@ -170,8 +170,30 @@ The device inventory now confirms that this machine offers both iOS simulators a
 - Upstream `main` is a moving branch. It advanced to `f33c3764e2a3836560d9e22f54b6be6595d8ba65` after this change resolved and verified `a93214ed`; the lockfiles and CLI pin keep the reviewed commit until a deliberate `cargo update` and review.
 - The upstream CLI is a git install, not a registry binary. A fresh machine needs network access to GitHub, and the install is not covered by a crates.io checksum.
 - The identity boundary and callback transport are security-sensitive. Do not start unit 3 without a written handoff threat model and a test plan for state, redirect, replay, and cross-surface session isolation.
-- Native/extension platform SDK checks are limited on this machine; hosted CI remains the authority for APK/app/extension artifacts.
+- iOS simulator packaging passes locally, but the selected simulator repeatedly times out during CoreSimulator boot. Android runtime and Chromium identity have local fixture evidence; Firefox identity and production redirect registration remain unverified.
 
 ## Decision trail
 
 See [leptoskit-projects-split.decisions.tsv](leptoskit-projects-split.decisions.tsv).
+
+## Projects consumer implementation (2026-11-10)
+
+The isolated `feat/projects-shared-session` branch incorporates the verified `0b8068f99` baseline. `monochange_projects` owns organization/project/feedback views, input rules, repository selection, markdown rendering, and their authorized server functions. The site depends on it and retains real repository connection at `/dashboard`. `/projects` has its own navigation and account/sign-out, with no marketing footer. Legacy organization/project/feedback paths redirect before SSR streams, preserving their queries. Organization index and detail share a lazy product chunk; browser identity screens share their own lazy chunk. Tailwind scans the moved source.
+
+`/connect` uses the existing authority for preview, approval, registered denial, and account switching. The preview now returns the server-validated denial URL, preventing a changed query from supplying a different callback to an earlier preview. The rendered approval form is submitted to the real mounted handler in a test: device verification caught and removed an unsupported form field. `/account` lists/revokes devices and offers global sign-out with error state.
+
+Native uses the shared API, upstream WebAuth/crypto/HTTP/secure-store/linking plugins, and a stable screen model retained outside tree rebuilding. The obsolete RPC/demo backend is removed. Initial device runs caught unsupported styles and repeated restoration caused by recreating state during rendering; regression tests cover screen construction, offline credential retention, and visible cleanup failure. All plugin Git packages remain pinned to `a93214edc8e5f6c7999c628285093f15cf188639`. New plugins require rebuilt native hosts, not an OTA-only distribution.
+
+Extension identity/exchange/storage and restored-session refresh run in the worker for both popup and options. Options no longer begin with a fabricated signed-out state; a worker outage is visible rather than falling back to page-owned credentials. An isolated Chromium profile completed PKCE approval against the loopback authority after the popup was closed, stored its credential, reopened to the same Alice/Pocketbook/Site data, restored on browser restart, and cleared storage on device sign-out. The generated redirect was registered only in the local fixture. Chromium and Firefox packages build with exact configured host permissions and identity/storage. Production extension login is not claimed: each installed redirect must be registered. Firefox identity runtime remains untested.
+
+The local authority injects a browser identity for one dummy account instead of using GitHub. Grants, token exchange, bearer authorization, reads, and revocation still use real mounted handlers. Native Android on `emulator-5554` completed system-browser approval, secure persistence/restart, project detail, device sign-out, offline error without credential loss, and 401 cleanup after the fixture authority restarted. Browser `/account` revocation then removed a newly connected device and Android cleared that revoked credential on refresh. Deny returned to the app with an error and retry action. The hydrated website also navigated index-to-organization and completed project create/update/delete against the dummy database. Screenshots and the fixture APK stay under ignored `.monochange/local/`.
+
+Both iOS simulator and Android APK packaging pass with the actual pinned upstream CLI and existing Xcode/Android SDKs. The emulator is arm64, so the Android target is `android`, not `android-x86_64`. The iOS device selected by the brief (`08AE2B3A-7EDA-470C-B5A0-A64FAC40FE61`) twice failed `device_open` with a CoreSimulator boot timeout; no other session, physical phone, or global simulator service was used. There is no iOS runtime proof.
+
+Verification receipts are local `.monochange/local/projects-*.log`: app workspace 880 passed, two ignored manual browser/device fixture servers; native five host tests; extension six ordinary tests and seven with its actual rendering feature. SSR, hydrate WASM, native default/CSR/guest WASM, extension default/extension WASM, app clippy with warnings denied, and leptoskit lint are checked. Coverage is regenerated after a tool-managed clean, with no exclusions or changed threshold; the final patch result is **221/221 changed executable app lines (100.00%)** against `0b8068f99`. Native/extension WASM-only glue is covered by target builds and the runtime checks, not by the app LCOV report.
+
+The actual cargo-leptos `--release --split` build now uses the already-defined `wasm-release` profile and JS minification from the package metadata (the previous workspace metadata was not consumed). wasm-bindgen is pinned to `0.2.129`, matching the pinned upstream CLI; only the matching registry JS/WASM family was downgraded, and the Git revision was not refreshed. The actual pinned upstream web CLI also builds the final site, reporting 479.3 KiB initial gzip transfer. This initial-load figure differs from the size script’s aggregate across every lazy route asset.
+
+**Remaining acceptance failure:** the unmodified website size gate reports total gzip transfer 1,331,482 bytes versus 1,513,294 (12.0% smaller), with all WASM limits passing, but split-loader JavaScript is 2,234 bytes versus 1,789 (above the 5% per-file allowance). No baseline, tolerance, loader files, or measurement exclusions were changed to hide this. This unit is not fully green or ready to merge until that gate is resolved. The earlier root provenance range still requires parent-level changeset handling; this unit's app/extension changesets cover its two affected targets.
+
+Final frontend artifacts are retained at `.monochange/local/projects-site-verified`. The managed `app/target` view stopped exposing the temporary site after the full SSR build, so cargo-leptos regenerated the frontend with `LEPTOS_SITE_ROOT` set to that retained output and `--frontend-only --release --split`. This changes the local output location only; no Cargo target override, size exclusion, or tolerance change was used. The final distribution APK also opens signed out, with the full instruction visible; no production sign-in was attempted.

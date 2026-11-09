@@ -1,93 +1,13 @@
-# monochange native (Android + iOS)
+# monochange projects native clients
 
-leptoskit guest apps that share RPC types with the web port and call `leptoskit_rpc` for the auth handshake and project list. Visuals follow the **Release floor** token set (`--mc-*`) from the landing design system.
+The iOS and Android guests use the same `monochange_shared` DTOs and `ApiClient` as the extension. The website owns GitHub sign-in and repository connection. Native clients receive a revocable, read-only device credential for that account through browser consent; they do not run a separate backend.
 
-## Layout
+The home screen restores its credential from secure-store, loads real organizations and projects, and opens project details. A rejected credential clears local state. Network failures remain visible without silently signing out. Device sign-out attempts remote revocation and clears only that device's credential.
 
-```text
-app/native/
-├── leptoskit.toml              # platforms: android, ios (+ web reserved)
-├── Cargo.toml                  # workspace
-├── monochange_rpc/             # shared serde + RPC ops (web port should path-dep this)
-├── monochange_native_app/      # Element screens (guest wasm)
-├── monochange_native_backend/  # RPC handlers + axum merge helpers
-├── android/                    # Kotlin host (edit here; .leptoskit/ is generated)
-└── ios/                        # UIKit host (edit here; .leptoskit/ is generated)
-```
+The guest uses upstream web-auth, crypto, HTTP, secure-store, and linking plugins. Browser state and the PKCE verifier stay in memory; the validated callback is consumed once before exchange. Secure-store failure is shown to the user. Adding these plugins requires rebuilding and redistributing the native hosts. This is not an OTA-only update.
 
-## Design tokens
+`MONOCHANGE_SERVER` selects the shared website API at guest build time and defaults to `https://monochange.dev`. Add another exact origin to `[native.plugin-options.http].origins` when using a local fixture. The default callback is `dev.monochange.app:/auth/native/return`; backend overrides belong in `MONOCHANGE_NATIVE_REDIRECT_URIS`.
 
-Native Element trees use **Tailwind utilities** (slate + teal) that map to Release floor `--mc-*` values — see `monochange_native_app/src/theme.rs`. Prefer utilities such as `bg-teal-700` / `bg-slate-100` over inventing semantic CSS class stacks (`.mc-page`, `.button-brand`). Do not reintroduce the legacy violet marketing palette on mobile.
+Run builds through the devenv shell and mbx Cargo shim. Use the repository-managed Leptoskit CLI at the revision pinned in root Cargo metadata. The platform commands are `leptoskit native build ios-simulator` and `leptoskit native build android` for arm64 Android emulators/devices (`android-x86_64` for an x86 emulator). Xcode, the Android SDK/NDK, and the matching Rust targets must be available. Inspect `leptoskit doctor --all` in that environment before changing toolchains.
 
-## Shared RPC
-
-| Operation        | Purpose                                       |
-| ---------------- | --------------------------------------------- |
-| `auth_handshake` | Session probe: signed-in user or anonymous    |
-| `list_projects`  | Flat project list for the signed-in workspace |
-
-Types live in `monochange_rpc` so the web SSR port can import the same payloads without forking models.
-
-## Toolchain requirements
-
-| Target                   | Required on the build machine                                                                                                                                   |
-| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Shared Rust / guest wasm | Rust nightly matching `rust-toolchain.toml`, `wasm32-unknown-unknown`, the upstream `leptoskit` CLI pinned in `[workspace.metadata.bin]`                        |
-| Android APK              | Java 17+, Android SDK **platform 36**, CMake, NDK, `ANDROID_HOME` (optional `ANDROID_NDK_HOME`), `rustup target add aarch64-linux-android x86_64-linux-android` |
-| iOS app                  | **macOS** with Xcode + iOS Simulator runtime, `rustup target add aarch64-apple-ios-sim aarch64-apple-ios` (or `x86_64-apple-ios` on Intel)                      |
-
-This Cloud Agent environment has **no** `ANDROID_HOME` and **no** Xcode. `cargo check -p monochange_rpc` (and host/lib crates without platform SDK steps) is what we can verify here. Full APK / `.app` output needs a machine with the SDK/secrets above.
-
-Release signing secrets (not available here; set only on a signing host):
-
-- Android: `LEPTOSKIT_ANDROID_KEYSTORE`, `LEPTOSKIT_ANDROID_KEYSTORE_PASSWORD`, `LEPTOSKIT_ANDROID_KEY_ALIAS`, `LEPTOSKIT_ANDROID_KEY_PASSWORD`
-- iOS: Apple development team in Xcode **Signing & Capabilities**; App Store upload via `leptoskit publish app_store` with store credentials
-
-## Develop / build (when toolchains are present)
-
-```bash
-# from the repository root, install the CLI at the revision pinned in
-# [workspace.metadata.bin], then put the managed binary on PATH
-devenv shell cargo bin --install
-export PATH="$PWD/.bin/rust-nightly/leptoskit_cli/0.3.0/bin:$PATH"
-cd app/native
-
-leptoskit doctor                  # reports missing Android/iOS tools
-leptoskit native prepare android  # regenerates .leptoskit/android/
-leptoskit build --platform android
-leptoskit native build ios-simulator   # macOS only
-```
-
-Point the guest at a running monochange server:
-
-```bash
-MONOCHANGE_SERVER=https://monochange.dev leptoskit build --platform android
-```
-
-Default origin is `http://127.0.0.1:3000` (use `adb reverse tcp:3000 tcp:3000` for an Android emulator).
-
-## Status of this scaffold
-
-- Host projects, shared RPC types, theme map, and guest screens are in-repo.
-- Backend handlers return structured handshake / project-list payloads suitable for wiring to `monochange_app_db` once the web leptoskit port mounts the same RPC router.
-- Generated `.leptoskit/` trees are **not** committed; run `leptoskit native
-  prepare` before opening Android Studio or Xcode.
-
-### Verified in this environment (2026-11-07)
-
-```text
-cargo test -p monochange_rpc --lib          # pass
-cargo check -p monochange_rpc --features server
-cargo check -p monochange_native_backend
-cargo check -p monochange_native
-cargo check -p monochange_native_app        # default rpc-client
-cargo check -p monochange_android           # Linux host crate (no APK)
-cargo check -p monochange_ios               # Linux host crate (no .app)
-leptoskit doctor                            # fails: no ANDROID_HOME / Xcode
-```
-
-`leptoskit doctor` blockers on this Linux Cloud Agent image:
-
-- Android: `ANDROID_HOME`, platform `android-36`, NDK, CMake, `aarch64-linux-android` Rust target, platform-tools/adb
-- iOS: macOS + Xcode (hard requirement)
-- Optional: `wasm-opt` (disabled in `leptoskit.toml` for this scaffold)
+The root package only anchors host packaging. `ios/` and `android/` register the configured plugins; generated hosts and local artifacts remain under ignored `.leptoskit/` and managed build directories.

@@ -14,7 +14,7 @@ use serde::Deserialize;
 /// and organisations are keyed by.
 #[cfg(not(target_arch = "wasm32"))]
 #[derive(Debug, Clone)]
-pub(crate) struct AccessibleRepository {
+pub struct AccessibleRepository {
 	pub info: RepoInfo,
 	pub github_repo_id: i64,
 	pub installation_id: i32,
@@ -28,7 +28,7 @@ pub(crate) struct AccessibleRepository {
 /// # Errors
 /// Returns `Invalid session` for a forged, expired, or orphaned token.
 #[cfg(not(target_arch = "wasm32"))]
-pub(crate) async fn signed_in_user_id() -> Result<Option<i32>, server_fn::ServerFnError> {
+pub async fn signed_in_user_id() -> Result<Option<i32>, server_fn::ServerFnError> {
 	let principal = super::principal().await?;
 
 	match principal {
@@ -45,7 +45,7 @@ pub(crate) async fn signed_in_user_id() -> Result<Option<i32>, server_fn::Server
 /// Every repository the user installed, minus organisation repositories they
 /// no longer own.
 #[cfg(not(target_arch = "wasm32"))]
-pub(crate) async fn accessible_repositories(
+pub async fn accessible_repositories(
 	state: &monochange_app_api::AppState,
 	user_id: i32,
 ) -> Result<Vec<AccessibleRepository>, server_fn::ServerFnError> {

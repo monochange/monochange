@@ -17,6 +17,7 @@ path = "src/main.rs"
 required-features = ["ssr"]
 
 [dependencies]
+monochange_projects = { path = "../monochange_projects" }
 # Leptos (available on both native and WASM)
 chrono = { workspace = true }
 leptos = { workspace = true, features = ["nightly"] }
@@ -74,6 +75,8 @@ wasm-bindgen = { workspace = true }
 web-sys = { workspace = true }
 
 [package.metadata.leptos]
+lib-profile-release = "wasm-release"
+js-minify = true
 output-name = "monochange_app"
 site-root = "target/site"
 site-pkg-dir = "pkg"
@@ -93,6 +96,7 @@ default = []
 ssr = [
 	"dep:leptoskit",
 	"leptos/ssr",
+	"monochange_projects/ssr",
 	"leptos_meta/ssr",
 	"leptos_router/ssr",
 	"leptoskit/server",
@@ -100,7 +104,7 @@ ssr = [
 	"leptoskit_rpc/ssr",
 ]
 # Browser: hydrate + leptoskit_rpc web client.
-hydrate = ["leptos/hydrate", "leptos/lazy", "leptoskit_rpc/web"]
+hydrate = ["monochange_projects/hydrate", "leptos/hydrate", "leptos/lazy", "leptoskit_rpc/web"]
 
 [dev-dependencies]
 hmac = "0.12"

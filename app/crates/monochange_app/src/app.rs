@@ -78,33 +78,39 @@ pub fn App() -> impl IntoView {
 	provide_meta_context();
 
 	view! {
-		<template id="website-direction" inner_html=WEBSITE_DIRECTION />
-		<Stylesheet id="leptos" href="/pkg/monochange_app.css" />
-		<Title text="monochange — Release planning for monorepos" />
-		<Router>
-			<NavBar />
-			<main id="main-content" class="min-h-screen">
-				<Routes fallback=|| {
-					view! { <ErrorTemplate status=404 message="Page not found" /> }
-				}>
-					<Route path=path!("/") view=HomePage />
-					<Route path=path!("/dashboard") view={Lazy::<DashboardRoute>::new()} />
-					<Route path=path!("/dashboard/:organization") view={Lazy::<OrganizationRoute>::new()} />
-					<Route path=path!("/dashboard/:organization/projects/:project") view={Lazy::<ProjectRoute>::new()} />
-					<Route path=path!("/dashboard/:organization/projects/:project/feedback") view={Lazy::<FeedbackConsoleRoute>::new()} />
-					<Route path=path!("/install") view={Lazy::<InstallRoute>::new()} />
-					<Route path=path!("/login") view=LoginPage />
-					<Route path=path!("/pricing") view={Lazy::<PricingRoute>::new()} />
-					<Route path=path!("/changelog") view={Lazy::<ChangelogRoute>::new()} />
-					<Route path=path!("/book") view={Lazy::<BookRoute>::new()} />
-					<Route path=path!("/book/*chapter") view={Lazy::<BookRoute>::new()} />
-					<Route path=path!("/auth/callback") view={Lazy::<AuthCallbackRoute>::new()} />
-					<Route path=path!("/p/:organization/:project") view={Lazy::<PortalRoute>::new()} />
-				</Routes>
-			</main>
-			<Footer />
-		</Router>
-	}
+			<template id="website-direction" inner_html=WEBSITE_DIRECTION />
+			<Stylesheet id="leptos" href="/pkg/monochange_app.css" />
+			<Title text="monochange — Release planning for monorepos" />
+			<Router>
+				<SurfaceNavigation />
+				<main id="main-content" class="min-h-screen">
+					<Routes fallback=|| {
+						view! { <ErrorTemplate status=404 message="Page not found" /> }
+					}>
+						<Route path=path!("/") view=HomePage />
+						<Route path=path!("/dashboard") view={Lazy::<DashboardRoute>::new()} />
+						<Route path=path!("/dashboard/:organization") view={Lazy::<OrganizationRoute>::new()} />
+	<Route path=path!("/projects") view={Lazy::<OrganizationRoute>::new()} />
+	<Route path=path!("/projects/:organization") view={Lazy::<OrganizationRoute>::new()} />
+						<Route path=path!("/dashboard/:organization/projects/:project") view={Lazy::<ProjectRoute>::new()} />
+	<Route path=path!("/projects/:organization/projects/:project") view={Lazy::<ProjectRoute>::new()} />
+						<Route path=path!("/dashboard/:organization/projects/:project/feedback") view={Lazy::<FeedbackConsoleRoute>::new()} />
+	<Route path=path!("/projects/:organization/projects/:project/feedback") view={Lazy::<FeedbackConsoleRoute>::new()} />
+						<Route path=path!("/install") view={Lazy::<InstallRoute>::new()} />
+						<Route path=path!("/connect") view={Lazy::<SiteSessionRoute>::new()} />
+	<Route path=path!("/account") view={Lazy::<SiteSessionRoute>::new()} />
+	<Route path=path!("/login") view={Lazy::<SiteSessionRoute>::new()} />
+						<Route path=path!("/pricing") view={Lazy::<PricingRoute>::new()} />
+						<Route path=path!("/changelog") view={Lazy::<ChangelogRoute>::new()} />
+						<Route path=path!("/book") view={Lazy::<BookRoute>::new()} />
+						<Route path=path!("/book/*chapter") view={Lazy::<BookRoute>::new()} />
+						<Route path=path!("/auth/callback") view={Lazy::<SiteSessionRoute>::new()} />
+						<Route path=path!("/p/:organization/:project") view={Lazy::<PortalRoute>::new()} />
+					</Routes>
+				</main>
+				<SurfaceFooter />
+			</Router>
+		}
 }
 
 // ── Login Page ──
@@ -193,14 +199,29 @@ fn LoginPage() -> impl IntoView {
 }
 
 // ── Auth Callback Page ──
-/// Auth callback data, split into its own WASM chunk.
-struct AuthCallbackRoute {
-	result: Resource<Result<SessionUser, String>>,
+/// Browser identity screens share one lazy chunk, separate from product views.
+enum SiteSessionRoute {
+	Login,
+	Connect,
+	Account,
+	Callback {
+		result: Resource<Result<SessionUser, String>>,
+	},
 }
 
 #[lazy_route]
-impl LazyRoute for AuthCallbackRoute {
+impl LazyRoute for SiteSessionRoute {
 	fn data() -> Self {
+		match leptos_router::hooks::use_location()
+			.pathname
+			.get_untracked()
+			.as_str()
+		{
+			"/login" => return Self::Login,
+			"/connect" => return Self::Connect,
+			"/account" => return Self::Account,
+			_ => {}
+		}
 		let params = leptos_router::hooks::use_query_map();
 
 		// Cookie headers must be complete before SSR starts sending the page.
@@ -220,11 +241,15 @@ impl LazyRoute for AuthCallbackRoute {
 				}
 			},
 		);
-		Self { result }
+		Self::Callback { result }
 	}
 
 	fn view(this: Self) -> AnyView {
-		let AuthCallbackRoute { result } = this;
+		match this {
+			SiteSessionRoute::Login => view! { <LoginPage /> }.into_any(),
+			SiteSessionRoute::Connect => view! { <crate::pages::connect::ConnectPage /> }.into_any(),
+			SiteSessionRoute::Account => view! { <crate::pages::account::AccountPage /> }.into_any(),
+			SiteSessionRoute::Callback { result } => {
 		view! {
 			<div class="flex min-h-[80vh] items-center justify-center">
 				<Suspense fallback=|| {
@@ -273,6 +298,8 @@ impl LazyRoute for AuthCallbackRoute {
 			</div>
 		}
 		.into_any()
+		}
+		}
 	}
 }
 
@@ -313,3 +340,14 @@ fn Footer() -> impl IntoView {
 #[cfg(test)]
 #[path = "__tests__/app_tests.rs"]
 mod tests;
+
+#[component]
+fn SurfaceNavigation() -> impl IntoView {
+	let location = leptos_router::hooks::use_location();
+	view! { {move || if location.pathname.get().starts_with("/projects") { view! { <monochange_projects::pages::home::ProjectsNavigation /> }.into_any() } else { view! { <NavBar /> }.into_any() } } }
+}
+#[component]
+fn SurfaceFooter() -> impl IntoView {
+	let location = leptos_router::hooks::use_location();
+	view! { {move || (!location.pathname.get().starts_with("/projects")).then(|| view! { <Footer /> }) } }
+}

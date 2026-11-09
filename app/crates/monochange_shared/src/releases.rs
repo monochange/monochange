@@ -4,7 +4,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 /// A published website version and its user-facing sections.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct WebsiteRelease {
 	pub version: String,
@@ -12,14 +12,14 @@ pub struct WebsiteRelease {
 	pub sections: Vec<WebsiteSection>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct WebsiteSection {
 	pub title: String,
 	pub entries: Vec<WebsiteEntry>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct WebsiteEntry {
 	pub summary: String,
