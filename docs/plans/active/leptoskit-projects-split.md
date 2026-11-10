@@ -1,6 +1,6 @@
 # leptoskit projects split
 
-Status: dependency migration, shared authority, and projects consumers implemented. The final frontend passes the unchanged size gate; clean cumulative app patch coverage is 100%. Parent review and full local checks are in progress before PR creation. iOS runtime and Firefox identity remain unverified. Created: 2026-11-09 Baseline: `origin/main` at `9dd2d1d0397b6e7907e5cb08b3939929db008c67`. Upstream: `https://github.com/leptoskit/leptoskit` `main` at `a93214edc8e5f6c7999c628285093f15cf188639` (2026-11-09).
+Status: implementation and independent source review complete; review corrections pass local checks and are ready for PRs. Final app coverage is 1304/1304 (100%), with 904 tests passed and two manual fixtures ignored; lint, 187 Node tests, release size, validation, preview, and affected-package checks pass. The unchanged Forgejo CLI contract still fails. iOS runtime, Firefox identity, and a full Docker image build remain unverified. Created: 2026-11-09 Baseline: `origin/main` at `9dd2d1d0397b6e7907e5cb08b3939929db008c67`. Upstream: `https://github.com/leptoskit/leptoskit` `main` at `a93214edc8e5f6c7999c628285093f15cf188639` (2026-11-09).
 
 ## Goal
 
