@@ -2845,6 +2845,7 @@ fn hosted_oidc_token_reports_connection_failures() {
 		"http://127.0.0.1:9/oidc",
 		"runner-token",
 		&[std::time::Duration::ZERO],
+		"CommitRelease",
 	))
 	.expect_err("unreachable oidc endpoint must fail");
 	let message = error.to_string();
@@ -2871,6 +2872,7 @@ fn hosted_oidc_token_retries_server_errors() {
 		&server.url("/oidc"),
 		"runner-token",
 		&[std::time::Duration::ZERO, std::time::Duration::ZERO],
+		"CommitRelease",
 	))
 	.expect_err("an endpoint that stays unavailable must fail");
 	unavailable.assert_calls(3);
@@ -2923,6 +2925,7 @@ fn hosted_oidc_token_recovers_after_a_server_error() {
 		&format!("http://{address}/oidc"),
 		"runner-token",
 		&[std::time::Duration::ZERO],
+		"CommitRelease",
 	))
 	.unwrap_or_else(|error| panic!("token after one retry: {error}"));
 	assert_eq!(token, "oidc-jwt");

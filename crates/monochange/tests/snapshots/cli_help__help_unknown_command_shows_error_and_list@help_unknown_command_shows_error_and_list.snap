@@ -33,6 +33,7 @@ Visible top-level commands:
   discover
   doctor
   format
+  gh
   help
   init
   lint

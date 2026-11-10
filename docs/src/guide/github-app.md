@@ -88,6 +88,16 @@ The release branch only exists on GitHub after a hosted run. A later step that r
 
 Every run rebuilds the release pull request branch from `[source.pull_requests].base` and the bot replaces the previous release commit, so each push refreshes the open release pull request. A run whose base branch moved while it was preparing the release fails with a conflict and leaves the refresh to the run for the newer commit. The bot only replaces monochange release branches: the branch must be named `<branch_prefix>/release`, which `monochange step commit-release`, `monochange step open-release-request`, and a `[cli.release]` workflow produce, and it must not be the repository's default branch. Workflows with other names, such as `[cli.release-pr]`, get `<branch_prefix>/release-pr`; the first run creates that branch, but later runs fail with a conflict until the branch is deleted. The bot never writes files under `.git` or `.github/workflows`: monochange.dev refuses uploaded paths there and refuses a tree whose `.github/workflows` differs from the base commit's.
 
+### Dispatch a workflow in another repository
+
+The same app installation can dispatch a workflow in another repository owned by the same account or organization. This lets a CLI release prepare the matching actions release without storing a personal access token in either repository:
+
+```yaml
+- run: monochange gh workflow run release.yml --repo monochange/actions --ref main
+```
+
+The command sends the request to monochange.dev, which checks that the calling repository and the target repository belong to the same app installation and starts the existing workflow with the installation token. A GitHub Actions job must grant `id-token: write`, and the installation must grant the Actions write permission the app already requests for release automation. Use `--field KEY=VALUE` for workflow inputs and `--dry-run` to validate the target without starting a run. Local runs need `--hosted-auth token` and a deployment `MONOCHANGE_TOKEN`; the public app does not issue per-user tokens, so use GitHub Actions for unattended dispatches. The target repository must be connected to the app in the dashboard. The app does not need Workflows write access: it dispatches an existing workflow and never edits workflow files.
+
 Keep your repository's branch protection and required checks enabled. Review and merge the bot's release pull request through your normal process; registry publishing remains a separate workflow.
 
 <!-- {/hostedAppInstallation} -->
