@@ -19,11 +19,13 @@ leptos_router = { version = "0.9.0-rc1", default-features = false }
 # Server functions (aligned with leptos 0.9)
 server_fn = { version = "0.9.0-rc1", default-features = false }
 
-# leptoskit SSR + RPC from upstream main. Cargo.lock pins the reviewed commit;
-# run `cargo update -p leptoskit -p leptoskit_rpc` to pick up upstream fixes.
-leptoskit = { git = "https://github.com/leptoskit/leptoskit", branch = "main", default-features = false }
-leptoskit_rpc = { git = "https://github.com/leptoskit/leptoskit", branch = "main", default-features = false }
-leptoskit_plugin_web_auth = { git = "https://github.com/leptoskit/leptoskit", branch = "main", default-features = false }
+# leptoskit SSR + RPC from the pinned upstream revision. Cargo.lock resolves the
+# same immutable rev, so lockfile regeneration cannot advance the source. To
+# upgrade, change this rev and the root [workspace.metadata.bin] leptoskit_cli
+# rev together, then regenerate every leptoskit lockfile in one deliberate change.
+leptoskit = { git = "https://github.com/leptoskit/leptoskit", rev = "a93214edc8e5f6c7999c628285093f15cf188639", default-features = false }
+leptoskit_rpc = { git = "https://github.com/leptoskit/leptoskit", rev = "a93214edc8e5f6c7999c628285093f15cf188639", default-features = false }
+leptoskit_plugin_web_auth = { git = "https://github.com/leptoskit/leptoskit", rev = "a93214edc8e5f6c7999c628285093f15cf188639", default-features = false }
 schemars = { version = "1.2", features = ["semver1"] }
 
 # Testing

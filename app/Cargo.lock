@@ -3317,7 +3317,7 @@ dependencies = [
 [[package]]
 name = "leptoskit"
 version = "0.3.0"
-source = "git+https://github.com/leptoskit/leptoskit?branch=main#a93214edc8e5f6c7999c628285093f15cf188639"
+source = "git+https://github.com/leptoskit/leptoskit?rev=a93214edc8e5f6c7999c628285093f15cf188639#a93214edc8e5f6c7999c628285093f15cf188639"
 dependencies = [
  "leptos",
  "leptos_axum",
@@ -3341,7 +3341,7 @@ dependencies = [
 [[package]]
 name = "leptoskit_3d"
 version = "0.3.0"
-source = "git+https://github.com/leptoskit/leptoskit?branch=main#a93214edc8e5f6c7999c628285093f15cf188639"
+source = "git+https://github.com/leptoskit/leptoskit?rev=a93214edc8e5f6c7999c628285093f15cf188639#a93214edc8e5f6c7999c628285093f15cf188639"
 dependencies = [
  "leptoskit_log",
  "log",
@@ -3350,12 +3350,12 @@ dependencies = [
 [[package]]
 name = "leptoskit_animation"
 version = "0.3.0"
-source = "git+https://github.com/leptoskit/leptoskit?branch=main#a93214edc8e5f6c7999c628285093f15cf188639"
+source = "git+https://github.com/leptoskit/leptoskit?rev=a93214edc8e5f6c7999c628285093f15cf188639#a93214edc8e5f6c7999c628285093f15cf188639"
 
 [[package]]
 name = "leptoskit_apm"
 version = "0.3.0"
-source = "git+https://github.com/leptoskit/leptoskit?branch=main#a93214edc8e5f6c7999c628285093f15cf188639"
+source = "git+https://github.com/leptoskit/leptoskit?rev=a93214edc8e5f6c7999c628285093f15cf188639#a93214edc8e5f6c7999c628285093f15cf188639"
 dependencies = [
  "axum",
  "getrandom 0.4.3",
@@ -3373,7 +3373,7 @@ dependencies = [
 [[package]]
 name = "leptoskit_auth"
 version = "0.3.0"
-source = "git+https://github.com/leptoskit/leptoskit?branch=main#a93214edc8e5f6c7999c628285093f15cf188639"
+source = "git+https://github.com/leptoskit/leptoskit?rev=a93214edc8e5f6c7999c628285093f15cf188639#a93214edc8e5f6c7999c628285093f15cf188639"
 dependencies = [
  "aes-gcm-siv",
  "axum",
@@ -3401,7 +3401,7 @@ dependencies = [
 [[package]]
 name = "leptoskit_axum"
 version = "0.3.0"
-source = "git+https://github.com/leptoskit/leptoskit?branch=main#a93214edc8e5f6c7999c628285093f15cf188639"
+source = "git+https://github.com/leptoskit/leptoskit?rev=a93214edc8e5f6c7999c628285093f15cf188639#a93214edc8e5f6c7999c628285093f15cf188639"
 dependencies = [
  "any_spawner",
  "axum",
@@ -3420,7 +3420,7 @@ dependencies = [
 [[package]]
 name = "leptoskit_bridge"
 version = "0.3.0"
-source = "git+https://github.com/leptoskit/leptoskit?branch=main#a93214edc8e5f6c7999c628285093f15cf188639"
+source = "git+https://github.com/leptoskit/leptoskit?rev=a93214edc8e5f6c7999c628285093f15cf188639#a93214edc8e5f6c7999c628285093f15cf188639"
 dependencies = [
  "bytes",
  "leptoskit_log",
@@ -3431,7 +3431,7 @@ dependencies = [
 [[package]]
 name = "leptoskit_codepush"
 version = "0.3.0"
-source = "git+https://github.com/leptoskit/leptoskit?branch=main#a93214edc8e5f6c7999c628285093f15cf188639"
+source = "git+https://github.com/leptoskit/leptoskit?rev=a93214edc8e5f6c7999c628285093f15cf188639#a93214edc8e5f6c7999c628285093f15cf188639"
 dependencies = [
  "axum",
  "base64 0.22.1",
@@ -3454,7 +3454,7 @@ dependencies = [
 [[package]]
 name = "leptoskit_config"
 version = "0.3.0"
-source = "git+https://github.com/leptoskit/leptoskit?branch=main#a93214edc8e5f6c7999c628285093f15cf188639"
+source = "git+https://github.com/leptoskit/leptoskit?rev=a93214edc8e5f6c7999c628285093f15cf188639#a93214edc8e5f6c7999c628285093f15cf188639"
 dependencies = [
  "semver",
  "serde",
@@ -3467,7 +3467,7 @@ dependencies = [
 [[package]]
 name = "leptoskit_db"
 version = "0.3.0"
-source = "git+https://github.com/leptoskit/leptoskit?branch=main#a93214edc8e5f6c7999c628285093f15cf188639"
+source = "git+https://github.com/leptoskit/leptoskit?rev=a93214edc8e5f6c7999c628285093f15cf188639#a93214edc8e5f6c7999c628285093f15cf188639"
 dependencies = [
  "chrono",
  "inventory",
@@ -3485,7 +3485,7 @@ dependencies = [
 [[package]]
 name = "leptoskit_db_macros"
 version = "0.3.0"
-source = "git+https://github.com/leptoskit/leptoskit?branch=main#a93214edc8e5f6c7999c628285093f15cf188639"
+source = "git+https://github.com/leptoskit/leptoskit?rev=a93214edc8e5f6c7999c628285093f15cf188639#a93214edc8e5f6c7999c628285093f15cf188639"
 dependencies = [
  "convert_case 0.11.0",
  "proc-macro-crate",
@@ -3500,7 +3500,7 @@ dependencies = [
 [[package]]
 name = "leptoskit_db_schema"
 version = "0.3.0"
-source = "git+https://github.com/leptoskit/leptoskit?branch=main#a93214edc8e5f6c7999c628285093f15cf188639"
+source = "git+https://github.com/leptoskit/leptoskit?rev=a93214edc8e5f6c7999c628285093f15cf188639#a93214edc8e5f6c7999c628285093f15cf188639"
 dependencies = [
  "serde",
  "serde_json",
@@ -3511,7 +3511,7 @@ dependencies = [
 [[package]]
 name = "leptoskit_devtools"
 version = "0.3.0"
-source = "git+https://github.com/leptoskit/leptoskit?branch=main#a93214edc8e5f6c7999c628285093f15cf188639"
+source = "git+https://github.com/leptoskit/leptoskit?rev=a93214edc8e5f6c7999c628285093f15cf188639#a93214edc8e5f6c7999c628285093f15cf188639"
 dependencies = [
  "leptoskit_devtools_protocol",
  "leptoskit_router",
@@ -3524,7 +3524,7 @@ dependencies = [
 [[package]]
 name = "leptoskit_devtools_protocol"
 version = "0.3.0"
-source = "git+https://github.com/leptoskit/leptoskit?branch=main#a93214edc8e5f6c7999c628285093f15cf188639"
+source = "git+https://github.com/leptoskit/leptoskit?rev=a93214edc8e5f6c7999c628285093f15cf188639#a93214edc8e5f6c7999c628285093f15cf188639"
 dependencies = [
  "serde",
  "serde_json",
@@ -3534,7 +3534,7 @@ dependencies = [
 [[package]]
 name = "leptoskit_idp"
 version = "0.3.0"
-source = "git+https://github.com/leptoskit/leptoskit?branch=main#a93214edc8e5f6c7999c628285093f15cf188639"
+source = "git+https://github.com/leptoskit/leptoskit?rev=a93214edc8e5f6c7999c628285093f15cf188639#a93214edc8e5f6c7999c628285093f15cf188639"
 dependencies = [
  "axum",
  "base64 0.22.1",
@@ -3562,7 +3562,7 @@ dependencies = [
 [[package]]
 name = "leptoskit_log"
 version = "0.3.0"
-source = "git+https://github.com/leptoskit/leptoskit?branch=main#a93214edc8e5f6c7999c628285093f15cf188639"
+source = "git+https://github.com/leptoskit/leptoskit?rev=a93214edc8e5f6c7999c628285093f15cf188639#a93214edc8e5f6c7999c628285093f15cf188639"
 dependencies = [
  "cc",
  "log",
@@ -3571,7 +3571,7 @@ dependencies = [
 [[package]]
 name = "leptoskit_macros"
 version = "0.3.0"
-source = "git+https://github.com/leptoskit/leptoskit?branch=main#a93214edc8e5f6c7999c628285093f15cf188639"
+source = "git+https://github.com/leptoskit/leptoskit?rev=a93214edc8e5f6c7999c628285093f15cf188639#a93214edc8e5f6c7999c628285093f15cf188639"
 dependencies = [
  "proc-macro2",
  "proc-macro2-diagnostics",
@@ -3583,7 +3583,7 @@ dependencies = [
 [[package]]
 name = "leptoskit_native"
 version = "0.3.0"
-source = "git+https://github.com/leptoskit/leptoskit?branch=main#a93214edc8e5f6c7999c628285093f15cf188639"
+source = "git+https://github.com/leptoskit/leptoskit?rev=a93214edc8e5f6c7999c628285093f15cf188639#a93214edc8e5f6c7999c628285093f15cf188639"
 dependencies = [
  "leptoskit_3d",
  "leptoskit_animation",
@@ -3597,7 +3597,7 @@ dependencies = [
 [[package]]
 name = "leptoskit_plugin"
 version = "0.3.0"
-source = "git+https://github.com/leptoskit/leptoskit?branch=main#a93214edc8e5f6c7999c628285093f15cf188639"
+source = "git+https://github.com/leptoskit/leptoskit?rev=a93214edc8e5f6c7999c628285093f15cf188639#a93214edc8e5f6c7999c628285093f15cf188639"
 dependencies = [
  "leptoskit_config",
  "serde",
@@ -3609,7 +3609,7 @@ dependencies = [
 [[package]]
 name = "leptoskit_plugin_web_auth"
 version = "0.3.0"
-source = "git+https://github.com/leptoskit/leptoskit?branch=main#a93214edc8e5f6c7999c628285093f15cf188639"
+source = "git+https://github.com/leptoskit/leptoskit?rev=a93214edc8e5f6c7999c628285093f15cf188639#a93214edc8e5f6c7999c628285093f15cf188639"
 dependencies = [
  "leptoskit_bridge",
  "open",
@@ -3619,7 +3619,7 @@ dependencies = [
 [[package]]
 name = "leptoskit_plugin_websocket"
 version = "0.3.0"
-source = "git+https://github.com/leptoskit/leptoskit?branch=main#a93214edc8e5f6c7999c628285093f15cf188639"
+source = "git+https://github.com/leptoskit/leptoskit?rev=a93214edc8e5f6c7999c628285093f15cf188639#a93214edc8e5f6c7999c628285093f15cf188639"
 dependencies = [
  "futures",
  "gloo-timers",
@@ -3636,7 +3636,7 @@ dependencies = [
 [[package]]
 name = "leptoskit_query"
 version = "0.3.0"
-source = "git+https://github.com/leptoskit/leptoskit?branch=main#a93214edc8e5f6c7999c628285093f15cf188639"
+source = "git+https://github.com/leptoskit/leptoskit?rev=a93214edc8e5f6c7999c628285093f15cf188639#a93214edc8e5f6c7999c628285093f15cf188639"
 dependencies = [
  "any_spawner",
  "futures",
@@ -3651,7 +3651,7 @@ dependencies = [
 [[package]]
 name = "leptoskit_rive"
 version = "0.3.0"
-source = "git+https://github.com/leptoskit/leptoskit?branch=main#a93214edc8e5f6c7999c628285093f15cf188639"
+source = "git+https://github.com/leptoskit/leptoskit?rev=a93214edc8e5f6c7999c628285093f15cf188639#a93214edc8e5f6c7999c628285093f15cf188639"
 dependencies = [
  "cc",
  "thiserror",
@@ -3660,7 +3660,7 @@ dependencies = [
 [[package]]
 name = "leptoskit_router"
 version = "0.3.0"
-source = "git+https://github.com/leptoskit/leptoskit?branch=main#a93214edc8e5f6c7999c628285093f15cf188639"
+source = "git+https://github.com/leptoskit/leptoskit?rev=a93214edc8e5f6c7999c628285093f15cf188639#a93214edc8e5f6c7999c628285093f15cf188639"
 dependencies = [
  "leptoskit_native",
  "leptoskit_router_macros",
@@ -3672,7 +3672,7 @@ dependencies = [
 [[package]]
 name = "leptoskit_router_macros"
 version = "0.3.0"
-source = "git+https://github.com/leptoskit/leptoskit?branch=main#a93214edc8e5f6c7999c628285093f15cf188639"
+source = "git+https://github.com/leptoskit/leptoskit?rev=a93214edc8e5f6c7999c628285093f15cf188639#a93214edc8e5f6c7999c628285093f15cf188639"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3682,7 +3682,7 @@ dependencies = [
 [[package]]
 name = "leptoskit_rpc"
 version = "0.3.0"
-source = "git+https://github.com/leptoskit/leptoskit?branch=main#a93214edc8e5f6c7999c628285093f15cf188639"
+source = "git+https://github.com/leptoskit/leptoskit?rev=a93214edc8e5f6c7999c628285093f15cf188639#a93214edc8e5f6c7999c628285093f15cf188639"
 dependencies = [
  "any_spawner",
  "axum",
@@ -3717,7 +3717,7 @@ dependencies = [
 [[package]]
 name = "leptoskit_rpc_codegen"
 version = "0.3.0"
-source = "git+https://github.com/leptoskit/leptoskit?branch=main#a93214edc8e5f6c7999c628285093f15cf188639"
+source = "git+https://github.com/leptoskit/leptoskit?rev=a93214edc8e5f6c7999c628285093f15cf188639#a93214edc8e5f6c7999c628285093f15cf188639"
 dependencies = [
  "indexmap",
  "serde",
@@ -3728,7 +3728,7 @@ dependencies = [
 [[package]]
 name = "leptoskit_rpc_macros"
 version = "0.3.0"
-source = "git+https://github.com/leptoskit/leptoskit?branch=main#a93214edc8e5f6c7999c628285093f15cf188639"
+source = "git+https://github.com/leptoskit/leptoskit?rev=a93214edc8e5f6c7999c628285093f15cf188639#a93214edc8e5f6c7999c628285093f15cf188639"
 dependencies = [
  "convert_case 0.11.0",
  "proc-macro2",
@@ -3739,7 +3739,7 @@ dependencies = [
 [[package]]
 name = "leptoskit_yoga"
 version = "0.3.0"
-source = "git+https://github.com/leptoskit/leptoskit?branch=main#a93214edc8e5f6c7999c628285093f15cf188639"
+source = "git+https://github.com/leptoskit/leptoskit?rev=a93214edc8e5f6c7999c628285093f15cf188639#a93214edc8e5f6c7999c628285093f15cf188639"
 
 [[package]]
 name = "libc"

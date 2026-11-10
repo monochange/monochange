@@ -1,6 +1,6 @@
 # leptoskit projects split
 
-Status: implementation and independent source review complete; review corrections pass local checks and are ready for PRs. Final app coverage is 1304/1304 (100%), with 904 tests passed and two manual fixtures ignored; lint, 187 Node tests, release size, validation, preview, and affected-package checks pass. The unchanged Forgejo CLI contract still fails. iOS runtime, Firefox identity, and a full Docker image build remain unverified. Created: 2026-11-09 Baseline: `origin/main` at `9dd2d1d0397b6e7907e5cb08b3939929db008c67`. Upstream: `https://github.com/leptoskit/leptoskit` `main` at `a93214edc8e5f6c7999c628285093f15cf188639` (2026-11-09).
+Status: implementation and independent source review complete; three PRs are open. Hydration and immutable Git-pin CI corrections are verified locally and integrated through the stack; updated CI is pending. The last complete app run covered 1304/1304 executable changed lines, with 904 tests passed and two manual fixtures ignored. The projects PR at 42c0854 passed its browser benchmark, unchanged size budgets, Docker image build, and app coverage. The unchanged Forgejo CLI contract still fails locally. iOS runtime and Firefox identity remain unverified. Created: 2026-11-09. Baseline: origin/main at 9dd2d1d0397b6e7907e5cb08b3939929db008c67; upstream Git commit a93214edc8e5f6c7999c628285093f15cf188639.
 
 ## Goal
 
@@ -60,10 +60,11 @@ The upstream migration and authority are the signed baseline. The consumer imple
 
 ### 1. Upstream leptoskit dependency migration (this change)
 
-- Replace every direct `leptoskit*` crates.io dependency in `app/`, `app/native/`, and `extension/` with `git = "https://github.com/leptoskit/leptoskit", branch = "main"`.
-- Resolve one upstream commit and commit a lockfile in each workspace that names the same source URL and revision.
+- Replace every direct `leptoskit*` crates.io dependency in `app/`, `app/native/`, and `extension/` with `git = "https://github.com/leptoskit/leptoskit"` pinned to one immutable full revision.
+- Resolve one upstream commit and commit a lockfile in each workspace that names the same source URL and revision through a `?rev=` query, so release preparation can regenerate lockfiles without advancing the source.
 - Point the lint/build CLI at the same repository and revision; keep `lint:leptoskit` using that binary rather than a stale crates.io install.
 - Apply only compatibility edits required by the new upstream APIs. Stop and report if the migration becomes architectural.
+- Upgrade by changing all three workspaces' manifest revs, the root `[workspace.metadata.bin]` `leptoskit_cli` rev, and the three lockfiles together in one deliberate change; never loosen one pin alone.
 
 ### 2. Shared client contract (implemented; consumers connected 2026-11-10)
 
@@ -112,7 +113,7 @@ validate`, the release preview, and affected-package checks. Run `coverage:patch
 
 Implemented in this change:
 
-- every direct `leptoskit*` dependency in `app/`, `app/native/`, and `extension/` points at `https://github.com/leptoskit/leptoskit` on `main`;
+- every direct `leptoskit*` dependency in `app/`, `app/native/`, and `extension/` points at `https://github.com/leptoskit/leptoskit` at the immutable reviewed revision;
 - all three lockfiles name the same reviewed revision, `a93214edc8e5f6c7999c628285093f15cf188639`, and no registry copy remains;
 - `[workspace.metadata.bin]` pins `leptoskit_cli` to that revision with the `leptoskit` binary target. `lint:leptoskit` reads that entry, verifies every `leptoskit*` source in the three lockfiles against the pinned Git revision, and reuses a cached `.bin` install only when cargo's `.crates.toml`/`.crates2.json` records that Git source for the `leptoskit` binary. A same-version registry install or a different revision is replaced with a forced `cargo install` of the pinned revision.
 
@@ -167,7 +168,7 @@ The device inventory now confirms that this machine offers both iOS simulators a
 
 ## Risks and open questions
 
-- Upstream `main` is a moving branch. It advanced to `f33c3764e2a3836560d9e22f54b6be6595d8ba65` after this change resolved and verified `a93214ed`; the lockfiles and CLI pin keep the reviewed commit until a deliberate `cargo update` and review.
+- Upstream `main` is a moving branch. It advanced to `f33c3764e2a3836560d9e22f54b6be6595d8ba65` after this change resolved and verified `a93214ed`. All manifest and lockfile sources now name the immutable `?rev=a93214ed…` query instead of `?branch=main`, so ordinary lockfile regeneration keeps the reviewed commit; upgrades change every pin deliberately (see work unit 1).
 - The upstream CLI is a git install, not a registry binary. A fresh machine needs network access to GitHub, and the install is not covered by a crates.io checksum.
 - The identity boundary and callback transport are security-sensitive. Do not start unit 3 without a written handoff threat model and a test plan for state, redirect, replay, and cross-surface session isolation.
 - iOS simulator packaging passes locally, but the selected simulator repeatedly times out during CoreSimulator boot. Android runtime and Chromium identity have local fixture evidence; Firefox identity and production redirect registration remain unverified.
@@ -207,3 +208,21 @@ The fix is one guarded post-build step, `scripts/minify-split-loader.ts`, part o
 Verification, all against the retained build in the new worktree: the exact release command `cargo leptos --manifest-path crates/monochange_app/Cargo.toml build --release --split` exited 0 in 13m 47s with `LEPTOS_SITE_ROOT` set to `.monochange/local/split-loader-gate-site`; the unmodified gate failed before the step exactly as recorded above (loader gzip 2,234 versus 1,789, total 1,335,613 versus 1,513,294) and passed after it — loader gzip 2,234 → 1,484 (raw 26,281 → 6,862), 17.1% below the unchanged 1,789 baseline, total 1,334,863 versus 1,513,294, exit 0 with no differences listed. The minified loader keeps all 10 exported initializers matching `__wasm_split_manifest.json` and all 87 manifest chunk references. In an isolated headless Chrome driven by the pinned upstream `leptoskit device` control documents, the journey `/` → click Docs → `/book` → click Pricing → `/pricing` rendered `h1#introduction` ("Introduction") and "Hey,this is free." and fetched the loader module plus `split___book_route_view_17666993872358248534.wasm` and `split___pricing_route_view_14841084612111332454.wasm` — the `/` page preloads zero split chunks, so those fetches can only come from the loader's exported initializers. Outcome JSON, server log, and screenshots live under ignored `.monochange/local/`; the server, chromedriver, and browser were shut down afterwards.
 
 Checks: the six new vitest loader tests pass (fixtures under `fixtures/tests/website-split-loader-minify/`) and `test:node` passes 186/186 across 14 files; oxlint type-aware, tsgo, oxfmt, dprint, and zizmor are clean for every touched file with no unrelated formatting; `monochange step validate` and `prepare-release --dry-run --format json` (monochange_app 0.5.0, monochange_extension 0.2.0) pass; affected-packages verification over every changed path is covered by the one `monochange_app: fix` changeset (workflow files, root `scripts/**`, `package.json`, and the lockfile trigger no target). The retained suites after the merge pass 537 tests with the same two ignored fixture servers — monochange_app 157, monochange_app_api 324 (including the workflow-dispatch tests from `22b2c349c`), monochange_app_db 47, monochange_backend 4, monochange_shared 25 — including `server_fns::session::tests::the_ssr_chain_resolves_the_signed_in_browser_user`, `rejected_bearers_get_401_and_browser_only_paths_stay_403_on_real_routes`, and `client_tokens_cannot_reach_browser_only_endpoints`. No Rust file changed in this unit relative to its two parents: the branch's Rust is exactly the signed baseline plus `origin/main`, each verified in its own CI or parent unit, so no new Rust patch-coverage obligation arises here. The inherited root-provenance range (`monochange`, `monochange_core`, `@monochange/skill`) still requires parent-level changeset handling.
+
+## CI dependency corrections (2026-11-10)
+
+### Correction: immutable source pins for lockfile regeneration
+
+Branch specs survived ordinary development but not release preparation: `monochange.toml` runs `cargo generate-lockfile` in `app/` after a version bump, that command re-resolves from scratch, and `?branch=main` sources advanced past the revision the managed CLI was verified against, so the provenance guard failed the release job (PR884 job 129603830686 and PR885 job 129604406873 resolved `a9678a57…` instead of `a93214ed…`). The correction replaces every direct `branch = "main"` spec in `app/Cargo.toml`, `app/native/Cargo.toml`, and `extension/Cargo.toml` with the full immutable revision and regenerates the three lockfiles, keeping every `leptoskit*` package at the already-tested `a93214ed…` commit through fresh resolution. Upstream code does not advance and the provenance guard is unchanged; future upgrades move all manifest pins, the CLI pin, and the lockfiles together.
+
+### Browser bindgen compatibility
+
+The dependency layer's floating `wasm-bindgen = "0.2"` resolved 0.2.130. Its generated module imported the unserved bare specifier `__wbindgen_externref_xform__`, and CI rejected hydration on every benchmarked route. Pinning the app to `=0.2.129`, already used by the extension and verified platform layer, resolves its matching macro, futures, js-sys, and web-sys packages without changing Leptoskit's reviewed source. Two incidental Windows dependency selections from the selective Cargo update were restored to keep this correction scoped.
+
+The retained dependency-layer release/split build completed successfully. SSR and hydrate checks passed, the unchanged size gate passed, and both browser benchmark runs reported no hydration or console errors. Those local runs still failed the dashboard LCP budget by 2 ms and 1 ms respectively; the budget remains unchanged and a passing CI browser benchmark is required before merging. An independent isolated Chrome run followed actual links from `/` to `/install` and `/pricing`, preserved a JavaScript sentinel across both client navigations, checked each route's own heading, and recorded no console errors. Artifacts are in `.monochange/local/` in the compatibility worktree: `pin-cargo-leptos-release-split.log`, `pin-ssr-hydrate-checks.log`, `pin-website-size.md`, `pin-website-benchmark*.log`, and `parent-pin-navigation.log`.
+
+Release-lint separately proved that `cargo generate-lockfile` advances the floating Leptoskit branch while the managed CLI stays at its verified revision. An immutable Git revision correction is the next scoped unit; the provenance guard must remain strict.
+
+The parent re-ran the complete app-workspace library command with `--locked --offline`: 516 tests passed, with no failures or ignored tests. No Rust source changed in this compatibility correction, so executable patch coverage is unchanged. Release preview and source-provenance validation will run again with the immutable-pin correction; the local browser timing failure remains visible until CI supplies its own result.
+
+Both corrections are now integrated through the stack. Updated CI browser timing and release-lint proof remain pending; neither local dashboard timing failure was relabeled green. The platform layer retains its complete implementation and its original decision rows.
