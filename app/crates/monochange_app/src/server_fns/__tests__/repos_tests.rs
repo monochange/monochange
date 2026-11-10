@@ -57,7 +57,7 @@ fn context(state: Arc<AppState>, cookie: Option<String>) -> Owner {
 }
 
 fn session(state: &AppState, user_id: i32) -> String {
-	let token = create_token(&state.jwt_secret, user_id, 101, "alice").unwrap();
+	let token = create_token(&state.jwt_secret, user_id, 101, "alice", 0).unwrap();
 	format!("{}={token}", oauth::SESSION_COOKIE_NAME)
 }
 
@@ -125,7 +125,7 @@ async fn invalid_session_is_an_error_and_legacy_cookie_does_not_authorize_access
 			.to_string()
 			.contains("Invalid session")
 	);
-	let token = create_token(&state.jwt_secret, 1, 101, "alice").unwrap();
+	let token = create_token(&state.jwt_secret, 1, 101, "alice", 0).unwrap();
 	let owner = context(state, Some(format!("monochange_session={token}")));
 	assert!(
 		owner
@@ -589,7 +589,7 @@ async fn missing_oauth_token_requires_sign_in_without_a_provider_request() {
 #[tokio::test]
 async fn deleted_user_and_mismatched_identity_cannot_use_an_old_session() {
 	let state = state().await;
-	let token = create_token(&state.jwt_secret, 1, 202, "bob").unwrap();
+	let token = create_token(&state.jwt_secret, 1, 202, "bob", 0).unwrap();
 	let owner = context(
 		state.clone(),
 		Some(format!("{}={token}", oauth::SESSION_COOKIE_NAME)),

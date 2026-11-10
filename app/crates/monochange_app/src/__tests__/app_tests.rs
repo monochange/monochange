@@ -135,9 +135,10 @@ async fn repository_lifecycle_updates_the_dashboard_and_keeps_connection_availab
 		.await;
 	let state = configured_state(&server).await;
 	sqlx::query("INSERT INTO users (id, github_id, github_login, github_access_token) VALUES (1, 101, 'alice', 'test-only-alice-token'), (2, 202, 'bob', 'test-only-bob-token')").execute(&state.db).await.unwrap();
-	let alice_token = monochange_app_api::create_token(&state.jwt_secret, 1, 101, "alice").unwrap();
+	let alice_token =
+		monochange_app_api::create_token(&state.jwt_secret, 1, 101, "alice", 0).unwrap();
 	let alice_cookie = format!("{}={alice_token}", oauth::SESSION_COOKIE_NAME);
-	let bob_token = monochange_app_api::create_token(&state.jwt_secret, 2, 202, "bob").unwrap();
+	let bob_token = monochange_app_api::create_token(&state.jwt_secret, 2, 202, "bob", 0).unwrap();
 	let bob_cookie = format!("{}={bob_token}", oauth::SESSION_COOKIE_NAME);
 
 	let app = router(state.clone()).merge(monochange_app_api::api_router((*state).clone()));
@@ -261,7 +262,7 @@ async fn dashboard_rechecks_organization_ownership_and_reports_expired_authoriza
 		.execute(&state.db)
 		.await
 		.unwrap();
-	let token = monochange_app_api::create_token(&state.jwt_secret, 1, 101, "alice").unwrap();
+	let token = monochange_app_api::create_token(&state.jwt_secret, 1, 101, "alice", 0).unwrap();
 
 	let cookie = format!("{}={token}", oauth::SESSION_COOKIE_NAME);
 	let app = router(state);
@@ -667,7 +668,7 @@ async fn configured_dashboard_connects_to_verified_app_and_shows_suspended_repos
 	sqlx::query("INSERT INTO users (id, github_id, github_login, github_access_token) VALUES (1, 101, 'alice', 'test-only-token')").execute(&state.db).await.unwrap();
 	sqlx::query("INSERT INTO installations (id, user_id, github_installation_id, github_account_login, github_account_type, target_type) VALUES (1, 1, 1001, 'alice', 'User', 'suspended')").execute(&state.db).await.unwrap();
 	sqlx::query("INSERT INTO repositories (installation_id, github_repo_id, github_full_name, github_private) VALUES (1, 11, 'alice/private', 1)").execute(&state.db).await.unwrap();
-	let token = monochange_app_api::create_token(&state.jwt_secret, 1, 101, "alice").unwrap();
+	let token = monochange_app_api::create_token(&state.jwt_secret, 1, 101, "alice", 0).unwrap();
 	let cookie = format!("{}={token}", oauth::SESSION_COOKIE_NAME);
 	let app = router(state.clone());
 	let response = app
@@ -734,7 +735,7 @@ async fn failed_app_metadata_dashboard_shows_retry_without_unverified_install_li
 		.await;
 	let state = configured_state(&server).await;
 	sqlx::query("INSERT INTO users (id, github_id, github_login, github_access_token) VALUES (1, 101, 'alice', 'test-only-token')").execute(&state.db).await.unwrap();
-	let token = monochange_app_api::create_token(&state.jwt_secret, 1, 101, "alice").unwrap();
+	let token = monochange_app_api::create_token(&state.jwt_secret, 1, 101, "alice", 0).unwrap();
 	let response = router(state)
 		.oneshot(
 			Request::builder()
@@ -869,7 +870,7 @@ async fn signed_in_dashboard_navigation_offers_dashboard_and_sign_out() {
 	let server = MockServer::start_async().await;
 	let state = state(&server).await;
 	sqlx::query("INSERT INTO users (id, github_id, github_login, github_access_token) VALUES (1, 101, 'alice', 'test-only-token')").execute(&state.db).await.unwrap();
-	let token = monochange_app_api::create_token(&state.jwt_secret, 1, 101, "alice").unwrap();
+	let token = monochange_app_api::create_token(&state.jwt_secret, 1, 101, "alice", 0).unwrap();
 	let response = router(state)
 		.oneshot(
 			Request::builder()
@@ -1062,7 +1063,7 @@ async fn sign_out_expires_cookie_and_returns_to_public_site() {
 	use server_fn::ServerFn;
 	let server = MockServer::start_async().await;
 	let state = state(&server).await;
-	let token = monochange_app_api::create_token(&state.jwt_secret, 1, 101, "alice").unwrap();
+	let token = monochange_app_api::create_token(&state.jwt_secret, 1, 101, "alice", 0).unwrap();
 	let app = router(state);
 	let response = app
 		.clone()
@@ -1183,7 +1184,7 @@ async fn organisations_lead_to_projects_that_work_without_javascript() {
 		.await;
 	let state = configured_state(&server).await;
 	sqlx::query("INSERT INTO users (id, github_id, github_login, github_access_token) VALUES (1, 101, 'alice', 'test-only-alice-token')").execute(&state.db).await.unwrap();
-	let token = monochange_app_api::create_token(&state.jwt_secret, 1, 101, "alice").unwrap();
+	let token = monochange_app_api::create_token(&state.jwt_secret, 1, 101, "alice", 0).unwrap();
 	let cookie = format!("{}={token}", oauth::SESSION_COOKIE_NAME);
 	let app = router(state.clone()).merge(monochange_app_api::api_router((*state).clone()));
 
@@ -1524,7 +1525,7 @@ async fn feedback_journey() {
 	let state = state(&server).await;
 	seeded_feedback(&state).await;
 	sqlx::query("INSERT INTO users (id, github_id, github_login, github_access_token) VALUES (5, 505, 'erin', 'unused')").execute(&state.db).await.unwrap();
-	let token = monochange_app_api::create_token(&state.jwt_secret, 1, 101, "alice").unwrap();
+	let token = monochange_app_api::create_token(&state.jwt_secret, 1, 101, "alice", 0).unwrap();
 	let session = format!("{}={token}", oauth::SESSION_COOKIE_NAME);
 	let app = router(state.clone());
 
@@ -1616,7 +1617,7 @@ async fn feedback_journey() {
 	let erin = format!(
 		"{}={}",
 		oauth::SESSION_COOKIE_NAME,
-		monochange_app_api::create_token(&state.jwt_secret, 5, 505, "erin").unwrap()
+		monochange_app_api::create_token(&state.jwt_secret, 5, 505, "erin", 0).unwrap()
 	);
 
 	// Sharing without JavaScript redirects back with the new id.

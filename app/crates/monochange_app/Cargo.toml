@@ -26,7 +26,7 @@ leptos_router = { workspace = true }
 leptoskit = { workspace = true, optional = true, default-features = false }
 leptoskit_rpc = { workspace = true, default-features = false, features = ["client"] }
 monochange_app_feedback = { workspace = true, features = ["schema"] }
-monochange_shared = { workspace = true, features = ["schema"] }
+monochange_shared = { workspace = true, features = ["schema", "client"] }
 schemars = { workspace = true }
 serde = { workspace = true }
 server_fn = { workspace = true }

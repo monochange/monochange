@@ -90,7 +90,7 @@ fn context(state: Arc<AppState>, cookie: Option<String>) -> (Owner, ResponseOpti
 }
 
 fn session(state: &AppState, user_id: i32) -> String {
-	let token = create_token(&state.jwt_secret, user_id, 101, "alice").unwrap();
+	let token = create_token(&state.jwt_secret, user_id, 101, "alice", 0).unwrap();
 	format!("{}={token}", oauth::SESSION_COOKIE_NAME)
 }
 
@@ -463,4 +463,40 @@ async fn permission_updates_are_empty_when_nothing_can_be_checked() {
 	assert!(updates(state, true).await.is_empty());
 	app.assert_calls(1);
 	installation.assert_calls(0);
+}
+
+#[tokio::test]
+async fn a_client_token_sees_only_its_own_account_surface() {
+	let server = MockServer::start();
+	// The metadata endpoint only matters once installations exist; the mock
+	// keeps an accidental lookup local instead of hitting GitHub.
+	server.mock(|when, then| {
+		when.method(Method::GET).path("/app");
+		then.status(200)
+			.json_body(serde_json::json!({"slug": "test-app"}));
+	});
+	let state = state(Some(&server)).await;
+	monochange_app_db::client_sessions::create_session(&state.db, 1, "native", 0, "mcd_install")
+		.await
+		.unwrap();
+
+	let owner = Owner::new();
+	let mut request = Request::new(());
+	request.headers_mut().insert(
+		axum::http::header::AUTHORIZATION,
+		"Bearer mcd_install".parse().unwrap(),
+	);
+	let (parts, ()) = request.into_parts();
+	owner.with(|| {
+		provide_context(state.clone());
+		provide_context(parts);
+	});
+
+	// The client token resolves to its own account; with no installations
+	// connected there is nothing for any principal to manage.
+	let updates = owner
+		.with(|| ScopedFuture::new(permission_updates()))
+		.await
+		.unwrap();
+	assert!(updates.is_empty());
 }

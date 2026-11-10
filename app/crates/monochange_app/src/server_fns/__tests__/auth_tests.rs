@@ -901,3 +901,128 @@ async fn expired_refresh_credentials_require_a_new_sign_in_without_contacting_gi
 	assert!(error.contains("please sign in again"));
 	outbound.assert_calls(0);
 }
+
+async fn sign_in_cookie(state: &Arc<AppState>) -> String {
+	let pending = oauth::installation_state(&state.jwt_secret).unwrap();
+	let (owner, response) = context(state.clone(), Some(pending.cookie.to_string()));
+	owner
+		.with(|| ScopedFuture::new(exchange_code("revival-code".to_string(), pending.state)))
+		.await
+		.unwrap();
+	let cookies: Vec<String> = response
+		.0
+		.read()
+		.unwrap()
+		.headers
+		.get_all(SET_COOKIE)
+		.iter()
+		.map(|value| value.to_str().unwrap().to_owned())
+		.collect();
+	cookies
+		.iter()
+		.find(|cookie| cookie.starts_with(oauth::SESSION_COOKIE_NAME))
+		.unwrap()
+		.split_once('=')
+		.unwrap()
+		.1
+		.split(';')
+		.next()
+		.unwrap()
+		.to_owned()
+}
+
+#[tokio::test]
+async fn signing_in_after_a_global_revocation_mints_the_current_epoch() {
+	let server = MockServer::start();
+	let exchange = server.mock(|when, then| {
+		when.method(POST).path("/login/oauth/access_token");
+		then.json_body(serde_json::json!({
+			"access_token": "revival-access",
+			"expires_in": 28800,
+			"refresh_token": "revival-refresh",
+			"refresh_token_expires_in": 15_897_600,
+		}));
+	});
+	let user = server.mock(|when, then| {
+		when.method(GET)
+			.path("/user")
+			.header("authorization", "Bearer revival-access");
+		then.json_body(serde_json::json!({
+			"id": 101,
+			"login": "alice",
+			"avatar_url": null,
+		}));
+	});
+	let state = state_with_server(&server).await;
+
+	let first = sign_in_cookie(&state).await;
+	let epoch = monochange_app_api::verify_token(&state.jwt_secret, &first)
+		.unwrap()
+		.epoch;
+	assert_eq!(epoch, 0);
+
+	// Sign out everywhere bumps the epoch and the old cookie stops resolving.
+	let user_id: i32 = sqlx::query_scalar("SELECT id FROM users WHERE github_id = 101")
+		.fetch_one(&state.db)
+		.await
+		.unwrap();
+	monochange_app_db::client_sessions::revoke_all_for_user(&state.db, user_id)
+		.await
+		.unwrap();
+	let mut headers = axum::http::HeaderMap::new();
+	headers.insert(
+		axum::http::header::COOKIE,
+		format!("{}={first}", oauth::SESSION_COOKIE_NAME)
+			.parse()
+			.unwrap(),
+	);
+	assert!(
+		!matches!(
+			monochange_app_api::sessions::resolve_parts(&state, &headers, &CookieJar::new())
+				.await
+				.unwrap(),
+			monochange_app_api::sessions::Principal::Browser(_)
+		),
+		"the pre-revocation cookie must stop authorizing"
+	);
+
+	// A new sign-in mints a token at the user's current epoch.
+	let second = sign_in_cookie(&state).await;
+	let second_claims = monochange_app_api::verify_token(&state.jwt_secret, &second).unwrap();
+	assert_eq!(second_claims.epoch, 1);
+	assert_ne!(first, second);
+	exchange.assert_calls(2);
+	user.assert_calls(2);
+}
+
+#[tokio::test]
+async fn a_client_token_reads_the_session_of_its_own_account() {
+	let state = state().await;
+	sqlx::query("INSERT INTO users (id, github_id, github_login, github_access_token) VALUES (1, 101, 'alice', 'test-only-token')")
+		.execute(&state.db)
+		.await
+		.unwrap();
+	monochange_app_db::client_sessions::create_session(&state.db, 1, "native", 0, "mcd_reader")
+		.await
+		.unwrap();
+
+	let owner = Owner::new();
+	let mut request = Request::new(());
+	request.headers_mut().insert(
+		axum::http::header::AUTHORIZATION,
+		"Bearer mcd_reader".parse().unwrap(),
+	);
+	let (parts, ()) = request.into_parts();
+	owner.with(|| {
+		provide_context(state.clone());
+		provide_context(parts);
+	});
+
+	let user = owner
+		.with(|| ScopedFuture::new(get_session()))
+		.await
+		.unwrap()
+		.unwrap();
+	assert_eq!(user.github_id, 101);
+	assert_eq!(user.github_login, "alice");
+}

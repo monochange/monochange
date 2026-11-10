@@ -99,7 +99,7 @@ fn context(state: &Arc<AppState>, user_id: Option<i32>) -> (Owner, ResponseOptio
 			(202, "bob")
 		};
 
-		let token = create_token(&state.jwt_secret, user_id, github_id, login).unwrap();
+		let token = create_token(&state.jwt_secret, user_id, github_id, login, 0).unwrap();
 		request.headers_mut().insert(
 			COOKIE,
 			format!("{}={token}", oauth::SESSION_COOKIE_NAME)

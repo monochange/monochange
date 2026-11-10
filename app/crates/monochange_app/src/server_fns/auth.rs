@@ -173,42 +173,18 @@ impl GitHubUserTokenResponse {
 #[api(crate = "leptoskit_rpc", tag = "auth")]
 #[server(endpoint = "get_session")]
 pub async fn get_session() -> Result<Option<SessionUser>, server_fn::ServerFnError> {
-	use std::sync::Arc;
+	let principal = super::principal().await?;
 
-	use axum_extra::extract::cookie::CookieJar;
-	use leptos_axum::extract;
-
-	let jar: CookieJar = extract().await?;
-	let Some(token) = jar
-		.get(monochange_app_api::oauth::SESSION_COOKIE_NAME)
-		.map(|c| c.value().to_string())
-	else {
-		return Ok(None);
-	};
-
-	let state: Arc<monochange_app_api::AppState> = expect_context();
-	let claims = monochange_app_api::verify_token(&state.jwt_secret, &token)
-		.map_err(|_| server_fn::ServerFnError::new("Invalid session"))?;
-
-	let client = monochange_app_db::get_client(&state.db)
-		.map_err(|e| server_fn::ServerFnError::new(format!("DB: {e}")))?;
-
-	let users = monochange_app_db::models::User::where_col(|u| u.id.equal(claims.sub))
-		.run(&client)
-		.await
-		.map_err(|e| server_fn::ServerFnError::new(format!("Query: {e}")))?;
-
-	Ok(users
-		.first()
-		.filter(|user| user.github_id == claims.github_id)
-		.map(|u| {
-			SessionUser {
-				github_id: u.github_id,
-				github_login: u.github_login.clone(),
-				github_avatar_url: u.github_avatar_url.clone(),
-				plan_tier: u.plan_tier.clone(),
-			}
-		}))
+	match principal {
+		// A forged or expired cookie is an error; no credentials and a stale
+		// session read the same: not signed in, never an error page.
+		monochange_app_api::sessions::Principal::Anonymous
+		| monochange_app_api::sessions::Principal::Stale => Ok(None),
+		monochange_app_api::sessions::Principal::Invalid => {
+			Err(server_fn::ServerFnError::new("Invalid session"))
+		}
+		_ => Ok(principal.session_user()),
+	}
 }
 
 // Leptos server functions must be async.
@@ -356,7 +332,7 @@ pub async fn exchange_code(
 	let avatar = gh_user["avatar_url"].as_str().map(String::from);
 
 	// OAuth and installation webhooks can arrive together for the same user.
-	let (user_id, plan_tier): (i32, String) = sqlx::query_as(
+	let (user_id, plan_tier, session_epoch): (i32, String, i64) = sqlx::query_as(
 		"INSERT INTO users (
 			github_id, github_login, github_avatar_url, github_access_token,
 			github_refresh_token, github_access_token_expires_at,
@@ -367,7 +343,7 @@ pub async fn exchange_code(
 		 github_refresh_token = excluded.github_refresh_token,
 		 github_access_token_expires_at = excluded.github_access_token_expires_at,
 		 github_refresh_token_expires_at = excluded.github_refresh_token_expires_at,
-		 updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') RETURNING id, plan_tier",
+		 updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') RETURNING id, plan_tier, session_epoch",
 	)
 	.bind(github_id)
 	.bind(&login)
@@ -386,8 +362,14 @@ pub async fn exchange_code(
 	.map_err(|error| server_fn::ServerFnError::new(format!("Save user: {error}")))?;
 
 	// JWT
-	let token = monochange_app_api::create_token(&state.jwt_secret, user_id, github_id, &login)
-		.map_err(|e| server_fn::ServerFnError::new(format!("JWT: {e}")))?;
+	let token = monochange_app_api::create_token(
+		&state.jwt_secret,
+		user_id,
+		github_id,
+		&login,
+		session_epoch,
+	)
+	.map_err(|e| server_fn::ServerFnError::new(format!("JWT: {e}")))?;
 
 	// Cookie
 	let cookie = monochange_app_api::oauth::session_cookie(token);

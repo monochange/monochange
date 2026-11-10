@@ -182,6 +182,15 @@ async fn main() -> Result<(), MonochangeError> {
 		// Class B machine APIs (webhooks, hosted release OIDC, embed SDK, tasks).
 		.merge(monochange_backend::machine_api_router((*app_state).clone()))
 		.merge(ssr_router)
+		// The gate runs after the principal middleware, so a client token is
+		// already in request extensions when its path is checked.
+		.layer(leptoskit::server::axum::middleware::from_fn(
+			monochange_app::server_fns::session::bearer_gate,
+		))
+		.layer(leptoskit::server::axum::middleware::from_fn_with_state(
+			app_state.clone(),
+			monochange_app_api::sessions::principal_middleware,
+		))
 		.layer(leptoskit::server::axum::middleware::from_fn(
 			monochange_app::public_routes::pkg_cache_control,
 		))

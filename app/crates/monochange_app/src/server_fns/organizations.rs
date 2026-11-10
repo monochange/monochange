@@ -50,7 +50,7 @@ fn database_error(error: impl std::fmt::Display) -> server_fn::ServerFnError {
 async fn accessible_organizations(
 	state: &monochange_app_api::AppState,
 ) -> ServerResult<Option<(i32, Vec<OrganizationAccess>)>> {
-	let Some(user_id) = super::repos::signed_in_user_id(state).await? else {
+	let Some(user_id) = super::repos::signed_in_user_id().await? else {
 		return Ok(None);
 	};
 	let repositories = super::repos::accessible_repositories(state, user_id).await?;
