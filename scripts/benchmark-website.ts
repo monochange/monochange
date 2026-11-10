@@ -68,18 +68,31 @@ function listSiteFiles(siteRoot) {
 	const pkgDir = join(siteRoot, "pkg");
 	let entries;
 	try {
-		entries = readdirSync(pkgDir);
+		entries = readdirSync(pkgDir, { withFileTypes: true });
 	} catch {
-		die(`missing ${pkgDir}; build the site first with cargo leptos build --release`);
+		die(`missing ${pkgDir}; build both frontends first (build:web --release)`);
 	}
-	return entries
-		.filter((name) => statSync(join(pkgDir, name)).isFile())
-		.map((name) => {
-			const path = join(pkgDir, name);
+	const files = [];
+	for (const entry of entries) {
+		const path = join(pkgDir, entry.name);
+		if (entry.isDirectory()) {
+			// Both frontends assemble under their own namespace.
+			for (const nested of readdirSync(path)) {
+				const nestedPath = join(path, nested);
+				if (!statSync(nestedPath).isFile()) continue;
+				const raw = readFileSync(nestedPath);
+				files.push({
+					name: `${entry.name}/${nested}`,
+					bytes: raw.byteLength,
+					gzipBytes: gzipSync(raw).byteLength,
+				});
+			}
+		} else if (entry.isFile()) {
 			const raw = readFileSync(path);
-			return { name, bytes: raw.byteLength, gzipBytes: gzipSync(raw).byteLength };
-		})
-		.toSorted((left, right) => right.bytes - left.bytes);
+			files.push({ name: entry.name, bytes: raw.byteLength, gzipBytes: gzipSync(raw).byteLength });
+		}
+	}
+	return files.toSorted((left, right) => right.bytes - left.bytes);
 }
 
 function checkAssetBudgets(budgets, files, violations) {
@@ -93,7 +106,9 @@ function checkAssetBudgets(budgets, files, violations) {
 		},
 		{ totalBytes: 0, wasmBytes: 0, jsBytes: 0, cssBytes: 0 },
 	);
-	const mainWasm = files.find((file) => file.name === "monochange_app.wasm");
+	// The website entry's wasm: `monochange_app_bg.wasm` under the site
+	// namespace (leptoskit build names the bound module after the lib crate).
+	const mainWasm = files.find((file) => file.name === "site/monochange_app_bg.wasm");
 	const limits = [
 		["pkgTotalBytes", totals.totalBytes],
 		["pkgWasmBytes", totals.wasmBytes],

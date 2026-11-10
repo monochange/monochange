@@ -3,15 +3,18 @@
 schema_version = 0
 
 # monochange.dev website: Leptos SSR + hydrate, nested under app/.
-# Prefer `leptoskit dev` / `leptoskit build` when the CLI is installed; keep
-# `cargo leptos` as a fallback until CI and Docker switch fully.
+# This config names the ONE shared backend package (monochange_app owns the
+# server binary) while selecting the website browser package. The projects
+# frontend builds through app/projects/leptoskit.toml the same way; the two
+# bundles assemble into one site root under pkg/<namespace>/.
+# CI and Docker run these builds; `leptoskit dev` works locally from app/.
 #
 # Sibling surfaces (extension/, app/native/, …) copy the same `[lint]` /
 # `[lint.rules]` block into their own leptoskit.toml. See docs/agents/tooling.md.
 
 [app]
 name = "monochange_app"
-version = "0.3.3"
+version = "0.4.0"
 default_platform = "web"
 platforms = ["web"]
 render = "ssr"
@@ -27,11 +30,35 @@ features = []
 rustflags = []
 
 [bundle]
-# Match the existing cargo-leptos split routes (`#[lazy_route]`).
+# Match the lazy routes (`#[lazy_route]`) of both browser entries.
 optimize = "smallest"
 split = true
 wasm_opt = true
-precompress = true
+# The tooling plugin precompresses the assembled site (both frontends share
+# one deployment tree, which upstream's per-build precompression cannot
+# cover); this build's own compression is off so compression happens once.
+precompress = false
+
+# The tooling plugin owns everything upstream does not build itself, and runs
+# inside `leptoskit build`: Tailwind CSS for the entry, guarded
+# wasm-split-loader minification, pkg namespace placement (pkg/site/ here,
+# pkg/projects/ for the projects frontend), and precompression of the
+# assembled site. The plugin resolves as
+# `leptoskit-plugin-monochange-web-assets` on PATH; devenv, CI, and Docker
+# all provide it from scripts/leptoskit-plugin/.
+[[plugins]]
+name = "monochange-web-assets"
+
+[plugins.options]
+namespace = "site"
+# The assembled deployment tree both web builds share. Each build compiles
+# into its own scratch out dir (upstream wipes pkg/ when a fingerprint
+# changes) and the plugin assembles into this tree; build with
+# `--out target/web` for the website and `--out target/projects-web` for the
+# projects frontend (see build:web).
+site_root = "target/site"
+# Shared design tokens: one Tailwind input compiles for both frontends.
+tailwind_input = "crates/monochange_app/style/input.css"
 
 [lint]
 # Prefer view! markup over builder trees for human-authored UI.

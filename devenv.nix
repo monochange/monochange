@@ -18,6 +18,7 @@ in
     with pkgs;
 
     [
+      binaryen
       cargo-binstall
       cargo-run-bin
       cacert
@@ -620,6 +621,24 @@ in
         ${currentDir}/scripts/lint-leptoskit.sh
       '';
       description = "Run leptoskit component lints (#[component], view! markup, PascalCase) for every leptoskit.toml.";
+      binary = "bash";
+    };
+    "build:web" = {
+      exec = ''
+        set -euo pipefail
+        leptoskit_bin="$(${currentDir}/scripts/leptoskit-cli.sh)"
+        (cd ${currentDir}/app && "$leptoskit_bin" build "$@" --platform web --out target/web)
+        (cd ${currentDir}/app/projects && "$leptoskit_bin" build "$@" --platform web --out target/projects-web)
+      '';
+      description = "Build both web frontends with the provenance-verified leptoskit CLI into one assembled site (app/target/site, from per-build scratch dirs); forward flags like --release.";
+      binary = "bash";
+    };
+    # The leptoskit tooling plugin resolves as `leptoskit-plugin-<name>` on
+    # PATH; this profile entry puts it there under its default name so both
+    # web leptoskit.toml declarations work from every project root.
+    "leptoskit-plugin-monochange-web-assets" = {
+      exec = ''exec pnpm node ${currentDir}/scripts/leptoskit-plugin/web-assets-plugin.ts "$@"'';
+      description = "The leptoskit tooling plugin that owns site CSS, split-loader minification, and pkg namespace assembly.";
       binary = "bash";
     };
     "lint:architecture" = {

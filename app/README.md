@@ -6,13 +6,13 @@ Leptos SSR web app for monochange release planning.
 
 The app uses SQLite by default, so no database service is required. It loads its secrets through [Monosecret](https://monosecret.dev) from `app/monosecret.toml`. The `development` profile reads the ignored `app/.env` first, then the process environment, then local defaults. It never contacts 1Password.
 
-`app/leptoskit.toml` configures SSR on port 3000 with route-split WASM bundles. Prefer the **leptoskit** CLI when it is installed (same layout as other leptoskit apps); keep **cargo-leptos** as a fallback until CI and Docker switch.
+The two web frontends build through their own `leptoskit.toml` configs: `app/leptoskit.toml` (website entry) and `app/projects/leptoskit.toml` (projects entry). Both name the shared `monochange_app` backend and assemble into one site root. The `build:web` devenv task resolves the provenance-verified CLI and builds both frontends into `app/target/site`; the tooling plugin (site CSS, split-loader minification, pkg namespaces) runs inside each build.
 
 ```bash
-# From the repository root — preferred when `leptoskit` is on PATH
+# Build both frontends (add --release for the size/benchmark gates)
+devenv shell build:web
+# Serve the assembled site; the backend composes both SSR route sets
 cd app && MONOSECRET_PROFILE=development devenv shell leptoskit serve
-# Fallback (cargo-leptos metadata still present in app/Cargo.toml)
-MONOSECRET_PROFILE=development devenv shell cargo leptos --manifest-path app/crates/monochange_app/Cargo.toml serve
 ```
 
 Default database:
@@ -24,7 +24,7 @@ sqlite://./monochange_app.sqlite3
 Override any value, such as `DATABASE_URL` or the GitHub App client credentials, in `app/.env` or the environment:
 
 ```bash
-DATABASE_URL=sqlite://.devenv/state/monochange_app.sqlite3 MONOSECRET_PROFILE=development devenv shell cargo leptos --manifest-path app/crates/monochange_app/Cargo.toml serve
+DATABASE_URL=sqlite://.devenv/state/monochange_app.sqlite3 MONOSECRET_PROFILE=development devenv shell leptoskit serve
 ```
 
 ## tests
@@ -41,22 +41,24 @@ Release automation uses the same SQLite database and remains disabled unless `MO
 Every app pull request runs a Lighthouse suite over the core flows (`/`, `/install`, `/pricing`, `/changelog`, `/book`, a book chapter, `/login`, and the signed-out `/dashboard`) plus a gzip bundle-size check against the committed baseline. Locally, after a release build:
 
 ```bash
-# from the repository root, with pnpm dependencies installed
-# Preferred: `cd app && leptoskit build --release` (split + size optimize from leptoskit.toml)
-cargo leptos --manifest-path app/crates/monochange_app/Cargo.toml build --release --split
-pnpm node scripts/minify-split-loader.ts --site-root app/target/site
+# from the repository root; both frontends assemble into app/target/site and
+# the tooling plugin compiles the CSS and minifies the split loaders inside
+# the build, before precompression
+devenv shell build:web --release
 pnpm bench:website          # Lighthouse against a throwaway local server
 pnpm size:website           # compare app/target/site/pkg against the baseline
 pnpm size:website:update    # accept a deliberate size change in the same PR
 ```
 
-`minify-split-loader.ts` minifies the `pkg/__wasm_split.*.js` loader that cargo-leptos emits unminified (`js-minify` covers the main glue only), so the committed size gate measures the shipped bytes. CI runs it between the release build and the size/Lighthouse checks, and the Docker builder runs it before the site is copied out and precompressed. The upstream leptoskit web build emits the same loader, so pass its output directory to `--site-root` when building with `leptoskit build --release`.
+The release builds go through the pinned **leptoskit** CLI (`build:web` resolves it from `[workspace.metadata.bin]` and verifies the Git provenance), never cargo-leptos. The tooling plugin (`scripts/leptoskit-plugin/`) owns what the leptoskit build does not produce itself: the Tailwind site CSS, the guarded `__wasm_split.*.js` loader minification (scripts/minify-split-loader.ts), and placement of each frontend's bundle under `pkg/site/` / `pkg/projects/` so both entries share one deployment without name collisions. Its `after_build` hook runs before upstream precompression, so the shipped assets and their `.br`/`.gz` twins are the same bytes the size gate measures.
 
 Budgets live in `scripts/website-budgets.json`; the size baseline in `scripts/website-size-baseline.json`. `pnpm bench:website` needs Chrome or Chromium locally (`CHROME_PATH` is honoured). The app CI job fails on budget violations unless `MONOCHANGE_ALLOW_BENCHMARK_BUDGET_FAILURES=true` is set, mirroring the CLI benchmark escape hatch.
 
-The client is split into per-route WASM chunks (`#[lazy_route]` boundaries, `split = true` in `leptoskit.toml` / cargo-leptos): the landing and login views stay in the initial bundle while every other route loads its code on first navigation. `/pkg` assets are served with revalidation caching, and the deployment image precompresses them (gzip and brotli) alongside compression at the Caddy edge.
+Each browser entry is split into per-route WASM chunks (`#[lazy_route]` boundaries, `split = true` in `leptoskit.toml`): the landing and login views stay in the website's initial bundle while every other route loads its code on first navigation, and the projects entry hydrates the product routes from its own bundle. `/pkg` assets are served with revalidation caching, and the deployment image precompresses them (gzip and brotli) alongside compression at the Caddy edge.
 
-Shared wire DTOs for the website and future extension/native guests live in `crates/monochange_shared`. Class B machine APIs (webhooks, hosted release OIDC, embed SDK) mount through `crates/monochange_backend`.
+Links that cross between the website and projects entries render with `target="_self"`, so the click loads the other entry as a real document navigation instead of client-side routing into a bundle that does not own the route.
+
+Shared wire DTOs for the website, projects, extension, and native guests live in `crates/monochange_shared`. Class B machine APIs (webhooks, hosted release OIDC, embed SDK) mount through `crates/monochange_backend`.
 
 ## deploy
 

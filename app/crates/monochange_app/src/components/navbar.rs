@@ -164,7 +164,16 @@ fn SessionLinks(
 		<Suspense fallback=|| view! { <span role="status">"Loading account…"</span> }>
 			{move || session.get().map(|result| match result {
 				Ok(Some(user)) => view! {
-					<a href="/projects" class=BTN_BRAND title=format!("Signed in as {}", user.github_login)>"Projects"</a>
+					// /projects belongs to the projects browser entry; the link
+					// must load that entry as a document navigation.
+					<a
+						href="/projects"
+						target=monochange_shared::routing::cross_surface_target("/", "/projects")
+						class=BTN_BRAND
+						title=format!("Signed in as {}", user.github_login)
+					>
+						"Projects"
+					</a>
 					<ActionForm action=sign_out>
 						<button type="submit" class="inline-block py-[0.65rem] font-bold text-brand-600 underline dark:text-brand-400" disabled=move || sign_out.pending().get()>"Sign out"</button>
 					</ActionForm>
@@ -172,6 +181,7 @@ fn SessionLinks(
 				Ok(None) => view! { <a href=sign_in() class=BTN_BRAND>"Sign in"</a> }.into_any(),
 				Err(_) => view! { <a href=sign_in() class=BTN_BRAND>"Sign in again"</a> }.into_any(),
 			})}
+
 		</Suspense>
 	}
 }

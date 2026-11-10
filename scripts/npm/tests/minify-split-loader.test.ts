@@ -25,6 +25,7 @@ const pricingExport = "__wasm_split_load___pricing_route_view_148410846121113324
 function createSiteRoot(scenario: string): string {
 	const root = mkdtempSync(join(tmpdir(), "minify-split-loader-"));
 	cpSync(join(fixtureRoot, scenario), root, { recursive: true });
+
 	return root;
 }
 
@@ -63,8 +64,10 @@ describe("minify-split-loader", () => {
 
 		const result = runMinify(siteRoot);
 		assert.equal(result.status, 0, result.stderr || result.stdout);
-		assert.match(result.stdout, new RegExp(`${loaderName} gzip \\d+ → \\d+ bytes`));
-		assert.match(result.stdout, /minified 1 split loader\(s\); gzip \d+ → \d+ bytes/);
+		// Progress goes to stderr so stdout can carry structured output (the
+		// leptoskit plugin protocol).
+		assert.match(result.stderr, new RegExp(`${loaderName} gzip \\d+ → \\d+ bytes`));
+		assert.match(result.stderr, /minified 1 split loader\(s\); gzip \d+ → \d+ bytes/);
 
 		const minified = readLoader(siteRoot);
 		assert.ok(
@@ -113,7 +116,7 @@ describe("minify-split-loader", () => {
 		assert.ok(minified.includes(pricingExport));
 	});
 
-	test("minifies the app site from the Docker working directory", () => {
+	test("minifies from any working directory like the Docker build does", () => {
 		const root = mkdtempSync(join(tmpdir(), "docker-split-loader-"));
 		roots.push(root);
 		mkdirSync(join(root, "scripts"));
@@ -121,12 +124,7 @@ describe("minify-split-loader", () => {
 		cpSync(scriptPath, copiedScript);
 		const siteRoot = join(root, "app/target/site");
 		cpSync(join(fixtureRoot, "loader-site"), siteRoot, { recursive: true });
-		const dockerfile = readFileSync(join(repoRoot, "Dockerfile"), "utf8");
-		const invocation = /node \/app\/scripts\/minify-split-loader\.ts --site-root (\S+)/u.exec(
-			dockerfile,
-		);
-		assert.ok(invocation, "Docker must minify its release site before packaging");
-		const result = spawnSync(process.execPath, [copiedScript, "--site-root", invocation[1]], {
+		const result = spawnSync(process.execPath, [copiedScript, "--site-root", "app/target/site"], {
 			cwd: join(root, "app"),
 			encoding: "utf8",
 			env: {
@@ -137,6 +135,33 @@ describe("minify-split-loader", () => {
 		assert.equal(result.status, 0, result.stderr || result.stdout);
 		assert.ok(readLoader(siteRoot).includes(bookExport));
 		assert.ok(!readLoader(siteRoot).includes("makeLoad"));
+	});
+
+	test("the Docker build minifies through the leptoskit plugin", () => {
+		// The release image runs the guarded minifier inside `leptoskit build`
+		// via the tooling plugin; a direct post-build invocation would
+		// re-minify after precompression and desync the .br/.gz twins.
+		const dockerfile = readFileSync(join(repoRoot, "Dockerfile"), "utf8");
+		assert.ok(
+			dockerfile.includes("COPY scripts/leptoskit-plugin/ scripts/leptoskit-plugin/"),
+			"Docker must ship the leptoskit tooling plugin",
+		);
+		assert.ok(
+			dockerfile.includes("/usr/local/bin/leptoskit-plugin-monochange-web-assets"),
+			"Docker must put the plugin on PATH by its default leptoskit name",
+		);
+		assert.ok(
+			!/node [^\n]*minify-split-loader/.test(dockerfile),
+			"Docker must not run the minifier outside the leptoskit build",
+		);
+		const plugin = readFileSync(
+			join(repoRoot, "scripts/leptoskit-plugin/web-assets-plugin.ts"),
+			"utf8",
+		);
+		assert.ok(
+			plugin.includes('from "../minify-split-loader.ts"'),
+			"the plugin must reuse the guarded minifier implementation",
+		);
 	});
 
 	test("refuses output that drops an exported split initializer", () => {

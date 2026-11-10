@@ -1,6 +1,13 @@
-//! Shared document shell, public routes, and GitHub sign-in pages.
+//! Shared document shell, the website browser entry, and GitHub sign-in pages.
+//!
+//! The website browser entry owns landing, auth, the repositories dashboard,
+//! and docs. Product paths belong to the projects entry
+//! (`monochange_projects::app::ProjectsApp`), which the server-side
+//! composition ([`SurfaceApp`]) renders for the paths
+//! `monochange_shared::routing::is_projects_path` classifies as product.
 
 use leptos::prelude::*;
+#[cfg(not(target_arch = "wasm32"))]
 use leptos_meta::MetaTags;
 use leptos_meta::Stylesheet;
 use leptos_meta::Title;
@@ -21,13 +28,9 @@ use crate::links::SOURCE_URL;
 use crate::pages::book::BookRoute;
 use crate::pages::changelog::ChangelogRoute;
 use crate::pages::dashboard::DashboardRoute;
-use crate::pages::feedback_console::FeedbackConsoleRoute;
 use crate::pages::home::HomePage;
 use crate::pages::install::InstallRoute;
-use crate::pages::organization::OrganizationRoute;
-use crate::pages::portal::PortalRoute;
 use crate::pages::pricing::PricingRoute;
-use crate::pages::project::ProjectRoute;
 use crate::server_fns::auth::SessionUser;
 
 // Leptos strips literal comments. The inert template below preserves this
@@ -41,14 +44,15 @@ FORM: Product floor → release manifest demo → ecosystems → workflow → cl
 FINISH: Align with docs/landing-design.md; keep auth and dashboard routes intact.
 -->";
 
-/// wasm-bindgen 0.2.130 still emits `import … from "__wbindgen_externref_xform__"`
-/// after cargo-leptos hides the `reference-types` feature on split modules.
-/// The helper has to be mapped before the hydration module script runs.
-const WASM_BINDGEN_EXTERNREF_IMPORT_MAP: &str =
-	r#"{"imports":{"__wbindgen_externref_xform__":"/wbindgen-externref-xform.js"}}"#;
-
 /// Server-rendered document shell.
+///
+/// The head references the bundle of whichever frontend owns the request
+/// path, and the body renders that frontend's route tree. During
+/// `generate_route_list` the path context is empty, which classifies as the
+/// website entry; listings are generated per frontend before this runs.
+#[cfg(not(target_arch = "wasm32"))]
 pub fn shell(options: LeptosOptions) -> impl IntoView {
+	let frontend = crate::frontend::Frontend::current();
 	view! {
 		<!DOCTYPE html>
 		<html lang="en">
@@ -70,60 +74,49 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
 				/>
 				<meta name="twitter:card" content="summary_large_image" />
 				<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-				<script type="importmap" inner_html=WASM_BINDGEN_EXTERNREF_IMPORT_MAP></script>
 				<AutoReload options=options.clone() />
-				<HydrationScripts options=options />
+				<crate::frontend::FrontendScripts options=options frontend />
 				<MetaTags />
 			</head>
 			<body>
-				<App />
+				<SurfaceApp />
 			</body>
 		</html>
 	}
 }
 
-/// Root `<App/>` component.
+/// Server-side composition root: the frontend that owns the request path.
+///
+/// Two independently built browser entries share one SSR backend. Cross-entry
+/// navigation is a document navigation (cross-surface links carry
+/// `target="_self"`), so exactly one entry mounts per document.
+#[cfg(not(target_arch = "wasm32"))]
+#[component]
+pub fn SurfaceApp() -> impl IntoView {
+	if crate::frontend::Frontend::current() == crate::frontend::Frontend::PROJECTS {
+		view! { <monochange_projects::app::ProjectsApp /> }.into_any()
+	} else {
+		view! { <App /> }.into_any()
+	}
+}
+
+/// Root `<App/>` component: the website browser entry.
 #[component]
 pub fn App() -> impl IntoView {
 	provide_meta_context();
 
 	view! {
 		<template id="website-direction" inner_html=WEBSITE_DIRECTION />
-		<Stylesheet id="leptos" href="/pkg/monochange_app.css" />
+		<Stylesheet id="leptos" href=monochange_shared::routing::WEBSITE_STYLESHEET />
 		<Title text="monochange — Release planning for monorepos" />
 		<Router>
-			<SurfaceNavigation />
+			<NavBar />
 			<main id="main-content" class="min-h-screen">
 				<Routes fallback=|| {
 					view! { <ErrorTemplate status=404 message="Page not found" /> }
 				}>
 					<Route path=path!("/") view=HomePage />
 					<Route path=path!("/dashboard") view={Lazy::<DashboardRoute>::new()} />
-					<Route
-						path=path!("/dashboard/:organization")
-						view={Lazy::<OrganizationRoute>::new()}
-					/>
-					<Route path=path!("/projects") view={Lazy::<OrganizationRoute>::new()} />
-					<Route
-						path=path!("/projects/:organization")
-						view={Lazy::<OrganizationRoute>::new()}
-					/>
-					<Route
-						path=path!("/dashboard/:organization/projects/:project")
-						view={Lazy::<ProjectRoute>::new()}
-					/>
-					<Route
-						path=path!("/projects/:organization/projects/:project")
-						view={Lazy::<ProjectRoute>::new()}
-					/>
-					<Route
-						path=path!("/dashboard/:organization/projects/:project/feedback")
-						view={Lazy::<FeedbackConsoleRoute>::new()}
-					/>
-					<Route
-						path=path!("/projects/:organization/projects/:project/feedback")
-						view={Lazy::<FeedbackConsoleRoute>::new()}
-					/>
 					<Route path=path!("/install") view={Lazy::<InstallRoute>::new()} />
 					<Route path=path!("/connect") view={Lazy::<SiteSessionRoute>::new()} />
 					<Route path=path!("/account") view={Lazy::<SiteSessionRoute>::new()} />
@@ -133,13 +126,9 @@ pub fn App() -> impl IntoView {
 					<Route path=path!("/book") view={Lazy::<BookRoute>::new()} />
 					<Route path=path!("/book/*chapter") view={Lazy::<BookRoute>::new()} />
 					<Route path=path!("/auth/callback") view={Lazy::<SiteSessionRoute>::new()} />
-					<Route
-						path=path!("/p/:organization/:project")
-						view={Lazy::<PortalRoute>::new()}
-					/>
 				</Routes>
 			</main>
-			<SurfaceFooter />
+			<Footer />
 		</Router>
 	}
 }
@@ -494,26 +483,3 @@ fn Footer() -> impl IntoView {
 #[cfg(test)]
 #[path = "__tests__/app_tests.rs"]
 mod tests;
-
-#[component]
-fn SurfaceNavigation() -> impl IntoView {
-	let location = leptos_router::hooks::use_location();
-	view! {
-		{move || {
-			if location.pathname.get().starts_with("/projects") {
-				view! { <monochange_projects::pages::home::ProjectsNavigation /> }.into_any()
-			} else {
-				view! { <NavBar /> }.into_any()
-			}
-		}}
-	}
-}
-#[component]
-fn SurfaceFooter() -> impl IntoView {
-	let location = leptos_router::hooks::use_location();
-	view! {
-		{move || {
-			(!location.pathname.get().starts_with("/projects")).then(|| view! { <Footer /> })
-		}}
-	}
-}

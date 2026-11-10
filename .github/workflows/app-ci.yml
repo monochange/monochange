@@ -7,12 +7,20 @@ on:
     paths:
       - "app/**"
       - "Dockerfile"
+      - ".dockerignore"
       - ".github/workflows/app-ci.yml"
       - ".github/workflows/app.yml"
       - "monochange.toml"
+      - "leptoskit.workspace.toml"
       - "fixtures/tests/website-releases/**"
       - "fixtures/tests/website-book/**"
+      - "fixtures/tests/app-frontend-scripts/**"
+      - "fixtures/tests/website-split-loader-minify/**"
       - "docs/src/**"
+      - "scripts/leptoskit-cli.sh"
+      - "scripts/leptoskit-plugin/**"
+      - "scripts/lint-leptoskit.sh"
+      - "scripts/minify-split-loader.ts"
       - "scripts/benchmark-website.ts"
       - "scripts/website-size.ts"
       - "scripts/website-budgets.json"
@@ -23,12 +31,20 @@ on:
     paths:
       - "app/**"
       - "Dockerfile"
+      - ".dockerignore"
       - ".github/workflows/app-ci.yml"
       - ".github/workflows/app.yml"
       - "monochange.toml"
+      - "leptoskit.workspace.toml"
       - "fixtures/tests/website-releases/**"
       - "fixtures/tests/website-book/**"
+      - "fixtures/tests/app-frontend-scripts/**"
+      - "fixtures/tests/website-split-loader-minify/**"
       - "docs/src/**"
+      - "scripts/leptoskit-cli.sh"
+      - "scripts/leptoskit-plugin/**"
+      - "scripts/lint-leptoskit.sh"
+      - "scripts/minify-split-loader.ts"
       - "scripts/benchmark-website.ts"
       - "scripts/website-size.ts"
       - "scripts/website-budgets.json"
@@ -71,14 +87,6 @@ jobs:
           toolchain: nightly
           components: clippy, rustfmt
 
-      - name: install cargo-binstall
-        uses: taiki-e/install-action@9983c65e42da123ff25d1f78505eb6de315aa172 # v2.87.20
-        with:
-          tool: cargo-binstall
-
-      - name: install cargo-leptos
-        run: cargo binstall cargo-leptos@0.3.6 --locked --no-confirm
-
       - name: add wasm target
         run: rustup target add wasm32-unknown-unknown
 
@@ -101,8 +109,18 @@ jobs:
           GITHUB_CLIENT_ID: "ci-test-client-id"
           GITHUB_CLIENT_SECRET: "ci-test-client-secret"
 
-      # Preinstall the standalone CLI so cargo-leptos uses PATH instead of its
-      # download cache (which has failed here with spawn ENOENT after install).
+      # Build tools for the leptoskit pipeline: the provenance-verified CLI
+      # resolved from [workspace.metadata.bin], wasm-opt (binaryen), the
+      # Tailwind compiler, and esbuild for the split-loader minifier. The
+      # tooling plugin needs all four; `leptoskit doctor` proves it before a
+      # build starts.
+      - name: install binaryen
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends binaryen jq
+          wasm-opt --version
+
       - name: install tailwindcss
         run: |
           set -euo pipefail
@@ -117,10 +135,55 @@ jobs:
           sudo mv "tailwindcss-linux-${tw_arch}" /usr/local/bin/tailwindcss
           tailwindcss --help >/dev/null
 
-      - name: cargo leptos build
-        # Explicit package manifest matches app/README and keeps site paths on
-        # [package.metadata.leptos] (site-root = target/site).
-        run: cargo leptos --manifest-path crates/monochange_app/Cargo.toml build
+      - name: install esbuild
+        run: |
+          set -euo pipefail
+          arch="$(dpkg --print-architecture)"
+          case "$arch" in
+            amd64) esbuild_arch=linux-x64; esbuild_integrity="sha512-4xTZr1FUmSoQW4XIWmit3tzQrUTZM+N3P0XV8xROKYF50XfI7xeO90+1bZvNwxIufQ9hDQVRJH5YhgPVF8A/HQ==" ;;
+            arm64) esbuild_arch=linux-arm64; esbuild_integrity="sha512-pW4AC0P3it8c7do9MVM4p51FzHzdM/TZrerurgRcHJ2WTa1VQ1CIq18xncfpBJw4ojkiZZrKW2yIBWBP92j6Ug==" ;;
+            *) echo "unsupported architecture: $arch" >&2; exit 1 ;;
+          esac
+          curl -fsSL "https://registry.npmjs.org/@esbuild/${esbuild_arch}/-/${esbuild_arch}-0.28.2.tgz" -o /tmp/esbuild.tgz
+          printf '%s  /tmp/esbuild.tgz\n' \
+            "$(printf '%s' "${esbuild_integrity#sha512-}" | base64 -d | od -An -tx1 | tr -d ' \n')" \
+            | sha512sum -c -
+          tar -xzf /tmp/esbuild.tgz -C /tmp package/bin/esbuild
+          sudo mv /tmp/package/bin/esbuild /usr/local/bin/esbuild
+          rm -rf /tmp/esbuild.tgz /tmp/package
+          esbuild --version
+
+      - name: setup node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+
+      - name: resolve the provenance-verified leptoskit CLI
+        run: |
+          set -euo pipefail
+          leptoskit_bin="$(scripts/leptoskit-cli.sh)"
+          printf 'LEPTOSKIT_BIN=%s\n' "$leptoskit_bin" >> "$GITHUB_ENV"
+          printf 'leptoskit resolved: %s\n' "$("$leptoskit_bin" --version)"
+
+      - name: build both web frontends
+        run: |
+          set -euo pipefail
+          # The tooling plugin resolves on PATH from the repository scripts
+          # directory; the shim locates the TypeScript plugin beside itself.
+          export PATH="$PWD/scripts/leptoskit-plugin:$PATH"
+          leptoskit doctor
+          (cd app && "$LEPTOSKIT_BIN" build --platform web --out target/web)
+          (cd app/projects && "$LEPTOSKIT_BIN" build --platform web --out target/projects-web)
+
+      - name: the assembled site holds both frontends
+        run: |
+          set -euo pipefail
+          test -f app/target/site/pkg/site/monochange_app.js
+          test -f app/target/site/pkg/site/monochange_app.css
+          test -f app/target/site/pkg/site/__wasm_split_manifest.json
+          test -f app/target/site/pkg/projects/monochange_projects.js
+          test -f app/target/site/pkg/projects/monochange_projects.css
+          test -f app/target/site/pkg/projects/__wasm_split_manifest.json
 
   app-coverage:
     timeout-minutes: 60
@@ -247,16 +310,15 @@ jobs:
         with:
           toolchain: nightly
 
-      - name: install cargo-binstall
-        uses: taiki-e/install-action@9983c65e42da123ff25d1f78505eb6de315aa172 # v2.87.20
-        with:
-          tool: cargo-binstall
-
-      - name: install cargo-leptos
-        run: cargo binstall cargo-leptos@0.3.6 --locked --no-confirm
-
       - name: add wasm target
         run: rustup target add wasm32-unknown-unknown
+
+      - name: install binaryen
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends binaryen jq
+          wasm-opt --version
 
       - name: cache cargo build
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
@@ -284,11 +346,14 @@ jobs:
             rustup show active-toolchain
             rustc -vV
             cargo -vV
-            cargo binstall -V
-            cargo leptos --version
-            leptos_path="$(command -v cargo-leptos)"
-            leptos_hash="$(sha256sum "$leptos_path" | cut -d ' ' -f 1)"
-            printf 'cargo-leptos SHA256: %s\n' "$leptos_hash"
+            leptoskit_bin="$(../scripts/leptoskit-cli.sh)"
+            "$leptoskit_bin" --version
+            leptos_path="$(command -v "$leptoskit_bin")"
+            printf 'leptoskit path: %s\n' "$leptos_path"
+            printf 'leptoskit SHA256: %s\n' "$(sha256sum "$leptos_path" | cut -d ' ' -f 1)"
+            tailwindcss --help 2>&1 | head -1
+            esbuild --version
+            wasm-opt --version
             node --print 'JSON.stringify({node: process.versions.node, zlib: process.versions.zlib})'
             pnpm --version
           } | tee /tmp/website-build-provenance.txt
@@ -307,16 +372,21 @@ jobs:
           sudo mv "tailwindcss-linux-${tw_arch}" /usr/local/bin/tailwindcss
           tailwindcss --help >/dev/null
 
+      # Both web frontends build through the provenance-verified leptoskit CLI.
+      # The tooling plugin runs inside each build before release precompression
+      # (esbuild resolves from the workspace devDependency), so the site CSS,
+      # minified split loaders, and pkg/site + pkg/projects namespaces ship as
+      # the exact bytes the size gate measures below.
       - name: build release site
         working-directory: app
-        run: cargo leptos --manifest-path crates/monochange_app/Cargo.toml build --release --split
-
-      # cargo-leptos `js-minify` covers the main glue only; the wasm-split
-      # loader keeps route comments and full identifiers, which fails the
-      # committed per-file size gate below. Minify it before the gate and the
-      # Lighthouse run so both measure the shipped bytes.
-      - name: minify the wasm-split loader
-        run: pnpm node scripts/minify-split-loader.ts --site-root app/target/site
+        run: |
+          set -euo pipefail
+          # esbuild resolves from the workspace devDependency; the tooling
+          # plugin resolves on PATH from the repository scripts directory.
+          export PATH="$GITHUB_WORKSPACE/scripts/leptoskit-plugin:$PATH"
+          leptoskit_bin="$(../scripts/leptoskit-cli.sh)"
+          "$leptoskit_bin" build --release --platform web --out target/web
+          (cd projects && "$leptoskit_bin" build --release --platform web --out target/projects-web)
 
       - name: check website bundle size
         run: |

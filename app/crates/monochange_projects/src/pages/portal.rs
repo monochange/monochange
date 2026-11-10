@@ -188,6 +188,7 @@ impl LazyRoute for PortalRoute {
 			portal_view(organization, project)
 		});
 		let shared = Memo::new(move |_| query.read().get("shared"));
+
 		Self {
 			share,
 			vote,
@@ -271,16 +272,18 @@ fn KindIcon(kind: FeedbackKind) -> impl IntoView {
 			"M9 18h6m-5 3h4M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1 2V16h5.2v-.2c0-.8.4-1.5 1-2A6 6 0 0 0 12 3Z"
 		}
 	};
+
 	view! {
 		<svg class="kind-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d=path /></svg>
 	}
 }
 
 /// Asks a signed-out visitor to continue with GitHub, and comes back to
-/// `anchor` afterwards.
+/// `anchor` afterwards. Sign-in lives on the website entry, so the link is a
+/// document navigation.
 #[component]
 fn SignInButton(href: String, #[prop(into)] label: String, class: &'static str) -> impl IntoView {
-	view! { <a href=href class=format!("button {class}")><GitHubMark />{label}</a> }
+	view! { <a href=href.clone() target=monochange_shared::routing::cross_surface_target("/p", &href) class=format!("button {class}")><GitHubMark />{label}</a> }
 }
 
 #[component]
@@ -314,6 +317,7 @@ fn PortalContent(
 		("In progress", count(&roadmap, PublicStatus::InProgress)),
 		("Shipped", snapshot.feed.shipped.len()),
 	];
+
 	let identity = match snapshot.viewer.clone() {
 		Some(viewer) => {
 			view! {
@@ -347,6 +351,7 @@ fn PortalContent(
 			<section id="share" class="portal-panel portal-share" aria-labelledby="share-title">
 				<h2 id="share-title">"Share a bug or an idea"</h2>
 				{shared.map(|id| view! { <p class="portal-thanks" role="status"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>{format!("Thanks! It's filed as {id}. Follow it under “Yours”.")}</p> })}
+
 				{if signed_in {
 					view! { <ShareForm organization=organization.clone() project=project.clone() share=share /> }.into_any()
 				} else {
@@ -358,6 +363,7 @@ fn PortalContent(
 						</div>
 					}.into_any()
 				}}
+
 			</section>
 			<section id="roadmap" class="portal-panel portal-roadmap" aria-labelledby="roadmap-title">
 				<div class="portal-panel-head">
@@ -460,20 +466,26 @@ fn RoadmapRow(
 		FeedbackKind::BugReport => "Bug",
 		FeedbackKind::FeatureRequest => "Idea",
 	};
+
 	let chevron = view! { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 14 6-6 6 6" /></svg> };
+
 	let vote_control = match &sign_in {
 		Some(href) if votable => {
+			// The sign-in href leaves the projects entry for the website's
+			// /login screen.
 			view! {
-				<a class="portal-vote-button" href=href.clone() aria-label=format!("Sign in with GitHub to vote ({})", entry.votes)>{chevron}<span>{entry.votes}</span></a>
+				<a class="portal-vote-button" href=href.clone() target=monochange_shared::routing::cross_surface_target("/p", href) aria-label=format!("Sign in with GitHub to vote ({})", entry.votes)>{chevron}<span>{entry.votes}</span></a>
 			}
 			.into_any()
 		}
+
 		_ => {
 			let vote_label = if voted {
 				format!("Remove your vote ({})", entry.votes)
 			} else {
 				format!("Vote ({})", entry.votes)
 			};
+
 			let (organization, project, item) =
 				(organization.clone(), project.clone(), entry.id.clone());
 			view! {
@@ -531,7 +543,7 @@ fn Thread(
 		count => format!("{count} comments"),
 	};
 	let composer = discussable.then(|| match sign_in {
-		Some(href) => view! { <a class="text-link portal-thread-sign-in" href=href>"Sign in with GitHub to join the discussion"</a> }.into_any(),
+		Some(href) => view! { <a class="text-link portal-thread-sign-in" href=href.clone() target=monochange_shared::routing::cross_surface_target("/p", &href)>"Sign in with GitHub to join the discussion"</a> }.into_any(),
 		None => {
 			view! {
 				<ActionForm action=reply attr:class="portal-reply">
@@ -545,6 +557,7 @@ fn Thread(
 			.into_any()
 		}
 	});
+
 	view! {
 		<details class="portal-thread">
 			<summary><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4V5Z" /></svg>{summary}</summary>
@@ -573,6 +586,7 @@ fn PortalTracker(stage: Stage) -> impl IntoView {
 					std::cmp::Ordering::Equal => "current",
 					std::cmp::Ordering::Greater => "next",
 				};
+
 				view! { <li data-state=progress aria-current=(index == current).then_some("step")><span>{*step}</span></li> }
 			}).collect::<Vec<_>>()}
 		</ol>

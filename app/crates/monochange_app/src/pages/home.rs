@@ -33,6 +33,12 @@ fn workspace_href_for(
 	)
 }
 
+/// `target="_self"` when the workspace link lands in the projects entry, so
+/// the click loads that browser entry as a document navigation.
+fn workspace_target(workspace_href: &Memo<String>) -> Option<&'static str> {
+	monochange_shared::routing::cross_surface_target("/", &workspace_href.get_untracked())
+}
+
 /// Explain the release workspace before asking visitors to install it.
 #[component]
 pub fn HomePage() -> impl IntoView {
@@ -91,7 +97,7 @@ fn HomeHero(workspace_href: Memo<String>) -> impl IntoView {
 						"A workspace for projects, releases, feedback, and the org that owns them."
 					</p>
 					<div class="mt-8 flex flex-wrap items-center gap-4 max-[760px]:mt-5 max-[760px]:gap-2.5">
-						<a href=move || workspace_href.get() class=format!("{BTN} {BTN_LIGHT}")>
+						<a href=move || workspace_href.get() target=move || workspace_target(&workspace_href) class=format!("{BTN} {BTN_LIGHT}")>
 							"Open workspace"
 							<ArrowIcon />
 						</a>
@@ -120,7 +126,7 @@ fn ProductFloor(workspace_href: Memo<String>) -> impl IntoView {
 				</p>
 			</div>
 			<nav class="grid border-t border-rule" aria-label="Product surfaces">
-				<a href=move || workspace_href.get() class=FLOOR_ROW>
+				<a href=move || workspace_href.get() target=move || workspace_target(&workspace_href) class=FLOOR_ROW>
 					<span class="font-mono text-[0.78rem] font-bold tracking-wider text-brand-600 dark:text-brand-400" aria-hidden="true">"01"</span>
 					<strong class="text-[1.35rem] font-bold">"Projects"</strong>
 					<span class="max-w-[48ch] text-[1.05rem] text-mute max-[760px]:text-[0.95rem]">"Group repos under one release identity."</span>
@@ -132,13 +138,13 @@ fn ProductFloor(workspace_href: Memo<String>) -> impl IntoView {
 					<span class="max-w-[48ch] text-[1.05rem] text-mute max-[760px]:text-[0.95rem]">"Preview versions and notes before you publish."</span>
 					<span class="font-bold text-brand-600 transition-transform group-hover:translate-x-1 dark:text-brand-400" aria-hidden="true">"→"</span>
 				</a>
-				<a href=move || workspace_href.get() class=FLOOR_ROW>
+				<a href=move || workspace_href.get() target=move || workspace_target(&workspace_href) class=FLOOR_ROW>
 					<span class="font-mono text-[0.78rem] font-bold tracking-wider text-brand-600 dark:text-brand-400" aria-hidden="true">"03"</span>
 					<strong class="text-[1.35rem] font-bold">"Feedback"</strong>
 					<span class="max-w-[48ch] text-[1.05rem] text-mute max-[760px]:text-[0.95rem]">"Contributor portal and maintainer console in one place."</span>
 					<span class="font-bold text-brand-600 transition-transform group-hover:translate-x-1 dark:text-brand-400" aria-hidden="true">"→"</span>
 				</a>
-				<a href=move || workspace_href.get() class=FLOOR_ROW>
+				<a href=move || workspace_href.get() target=move || workspace_target(&workspace_href) class=FLOOR_ROW>
 					<span class="font-mono text-[0.78rem] font-bold tracking-wider text-brand-600 dark:text-brand-400" aria-hidden="true">"04"</span>
 					<strong class="text-[1.35rem] font-bold">"Org / dashboard"</strong>
 					<span class="max-w-[48ch] text-[1.05rem] text-mute max-[760px]:text-[0.95rem]">"Connected orgs, installs, and permissions."</span>

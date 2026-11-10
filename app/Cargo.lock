@@ -2896,9 +2896,9 @@ dependencies = [
 
 [[package]]
 name = "itoa"
-version = "1.0.18"
+version = "1.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
+checksum = "3bd1574e617a9a6c1f8f8181bd7e841e1f20e4277607ef28945765188d6284d4"
 
 [[package]]
 name = "jiff"
@@ -4200,9 +4200,12 @@ name = "monochange_projects"
 version = "0.4.0"
 dependencies = [
  "ammonia",
+ "any_spawner",
  "axum",
  "axum-extra",
  "chrono",
+ "console_error_panic_hook",
+ "console_log",
  "hmac 0.12.1",
  "httpmock",
  "insta",
@@ -4213,6 +4216,7 @@ dependencies = [
  "leptos_router",
  "leptoskit",
  "leptoskit_rpc",
+ "log",
  "monochange_app_api",
  "monochange_app_db",
  "monochange_app_feedback",
@@ -4230,9 +4234,12 @@ dependencies = [
  "thiserror",
  "time",
  "tokio",
+ "tower",
  "tracing",
  "url",
  "urlencoding",
+ "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]
@@ -4266,6 +4273,7 @@ name = "monochange_shared"
 version = "0.4.0"
 dependencies = [
  "base64 0.22.1",
+ "rstest",
  "schemars",
  "serde",
  "serde_json",
