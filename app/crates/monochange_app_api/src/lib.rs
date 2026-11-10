@@ -22,6 +22,7 @@ pub mod tasks_api;
 
 pub mod token_vault;
 pub mod webhooks;
+pub mod workflow_api;
 
 use std::sync::Arc;
 
@@ -100,6 +101,10 @@ pub fn api_router(state: AppState) -> Router<()> {
 		.route(
 			"/api/release-requests",
 			post(release_api::publish_release_request),
+		)
+		.route(
+			"/api/workflow-dispatches",
+			post(workflow_api::dispatch_workflow),
 		)
 		.route(
 			"/api/projects/{organization}/{project}/tasks",

@@ -433,3 +433,20 @@ jobs:
         run: gh release edit "$RELEASE_TAG" --draft=false --latest --repo "${{ github.repository }}"
         env:
           GH_TOKEN: ${{ github.token }}
+
+      # The actions repository is a separate release stream. Once the CLI
+      # release is public, ask it to refresh its release PR so any pending
+      # action changesets are ready for the maintainer to release alongside
+      # this CLI release. The call authenticates with the job's OIDC token and
+      # the monochange GitHub App installation, so no personal access token is
+      # stored in this repository. This handoff never merges the actions PR:
+      # the merge stays a maintainer decision.
+      - name: dispatch monochange actions release
+        env:
+          RELEASE_TAG: ${{ steps.release_tag.outputs.tag }}
+        run: |
+          set -euo pipefail
+          "${RUNNER_TEMP}/bin/monochange" gh workflow run release.yml \
+            --repo monochange/actions \
+            --ref main \
+            --format json
