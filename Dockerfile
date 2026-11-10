@@ -115,7 +115,7 @@ WORKDIR /app/app
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/app/app/target \
     cargo leptos build --release --split \
-    && node /app/scripts/minify-split-loader.ts --site-root target/site \
+    && node /app/scripts/minify-split-loader.ts --site-root app/target/site \
     && strip target/release/monochange_app \
     && cp -a target/site /site \
     && cp target/release/monochange_app /monochange_app \

@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmodSync, cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+	chmodSync,
+	cpSync,
+	mkdirSync,
+	mkdtempSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -103,6 +111,32 @@ describe("minify-split-loader", () => {
 		const minified = readLoader(siteRoot);
 		assert.ok(minified.includes(bookExport));
 		assert.ok(minified.includes(pricingExport));
+	});
+
+	test("minifies the app site from the Docker working directory", () => {
+		const root = mkdtempSync(join(tmpdir(), "docker-split-loader-"));
+		roots.push(root);
+		mkdirSync(join(root, "scripts"));
+		const copiedScript = join(root, "scripts/minify-split-loader.ts");
+		cpSync(scriptPath, copiedScript);
+		const siteRoot = join(root, "app/target/site");
+		cpSync(join(fixtureRoot, "loader-site"), siteRoot, { recursive: true });
+		const dockerfile = readFileSync(join(repoRoot, "Dockerfile"), "utf8");
+		const invocation = /node \/app\/scripts\/minify-split-loader\.ts --site-root (\S+)/u.exec(
+			dockerfile,
+		);
+		assert.ok(invocation, "Docker must minify its release site before packaging");
+		const result = spawnSync(process.execPath, [copiedScript, "--site-root", invocation[1]], {
+			cwd: join(root, "app"),
+			encoding: "utf8",
+			env: {
+				...process.env,
+				MONOCHANGE_ESBUILD_BIN: join(repoRoot, "node_modules/.bin/esbuild"),
+			},
+		});
+		assert.equal(result.status, 0, result.stderr || result.stdout);
+		assert.ok(readLoader(siteRoot).includes(bookExport));
+		assert.ok(!readLoader(siteRoot).includes("makeLoad"));
 	});
 
 	test("refuses output that drops an exported split initializer", () => {
