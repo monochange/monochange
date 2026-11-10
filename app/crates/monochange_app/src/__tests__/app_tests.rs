@@ -869,7 +869,7 @@ async fn callback_delivers_session_cookie_before_showing_success_and_dashboard_u
 }
 
 #[tokio::test]
-async fn signed_in_dashboard_navigation_offers_dashboard_and_sign_out() {
+async fn signed_in_site_navigation_opens_projects_and_offers_sign_out() {
 	let server = MockServer::start_async().await;
 	let state = state(&server).await;
 	sqlx::query("INSERT INTO users (id, github_id, github_login, github_access_token) VALUES (1, 101, 'alice', 'test-only-token')").execute(&state.db).await.unwrap();
@@ -891,7 +891,8 @@ async fn signed_in_dashboard_navigation_offers_dashboard_and_sign_out() {
 		"authenticated navigation must offer sign out"
 	);
 
-	assert!(body.contains("Dashboard"));
+	assert!(body.contains("href=\"/projects\""));
+	assert!(body.contains(">Projects</a>"));
 	assert!(!body.contains(">Sign in<"));
 }
 
