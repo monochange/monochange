@@ -58,7 +58,10 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
 				<link rel="icon" sizes="any" href="/favicon.ico" />
 				<link rel="manifest" href="/site.webmanifest" />
 				<meta property="og:image" content="https://monochange.dev/branding/social.png" />
-				<meta property="og:image:alt" content="monochange — release planning for monorepos" />
+				<meta
+					property="og:image:alt"
+					content="monochange — release planning for monorepos"
+				/>
 				<meta name="twitter:card" content="summary_large_image" />
 				<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
 				<AutoReload options=options.clone() />
@@ -78,39 +81,60 @@ pub fn App() -> impl IntoView {
 	provide_meta_context();
 
 	view! {
-			<template id="website-direction" inner_html=WEBSITE_DIRECTION />
-			<Stylesheet id="leptos" href="/pkg/monochange_app.css" />
-			<Title text="monochange — Release planning for monorepos" />
-			<Router>
-				<SurfaceNavigation />
-				<main id="main-content" class="min-h-screen">
-					<Routes fallback=|| {
-						view! { <ErrorTemplate status=404 message="Page not found" /> }
-					}>
-						<Route path=path!("/") view=HomePage />
-						<Route path=path!("/dashboard") view={Lazy::<DashboardRoute>::new()} />
-						<Route path=path!("/dashboard/:organization") view={Lazy::<OrganizationRoute>::new()} />
-	<Route path=path!("/projects") view={Lazy::<OrganizationRoute>::new()} />
-	<Route path=path!("/projects/:organization") view={Lazy::<OrganizationRoute>::new()} />
-						<Route path=path!("/dashboard/:organization/projects/:project") view={Lazy::<ProjectRoute>::new()} />
-	<Route path=path!("/projects/:organization/projects/:project") view={Lazy::<ProjectRoute>::new()} />
-						<Route path=path!("/dashboard/:organization/projects/:project/feedback") view={Lazy::<FeedbackConsoleRoute>::new()} />
-	<Route path=path!("/projects/:organization/projects/:project/feedback") view={Lazy::<FeedbackConsoleRoute>::new()} />
-						<Route path=path!("/install") view={Lazy::<InstallRoute>::new()} />
-						<Route path=path!("/connect") view={Lazy::<SiteSessionRoute>::new()} />
-	<Route path=path!("/account") view={Lazy::<SiteSessionRoute>::new()} />
-	<Route path=path!("/login") view={Lazy::<SiteSessionRoute>::new()} />
-						<Route path=path!("/pricing") view={Lazy::<PricingRoute>::new()} />
-						<Route path=path!("/changelog") view={Lazy::<ChangelogRoute>::new()} />
-						<Route path=path!("/book") view={Lazy::<BookRoute>::new()} />
-						<Route path=path!("/book/*chapter") view={Lazy::<BookRoute>::new()} />
-						<Route path=path!("/auth/callback") view={Lazy::<SiteSessionRoute>::new()} />
-						<Route path=path!("/p/:organization/:project") view={Lazy::<PortalRoute>::new()} />
-					</Routes>
-				</main>
-				<SurfaceFooter />
-			</Router>
-		}
+		<template id="website-direction" inner_html=WEBSITE_DIRECTION />
+		<Stylesheet id="leptos" href="/pkg/monochange_app.css" />
+		<Title text="monochange — Release planning for monorepos" />
+		<Router>
+			<SurfaceNavigation />
+			<main id="main-content" class="min-h-screen">
+				<Routes fallback=|| {
+					view! { <ErrorTemplate status=404 message="Page not found" /> }
+				}>
+					<Route path=path!("/") view=HomePage />
+					<Route path=path!("/dashboard") view={Lazy::<DashboardRoute>::new()} />
+					<Route
+						path=path!("/dashboard/:organization")
+						view={Lazy::<OrganizationRoute>::new()}
+					/>
+					<Route path=path!("/projects") view={Lazy::<OrganizationRoute>::new()} />
+					<Route
+						path=path!("/projects/:organization")
+						view={Lazy::<OrganizationRoute>::new()}
+					/>
+					<Route
+						path=path!("/dashboard/:organization/projects/:project")
+						view={Lazy::<ProjectRoute>::new()}
+					/>
+					<Route
+						path=path!("/projects/:organization/projects/:project")
+						view={Lazy::<ProjectRoute>::new()}
+					/>
+					<Route
+						path=path!("/dashboard/:organization/projects/:project/feedback")
+						view={Lazy::<FeedbackConsoleRoute>::new()}
+					/>
+					<Route
+						path=path!("/projects/:organization/projects/:project/feedback")
+						view={Lazy::<FeedbackConsoleRoute>::new()}
+					/>
+					<Route path=path!("/install") view={Lazy::<InstallRoute>::new()} />
+					<Route path=path!("/connect") view={Lazy::<SiteSessionRoute>::new()} />
+					<Route path=path!("/account") view={Lazy::<SiteSessionRoute>::new()} />
+					<Route path=path!("/login") view={Lazy::<SiteSessionRoute>::new()} />
+					<Route path=path!("/pricing") view={Lazy::<PricingRoute>::new()} />
+					<Route path=path!("/changelog") view={Lazy::<ChangelogRoute>::new()} />
+					<Route path=path!("/book") view={Lazy::<BookRoute>::new()} />
+					<Route path=path!("/book/*chapter") view={Lazy::<BookRoute>::new()} />
+					<Route path=path!("/auth/callback") view={Lazy::<SiteSessionRoute>::new()} />
+					<Route
+						path=path!("/p/:organization/:project")
+						view={Lazy::<PortalRoute>::new()}
+					/>
+				</Routes>
+			</main>
+			<SurfaceFooter />
+		</Router>
+	}
 }
 
 // ── Login Page ──
@@ -134,9 +158,26 @@ fn LoginPage() -> impl IntoView {
 		.get("next")
 		.is_some_and(|next| next.starts_with("/p/"));
 	let copy = if for_portal {
-		view! { <div class="login-copy"><h1>"Your voice," <br /> "counted once."</h1><p>"Sign in to share feedback, vote, and follow it until it ships. Your GitHub name isn't shown on the project's page."</p></div> }.into_any()
+		view! {
+			<div class="login-copy">
+				<h1>"Your voice," <br /> "counted once."</h1>
+				<p>
+					"Sign in to share feedback, vote, and follow it until it ships. Your GitHub name isn't shown on the project's page."
+				</p>
+			</div>
+		}
+		.into_any()
 	} else {
-		view! { <div class="login-copy"><h1>"Your workspace," <br /> "all together."</h1><p>"Sign in to see your connected repositories and manage your monochange workspace."</p><a href=BOOK_URL class="text-link">"Just looking for the CLI? Read the book."</a></div> }.into_any()
+		view! {
+			<div class="login-copy">
+				<h1>"Your workspace," <br /> "all together."</h1>
+				<p>
+					"Sign in to see your connected repositories and manage your monochange workspace."
+				</p>
+				<a href=BOOK_URL class="text-link">"Just looking for the CLI? Read the book."</a>
+			</div>
+		}
+		.into_any()
 	};
 
 	view! {
@@ -148,12 +189,8 @@ fn LoginPage() -> impl IntoView {
 					<img src="/branding/mark.svg" alt="monochange" class="size-12" />
 				</div>
 
-				<h2>
-					Sign in to monochange
-				</h2>
-				<p class="login-description">
-					Use your GitHub account to continue.
-				</p>
+				<h2>Sign in to monochange</h2>
+				<p class="login-description">Use your GitHub account to continue.</p>
 
 				<div class="mt-10">
 					<Suspense fallback=|| {
@@ -161,32 +198,48 @@ fn LoginPage() -> impl IntoView {
 							<div class="mx-auto h-12 w-64 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" />
 						}
 					}>
-						{move || login_url.get().map(|url| {
-							if url.is_empty() {
-								view! {
-									<div class="rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950">
-										<p class="text-sm text-red-600 dark:text-red-400">
-											GitHub sign-in is unavailable right now. Please try again later.
-										</p>
-									</div>
-								}.into_any()
-							} else {
-								view! {
-									<a
-										href=url
-										class="button button-brand"
-									>
-										<svg class="size-5" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
-											<path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
-										</svg>
-										Continue with GitHub
-										<svg class="size-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-											<path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-										</svg>
-									</a>
-								}.into_any()
-							}
-						})}
+						{move || {
+							login_url.get().map(|url| {
+								if url.is_empty() {
+									view! {
+										<div class="rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950">
+											<p class="text-sm text-red-600 dark:text-red-400">
+												GitHub sign-in is unavailable right now. Please try again later.
+											</p>
+										</div>
+									}
+									.into_any()
+								} else {
+									view! {
+										<a href=url class="button button-brand">
+											<svg
+												class="size-5"
+												fill="currentColor"
+												viewBox="0 0 16 16"
+												aria-hidden="true"
+											>
+												<path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+											</svg>
+											Continue with GitHub
+											<svg
+												class="size-4 transition-transform group-hover:translate-x-0.5"
+												fill="none"
+												viewBox="0 0 24 24"
+												stroke-width="2"
+												stroke="currentColor"
+											>
+												<path
+													stroke-linecap="round"
+													stroke-linejoin="round"
+													d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
+												/>
+											</svg>
+										</a>
+									}
+									.into_any()
+								}
+							})
+						}}
 					</Suspense>
 				</div>
 
@@ -247,58 +300,115 @@ impl LazyRoute for SiteSessionRoute {
 	fn view(this: Self) -> AnyView {
 		match this {
 			SiteSessionRoute::Login => view! { <LoginPage /> }.into_any(),
-			SiteSessionRoute::Connect => view! { <crate::pages::connect::ConnectPage /> }.into_any(),
-			SiteSessionRoute::Account => view! { <crate::pages::account::AccountPage /> }.into_any(),
+			SiteSessionRoute::Connect => {
+				view! { <crate::pages::connect::ConnectPage /> }.into_any()
+			}
+			SiteSessionRoute::Account => {
+				view! { <crate::pages::account::AccountPage /> }.into_any()
+			}
 			SiteSessionRoute::Callback { result } => {
-		view! {
-			<div class="flex min-h-[80vh] items-center justify-center">
-				<Suspense fallback=|| {
-					view! {
-						<div class="text-center">
-							<div class="mx-auto size-12 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600" />
-							<p class="mt-4 text-sm text-gray-500">Completing sign in...</p>
-						</div>
-					}
-				}>
-					{move || result.get().map(|r| match r {
-						Ok(user) => view! {
-							<div class="text-center">
-								<div class="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900">
-									<svg class="size-8 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-										<path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-									</svg>
+				view! {
+					<div class="flex min-h-[80vh] items-center justify-center">
+						<Suspense fallback=|| {
+							view! {
+								<div class="text-center">
+									<div class="mx-auto size-12 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600" />
+									<p class="mt-4 text-sm text-gray-500">Completing sign in...</p>
 								</div>
-								<h2 class="text-2xl font-bold text-gray-900 dark:text-white">Signed in!</h2>
-								<p class="mt-2 text-gray-600 dark:text-gray-400">Welcome, {user.github_login}!</p>
-								<a href="/dashboard" class="mt-8 inline-flex items-center gap-x-2 rounded-xl bg-brand-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 transition-colors">
-									Go to dashboard
-									<svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-										<path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-									</svg>
-								</a>
-							</div>
-						}.into_any(),
-						Err(e) => view! {
-							<div class="text-center">
-								<div class="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900">
-									<svg class="size-8 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-										<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-									</svg>
-								</div>
-								<h2 class="text-2xl font-bold text-red-600 dark:text-red-400">Sign in failed</h2>
-								<p class="mt-2 text-gray-600 dark:text-gray-400">{e}</p>
-								<a href="/login" class="mt-8 inline-block rounded-xl bg-brand-600 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-700 transition-colors">
-									Try again
-								</a>
-							</div>
-						}.into_any(),
-					})}
-
-				</Suspense>
-			</div>
-		}
-		.into_any()
-		}
+							}
+						}>
+							{move || {
+								result.get().map(|r| {
+									match r {
+										Ok(user) => {
+											view! {
+												<div class="text-center">
+													<div class="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900">
+														<svg
+															class="size-8 text-green-600 dark:text-green-400"
+															fill="none"
+															viewBox="0 0 24 24"
+															stroke-width="2"
+															stroke="currentColor"
+														>
+															<path
+																stroke-linecap="round"
+																stroke-linejoin="round"
+																d="M4.5 12.75l6 6 9-13.5"
+															/>
+														</svg>
+													</div>
+													<h2 class="text-2xl font-bold text-gray-900 dark:text-white">
+														Signed in!
+													</h2>
+													<p class="mt-2 text-gray-600 dark:text-gray-400">
+														Welcome, {user.github_login}!
+													</p>
+													<a
+														href="/dashboard"
+														class="mt-8 inline-flex items-center gap-x-2 rounded-xl bg-brand-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 transition-colors"
+													>
+														Go to dashboard
+														<svg
+															class="size-4"
+															fill="none"
+															viewBox="0 0 24 24"
+															stroke-width="2"
+															stroke="currentColor"
+														>
+															<path
+																stroke-linecap="round"
+																stroke-linejoin="round"
+																d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
+															/>
+														</svg>
+													</a>
+												</div>
+											}
+											.into_any()
+										}
+										Err(e) => {
+											view! {
+												<div class="text-center">
+													<div class="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900">
+														<svg
+															class="size-8 text-red-600 dark:text-red-400"
+															fill="none"
+															viewBox="0 0 24 24"
+															stroke-width="2"
+															stroke="currentColor"
+														>
+															<path
+																stroke-linecap="round"
+																stroke-linejoin="round"
+																d="M6 18L18 6M6 6l12 12"
+															/>
+														</svg>
+													</div>
+													<h2 class="text-2xl font-bold text-red-600 dark:text-red-400">
+														Sign in failed
+													</h2>
+													<p class="mt-2 text-gray-600 dark:text-gray-400">
+														{e}
+													</p>
+													<a
+														href="/login"
+														class="mt-8 inline-block rounded-xl bg-brand-600 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
+													>
+														Try again
+													</a>
+												</div>
+											}
+											.into_any()
+										}
+									}
+								})
+							}}
+						</Suspense>
+					</div>
+				}
+				.into_any()
+			}
 		}
 	}
 }
@@ -310,27 +420,64 @@ fn Footer() -> impl IntoView {
 		<footer class="border-t border-rule py-12">
 			<div class="mx-auto grid w-[min(80rem,calc(100%-6rem))] grid-cols-[1fr_auto_1fr] items-start gap-12 max-[1050px]:w-[calc(100%-4rem)] max-[760px]:w-[calc(100%-2.5rem)] max-[760px]:grid-cols-1 max-[760px]:gap-8">
 				<div>
-					<a href="/" class="inline-flex items-center gap-3 text-2xl font-bold tracking-[-0.035em] no-underline" aria-label="monochange home">
-						<img src="/branding/mark.svg" width="36" height="36" alt="" class="shrink-0" />
-						<img src="/branding/wordmark.svg" width="154" height="29" alt="" class="h-auto w-[154px] dark:hidden" />
-						<img src="/branding/wordmark-dark.svg" width="154" height="29" alt="" class="hidden h-auto w-[154px] dark:block" />
+					<a
+						href="/"
+						class="inline-flex items-center gap-3 text-2xl font-bold tracking-[-0.035em] no-underline"
+						aria-label="monochange home"
+					>
+						<img
+							src="/branding/mark.svg"
+							width="36"
+							height="36"
+							alt=""
+							class="shrink-0"
+						/>
+						<img
+							src="/branding/wordmark.svg"
+							width="154"
+							height="29"
+							alt=""
+							class="h-auto w-[154px] dark:hidden"
+						/>
+						<img
+							src="/branding/wordmark-dark.svg"
+							width="154"
+							height="29"
+							alt=""
+							class="hidden h-auto w-[154px] dark:block"
+						/>
 					</a>
-					<p class="mt-2.5 text-[0.95rem] text-mute">"Ship every package from one floor."</p>
+					<p class="mt-2.5 text-[0.95rem] text-mute">
+						"Ship every package from one floor."
+					</p>
 				</div>
 				<nav class="grid grid-cols-2 gap-x-8 gap-y-2.5" aria-label="Footer navigation">
-					<a href="/install" class="hover:text-brand-600 dark:hover:text-brand-400">"Install"</a>
-					<a href=BOOK_URL class="hover:text-brand-600 dark:hover:text-brand-400">"Read the book"</a>
-					<a href="/changelog" class="hover:text-brand-600 dark:hover:text-brand-400">"Changelog"</a>
-					<a href="/pricing" class="hover:text-brand-600 dark:hover:text-brand-400">"It's free"</a>
-					<a href=SOURCE_URL class="inline-flex items-center gap-2.5 hover:text-brand-600 dark:hover:text-brand-400"><BrandIcon name="github" />"GitHub"</a>
+					<a href="/install" class="hover:text-brand-600 dark:hover:text-brand-400">
+						"Install"
+					</a>
+					<a href=BOOK_URL class="hover:text-brand-600 dark:hover:text-brand-400">
+						"Read the book"
+					</a>
+					<a href="/changelog" class="hover:text-brand-600 dark:hover:text-brand-400">
+						"Changelog"
+					</a>
+					<a href="/pricing" class="hover:text-brand-600 dark:hover:text-brand-400">
+						"It's free"
+					</a>
+					<a
+						href=SOURCE_URL
+						class="inline-flex items-center gap-2.5 hover:text-brand-600 dark:hover:text-brand-400"
+					>
+						<BrandIcon name="github" />
+						"GitHub"
+					</a>
 				</nav>
 				<p class="text-right text-mute max-[760px]:text-left">
-					"Free and open source."
-					<br />
-					"Made by "
-					<a href="https://github.com/ifiokjr" class="underline">"Ifiok Jr."</a>
-					<br />
-					<a href="/changelog" class="underline">{format!("Website v{}", env!("CARGO_PKG_VERSION"))}</a>
+					"Free and open source." <br /> "Made by "
+					<a href="https://github.com/ifiokjr" class="underline">"Ifiok Jr."</a> <br />
+					<a href="/changelog" class="underline">
+						{format!("Website v{}", env!("CARGO_PKG_VERSION"))}
+					</a>
 				</p>
 			</div>
 		</footer>
@@ -344,10 +491,22 @@ mod tests;
 #[component]
 fn SurfaceNavigation() -> impl IntoView {
 	let location = leptos_router::hooks::use_location();
-	view! { {move || if location.pathname.get().starts_with("/projects") { view! { <monochange_projects::pages::home::ProjectsNavigation /> }.into_any() } else { view! { <NavBar /> }.into_any() } } }
+	view! {
+		{move || {
+			if location.pathname.get().starts_with("/projects") {
+				view! { <monochange_projects::pages::home::ProjectsNavigation /> }.into_any()
+			} else {
+				view! { <NavBar /> }.into_any()
+			}
+		}}
+	}
 }
 #[component]
 fn SurfaceFooter() -> impl IntoView {
 	let location = leptos_router::hooks::use_location();
-	view! { {move || (!location.pathname.get().starts_with("/projects")).then(|| view! { <Footer /> }) } }
+	view! {
+		{move || {
+			(!location.pathname.get().starts_with("/projects")).then(|| view! { <Footer /> })
+		}}
+	}
 }
