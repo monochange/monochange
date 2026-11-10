@@ -27,6 +27,7 @@ address = "0.0.0.0"
 port = 3000
 
 [build]
+backend = true
 # Browser crate: product screens, routes, hydrate entry (cdylib + lib).
 client_package = "monochange_projects"
 # The client declares the upstream portable `web`/`native` feature pair, so

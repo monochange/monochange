@@ -17,6 +17,7 @@ address = "127.0.0.1"
 port = 3010
 
 [build]
+backend = false
 client_package = "monochange_native_app"
 features = []
 rustflags = []

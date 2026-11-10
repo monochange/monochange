@@ -24,6 +24,7 @@ address = "0.0.0.0"
 port = 3000
 
 [build]
+backend = true
 # UI crate: screens, routes, hydrate entry (cdylib + lib).
 client_package = "monochange_app"
 features = []
