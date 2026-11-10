@@ -67,28 +67,41 @@ pub fn AccountPage() -> impl IntoView {
 					})
 				}}
 			</Suspense>
-			{move || {
-				revoke.value().get().and_then(Result::err).map(
-					|_| view! { <p role="alert">"The device couldn't be revoked. Try again."</p> },
-				)
-			}}
-			{move || {
-				everywhere.value().get().map(|result| {
-					match result {
-						Ok(()) => {
-							view! { <leptos_router::components::Redirect path="/login" /> }
-								.into_any()
-						}
-						Err(_) => {
-							view! { <p role="alert">"Sign out failed. Please try again."</p> }
-								.into_any()
-						}
-					}
-				})
-			}}
+			<SessionActionFeedback revoke everywhere />
 			<leptos::form::ActionForm action=everywhere>
 				<button type="submit" class="button button-brand">"Sign out everywhere"</button>
 			</leptos::form::ActionForm>
 		</section>
 	}
 }
+
+#[component]
+fn SessionActionFeedback(
+	revoke: ServerAction<crate::server_fns::session::RevokeClientSession>,
+	everywhere: ServerAction<crate::server_fns::session::SignOutEverywhere>,
+) -> impl IntoView {
+	view! {
+		{move || {
+			revoke.value().get().and_then(Result::err).map(|_| {
+				view! { <p role="alert">"The device couldn't be revoked. Try again."</p> }
+			})
+		}}
+		{move || {
+			everywhere.value().get().map(|result| {
+				match result {
+					Ok(()) => {
+						view! { <leptos_router::components::Redirect path="/login" /> }.into_any()
+					}
+					Err(_) => {
+						view! { <p role="alert">"Sign out failed. Please try again."</p> }
+							.into_any()
+					}
+				}
+			})
+		}}
+	}
+}
+
+#[cfg(test)]
+#[path = "__tests__/account_tests.rs"]
+mod tests;

@@ -1150,6 +1150,16 @@ async fn browser_flow_fixture_server() {
 	axum::serve(listener, app).await.unwrap();
 }
 
+#[tokio::test]
+async fn login_explains_when_github_authorization_is_unavailable() {
+	let server = MockServer::start_async().await;
+	let mut state = state(&server).await;
+	Arc::get_mut(&mut state).unwrap().github_oauth_origin = "invalid-origin".to_owned();
+	let body = page_html(&router(state), "/login", "").await;
+	assert!(body.contains("GitHub sign-in is unavailable right now. Please try again later."));
+	assert!(!body.contains("Continue with GitHub"));
+}
+
 async fn page_html(app: &Router, uri: &str, cookie: &str) -> String {
 	let response = app
 		.clone()
