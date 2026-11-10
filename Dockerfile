@@ -16,6 +16,7 @@ RUN apt-get update \
         libssl-dev \
         curl \
         ca-certificates \
+        xz-utils \
     && rm -rf /var/lib/apt/lists/*
 
 RUN rustup toolchain install ${NIGHTLY_TOOLCHAIN} \
@@ -49,6 +50,41 @@ RUN arch="$(dpkg --print-architecture)" \
     && mv "tailwindcss-linux-${tw_arch}" /usr/local/bin/tailwindcss \
     && tailwindcss --help
 
+# Pinned Node.js LTS (same major as CI's actions/setup-node) so the release
+# minification script runs here exactly as it does in CI. The script itself is
+# dependency-free TypeScript (Node type stripping, no node_modules); verify the
+# official SHASUMS256.txt before extracting.
+RUN arch="$(dpkg --print-architecture)" \
+    && case "$arch" in \
+        amd64) node_arch=x64; node_sha=48cc0e21e048790e54c0cf5749c2725005313d652651c40b7a21feb9697aaf75 ;; \
+        arm64) node_arch=arm64; node_sha=eb187837a2230d4047161ac0be008584e16b46f726e9c9490ee35dc6b17d9ba8 ;; \
+        *) echo "unsupported architecture: $arch" >&2; exit 1 ;; \
+    esac \
+    && curl -fsSL "https://nodejs.org/dist/v24.22.2/node-v24.22.2-linux-${node_arch}.tar.xz" -o /tmp/node.tar.xz \
+    && curl -fsSL "https://nodejs.org/dist/v24.22.2/SHASUMS256.txt" -o /tmp/node-shasums.txt \
+    && grep " node-v24.22.2-linux-${node_arch}.tar.xz\$" /tmp/node-shasums.txt | sha256sum -c - \
+    && tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1 --no-same-owner \
+    && rm -f /tmp/node.tar.xz /tmp/node-shasums.txt \
+    && node --version
+
+# Pinned esbuild binary from the npm registry package so the wasm-split loader
+# is minified by the same minifier version CI resolves from the workspace
+# devDependency. Verify the registry integrity digest before extracting.
+RUN arch="$(dpkg --print-architecture)" \
+    && case "$arch" in \
+        amd64) esbuild_arch=linux-x64; esbuild_integrity="sha512-4xTZr1FUmSoQW4XIWmit3tzQrUTZM+N3P0XV8xROKYF50XfI7xeO90+1bZvNwxIufQ9hDQVRJH5YhgPVF8A/HQ==" ;; \
+        arm64) esbuild_arch=linux-arm64; esbuild_integrity="sha512-pW4AC0P3it8c7do9MVM4p51FzHzdM/TZrerurgRcHJ2WTa1VQ1CIq18xncfpBJw4ojkiZZrKW2yIBWBP92j6Ug==" ;; \
+        *) echo "unsupported architecture: $arch" >&2; exit 1 ;; \
+    esac \
+    && curl -fsSL "https://registry.npmjs.org/@esbuild/${esbuild_arch}/-/${esbuild_arch}-0.28.2.tgz" -o /tmp/esbuild.tgz \
+    && printf '%s  /tmp/esbuild.tgz\n' \
+        "$(printf '%s' "${esbuild_integrity#sha512-}" | base64 -d | od -An -tx1 | tr -d ' \n')" \
+        | sha512sum -c - \
+    && tar -xzf /tmp/esbuild.tgz -C /tmp package/bin/esbuild \
+    && mv /tmp/package/bin/esbuild /usr/local/bin/esbuild \
+    && rm -rf /tmp/esbuild.tgz /tmp/package \
+    && esbuild --version
+
 WORKDIR /app
 
 # Copy workspace files. `docs/Cargo.toml` is required for `cargo metadata` to
@@ -57,6 +93,7 @@ WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
 COPY crates/ crates/
 COPY app/ app/
+COPY scripts/minify-split-loader.ts scripts/minify-split-loader.ts
 COPY docs/Cargo.toml docs/Cargo.toml
 COPY docs/src/ docs/src/
 
@@ -72,9 +109,14 @@ COPY docs/src/ docs/src/
 # `.br` siblings to clients that accept them, so the 1-vCPU droplet never
 # compresses the WASM chunks at request time.
 WORKDIR /app/app
+# cargo-leptos `js-minify` covers the main glue only; the wasm-split loader
+# keeps its route comments and full identifiers. Minify it before the site is
+# copied out so the shipped assets and their precompressed siblings are the
+# same bytes CI's size gate measures.
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/app/app/target \
     cargo leptos build --release --split \
+    && node /app/scripts/minify-split-loader.ts --site-root target/site \
     && strip target/release/monochange_app \
     && cp -a target/site /site \
     && cp target/release/monochange_app /monochange_app \

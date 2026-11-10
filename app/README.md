@@ -44,10 +44,13 @@ Every app pull request runs a Lighthouse suite over the core flows (`/`, `/insta
 # from the repository root, with pnpm dependencies installed
 # Preferred: `cd app && leptoskit build --release` (split + size optimize from leptoskit.toml)
 cargo leptos --manifest-path app/crates/monochange_app/Cargo.toml build --release --split
+pnpm node scripts/minify-split-loader.ts --site-root app/target/site
 pnpm bench:website          # Lighthouse against a throwaway local server
 pnpm size:website           # compare app/target/site/pkg against the baseline
 pnpm size:website:update    # accept a deliberate size change in the same PR
 ```
+
+`minify-split-loader.ts` minifies the `pkg/__wasm_split.*.js` loader that cargo-leptos emits unminified (`js-minify` covers the main glue only), so the committed size gate measures the shipped bytes. CI runs it between the release build and the size/Lighthouse checks, and the Docker builder runs it before the site is copied out and precompressed. The upstream leptoskit web build emits the same loader, so pass its output directory to `--site-root` when building with `leptoskit build --release`.
 
 Budgets live in `scripts/website-budgets.json`; the size baseline in `scripts/website-size-baseline.json`. `pnpm bench:website` needs Chrome or Chromium locally (`CHROME_PATH` is honoured). The app CI job fails on budget violations unless `MONOCHANGE_ALLOW_BENCHMARK_BUDGET_FAILURES=true` is set, mirroring the CLI benchmark escape hatch.
 
