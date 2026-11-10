@@ -5,7 +5,7 @@ monochange_extension: fix
 
 # Resolve leptoskit from the upstream Git revision
 
-The web app, native workspace, and browser extension now build against one reviewed upstream `leptoskit` commit instead of separate crates.io 0.3.0 copies. This keeps every surface on the same source and lets `cargo update` pick up upstream fixes without waiting for a registry release.
+The web app, native workspace, and browser extension now build against one reviewed upstream `leptoskit` commit instead of separate crates.io 0.3.0 copies. Every direct dependency in the three workspaces names the same immutable full Git revision, and every lockfile resolves that revision, so release preparation can run `cargo generate-lockfile` without moving a single `leptoskit*` source. Branch specs (`branch = "main"`) re-resolved to upstream's moving head during release lockfile refresh and drifted past the revision the managed CLI was verified against; the source guard then failed the release job. Upgrades are deliberate: change every manifest rev, the `[workspace.metadata.bin]` `leptoskit_cli` rev, and the three lockfiles together in one reviewed change.
 
 `lint:leptoskit` now reads the same pinned revision from `[workspace.metadata.bin]`, verifies every `leptoskit*` lockfile source against it, and force-installs the CLI when the cached binary came from crates.io or another revision. A broad `.bin` cache restore can no longer leave the lint task running a stale same-version binary:
 

@@ -60,10 +60,11 @@ This change implements only the upstream dependency migration. The split and the
 
 ### 1. Upstream leptoskit dependency migration (this change)
 
-- Replace every direct `leptoskit*` crates.io dependency in `app/`, `app/native/`, and `extension/` with `git = "https://github.com/leptoskit/leptoskit", branch = "main"`.
-- Resolve one upstream commit and commit a lockfile in each workspace that names the same source URL and revision.
+- Replace every direct `leptoskit*` crates.io dependency in `app/`, `app/native/`, and `extension/` with `git = "https://github.com/leptoskit/leptoskit"` pinned to one immutable full revision.
+- Resolve one upstream commit and commit a lockfile in each workspace that names the same source URL and revision through a `?rev=` query, so release preparation can regenerate lockfiles without advancing the source.
 - Point the lint/build CLI at the same repository and revision; keep `lint:leptoskit` using that binary rather than a stale crates.io install.
 - Apply only compatibility edits required by the new upstream APIs. Stop and report if the migration becomes architectural.
+- Upgrade by changing all three workspaces' manifest revs, the root `[workspace.metadata.bin]` `leptoskit_cli` rev, and the three lockfiles together in one deliberate change; never loosen one pin alone.
 
 ### 2. Shared client contract (pending)
 
@@ -122,9 +123,13 @@ Local note: the Nix Apple SDK 14.4 linker rejects host SDK `.tbd` files (`unknow
 
 The first implementation selected the managed CLI with `find .bin ... | sort | tail`. `cargo-run-bin` 1.7.5 keys install directories by toolchain, crate, and version, so a cached crates.io 0.3.0 install occupies the same path as the pinned Git install and survives a broad CI cache restore. The corrected `lint:leptoskit` derives the Git URL, revision, version, and binary name from `[workspace.metadata.bin]`, rejects any `leptoskit*` lockfile source that does not end in the full pinned revision, and trusts a cached binary only when its install manifest names the pinned Git source and owns that binary. Otherwise it force-installs only `leptoskit_cli` from the pinned revision. A real registry-source manifest at the cached path was replaced by that install and the lint task then passed over all three configs; the focused tooling tests cover the rejection, reinstall, reuse, drift, and install-failure branches.
 
+### Correction: immutable source pins for lockfile regeneration
+
+Branch specs survived ordinary development but not release preparation: `monochange.toml` runs `cargo generate-lockfile` in `app/` after a version bump, that command re-resolves from scratch, and `?branch=main` sources advanced past the revision the managed CLI was verified against, so the provenance guard failed the release job (PR884 job 129603830686 and PR885 job 129604406873 resolved `a9678a57…` instead of `a93214ed…`). The correction replaces every direct `branch = "main"` spec in `app/Cargo.toml`, `app/native/Cargo.toml`, and `extension/Cargo.toml` with the full immutable revision and regenerates the three lockfiles, keeping every `leptoskit*` package at the already-tested `a93214ed…` commit through fresh resolution. Upstream code does not advance and the provenance guard is unchanged; future upgrades move all manifest pins, the CLI pin, and the lockfiles together.
+
 ## Risks and open questions
 
-- Upstream `main` is a moving branch. It advanced to `f33c3764e2a3836560d9e22f54b6be6595d8ba65` after this change resolved and verified `a93214ed`; the lockfiles and CLI pin keep the reviewed commit until a deliberate `cargo update` and review.
+- Upstream `main` is a moving branch. It advanced to `f33c3764e2a3836560d9e22f54b6be6595d8ba65` after this change resolved and verified `a93214ed`. All manifest and lockfile sources now name the immutable `?rev=a93214ed…` query instead of `?branch=main`, so ordinary lockfile regeneration keeps the reviewed commit; upgrades change every pin deliberately (see work unit 1).
 - The upstream CLI is a git install, not a registry binary. A fresh machine needs network access to GitHub, and the install is not covered by a crates.io checksum.
 - The identity boundary and callback transport are security-sensitive. Do not start unit 3 without a written handoff threat model and a test plan for state, redirect, replay, and cross-surface session isolation.
 - Native/extension platform SDK checks are limited on this machine; hosted CI remains the authority for APK/app/extension artifacts.
