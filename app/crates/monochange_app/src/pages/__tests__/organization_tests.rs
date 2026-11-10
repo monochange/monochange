@@ -28,30 +28,30 @@ fn organization(count: usize) -> OrganizationSummary {
 	}
 }
 
-async fn page(uri: &'static str, count: usize) -> String {
-	crate::tests::render_at(
-		uri,
-		move || view! { <OrganizationContent organization=organization(count) /> },
-	)
+async fn page(search: &str, count: usize) -> String {
+	let search = search.to_owned();
+	crate::tests::render(move || {
+		leptoskit::web::render(organization_content(organization(count), &search))
+	})
 	.await
 }
 
 #[tokio::test]
 async fn repositories_are_paged_and_projects_pick_from_all_of_them() {
-	let html = page("/dashboard/alice", 30).await;
+	let html = page("", 30).await;
 
 	assert!(html.contains("30 connected"), "{html}");
-	assert!(html.contains("action=\"/dashboard/alice\""), "{html}");
+	assert!(html.contains("href=\"/dashboard/alice\""), "{html}");
 	assert!(!html.contains("<select"), "{html}");
-	assert!(html.contains("Page <!>1<!> of <!>2"), "{html}");
+	assert!(html.contains("Page 1 of 2"), "{html}");
 	assert_eq!(html.matches("type=\"checkbox\"").count(), 30, "{html}");
 	assert!(html.contains("Filter repositories"), "{html}");
 }
 
 #[tokio::test]
 async fn searches_count_their_matches() {
-	let html = page("/dashboard/alice?q=repo-01", 30).await;
+	let html = page("repo-01", 30).await;
 
 	assert!(html.contains("10 of 30 match"), "{html}");
-	assert!(!html.contains("<nav class=\"pager\""), "{html}");
+	assert!(!html.contains("Page 1 of 2"), "{html}");
 }

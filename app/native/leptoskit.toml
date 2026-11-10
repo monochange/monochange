@@ -68,3 +68,12 @@ targets = []
 
 [auth]
 app_name = "monochange"
+
+# The guest uses the same file-router stack as the website. 0.3 has navigate
+# and back; Stack and Tabs navigator() helpers are not in this release.
+[[plugins]]
+name = "router"
+
+[plugins.options]
+dir = "monochange_native_app/src/routes"
+output = "monochange_native_app/src/routes.rs"

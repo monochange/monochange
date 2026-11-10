@@ -33,9 +33,11 @@ leptos = { workspace = true, optional = true }
 leptoskit = { workspace = true }
 leptoskit_plugin_http = { workspace = true, features = ["guest"], optional = true }
 leptoskit_plugin_secure_store = { workspace = true, features = ["guest"], optional = true }
+leptoskit_router = { workspace = true }
 monochange_rpc = { path = "../monochange_rpc" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 
 [build-dependencies]
 leptoskit_build = { workspace = true }
+leptoskit_router_codegen = "=0.3.0"

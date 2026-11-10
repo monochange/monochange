@@ -27,9 +27,10 @@ features = []
 rustflags = []
 
 [bundle]
-# Match the existing cargo-leptos split routes (`#[lazy_route]`).
+# One hydrate bundle. File-router screens share the tree, so there is no
+# `#[lazy_route]` chunk for wasm-split to emit as an anonymous `_bg.wasm`.
 optimize = "size"
-split = true
+split = false
 wasm_opt = true
 precompress = true
 
@@ -53,6 +54,17 @@ servers = ["https://monochange.dev"]
 exclude = []
 include_internal = false
 targets = []
+
+# File routes: `src/routes/` is the URL map. `leptoskit plugin:router routes`
+# regenerates `src/routes.rs`. Layouts use the 0.3 router stack (navigate /
+# back / replace). Stack, Tabs, and Drawer `navigator()` exports are not in
+# the published 0.3 runtime; see the upstream note in the PR.
+[[plugins]]
+name = "router"
+
+[plugins.options]
+dir = "crates/monochange_app/src/routes"
+output = "crates/monochange_app/src/routes.rs"
 
 [codepush]
 enabled = false

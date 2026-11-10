@@ -2840,6 +2840,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "71dd52191aae121e8611f1e8dc3e324dd0dd1dee1e6dd91d10ee07a3cfb4d9d8"
 
 [[package]]
+name = "intl_pluralrules"
+version = "7.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "078ea7b7c29a2b4df841a7f6ac8775ff6074020c6776d48491ce2268e068f972"
+dependencies = [
+ "unic-langid",
+]
+
+[[package]]
 name = "inventory"
 version = "0.3.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3311,9 +3320,12 @@ dependencies = [
  "leptoskit_config",
  "leptoskit_devtools",
  "leptoskit_idp",
+ "leptoskit_l10n",
  "leptoskit_macros",
  "leptoskit_native",
  "leptoskit_plugin",
+ "leptoskit_query",
+ "leptoskit_rive",
  "leptoskit_rpc",
  "leptoskit_yoga",
  "monosecret 0.5.0",
@@ -3351,12 +3363,14 @@ dependencies = [
  "futures",
  "getrandom 0.4.3",
  "hmac 0.12.1",
+ "js-sys",
  "leptos",
  "leptoskit_config",
  "leptoskit_db",
  "leptoskit_query",
  "leptoskit_rpc",
  "qrcode",
+ "send_wrapper",
  "serde",
  "serde_json",
  "sha1 0.10.7",
@@ -3364,6 +3378,9 @@ dependencies = [
  "subtle",
  "thiserror",
  "tower",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
  "webauthn-rs-proto",
 ]
 
@@ -3486,12 +3503,18 @@ version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1a39c99932026f05efeb79cd7420b25e901de00dd33b2aa037a29f8249a5867c"
 dependencies = [
+ "gloo-net",
+ "gloo-timers",
+ "js-sys",
  "leptoskit_devtools_protocol",
  "leptoskit_router",
  "leptoskit_rpc",
  "reactive_graph",
  "serde",
  "serde_json",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
 ]
 
 [[package]]
@@ -3535,6 +3558,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "leptoskit_l10n"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "643c5baa889511389ffb40ad0c4c3c9ff029ead8816c3d1145f375f9e005dba0"
+dependencies = [
+ "intl_pluralrules",
+ "js-sys",
+ "reactive_graph",
+ "thiserror",
+ "unic-langid",
+ "web-sys",
+]
+
+[[package]]
 name = "leptoskit_macros"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3553,9 +3590,13 @@ version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "01d1e9bd2a36e5bd6a8780599c811e01f39ff961e0e834952e19c4909cf66244"
 dependencies = [
+ "leptos",
  "leptoskit_rive",
  "leptoskit_yoga",
  "reactive_graph",
+ "sha2 0.10.9",
+ "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]
@@ -3600,9 +3641,12 @@ dependencies = [
  "hydration_context",
  "leptos",
  "parking_lot",
+ "send_wrapper",
  "serde",
  "serde_json",
  "tokio",
+ "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]
@@ -3612,7 +3656,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ad45bb7caba5f579f3b606975e4df6236c84abf2bb349064c7f70f8f666c52e4"
 dependencies = [
  "cc",
+ "js-sys",
  "thiserror",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
 ]
 
 [[package]]
@@ -3624,6 +3672,22 @@ dependencies = [
  "leptoskit_native",
  "leptoskit_router_macros",
  "reactive_graph",
+ "send_wrapper",
+ "thiserror",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "leptoskit_router_codegen"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "989608ff253e126c4c825fc9ea5e70013f3fc8d09973ca1ac79813e6aaebcfb1"
+dependencies = [
+ "prettyplease",
+ "proc-macro2",
+ "quote",
+ "syn 3.0.9",
  "thiserror",
 ]
 
@@ -3971,6 +4035,8 @@ dependencies = [
  "leptos_meta",
  "leptos_router",
  "leptoskit",
+ "leptoskit_router",
+ "leptoskit_router_codegen",
  "leptoskit_rpc",
  "log",
  "monochange_app_api",
@@ -5817,6 +5883,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde-wasm-bindgen"
+version = "0.6.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8302e169f0eddcc139c70f139d19d6467353af16f9fce27e8c30158036a1e16b"
+dependencies = [
+ "js-sys",
+ "serde",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "serde_core"
 version = "1.0.229"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7252,6 +7329,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6f5e870be6c3b371b77fe0ee0bafb859fa4964b4404c27de1d380043c4dda20"
 
 [[package]]
+name = "unic-langid"
+version = "0.9.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a28ba52c9b05311f4f6e62d5d9d46f094bd6e84cb8df7b3ef952748d752a7d05"
+dependencies = [
+ "unic-langid-impl",
+]
+
+[[package]]
+name = "unic-langid-impl"
+version = "0.9.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dce1bf08044d4b7a94028c93786f8566047edc11110595914de93362559bc658"
+dependencies = [
+ "tinystr",
+]
+
+[[package]]
 name = "unicase"
 version = "2.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7458,6 +7553,8 @@ checksum = "a0181c14ddd6c7b8b0b0132a5f1ea2f32be0d893cd3ea97b6e3b28886b8a3d1c"
 dependencies = [
  "cfg-if",
  "rustversion",
+ "serde",
+ "serde_json",
  "wasm-bindgen-macro",
  "wasm-bindgen-shared",
 ]
@@ -7581,9 +7678,13 @@ checksum = "c37393beac9c1ed1ca6dbb30b1e01783fb316ab3a45d90ecd48c99052dd7ef1e"
 dependencies = [
  "base64 0.21.7",
  "base64urlsafedata",
+ "js-sys",
  "serde",
+ "serde-wasm-bindgen",
  "serde_json",
  "url",
+ "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]

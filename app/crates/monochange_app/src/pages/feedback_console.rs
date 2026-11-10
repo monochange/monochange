@@ -683,3 +683,122 @@ fn ConsoleCard(
 	}
 	.into_any()
 }
+
+/// Maintainer feedback console.
+pub fn console_screen(organization: String, project: String) -> leptoskit::prelude::Element {
+	let key = crate::slots::once(|| RwSignal::new((organization.clone(), project.clone())));
+	key.set((organization, project));
+	let console = crate::slots::once(|| {
+		Resource::new_blocking(
+			move || key.get(),
+			|(organization, project)| feedback_console(organization, project),
+		)
+	});
+
+	match console.get() {
+		None => crate::ui::text("Loading feedback…"),
+		Some(Ok(Some(view))) => console_content(&view),
+		Some(Ok(None)) => crate::ui::heading(1, "Project not found"),
+		Some(Err(_)) => crate::ui::heading(1, "Feedback couldn't be loaded"),
+	}
+}
+
+fn console_content(view: &ConsoleView) -> leptoskit::prelude::Element {
+	crate::ui::with_children(
+		crate::ui::column("flex flex-col gap-2 p-6"),
+		console_lines(view).into_iter().map(crate::ui::text),
+	)
+}
+
+fn console_lines(view: &ConsoleView) -> Vec<String> {
+	let visibility_note = match view.visibility {
+		monochange_app_feedback::RepositoryVisibility::Private => {
+			"This project includes a private repository, so users see titles with internal paths, addresses, secrets, and personal details redacted."
+		}
+		monochange_app_feedback::RepositoryVisibility::Public => {
+			"Every repository in this project is public, so users see code paths; internal addresses, secrets, and personal details are still redacted."
+		}
+	};
+	let mut lines = vec![
+		"Feedback".to_owned(),
+		visibility_note.to_owned(),
+		"Open the public portal".to_owned(),
+	];
+
+	for entry in &view.items {
+		let item = &entry.item;
+		let submitter = item.submission.submitter.anonymous_id.clone();
+		lines.push(format!("Report from {submitter}"));
+		lines.extend(context_lines(item, view.acceptance_threshold));
+
+		if let Some(report) = &item.triage {
+			match &report.reproduction {
+				ReproductionOutcome::Reproduced { steps } => lines.extend(steps.clone()),
+				ReproductionOutcome::NotReproduced { reasons } => {
+					lines.push(format!("Not reproduced: {}", reasons.join("; ")));
+				}
+				ReproductionOutcome::NeedsEnvironment { missing } => {
+					lines.push(format!("Needs more context: {}", missing.join("; ")));
+				}
+				ReproductionOutcome::NotApplicable => {
+					lines.push("Feature request, nothing to reproduce.".to_owned());
+				}
+			}
+
+			if !report.findings.is_empty() {
+				lines.push("Sensitive details found".to_owned());
+				lines.extend(report.findings.iter().map(|finding| finding.detail.clone()));
+			}
+		}
+
+		match (&entry.withheld, &entry.portal_title) {
+			(Some(reason), _) => {
+				lines.push(format!(
+					"Withheld from users: {reason}. Rewrite its public title."
+				))
+			}
+			(None, Some(_)) if !entry.redacted.is_empty() => {
+				lines.push(format!("Hidden: {}", entry.redacted.join(", ")));
+			}
+			(None, None) => {
+				lines.push(format!(
+					"Not on the public roadmap while {}.",
+					stage_label(item.stage)
+				))
+			}
+			(None, Some(_)) => {}
+		}
+
+		for message in &item.discussion {
+			if message.held {
+				lines.push(format!(
+					"{} · held by screening",
+					author_name(&message.author, &submitter)
+				));
+			}
+		}
+
+		if entry.actions.contains(&ConsoleAction::Resume) {
+			lines.push("Screening flagged this text. Vouch for it to let triage run.".to_owned());
+		}
+
+		let can_reply = matches!(
+			item.stage,
+			Stage::Discussing
+				| Stage::Voting
+				| Stage::Accepted
+				| Stage::Building
+				| Stage::InReview
+				| Stage::Merged
+		);
+		if can_reply {
+			lines.push("Reply to the discussion".to_owned());
+		}
+
+		for similar in &entry.similar {
+			lines.push(format!("Similar · {}", similar.id));
+		}
+	}
+
+	lines
+}

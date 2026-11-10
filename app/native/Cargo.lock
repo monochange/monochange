@@ -2807,6 +2807,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "leptoskit_router_codegen"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "989608ff253e126c4c825fc9ea5e70013f3fc8d09973ca1ac79813e6aaebcfb1"
+dependencies = [
+ "prettyplease",
+ "proc-macro2",
+ "quote",
+ "syn 3.0.9",
+ "thiserror 2.0.21",
+]
+
+[[package]]
 name = "leptoskit_router_macros"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3137,6 +3150,8 @@ dependencies = [
  "leptoskit_build",
  "leptoskit_plugin_http",
  "leptoskit_plugin_secure_store",
+ "leptoskit_router",
+ "leptoskit_router_codegen",
  "monochange_rpc",
  "serde",
  "serde_json",

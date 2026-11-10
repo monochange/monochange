@@ -3,6 +3,10 @@
 #![cfg(not(target_arch = "wasm32"))]
 #![allow(clippy::disallowed_methods)]
 
+use leptos::prelude::Owner;
+use leptos::prelude::WriteSignal;
+use leptos::prelude::signal;
+
 use super::*;
 use crate::server_fns::auth::SessionUser;
 
@@ -27,6 +31,22 @@ fn workspace_href_prefers_dashboard_when_signed_in() {
 		"/login"
 	);
 	assert_eq!(workspace_href_for(None), "/login");
+}
+
+fn strategy_button_class(pressed: bool) -> String {
+	if pressed {
+		"bg-brand-100 text-brand-700".to_owned()
+	} else {
+		"text-mute".to_owned()
+	}
+}
+
+fn select_shared_version(set_shared: WriteSignal<bool>) {
+	set_shared.set(true);
+}
+
+fn select_individual_versions(set_shared: WriteSignal<bool>) {
+	set_shared.set(false);
 }
 
 #[test]
@@ -57,7 +77,7 @@ fn release_manifest_helpers_cover_both_strategies() {
 
 #[tokio::test]
 async fn home_page_renders_release_floor_sections() {
-	let html = crate::tests::render(|| view! { <HomePage /> }).await;
+	let html = crate::tests::render(|| leptoskit::web::render(home_screen())).await;
 
 	assert!(html.contains("Ship every package from one floor."));
 	assert!(html.contains("The product floor"));

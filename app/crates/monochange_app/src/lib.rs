@@ -12,8 +12,11 @@ pub mod book;
 pub mod color_mode;
 pub mod components;
 pub mod error;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod http;
 pub mod links;
 pub mod markdown;
+pub mod navigation;
 
 pub mod pages;
 pub mod projects;
@@ -22,7 +25,10 @@ pub mod public_routes;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod rate_limit;
 pub mod repository_filter;
+pub mod routes;
 pub mod server_fns;
+pub mod slots;
+pub mod ui;
 
 pub use app::App;
 
@@ -44,7 +50,6 @@ pub fn hydrate() {
 	_ = console_log::init_with_level(log::Level::Debug);
 	_ = any_spawner::Executor::init_wasm_bindgen();
 
-	// Lazy routes hydrate through their own chunk-loading mount; hydrate_body
-	// panics when it meets one.
-	leptos::mount::hydrate_lazy(app::App);
+	// One bundle hydrates the file-router tree. There are no lazy route chunks.
+	leptos::mount::hydrate_body(app::App);
 }

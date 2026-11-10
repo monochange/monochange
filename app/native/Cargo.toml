@@ -20,6 +20,7 @@ rust-version = "1.91"
 [workspace.dependencies]
 leptos = { version = "0.9.0-rc0", default-features = false }
 leptoskit = { version = "=0.3.0", default-features = false }
+leptoskit_router = { version = "=0.3.0", default-features = false }
 leptoskit_rpc = { version = "=0.3.0", default-features = false }
 leptoskit_plugin_http = { version = "=0.3.0", default-features = false }
 leptoskit_plugin_secure_store = { version = "=0.3.0", default-features = false }

@@ -1,6 +1,8 @@
 #![allow(unsafe_code)] // Native guest entry points are exported C symbols.
 
 //! monochange native guest: Android / iOS screens over leptoskit.
+pub mod navigation;
+pub mod routes;
 pub mod screens;
 pub mod tasks;
 pub mod theme;
@@ -9,6 +11,13 @@ pub mod ui;
 #[cfg(test)]
 #[path = "__tests__/theme_tests.rs"]
 mod tests;
+
+/// The file-router shell. The host paints it again after each press, and the
+/// router signal swaps the visible screen.
+#[cfg(all(target_arch = "wasm32", feature = "native", not(feature = "web")))]
+fn native_shell() -> leptoskit::prelude::Element {
+	navigation::navigation().render()
+}
 
 /// Server origin for native HTTP plugin calls. Override at build time with
 /// `MONOCHANGE_SERVER`.
@@ -22,7 +31,7 @@ pub const SERVER: &str = match option_env!("MONOCHANGE_SERVER") {
 #[unsafe(no_mangle)]
 pub extern "C" fn leptoskit_main() {
 	leptoskit::rpc::client::configure(leptoskit::rpc::client::ClientConfig::new().origin(SERVER));
-	leptoskit::guest::mount(screens::home::Home);
+	leptoskit::guest::mount(native_shell);
 }
 
 #[cfg(all(target_arch = "wasm32", feature = "native", not(feature = "web")))]

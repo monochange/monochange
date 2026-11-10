@@ -1,26 +1,21 @@
-//! One organisation: its projects, a form to create one, and its connected
-//! repositories.
+//! One organisation: its projects and its connected repositories.
 
 use leptos::prelude::*;
-use leptos_meta::Title;
-use leptos_router::LazyRoute;
-use leptos_router::hooks::use_params_map;
-use leptos_router::lazy_route;
+use leptoskit::native::Role;
+use leptoskit::prelude::Checkbox;
+use leptoskit::prelude::Element;
+use leptoskit::prelude::Text;
+use leptoskit::prelude::View;
 
-use crate::components::arrow::ArrowIcon;
-use crate::components::repository_list::RepositoryFilters;
-use crate::components::repository_list::RepositoryPager;
-use crate::components::repository_list::RepositoryPicker;
-use crate::components::repository_list::use_repository_filter;
-use crate::pages::dashboard::OrganizationAvatar;
-use crate::projects::MAX_DESCRIPTION_CHARS;
-use crate::projects::MAX_NAME_CHARS;
-use crate::repository_filter::count_matches;
-use crate::server_fns::organizations::CreateProject;
+use crate::pages::dashboard::organization_avatar;
+use crate::repository_filter::repository_page;
 use crate::server_fns::organizations::OrganizationSummary;
 use crate::server_fns::organizations::organization_overview;
 use crate::server_fns::organizations::organization_path;
 use crate::server_fns::organizations::project_path;
+use crate::ui::heading;
+use crate::ui::link;
+use crate::ui::text;
 
 /// The message to show for a failed server action.
 pub fn action_error(error: &server_fn::ServerFnError) -> String {
@@ -30,129 +25,165 @@ pub fn action_error(error: &server_fn::ServerFnError) -> String {
 	}
 }
 
-/// One-organisation page data, split into its own WASM chunk.
-pub struct OrganizationRoute {
-	login: Memo<String>,
-	overview: Resource<Result<Option<OrganizationSummary>, server_fn::ServerFnError>>,
+/// Account screen for `/dashboard/:organization`.
+pub fn organization_screen(login: String, search: Option<String>) -> Element {
+	#[derive(Clone, Copy)]
+	struct LoginSlot(RwSignal<String>);
+
+	let slot = crate::slots::once(|| LoginSlot(RwSignal::new(login.clone())));
+	slot.0.set(login);
+	let overview =
+		crate::slots::once(|| Resource::new_blocking(move || slot.0.get(), organization_overview));
+	let search = search.unwrap_or_default();
+
+	match overview.get() {
+		None => text("Loading organisation…"),
+		Some(Ok(Some(organization))) => organization_content(organization, &search),
+		Some(Ok(None)) => {
+			unavailable(
+				"Organisation not found",
+				"It isn't connected, or you're not one of its owners.",
+			)
+		}
+		Some(Err(_)) => {
+			unavailable(
+				"This organisation couldn't be loaded",
+				"Please reload the page to try again.",
+			)
+		}
+	}
 }
 
-/// One organisation: its projects, a form to create one, and its connected
-/// repositories.
-#[lazy_route]
-impl LazyRoute for OrganizationRoute {
-	fn data() -> Self {
-		let params = use_params_map();
-		let login = Memo::new(move |_| params.read().get("organization").unwrap_or_default());
-		let overview = Resource::new_blocking(move || login.get(), organization_overview);
-		Self { login, overview }
-	}
-
-	fn view(this: Self) -> AnyView {
-		let OrganizationRoute { login, overview } = this;
-		view! {
-			<Title text=move || format!("{} — monochange", login.get()) />
-			<section class="site-width dashboard-section">
-				<Suspense fallback=|| view! { <p role="status">"Loading organisation…"</p> }>
-					{move || overview.get().map(|result| match result {
-						Ok(Some(organization)) => view! { <OrganizationContent organization=organization /> }.into_any(),
-						Ok(None) => view! { <Unavailable title="Organisation not found" message="It isn't connected, or you're not one of its owners." /> }.into_any(),
-						Err(_) => view! { <Unavailable title="This organisation couldn't be loaded" message="Please reload the page to try again." /> }.into_any(),
-					})}
-
-				</Suspense>
-			</section>
-		}
-		.into_any()
-	}
+/// Leptos wrapper for pages that still embed the status view.
+#[leptos::prelude::component]
+pub fn Unavailable(title: &'static str, message: &'static str) -> impl IntoView {
+	leptoskit::web::render(unavailable(title, message))
 }
 
 /// A not-found or failure state with a way back.
-#[component]
-pub fn Unavailable(title: &'static str, message: &'static str) -> impl IntoView {
-	view! {
-		<div class="status-page">
-			<div><h1>{title}</h1><p>{message}</p><div class="actions"><a href="/dashboard" class="button button-brand">"Back to your workspace"</a></div></div>
-		</div>
-	}
+pub fn unavailable(title: &'static str, message: &'static str) -> Element {
+	View()
+		.class("flex flex-col gap-4")
+		.child(heading(1, title))
+		.child(text(message))
+		.child(link("/dashboard", "Back to your workspace"))
 }
 
-#[component]
-fn OrganizationContent(organization: OrganizationSummary) -> impl IntoView {
+/// The account body. Tests render this with a fixture instead of the server.
+pub fn organization_content(organization: OrganizationSummary, search: &str) -> Element {
 	let kind = if organization.personal {
 		"Personal account"
 	} else {
 		"GitHub organisation"
 	};
-
 	let login = organization.login.clone();
-	let filter = use_repository_filter();
 	let total = organization.repositories.len();
-	let searchable = StoredValue::new(organization.repositories.clone());
-	view! {
-		<nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/dashboard">"Workspace"</a><span aria-hidden="true">"/"</span><span aria-current="page">{login.clone()}</span></nav>
-		<div class="workspace-heading">
-			<OrganizationAvatar login=login.clone() avatar_url=organization.avatar_url.clone() />
-			<div><h1>{login.clone()}</h1><p>{kind} " · " {organization.repositories.len()} " connected repositories"</p></div>
-		</div>
-		<section class="repository-section" aria-labelledby="projects-title">
-			<div class="repository-heading"><h2 id="projects-title">"Projects"</h2><p>"Group repositories that ship one product."</p></div>
+	let page = repository_page(&organization.repositories, search, 1);
+	let count = if search.trim().is_empty() {
+		format!("{total} connected")
+	} else {
+		format!("{} of {total} match", page.matches)
+	};
 
-			{if organization.projects.is_empty() {
-				view! { <p class="project-empty">"No projects yet. A project brings several of this organisation's repositories together under one name."</p> }.into_any()
+	let mut column = View()
+		.class("flex flex-col gap-4")
+		.child(link("/dashboard", "Workspace"))
+		.child(Text(login.clone()).aria_current(leptoskit::native::Current::Page))
+		.child(organization_avatar(&login, organization.avatar_url.clone()))
+		.child(heading(1, login.clone()))
+		.child(Text(format!(
+			"{kind} · {} connected repositories",
+			organization.repositories.len()
+		)))
+		.child(heading(2, "Projects"))
+		.child(text("Group repositories that ship one product."));
+
+	if organization.projects.is_empty() {
+		column = column.child(text(
+			"No projects yet. A project brings several of this organisation's repositories together under one name.",
+		));
+	} else {
+		for project in &organization.projects {
+			let href = project_path(&login, &project.slug);
+			let count = match project.repository_count {
+				1 => "1 repository".to_owned(),
+				count => format!("{count} repositories"),
+			};
+			let detail = if project.description.is_empty() {
+				count.clone()
 			} else {
-				view! {
-					<ul class="project-grid">
-						{organization.projects.iter().map(|project| {
-							let href = project_path(&login, &project.slug);
-							let count = match project.repository_count { 1 => "1 repository".to_string(), count => format!("{count} repositories") };
-							view! {
-								<li><a href=href class="project-card"><h3>{project.name.clone()}</h3><p>{if project.description.is_empty() { count.clone() } else { project.description.clone() }}</p><span>{count} <ArrowIcon /></span></a></li>
-							}
-						}).collect::<Vec<_>>()}
-					</ul>
-				}.into_any()
-			}}
-
-			{if organization.supports_projects {
-				view! { <NewProjectForm organization=organization.clone() /> }.into_any()
-			} else {
-				view! { <p class="form-note">"monochange is still confirming this account with GitHub. Reload the page in a moment to create projects."</p> }.into_any()
-			}}
-
-		</section>
-		<section class="repository-section" id="repositories" aria-labelledby="repositories-title">
-			<div class="repository-heading"><h2 id="repositories-title">"Repositories"</h2><p aria-live="polite">{move || {
-				let search = filter.get().search;
-				if search.trim().is_empty() { format!("{total} connected") } else { format!("{} of {total} match", count_matches(&searchable.read_value(), &search)) }
-			}}</p></div>
-			<RepositoryFilters filter=filter path=organization_path(&login) organizations=Vec::new() />
-			<RepositoryPager repositories=organization.repositories search=Signal::derive(move || filter.get().search) label=format!("{login} repositories") />
-		</section>
+				project.description.clone()
+			};
+			column = column
+				.child(link(href, &project.name))
+				.child(Text(detail))
+				.child(Text(count));
+		}
 	}
+
+	column = if organization.supports_projects {
+		let example = project_path(&login, "invoices");
+		column
+			.child(text("New project"))
+			.child(text("Name"))
+			.child(Text(format!(
+				"Its address comes from the name: “Invoices” lives at {example}"
+			)))
+			.child(text("Description (optional)"))
+			.child(text("Create project"))
+			.child(repository_picker(&organization.repositories))
+	} else {
+		column.child(text(
+			"monochange is still confirming this account with GitHub. Reload the page in a moment to create projects.",
+		))
+	};
+
+	column
+		.child(heading(2, "Repositories"))
+		.child(Text(count))
+		.child(link(organization_path(&login), "Search repositories"))
+		.child(repository_list(&page))
 }
 
-/// Creates a project. Plain form fields, so it also works before the page
-/// hydrates; the server validates everything again.
-#[component]
-fn NewProjectForm(organization: OrganizationSummary) -> impl IntoView {
-	let create = ServerAction::<CreateProject>::new();
-	let login = organization.login.clone();
-	let example = project_path(&login, "invoices");
-
-	view! {
-		<details class="project-form-panel">
-			<summary class="button button-brand">"New project"</summary>
-			<ActionForm action=create attr:class="project-form">
-				<input type="hidden" name="organization" value=login />
-				<label class="field"><span>"Name"</span><input name="name" required maxlength=MAX_NAME_CHARS autocomplete="off" aria-describedby="project-address-hint" /></label>
-				<p class="field-hint" id="project-address-hint">"Its address comes from the name: “Invoices” lives at " {example}</p>
-				<label class="field"><span>"Description " <small>"(optional)"</small></span><textarea name="description" rows="2" maxlength=MAX_DESCRIPTION_CHARS></textarea></label>
-				<RepositoryPicker repositories=organization.repositories />
-				{move || create.value().get().and_then(Result::err).map(|error| view! { <p class="form-error" role="alert">{action_error(&error)}</p> })}
-				<button type="submit" class="button button-brand" disabled=move || create.pending().get()>{move || if create.pending().get() { "Creating…" } else { "Create project" }}</button>
-			</ActionForm>
-		</details>
+fn repository_picker(repositories: &[crate::server_fns::repos::RepoInfo]) -> Element {
+	let mut picker = View().class("flex flex-col gap-2");
+	if repositories.len() > crate::components::repository_list::PICKER_FILTER_THRESHOLD {
+		picker = picker.child(text("Filter repositories"));
 	}
+	for repository in repositories {
+		picker = picker
+			.child(Checkbox(false).aria_label(repository.github_full_name.clone()))
+			.child(Text(repository.github_full_name.clone()));
+	}
+	picker
+}
+
+fn repository_list(page: &crate::repository_filter::RepositoryPage) -> Element {
+	if page.matches == 0 {
+		return text(format!("No repositories match “{}”.", "the current search"));
+	}
+
+	let mut list = View().role(Role::List).class("flex flex-col gap-2");
+	for repository in &page.repositories {
+		let visibility = if repository.github_private {
+			"Private"
+		} else {
+			"Public"
+		};
+		let mut row = View()
+			.role(Role::ListItem)
+			.child(Text(repository.github_full_name.clone()))
+			.child(text(visibility));
+		if repository.installation_suspended {
+			row = row.child(text("Installation suspended"));
+		}
+		list = list.child(row);
+	}
+
+	if page.page_count > 1 {
+		list = list.child(Text(format!("Page {} of {}", page.page, page.page_count)));
+	}
+	list
 }
 
 #[cfg(test)]

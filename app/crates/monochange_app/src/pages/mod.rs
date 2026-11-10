@@ -7,6 +7,7 @@ pub mod embedded_feedback;
 pub mod feedback_console;
 pub mod home;
 pub mod install;
+pub mod login;
 pub mod organization;
 
 pub mod portal;
