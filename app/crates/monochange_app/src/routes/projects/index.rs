@@ -12,8 +12,19 @@ use crate::ui::text;
 pub fn page() -> Element {
 	let organizations =
 		crate::slots::once(|| Resource::new_blocking(|| (), |()| list_organizations()));
+	projects_body(organizations.get())
+}
+
+fn projects_body(
+	organizations: Option<
+		Result<
+			Vec<crate::server_fns::organizations::OrganizationSummary>,
+			server_fn::ServerFnError,
+		>,
+	>,
+) -> Element {
 	let brand = heading(1, "monochange projects");
-	match organizations.get() {
+	match organizations {
 		None => {
 			let loading = text("Loading projects…");
 			leptoskit::view! {
@@ -64,3 +75,8 @@ pub fn page() -> Element {
 		}
 	}
 }
+
+// The file router rejects a `__tests__` directory inside `routes/`.
+#[cfg(test)]
+#[path = "../../__tests__/routes/projects_index_tests.rs"]
+mod tests;
