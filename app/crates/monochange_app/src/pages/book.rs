@@ -92,6 +92,88 @@ fn BookPageView(result: Result<Option<BookPage>, ServerFnError>) -> impl IntoVie
 	}
 }
 
+/// Book screen for `/book` and `/book/*`.
+pub fn book_screen(chapter: &[String]) -> leptoskit::prelude::Element {
+	let path = chapter.join("/");
+	let key = crate::slots::once(|| RwSignal::new(path.clone()));
+	key.set(path);
+	let page = crate::slots::once(|| Resource::new_blocking(move || key.get(), get_book_page));
+
+	book_body(page.get())
+}
+
+fn book_body(
+	page: Option<Result<Option<BookPage>, server_fn::ServerFnError>>,
+) -> leptoskit::prelude::Element {
+	match page {
+		None => crate::ui::text("Loading the book…"),
+		Some(Err(_)) => crate::ui::text("The book is unavailable right now. Please try again."),
+		Some(Ok(None)) => {
+			#[cfg(not(target_arch = "wasm32"))]
+			if let Some(response) = use_context::<leptos_axum::ResponseOptions>() {
+				response.set_status(axum::http::StatusCode::NOT_FOUND);
+			}
+
+			crate::ui::heading(1, "Chapter not found")
+		}
+		Some(Ok(Some(page))) => book_content(page),
+	}
+}
+
+fn book_content(page: BookPage) -> leptoskit::prelude::Element {
+	let mut children = vec![
+		crate::ui::link("/", "Back to monochange"),
+		crate::ui::heading(1, page.chapter.title.clone()),
+		crate::ui::text(format!("The monochange book · {}", page.chapter.section)),
+	];
+
+	for link in page.navigation {
+		children.push(crate::ui::link(&link.href, &link.title));
+	}
+
+	if let Some(previous) = page.chapter.previous {
+		children.push(crate::ui::link(
+			&previous.href,
+			&format!("Previous {}", previous.title),
+		));
+	}
+
+	if let Some(next) = page.chapter.next {
+		children.push(crate::ui::link(&next.href, &format!("Next {}", next.title)));
+	}
+
+	children.push(crate::ui::link(
+		format!(
+			"https://github.com/monochange/monochange/blob/main/docs/src/{}",
+			page.chapter.source
+		),
+		"Edit this chapter on GitHub",
+	));
+	// leptoskit 0.3 has no rich-text node, so the sanitized chapter is shown as text.
+	children.push(crate::ui::text(plain_text(&page.chapter.html)));
+
+	crate::ui::with_children(crate::ui::column("flex flex-col gap-3 p-6"), children)
+}
+
+fn plain_text(html: &str) -> String {
+	let mut text = String::new();
+	let mut inside = false;
+
+	for character in html.chars() {
+		match character {
+			'<' => inside = true,
+			'>' => {
+				inside = false;
+				text.push(' ');
+			}
+			_ if !inside => text.push(character),
+			_ => {}
+		}
+	}
+
+	text
+}
+
 #[cfg(test)]
 #[path = "__tests__/book_tests.rs"]
 mod tests;

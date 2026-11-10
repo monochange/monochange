@@ -77,6 +77,24 @@ async fn render_request<V: leptos::prelude::IntoView + 'static>(
 	String::from_utf8(body.to_vec()).unwrap()
 }
 
+/// An in-memory application state so a screen can render without a deployment.
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) async fn memory_state() -> std::sync::Arc<monochange_app_api::AppState> {
+	let db = monochange_app_db::create_pool("sqlite::memory:")
+		.await
+		.unwrap();
+	monochange_app_db::run_migrations(&db).await.unwrap();
+	let secrets: monochange_app_api::AppSecrets = serde_json::from_value(serde_json::json!({
+		"database_url": "sqlite::memory:",
+		"jwt_secret": "coverage-test-signing-key",
+		"token_encryption_key": "test-token-encryption-key",
+		"github_client_id": "test-client",
+		"github_client_secret": "test-only-client-secret"
+	}))
+	.unwrap();
+	std::sync::Arc::new(monochange_app_api::AppState::new(db, secrets).unwrap())
+}
+
 // ── AppError tests ──
 #[rstest]
 #[case(AppError::NotFound("test".into()), 404)]

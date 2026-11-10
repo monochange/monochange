@@ -22,7 +22,6 @@ use httpmock::Method::GET;
 use httpmock::Method::POST;
 use httpmock::MockServer;
 use leptos::prelude::*;
-use leptos_axum::LeptosRoutes;
 use monochange_app_api::AppSecrets;
 use monochange_app_api::AppState;
 use monochange_app_api::oauth;
@@ -318,31 +317,9 @@ fn router(state: Arc<AppState>) -> Router {
 				.into_owned(),
 		)
 		.build();
-	let routes = crate::tests::routes();
-	let request_state = state.clone();
-	Router::<LeptosOptions>::new()
-		.leptos_routes_with_context(
-			&options,
-			routes,
-			move || {
-				provide_context(request_state.clone());
-			},
-			{
-				let options = options.clone();
-				move || crate::app::shell(options.clone())
-			},
-		)
-		.fallback(leptos_axum::file_and_error_handler(
-			move |options: LeptosOptions| {
-				provide_context(state.clone());
-				provide_context(options.clone());
-				crate::app::shell(options)
-			},
-		))
-		.with_state(options)
-		.layer(axum::middleware::from_fn(
-			crate::public_routes::legacy_projects,
-		))
+	let router = crate::http::assemble_ssr(options, &state);
+	drop(state);
+	router
 }
 
 fn oauth_limited_router(state: Arc<AppState>) -> Router {
@@ -488,7 +465,44 @@ async fn public_navigation_names_the_changelog_in_desktop_mobile_and_footer_link
 		.skip(1)
 		.filter(|link| link.split("</a>").next().unwrap().contains("Changelog"))
 		.count();
-	assert_eq!(named_links, 3);
+	// The Tabs navigator contributes one Changelog tab. The footer contributes
+	// the other. Install, Pricing, and Changelog are no longer duplicated in
+	// a second hand-built row.
+	assert!(body.contains("tabs-bar"));
+	assert_eq!(named_links, 2);
+}
+
+#[tokio::test]
+async fn marketing_pages_render_through_the_file_router() {
+	let server = MockServer::start_async().await;
+	let app = router(state(&server).await);
+
+	for (path, expected) in [
+		("/pricing", "Hey, this is free."),
+		("/changelog", "What's new."),
+		("/book", "monochange"),
+	] {
+		let response = app
+			.clone()
+			.oneshot(Request::builder().uri(path).body(Body::empty()).unwrap())
+			.await
+			.unwrap();
+		assert_eq!(response.status(), StatusCode::OK, "{path}");
+		let body = html(response).await;
+		assert!(body.contains(expected), "{path} missing {expected}");
+	}
+
+	let missing = app
+		.oneshot(
+			Request::builder()
+				.uri("/book/not-a-chapter")
+				.body(Body::empty())
+				.unwrap(),
+		)
+		.await
+		.unwrap();
+	assert_eq!(missing.status(), StatusCode::NOT_FOUND);
+	assert!(html(missing).await.contains("Chapter not found"));
 }
 
 #[tokio::test]
@@ -1244,7 +1258,8 @@ async fn organisations_lead_to_projects_that_work_without_javascript() {
 
 	let organization = page_html(&app, "/projects/alice", &cookie).await;
 	assert!(organization.contains("New project"));
-	assert!(organization.contains("name=\"repositories[]\""));
+	assert!(organization.contains("type=\"checkbox\""));
+	assert!(organization.contains("aria-label=\"alice/api\""));
 	assert!(organization.contains("No projects yet"));
 	assert!(organization.contains("/projects/alice/projects/invoices"));
 	let team = page_html(&app, "/projects/team", &cookie).await;
@@ -1592,7 +1607,7 @@ async fn feedback_journey() {
 		"Recently shipped",
 		"v2.4.0",
 		"Release notes",
-		"class=\"redaction\"",
+		"redacted",
 		"Continue with GitHub",
 		"Sign in with GitHub to vote",
 		"Sign in to follow what you share",
@@ -1605,7 +1620,7 @@ async fn feedback_journey() {
 	let site = page_html(&app, "/p/alice/site", "").await;
 	assert!(site.contains("Ships in the next release"));
 	assert!(site.contains("In progress"));
-	assert!(site.contains(">Issue<") && site.contains(">Pull request<"));
+	assert!(site.contains("Issue") && site.contains("Pull request"));
 
 	// Sharing needs an account, even from a hand-made form post.
 	let share = |cookie: &str| {

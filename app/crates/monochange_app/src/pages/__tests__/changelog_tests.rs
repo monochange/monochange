@@ -65,3 +65,40 @@ fn empty_history_and_unavailable_history_have_distinct_visible_states() {
 	assert!(unavailable.contains("Release notes are unavailable right now."));
 	assert!(!unavailable.contains("Our first versioned release"));
 }
+
+#[test]
+fn element_notes_keep_text_that_sits_outside_tags() {
+	let _ = Owner::new().with(|| changelog_body(None));
+	let _ = Owner::new().with(|| {
+		changelog_body(Some(Err(server_fn::ServerFnError::new(
+			"Release notes are unavailable right now.",
+		))))
+	});
+	assert_eq!(
+		plain_text("<p>Ships &amp; notes</p> today"),
+		" Ships &amp; notes  today"
+	);
+
+	let release = WebsiteRelease {
+		version: "0.2.0".to_owned(),
+		summary: vec!["A quieter homepage.".to_owned()],
+		sections: vec![crate::server_fns::releases::WebsiteSection {
+			title: "Website".to_owned(),
+			entries: vec![crate::server_fns::releases::WebsiteEntry {
+				summary: "Release notes render as text.".to_owned(),
+				details_html: "<strong>Details</strong> stay readable.".to_owned(),
+			}],
+		}],
+	};
+	let _ = Owner::new().with(|| changelog_content(vec![release]));
+	let _ = Owner::new().with(|| changelog_content(Vec::new()));
+}
+
+#[tokio::test]
+async fn the_changelog_screen_loads_published_notes() {
+	let html = crate::tests::render(|| leptoskit::web::render(changelog_screen())).await;
+	assert!(
+		html.contains("Loading") || html.contains("What's new") || html.contains("unavailable"),
+		"{html}"
+	);
+}

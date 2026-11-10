@@ -1,38 +1,82 @@
-//! CLI installation and an honest introduction to the GitHub App workflow.
+//! CLI installation and the GitHub App workflow.
 
-use leptos::prelude::*;
-use leptos_meta::Title;
-use leptos_router::LazyRoute;
-use leptos_router::lazy_route;
+use leptoskit::prelude::*;
 
-use crate::components::arrow::ArrowIcon;
 use crate::links::BOOK_URL;
+use crate::ui::heading;
+use crate::ui::link;
+use crate::ui::text;
 
-/// Install page marker, split into its own WASM chunk.
-pub struct InstallRoute;
-
-/// Give visitors a working install path and explain hosted app availability.
-#[lazy_route]
-impl LazyRoute for InstallRoute {
-	fn data() -> Self {
-		Self
+/// Install screen.
+pub fn install_screen() -> Element {
+	let title = heading(1, "Your first release plan starts here.");
+	let intro = text(
+		"Install the CLI, point it at your workspace, and preview what comes next. It's free.",
+	);
+	let cli = heading(2, "Install the CLI");
+	let npm_note = text("The quickest route is the prebuilt npm package.");
+	let npm = text("npm install -g @monochange/cli\nmonochange --help");
+	let cargo_note = text("Prefer Cargo or Nix?");
+	let cargo = text(
+		"cargo install monochange\n\n# Or run with Nix\nnix run github:ifiokjr/nixpkgs#monochange",
+	);
+	let plan = heading(2, "Then make a plan.");
+	let plan_copy = text(
+		"Generate a starter configuration, discover your packages, and walk through your first changeset in the book.",
+	);
+	let book = link(BOOK_URL, "Open the monochange book");
+	let local = text("The first walkthrough stays local. Nothing is published.");
+	let app = heading(2, "A GitHub App, when you want a bot.");
+	let hosted = text(
+		"The hosted workflow lets monochange create release commits and pull requests under its own bot identity.",
+	);
+	let pending = text(
+		"GitHub App installation is being finalized. The CLI is available now; hosted bot operations aren't available yet.",
+	);
+	let later = text(
+		"The book explains repository access, GitHub Actions authentication, and the hosted release configuration for when the app is ready.",
+	);
+	let guide = link(guide_href(), "Read the GitHub App setup guide");
+	view! {
+		<View class="flex flex-col gap-4">
+			{title}
+			{intro}
+			{cli}
+			{npm_note}
+			{npm}
+			{cargo_note}
+			{cargo}
+			{plan}
+			{plan_copy}
+			{book}
+			{local}
+			{app}
+			{hosted}
+			{pending}
+			{later}
+			{guide}
+		</View>
 	}
+}
 
-	fn view(this: Self) -> AnyView {
-		// The route carries no data; discard the payload explicitly.
-		let _ = this;
-		view! {
-			<Title text="Install — monochange" />
-			<section class="site-width install-section">
-				<div class="page-intro"><h1>"Your first release plan" <br /> "starts here."</h1><p>"Install the CLI, point it at your workspace, and preview what comes next. It's free."</p></div>
-				<div class="install-layout">
-					<div class="install-command"><h2>"Install the CLI"</h2><p>"The quickest route is the prebuilt npm package."</p><pre><code>"npm install -g @monochange/cli\nmonochange --help"</code></pre><details><summary>"Prefer Cargo or Nix?"</summary><pre><code>"cargo install monochange\n\n# Or run with Nix\nnix run github:ifiokjr/nixpkgs#monochange"</code></pre></details></div>
-					<div class="install-next"><h2>"Then make a plan."</h2><p>"Generate a starter configuration, discover your packages, and walk through your first changeset in the book."</p><a href=BOOK_URL class="button button-brand">"Open the monochange book" <ArrowIcon /></a><p class="small-note">"The first walkthrough stays local. Nothing is published."</p></div>
-				</div>
-				<section id="github-app" class="github-app-section"><div><h2>"A GitHub App," <br /> "when you want a bot."</h2><p>"The hosted workflow lets monochange create release commits and pull requests under its own bot identity."</p></div><div><p class="availability-note">"GitHub App installation is being finalized. The CLI is available now; hosted bot operations aren't available yet."</p><p>"The book explains repository access, GitHub Actions authentication, and the hosted release configuration for when the app is ready."</p><a href=format!("{BOOK_URL}/guide/github-app") class="text-link">"Read the GitHub App setup guide" <ArrowIcon /></a></div></section>
-			</section>
-		}
-		.into_any()
+fn guide_href() -> String {
+	#[cfg(not(target_arch = "wasm32"))]
+	{
+		let chapter = crate::book::compiled_book()
+			.ok()
+			.and_then(|book| book.chapter("guide/github-app").cloned());
+		fallback_href(chapter.as_ref().map(|chapter| chapter.href.as_str()))
+	}
+	#[cfg(target_arch = "wasm32")]
+	{
+		format!("{BOOK_URL}/guide/github-app")
+	}
+}
+
+fn fallback_href(href: Option<&str>) -> String {
+	match href {
+		Some(href) => href.to_owned(),
+		None => format!("{BOOK_URL}/guide/github-app"),
 	}
 }
 

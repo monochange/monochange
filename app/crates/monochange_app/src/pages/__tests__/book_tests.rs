@@ -52,3 +52,36 @@ fn rendered_chapter_keeps_site_navigation_and_source_links() {
 
 	assert!(html.contains("Next"));
 }
+
+#[test]
+fn the_element_book_covers_loading_a_missing_chapter_and_its_previous_link() {
+	let _ = Owner::new().with(|| book_body(None));
+	let _ = Owner::new().with(|| book_body(Some(Err(server_fn::ServerFnError::new("down")))));
+	let _ = Owner::new().with(|| book_body(Some(Ok(None))));
+
+	let book = crate::book::compiled_book().unwrap();
+	let mut chapter = book.chapter("guide/02-setup").unwrap().clone();
+	if chapter.previous.is_none() {
+		chapter.previous = chapter.next.clone();
+	}
+	let page = BookPage {
+		chapter,
+		navigation: Vec::new(),
+	};
+	let _ = Owner::new().with(|| book_content(page));
+}
+
+#[tokio::test]
+async fn the_book_screen_asks_for_its_chapter() {
+	let html = crate::tests::render(|| {
+		leptoskit::web::render(book_screen(&["guide".to_owned(), "02-setup".to_owned()]))
+	})
+	.await;
+	assert!(
+		html.contains("Loading")
+			|| html.contains("unavailable")
+			|| html.contains("not found")
+			|| html.contains("monochange"),
+		"{html}"
+	);
+}

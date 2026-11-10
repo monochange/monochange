@@ -97,6 +97,98 @@ fn ReleaseHistory(result: Result<Vec<WebsiteRelease>, ServerFnError>) -> impl In
 	}
 }
 
+/// Changelog screen.
+pub fn changelog_screen() -> leptoskit::prelude::Element {
+	let releases =
+		crate::slots::once(|| Resource::new_blocking(|| (), |()| get_website_releases()));
+
+	changelog_body(releases.get())
+}
+
+fn changelog_body(
+	releases: Option<Result<Vec<WebsiteRelease>, server_fn::ServerFnError>>,
+) -> leptoskit::prelude::Element {
+	match releases {
+		None => crate::ui::text("Loading release notes…"),
+		Some(Err(error)) => crate::ui::text(error.to_string()),
+		Some(Ok(releases)) => changelog_content(releases),
+	}
+}
+
+fn changelog_content(releases: Vec<WebsiteRelease>) -> leptoskit::prelude::Element {
+	let mut children = vec![
+		crate::ui::heading(1, "What's new."),
+		crate::ui::text(
+			"Updates that make monochange.dev better for you. The CLI has its own release notes.",
+		),
+		crate::ui::link(
+			"https://github.com/monochange/monochange/releases",
+			"release notes",
+		),
+		crate::ui::heading(2, "Your notes. Your layout."),
+		crate::ui::link(
+			"/book/guide/website-release-notes",
+			"Build your own changelog",
+		),
+	];
+
+	if releases.is_empty() {
+		children.push(crate::ui::heading(
+			2,
+			"Our first versioned release is on its way.",
+		));
+		children.push(crate::ui::text(
+			"This page fills with published website updates as they ship.",
+		));
+	}
+
+	for release in releases {
+		children.push(crate::ui::heading(2, format!("v{}", release.version)));
+		children.push(crate::ui::link(
+			format!("/releases/{}.json", release.version),
+			"View JSON",
+		));
+
+		for summary in release.summary {
+			children.push(crate::ui::text(summary));
+		}
+
+		for section in release.sections {
+			children.push(crate::ui::heading(3, section.title));
+
+			for entry in section.entries {
+				children.push(crate::ui::text(entry.summary));
+				let details = plain_text(&entry.details_html);
+
+				if !details.trim().is_empty() {
+					children.push(crate::ui::text(details));
+				}
+			}
+		}
+	}
+
+	crate::ui::with_children(crate::ui::column("flex flex-col gap-3 p-6"), children)
+}
+
+fn plain_text(html: &str) -> String {
+	let mut text = String::new();
+	let mut inside = false;
+
+	for character in html.chars() {
+		match character {
+			'<' => inside = true,
+			'>' => {
+				inside = false;
+				text.push(' ');
+			}
+			_ if !inside => text.push(character),
+			_ => {}
+		}
+	}
+
+	text
+}
+
 #[cfg(test)]
 #[path = "__tests__/changelog_tests.rs"]
 mod tests;
