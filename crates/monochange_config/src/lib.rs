@@ -2735,11 +2735,19 @@ pub fn build_changeset_load_context<'a>(
 		})
 		.collect::<HashMap<_, _>>();
 	let mut package_reference_matches = HashMap::<String, Vec<&'a str>>::new();
+	let mut configured_id_matches = HashMap::<String, Vec<&'a str>>::new();
 	// Canonicalize the workspace root once instead of re-resolving it for every
 	// package reference below; discovery usually runs this per changeset file.
 	let normalized_root = normalize_path(configuration.root_path.as_path());
 
 	for package in packages {
+		if let Some(config_id) = package.metadata.get("config_id") {
+			configured_id_matches
+				.entry(config_id.clone())
+				.or_default()
+				.push(package.id.as_str());
+		}
+
 		for reference in changeset_package_references(&normalized_root, package) {
 			package_reference_matches
 				.entry(reference)
@@ -2747,6 +2755,9 @@ pub fn build_changeset_load_context<'a>(
 				.push(package.id.as_str());
 		}
 	}
+
+	// Explicit IDs identify one configured target even when published names overlap.
+	package_reference_matches.extend(configured_id_matches);
 
 	let mut change_types_by_target = HashMap::new();
 
@@ -3532,6 +3543,7 @@ fn infer_bump_from_versions(current_version: &Version, explicit_version: &Versio
 
 #[must_use = "the resolution result must be checked"]
 /// Resolve a package reference without a pre-built context.
+/// Explicit configured IDs take precedence over published-name matches.
 ///
 /// Prefer [`resolve_package_reference_with_context`] for batch changeset loading
 /// as it reuses pre-computed lookup maps instead of scanning all packages on each call.
@@ -7593,6 +7605,21 @@ fn find_matching_package_ids(
 	root: &Path,
 	packages: &[PackageRecord],
 ) -> Vec<String> {
+	let configured_ids: Vec<_> = packages
+		.iter()
+		.filter(|package| {
+			package
+				.metadata
+				.get("config_id")
+				.is_some_and(|config_id| config_id == reference)
+		})
+		.map(|package| package.id.clone())
+		.collect();
+
+	if !configured_ids.is_empty() {
+		return configured_ids;
+	}
+
 	packages
 		.iter()
 		.filter(|package| package_matches_reference(package, root, reference))
