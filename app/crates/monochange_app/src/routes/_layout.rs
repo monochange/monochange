@@ -1,4 +1,6 @@
-//! Site chrome: a stack back control, a tab row, and the page.
+//! Site chrome: a stack back control and the page.
+//!
+//! The tab bar is `navigator()`, which the file router shells around this layout.
 
 use leptoskit::native::Role;
 use leptoskit::prelude::*;
@@ -9,8 +11,7 @@ use crate::ui::link;
 use crate::ui::text;
 use crate::ui::text_class;
 
-/// Tab bar for the public site. The file router on leptoskit `fa3d29f` wraps
-/// this layout with the bar; selecting a tab replaces history instead of
+/// Tab bar for the public site. Selecting a tab replaces history instead of
 /// pushing it.
 pub fn navigator() -> leptoskit_router::navigators::Tabs<crate::routes::Route> {
 	use leptoskit_router::navigators::Tab;
@@ -26,29 +27,35 @@ pub fn navigator() -> leptoskit_router::navigators::Tabs<crate::routes::Route> {
 	.placement(TabPlacement::Top)
 }
 
-/// Wraps every screen. `navigation` is the file-router stack: Back pops it,
-/// and each tab link pushes the next screen.
+/// Wraps every screen. `navigation` is the file-router stack: Back pops it.
 pub fn layout(children: Children, navigation: &crate::routes::Navigation) -> Element {
 	let current = navigation.current();
 	let on_home = matches!(current, crate::routes::Route::Index);
+	let skip = skip_link();
+	let header = header(on_home);
+	let back = back_control(navigation);
+	let main = main_content(children);
+	let footer = footer();
 
-	View()
-		.class("flex min-h-screen flex-col bg-white")
-		.child(skip_link())
-		.child(header(on_home))
-		.child(back_control(navigation))
-		.child(main_content(children))
-		.child(footer())
+	view! {
+		<View class="flex min-h-screen flex-col bg-white">
+			{skip}
+			{header}
+			{back}
+			{main}
+			{footer}
+		</View>
+	}
 }
 
 fn main_content(children: Children) -> Element {
 	let mut collected = Vec::new();
 	children.append_to(&mut collected);
-	View()
-		.role(Role::Main)
-		.aria_label("Content")
-		.class("flex flex-col gap-6 p-6")
-		.children(collected)
+	view! {
+		<View role=Role::Main aria_label="Content" class="flex flex-col gap-6 p-6">
+			{collected}
+		</View>
+	}
 }
 
 fn skip_link() -> Element {
@@ -57,33 +64,43 @@ fn skip_link() -> Element {
 
 fn back_control(navigation: &crate::routes::Navigation) -> Element {
 	if !navigation.can_go_back() {
-		return View();
+		return view! { <View /> };
 	}
 
 	let navigation = navigation.clone();
-	Button("Back")
-		.class("rounded-lg px-4 py-2 font-semibold text-slate-900")
-		.on_press(move || {
-			navigation.back();
-		})
+	view! {
+		<Button
+			class="rounded-lg px-4 py-2 font-semibold text-slate-900"
+			on:press=move || {
+				navigation.back();
+			}
+		>
+			"Back"
+		</Button>
+	}
 }
 
 fn header(on_home: bool) -> Element {
 	let brand = if on_home { "monochange" } else { "monochange" };
-	View()
-		.role(Role::Banner)
-		.class(
-			"flex flex-row flex-wrap items-center justify-between gap-4 border border-slate-200 p-4",
-		)
-		.child(
-			View()
-				.role(Role::Navigation)
-				.aria_label("Main navigation")
-				.class("flex flex-row flex-wrap items-center gap-4")
-				.child(link("/", brand))
-				.child(link(BOOK_URL, "Docs"))
-				.child(session_link()),
-		)
+	let brand = link("/", brand);
+	let docs = link(BOOK_URL, "Docs");
+	let session = session_link();
+	view! {
+		<View
+			role=Role::Banner
+			class="flex flex-row flex-wrap items-center justify-between gap-4 border border-slate-200 p-4"
+		>
+			<View
+				role=Role::Navigation
+				aria_label="Main navigation"
+				class="flex flex-row flex-wrap items-center gap-4"
+			>
+				{brand}
+				{docs}
+				{session}
+			</View>
+		</View>
+	}
 }
 
 fn session_link() -> Element {
@@ -91,10 +108,14 @@ fn session_link() -> Element {
 
 	match crate::slots::session().get() {
 		Some(Ok(Some(_user))) => {
-			crate::ui::with_children(
-				View().class("flex flex-row gap-4"),
-				[link("/dashboard", "Dashboard"), sign_out_button()],
-			)
+			let dashboard = link("/dashboard", "Dashboard");
+			let sign_out = sign_out_button();
+			view! {
+				<View class="flex flex-row gap-4">
+					{dashboard}
+					{sign_out}
+				</View>
+			}
 		}
 		Some(Ok(None)) | None => link("/login", "Sign in"),
 		Some(Err(_)) => link("/login", "Sign in again"),
@@ -102,38 +123,50 @@ fn session_link() -> Element {
 }
 
 fn sign_out_button() -> Element {
-	Button("Sign out")
-		.class("rounded-lg px-4 py-2 font-semibold text-slate-900")
-		.on_press(|| {
-			leptos::task::spawn_local(async {
-				let _ = crate::server_fns::auth::logout().await;
-			});
-		})
+	view! {
+		<Button
+			class="rounded-lg px-4 py-2 font-semibold text-slate-900"
+			on:press=|| {
+				leptos::task::spawn_local(async {
+					let _ = crate::server_fns::auth::logout().await;
+				});
+			}
+		>
+			"Sign out"
+		</Button>
+	}
 }
 
 fn footer() -> Element {
-	View()
-		.role(Role::ContentInfo)
-		.class("flex flex-col gap-4 border border-slate-200 p-6")
-		.child(text_class(
-			"text-slate-600",
-			"Ship every package from one floor.",
-		))
-		.child(
-			View()
-				.role(Role::Navigation)
-				.aria_label("Footer navigation")
-				.class("flex flex-row flex-wrap gap-4")
-				.child(link("/install", "Install"))
-				.child(link(BOOK_URL, "Read the book"))
-				.child(link("/changelog", "Changelog"))
-				.child(link("/pricing", "It's free"))
-				.child(link(SOURCE_URL, "GitHub"))
-				.child(link("https://github.com/ifiokjr", "Ifiok Jr."))
-				.child(link(
-					"/changelog",
-					&format!("Website v{}", env!("CARGO_PKG_VERSION")),
-				)),
-		)
-		.child(text("Free and open source."))
+	let tagline = text_class("text-slate-600", "Ship every package from one floor.");
+	let install = link("/install", "Install");
+	let book = link(BOOK_URL, "Read the book");
+	let changelog = link("/changelog", "Changelog");
+	let pricing = link("/pricing", "It's free");
+	let source = link(SOURCE_URL, "GitHub");
+	let author = link("https://github.com/ifiokjr", "Ifiok Jr.");
+	let version = link(
+		"/changelog",
+		&format!("Website v{}", env!("CARGO_PKG_VERSION")),
+	);
+	let license = text("Free and open source.");
+	view! {
+		<View role=Role::ContentInfo class="flex flex-col gap-4 border border-slate-200 p-6">
+			{tagline}
+			<View
+				role=Role::Navigation
+				aria_label="Footer navigation"
+				class="flex flex-row flex-wrap gap-4"
+			>
+				{install}
+				{book}
+				{changelog}
+				{pricing}
+				{source}
+				{author}
+				{version}
+			</View>
+			{license}
+		</View>
+	}
 }

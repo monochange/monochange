@@ -1,6 +1,7 @@
 //! Connected repositories, with explicit loading and unavailable states.
 
-use leptos::prelude::*;
+use leptos::prelude::Get;
+use leptos::prelude::Resource;
 use leptoskit::native::Role;
 use leptoskit::prelude::*;
 
@@ -68,13 +69,20 @@ pub fn dashboard_screen(search: Option<String>, organization: Option<String>) ->
 }
 
 fn notice(title: &'static str, message: &'static str) -> Element {
-	View()
-		.class("flex flex-col gap-4")
-		.child(image("/branding/mark.svg"))
-		.child(heading(1, title))
-		.child(text(message))
-		.child(link("/login", "Sign in with GitHub"))
-		.child(link(BOOK_URL, "Read the book"))
+	let mark = image("/branding/mark.svg");
+	let title = heading(1, title);
+	let message = text(message);
+	let sign_in = link("/login", "Sign in with GitHub");
+	let book = link(BOOK_URL, "Read the book");
+	leptoskit::view! {
+		<View class="flex flex-col gap-4">
+			{mark}
+			{title}
+			{message}
+			{sign_in}
+			{book}
+		</View>
+	}
 }
 
 fn workspace(
@@ -99,63 +107,65 @@ fn workspace(
 		format!("{} connected", repository_count(repository_total))
 	};
 
-	let mut page = View()
-		.class("flex flex-col gap-4")
-		.child(avatar(user.github_avatar_url.clone(), &user.github_login))
-		.child(Text(format!("Welcome, {}", user.github_login)))
-		.child(text("Your free monochange workspace."))
-		.child(permission_notice(permissions))
-		.child(connection_panel(connection))
-		.child(heading(2, "Organisations"))
-		.child(Text(heading_count));
+	let mut children = vec![
+		avatar(user.github_avatar_url.clone(), &user.github_login),
+		leptoskit::view! { <Text>{format!("Welcome, {}", user.github_login)}</Text> },
+		text("Your free monochange workspace."),
+		permission_notice(permissions),
+		connection_panel(connection),
+		heading(2, "Organisations"),
+		leptoskit::view! { <Text>{heading_count}</Text> },
+	];
 
 	if organizations.is_empty() {
-		page = page
-			.child(heading(3, "No repositories connected yet"))
-			.child(text(
-				"The installation guide explains GitHub App availability and repository setup.",
-			))
-			.child(link("/install#github-app", "Read the setup guide"));
+		children.push(heading(3, "No repositories connected yet"));
+		children.push(text(
+			"The installation guide explains GitHub App availability and repository setup.",
+		));
+		children.push(link("/install#github-app", "Read the setup guide"));
 	} else {
-		page = page.child(filters(&filter, &organizations));
+		children.push(filters(&filter, &organizations));
 		for organization in &organizations {
-			page = page.child(organization_card(organization, &filter));
+			children.push(organization_card(organization, &filter));
 		}
 		if matches == 0 {
-			page = page
-				.child(heading(3, "No repositories match"))
-				.child(text("Try a shorter name, or look in every account."))
-				.child(link("/dashboard", "Clear filters"));
+			children.push(heading(3, "No repositories match"));
+			children.push(text("Try a shorter name, or look in every account."));
+			children.push(link("/dashboard", "Clear filters"));
 		}
 	}
 
-	page.child(heading(2, "Plan a release from your CLI."))
-		.child(text(
-			"Use the CLI locally or in your existing CI workflow to configure and review each repository's release plan.",
-		))
-		.child(link(BOOK_URL, "Open the monochange book"))
+	children.push(heading(2, "Plan a release from your CLI."));
+	children.push(text(
+		"Use the CLI locally or in your existing CI workflow to configure and review each repository's release plan.",
+	));
+	children.push(link(BOOK_URL, "Open the monochange book"));
+	leptoskit::view! { <View class="flex flex-col gap-4">{children}</View> }
 }
 
 fn filters(filter: &RepositoryFilter, organizations: &[OrganizationSummary]) -> Element {
-	let mut row = View()
-		.role(Role::Search)
-		.aria_label("Filter repositories")
-		.class("flex flex-row flex-wrap gap-2")
-		.child(Text(format!("Search repositories {}", filter.search)));
-
+	let query = format!("Search repositories {}", filter.search);
+	let mut children = vec![leptoskit::view! { <Text>{query}</Text> }];
 	if organizations.len() > 1 {
-		row = row.child(link("/dashboard", "All accounts"));
+		children.push(link("/dashboard", "All accounts"));
 		for organization in organizations {
 			let href = RepositoryFilter {
 				search: filter.search.clone(),
 				organization: Some(organization.login.clone()),
 			}
 			.href("/dashboard");
-			row = row.child(link(href, &organization.login));
+			children.push(link(href, &organization.login));
 		}
 	}
-
-	row
+	leptoskit::view! {
+		<View
+			role=Role::Search
+			aria_label="Filter repositories"
+			class="flex flex-row flex-wrap gap-2"
+		>
+			{children}
+		</View>
+	}
 }
 
 fn organization_card(organization: &OrganizationSummary, filter: &RepositoryFilter) -> Element {
@@ -179,27 +189,28 @@ fn organization_card(organization: &OrganizationSummary, filter: &RepositoryFilt
 	} else {
 		format!("{kind} · {} · {projects}", repository_count(total))
 	};
-	let mut card = View()
-		.class("flex flex-col gap-2")
-		.child(avatar(organization.avatar_url.clone(), &organization.login))
-		.child(Text(organization.login.clone()))
-		.child(Text(summary))
-		.child(link(
+	let login = organization.login.clone();
+	let mut children = vec![
+		avatar(organization.avatar_url.clone(), &organization.login),
+		leptoskit::view! { <Text>{login}</Text> },
+		leptoskit::view! { <Text>{summary}</Text> },
+		link(
 			organization.path(),
 			&format!("Open {} to manage projects", organization.login),
-		));
+		),
+	];
 
 	if matches > 0 || !filter.is_active() {
 		for repository in &organization.repositories {
 			if crate::repository_filter::matches_search(repository, &filter.search)
 				&& filter.includes_organization(&organization.login)
 			{
-				card = card.child(repository_row(repository));
+				children.push(repository_row(repository));
 			}
 		}
 	}
 
-	card
+	leptoskit::view! { <View class="flex flex-col gap-2">{children}</View> }
 }
 
 fn repository_row(repository: &crate::server_fns::repos::RepoInfo) -> Element {
@@ -207,19 +218,22 @@ fn repository_row(repository: &crate::server_fns::repos::RepoInfo) -> Element {
 		.github_full_name
 		.rsplit_once('/')
 		.map_or(repository.github_full_name.as_str(), |(_, name)| name);
-	let mut row = View()
-		.class("flex flex-row gap-2")
-		.child(Text(name).aria_label(repository.github_full_name.clone()))
-		.child(Text(repository.github_full_name.clone()));
+	let label = repository.github_full_name.clone();
+	let full_name = repository.github_full_name.clone();
+	let mut children = vec![
+		leptoskit::view! { <Text aria_label=label>{name}</Text> },
+		leptoskit::view! { <Text>{full_name}</Text> },
+	];
 	if repository.installation_suspended {
-		row = row.child(text("Installation suspended"));
+		children.push(text("Installation suspended"));
 	}
 	let visibility = if repository.github_private {
 		"Private"
 	} else {
 		"Public"
 	};
-	row.child(text(visibility))
+	children.push(text(visibility));
+	leptoskit::view! { <View class="flex flex-row gap-2">{children}</View> }
 }
 
 /// The account's avatar, or its initial when GitHub hasn't sent one.
@@ -238,38 +252,41 @@ pub fn OrganizationAvatar(
 
 fn avatar(avatar_url: Option<String>, login: &str) -> Element {
 	if let Some(url) = avatar_url {
-		return Image(url).aria_label("");
+		return leptoskit::view! { <Image source=url aria_label="" /> };
 	}
 	let initial = login
 		.chars()
 		.next()
 		.map_or('?', |character| character.to_ascii_uppercase());
-	Text(initial.to_string()).aria_label(login)
+	let initial = initial.to_string();
+	let login = login.to_owned();
+	leptoskit::view! { <Text aria_label=login>{initial}</Text> }
 }
 
 fn permission_notice(
 	permissions: Resource<Result<Vec<PermissionUpdate>, server_fn::ServerFnError>>,
 ) -> Element {
 	let Some(Ok(updates)) = permissions.get() else {
-		return View();
+		return leptoskit::view! { <View /> };
 	};
 	if updates.is_empty() {
-		return View();
+		return leptoskit::view! { <View /> };
 	}
 
-	let mut section = View()
-		.class("flex flex-col gap-2")
-		.child(heading(2, "Approve monochange's new GitHub permissions"))
-		.child(text(
+	let mut children = vec![
+		heading(2, "Approve monochange's new GitHub permissions"),
+		text(
 			"monochange now asks GitHub for more access. Until an owner of each account below approves the request, monochange keeps the access it has today. You don't need to sign in again.",
-		));
+		),
+	];
 	for update in updates {
-		section = section
-			.child(Text(update.account))
-			.child(Text(update.missing))
-			.child(link(update.review_url, "Review on GitHub"));
+		let account = update.account;
+		let missing = update.missing;
+		children.push(leptoskit::view! { <Text>{account}</Text> });
+		children.push(leptoskit::view! { <Text>{missing}</Text> });
+		children.push(link(update.review_url, "Review on GitHub"));
 	}
-	section
+	leptoskit::view! { <View class="flex flex-col gap-2">{children}</View> }
 }
 
 fn connection_panel(
@@ -277,34 +294,58 @@ fn connection_panel(
 ) -> Element {
 	match connection.get() {
 		None => text("Loading repository setup…"),
-		Some(Ok(RepositoryConnectionStatus::Available { installation_url })) => View()
-			.class("flex flex-col gap-2")
-			.child(heading(2, "Connect your repositories"))
-			.child(text(
+		Some(Ok(RepositoryConnectionStatus::Available { installation_url })) => {
+			let title = heading(2, "Connect your repositories");
+			let copy = text(
 				"Choose all repositories or selected repositories on GitHub, then return to your workspace. Organization repositories are visible to the installer while they remain an organization owner.",
-			))
-			.child(link(installation_url, "Connect repositories on GitHub")),
-		Some(Ok(RepositoryConnectionStatus::Unavailable)) => View()
-			.class("flex flex-col gap-2")
-			.child(heading(2, "Repository connection is unavailable"))
-			.child(text(
+			);
+			let action = link(installation_url, "Connect repositories on GitHub");
+			leptoskit::view! {
+				<View class="flex flex-col gap-2">
+					{title}
+					{copy}
+					{action}
+				</View>
+			}
+		}
+		Some(Ok(RepositoryConnectionStatus::Unavailable)) => {
+			let title = heading(2, "Repository connection is unavailable");
+			let copy = text(
 				"The GitHub App isn't configured on this deployment yet. You can use the CLI while repository connection is being set up.",
-			)),
-		Some(Ok(RepositoryConnectionStatus::SignedOut)) => link("/login", "Sign in to connect repositories"),
-		Some(Err(_)) => View()
-			.class("flex flex-col gap-2")
-			.child(heading(2, "Repository setup couldn't be loaded"))
-			.child(text("Please reload the page to try again."))
-			.child(retry(connection)),
+			);
+			leptoskit::view! {
+				<View class="flex flex-col gap-2">
+					{title}
+					{copy}
+				</View>
+			}
+		}
+		Some(Ok(RepositoryConnectionStatus::SignedOut)) => {
+			link("/login", "Sign in to connect repositories")
+		}
+		Some(Err(_)) => {
+			let title = heading(2, "Repository setup couldn't be loaded");
+			let copy = text("Please reload the page to try again.");
+			let action = retry(connection);
+			leptoskit::view! {
+				<View class="flex flex-col gap-2">
+					{title}
+					{copy}
+					{action}
+				</View>
+			}
+		}
 	}
 }
 
 fn retry(
 	connection: Resource<Result<RepositoryConnectionStatus, server_fn::ServerFnError>>,
 ) -> Element {
-	Button("Try again")
-		.class("rounded-lg px-4 py-2 font-semibold")
-		.on_press(move || connection.refetch())
+	leptoskit::view! {
+		<Button class="rounded-lg px-4 py-2 font-semibold" on:press=move || connection.refetch()>
+			"Try again"
+		</Button>
+	}
 }
 
 #[cfg(test)]

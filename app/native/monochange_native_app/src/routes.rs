@@ -59,6 +59,18 @@ impl ::leptoskit_router::Routable for Route {
 		}
 	}
 }
+/// Paths for `leptos_axum::LeptosRoutes::leptos_routes`.
+#[allow(
+	dead_code,
+	reason = "client-rendered apps do not need the SSR route list"
+)]
+pub fn axum_route_list() -> ::std::vec::Vec<::std::string::String> {
+	::std::vec![
+		::leptoskit_router::Pattern::new(&[]).axum_path(),
+		::leptoskit_router::Pattern::new(&[::leptoskit_router::Segment::Static("install")])
+			.axum_path()
+	]
+}
 /// The app's router: pages and layouts that take a `navigation` prop
 /// receive it, to navigate with and to build links.
 pub type Navigation = ::leptoskit_router::Router<Route>;
@@ -67,17 +79,29 @@ impl ::leptoskit_router::Render for Route {
 		match self {
 			Self::Index => {
 				let view = ::leptoskit_router::__private::IntoView::into_view(index::page());
-				::leptoskit_router::__private::IntoView::into_view(layout::layout(
-					::leptoskit_router::__private::Fragment::new().with(view),
-					navigation,
-				))
+				::leptoskit_router::__private::IntoView::into_view({
+					let view = ::leptoskit_router::__private::IntoView::into_view(layout::layout(
+						::leptoskit_router::__private::Fragment::new().with(view),
+						navigation,
+					));
+					::leptoskit_router::navigators::IntoNavigator::into_navigator(
+						layout::navigator(),
+					)
+					.shell(view, navigation, self)
+				})
 			}
 			Self::Install => {
 				let view = ::leptoskit_router::__private::IntoView::into_view(install::page());
-				::leptoskit_router::__private::IntoView::into_view(layout::layout(
-					::leptoskit_router::__private::Fragment::new().with(view),
-					navigation,
-				))
+				::leptoskit_router::__private::IntoView::into_view({
+					let view = ::leptoskit_router::__private::IntoView::into_view(layout::layout(
+						::leptoskit_router::__private::Fragment::new().with(view),
+						navigation,
+					));
+					::leptoskit_router::navigators::IntoNavigator::into_navigator(
+						layout::navigator(),
+					)
+					.shell(view, navigation, self)
+				})
 			}
 		}
 	}

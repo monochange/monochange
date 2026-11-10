@@ -374,7 +374,10 @@ in
         cargo bin cargo-llvm-cov report --ignore-filename-regex 'crates/xtask/' --summary-only --fail-under-lines 70
         cargo bin cargo-llvm-cov report --ignore-filename-regex 'crates/xtask/' --lcov --output-path target/coverage/workspace.lcov
         # The web app is a separate Cargo workspace; include its changed Rust lines in the patch gate.
-        cargo bin cargo-llvm-cov test --manifest-path app/Cargo.toml --workspace --lib --tests --no-report
+        # monochange_app compiles the leptoskit server renderer only with `ssr`, and a
+        # workspace-wide `--features ssr` fails for crates that do not define that feature.
+        cargo bin cargo-llvm-cov test --manifest-path app/Cargo.toml --workspace --exclude monochange_app --lib --tests --no-report
+        cargo bin cargo-llvm-cov test --manifest-path app/Cargo.toml -p monochange_app --features ssr --lib --tests --no-report
         cargo bin cargo-llvm-cov report --manifest-path app/Cargo.toml --lcov --output-path target/coverage/app.lcov
         cat target/coverage/workspace.lcov target/coverage/app.lcov > target/coverage/lcov.info
       '';

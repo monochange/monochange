@@ -2,6 +2,8 @@
 
 use leptoskit::prelude::*;
 
+use crate::screens::home::Home;
+
 pub fn page() -> Element {
-	crate::screens::home::Home()
+	view! { <Home /> }
 }

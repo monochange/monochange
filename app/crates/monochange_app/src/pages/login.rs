@@ -1,9 +1,8 @@
 //! GitHub sign-in and the OAuth callback.
 
-use leptos::prelude::*;
-use leptoskit::prelude::Element;
-use leptoskit::prelude::Text;
-use leptoskit::prelude::View;
+use leptos::prelude::Get;
+use leptos::prelude::Resource;
+use leptoskit::prelude::*;
 
 use crate::links::BOOK_URL;
 use crate::server_fns::auth::exchange_code;
@@ -25,30 +24,41 @@ pub fn login_screen(next: Option<String>) -> Element {
 	});
 	let for_portal = next.as_deref().is_some_and(|next| next.starts_with("/p/"));
 
-	let mut column = View().class("flex flex-col gap-4 p-6");
-	column = if for_portal {
-		column
-			.child(heading(1, "Your voice, counted once."))
-			.child(text(
-				"Sign in to share feedback, vote, and follow it until it ships. Your GitHub name isn't shown on the project's page.",
-			))
+	let intro = if for_portal {
+		leptoskit::view! {
+			<View>
+				{heading(1, "Your voice, counted once.")}
+				{text(
+					"Sign in to share feedback, vote, and follow it until it ships. Your GitHub name isn't shown on the project's page.",
+				)}
+			</View>
+		}
 	} else {
-		column
-			.child(heading(1, "Your workspace, all together."))
-			.child(text(
-				"Sign in to see your connected repositories and manage your monochange workspace.",
-			))
-			.child(link(BOOK_URL, "Just looking for the CLI? Read the book."))
+		leptoskit::view! {
+			<View>
+				{heading(1, "Your workspace, all together.")}
+				{text(
+					"Sign in to see your connected repositories and manage your monochange workspace.",
+				)}
+				{link(BOOK_URL, "Just looking for the CLI? Read the book.")}
+			</View>
+		}
 	};
-
-	column
-		.child(image("/branding/mark.svg"))
-		.child(heading(2, "Sign in to monochange"))
-		.child(text("Use your GitHub account to continue."))
-		.child(login_action(login_url))
-		.child(text(
-			"GitHub will show the account access requested before you continue.",
-		))
+	let mark = image("/branding/mark.svg");
+	let sign_in = heading(2, "Sign in to monochange");
+	let continue_copy = text("Use your GitHub account to continue.");
+	let action = login_action(login_url);
+	let notice = text("GitHub will show the account access requested before you continue.");
+	leptoskit::view! {
+		<View class="flex flex-col gap-4 p-6">
+			{intro}
+			{mark}
+			{sign_in}
+			{continue_copy}
+			{action}
+			{notice}
+		</View>
+	}
 }
 
 fn login_action(login_url: Resource<String>) -> Element {
@@ -85,18 +95,27 @@ pub fn callback_screen(code: Option<String>, state: Option<String>) -> Element {
 	match result.get() {
 		None => text("Completing sign in..."),
 		Some(Ok(user)) => {
-			View()
-				.class("flex flex-col gap-4")
-				.child(heading(2, "Signed in!"))
-				.child(Text(format!("Welcome, {}!", user.github_login)))
-				.child(link("/dashboard", "Go to dashboard"))
+			let title = heading(2, "Signed in!");
+			let welcome = format!("Welcome, {}!", user.github_login);
+			let dashboard = link("/dashboard", "Go to dashboard");
+			leptoskit::view! {
+				<View class="flex flex-col gap-4">
+					{title}
+					<Text>{welcome}</Text>
+					{dashboard}
+				</View>
+			}
 		}
 		Some(Err(error)) => {
-			View()
-				.class("flex flex-col gap-4")
-				.child(heading(2, "Sign in failed"))
-				.child(Text(error))
-				.child(link("/login", "Try again"))
+			let title = heading(2, "Sign in failed");
+			let retry = link("/login", "Try again");
+			leptoskit::view! {
+				<View class="flex flex-col gap-4">
+					{title}
+					<Text>{error}</Text>
+					{retry}
+				</View>
+			}
 		}
 	}
 }

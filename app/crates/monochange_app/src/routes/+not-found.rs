@@ -8,14 +8,19 @@ use crate::ui::text;
 
 pub fn page(route: &leptoskit_router::NotFound) -> Element {
 	mark_not_found();
-	View()
-		.class("flex flex-col gap-4")
-		.child(heading(1, "Page not found"))
-		.child(text(format!(
-			"/{} isn't part of monochange.",
-			route.path.join("/")
-		)))
-		.child(link("/", "Back to monochange"))
+	let title = heading(1, "Page not found");
+	let detail = text(format!(
+		"/{} isn't part of monochange.",
+		route.path.join("/")
+	));
+	let home = link("/", "Back to monochange");
+	view! {
+		<View class="flex flex-col gap-4">
+			{title}
+			{detail}
+			{home}
+		</View>
+	}
 }
 
 fn mark_not_found() {

@@ -52,84 +52,91 @@ pub fn home_screen() -> Element {
 	let href = workspace_href_for(leptos::prelude::Get::get(&crate::slots::session()));
 	let shared = RwSignal::new(false);
 
-	View()
-		.class("flex flex-col gap-6")
-		.child(heading(1, "Ship every package from one floor."))
-		.child(text(
-			"Coordinate projects, releases, and feedback across the ecosystems you already ship.",
-		))
-		.child(link(href, "Open your workspace"))
-		.child(heading(2, "The product floor"))
-		.child(heading(2, "One plan across packages"))
-		.child(heading(2, "Different ecosystems."))
-		.child(text("Same plan."))
-		.child(text("Cargo"))
-		.child(text("Rust crates"))
-		.child(text("npm"))
-		.child(text("JavaScript & TypeScript"))
-		.child(text("Dart"))
-		.child(text("Dart & Flutter packages"))
-		.child(text("Python"))
-		.child(text("Python packages"))
-		.child(text("Go"))
-		.child(text("Go modules"))
-		.child(text("Deno"))
-		.child(text("Deno & JSR packages"))
-		.child(heading(2, "Know what ships."))
-		.child(text("Before you ship it."))
-		.child(text("monochange preview"))
-		.child(link(BOOK_URL, "Follow your first release plan"))
-		.child(heading(3, "Describe the change"))
-		.child(heading(3, "See the whole plan"))
-		.child(heading(3, "Release on your terms"))
-		.child(link(
-			"/install#github-app",
-			"Explore the GitHub App workflow",
-		))
-		.child(image("/branding/mark.svg"))
-		.child(heading(2, "Make the next release less complicated."))
-		.child(link("/install", "Get started for free"))
-		.child(link(SOURCE_URL, "Explore the source"))
-		.child(release_manifest(shared))
+	let title = heading(1, "Ship every package from one floor.");
+	let intro =
+		text("Coordinate projects, releases, and feedback across the ecosystems you already ship.");
+	let workspace = link(href, "Open your workspace");
+	let floor = heading(2, "The product floor");
+	let plan = heading(2, "One plan across packages");
+	let ecosystems = heading(2, "Different ecosystems.");
+	let same = text("Same plan.");
+	let manifest = release_manifest(shared);
+	view! {
+		<View class="flex flex-col gap-6">
+			{title}
+			{intro}
+			{workspace}
+			{floor}
+			{plan}
+			{ecosystems}
+			{same}
+			{text("Cargo")}
+			{text("Rust crates")}
+			{text("npm")}
+			{text("JavaScript & TypeScript")}
+			{text("Dart")}
+			{text("Dart & Flutter packages")}
+			{text("Python")}
+			{text("Python packages")}
+			{text("Go")}
+			{text("Go modules")}
+			{text("Deno")}
+			{text("Deno & JSR packages")}
+			{heading(2, "Know what ships.")}
+			{text("Before you ship it.")}
+			{text("monochange preview")}
+			{link(BOOK_URL, "Follow your first release plan")}
+			{heading(3, "Describe the change")}
+			{heading(3, "See the whole plan")}
+			{heading(3, "Release on your terms")}
+			{link("/install#github-app", "Explore the GitHub App workflow")}
+			{image("/branding/mark.svg")}
+			{heading(2, "Make the next release less complicated.")}
+			{link("/install", "Get started for free")}
+			{link(SOURCE_URL, "Explore the source")}
+			{manifest}
+		</View>
+	}
 }
 
 fn release_manifest(shared: RwSignal<bool>) -> Element {
 	let individual = shared;
 	let shared_press = shared;
-	View()
-		.class("flex flex-col gap-4 rounded-xl border border-slate-200 p-6")
-		.child(heading(2, "Your next release"))
-		.child(text("Example workspace"))
-		.child(
-			View()
-				.aria_label("Example version strategy")
-				.class("flex flex-row flex-wrap gap-2")
-				.child(
-					Button("Individual versions")
-						.class("rounded-lg px-4 py-2 font-bold")
-						.on_press(move || individual.set(false)),
-				)
-				.child(
-					Button("Shared version")
-						.class("rounded-lg bg-teal-700 px-4 py-2 font-bold text-white")
-						.on_press(move || shared_press.set(true)),
-				),
-		)
-		.child(text("@acme/ui"))
-		.child(text("npm"))
-		.child(text("1.4.2"))
-		.child(text("1.5.0"))
-		.child(text("acme-core"))
-		.child(text("Cargo"))
-		.child(Text(move || core_versions(shared.get()).0.to_owned()))
-		.child(Text(move || core_versions(shared.get()).1.to_owned()))
-		.child(text("acme-mobile"))
-		.child(text("Dart"))
-		.child(Text(move || mobile_versions(shared.get()).0.to_owned()))
-		.child(Text(move || mobile_versions(shared.get()).1.to_owned()))
-		.child(Text(move || strategy_copy(shared.get()).to_owned()))
-		.child(text("Preview first."))
-		.child(text("Publish when ready."))
+	view! {
+		<View class="flex flex-col gap-4 rounded-xl border border-slate-200 p-6">
+			{heading(2, "Your next release")}
+			{text("Example workspace")}
+			<View aria_label="Example version strategy" class="flex flex-row flex-wrap gap-2">
+				<Button
+					class="rounded-lg px-4 py-2 font-bold"
+					on:press=move || individual.set(false)
+				>
+					"Individual versions"
+				</Button>
+				<Button
+					class="rounded-lg bg-teal-700 px-4 py-2 font-bold text-white"
+					on:press=move || shared_press.set(true)
+				>
+					"Shared version"
+				</Button>
+			</View>
+			{text("@acme/ui")}
+			{text("npm")}
+			{text("1.4.2")}
+			{text("1.5.0")}
+			{text("acme-core")}
+			{text("Cargo")}
+			<Text>{move || core_versions(shared.get()).0.to_owned()}</Text>
+			<Text>{move || core_versions(shared.get()).1.to_owned()}</Text>
+			{text("acme-mobile")}
+			{text("Dart")}
+			<Text>{move || mobile_versions(shared.get()).0.to_owned()}</Text>
+			<Text>{move || mobile_versions(shared.get()).1.to_owned()}</Text>
+			<Text>{move || strategy_copy(shared.get()).to_owned()}</Text>
+			{text("Preview first.")}
+			{text("Publish when ready.")}
+		</View>
+	}
 }
 
 #[cfg(test)]
