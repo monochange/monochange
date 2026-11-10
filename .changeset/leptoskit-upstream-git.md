@@ -15,3 +15,5 @@ devenv shell lint:leptoskit
 cargo install --git https://github.com/leptoskit/leptoskit \
   --rev a93214edc8e5f6c7999c628285093f15cf188639 --locked --force leptoskit_cli
 ```
+
+The web app additionally pins `wasm-bindgen` to `=0.2.129` (with its `js-sys`/`web-sys` family resolving to 0.3.106) to match the bindgen ABI the pinned CLI generates against. Floating `0.2` resolved 0.2.130, whose generated JS glue imports a `__wbindgen_externref_xform__` module specifier the served bundle does not provide, so every route failed hydration in the browser with `TypeError: Failed to resolve module specifier "__wbindgen_externref_xform__"` while the build and size budgets still passed. The extension already carried the same pin.

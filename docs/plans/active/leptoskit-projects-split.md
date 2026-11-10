@@ -132,3 +132,13 @@ The first implementation selected the managed CLI with `find .bin ... | sort | t
 ## Decision trail
 
 See [leptoskit-projects-split.decisions.tsv](leptoskit-projects-split.decisions.tsv).
+
+## CI correction: browser bindgen compatibility (2026-11-10)
+
+The dependency layer's floating `wasm-bindgen = "0.2"` resolved 0.2.130. Its generated module imported the unserved bare specifier `__wbindgen_externref_xform__`, and CI rejected hydration on every benchmarked route. Pinning the app to `=0.2.129`, already used by the extension and verified platform layer, resolves its matching macro, futures, js-sys, and web-sys packages without changing Leptoskit's reviewed source. Two incidental Windows dependency selections from the selective Cargo update were restored to keep this correction scoped.
+
+The retained dependency-layer release/split build completed successfully. SSR and hydrate checks passed, the unchanged size gate passed, and both browser benchmark runs reported no hydration or console errors. Those local runs still failed the dashboard LCP budget by 2 ms and 1 ms respectively; the budget remains unchanged and a passing CI browser benchmark is required before merging. An independent isolated Chrome run followed actual links from `/` to `/install` and `/pricing`, preserved a JavaScript sentinel across both client navigations, checked each route's own heading, and recorded no console errors. Artifacts are in `.monochange/local/` in the compatibility worktree: `pin-cargo-leptos-release-split.log`, `pin-ssr-hydrate-checks.log`, `pin-website-size.md`, `pin-website-benchmark*.log`, and `parent-pin-navigation.log`.
+
+Release-lint separately proved that `cargo generate-lockfile` advances the floating Leptoskit branch while the managed CLI stays at its verified revision. An immutable Git revision correction is the next scoped unit; the provenance guard must remain strict.
+
+The parent re-ran the complete app-workspace library command with `--locked --offline`: 516 tests passed, with no failures or ignored tests. No Rust source changed in this compatibility correction, so executable patch coverage is unchanged. Release preview and source-provenance validation will run again with the immutable-pin correction; the local browser timing failure remains visible until CI supplies its own result.
