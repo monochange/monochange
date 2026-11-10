@@ -60,10 +60,11 @@ This change implements only the upstream dependency migration. The split and the
 
 ### 1. Upstream leptoskit dependency migration (this change)
 
-- Replace every direct `leptoskit*` crates.io dependency in `app/`, `app/native/`, and `extension/` with `git = "https://github.com/leptoskit/leptoskit", branch = "main"`.
-- Resolve one upstream commit and commit a lockfile in each workspace that names the same source URL and revision.
+- Replace every direct `leptoskit*` crates.io dependency in `app/`, `app/native/`, and `extension/` with `git = "https://github.com/leptoskit/leptoskit"` pinned to one immutable full revision.
+- Resolve one upstream commit and commit a lockfile in each workspace that names the same source URL and revision through a `?rev=` query, so release preparation can regenerate lockfiles without advancing the source.
 - Point the lint/build CLI at the same repository and revision; keep `lint:leptoskit` using that binary rather than a stale crates.io install.
 - Apply only compatibility edits required by the new upstream APIs. Stop and report if the migration becomes architectural.
+- Upgrade by changing all three workspaces' manifest revs, the root `[workspace.metadata.bin]` `leptoskit_cli` rev, and the three lockfiles together in one deliberate change; never loosen one pin alone.
 
 ### 2. Shared client contract (implemented 2026-11-09, consumers pending)
 
@@ -165,9 +166,13 @@ Earlier coverage attempts mixed compiled copies with stale source line mappings.
 
 The device inventory now confirms that this machine offers both iOS simulators and Android emulators. The earlier SDK-unavailability statement was an assumption, not a completed platform check. Platform builds and runtime checks belong to the remaining client-integration unit.
 
+### Correction: immutable source pins for lockfile regeneration
+
+Branch specs survived ordinary development but not release preparation: `monochange.toml` runs `cargo generate-lockfile` in `app/` after a version bump, that command re-resolves from scratch, and `?branch=main` sources advanced past the revision the managed CLI was verified against, so the provenance guard failed the release job (PR884 job 129603830686 and PR885 job 129604406873 resolved `a9678a57…` instead of `a93214ed…`). The correction replaces every direct `branch = "main"` spec in `app/Cargo.toml`, `app/native/Cargo.toml`, and `extension/Cargo.toml` with the full immutable revision and regenerates the three lockfiles, keeping every `leptoskit*` package at the already-tested `a93214ed…` commit through fresh resolution. Upstream code does not advance and the provenance guard is unchanged; future upgrades move all manifest pins, the CLI pin, and the lockfiles together.
+
 ## Risks and open questions
 
-- Upstream `main` is a moving branch. It advanced to `f33c3764e2a3836560d9e22f54b6be6595d8ba65` after this change resolved and verified `a93214ed`; the lockfiles and CLI pin keep the reviewed commit until a deliberate `cargo update` and review.
+- Upstream `main` is a moving branch. It advanced to `f33c3764e2a3836560d9e22f54b6be6595d8ba65` after this change resolved and verified `a93214ed`. All manifest and lockfile sources now name the immutable `?rev=a93214ed…` query instead of `?branch=main`, so ordinary lockfile regeneration keeps the reviewed commit; upgrades change every pin deliberately (see work unit 1).
 - The upstream CLI is a git install, not a registry binary. A fresh machine needs network access to GitHub, and the install is not covered by a crates.io checksum.
 - The identity boundary and callback transport are security-sensitive. Do not start unit 3 without a written handoff threat model and a test plan for state, redirect, replay, and cross-surface session isolation.
 - Native/extension platform SDK checks are limited on this machine; hosted CI remains the authority for APK/app/extension artifacts.
@@ -175,3 +180,13 @@ The device inventory now confirms that this machine offers both iOS simulators a
 ## Decision trail
 
 See [leptoskit-projects-split.decisions.tsv](leptoskit-projects-split.decisions.tsv).
+
+## CI correction: browser bindgen compatibility (2026-11-10)
+
+The dependency layer's floating `wasm-bindgen = "0.2"` resolved 0.2.130. Its generated module imported the unserved bare specifier `__wbindgen_externref_xform__`, and CI rejected hydration on every benchmarked route. Pinning the app to `=0.2.129`, already used by the extension and verified platform layer, resolves its matching macro, futures, js-sys, and web-sys packages without changing Leptoskit's reviewed source. Two incidental Windows dependency selections from the selective Cargo update were restored to keep this correction scoped.
+
+The retained dependency-layer release/split build completed successfully. SSR and hydrate checks passed, the unchanged size gate passed, and both browser benchmark runs reported no hydration or console errors. Those local runs still failed the dashboard LCP budget by 2 ms and 1 ms respectively; the budget remains unchanged and a passing CI browser benchmark is required before merging. An independent isolated Chrome run followed actual links from `/` to `/install` and `/pricing`, preserved a JavaScript sentinel across both client navigations, checked each route's own heading, and recorded no console errors. Artifacts are in `.monochange/local/` in the compatibility worktree: `pin-cargo-leptos-release-split.log`, `pin-ssr-hydrate-checks.log`, `pin-website-size.md`, `pin-website-benchmark*.log`, and `parent-pin-navigation.log`.
+
+Release-lint separately proved that `cargo generate-lockfile` advances the floating Leptoskit branch while the managed CLI stays at its verified revision. An immutable Git revision correction is the next scoped unit; the provenance guard must remain strict.
+
+The parent re-ran the complete app-workspace library command with `--locked --offline`: 516 tests passed, with no failures or ignored tests. No Rust source changed in this compatibility correction, so executable patch coverage is unchanged. Release preview and source-provenance validation will run again with the immutable-pin correction; the local browser timing failure remains visible until CI supplies its own result.

@@ -326,6 +326,28 @@ describe("lint-leptoskit resolver", () => {
 		);
 	});
 
+	test("accepts lockfile sources that pin the revision through a rev query", () => {
+		const root = createFixtureRoot();
+		const tools = createFakeTools(root);
+
+		// Production lockfiles carry `?rev=<pin>#<pin>` sources because every
+		// manifest pins the immutable revision instead of a moving branch.
+		writeLockfiles(
+			root,
+			defaultPackages.map((pkg) => ({
+				...pkg,
+				source: `git+${pinned.git}?rev=${pinned.rev}#${pinned.rev}`,
+			})),
+		);
+		createCachedBinary(root);
+
+		const { result, installCalls, cliEntries } = runLint(root, tools);
+
+		assert.equal(result.status, 0, result.stderr);
+		assert.equal(installCalls.length, 0);
+		assert.equal(cliEntries.length, 3);
+	});
+
 	test("reinstalls a cached registry binary with the same version", () => {
 		const root = createFixtureRoot();
 		const tools = createFakeTools(root);
