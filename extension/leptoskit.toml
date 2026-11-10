@@ -84,11 +84,11 @@ mc-gap-action = "1rem"
 # Popup glance: session, projects, and release status against the app backend.
 # `server` becomes a host permission and `leptoskit::extension::runtime::server()`.
 [extension]
-name = "monochange"
+name = "monochange projects"
 description = "Sign in to monochange and glance at projects and release status beside any tab."
 browsers = ["chromium", "firefox"]
 server = "https://monochange.dev"
-permissions = ["storage"]
+permissions = ["storage", "identity"]
 optional_host_permissions = ["http://127.0.0.1:3000/*", "http://localhost:3000/*"]
 
 [extension.popup]

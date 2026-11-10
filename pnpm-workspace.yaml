@@ -2,3 +2,5 @@ packages:
   - "packages/*"
 linkWorkspacePackages: true
 preferWorkspacePackages: true
+allowBuilds:
+  "esbuild@0.28.2": true

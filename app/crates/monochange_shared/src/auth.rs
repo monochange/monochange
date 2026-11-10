@@ -4,7 +4,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 /// Public session data for a signed-in GitHub user.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct SessionUser {
 	pub github_id: i64,

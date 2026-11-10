@@ -77,3 +77,20 @@ pub async fn pkg_cache_control(
 #[cfg(test)]
 #[path = "__tests__/public_routes_tests.rs"]
 mod tests;
+
+/// Keep existing project bookmarks as HTTP redirects before SSR starts streaming.
+pub async fn legacy_projects(
+	request: axum::extract::Request,
+	next: axum::middleware::Next,
+) -> axum::response::Response {
+	use axum::response::IntoResponse;
+	if let Some(rest) = request.uri().path().strip_prefix("/dashboard/") {
+		let mut location = format!("/projects/{rest}");
+		if let Some(query) = request.uri().query() {
+			location.push('?');
+			location.push_str(query);
+		}
+		return axum::response::Redirect::permanent(&location).into_response();
+	}
+	next.run(request).await
+}

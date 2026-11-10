@@ -1,0 +1,199 @@
+---
+source: crates/monochange_projects/src/pages/__tests__/embedded_feedback_tests.rs
+expression: "html.replace(\"><\", \">\\n<\")"
+---
+<!DOCTYPE html>
+<html>
+<head>
+<!--HEAD-->
+</head>
+<body>
+<p>Project ID: 1. Install the web, React Native, or Flutter SDK using a client token issued by your backend.</p>
+<details>
+<summary>Register an app</summary>
+<form action="/api/embedded_action" method="post">
+<input type="hidden" name="organization" value="alice">
+<input type="hidden" name="project" value="pocketbook">
+<input type="hidden" name="action" value="register">
+<!>
+<label>App name<input name="name" required maxlength="120">
+</label>
+<label>Account namespace<input name="namespace" required maxlength="120" placeholder="customer-accounts">
+</label>
+<p>Use the same account namespace when web and mobile share user accounts and votes.</p>
+<label>Surfaces<select name="surfaces">
+<option value="both">Web and mobile</option>
+<option value="web">Web</option>
+<option value="mobile">Mobile</option>
+</select>
+</label>
+<label>Allowed website origins, one per line<textarea name="origins" rows="3" placeholder="https://app.example.com">
+</textarea>
+</label>
+<button type="submit" class="button-primary">Create backend credential</button>
+</form>
+</details>
+<article class="console-card">
+<h3>Customer app</h3>
+<p>Account namespace: accounts · Active</p>
+<p>https://example.com</p>
+<div class="actions">
+<form action="/api/embedded_action" method="post">
+<input type="hidden" name="organization" value="alice">
+<input type="hidden" name="project" value="pocketbook">
+<input type="hidden" name="action" value="rotate">
+<input type="hidden" name="id" value="web">
+<button type="submit">Rotate credential and expire sessions</button>
+</form>
+<form action="/api/embedded_action" method="post">
+<input type="hidden" name="organization" value="alice">
+<input type="hidden" name="project" value="pocketbook">
+<input type="hidden" name="action" value="revoke_integration">
+<input type="hidden" name="id" value="web">
+<button type="submit">Revoke app</button>
+</form>
+</div>
+</article>
+<!>
+<details>
+<summary>Connect a local or self-hosted agent</summary>
+<p>Create a pairing code for your worker. Codes expire after ten minutes and can be used once.</p>
+<form action="/api/embedded_action" method="post">
+<input type="hidden" name="organization" value="alice">
+<input type="hidden" name="project" value="pocketbook">
+<input type="hidden" name="action" value="pair_worker">
+<!>
+<label>Worker name<input name="name" required maxlength="120">
+</label>
+<label>Repository<select name="repository" required>
+<option value="alice/web">alice/web</option>
+<!>
+</select>
+</label>
+<button type="submit">Create pairing code</button>
+</form>
+</details>
+<article class="console-card">
+<h3>Local agent</h3>
+<p>alice/web</p>
+<p>Connected worker · Last contact 3 Nov 2026 12:00 UTC</p>
+<form action="/api/embedded_action" method="post">
+<input type="hidden" name="organization" value="alice">
+<input type="hidden" name="project" value="pocketbook">
+<input type="hidden" name="action" value="revoke_worker">
+<input type="hidden" name="id" value="worker">
+<button type="submit">Revoke worker</button>
+</form>
+</article>
+<!>
+<h3>Planning</h3>
+<p>Choose which requests get a plan. Enable automatic planning to prepare plans for new feature requests.</p>
+<form action="/api/embedded_action" method="post">
+<input type="hidden" name="organization" value="alice">
+<input type="hidden" name="project" value="pocketbook">
+<input type="hidden" name="action" value="policy">
+<!>
+<input type="hidden" name="automatic" value="true">
+<label>Repository<select name="repository" required>
+<option value="alice/web">alice/web</option>
+<!>
+</select>
+</label>
+<label>Maximum plans per day<input type="number" name="daily_limit" min="1" max="100" value="10" required>
+</label>
+<button type="submit">Automatically plan feature requests</button>
+</form>
+<p>Automatic planning waits for complete triage and skips bugs, held reports, and duplicates. Existing requests are planned only when you select them.</p>
+<form action="/api/embedded_action" method="post">
+<input type="hidden" name="organization" value="alice">
+<input type="hidden" name="project" value="pocketbook">
+<input type="hidden" name="action" value="plan">
+<!>
+<label>Request<select name="id" required>
+<option value="fb-1">Export CSV</option>
+<!>
+</select>
+</label>
+<label>Repository<select name="repository" required>
+<option value="alice/web">alice/web</option>
+<!>
+</select>
+</label>
+<button type="submit">Generate plan</button>
+</form>
+<p>Conversation assistance is using basic matching. A deployment operator can configure a model provider for semantic suggestions.</p>
+<article class="console-card">
+<h3>fb-1 · job-1 · AwaitingApproval</h3>
+<p>alice/web at aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</p>
+<!>
+<h4>Export selected invoices</h4>
+<h5>Acceptance criteria</h5>
+<ul>
+<li>The CSV contains only selected invoices</li>
+<li>The CSV contains invoice dates and totals</li>
+<!>
+</ul>
+<h5>Proposed changes</h5>
+<ul>
+<li>Add an export action and CSV serializer</li>
+<!>
+</ul>
+<h5>Allowed files</h5>
+<ul>
+<li>
+<code>src/**</code>
+</li>
+<li>
+<code>.changeset/**</code>
+</li>
+<!>
+</ul>
+<h5>Checks</h5>
+<ul>
+<li>Run invoice export tests</li>
+<!>
+</ul>
+<h5>Risks</h5>
+<ul>
+<li>Bound the number of invoices in one export</li>
+<!>
+</ul>
+<p>Accept the request and create its issue before approving implementation. Approval applies to this exact plan revision.</p>
+<form action="/api/embedded_action" method="post">
+<input type="hidden" name="organization" value="alice">
+<input type="hidden" name="project" value="pocketbook">
+<input type="hidden" name="action" value="approve">
+<input type="hidden" name="id" value="job-1">
+<button type="submit" class="button-primary">Approve and build</button>
+</form>
+<form action="/api/embedded_action" method="post">
+<input type="hidden" name="organization" value="alice">
+<input type="hidden" name="project" value="pocketbook">
+<input type="hidden" name="action" value="changes">
+<input type="hidden" name="id" value="job-1">
+<label>Changes needed<textarea name="rationale" maxlength="2000" required>
+</textarea>
+</label>
+<button type="submit">Request changes</button>
+</form>
+<form action="/api/embedded_action" method="post">
+<input type="hidden" name="organization" value="alice">
+<input type="hidden" name="project" value="pocketbook">
+<input type="hidden" name="action" value="reject">
+<input type="hidden" name="id" value="job-1">
+<label>Reason<textarea name="rationale" maxlength="2000" required>
+</textarea>
+</label>
+<button type="submit">Reject plan</button>
+</form>
+<!>
+<!>
+<!>
+<!>
+</article>
+<!>
+</body>
+</html>
+<script nonce="[nonce]">__RESOLVED_RESOURCES={};__SERIALIZED_ERRORS=[];__PENDING_RESOURCES=[];__INCOMPLETE_CHUNKS=[];__RESOURCE_RESOLVERS=[];</script>
+<script nonce="[nonce]">
+</script>

@@ -56,9 +56,8 @@ include_internal = false
 targets = []
 
 # File routes: `src/routes/` is the URL map. `leptoskit plugin:router routes`
-# regenerates `src/routes.rs`. Layouts use the 0.3 router stack (navigate /
-# back / replace). Stack, Tabs, and Drawer `navigator()` exports are not in
-# the published 0.3 runtime; see the upstream note in the PR.
+# regenerates `src/routes.rs`. `navigator()` on the pinned revision supplies
+# the tab bar.
 [[plugins]]
 name = "router"
 

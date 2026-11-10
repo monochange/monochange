@@ -44,10 +44,13 @@ Every app pull request runs a Lighthouse suite over the core flows (`/`, `/insta
 # from the repository root, with pnpm dependencies installed
 # Preferred: `cd app && leptoskit build --release` (split + size optimize from leptoskit.toml)
 cargo leptos --manifest-path app/crates/monochange_app/Cargo.toml build --release --split
+pnpm node scripts/minify-split-loader.ts --site-root app/target/site
 pnpm bench:website          # Lighthouse against a throwaway local server
 pnpm size:website           # compare app/target/site/pkg against the baseline
 pnpm size:website:update    # accept a deliberate size change in the same PR
 ```
+
+`minify-split-loader.ts` minifies the `pkg/__wasm_split.*.js` loader that cargo-leptos emits unminified (`js-minify` covers the main glue only), so the committed size gate measures the shipped bytes. CI runs it between the release build and the size/Lighthouse checks, and the Docker builder runs it before the site is copied out and precompressed. The upstream leptoskit web build emits the same loader, so pass its output directory to `--site-root` when building with `leptoskit build --release`.
 
 Budgets live in `scripts/website-budgets.json`; the size baseline in `scripts/website-size-baseline.json`. `pnpm bench:website` needs Chrome or Chromium locally (`CHROME_PATH` is honoured). The app CI job fails on budget violations unless `MONOCHANGE_ALLOW_BENCHMARK_BUDGET_FAILURES=true` is set, mirroring the CLI benchmark escape hatch.
 
@@ -148,6 +151,16 @@ To keep the backend in `monochange.toml` instead of the environment, set `commit
 The release branch only exists on GitHub after a hosted run. A later step that reads it, such as `monochange step release-record --from monochange/release/release`, must fetch it first with `git fetch origin "+refs/heads/monochange/release/release:refs/heads/monochange/release/release"`.
 
 Every run rebuilds the release pull request branch from `[source.pull_requests].base` and the bot replaces the previous release commit, so each push refreshes the open release pull request. A run whose base branch moved while it was preparing the release fails with a conflict and leaves the refresh to the run for the newer commit. The bot only replaces monochange release branches: the branch must be named `<branch_prefix>/release`, which `monochange step commit-release`, `monochange step open-release-request`, and a `[cli.release]` workflow produce, and it must not be the repository's default branch. Workflows with other names, such as `[cli.release-pr]`, get `<branch_prefix>/release-pr`; the first run creates that branch, but later runs fail with a conflict until the branch is deleted. The bot never writes files under `.git` or `.github/workflows`: monochange.dev refuses uploaded paths there and refuses a tree whose `.github/workflows` differs from the base commit's.
+
+### Dispatch a workflow in another repository
+
+The same app installation can dispatch a workflow in another repository owned by the same account or organization. This lets a CLI release prepare the matching actions release without storing a personal access token in either repository:
+
+```yaml
+- run: monochange gh workflow run release.yml --repo monochange/actions --ref main
+```
+
+The command sends the request to monochange.dev, which checks that the calling repository and the target repository belong to the same app installation and starts the existing workflow with the installation token. A GitHub Actions job must grant `id-token: write`, and the installation must grant the Actions write permission the app already requests for release automation. Use `--field KEY=VALUE` for workflow inputs and `--dry-run` to validate the target without starting a run. Local runs need `--hosted-auth token` and a deployment `MONOCHANGE_TOKEN`; the public app does not issue per-user tokens, so use GitHub Actions for unattended dispatches. The target repository must be connected to the app in the dashboard. The app does not need Workflows write access: it dispatches an existing workflow and never edits workflow files.
 
 Keep your repository's branch protection and required checks enabled. Review and merge the bot's release pull request through your normal process; registry publishing remains a separate workflow.
 

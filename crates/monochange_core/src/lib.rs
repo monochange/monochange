@@ -7504,6 +7504,55 @@ pub struct HostedReleaseResponse {
 	pub message: Option<String>,
 }
 
+/// A request for the monochange app to dispatch a GitHub Actions workflow
+/// through the monochange GitHub App installation.
+///
+/// The app authorizes the caller against the installation that owns both the
+/// calling repository and the target repository, so a workflow in one
+/// organisation repository can trigger a release in another without a
+/// personal access token.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct HostedWorkflowDispatchRequest {
+	/// Source provider for the target repository. Only `github` is hosted today.
+	pub provider: String,
+	/// Repository owner, e.g. `monochange`.
+	pub owner: String,
+	/// Repository name, e.g. `actions`.
+	pub repository: String,
+	/// Workflow file name or numeric workflow id, e.g. `release.yml`.
+	pub workflow: String,
+	/// Git ref to run the workflow from, e.g. `main` or a tag.
+	#[serde(rename = "ref")]
+	pub git_ref: String,
+	/// Workflow inputs keyed by the names declared in the workflow.
+	#[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+	pub inputs: BTreeMap<String, String>,
+	/// Whether this request is a dry run; the server validates without dispatching.
+	#[serde(default)]
+	pub dry_run: bool,
+}
+
+/// The monochange app's response to a [`HostedWorkflowDispatchRequest`].
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct HostedWorkflowDispatchResponse {
+	/// Machine-readable server status, e.g. `dispatched` or `dry_run`.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub status: Option<String>,
+	/// Workflow file name or id that was dispatched.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub workflow: Option<String>,
+	/// Git ref the workflow was dispatched from.
+	#[serde(default, rename = "ref", skip_serializing_if = "Option::is_none")]
+	pub git_ref: Option<String>,
+	/// Human-readable explanation for failures or skipped dispatch.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub message: Option<String>,
+}
+
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct EffectiveReleaseIdentity {
 	pub owner_id: String,

@@ -37,9 +37,12 @@ const PAGES: &[&str] = &[
 	"/login",
 	"/auth/callback",
 	"/dashboard",
-	"/dashboard/{organization}",
-	"/dashboard/{organization}/projects/{project}",
-	"/dashboard/{organization}/projects/{project}/feedback",
+	"/projects",
+	"/projects/{organization}",
+	"/projects/{organization}/projects/{project}",
+	"/projects/{organization}/projects/{project}/feedback",
+	"/account",
+	"/connect",
 	"/p/{organization}/{project}",
 ];
 
@@ -99,4 +102,7 @@ pub fn ssr_router(options: LeptosOptions, state: Arc<monochange_app_api::AppStat
 			shell(options)
 		}))
 		.with_state(options)
+		.layer(axum::middleware::from_fn(
+			crate::public_routes::legacy_projects,
+		))
 }

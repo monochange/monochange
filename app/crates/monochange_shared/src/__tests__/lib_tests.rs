@@ -26,14 +26,11 @@ fn session_user_round_trips_json() {
 
 #[test]
 fn organization_paths_match_dashboard_routes() {
-	assert_eq!(organization_path("acme"), "/dashboard/acme");
-	assert_eq!(
-		project_path("acme", "core"),
-		"/dashboard/acme/projects/core"
-	);
+	assert_eq!(organization_path("acme"), "/projects/acme");
+	assert_eq!(project_path("acme", "core"), "/projects/acme/projects/core");
 	assert_eq!(
 		feedback_console_path("acme", "core"),
-		"/dashboard/acme/projects/core/feedback"
+		"/projects/acme/projects/core/feedback"
 	);
 }
 
@@ -59,7 +56,7 @@ fn organization_summary_path_uses_login() {
 			repository_count: 1,
 		}],
 	};
-	assert_eq!(summary.path(), "/dashboard/acme");
+	assert_eq!(summary.path(), "/projects/acme");
 }
 
 #[test]

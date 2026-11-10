@@ -4,6 +4,7 @@
 
 use leptoskit::native::Role;
 use leptoskit::prelude::*;
+use leptoskit_router::Routable;
 
 use crate::links::BOOK_URL;
 use crate::links::SOURCE_URL;
@@ -30,6 +31,9 @@ pub fn navigator() -> leptoskit_router::navigators::Tabs<crate::routes::Route> {
 /// Wraps every screen. `navigation` is the file-router stack: Back pops it.
 pub fn layout(children: Children, navigation: &crate::routes::Navigation) -> Element {
 	let current = navigation.current();
+	if project_shell(&current) {
+		return project_layout(children);
+	}
 	let on_home = matches!(current, crate::routes::Route::Index);
 	let skip = skip_link();
 	let header = header(on_home);
@@ -46,6 +50,17 @@ pub fn layout(children: Children, navigation: &crate::routes::Navigation) -> Ele
 			{footer}
 		</View>
 	}
+}
+
+/// Projects use their own shell. The marketing header is what carries
+/// `aria-label="Main navigation"`, so it stays off these routes.
+fn project_shell(route: &crate::routes::Route) -> bool {
+	route.href().as_str().starts_with("/projects")
+}
+
+fn project_layout(children: Children) -> Element {
+	let main = main_content(children);
+	view! { <View class="flex min-h-screen flex-col bg-white">{main}</View> }
 }
 
 fn main_content(children: Children) -> Element {

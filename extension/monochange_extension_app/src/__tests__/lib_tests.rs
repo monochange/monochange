@@ -16,7 +16,6 @@ use crate::popup::PopupReady;
 use crate::popup::PopupState;
 use crate::popup::PopupWireState;
 use crate::popup::ProjectRow;
-use crate::session::bearer_from_kept;
 
 #[test]
 fn theme_maps_cover_every_release_floor_token() {
@@ -70,17 +69,6 @@ fn chrome_uses_tailwind_var_utilities_not_semantic_sheets() {
 }
 
 #[test]
-fn bearer_accepts_raw_and_json_session_shapes() {
-	assert_eq!(bearer_from_kept("  tok_abc  ").as_deref(), Some("tok_abc"));
-	assert_eq!(
-		bearer_from_kept(r#"{"access_token":"pair","refresh_token":"r"}"#).as_deref(),
-		Some("pair")
-	);
-	assert_eq!(bearer_from_kept(""), None);
-	assert_eq!(bearer_from_kept(r#"{"access_token":""}"#), None);
-}
-
-#[test]
 fn popup_ready_flattens_projects_and_status() {
 	let ready = PopupReady {
 		user: SessionUser {
@@ -123,4 +111,32 @@ fn popup_ready_flattens_projects_and_status() {
 
 	let wire = PopupWireState::from(PopupState::Ready(ready.clone()));
 	assert_eq!(PopupState::from(wire), PopupState::Ready(ready));
+}
+
+#[test]
+fn extension_chrome_uses_styles_supported_by_the_runtime() {
+	use crate::chrome;
+	let mut errors = Vec::new();
+	for classes in [
+		chrome::SHELL,
+		chrome::CHROME,
+		chrome::BRAND,
+		chrome::EYEBROW,
+		chrome::TITLE,
+		chrome::COPY,
+		chrome::PANEL,
+		chrome::ROW,
+		chrome::BUTTON_QUIET,
+		chrome::ACTIONS,
+		chrome::STATUS,
+		chrome::STATUS_LIVE,
+	] {
+		if let Err(error) = leptoskit::prelude::Element::view().try_class(classes) {
+			errors.push(error);
+		}
+	}
+	if let Err(error) = leptoskit::prelude::Element::button("Sign in").try_class(chrome::BUTTON) {
+		errors.push(error);
+	}
+	assert!(errors.is_empty(), "{errors:#?}");
 }

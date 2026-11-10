@@ -26,3 +26,5 @@ pub const DEFAULT_SERVER: &str = match option_env!("MONOCHANGE_SERVER") {
 	Some(server) => server,
 	None => "https://monochange.dev",
 };
+#[cfg(feature = "extension")]
+mod identity;

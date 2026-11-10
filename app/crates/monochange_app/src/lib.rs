@@ -15,17 +15,17 @@ pub mod error;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod http;
 pub mod links;
-pub mod markdown;
 pub mod navigation;
+pub use monochange_projects::markdown;
 
 pub mod pages;
-pub mod projects;
+pub use monochange_projects::projects;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod public_routes;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod rate_limit;
-pub mod repository_filter;
 pub mod routes;
+pub use monochange_projects::repository_filter;
 pub mod server_fns;
 pub mod slots;
 pub mod ui;

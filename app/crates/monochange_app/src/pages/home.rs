@@ -14,10 +14,10 @@ use crate::ui::text;
 pub(crate) fn workspace_href_for(
 	session: Option<Result<Option<SessionUser>, server_fn::ServerFnError>>,
 ) -> String {
-	session
-		.and_then(Result::ok)
-		.flatten()
-		.map_or_else(|| "/login".to_owned(), |_| "/dashboard".to_owned())
+	session.and_then(Result::ok).flatten().map_or_else(
+		|| "/login?next=%2Fprojects".to_owned(),
+		|_| "/projects".to_owned(),
+	)
 }
 
 /// Current and next versions for the illustrative Cargo package row.

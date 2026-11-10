@@ -22,6 +22,8 @@ pub async fn repository_connection() -> Result<RepositoryConnectionStatus, serve
 	use leptos::prelude::expect_context;
 	use leptos_axum::ResponseOptions;
 
+	// A stale browser cookie reads as signed out for a status display, not an
+	// error page; a rejected credential still propagates as an error.
 	if super::auth::get_session().await?.is_none() {
 		return Ok(RepositoryConnectionStatus::SignedOut);
 	}
@@ -81,7 +83,7 @@ pub async fn permission_updates() -> Result<Vec<PermissionUpdate>, server_fn::Se
 	let Some(app) = state.github_app.as_ref() else {
 		return Ok(vec![]);
 	};
-	let Some(user_id) = super::repos::signed_in_user_id(&state).await? else {
+	let Some(user_id) = super::repos::signed_in_user_id().await? else {
 		return Ok(vec![]);
 	};
 	let mut installations: Vec<(i64, String, bool)> =

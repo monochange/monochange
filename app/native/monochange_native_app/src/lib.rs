@@ -1,37 +1,32 @@
 #![allow(unsafe_code)] // Native guest entry points are exported C symbols.
 
 //! monochange native guest: Android / iOS screens over leptoskit.
-pub mod navigation;
-pub mod routes;
 pub mod screens;
+pub mod session;
 pub mod tasks;
 pub mod theme;
 pub mod ui;
 
 #[cfg(test)]
-#[path = "__tests__/theme_tests.rs"]
+#[path = "__tests__/lib_tests.rs"]
 mod tests;
-
-/// The file-router shell. The host paints it again after each press, and the
-/// router signal swaps the visible screen.
-#[cfg(all(target_arch = "wasm32", feature = "native", not(feature = "web")))]
-fn native_shell() -> leptoskit::prelude::Element {
-	navigation::navigation().render()
-}
 
 /// Server origin for native HTTP plugin calls. Override at build time with
 /// `MONOCHANGE_SERVER`.
 pub const SERVER: &str = match option_env!("MONOCHANGE_SERVER") {
 	Some(server) => server,
-	None => "http://127.0.0.1:3010",
+	None => "https://monochange.dev",
 };
 
 /// Mounts the shared Element tree in the native Wasm runtime.
 #[cfg(all(target_arch = "wasm32", feature = "native", not(feature = "web")))]
 #[unsafe(no_mangle)]
 pub extern "C" fn leptoskit_main() {
-	leptoskit::rpc::client::configure(leptoskit::rpc::client::ClientConfig::new().origin(SERVER));
-	leptoskit::guest::mount(native_shell);
+	let owner = reactive_graph::owner::Owner::new();
+	let model = owner.with(screens::home::HomeModel::restore);
+	leptoskit::guest::mount(move || {
+		owner.with(|| leptoskit::view! { <screens::home::Home model=model /> })
+	});
 }
 
 #[cfg(all(target_arch = "wasm32", feature = "native", not(feature = "web")))]
@@ -58,4 +53,10 @@ pub extern "C" fn leptoskit_alloc(len: i32) -> i32 {
 #[unsafe(no_mangle)]
 pub extern "C" fn leptoskit_abi_version() -> i32 {
 	leptoskit::guest::ABI_VERSION as i32
+}
+
+#[cfg(all(target_arch = "wasm32", feature = "native", not(feature = "web")))]
+#[unsafe(no_mangle)]
+pub extern "C" fn leptoskit_flush() {
+	leptoskit::guest::flush();
 }

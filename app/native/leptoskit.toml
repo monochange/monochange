@@ -2,9 +2,8 @@
 
 schema_version = 0
 
-# Native-first leptoskit surface for monochange. Web SSR remains the existing
-# cargo-leptos app until the sibling web port lands; this workspace still lists
-# `web` so shared RPC types stay one package graph.
+# Native projects guests call the same authority as the separate website.
+# The root Rust package anchors host packaging; it does not run a backend.
 
 [app]
 name = "monochange_native"
@@ -42,10 +41,9 @@ update_contract = "mobile-v1"
 package_id = "dev.monochange.app"
 viewport_width = 390.0
 viewport_height = 844.0
-plugins = ["http", "secure-store"]
+plugins = ["http", "secure-store", "crypto", "web-auth", "linking"]
 
-# Origins the HTTP plugin may call. Hosted builds add the production origin
-# and set MONOCHANGE_SERVER at compile time.
+# Exact origins the HTTP plugin may call. MONOCHANGE_SERVER selects one at build time.
 [native.plugin-options.http]
 origins = ["http://127.0.0.1:3000", "http://127.0.0.1:3010", "https://monochange.dev"]
 
@@ -57,23 +55,3 @@ channel = "production"
 mandatory = false
 staging_dir = "codepush"
 public_keys = []
-
-[rpc]
-title = "monochange native RPC"
-description = "Auth handshake and project list shared with the web port."
-servers = ["http://127.0.0.1:3010", "https://monochange.dev"]
-exclude = []
-include_internal = false
-targets = []
-
-[auth]
-app_name = "monochange"
-
-# The guest uses the same file-router stack as the website. 0.3 has navigate
-# and back; Stack and Tabs navigator() helpers are not in this release.
-[[plugins]]
-name = "router"
-
-[plugins.options]
-dir = "monochange_native_app/src/routes"
-output = "monochange_native_app/src/routes.rs"

@@ -475,7 +475,7 @@ path = "crates/monochange_ecmascript"
 # leptoskit browser extension (separate Cargo workspace under extension/).
 [package.monochange_extension]
 path = "extension/monochange_extension_app"
-additional_paths = ["extension/**"]
+additional_paths = ["extension/**", "app/crates/monochange_shared/**"]
 publish = { enabled = false }
 changelog = false
 ignore_ecosystem_versioned_files = true

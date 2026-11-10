@@ -192,7 +192,3 @@ fn repository_list(page: &crate::repository_filter::RepositoryPage) -> Element {
 	}
 	leptoskit::view! { <View role=Role::List class="flex flex-col gap-2">{rows}</View> }
 }
-
-#[cfg(test)]
-#[path = "__tests__/organization_tests.rs"]
-mod tests;

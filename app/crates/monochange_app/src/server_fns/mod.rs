@@ -10,14 +10,18 @@
 //! `monochange_backend::machine_api_router`.
 
 pub mod ai;
-pub mod auth;
+pub use monochange_projects::server_fns::auth;
 pub mod book;
-pub mod embedded;
-pub mod feedback;
+pub use monochange_projects::server_fns::embedded;
+pub use monochange_projects::server_fns::feedback;
 pub mod installation;
-pub mod organizations;
-pub mod portal;
+pub use monochange_projects::server_fns::organizations;
+pub use monochange_projects::server_fns::portal;
 
 pub mod releases;
 
-pub mod repos;
+pub use monochange_projects::server_fns::repos;
+pub mod session;
+
+#[cfg(not(target_arch = "wasm32"))]
+pub use monochange_projects::server_fns::principal;

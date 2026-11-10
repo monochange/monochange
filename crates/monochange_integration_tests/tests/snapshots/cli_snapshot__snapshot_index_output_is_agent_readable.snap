@@ -471,6 +471,58 @@ expression: value
       ]
     },
     {
+      "commands": [
+        {
+          "commands": [
+            {
+              "hidden": false,
+              "max_bump": "major",
+              "parser": {
+                "flags_are_posix_noncompliant": false,
+                "option_arg_separators": [
+                  " ",
+                  "="
+                ],
+                "options_must_precede_arguments": false
+              },
+              "path": [
+                "gh",
+                "workflow",
+                "run"
+              ]
+            }
+          ],
+          "hidden": false,
+          "max_bump": "major",
+          "parser": {
+            "flags_are_posix_noncompliant": false,
+            "option_arg_separators": [
+              " ",
+              "="
+            ],
+            "options_must_precede_arguments": false
+          },
+          "path": [
+            "gh",
+            "workflow"
+          ]
+        }
+      ],
+      "hidden": false,
+      "max_bump": "major",
+      "parser": {
+        "flags_are_posix_noncompliant": false,
+        "option_arg_separators": [
+          " ",
+          "="
+        ],
+        "options_must_precede_arguments": false
+      },
+      "path": [
+        "gh"
+      ]
+    },
+    {
       "hidden": false,
       "max_bump": "major",
       "parser": {

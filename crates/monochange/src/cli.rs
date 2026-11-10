@@ -400,6 +400,7 @@ The starter config does not generate [cli.*] command aliases.",
 		.subcommand(build_lint_subcommand())
 		.subcommand(build_versions_subcommand())
 		.subcommand(build_publish_subcommand())
+		.subcommand(build_gh_subcommand())
 		.subcommands(build_top_level_step_alias_subcommands())
 		.subcommand({
 			#[cfg(feature = "mcp")]
@@ -471,6 +472,7 @@ const HELP_COMMAND_GROUPS: &[(&str, &[&str])] = &[
 		&[
 			"run",
 			"step",
+			"gh",
 			"command",
 			"mcp",
 			"skill",
@@ -1465,6 +1467,92 @@ fn build_publish_subcommand() -> Command {
 	}
 
 	command
+}
+
+fn build_gh_subcommand() -> Command {
+	Command::new("gh")
+		.about("Run GitHub operations through the monochange app")
+		.after_help(
+			"These commands use the monochange GitHub App installation instead of a personal access token. GitHub Actions jobs authenticate with their OIDC token; local runs use MONOCHANGE_TOKEN.",
+		)
+		.subcommand_required(true)
+		.arg_required_else_help(true)
+		.subcommand(
+			Command::new("workflow")
+				.about("Manage GitHub Actions workflows")
+				.subcommand_required(true)
+				.arg_required_else_help(true)
+				.subcommand(
+					Command::new("run")
+						.about("Dispatch a workflow in a connected repository through the monochange app")
+						.arg(
+							Arg::new("workflow")
+								.value_name("WORKFLOW")
+								.required(true)
+								.help("Workflow file name (for example `release.yml`) or numeric workflow id"),
+						)
+						.arg(
+							Arg::new("repo")
+								.long("repo")
+								.value_name("OWNER/REPO")
+								.required(true)
+								.help("Target repository full name"),
+						)
+						.arg(
+							Arg::new("ref")
+								.long("ref")
+								.value_name("REF")
+								.default_value("main")
+								.help("Git ref to dispatch the workflow from"),
+						)
+						.arg(
+							Arg::new("field")
+								.long("field")
+								.short('f')
+								.value_name("KEY=VALUE")
+								.action(ArgAction::Append)
+								.help("Workflow input as KEY=VALUE; repeat for multiple inputs"),
+						)
+						.arg(
+							Arg::new("dry-run")
+								.long("dry-run")
+								.help_heading(RELEASE_OPTIONS_HELP_HEADING)
+								.action(ArgAction::SetTrue)
+								.help("Validate the dispatch without starting a workflow run"),
+						)
+						.arg(
+							Arg::new("hosted-url")
+								.long("hosted-url")
+								.value_name("URL")
+								.help("Base URL of the hosted monochange app"),
+						)
+						.arg(
+							Arg::new("hosted-auth")
+								.long("hosted-auth")
+								.value_name("MODE")
+								.value_parser(["auto", "oidc", "token"])
+								.default_value("auto")
+								.help("Authentication for the hosted app: OIDC or MONOCHANGE_TOKEN"),
+						)
+						.arg(
+							Arg::new("oidc-audience")
+								.long("oidc-audience")
+								.value_name("AUDIENCE")
+								.help("Audience required in the GitHub Actions OIDC token"),
+						)
+						.arg(
+							Arg::new("format")
+								.long("format")
+								.value_name("FORMAT")
+								.value_parser(["text", "json", "json-min", "md"])
+								.default_value("text")
+								.help("Output format"),
+						)
+						.after_help(
+							"Examples:\n  monochange gh workflow run release.yml --repo monochange/actions --ref main\n  monochange gh workflow run release-pr-merge.yml --repo monochange/actions -f pull_request=103\n\nThe target repository must be connected to the monochange GitHub App, and a GitHub Actions caller may only target repositories in the same app installation.",
+						),
+				),
+		)
 }
 
 pub(crate) fn build_run_subcommand(cli: &[CliCommandDefinition]) -> Command {

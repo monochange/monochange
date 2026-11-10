@@ -164,7 +164,7 @@ fn SessionLinks(
 		<Suspense fallback=|| view! { <span role="status">"Loading account…"</span> }>
 			{move || session.get().map(|result| match result {
 				Ok(Some(user)) => view! {
-					<a href="/dashboard" class=BTN_BRAND title=format!("Signed in as {}", user.github_login)>"Dashboard"</a>
+					<a href="/projects" class=BTN_BRAND title=format!("Signed in as {}", user.github_login)>"Projects"</a>
 					<ActionForm action=sign_out>
 						<button type="submit" class="inline-block py-[0.65rem] font-bold text-brand-600 underline dark:text-brand-400" disabled=move || sign_out.pending().get()>"Sign out"</button>
 					</ActionForm>

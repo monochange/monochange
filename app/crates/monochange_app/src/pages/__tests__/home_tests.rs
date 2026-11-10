@@ -20,17 +20,20 @@ fn sample_user() -> SessionUser {
 }
 
 #[test]
-fn workspace_href_prefers_dashboard_when_signed_in() {
+fn workspace_href_opens_projects_and_preserves_the_login_destination() {
 	assert_eq!(
 		workspace_href_for(Some(Ok(Some(sample_user())))),
-		"/dashboard"
+		"/projects"
 	);
-	assert_eq!(workspace_href_for(Some(Ok(None))), "/login");
+	assert_eq!(
+		workspace_href_for(Some(Ok(None))),
+		"/login?next=%2Fprojects"
+	);
 	assert_eq!(
 		workspace_href_for(Some(Err(server_fn::ServerFnError::new("missing")))),
-		"/login"
+		"/login?next=%2Fprojects"
 	);
-	assert_eq!(workspace_href_for(None), "/login");
+	assert_eq!(workspace_href_for(None), "/login?next=%2Fprojects");
 }
 
 fn strategy_button_class(pressed: bool) -> String {
@@ -91,5 +94,7 @@ async fn home_page_renders_release_floor_sections() {
 	assert!(html.contains("acme-mobile"));
 	assert!(html.contains("Individual versions"));
 	assert!(html.contains("Shared version"));
-	assert!(html.contains("href=\"/login\"") || html.contains("href=\"/dashboard\""));
+	assert!(
+		html.contains("href=\"/login?next=%2Fprojects\"") || html.contains("href=\"/projects\"")
+	);
 }

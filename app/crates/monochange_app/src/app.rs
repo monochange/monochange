@@ -20,6 +20,12 @@ FORM: Product floor → release manifest demo → ecosystems → workflow → cl
 FINISH: Align with docs/landing-design.md; keep auth and dashboard routes intact.
 -->";
 
+/// wasm-bindgen 0.2.130 still emits `import … from "__wbindgen_externref_xform__"`
+/// after cargo-leptos hides the `reference-types` feature on split modules.
+/// The helper has to be mapped before the hydration module script runs.
+const WASM_BINDGEN_EXTERNREF_IMPORT_MAP: &str =
+	r#"{"imports":{"__wbindgen_externref_xform__":"/wbindgen-externref-xform.js"}}"#;
+
 /// Server-rendered document shell.
 pub fn shell(options: LeptosOptions) -> impl IntoView {
 	view! {
@@ -37,9 +43,13 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
 				<link rel="icon" sizes="any" href="/favicon.ico" />
 				<link rel="manifest" href="/site.webmanifest" />
 				<meta property="og:image" content="https://monochange.dev/branding/social.png" />
-				<meta property="og:image:alt" content="monochange — release planning for monorepos" />
+				<meta
+					property="og:image:alt"
+					content="monochange — release planning for monorepos"
+				/>
 				<meta name="twitter:card" content="summary_large_image" />
 				<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+				<script type="importmap" inner_html=WASM_BINDGEN_EXTERNREF_IMPORT_MAP></script>
 				<AutoReload options=options.clone() />
 				<HydrationScripts options=options />
 				<MetaTags />
@@ -64,8 +74,22 @@ pub fn App() -> impl IntoView {
 		<Stylesheet id="leptos" href="/pkg/monochange_app.css" />
 		<Title text="monochange — Release planning for monorepos" />
 		<main id="main-content">
+			<a href="/projects">"Projects"</a>
 			<Suspense fallback=|| ()>
-				{move || leptoskit::web::render(rendered.render())}
+				{move || {
+					if let crate::routes::Route::Connect(connect) = rendered.current() {
+						crate::pages::connect::connect_document(
+							connect.client.unwrap_or_default(),
+							connect.redirect_uri.unwrap_or_default(),
+							connect.code_challenge.unwrap_or_default(),
+							connect.state.unwrap_or_default(),
+							connect.code_challenge_method.unwrap_or_default(),
+						)
+						.into_any()
+					} else {
+						leptoskit::web::render(rendered.render()).into_any()
+					}
+				}}
 			</Suspense>
 		</main>
 	}

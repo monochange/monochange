@@ -1,6 +1,6 @@
 //! Shared UI components.
 
-pub mod arrow;
+pub use monochange_projects::components::arrow;
 pub mod brand_icon;
 pub mod navbar;
-pub mod repository_list;
+pub use monochange_projects::components::repository_list;

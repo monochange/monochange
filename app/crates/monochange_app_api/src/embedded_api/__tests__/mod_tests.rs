@@ -1918,7 +1918,7 @@ async fn planning_rejects_incomplete_requests_stale_repository_heads_and_a_concu
 async fn iframe_sessions_require_first_party_sign_in_and_share_portal_identity() {
 	let (mut state, scope, _) = setup().await;
 	state.github_callback_url = "https://monochange.example/auth/callback".into();
-	let login = crate::create_token(&state.jwt_secret, 1, 101, "owner").unwrap();
+	let login = crate::create_token(&state.jwt_secret, 1, 101, "owner", 0).unwrap();
 	let send = |cookie: String, origin: &'static str, input: Value| {
 		let router = crate::api_router(state.clone());
 		async move {
@@ -2075,13 +2075,13 @@ async fn iframe_exchange_rejects_missing_or_deleted_accounts_and_invalid_deploym
 		),
 		(
 			"https://monochange.example/auth/callback",
-			Some(crate::create_token(&state.jwt_secret, 999, 101, "deleted").unwrap()),
+			Some(crate::create_token(&state.jwt_secret, 999, 101, "deleted", 0).unwrap()),
 			Some("https://monochange.example"),
 			StatusCode::UNAUTHORIZED,
 		),
 		(
 			"https://monochange.example/auth/callback",
-			Some(crate::create_token(&state.jwt_secret, 1, 999, "mismatch").unwrap()),
+			Some(crate::create_token(&state.jwt_secret, 1, 999, "mismatch", 0).unwrap()),
 			Some("https://monochange.example"),
 			StatusCode::UNAUTHORIZED,
 		),
@@ -2160,7 +2160,7 @@ async fn iframe_session_refresh_cannot_reset_account_quota() {
 	})
 	.await
 	.unwrap();
-	let token = crate::create_token(&state.jwt_secret, 1, 101, "owner").unwrap();
+	let token = crate::create_token(&state.jwt_secret, 1, 101, "owner", 0).unwrap();
 	let response = crate::api_router(state.clone())
 		.oneshot(
 			Request::builder()
@@ -2216,7 +2216,7 @@ async fn iframe_exchange_preserves_integration_and_session_capacity_limits() {
 		})
 		.await
 		.unwrap();
-		let token = crate::create_token(&state.jwt_secret, 1, 101, "owner").unwrap();
+		let token = crate::create_token(&state.jwt_secret, 1, 101, "owner", 0).unwrap();
 		let response = crate::api_router(state.clone())
 			.oneshot(
 				Request::builder()

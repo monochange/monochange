@@ -93,7 +93,7 @@ async fn body(response: Response) -> String {
 }
 
 fn token(user: i32) -> String {
-	monochange_app_api::create_token(SECRET, user, i64::from(user) * 10, "octocat").unwrap()
+	monochange_app_api::create_token(SECRET, user, i64::from(user) * 10, "octocat", 0).unwrap()
 }
 
 #[test]
@@ -336,7 +336,7 @@ async fn signed_in_users_get_their_own_larger_bucket_on_any_address() {
 
 #[rstest]
 #[case::forged("not-a-token".to_owned())]
-#[case::wrong_secret(monochange_app_api::create_token("other-secret", 7, 70, "octocat").unwrap())]
+#[case::wrong_secret(monochange_app_api::create_token("other-secret", 7, 70, "octocat", 0).unwrap())]
 #[tokio::test]
 async fn invalid_sessions_count_against_the_address(#[case] session: String) {
 	let router = router(RateLimit::new(
