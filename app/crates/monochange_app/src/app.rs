@@ -41,6 +41,12 @@ FORM: Product floor → release manifest demo → ecosystems → workflow → cl
 FINISH: Align with docs/landing-design.md; keep auth and dashboard routes intact.
 -->";
 
+/// wasm-bindgen 0.2.130 still emits `import … from "__wbindgen_externref_xform__"`
+/// after cargo-leptos hides the `reference-types` feature on split modules.
+/// The helper has to be mapped before the hydration module script runs.
+const WASM_BINDGEN_EXTERNREF_IMPORT_MAP: &str =
+	r#"{"imports":{"__wbindgen_externref_xform__":"/wbindgen-externref-xform.js"}}"#;
+
 /// Server-rendered document shell.
 pub fn shell(options: LeptosOptions) -> impl IntoView {
 	view! {
@@ -64,6 +70,7 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
 				/>
 				<meta name="twitter:card" content="summary_large_image" />
 				<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+				<script type="importmap" inner_html=WASM_BINDGEN_EXTERNREF_IMPORT_MAP></script>
 				<AutoReload options=options.clone() />
 				<HydrationScripts options=options />
 				<MetaTags />

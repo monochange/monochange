@@ -2018,3 +2018,36 @@ async fn native_projects_fixture_server() {
 	println!("NATIVE_PROJECTS_FIXTURE http://127.0.0.1:3010; dummy account alice");
 	axum::serve(listener, app).await.unwrap();
 }
+
+#[tokio::test]
+async fn shell_maps_the_wasm_bindgen_externref_helper_before_hydration() {
+	let options = LeptosOptions::builder()
+		.output_name("monochange_app")
+		.site_root("target/site")
+		.build();
+	let html = crate::tests::render(move || crate::app::shell(options.clone())).await;
+	let import_map = html
+		.find("type=\"importmap\"")
+		.expect("document shell should declare an import map");
+	let module_script = html
+		.find("type=\"module\"")
+		.expect("hydration should load a module script");
+	assert!(
+		import_map < module_script,
+		"the import map has to be parsed before the hydration module imports a bare specifier"
+	);
+	assert!(html.contains(
+		r#"{"imports":{"__wbindgen_externref_xform__":"/wbindgen-externref-xform.js"}}"#
+	));
+
+	let shim = std::fs::read_to_string(
+		std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+			.join("../../public/wbindgen-externref-xform.js"),
+	)
+	.expect("externref helper");
+	assert!(shim.contains("export function __wbindgen_externref_statics_end"));
+	assert!(
+		shim.contains("return 1028;"),
+		"the helper must match the reserved-slot boundary hardcoded in the generated glue"
+	);
+}
