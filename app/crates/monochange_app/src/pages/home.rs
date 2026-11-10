@@ -27,10 +27,10 @@ const FLOOR_ROW: &str = "group grid min-h-12 grid-cols-[2.5rem_minmax(0,14rem)_m
 fn workspace_href_for(
 	session: Option<Result<Option<SessionUser>, server_fn::ServerFnError>>,
 ) -> String {
-	session
-		.and_then(Result::ok)
-		.flatten()
-		.map_or_else(|| "/login".to_owned(), |_| "/dashboard".to_owned())
+	session.and_then(Result::ok).flatten().map_or_else(
+		|| "/login?next=%2Fprojects".to_owned(),
+		|_| "/projects".to_owned(),
+	)
 }
 
 /// Explain the release workspace before asking visitors to install it.

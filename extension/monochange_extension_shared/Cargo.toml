@@ -5,12 +5,14 @@ edition.workspace = true
 license.workspace = true
 publish = false
 repository.workspace = true
-description = "Shared RPC contracts for the monochange browser extension (stubs until the web/RPC port merges)"
+description = "Client session and project models for the monochange browser extension"
 
 [dependencies]
+monochange_shared = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
+url = "2"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["macros", "rt"] }

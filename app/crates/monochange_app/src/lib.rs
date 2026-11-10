@@ -13,15 +13,15 @@ pub mod color_mode;
 pub mod components;
 pub mod error;
 pub mod links;
-pub mod markdown;
+pub use monochange_projects::markdown;
 
 pub mod pages;
-pub mod projects;
+pub use monochange_projects::projects;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod public_routes;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod rate_limit;
-pub mod repository_filter;
+pub use monochange_projects::repository_filter;
 pub mod server_fns;
 
 pub use app::App;

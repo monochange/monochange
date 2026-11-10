@@ -311,6 +311,13 @@ jobs:
         working-directory: app
         run: cargo leptos --manifest-path crates/monochange_app/Cargo.toml build --release --split
 
+      # cargo-leptos `js-minify` covers the main glue only; the wasm-split
+      # loader keeps route comments and full identifiers, which fails the
+      # committed per-file size gate below. Minify it before the gate and the
+      # Lighthouse run so both measure the shipped bytes.
+      - name: minify the wasm-split loader
+        run: pnpm node scripts/minify-split-loader.ts --site-root app/target/site
+
       - name: check website bundle size
         run: |
           pnpm node scripts/website-size.ts check \

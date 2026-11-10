@@ -1,0 +1,196 @@
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) fn routes() -> Vec<leptos_axum::AxumRouteListing> {
+	// Route discovery temporarily suppresses resource loads process-wide.
+	// Match production startup: discover once before any request can run.
+	static ROUTES: std::sync::OnceLock<Vec<leptos_axum::AxumRouteListing>> =
+		std::sync::OnceLock::new();
+	ROUTES
+		.get_or_init(|| leptos_axum::generate_route_list(|| ()))
+		.clone()
+}
+
+/// Server-renders `app` inside a minimal document, as a page would be.
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) async fn render<V: leptos::prelude::IntoView + 'static>(
+	app: impl Fn() -> V + Clone + Send + Sync + 'static,
+) -> String {
+	use leptos::prelude::*;
+
+	render_request(
+		axum::http::Request::new(axum::body::Body::empty()),
+		move || {
+			leptos_meta::provide_meta_context();
+			view! {
+				<!DOCTYPE html>
+				<html>
+					<head><leptos_meta::MetaTags /></head>
+					<body>{app()}</body>
+				</html>
+			}
+		},
+	)
+	.await
+}
+
+/// Server-renders `app` inside a router at `uri`, for components that read
+/// the URL.
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) async fn render_at<V: leptos::prelude::IntoView + 'static>(
+	uri: &'static str,
+	app: impl Fn() -> V + Clone + Send + Sync + 'static,
+) -> String {
+	use leptos::prelude::*;
+
+	let request = axum::http::Request::builder()
+		.uri(uri)
+		.body(axum::body::Body::empty())
+		.unwrap();
+	render_request(request, move || {
+		let app = app.clone();
+		view! { <leptos_router::components::Router>{app()}</leptos_router::components::Router> }
+	})
+	.await
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+async fn render_request<V: leptos::prelude::IntoView + 'static>(
+	request: axum::http::Request<axum::body::Body>,
+	app: impl Fn() -> V + Clone + Send + Sync + 'static,
+) -> String {
+	routes();
+	let render = leptos_axum::render_app_to_stream_in_order(app);
+	let response = render(request).await;
+	let body = tokio::time::timeout(
+		std::time::Duration::from_secs(10),
+		axum::body::to_bytes(response.into_body(), 262_144),
+	)
+	.await
+	.unwrap()
+	.unwrap();
+	String::from_utf8(body.to_vec()).unwrap()
+}
+
+/// Fixtures shared by the feedback console, portal, and page tests.
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) mod feedback {
+	use std::sync::Arc;
+
+	use axum::http::Request;
+	use axum::http::header::COOKIE;
+	use leptos::prelude::*;
+	use leptos_axum::ResponseOptions;
+	use monochange_app_api::AppSecrets;
+	use monochange_app_api::AppState;
+	use monochange_app_api::create_token;
+	use monochange_app_api::oauth;
+	use monochange_app_db::projects::AccountIdentity;
+	use monochange_app_db::projects::GITHUB;
+	use monochange_app_feedback::FeedbackKind;
+	use monochange_app_feedback::FeedbackSubmission;
+	use monochange_app_feedback::SubmitterIdentity;
+
+	/// Alice maintains `alice/pocketbook` with a public and a private repository.
+	pub(crate) async fn state() -> Arc<AppState> {
+		let db = monochange_app_db::create_pool("sqlite::memory:")
+			.await
+			.unwrap();
+		monochange_app_db::run_migrations(&db).await.unwrap();
+		sqlx::query("INSERT INTO users (id, github_id, github_login, github_access_token) VALUES (1, 101, 'alice', 'unused'), (2, 202, 'bob', 'unused'), (3, 303, 'carol', 'unused'), (4, 404, 'dave', 'unused')").execute(&db).await.unwrap();
+		sqlx::query("INSERT INTO installations (id, user_id, github_installation_id, github_account_login, github_account_type) VALUES (1, 1, 1001, 'alice', 'User'), (2, 2, 1002, 'bob', 'User')").execute(&db).await.unwrap();
+		sqlx::query("INSERT INTO repositories (installation_id, github_repo_id, github_full_name, github_private) VALUES (1, 11, 'alice/web', 0), (1, 12, 'alice/api', 1), (2, 21, 'bob/app', 0)").execute(&db).await.unwrap();
+		let mut connection = db.acquire().await.unwrap();
+		let organization = monochange_app_db::projects::link_installation_organization(
+			&mut connection,
+			1,
+			&AccountIdentity {
+				provider: GITHUB.to_owned(),
+				external_id: 101,
+				login: "alice".to_owned(),
+				account_type: "User".to_owned(),
+				avatar_url: None,
+			},
+		)
+		.await
+		.unwrap();
+		drop(connection);
+		sqlx::query("INSERT INTO projects (id, organization_id, slug, name, description) VALUES (1, $1, 'pocketbook', 'Pocketbook', 'Invoicing')").bind(organization).execute(&db).await.unwrap();
+
+		sqlx::query("INSERT INTO project_repositories (project_id, repository_external_id, full_name) VALUES (1, 11, 'alice/web'), (1, 12, 'alice/api')").execute(&db).await.unwrap();
+		let secrets: AppSecrets = serde_json::from_value(serde_json::json!({
+			"database_url": "sqlite::memory:",
+			"jwt_secret": "feedback-test-signing-key",
+			"token_encryption_key": "test-token-encryption-key",
+			"github_client_id": "",
+			"github_client_secret": "",
+		}))
+		.unwrap();
+		Arc::new(AppState::new(db, secrets).unwrap())
+	}
+
+	/// The GitHub account behind each fixture user.
+	pub(crate) fn account(user: i32) -> (i64, &'static str) {
+		match user {
+			1 => (101, "alice"),
+			2 => (202, "bob"),
+			3 => (303, "carol"),
+			_ => (404, "dave"),
+		}
+	}
+
+	/// A request context, signed in as `user` when given: 1 is Alice, who
+	/// maintains the project, 2 is Bob, and 3 and 4 are Carol and Dave, who
+	/// use it.
+	pub(crate) fn context(state: &Arc<AppState>, user: Option<i32>) -> (Owner, ResponseOptions) {
+		let owner = Owner::new();
+		let response = ResponseOptions::default();
+		let mut request = Request::new(());
+
+		if let Some(user) = user {
+			let (github_id, login) = account(user);
+			let token = create_token(&state.jwt_secret, user, github_id, login, 0).unwrap();
+			request.headers_mut().insert(
+				COOKIE,
+				format!("{}={token}", oauth::SESSION_COOKIE_NAME)
+					.parse()
+					.unwrap(),
+			);
+		}
+
+		let (parts, ()) = request.into_parts();
+		owner.with(|| {
+			provide_context(state.clone());
+			provide_context(parts);
+			provide_context(response.clone());
+		});
+		(owner, response)
+	}
+
+	pub(crate) async fn submit(
+		state: &Arc<AppState>,
+		submitter: &str,
+		kind: FeedbackKind,
+		description: &str,
+	) -> String {
+		let public = monochange_app_api::feedback::public_project(state, "alice", "pocketbook")
+			.await
+			.unwrap()
+			.unwrap();
+		let submission = FeedbackSubmission {
+			kind,
+			description: description.to_owned(),
+			page: None,
+			attachments: Vec::new(),
+			submitter: SubmitterIdentity {
+				anonymous_id: submitter.to_owned(),
+				email: None,
+			},
+			app_slug: monochange_app_api::feedback::PORTAL_APP.to_owned(),
+		};
+		monochange_app_api::feedback::update(state, &public.scope, |service| {
+			service.receive(submission.clone())
+		})
+		.await
+		.unwrap()
+		.id
+	}
+}

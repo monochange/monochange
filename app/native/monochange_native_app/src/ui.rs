@@ -7,7 +7,7 @@ use crate::theme;
 #[component]
 pub fn Title(text: impl Into<String>) -> Element {
 	view! {
-		<Heading aria_level=1 class=format!("text-2xl font-extrabold tracking-tight {}", theme::INK)>
+		<Heading aria_level=1 class=format!("text-2xl font-bold {}", theme::INK)>
 			{text.into()}
 		</Heading>
 	}

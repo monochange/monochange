@@ -15,7 +15,7 @@ pub struct ProjectSummary {
 }
 
 /// One connected account and what the user can do with it.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct OrganizationSummary {
 	pub login: String,
@@ -37,11 +37,11 @@ impl OrganizationSummary {
 }
 
 pub fn organization_path(login: &str) -> String {
-	format!("/dashboard/{login}")
+	format!("/projects/{login}")
 }
 
 pub fn project_path(organization: &str, project: &str) -> String {
-	format!("/dashboard/{organization}/projects/{project}")
+	format!("/projects/{organization}/projects/{project}")
 }
 
 pub fn feedback_console_path(organization: &str, project: &str) -> String {
@@ -56,7 +56,7 @@ pub struct ProjectRepositoryView {
 	pub private: Option<bool>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct ProjectDetails {
 	pub organization: String,

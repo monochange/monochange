@@ -31,8 +31,10 @@ js-sys = { version = "0.3", optional = true }
 leptos = { workspace = true, optional = true }
 leptoskit = { workspace = true, optional = true }
 monochange_extension_shared = { workspace = true }
+monochange_shared = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+url = "2"
 wasm-bindgen = { workspace = true, optional = true }
 wasm-bindgen-futures = { version = "0.4", optional = true }
 web-sys = { version = "0.3", optional = true, features = [
@@ -44,4 +46,5 @@ web-sys = { version = "0.3", optional = true, features = [
 ] }
 
 [dev-dependencies]
+leptoskit = { workspace = true }
 monochange_extension_shared = { workspace = true }

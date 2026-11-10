@@ -1,0 +1,5 @@
+---
+source: crates/monochange_app/src/pages/__tests__/account_tests.rs
+expression: output
+---
+<p role="alert">The device couldn't be revoked. Try again.</p><!>

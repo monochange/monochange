@@ -1,14 +1,12 @@
 [workspace]
 resolver = "2"
 members = [
-	"monochange_rpc",
 	"monochange_native_app",
-	"monochange_native_backend",
 	"android",
 	"ios",
 	".",
 ]
-default-members = ["monochange_rpc", "monochange_native_backend", "."]
+default-members = ["monochange_native_app", "."]
 
 [workspace.package]
 version = "0.1.0"
@@ -18,23 +16,22 @@ publish = false
 rust-version = "1.91"
 
 [workspace.dependencies]
+leptoskit_plugin_linking = { git = "https://github.com/leptoskit/leptoskit", rev = "a93214edc8e5f6c7999c628285093f15cf188639", default-features = false }
+monochange_shared = { path = "../crates/monochange_shared", features = ["client"] }
+leptoskit_plugin_web_auth = { git = "https://github.com/leptoskit/leptoskit", rev = "a93214edc8e5f6c7999c628285093f15cf188639", default-features = false }
+leptoskit_plugin_crypto = { git = "https://github.com/leptoskit/leptoskit", rev = "a93214edc8e5f6c7999c628285093f15cf188639", default-features = false }
 leptos = { version = "0.9.0-rc0", default-features = false }
-# Upstream leptoskit pinned to one immutable revision for every crate, matching
-# the app and extension workspaces and the managed CLI. To upgrade, change all
-# manifest revs and the root [workspace.metadata.bin] leptoskit_cli rev together,
-# then regenerate every leptoskit lockfile in one deliberate change.
+# Upstream leptoskit is pinned to the same immutable revision as the app,
+# extension, and managed CLI. Upgrade all manifest revs, the CLI pin, and
+# the three lockfiles together.
 leptoskit = { git = "https://github.com/leptoskit/leptoskit", rev = "a93214edc8e5f6c7999c628285093f15cf188639", default-features = false }
-leptoskit_rpc = { git = "https://github.com/leptoskit/leptoskit", rev = "a93214edc8e5f6c7999c628285093f15cf188639", default-features = false }
 leptoskit_plugin_http = { git = "https://github.com/leptoskit/leptoskit", rev = "a93214edc8e5f6c7999c628285093f15cf188639", default-features = false }
 leptoskit_plugin_secure_store = { git = "https://github.com/leptoskit/leptoskit", rev = "a93214edc8e5f6c7999c628285093f15cf188639", default-features = false }
 leptoskit_bridge_ffi = { git = "https://github.com/leptoskit/leptoskit", rev = "a93214edc8e5f6c7999c628285093f15cf188639", default-features = false }
 leptoskit_build = { git = "https://github.com/leptoskit/leptoskit", rev = "a93214edc8e5f6c7999c628285093f15cf188639", default-features = false }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-schemars = "1"
-thiserror = "2"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-axum = { version = "0.8", features = ["tokio"] }
 
 [package]
 name = "monochange_native"
@@ -43,15 +40,8 @@ edition.workspace = true
 license.workspace = true
 publish = false
 
-[[bin]]
-name = "monochange_native"
-path = "src/main.rs"
-
-[dependencies]
-axum = { workspace = true }
-leptoskit = { workspace = true, features = ["server", "rpc", "rpc-ssr", "db-sqlite"] }
-monochange_native_backend = { path = "monochange_native_backend" }
-tokio = { workspace = true }
+[lib]
+path = "src/lib.rs"
 
 [profile.release]
 lto = "thin"

@@ -54,7 +54,14 @@ pub async fn connect_request(
 		return Ok(None);
 	}
 
+	// Registered callbacks have no query or fragment. Only the authority builds
+	// this URL, so the view never combines a stale preview with a changed query.
+	let denial_query = url::form_urlencoded::Serializer::new(String::new())
+		.append_pair("error", "access_denied")
+		.append_pair("state", &state)
+		.finish();
 	Ok(Some(ConnectPreview {
+		denial_url: format!("{redirect_uri}?{denial_query}"),
 		user: user.session_user(),
 		client: client_kind,
 	}))
@@ -264,4 +271,18 @@ fn gate_rejection(
 	} else {
 		(status, axum::Json(serde_json::json!({ "error": message }))).into_response()
 	}
+}
+
+/// Switch browser accounts without losing a pending client consent request.
+#[api(crate = "leptoskit_rpc", tag = "session")]
+#[server(endpoint = "switch_connect_account")]
+pub async fn switch_connect_account(next: String) -> Result<(), server_fn::ServerFnError> {
+	require_browser().await?;
+	require_same_origin().await?;
+	if !next.starts_with("/connect?") || next.contains(['\r', '\n']) {
+		return Err(server_fn::ServerFnError::new("Invalid consent return path"));
+	}
+	super::auth::logout().await?;
+	leptos_axum::redirect(&next, false);
+	Ok(())
 }

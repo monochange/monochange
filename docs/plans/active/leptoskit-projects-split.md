@@ -1,6 +1,6 @@
 # leptoskit projects split
 
-Status: dependency migration implemented by this change; surface and identity split pending. Created: 2026-11-09 Baseline: `origin/main` at `9dd2d1d0397b6e7907e5cb08b3939929db008c67`. Upstream: `https://github.com/leptoskit/leptoskit` `main` at `a93214edc8e5f6c7999c628285093f15cf188639` (2026-11-09).
+Status: implementation and independent source review complete; three PRs are open. Hydration and immutable Git-pin CI corrections are verified locally and integrated through the stack; updated CI is pending. The last complete app run covered 1304/1304 executable changed lines, with 904 tests passed and two manual fixtures ignored. The projects PR at 42c0854 passed its browser benchmark, unchanged size budgets, Docker image build, and app coverage. The unchanged Forgejo CLI contract still fails locally. iOS runtime and Firefox identity remain unverified. Created: 2026-11-09. Baseline: origin/main at 9dd2d1d0397b6e7907e5cb08b3939929db008c67; upstream Git commit a93214edc8e5f6c7999c628285093f15cf188639.
 
 ## Goal
 
@@ -11,13 +11,13 @@ Move every monochange workspace to leptoskit directly from the upstream Git repo
 
 backed by one authoritative identity and session service. Users sign in once and every surface sees the same account, organizations, projects, and repository connections.
 
-This change implements only the upstream dependency migration. The split and the authentication work below are marked pending and are not implemented here.
+The upstream migration and authority are the signed baseline. The consumer implementation below adds the separate projects surface and native/extension session handoff; it does not change production. Earlier verification sections are historical receipts for those prior units.
 
 ## Non-goals for this change
 
-- No surface split, route split, new domain, DNS change, or production change.
+- No separate domain, DNS change, deployment, or production account changes.
 - No new identity provider, session database, or token format.
-- No design change to the existing website or extension UI.
+- Preserve the landing design while separating the projects shell.
 - No release, publish, tag, or deployment operation.
 - No unrelated dependency upgrades or formatting sweeps.
 
@@ -40,7 +40,7 @@ This change implements only the upstream dependency migration. The split and the
 
 - A separate workspace with a Leptos 0.9 CSR wasm guest (`monochange_native_app`), shared RPC types and operations in `monochange_rpc`, Android/iOS host crates, and a skeletal `monochange_native` server binary.
 - `session_probe` always returns an anonymous handshake and `list_projects` returns one hard-coded demo project. The native guest has no real identity, no cookie, and no access to the website database.
-- `monochange_native_app` is checked by default; `android` and `ios` are platform host crates that need SDKs unavailable on this machine.
+- `monochange_native_app` is checked by default; `android` and `ios` are platform host crates. The current implementation has built both with the installed SDKs; see the device evidence below.
 
 ### Extension (`extension/`)
 
@@ -66,7 +66,7 @@ This change implements only the upstream dependency migration. The split and the
 - Apply only compatibility edits required by the new upstream APIs. Stop and report if the migration becomes architectural.
 - Upgrade by changing all three workspaces' manifest revs, the root `[workspace.metadata.bin]` `leptoskit_cli` rev, and the three lockfiles together in one deliberate change; never loosen one pin alone.
 
-### 2. Shared client contract (implemented 2026-11-09, consumers pending)
+### 2. Shared client contract (implemented; consumers connected 2026-11-10)
 
 - [x] Extract the session handoff DTOs into `app/crates/monochange_shared` (`client_auth.rs`: `ClientKind`, `ClientTokenRequest`, `ClientSession`, `ClientSessionInfo`, `ConnectPreview`; PKCE helpers behind the `client` feature). The existing project/release DTOs were already shared; the platform-neutral `ApiClient`/`Transport` in `api.rs` covers session, organizations, project, website releases, connect URL, exchange, and revoke.
 - [x] Define the session handoff protocol and its threat model (see the implementation section below): browser approve → one-time code → verifier exchange → scoped bearer; replay, forge, burn, origin, and epoch cases are tested.
@@ -80,7 +80,7 @@ This change implements only the upstream dependency migration. The split and the
 - [x] The authorization funnel is one resolver on the existing SQLite database: `users` stay keyed on the stable GitHub ID, the existing GitHub token vault and OAuth callback are untouched, and no second accounts/identities tables were added. `monochange_app/server_fns` (get_session, signed_in_user_id), the embedded iframe check, the new browser-only session functions, and the bearer gate all resolve through `monochange_app_api::sessions`.
 - [x] The host-only secure cookie keeps its name and attributes for web; non-browser surfaces use hashed opaque client tokens bound to the same `users.id` and `session_epoch`.
 
-### 4. Surface split (pending)
+### 4. Surface split (implemented 2026-11-10)
 
 - [ ] Split the projects client from the landing/GitHub connection site without duplicating auth code or design tokens.
 - [ ] Move native and extension from demo/anonymous data to the shared service.
@@ -113,7 +113,7 @@ validate`, the release preview, and affected-package checks. Run `coverage:patch
 
 Implemented in this change:
 
-- every direct `leptoskit*` dependency in `app/`, `app/native/`, and `extension/` points at `https://github.com/leptoskit/leptoskit` on `main`;
+- every direct `leptoskit*` dependency in `app/`, `app/native/`, and `extension/` points at `https://github.com/leptoskit/leptoskit` at the immutable reviewed revision;
 - all three lockfiles name the same reviewed revision, `a93214edc8e5f6c7999c628285093f15cf188639`, and no registry copy remains;
 - `[workspace.metadata.bin]` pins `leptoskit_cli` to that revision with the `leptoskit` binary target. `lint:leptoskit` reads that entry, verifies every `leptoskit*` source in the three lockfiles against the pinned Git revision, and reuses a cached `.bin` install only when cargo's `.crates.toml`/`.crates2.json` records that Git source for the `leptoskit` binary. A same-version registry install or a different revision is replaced with a forced `cargo install` of the pinned revision.
 
@@ -166,22 +166,56 @@ Earlier coverage attempts mixed compiled copies with stale source line mappings.
 
 The device inventory now confirms that this machine offers both iOS simulators and Android emulators. The earlier SDK-unavailability statement was an assumption, not a completed platform check. Platform builds and runtime checks belong to the remaining client-integration unit.
 
-### Correction: immutable source pins for lockfile regeneration
-
-Branch specs survived ordinary development but not release preparation: `monochange.toml` runs `cargo generate-lockfile` in `app/` after a version bump, that command re-resolves from scratch, and `?branch=main` sources advanced past the revision the managed CLI was verified against, so the provenance guard failed the release job (PR884 job 129603830686 and PR885 job 129604406873 resolved `a9678a57…` instead of `a93214ed…`). The correction replaces every direct `branch = "main"` spec in `app/Cargo.toml`, `app/native/Cargo.toml`, and `extension/Cargo.toml` with the full immutable revision and regenerates the three lockfiles, keeping every `leptoskit*` package at the already-tested `a93214ed…` commit through fresh resolution. Upstream code does not advance and the provenance guard is unchanged; future upgrades move all manifest pins, the CLI pin, and the lockfiles together.
-
 ## Risks and open questions
 
 - Upstream `main` is a moving branch. It advanced to `f33c3764e2a3836560d9e22f54b6be6595d8ba65` after this change resolved and verified `a93214ed`. All manifest and lockfile sources now name the immutable `?rev=a93214ed…` query instead of `?branch=main`, so ordinary lockfile regeneration keeps the reviewed commit; upgrades change every pin deliberately (see work unit 1).
 - The upstream CLI is a git install, not a registry binary. A fresh machine needs network access to GitHub, and the install is not covered by a crates.io checksum.
 - The identity boundary and callback transport are security-sensitive. Do not start unit 3 without a written handoff threat model and a test plan for state, redirect, replay, and cross-surface session isolation.
-- Native/extension platform SDK checks are limited on this machine; hosted CI remains the authority for APK/app/extension artifacts.
+- iOS simulator packaging passes locally, but the selected simulator repeatedly times out during CoreSimulator boot. Android runtime and Chromium identity have local fixture evidence; Firefox identity and production redirect registration remain unverified.
 
 ## Decision trail
 
 See [leptoskit-projects-split.decisions.tsv](leptoskit-projects-split.decisions.tsv).
 
-## CI correction: browser bindgen compatibility (2026-11-10)
+## Projects consumer implementation (2026-11-10)
+
+The isolated `feat/projects-shared-session` branch incorporates the verified `0b8068f99` baseline. `monochange_projects` owns organization/project/feedback views, input rules, repository selection, markdown rendering, and their authorized server functions. The site depends on it and retains real repository connection at `/dashboard`. `/projects` has its own navigation and account/sign-out, with no marketing footer. Legacy organization/project/feedback paths redirect before SSR streams, preserving their queries. Organization index and detail share a lazy product chunk; browser identity screens share their own lazy chunk. Tailwind scans the moved source.
+
+`/connect` uses the existing authority for preview, approval, registered denial, and account switching. The preview now returns the server-validated denial URL, preventing a changed query from supplying a different callback to an earlier preview. The rendered approval form is submitted to the real mounted handler in a test: device verification caught and removed an unsupported form field. `/account` lists/revokes devices and offers global sign-out with error state.
+
+Native uses the shared API, upstream WebAuth/crypto/HTTP/secure-store/linking plugins, and a stable screen model retained outside tree rebuilding. The obsolete RPC/demo backend is removed. Initial device runs caught unsupported styles and repeated restoration caused by recreating state during rendering; regression tests cover screen construction, offline credential retention, and visible cleanup failure. All plugin Git packages remain pinned to `a93214edc8e5f6c7999c628285093f15cf188639`. New plugins require rebuilt native hosts, not an OTA-only distribution.
+
+Extension identity/exchange/storage and restored-session refresh run in the worker for both popup and options. Options no longer begin with a fabricated signed-out state; a worker outage is visible rather than falling back to page-owned credentials. An isolated Chromium profile completed PKCE approval against the loopback authority after the popup was closed, stored its credential, reopened to the same Alice/Pocketbook/Site data, restored on browser restart, and cleared storage on device sign-out. The generated redirect was registered only in the local fixture. Chromium and Firefox packages build with exact configured host permissions and identity/storage. Production extension login is not claimed: each installed redirect must be registered. Firefox identity runtime remains untested.
+
+The local authority injects a browser identity for one dummy account instead of using GitHub. Grants, token exchange, bearer authorization, reads, and revocation still use real mounted handlers. Native Android on `emulator-5554` completed system-browser approval, secure persistence/restart, project detail, device sign-out, offline error without credential loss, and 401 cleanup after the fixture authority restarted. Browser `/account` revocation then removed a newly connected device and Android cleared that revoked credential on refresh. Deny returned to the app with an error and retry action. The hydrated website also navigated index-to-organization and completed project create/update/delete against the dummy database. Screenshots and the fixture APK stay under ignored `.monochange/local/`.
+
+Both iOS simulator and Android APK packaging pass with the actual pinned upstream CLI and existing Xcode/Android SDKs. The emulator is arm64, so the Android target is `android`, not `android-x86_64`. The iOS device selected by the brief (`08AE2B3A-7EDA-470C-B5A0-A64FAC40FE61`) twice failed `device_open` with a CoreSimulator boot timeout; no other session, physical phone, or global simulator service was used. There is no iOS runtime proof.
+
+Verification receipts are local `.monochange/local/projects-*.log`: app workspace 880 passed, two ignored manual browser/device fixture servers; native five host tests; extension six ordinary tests and seven with its actual rendering feature. SSR, hydrate WASM, native default/CSR/guest WASM, extension default/extension WASM, app clippy with warnings denied, and leptoskit lint are checked. Coverage is regenerated after a tool-managed clean, with no exclusions or changed threshold; the final patch result is **221/221 changed executable app lines (100.00%)** against `0b8068f99`. Native/extension WASM-only glue is covered by target builds and the runtime checks, not by the app LCOV report.
+
+The actual cargo-leptos `--release --split` build now uses the already-defined `wasm-release` profile and JS minification from the package metadata (the previous workspace metadata was not consumed). wasm-bindgen is pinned to `0.2.129`, matching the pinned upstream CLI; only the matching registry JS/WASM family was downgraded, and the Git revision was not refreshed. The actual pinned upstream web CLI also builds the final site, reporting 479.3 KiB initial gzip transfer. This initial-load figure differs from the size script’s aggregate across every lazy route asset.
+
+**Remaining acceptance failure:** the unmodified website size gate reports total gzip transfer 1,331,482 bytes versus 1,513,294 (12.0% smaller), with all WASM limits passing, but split-loader JavaScript is 2,234 bytes versus 1,789 (above the 5% per-file allowance). No baseline, tolerance, loader files, or measurement exclusions were changed to hide this. This unit is not fully green or ready to merge until that gate is resolved. The earlier root provenance range still requires parent-level changeset handling; this unit's app/extension changesets cover its two affected targets.
+
+Final frontend artifacts are retained at `.monochange/local/projects-site-verified`. The managed `app/target` view stopped exposing the temporary site after the full SSR build, so cargo-leptos regenerated the frontend with `LEPTOS_SITE_ROOT` set to that retained output and `--frontend-only --release --split`. This changes the local output location only; no Cargo target override, size exclusion, or tolerance change was used. The final distribution APK also opens signed out, with the full instruction visible; no production sign-in was attempted.
+
+## Split-loader size gate resolution (2026-11-10, `build/split-loader-minify`)
+
+A new isolated worktree retains the reviewed baseline `8d9c20e9b` on `build/split-loader-minify` and incorporates `origin/main` at `22b2c349c` through one signed clean auto-merge (`99bb251a1`), with no manual conflict edits in any file. The gate failure was upstream build tooling, not the migration: cargo-leptos 0.3.6's `js-minify` runs SWC over the main `{output_name}.js` glue only (`src/compile/front.rs`), while the `__wasm_split.______________________.js` loader is emitted by `wasm_split_cli_support` and written verbatim (`src/wasm_split_tools/mod.rs`); 0.3.6 exposes no hook and no loader-minify option, and `hash-files` would only rename the loader out of the size script's per-file comparison, which was rejected as hiding the failure. The pinned upstream leptoskit CLI embeds the same loader and `wasm_split_cli_support` strings, so its `build --release` web path needs the same treatment.
+
+The fix is one guarded post-build step, `scripts/minify-split-loader.ts`, part of every release build that emits the loader: app CI runs it between `cargo leptos build --release --split` and the size/Lighthouse checks, and the Docker release builder runs it before the site is copied out and precompressed, after gaining a pinned Node v24.22.2 (official SHASUMS256 verified) and a pinned esbuild 0.28.2 binary (registry integrity digest verified, re-confirmed by download) so the identical dependency-free script runs without a package manager in the builder. The rewrite refuses to replace a loader whose minified output loses any `__wasm_split_load___*` initializer or any `/pkg/*.js` or `./*.wasm` URL reference. esbuild joins the workspace devDependencies (`node_modules/.bin/esbuild`, with `MONOCHANGE_ESBUILD_BIN` and `PATH` fallbacks), and the app README documents the step for both build paths.
+
+Verification, all against the retained build in the new worktree: the exact release command `cargo leptos --manifest-path crates/monochange_app/Cargo.toml build --release --split` exited 0 in 13m 47s with `LEPTOS_SITE_ROOT` set to `.monochange/local/split-loader-gate-site`; the unmodified gate failed before the step exactly as recorded above (loader gzip 2,234 versus 1,789, total 1,335,613 versus 1,513,294) and passed after it — loader gzip 2,234 → 1,484 (raw 26,281 → 6,862), 17.1% below the unchanged 1,789 baseline, total 1,334,863 versus 1,513,294, exit 0 with no differences listed. The minified loader keeps all 10 exported initializers matching `__wasm_split_manifest.json` and all 87 manifest chunk references. In an isolated headless Chrome driven by the pinned upstream `leptoskit device` control documents, the journey `/` → click Docs → `/book` → click Pricing → `/pricing` rendered `h1#introduction` ("Introduction") and "Hey,this is free." and fetched the loader module plus `split___book_route_view_17666993872358248534.wasm` and `split___pricing_route_view_14841084612111332454.wasm` — the `/` page preloads zero split chunks, so those fetches can only come from the loader's exported initializers. Outcome JSON, server log, and screenshots live under ignored `.monochange/local/`; the server, chromedriver, and browser were shut down afterwards.
+
+Checks: the six new vitest loader tests pass (fixtures under `fixtures/tests/website-split-loader-minify/`) and `test:node` passes 186/186 across 14 files; oxlint type-aware, tsgo, oxfmt, dprint, and zizmor are clean for every touched file with no unrelated formatting; `monochange step validate` and `prepare-release --dry-run --format json` (monochange_app 0.5.0, monochange_extension 0.2.0) pass; affected-packages verification over every changed path is covered by the one `monochange_app: fix` changeset (workflow files, root `scripts/**`, `package.json`, and the lockfile trigger no target). The retained suites after the merge pass 537 tests with the same two ignored fixture servers — monochange_app 157, monochange_app_api 324 (including the workflow-dispatch tests from `22b2c349c`), monochange_app_db 47, monochange_backend 4, monochange_shared 25 — including `server_fns::session::tests::the_ssr_chain_resolves_the_signed_in_browser_user`, `rejected_bearers_get_401_and_browser_only_paths_stay_403_on_real_routes`, and `client_tokens_cannot_reach_browser_only_endpoints`. No Rust file changed in this unit relative to its two parents: the branch's Rust is exactly the signed baseline plus `origin/main`, each verified in its own CI or parent unit, so no new Rust patch-coverage obligation arises here. The inherited root-provenance range (`monochange`, `monochange_core`, `@monochange/skill`) still requires parent-level changeset handling.
+
+## CI dependency corrections (2026-11-10)
+
+### Correction: immutable source pins for lockfile regeneration
+
+Branch specs survived ordinary development but not release preparation: `monochange.toml` runs `cargo generate-lockfile` in `app/` after a version bump, that command re-resolves from scratch, and `?branch=main` sources advanced past the revision the managed CLI was verified against, so the provenance guard failed the release job (PR884 job 129603830686 and PR885 job 129604406873 resolved `a9678a57…` instead of `a93214ed…`). The correction replaces every direct `branch = "main"` spec in `app/Cargo.toml`, `app/native/Cargo.toml`, and `extension/Cargo.toml` with the full immutable revision and regenerates the three lockfiles, keeping every `leptoskit*` package at the already-tested `a93214ed…` commit through fresh resolution. Upstream code does not advance and the provenance guard is unchanged; future upgrades move all manifest pins, the CLI pin, and the lockfiles together.
+
+### Browser bindgen compatibility
 
 The dependency layer's floating `wasm-bindgen = "0.2"` resolved 0.2.130. Its generated module imported the unserved bare specifier `__wbindgen_externref_xform__`, and CI rejected hydration on every benchmarked route. Pinning the app to `=0.2.129`, already used by the extension and verified platform layer, resolves its matching macro, futures, js-sys, and web-sys packages without changing Leptoskit's reviewed source. Two incidental Windows dependency selections from the selective Cargo update were restored to keep this correction scoped.
 
@@ -190,3 +224,5 @@ The retained dependency-layer release/split build completed successfully. SSR an
 Release-lint separately proved that `cargo generate-lockfile` advances the floating Leptoskit branch while the managed CLI stays at its verified revision. An immutable Git revision correction is the next scoped unit; the provenance guard must remain strict.
 
 The parent re-ran the complete app-workspace library command with `--locked --offline`: 516 tests passed, with no failures or ignored tests. No Rust source changed in this compatibility correction, so executable patch coverage is unchanged. Release preview and source-provenance validation will run again with the immutable-pin correction; the local browser timing failure remains visible until CI supplies its own result.
+
+Both corrections are now integrated through the stack. Updated CI browser timing and release-lint proof remain pending; neither local dashboard timing failure was relabeled green. The platform layer retains its complete implementation and its original decision rows.
