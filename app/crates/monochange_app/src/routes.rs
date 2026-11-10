@@ -409,6 +409,64 @@ impl ::leptoskit_router::Routable for Route {
 		}
 	}
 }
+/// Paths for `leptos_axum::LeptosRoutes::leptos_routes`.
+#[allow(
+	dead_code,
+	reason = "client-rendered apps do not need the SSR route list"
+)]
+pub fn axum_route_list() -> ::std::vec::Vec<::std::string::String> {
+	::std::vec![
+		::leptoskit_router::Pattern::new(&[]).axum_path(),
+		::leptoskit_router::Pattern::new(&[
+			::leptoskit_router::Segment::Static("book"),
+			::leptoskit_router::Segment::OptionalRest("chapter")
+		])
+		.axum_path(),
+		::leptoskit_router::Pattern::new(&[::leptoskit_router::Segment::Static("changelog")])
+			.axum_path(),
+		::leptoskit_router::Pattern::new(&[::leptoskit_router::Segment::Static("dashboard")])
+			.axum_path(),
+		::leptoskit_router::Pattern::new(&[::leptoskit_router::Segment::Static("install")])
+			.axum_path(),
+		::leptoskit_router::Pattern::new(&[::leptoskit_router::Segment::Static("login")])
+			.axum_path(),
+		::leptoskit_router::Pattern::new(&[::leptoskit_router::Segment::Static("pricing")])
+			.axum_path(),
+		::leptoskit_router::Pattern::new(&[
+			::leptoskit_router::Segment::Static("auth"),
+			::leptoskit_router::Segment::Static("callback")
+		])
+		.axum_path(),
+		::leptoskit_router::Pattern::new(&[
+			::leptoskit_router::Segment::Static("dashboard"),
+			::leptoskit_router::Segment::Param("organization")
+		])
+		.axum_path(),
+		::leptoskit_router::Pattern::new(&[
+			::leptoskit_router::Segment::Static("dashboard"),
+			::leptoskit_router::Segment::Param("organization"),
+			::leptoskit_router::Segment::Static("projects"),
+			::leptoskit_router::Segment::Param("project")
+		])
+		.axum_path(),
+		::leptoskit_router::Pattern::new(&[
+			::leptoskit_router::Segment::Static("dashboard"),
+			::leptoskit_router::Segment::Param("organization"),
+			::leptoskit_router::Segment::Static("projects"),
+			::leptoskit_router::Segment::Param("project"),
+			::leptoskit_router::Segment::Static("feedback")
+		])
+		.axum_path(),
+		::leptoskit_router::Pattern::new(&[
+			::leptoskit_router::Segment::Static("p"),
+			::leptoskit_router::Segment::Param("organization"),
+			::leptoskit_router::Segment::Param("project")
+		])
+		.axum_path(),
+		::leptoskit_router::Pattern::new(&[::leptoskit_router::Segment::OptionalRest("path")])
+			.axum_path()
+	]
+}
 /// The app's router: pages and layouts that take a `navigation` prop
 /// receive it, to navigate with and to build links.
 pub type Navigation = ::leptoskit_router::Router<Route>;
@@ -417,107 +475,185 @@ impl ::leptoskit_router::Render for Route {
 		match self {
 			Self::Index => {
 				let view = ::leptoskit_router::__private::IntoView::into_view(index::page());
-				::leptoskit_router::__private::IntoView::into_view(layout::layout(
-					::leptoskit_router::__private::Fragment::new().with(view),
-					navigation,
-				))
+				::leptoskit_router::__private::IntoView::into_view({
+					let view = ::leptoskit_router::__private::IntoView::into_view(layout::layout(
+						::leptoskit_router::__private::Fragment::new().with(view),
+						navigation,
+					));
+					::leptoskit_router::navigators::IntoNavigator::into_navigator(
+						layout::navigator(),
+					)
+					.shell(view, navigation, self)
+				})
 			}
 			Self::BookChapter(route) => {
 				let view =
 					::leptoskit_router::__private::IntoView::into_view(book::chapter::page(route));
-				::leptoskit_router::__private::IntoView::into_view(layout::layout(
-					::leptoskit_router::__private::Fragment::new().with(view),
-					navigation,
-				))
+				::leptoskit_router::__private::IntoView::into_view({
+					let view = ::leptoskit_router::__private::IntoView::into_view(layout::layout(
+						::leptoskit_router::__private::Fragment::new().with(view),
+						navigation,
+					));
+					::leptoskit_router::navigators::IntoNavigator::into_navigator(
+						layout::navigator(),
+					)
+					.shell(view, navigation, self)
+				})
 			}
 			Self::Changelog => {
 				let view = ::leptoskit_router::__private::IntoView::into_view(changelog::page());
-				::leptoskit_router::__private::IntoView::into_view(layout::layout(
-					::leptoskit_router::__private::Fragment::new().with(view),
-					navigation,
-				))
+				::leptoskit_router::__private::IntoView::into_view({
+					let view = ::leptoskit_router::__private::IntoView::into_view(layout::layout(
+						::leptoskit_router::__private::Fragment::new().with(view),
+						navigation,
+					));
+					::leptoskit_router::navigators::IntoNavigator::into_navigator(
+						layout::navigator(),
+					)
+					.shell(view, navigation, self)
+				})
 			}
 			Self::Workspace(route) => {
 				let view = ::leptoskit_router::__private::IntoView::into_view(
 					dashboard::index::page(route),
 				);
-				::leptoskit_router::__private::IntoView::into_view(layout::layout(
-					::leptoskit_router::__private::Fragment::new().with(view),
-					navigation,
-				))
+				::leptoskit_router::__private::IntoView::into_view({
+					let view = ::leptoskit_router::__private::IntoView::into_view(layout::layout(
+						::leptoskit_router::__private::Fragment::new().with(view),
+						navigation,
+					));
+					::leptoskit_router::navigators::IntoNavigator::into_navigator(
+						layout::navigator(),
+					)
+					.shell(view, navigation, self)
+				})
 			}
 			Self::Install => {
 				let view = ::leptoskit_router::__private::IntoView::into_view(install::page());
-				::leptoskit_router::__private::IntoView::into_view(layout::layout(
-					::leptoskit_router::__private::Fragment::new().with(view),
-					navigation,
-				))
+				::leptoskit_router::__private::IntoView::into_view({
+					let view = ::leptoskit_router::__private::IntoView::into_view(layout::layout(
+						::leptoskit_router::__private::Fragment::new().with(view),
+						navigation,
+					));
+					::leptoskit_router::navigators::IntoNavigator::into_navigator(
+						layout::navigator(),
+					)
+					.shell(view, navigation, self)
+				})
 			}
 			Self::SignIn(route) => {
 				let view = ::leptoskit_router::__private::IntoView::into_view(login::page(route));
-				::leptoskit_router::__private::IntoView::into_view(layout::layout(
-					::leptoskit_router::__private::Fragment::new().with(view),
-					navigation,
-				))
+				::leptoskit_router::__private::IntoView::into_view({
+					let view = ::leptoskit_router::__private::IntoView::into_view(layout::layout(
+						::leptoskit_router::__private::Fragment::new().with(view),
+						navigation,
+					));
+					::leptoskit_router::navigators::IntoNavigator::into_navigator(
+						layout::navigator(),
+					)
+					.shell(view, navigation, self)
+				})
 			}
 			Self::Pricing => {
 				let view = ::leptoskit_router::__private::IntoView::into_view(pricing::page());
-				::leptoskit_router::__private::IntoView::into_view(layout::layout(
-					::leptoskit_router::__private::Fragment::new().with(view),
-					navigation,
-				))
+				::leptoskit_router::__private::IntoView::into_view({
+					let view = ::leptoskit_router::__private::IntoView::into_view(layout::layout(
+						::leptoskit_router::__private::Fragment::new().with(view),
+						navigation,
+					));
+					::leptoskit_router::navigators::IntoNavigator::into_navigator(
+						layout::navigator(),
+					)
+					.shell(view, navigation, self)
+				})
 			}
 			Self::AuthCallback(route) => {
 				let view =
 					::leptoskit_router::__private::IntoView::into_view(auth::callback::page(route));
-				::leptoskit_router::__private::IntoView::into_view(layout::layout(
-					::leptoskit_router::__private::Fragment::new().with(view),
-					navigation,
-				))
+				::leptoskit_router::__private::IntoView::into_view({
+					let view = ::leptoskit_router::__private::IntoView::into_view(layout::layout(
+						::leptoskit_router::__private::Fragment::new().with(view),
+						navigation,
+					));
+					::leptoskit_router::navigators::IntoNavigator::into_navigator(
+						layout::navigator(),
+					)
+					.shell(view, navigation, self)
+				})
 			}
 			Self::OrganizationPage(route) => {
 				let view = ::leptoskit_router::__private::IntoView::into_view(
 					dashboard::organization::index::page(route),
 				);
-				::leptoskit_router::__private::IntoView::into_view(layout::layout(
-					::leptoskit_router::__private::Fragment::new().with(view),
-					navigation,
-				))
+				::leptoskit_router::__private::IntoView::into_view({
+					let view = ::leptoskit_router::__private::IntoView::into_view(layout::layout(
+						::leptoskit_router::__private::Fragment::new().with(view),
+						navigation,
+					));
+					::leptoskit_router::navigators::IntoNavigator::into_navigator(
+						layout::navigator(),
+					)
+					.shell(view, navigation, self)
+				})
 			}
 			Self::ProjectPage(route) => {
 				let view = ::leptoskit_router::__private::IntoView::into_view(
 					dashboard::organization::projects::project::index::page(route),
 				);
-				::leptoskit_router::__private::IntoView::into_view(layout::layout(
-					::leptoskit_router::__private::Fragment::new().with(view),
-					navigation,
-				))
+				::leptoskit_router::__private::IntoView::into_view({
+					let view = ::leptoskit_router::__private::IntoView::into_view(layout::layout(
+						::leptoskit_router::__private::Fragment::new().with(view),
+						navigation,
+					));
+					::leptoskit_router::navigators::IntoNavigator::into_navigator(
+						layout::navigator(),
+					)
+					.shell(view, navigation, self)
+				})
 			}
 			Self::FeedbackConsolePage(route) => {
 				let view = ::leptoskit_router::__private::IntoView::into_view(
 					dashboard::organization::projects::project::feedback::page(route),
 				);
-				::leptoskit_router::__private::IntoView::into_view(layout::layout(
-					::leptoskit_router::__private::Fragment::new().with(view),
-					navigation,
-				))
+				::leptoskit_router::__private::IntoView::into_view({
+					let view = ::leptoskit_router::__private::IntoView::into_view(layout::layout(
+						::leptoskit_router::__private::Fragment::new().with(view),
+						navigation,
+					));
+					::leptoskit_router::navigators::IntoNavigator::into_navigator(
+						layout::navigator(),
+					)
+					.shell(view, navigation, self)
+				})
 			}
 			Self::PortalPage(route) => {
 				let view = ::leptoskit_router::__private::IntoView::into_view(
 					p::organization::project::page(route),
 				);
-				::leptoskit_router::__private::IntoView::into_view(layout::layout(
-					::leptoskit_router::__private::Fragment::new().with(view),
-					navigation,
-				))
+				::leptoskit_router::__private::IntoView::into_view({
+					let view = ::leptoskit_router::__private::IntoView::into_view(layout::layout(
+						::leptoskit_router::__private::Fragment::new().with(view),
+						navigation,
+					));
+					::leptoskit_router::navigators::IntoNavigator::into_navigator(
+						layout::navigator(),
+					)
+					.shell(view, navigation, self)
+				})
 			}
 			Self::NotFound(route) => {
 				let view =
 					::leptoskit_router::__private::IntoView::into_view(not_found::page(route));
-				::leptoskit_router::__private::IntoView::into_view(layout::layout(
-					::leptoskit_router::__private::Fragment::new().with(view),
-					navigation,
-				))
+				::leptoskit_router::__private::IntoView::into_view({
+					let view = ::leptoskit_router::__private::IntoView::into_view(layout::layout(
+						::leptoskit_router::__private::Fragment::new().with(view),
+						navigation,
+					));
+					::leptoskit_router::navigators::IntoNavigator::into_navigator(
+						layout::navigator(),
+					)
+					.shell(view, navigation, self)
+				})
 			}
 		}
 	}

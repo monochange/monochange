@@ -1,7 +1,18 @@
-//! Stack back control and the tab row. Published leptoskit 0.3 has no
-//! Stack/Tabs `navigator()`; this is the in-memory router those guides describe.
+//! Stack back control. The tab bar comes from `navigator()`, which the file
+//! router shells around this layout.
 
 use leptoskit::prelude::*;
+
+/// Floor and Install are the native tab roots. Other screens push on the stack.
+pub fn navigator() -> leptoskit_router::navigators::Tabs<crate::routes::Route> {
+	use leptoskit_router::navigators::Tab;
+	use leptoskit_router::navigators::Tabs;
+
+	Tabs::new([
+		Tab::root(crate::routes::Route::Index).title("Floor"),
+		Tab::root(crate::routes::Route::Install).title("Install"),
+	])
+}
 
 pub fn layout(children: Children, navigation: &crate::routes::Navigation) -> Element {
 	let mut page = Vec::new();

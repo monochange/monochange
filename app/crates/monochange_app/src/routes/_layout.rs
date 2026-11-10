@@ -1,6 +1,5 @@
 //! Site chrome: a stack back control, a tab row, and the page.
 
-use leptoskit::native::Current;
 use leptoskit::native::Role;
 use leptoskit::prelude::*;
 
@@ -9,6 +8,23 @@ use crate::links::SOURCE_URL;
 use crate::ui::link;
 use crate::ui::text;
 use crate::ui::text_class;
+
+/// Tab bar for the public site. The file router on leptoskit `fa3d29f` wraps
+/// this layout with the bar; selecting a tab replaces history instead of
+/// pushing it.
+pub fn navigator() -> leptoskit_router::navigators::Tabs<crate::routes::Route> {
+	use leptoskit_router::navigators::Tab;
+	use leptoskit_router::navigators::TabPlacement;
+	use leptoskit_router::navigators::Tabs;
+
+	Tabs::new([
+		Tab::root(crate::routes::Route::Index).title("monochange"),
+		Tab::root(crate::routes::Route::Install).title("Install"),
+		Tab::root(crate::routes::Route::Changelog).title("Changelog"),
+		Tab::root(crate::routes::Route::Pricing).title("Pricing"),
+	])
+	.placement(TabPlacement::Top)
+}
 
 /// Wraps every screen. `navigation` is the file-router stack: Back pops it,
 /// and each tab link pushes the next screen.
@@ -19,8 +35,7 @@ pub fn layout(children: Children, navigation: &crate::routes::Navigation) -> Ele
 	View()
 		.class("flex min-h-screen flex-col bg-white")
 		.child(skip_link())
-		.child(header(navigation, on_home))
-		.child(mobile_nav(navigation))
+		.child(header(on_home))
 		.child(back_control(navigation))
 		.child(main_content(children))
 		.child(footer())
@@ -53,7 +68,7 @@ fn back_control(navigation: &crate::routes::Navigation) -> Element {
 		})
 }
 
-fn header(navigation: &crate::routes::Navigation, on_home: bool) -> Element {
+fn header(on_home: bool) -> Element {
 	let brand = if on_home { "monochange" } else { "monochange" };
 	View()
 		.role(Role::Banner)
@@ -66,51 +81,9 @@ fn header(navigation: &crate::routes::Navigation, on_home: bool) -> Element {
 				.aria_label("Main navigation")
 				.class("flex flex-row flex-wrap items-center gap-4")
 				.child(link("/", brand))
-				.child(tab(navigation, crate::routes::Route::Install, "Install"))
 				.child(link(BOOK_URL, "Docs"))
-				.child(tab(
-					navigation,
-					crate::routes::Route::Changelog,
-					"Changelog",
-				))
-				.child(tab(navigation, crate::routes::Route::Pricing, "Pricing"))
 				.child(session_link()),
 		)
-}
-
-/// The second navigation row stands in for the mobile menu. It is in the
-/// server HTML, matching the previous desktop-plus-mobile changelog links.
-fn mobile_nav(navigation: &crate::routes::Navigation) -> Element {
-	View()
-		.role(Role::Navigation)
-		.aria_label("Mobile navigation")
-		.class("flex flex-row flex-wrap gap-4 px-4")
-		.child(tab(navigation, crate::routes::Route::Install, "Install"))
-		.child(link(BOOK_URL, "Docs"))
-		.child(tab(
-			navigation,
-			crate::routes::Route::Changelog,
-			"Changelog",
-		))
-		.child(tab(navigation, crate::routes::Route::Pricing, "Pricing"))
-}
-
-fn tab(
-	navigation: &crate::routes::Navigation,
-	route: crate::routes::Route,
-	label: &str,
-) -> Element {
-	let current = navigation.current() == route;
-	let mut link = navigation
-		.link(route, label)
-		.class("px-4 py-2 font-semibold text-slate-900")
-		.child(Text(label));
-
-	if current {
-		link = link.aria_current(Current::Page);
-	}
-
-	link
 }
 
 fn session_link() -> Element {

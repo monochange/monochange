@@ -16,11 +16,11 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
 
-# leptoskit 0.3 pins Leptos 0.9-rc0; keep the extension workspace separate from
-# the Leptos 0.8 `app/` tree until the web/RPC port lands on the same stack.
-leptoskit = { version = "=0.3.0", default-features = false }
-leptoskit_build = { version = "=0.3.0", default-features = false }
-leptoskit_rpc = { version = "=0.3.0", default-features = false }
+# Same git revision as the website and the native guest: fa3d29f on
+# leptoskit/leptoskit. That tree pins Leptos 0.9.0-rc0.
+leptoskit = { git = "https://github.com/leptoskit/leptoskit", rev = "fa3d29f8e8c837b19f92f1e9a95f699803543767", default-features = false }
+leptoskit_build = { git = "https://github.com/leptoskit/leptoskit", rev = "fa3d29f8e8c837b19f92f1e9a95f699803543767", default-features = false }
+leptoskit_rpc = { git = "https://github.com/leptoskit/leptoskit", rev = "fa3d29f8e8c837b19f92f1e9a95f699803543767", default-features = false }
 leptos = { version = "0.9.0-rc0", default-features = false }
 wasm-bindgen = { version = "=0.2.129" }
 

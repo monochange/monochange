@@ -462,7 +462,11 @@ async fn public_navigation_names_the_changelog_in_desktop_mobile_and_footer_link
 		.skip(1)
 		.filter(|link| link.split("</a>").next().unwrap().contains("Changelog"))
 		.count();
-	assert_eq!(named_links, 3);
+	// The Tabs navigator contributes one Changelog tab. The footer contributes
+	// the other. Install, Pricing, and Changelog are no longer duplicated in
+	// a second hand-built row.
+	assert!(body.contains("tabs-bar"));
+	assert_eq!(named_links, 2);
 }
 
 #[tokio::test]

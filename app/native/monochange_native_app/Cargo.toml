@@ -40,4 +40,4 @@ serde_json = { workspace = true }
 
 [build-dependencies]
 leptoskit_build = { workspace = true }
-leptoskit_router_codegen = "=0.3.0"
+leptoskit_router_codegen = { git = "https://github.com/leptoskit/leptoskit", rev = "fa3d29f8e8c837b19f92f1e9a95f699803543767" }

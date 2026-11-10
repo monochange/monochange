@@ -19,10 +19,12 @@ leptos_router = { version = "0.9.0-rc1", default-features = false }
 # Server functions (aligned with leptos 0.9)
 server_fn = { version = "0.9.0-rc1", default-features = false }
 
-# leptoskit SSR + RPC (crates.io 0.3)
-leptoskit = { version = "0.3", default-features = false }
-leptoskit_router = { version = "0.3", default-features = false }
-leptoskit_rpc = { version = "0.3", default-features = false }
+# leptoskit from git main (fa3d29f, 10 Nov 2026). That commit is still
+# version 0.3.0, and it is the first revision with Stack/Tabs/Drawer
+# `navigator()` plus the router `ssr` module. crates.io 0.3.0 does not have them.
+leptoskit = { git = "https://github.com/leptoskit/leptoskit", rev = "fa3d29f8e8c837b19f92f1e9a95f699803543767", default-features = false }
+leptoskit_router = { git = "https://github.com/leptoskit/leptoskit", rev = "fa3d29f8e8c837b19f92f1e9a95f699803543767", default-features = false }
+leptoskit_rpc = { git = "https://github.com/leptoskit/leptoskit", rev = "fa3d29f8e8c837b19f92f1e9a95f699803543767", default-features = false }
 schemars = { version = "1.2", features = ["semver1"] }
 
 # Testing
