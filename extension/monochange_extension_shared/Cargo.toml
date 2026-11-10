@@ -5,10 +5,10 @@ edition.workspace = true
 license.workspace = true
 publish = false
 repository.workspace = true
-description = "Shared RPC contracts for the monochange browser extension (stubs until the web/RPC port merges)"
+description = "Client session and project models for the monochange browser extension"
 
 [dependencies]
-monochange_shared = { path = "../../app/crates/monochange_shared", features = ["client"] }
+monochange_shared = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }

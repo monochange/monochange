@@ -2,7 +2,18 @@
 monochange_app: major
 ---
 
+# Separate projects from repository connection and share client sessions
+
+> Rebuild native hosts for the new sign-in plugins and migrate product links to `/projects`.
+
 Move the browser workspace into `monochange_projects` at `/projects`, with its own navigation. `/dashboard` retains GitHub repository connection; existing organization, project and feedback links redirect into projects. Mount `/connect` and `/account` for client consent and revocation against the existing cookie authority. `connect_request` returns the validated `denial_url`; approval forms submit only `client`, `redirect_uri`, `code_challenge`, and `state`.
+
+```text
+Before: /dashboard/acme/projects/widget
+After:  /projects/acme/projects/widget
+
+Repository connection: /dashboard
+```
 
 Native and extension consumers use `monochange_shared::ApiClient` rather than demo RPC endpoints. Native plugin declarations add crypto, web-auth, and linking alongside HTTP and secure-store: rebuild native hosts before distributing this update. This requires a new native binary, not an OTA-only update.
 
