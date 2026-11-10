@@ -13,4 +13,6 @@ cargo leptos --manifest-path app/crates/monochange_app/Cargo.toml build --releas
 pnpm node scripts/minify-split-loader.ts --site-root app/target/site
 ```
 
+The workspace permits the install script for `esbuild@0.28.2` through pnpm's `allowBuilds` setting so strict CI installs can provision its native binary.
+
 The rewrite is guarded: `scripts/minify-split-loader.ts` replaces a loader only when the minified output still exports the same `__wasm_split_load___<route>` initializers and still references the same `/pkg/monochange_app.js` import and `./chunk_N.wasm` / `./split___<route>.wasm` URLs. A minifier regression or an unexpected loader shape fails the build instead of reaching a deployment. esbuild is resolved from `MONOCHANGE_ESBUILD_BIN`, the workspace `node_modules/.bin/esbuild` devDependency, or `PATH`, in that order; the Docker builder installs a pinned esbuild binary (registry integrity digest verified) plus Node 24 so the identical script runs there.
