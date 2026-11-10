@@ -1,6 +1,6 @@
 # leptoskit projects split
 
-Status: dependency migration, shared authority, and projects consumers implemented. The split-loader size gate is resolved on the isolated `build/split-loader-minify` branch (see the gate-resolution section below); iOS simulator boot failure remains open. Created: 2026-11-09 Baseline: `origin/main` at `9dd2d1d0397b6e7907e5cb08b3939929db008c67`. Upstream: `https://github.com/leptoskit/leptoskit` `main` at `a93214edc8e5f6c7999c628285093f15cf188639` (2026-11-09).
+Status: dependency migration, shared authority, and projects consumers implemented. The final frontend passes the unchanged size gate; clean cumulative app patch coverage is 100%. Parent review and full local checks are in progress before PR creation. iOS runtime and Firefox identity remain unverified. Created: 2026-11-09 Baseline: `origin/main` at `9dd2d1d0397b6e7907e5cb08b3939929db008c67`. Upstream: `https://github.com/leptoskit/leptoskit` `main` at `a93214edc8e5f6c7999c628285093f15cf188639` (2026-11-09).
 
 ## Goal
 
