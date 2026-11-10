@@ -39,6 +39,7 @@ monochange discovers packages across Cargo, npm/pnpm/Bun, Deno, Dart/Flutter, Py
 [1m[96mAutomation Commands:[0m
   [93mrun[0m            Run workflow commands defined in monochange.toml
   [93mstep[0m           Run built-in release workflow steps
+  [93mgh[0m             Run GitHub operations through the monochange app
   [93mcommand[0m        Open an interactive dashboard for adding or editing config-defined CLI commands
   [93mmcp[0m            Start the monochange MCP (Model Context Protocol) server over stdin/stdout
   [93mskill[0m          Read or install the bundled monochange agent skill
