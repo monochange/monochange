@@ -53,7 +53,7 @@ RUN arch="$(dpkg --print-architecture)" \
 # Pinned Node.js LTS (same major as CI's actions/setup-node) so the release
 # minification script runs here exactly as it does in CI. The script itself is
 # dependency-free TypeScript (Node type stripping, no node_modules); verify the
-# official SHASUMS256.txt before extracting.
+# pinned digest from the official SHASUMS256.txt before extracting.
 RUN arch="$(dpkg --print-architecture)" \
     && case "$arch" in \
         amd64) node_arch=x64; node_sha=48cc0e21e048790e54c0cf5749c2725005313d652651c40b7a21feb9697aaf75 ;; \
@@ -61,10 +61,9 @@ RUN arch="$(dpkg --print-architecture)" \
         *) echo "unsupported architecture: $arch" >&2; exit 1 ;; \
     esac \
     && curl -fsSL "https://nodejs.org/dist/v24.22.2/node-v24.22.2-linux-${node_arch}.tar.xz" -o /tmp/node.tar.xz \
-    && curl -fsSL "https://nodejs.org/dist/v24.22.2/SHASUMS256.txt" -o /tmp/node-shasums.txt \
-    && grep " node-v24.22.2-linux-${node_arch}.tar.xz\$" /tmp/node-shasums.txt | sha256sum -c - \
+    && printf '%s  /tmp/node.tar.xz\n' "$node_sha" | sha256sum -c - \
     && tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1 --no-same-owner \
-    && rm -f /tmp/node.tar.xz /tmp/node-shasums.txt \
+    && rm -f /tmp/node.tar.xz \
     && node --version
 
 # Pinned esbuild binary from the npm registry package so the wasm-split loader
