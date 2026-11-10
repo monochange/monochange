@@ -263,7 +263,12 @@ async fn current_installations_and_an_available_app_render_their_states() {
 		);
 		leptoskit::web::render(crate::ui::with_children(
 			crate::ui::column("flex flex-col"),
-			[permission_notice(permissions), connection_panel(connection)],
+			[
+				permission_notice(permissions),
+				permission_body(None),
+				connection_panel(connection),
+				connection_status(None, &connection),
+			],
 		))
 	})
 	.await;
@@ -271,4 +276,5 @@ async fn current_installations_and_an_available_app_render_their_states() {
 	assert!(!html.contains("Approve monochange"), "{html}");
 	assert!(html.contains("Connect your repositories"), "{html}");
 	assert!(html.contains("Connect repositories on GitHub"), "{html}");
+	assert!(html.contains("Loading repository setup"), "{html}");
 }

@@ -263,7 +263,13 @@ fn avatar(avatar_url: Option<String>, login: &str) -> Element {
 fn permission_notice(
 	permissions: Resource<Result<Vec<PermissionUpdate>, server_fn::ServerFnError>>,
 ) -> Element {
-	let Some(Ok(updates)) = permissions.get() else {
+	permission_body(permissions.get())
+}
+
+fn permission_body(
+	permissions: Option<Result<Vec<PermissionUpdate>, server_fn::ServerFnError>>,
+) -> Element {
+	let Some(Ok(updates)) = permissions else {
 		return leptoskit::view! { <View /> };
 	};
 	if updates.is_empty() {
@@ -289,7 +295,14 @@ fn permission_notice(
 fn connection_panel(
 	connection: Resource<Result<RepositoryConnectionStatus, server_fn::ServerFnError>>,
 ) -> Element {
-	match connection.get() {
+	connection_status(connection.get(), &connection)
+}
+
+fn connection_status(
+	status: Option<Result<RepositoryConnectionStatus, server_fn::ServerFnError>>,
+	connection: &Resource<Result<RepositoryConnectionStatus, server_fn::ServerFnError>>,
+) -> Element {
+	match status {
 		None => text("Loading repository setup…"),
 		Some(Ok(RepositoryConnectionStatus::Available { installation_url })) => {
 			let title = heading(2, "Connect your repositories");
@@ -323,7 +336,7 @@ fn connection_panel(
 		Some(Err(_)) => {
 			let title = heading(2, "Repository setup couldn't be loaded");
 			let copy = text("Please reload the page to try again.");
-			let action = retry(connection);
+			let action = retry(*connection);
 			leptoskit::view! {
 				<View class="flex flex-col gap-2">
 					{title}
