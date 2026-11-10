@@ -34,9 +34,8 @@ pub fn layout(children: Children, navigation: &crate::routes::Navigation) -> Ele
 	if project_shell(&current) {
 		return project_layout(children);
 	}
-	let on_home = matches!(current, crate::routes::Route::Index);
 	let skip = skip_link();
-	let header = header(on_home);
+	let header = header();
 	let back = back_control(navigation);
 	let main = main_content(children);
 	let footer = footer();
@@ -86,18 +85,19 @@ fn back_control(navigation: &crate::routes::Navigation) -> Element {
 	view! {
 		<Button
 			class="rounded-lg px-4 py-2 font-semibold text-slate-900"
-			on:press=move || {
-				navigation.back();
-			}
+			on:press=move || go_back(&navigation)
 		>
 			"Back"
 		</Button>
 	}
 }
 
-fn header(on_home: bool) -> Element {
-	let brand = if on_home { "monochange" } else { "monochange" };
-	let brand = link("/", brand);
+fn go_back(navigation: &crate::routes::Navigation) {
+	navigation.back();
+}
+
+fn header() -> Element {
+	let brand = link("/", "monochange");
 	let docs = link(BOOK_URL, "Docs");
 	let session = session_link();
 	view! {
@@ -141,15 +141,19 @@ fn sign_out_button() -> Element {
 	view! {
 		<Button
 			class="rounded-lg px-4 py-2 font-semibold text-slate-900"
-			on:press=|| {
-				leptos::task::spawn_local(async {
-					let _ = crate::server_fns::auth::logout().await;
-				});
-			}
+			on:press=begin_sign_out
 		>
 			"Sign out"
 		</Button>
 	}
+}
+
+fn begin_sign_out() {
+	leptos::task::spawn_local(sign_out());
+}
+
+async fn sign_out() {
+	let _ = crate::server_fns::auth::logout().await;
 }
 
 fn footer() -> Element {
@@ -185,3 +189,8 @@ fn footer() -> Element {
 		</View>
 	}
 }
+
+// The file router rejects a `__tests__` directory inside `routes/`.
+#[cfg(test)]
+#[path = "../__tests__/routes/layout_tests.rs"]
+mod tests;

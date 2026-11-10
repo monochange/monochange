@@ -13,4 +13,9 @@ async fn installation_page_links_to_the_shipped_github_app_chapter() {
 
 	assert!(html.contains(&format!("href=\"{}\"", chapter.href)));
 	assert!(html.contains("Read the GitHub App setup guide"));
+	assert!(fallback_href(None).ends_with("/guide/github-app"));
+	assert_eq!(
+		fallback_href(Some("/book/guide/github-app")),
+		"/book/guide/github-app"
+	);
 }

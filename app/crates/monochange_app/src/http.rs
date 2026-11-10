@@ -46,8 +46,17 @@ const PAGES: &[&str] = &[
 	"/p/{organization}/{project}",
 ];
 
+/// Discovers lazy routes once, then builds the SSR router.
+pub fn assemble_ssr(options: LeptosOptions, state: &Arc<monochange_app_api::AppState>) -> Router {
+	static DISCOVERED: std::sync::Once = std::sync::Once::new();
+	DISCOVERED.call_once(|| {
+		let _routes = leptos_axum::generate_route_list(crate::app::App);
+	});
+	ssr_router(options, state)
+}
+
 /// The SSR router: server functions, known pages, then files and the 404 shell.
-pub fn ssr_router(options: LeptosOptions, state: Arc<monochange_app_api::AppState>) -> Router {
+pub fn ssr_router(options: LeptosOptions, state: &Arc<monochange_app_api::AppState>) -> Router {
 	// leptos_routes used to do this. Server rendering spawns blocking resources.
 	let _ = any_spawner::Executor::init_tokio();
 	let mut router = Router::<LeptosOptions>::new();
@@ -61,14 +70,7 @@ pub fn ssr_router(options: LeptosOptions, state: Arc<monochange_app_api::AppStat
 					.await
 			}
 		};
-		let route = match method {
-			Method::GET => get(handler),
-			Method::POST => post(handler),
-			Method::PUT => put(handler),
-			Method::DELETE => delete(handler),
-			Method::PATCH => patch(handler),
-			other => panic!("unsupported server function method {other:?}"),
-		};
+		let route = method_route(method, handler);
 		router = router.route(path, route);
 	}
 
@@ -106,3 +108,22 @@ pub fn ssr_router(options: LeptosOptions, state: Arc<monochange_app_api::AppStat
 			crate::public_routes::legacy_projects,
 		))
 }
+
+fn method_route<H, T>(method: Method, handler: H) -> axum::routing::MethodRouter<LeptosOptions>
+where
+	H: axum::handler::Handler<T, LeptosOptions>,
+	T: 'static,
+{
+	match method {
+		Method::GET => get(handler),
+		Method::POST => post(handler),
+		Method::PUT => put(handler),
+		Method::DELETE => delete(handler),
+		Method::PATCH => patch(handler),
+		other => panic!("unsupported server function method {other:?}"),
+	}
+}
+
+#[cfg(test)]
+#[path = "__tests__/http_tests.rs"]
+mod tests;

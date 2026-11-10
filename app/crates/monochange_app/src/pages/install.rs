@@ -62,15 +62,21 @@ pub fn install_screen() -> Element {
 fn guide_href() -> String {
 	#[cfg(not(target_arch = "wasm32"))]
 	{
-		crate::book::compiled_book()
+		let chapter = crate::book::compiled_book()
 			.ok()
-			.and_then(|book| book.chapter("guide/github-app").cloned())
-			.map(|chapter| chapter.href)
-			.unwrap_or_else(|| format!("{BOOK_URL}/guide/github-app"))
+			.and_then(|book| book.chapter("guide/github-app").cloned());
+		fallback_href(chapter.as_ref().map(|chapter| chapter.href.as_str()))
 	}
 	#[cfg(target_arch = "wasm32")]
 	{
 		format!("{BOOK_URL}/guide/github-app")
+	}
+}
+
+fn fallback_href(href: Option<&str>) -> String {
+	match href {
+		Some(href) => href.to_owned(),
+		None => format!("{BOOK_URL}/guide/github-app"),
 	}
 }
 

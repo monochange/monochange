@@ -13,3 +13,8 @@ pub struct OrganizationPage {
 pub fn page(route: &OrganizationPage) -> Element {
 	crate::pages::organization::organization_screen(route.organization.clone(), route.q.clone())
 }
+
+// The file router rejects a `__tests__` directory inside `routes/`.
+#[cfg(test)]
+#[path = "../../../__tests__/routes/dashboard_organization_tests.rs"]
+mod tests;

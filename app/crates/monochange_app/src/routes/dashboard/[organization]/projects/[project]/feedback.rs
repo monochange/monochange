@@ -16,3 +16,8 @@ pub fn page(route: &FeedbackConsolePage) -> Element {
 		route.project.clone(),
 	)
 }
+
+// The file router rejects a `__tests__` directory inside `routes/`.
+#[cfg(test)]
+#[path = "../../../../../__tests__/routes/dashboard_feedback_tests.rs"]
+mod tests;

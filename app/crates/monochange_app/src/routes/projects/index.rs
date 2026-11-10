@@ -11,7 +11,7 @@ use crate::ui::text;
 
 pub fn page() -> Element {
 	let organizations =
-		crate::slots::once(|| Resource::new_blocking(|| (), |_| list_organizations()));
+		crate::slots::once(|| Resource::new_blocking(|| (), |()| list_organizations()));
 	let brand = heading(1, "monochange projects");
 	match organizations.get() {
 		None => {

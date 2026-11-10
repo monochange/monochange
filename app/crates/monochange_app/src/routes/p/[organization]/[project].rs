@@ -16,6 +16,6 @@ pub fn page(route: &PortalPage) -> Element {
 	crate::pages::portal::portal_screen(
 		route.organization.clone(),
 		route.project.clone(),
-		route.shared.clone(),
+		route.shared.as_deref(),
 	)
 }

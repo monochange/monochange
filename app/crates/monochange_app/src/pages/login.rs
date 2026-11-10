@@ -14,15 +14,15 @@ use crate::ui::text;
 
 /// Sign-in screen. A portal return (`next` starting with `/p/`) uses the
 /// feedback copy.
-pub fn login_screen(next: Option<String>) -> Element {
-	let next_for_url = next.clone();
+pub fn login_screen(next: Option<&str>) -> Element {
+	let next_for_url = next.map(str::to_owned);
 	let login_url = crate::slots::once(|| {
 		Resource::new_blocking(
 			move || next_for_url.clone(),
 			|next| async move { get_login_url(next).await.unwrap_or_default() },
 		)
 	});
-	let for_portal = next.as_deref().is_some_and(|next| next.starts_with("/p/"));
+	let for_portal = next.is_some_and(|next| next.starts_with("/p/"));
 
 	let intro = if for_portal {
 		leptoskit::view! {
@@ -62,7 +62,11 @@ pub fn login_screen(next: Option<String>) -> Element {
 }
 
 fn login_action(login_url: Resource<String>) -> Element {
-	match login_url.get() {
+	login_message(login_url.get())
+}
+
+fn login_message(login_url: Option<String>) -> Element {
+	match login_url {
 		None => text("Preparing GitHub sign-in..."),
 		Some(url) if url.is_empty() => {
 			text("GitHub sign-in is unavailable right now. Please try again later.")
@@ -119,3 +123,7 @@ pub fn callback_screen(code: Option<String>, state: Option<String>) -> Element {
 		}
 	}
 }
+
+#[cfg(test)]
+#[path = "__tests__/login_tests.rs"]
+mod tests;

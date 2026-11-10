@@ -93,13 +93,19 @@ fn BookPageView(result: Result<Option<BookPage>, ServerFnError>) -> impl IntoVie
 }
 
 /// Book screen for `/book` and `/book/*`.
-pub fn book_screen(chapter: Vec<String>) -> leptoskit::prelude::Element {
+pub fn book_screen(chapter: &[String]) -> leptoskit::prelude::Element {
 	let path = chapter.join("/");
 	let key = crate::slots::once(|| RwSignal::new(path.clone()));
 	key.set(path);
 	let page = crate::slots::once(|| Resource::new_blocking(move || key.get(), get_book_page));
 
-	match page.get() {
+	book_body(page.get())
+}
+
+fn book_body(
+	page: Option<Result<Option<BookPage>, server_fn::ServerFnError>>,
+) -> leptoskit::prelude::Element {
+	match page {
 		None => crate::ui::text("Loading the book…"),
 		Some(Err(_)) => crate::ui::text("The book is unavailable right now. Please try again."),
 		Some(Ok(None)) => {
@@ -137,7 +143,7 @@ fn book_content(page: BookPage) -> leptoskit::prelude::Element {
 	}
 
 	children.push(crate::ui::link(
-		&format!(
+		format!(
 			"https://github.com/monochange/monochange/blob/main/docs/src/{}",
 			page.chapter.source
 		),

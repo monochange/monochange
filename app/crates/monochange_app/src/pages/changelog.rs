@@ -102,7 +102,13 @@ pub fn changelog_screen() -> leptoskit::prelude::Element {
 	let releases =
 		crate::slots::once(|| Resource::new_blocking(|| (), |()| get_website_releases()));
 
-	match releases.get() {
+	changelog_body(releases.get())
+}
+
+fn changelog_body(
+	releases: Option<Result<Vec<WebsiteRelease>, server_fn::ServerFnError>>,
+) -> leptoskit::prelude::Element {
+	match releases {
 		None => crate::ui::text("Loading release notes…"),
 		Some(Err(error)) => crate::ui::text(error.to_string()),
 		Some(Ok(releases)) => changelog_content(releases),
@@ -139,7 +145,7 @@ fn changelog_content(releases: Vec<WebsiteRelease>) -> leptoskit::prelude::Eleme
 	for release in releases {
 		children.push(crate::ui::heading(2, format!("v{}", release.version)));
 		children.push(crate::ui::link(
-			&format!("/releases/{}.json", release.version),
+			format!("/releases/{}.json", release.version),
 			"View JSON",
 		));
 

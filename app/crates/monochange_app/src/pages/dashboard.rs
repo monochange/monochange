@@ -25,11 +25,11 @@ use crate::ui::text;
 pub fn dashboard_screen(search: Option<String>, organization: Option<String>) -> Element {
 	let user = crate::slots::session();
 	let organizations =
-		crate::slots::once(|| Resource::new_blocking(|| (), |_| list_organizations()));
+		crate::slots::once(|| Resource::new_blocking(|| (), |()| list_organizations()));
 	let connection =
-		crate::slots::once(|| Resource::new_blocking(|| (), |_| repository_connection()));
+		crate::slots::once(|| Resource::new_blocking(|| (), |()| repository_connection()));
 	let permissions =
-		crate::slots::once(|| Resource::new_blocking(|| (), |_| permission_updates()));
+		crate::slots::once(|| Resource::new_blocking(|| (), |()| permission_updates()));
 
 	match user.get() {
 		None => text("Loading your workspace…"),
@@ -55,13 +55,8 @@ pub fn dashboard_screen(search: Option<String>, organization: Option<String>) ->
 					)
 				}
 				Some(Ok(organizations)) => {
-					workspace(
-						session,
-						organizations,
-						connection,
-						permissions,
-						RepositoryFilter::new(search, organization),
-					)
+					let filter = RepositoryFilter::new(search, organization);
+					workspace(&session, &organizations, connection, permissions, &filter)
 				}
 			}
 		}
@@ -86,11 +81,11 @@ fn notice(title: &'static str, message: &'static str) -> Element {
 }
 
 fn workspace(
-	user: SessionUser,
-	organizations: Vec<OrganizationSummary>,
+	user: &SessionUser,
+	organizations: &[OrganizationSummary],
 	connection: Resource<Result<RepositoryConnectionStatus, server_fn::ServerFnError>>,
 	permissions: Resource<Result<Vec<PermissionUpdate>, server_fn::ServerFnError>>,
-	filter: RepositoryFilter,
+	filter: &RepositoryFilter,
 ) -> Element {
 	let repository_total: usize = organizations
 		.iter()
@@ -124,9 +119,9 @@ fn workspace(
 		));
 		children.push(link("/install#github-app", "Read the setup guide"));
 	} else {
-		children.push(filters(&filter, &organizations));
-		for organization in &organizations {
-			children.push(organization_card(organization, &filter));
+		children.push(filters(filter, organizations));
+		for organization in organizations {
+			children.push(organization_card(organization, filter));
 		}
 		if matches == 0 {
 			children.push(heading(3, "No repositories match"));
@@ -247,7 +242,9 @@ pub fn OrganizationAvatar(
 	login: String,
 	#[prop(optional_no_strip)] avatar_url: Option<String>,
 ) -> impl leptos::prelude::IntoView {
-	leptoskit::web::render(organization_avatar(&login, avatar_url))
+	let rendered = leptoskit::web::render(organization_avatar(&login, avatar_url));
+	drop(login);
+	rendered
 }
 
 fn avatar(avatar_url: Option<String>, login: &str) -> Element {

@@ -33,8 +33,6 @@ use leptos::prelude::*;
 // Server stack via leptoskit re-exports (axum / leptos_axum).
 use leptoskit::server::axum::Router;
 use leptoskit::server::axum::response::Json;
-use leptoskit::server::leptos_axum::generate_route_list;
-use monochange_app::app::App;
 use monochange_app_api::AppState;
 use serde::Serialize;
 use tracing::info;
@@ -131,8 +129,9 @@ async fn main() -> Result<(), MonochangeError> {
 	let conf = get_configuration(None).map_err(|e| MonochangeError::Server(e.to_string()))?;
 	let leptos_options = conf.leptos_options.clone();
 	// Discovers server functions and applies the router's one-time resource gate.
-	let _routes = generate_route_list(App);
-	let ssr_router = monochange_app::http::ssr_router(leptos_options.clone(), app_state.clone());
+	// patch-coverage:ignore-start -- process entry; assemble_ssr is covered by the router tests.
+	let ssr_router = monochange_app::http::assemble_ssr(leptos_options.clone(), &app_state);
+	// patch-coverage:ignore-end
 
 	let app = Router::<()>::new()
 		.merge(monochange_app::public_routes::book_redirects())

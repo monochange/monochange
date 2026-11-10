@@ -45,7 +45,7 @@ fn link_label(link: &PublicLink) -> (&'static str, String) {
 pub fn portal_screen(
 	organization: String,
 	project: String,
-	shared: Option<String>,
+	shared: Option<&str>,
 ) -> leptoskit::prelude::Element {
 	let key = crate::slots::once(|| RwSignal::new((organization.clone(), project.clone())));
 	key.set((organization, project));
@@ -58,7 +58,7 @@ pub fn portal_screen(
 
 	match snapshot.get() {
 		None => crate::ui::text("Loading the portal…"),
-		Some(Ok(Some(snapshot))) => portal_content(&snapshot, shared.as_deref()),
+		Some(Ok(Some(snapshot))) => portal_content(&snapshot, shared),
 		Some(Ok(None)) => crate::ui::heading(1, "This feedback portal doesn't exist"),
 		Some(Err(_)) => crate::ui::heading(1, "Feedback couldn't be loaded"),
 	}
@@ -157,3 +157,7 @@ fn portal_lines(snapshot: &PortalSnapshot, shared: Option<&str>) -> Vec<String> 
 fn shown_text(text: &str) -> String {
 	text.replace("[redacted]", "redacted")
 }
+
+#[cfg(test)]
+#[path = "__tests__/portal_tests.rs"]
+mod tests;

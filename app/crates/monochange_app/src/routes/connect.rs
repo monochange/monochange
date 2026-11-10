@@ -65,7 +65,20 @@ pub fn page(route: &Connect) -> Element {
 	});
 
 	let title = heading(1, "Connect monochange projects");
-	let body = match request.get() {
+	let body = connection_body(request.get(), &login);
+	leptoskit::view! {
+		<View class="flex flex-col gap-4">
+			{title}
+			{body}
+		</View>
+	}
+}
+
+fn connection_body(
+	request: Option<Result<Option<monochange_shared::ConnectPreview>, server_fn::ServerFnError>>,
+	login: &str,
+) -> Element {
+	match request {
 		None => text("Checking connection…"),
 		Some(Ok(Some(preview))) => {
 			let who = text(format!("Continue as {}", preview.user.github_login));
@@ -87,7 +100,7 @@ pub fn page(route: &Connect) -> Element {
 		}
 		Some(Err(_)) => {
 			let message = text("Sign in to review this connection request.");
-			let action = link(&login, "Sign in with GitHub");
+			let action = link(login, "Sign in with GitHub");
 			leptoskit::view! {
 				<View class="flex flex-col gap-4">
 					{message}
@@ -95,11 +108,10 @@ pub fn page(route: &Connect) -> Element {
 				</View>
 			}
 		}
-	};
-	leptoskit::view! {
-		<View class="flex flex-col gap-4">
-			{title}
-			{body}
-		</View>
 	}
 }
+
+// The file router rejects a `__tests__` directory inside `routes/`.
+#[cfg(test)]
+#[path = "../__tests__/routes/connect_tests.rs"]
+mod tests;

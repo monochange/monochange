@@ -37,7 +37,7 @@ pub fn organization_screen(login: String, search: Option<String>) -> Element {
 
 	match overview.get() {
 		None => text("Loading organisation…"),
-		Some(Ok(Some(organization))) => organization_content(organization, &search),
+		Some(Ok(Some(organization))) => organization_content(&organization, &search),
 		Some(Ok(None)) => {
 			unavailable(
 				"Organisation not found",
@@ -74,7 +74,7 @@ pub fn unavailable(title: &'static str, message: &'static str) -> Element {
 }
 
 /// The account body. Tests render this with a fixture instead of the server.
-pub fn organization_content(organization: OrganizationSummary, search: &str) -> Element {
+pub fn organization_content(organization: &OrganizationSummary, search: &str) -> Element {
 	let kind = if organization.personal {
 		"Personal account"
 	} else {
@@ -192,3 +192,7 @@ fn repository_list(page: &crate::repository_filter::RepositoryPage) -> Element {
 	}
 	leptoskit::view! { <View role=Role::List class="flex flex-col gap-2">{rows}</View> }
 }
+
+#[cfg(test)]
+#[path = "__tests__/organization_tests.rs"]
+mod tests;

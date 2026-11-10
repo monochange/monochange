@@ -11,7 +11,7 @@ use crate::server_fns::auth::get_session;
 
 /// The signed-in user, loaded once for the document.
 pub fn session() -> Resource<Result<Option<SessionUser>, server_fn::ServerFnError>> {
-	once(|| Resource::new_blocking(|| (), |_| get_session()))
+	once(|| Resource::new_blocking(|| (), |()| get_session()))
 }
 
 /// Returns `init()` the first time `T` is requested on this owner.

@@ -183,7 +183,7 @@ fn console_lines(view: &ConsoleView) -> Vec<String> {
 			(Some(reason), _) => {
 				lines.push(format!(
 					"Withheld from users: {reason}. Rewrite its public title."
-				))
+				));
 			}
 			(None, Some(_)) if !entry.redacted.is_empty() => {
 				lines.push(format!("Hidden: {}", entry.redacted.join(", ")));
@@ -192,7 +192,7 @@ fn console_lines(view: &ConsoleView) -> Vec<String> {
 				lines.push(format!(
 					"Not on the public roadmap while {}.",
 					stage_label(item.stage)
-				))
+				));
 			}
 			(None, Some(_)) => {}
 		}
@@ -230,3 +230,7 @@ fn console_lines(view: &ConsoleView) -> Vec<String> {
 
 	lines
 }
+
+#[cfg(test)]
+#[path = "__tests__/feedback_console_tests.rs"]
+mod tests;

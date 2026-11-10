@@ -10,5 +10,5 @@ pub struct BookChapter {
 }
 
 pub fn page(route: &BookChapter) -> Element {
-	crate::pages::book::book_screen(route.chapter.clone())
+	crate::pages::book::book_screen(&route.chapter)
 }

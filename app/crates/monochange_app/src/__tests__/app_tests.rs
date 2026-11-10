@@ -317,7 +317,9 @@ fn router(state: Arc<AppState>) -> Router {
 				.into_owned(),
 		)
 		.build();
-	crate::http::ssr_router(options, state)
+	let router = crate::http::assemble_ssr(options, &state);
+	drop(state);
+	router
 }
 
 fn oauth_limited_router(state: Arc<AppState>) -> Router {

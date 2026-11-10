@@ -31,8 +31,12 @@ fn route_from_request() -> Route {
 	use leptos_router::location::RequestUrl;
 
 	let parsed = use_context::<RequestUrl>().and_then(|url| url.parse().ok());
-	let path = parsed.as_ref().map(|url| url.path()).unwrap_or("/");
-	let search = parsed.as_ref().map(|url| url.search()).unwrap_or("");
+	let path = parsed
+		.as_ref()
+		.map_or("/", leptos_router::location::Url::path);
+	let search = parsed
+		.as_ref()
+		.map_or("", leptos_router::location::Url::search);
 	// Percent-encoded letters and empty segments (`//login`, `/%6cogin`) are
 	// not the OAuth pages. The file router would decode them into `/login`.
 	// Dot segments are already collapsed by RequestUrl when the request has a
@@ -56,5 +60,9 @@ fn route_from_request() -> Route {
 }
 
 fn home() -> Route {
-	Route::parse("/").unwrap_or_else(|_| unreachable!("the home route is registered"))
+	Route::parse("/").unwrap_or_else(|error| panic!("the home route is registered: {error}"))
 }
+
+#[cfg(test)]
+#[path = "__tests__/navigation_tests.rs"]
+mod tests;

@@ -10,5 +10,5 @@ pub struct SignIn {
 }
 
 pub fn page(route: &SignIn) -> Element {
-	crate::pages::login::login_screen(route.next.clone())
+	crate::pages::login::login_screen(route.next.as_deref())
 }

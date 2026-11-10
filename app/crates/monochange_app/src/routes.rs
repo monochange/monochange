@@ -868,3 +868,7 @@ impl ::leptoskit_router::Render for Route {
 		}
 	}
 }
+
+#[cfg(test)]
+#[path = "__tests__/routes_tests.rs"]
+mod tests;

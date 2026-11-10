@@ -8,8 +8,11 @@ fn main() {
 	println!("cargo:rerun-if-changed=src/routes");
 	watch(&dir);
 
-	let generated = leptoskit_router_codegen::generate(&dir)
+	let mut generated = leptoskit_router_codegen::generate(&dir)
 		.unwrap_or_else(|error| panic!("file routes failed to generate: {error}"));
+	generated
+		.source
+		.push_str("\n#[cfg(test)]\n#[path = \"__tests__/routes_tests.rs\"]\nmod tests;\n");
 	let output = manifest.join("src/routes.rs");
 	leptoskit_router_codegen::write(&output, &generated)
 		.unwrap_or_else(|error| panic!("file routes failed to write: {error}"));
@@ -17,21 +20,32 @@ fn main() {
 }
 
 fn rustfmt(path: &Path) {
+	// dprint is the repository formatter. rustfmt disagrees with it on the
+	// generated match table, so prefer dprint when the build runs inside devenv.
+	let dprint = std::process::Command::new("dprint")
+		.arg("fmt")
+		.arg(path)
+		.status();
+	if matches!(dprint, Ok(status) if status.success()) {
+		return;
+	}
+
 	let status = std::process::Command::new("rustfmt")
 		.arg("--edition")
 		.arg("2024")
 		.arg(path)
 		.status();
 
-	if !matches!(status, Ok(status) if status.success()) {
-		panic!("rustfmt failed for {}", path.display());
-	}
+	assert!(
+		matches!(status, Ok(status) if status.success()),
+		"rustfmt failed for {}",
+		path.display()
+	);
 }
 
 fn watch(dir: &Path) {
-	let entries = match std::fs::read_dir(dir) {
-		Ok(entries) => entries,
-		Err(_) => return,
+	let Ok(entries) = std::fs::read_dir(dir) else {
+		return;
 	};
 
 	for entry in entries.flatten() {

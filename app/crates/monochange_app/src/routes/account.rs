@@ -12,10 +12,16 @@ pub fn page() -> Element {
 	let sessions = crate::slots::once(|| {
 		Resource::new_blocking(
 			|| (),
-			|_| crate::server_fns::session::list_client_sessions(),
+			|()| crate::server_fns::session::list_client_sessions(),
 		)
 	});
-	match sessions.get() {
+	device_list(sessions.get())
+}
+
+fn device_list(
+	sessions: Option<Result<Vec<monochange_shared::ClientSessionInfo>, server_fn::ServerFnError>>,
+) -> Element {
+	match sessions {
 		None => text("Loading devices…"),
 		Some(Ok(sessions)) if sessions.is_empty() => {
 			let title = heading(1, "Account and devices");
@@ -53,3 +59,8 @@ pub fn page() -> Element {
 		}
 	}
 }
+
+// The file router rejects a `__tests__` directory inside `routes/`.
+#[cfg(test)]
+#[path = "../__tests__/routes/account_tests.rs"]
+mod tests;

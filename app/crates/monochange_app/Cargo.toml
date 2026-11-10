@@ -96,7 +96,11 @@ bin-features = ["ssr"]
 tailwind-input-file = "style/input.css"
 
 [features]
-default = []
+# Host checks (`cargo clippy`, `cargo test`, `cargo llvm-cov`) use default
+# features and do not pass `--features ssr`. The library imports leptoskit
+# unconditionally, so the server feature is the default. `cargo leptos` still
+# passes `--no-default-features` and then `hydrate` or `ssr` on its own.
+default = ["ssr"]
 # Server: SSR render + Axum + leptoskit_rpc #[api] registration.
 ssr = [
 	"dep:leptoskit",

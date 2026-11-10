@@ -22,13 +22,13 @@ pub fn project_screen(organization: String, project: String) -> leptoskit::prelu
 
 	match details.get() {
 		None => crate::ui::text("Loading project…"),
-		Some(Ok(Some(details))) => project_content(details),
+		Some(Ok(Some(details))) => project_content(&details),
 		Some(Ok(None)) => crate::ui::heading(1, "Project not found"),
 		Some(Err(_)) => crate::ui::heading(1, "This project couldn't be loaded"),
 	}
 }
 
-fn project_content(details: ProjectDetails) -> leptoskit::prelude::Element {
+fn project_content(details: &ProjectDetails) -> leptoskit::prelude::Element {
 	let organization = details.organization.clone();
 	let project = details.project.clone();
 	let mut children = vec![
@@ -57,11 +57,11 @@ fn project_content(details: ProjectDetails) -> leptoskit::prelude::Element {
 	}
 
 	children.push(crate::ui::link(
-		&feedback_console_path(&organization, &project.slug),
+		feedback_console_path(&organization, &project.slug),
 		"Open the feedback console",
 	));
 	children.push(crate::ui::link(
-		&crate::server_fns::portal::portal_path(&organization, &project.slug),
+		crate::server_fns::portal::portal_path(&organization, &project.slug),
 		"View the public portal",
 	));
 	children.push(crate::ui::heading(2, "Edit project"));

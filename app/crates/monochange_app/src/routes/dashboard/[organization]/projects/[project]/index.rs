@@ -13,3 +13,8 @@ pub struct ProjectPage {
 pub fn page(route: &ProjectPage) -> Element {
 	crate::pages::project::project_screen(route.organization.clone(), route.project.clone())
 }
+
+// The file router rejects a `__tests__` directory inside `routes/`.
+#[cfg(test)]
+#[path = "../../../../../__tests__/routes/dashboard_project_tests.rs"]
+mod tests;

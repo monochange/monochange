@@ -71,3 +71,7 @@ pub fn image(source: impl Into<String>) -> Element {
 	let source = source.into();
 	view! { <Image source=source aria_label="" /> }
 }
+
+#[cfg(test)]
+#[path = "__tests__/ui_tests.rs"]
+mod tests;

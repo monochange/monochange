@@ -32,6 +32,31 @@ async fn expired_session_offers_sign_in_instead_of_repository_installation() {
 	assert!(!html.contains("https://github.com/apps/"));
 }
 
+#[tokio::test]
+async fn organization_avatar_renders_the_image_or_the_initial() {
+	crate::tests::routes();
+	let render = leptos_axum::render_app_to_stream_in_order(|| {
+		let login = "acme".to_owned();
+		let avatar_url = Some("https://example.com/a.png".to_owned());
+		leptos::prelude::view! {
+			<OrganizationAvatar login=login.clone() avatar_url=avatar_url />
+			<OrganizationAvatar login=login />
+		}
+	});
+	let response = render(axum::http::Request::new(axum::body::Body::empty())).await;
+	let body = tokio::time::timeout(
+		std::time::Duration::from_secs(10),
+		axum::body::to_bytes(response.into_body(), 16_384),
+	)
+	.await
+	.unwrap()
+	.unwrap();
+	let html = String::from_utf8(body.to_vec()).unwrap();
+
+	assert!(html.contains("https://example.com/a.png"), "{html}");
+	assert!(html.contains(">A<"), "{html}");
+}
+
 fn repository(full_name: &str) -> RepoInfo {
 	RepoInfo {
 		id: 1,
@@ -85,17 +110,18 @@ async fn dashboard_with_updates(
 			github_avatar_url: None,
 			plan_tier: "free".to_owned(),
 		};
+		let filter = crate::repository_filter::RepositoryFilter::new(
+			uri.split_once("q=")
+				.map(|(_, value)| value.split('&').next().unwrap_or(value).replace('+', " ")),
+			uri.split_once("org=")
+				.map(|(_, value)| value.split('&').next().unwrap_or(value).to_owned()),
+		);
 		leptoskit::web::render(workspace(
-			user,
-			organizations.clone(),
+			&user,
+			&organizations,
 			connection,
 			permissions,
-			crate::repository_filter::RepositoryFilter::new(
-				uri.split_once("q=")
-					.map(|(_, value)| value.split('&').next().unwrap_or(value).replace('+', " ")),
-				uri.split_once("org=")
-					.map(|(_, value)| value.split('&').next().unwrap_or(value).to_owned()),
-			),
+			&filter,
 		))
 	})
 	.await
@@ -218,4 +244,31 @@ async fn an_empty_workspace_points_to_setup() {
 
 	assert!(html.contains("No repositories connected yet"), "{html}");
 	assert!(!html.contains("role=\"search\""), "{html}");
+}
+
+#[tokio::test]
+async fn current_installations_and_an_available_app_render_their_states() {
+	let html = crate::tests::render(|| {
+		let permissions = Resource::new_blocking(|| (), |()| async { Ok(Vec::new()) });
+		let connection = Resource::new_blocking(
+			|| (),
+			|()| {
+				async {
+					Ok(RepositoryConnectionStatus::Available {
+						installation_url: "https://github.com/apps/monochange/installations/new"
+							.to_owned(),
+					})
+				}
+			},
+		);
+		leptoskit::web::render(crate::ui::with_children(
+			crate::ui::column("flex flex-col"),
+			[permission_notice(permissions), connection_panel(connection)],
+		))
+	})
+	.await;
+
+	assert!(!html.contains("Approve monochange"), "{html}");
+	assert!(html.contains("Connect your repositories"), "{html}");
+	assert!(html.contains("Connect repositories on GitHub"), "{html}");
 }
