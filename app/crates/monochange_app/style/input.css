@@ -33,9 +33,6 @@
   --font-sans: "Hanken Grotesk", sans-serif;
   --font-display: "Bricolage Grotesque", sans-serif;
   --font-mono: ui-monospace, "SFMono-Regular", Consolas, monospace;
-  --animate-hero-breathe: hero-breathe 12s ease-in-out infinite;
-  --animate-brand-rise: brand-rise 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
-  --animate-manifest-arrive: manifest-arrive 0.7s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @layer base {
@@ -109,17 +106,9 @@
   input, textarea { caret-color: var(--mc-accent); }
   [hidden] { display: none !important; }
 }
-@keyframes hero-breathe {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: .55; }
-  50% { transform: translate3d(3%, -2%, 0) scale(1.06); opacity: .9; }
-}
-@keyframes brand-rise {
-  from { transform: translateY(16px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-@keyframes manifest-arrive {
-  from { transform: translateY(12px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+@keyframes version-roll {
+  from { transform: translateY(60%); opacity: 0; }
+  to { transform: none; opacity: 1; }
 }
 
 .site-width { width: min(var(--mc-site-max), calc(100% - 6rem)); margin-inline: auto; }
