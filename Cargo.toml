@@ -126,7 +126,7 @@ cargo-semver-checks = { version = "0.47.0" }
 # Official leptoskit CLI (`leptoskit` / `lk`) from the same upstream revision
 # as the app/native/extension Git dependencies; used by lint:leptoskit.
 # Keep the rev in sync when those lockfiles move.
-leptoskit_cli = { version = "0.3.0", git = "https://github.com/leptoskit/leptoskit", rev = "a93214edc8e5f6c7999c628285093f15cf188639", locked = true, bins = ["leptoskit"] }
+leptoskit_cli = { version = "0.3.0", git = "https://github.com/leptoskit/leptoskit", rev = "fa3d29f8e8c837b19f92f1e9a95f699803543767", locked = true, bins = ["leptoskit"] }
 
 [workspace.lints.rust]
 rust_2021_compatibility = { level = "warn", priority = -1 }

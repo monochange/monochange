@@ -23,9 +23,9 @@ server_fn = { version = "0.9.0-rc1", default-features = false }
 # same immutable rev, so lockfile regeneration cannot advance the source. To
 # upgrade, change this rev and the root [workspace.metadata.bin] leptoskit_cli
 # rev together, then regenerate every leptoskit lockfile in one deliberate change.
-leptoskit = { git = "https://github.com/leptoskit/leptoskit", rev = "a93214edc8e5f6c7999c628285093f15cf188639", default-features = false }
-leptoskit_rpc = { git = "https://github.com/leptoskit/leptoskit", rev = "a93214edc8e5f6c7999c628285093f15cf188639", default-features = false }
-leptoskit_plugin_web_auth = { git = "https://github.com/leptoskit/leptoskit", rev = "a93214edc8e5f6c7999c628285093f15cf188639", default-features = false }
+leptoskit = { git = "https://github.com/leptoskit/leptoskit", rev = "fa3d29f8e8c837b19f92f1e9a95f699803543767", default-features = false }
+leptoskit_rpc = { git = "https://github.com/leptoskit/leptoskit", rev = "fa3d29f8e8c837b19f92f1e9a95f699803543767", default-features = false }
+leptoskit_plugin_web_auth = { git = "https://github.com/leptoskit/leptoskit", rev = "fa3d29f8e8c837b19f92f1e9a95f699803543767", default-features = false }
 schemars = { version = "1.2", features = ["semver1"] }
 
 # Testing
