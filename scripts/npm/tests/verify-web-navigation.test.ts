@@ -12,6 +12,7 @@ import {
 	freePort,
 	type FixtureIdentity,
 	type VerificationConfig,
+	NetworkTrace,
 	OwnedProcesses,
 	projectsSignedInFailures,
 	signedOutControlsFailures,
@@ -23,6 +24,24 @@ const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 const fixturesRoot = join(repoRoot, "fixtures/tests/verify-web-navigation");
 const htmlDir = join(fixturesRoot, "html");
 const helpersDir = join(fixturesRoot, "helpers");
+
+test("an earlier document's asset failures remain visible after navigation", () => {
+	const trace = new NetworkTrace("http://127.0.0.1:4000");
+	trace.observeRequest("entry", "http://127.0.0.1:4000/pkg/site/monochange_app.js");
+	trace.observeResponse("http://127.0.0.1:4000/pkg/site/monochange_app.js", 200, "text/html");
+	trace.observeFailure("entry", "failed to fetch");
+	trace.observeMimeError("entry module served as HTML");
+	trace.observeFrameNavigated(undefined);
+
+	trace.reset();
+
+	assert.equal(trace.hasEntry("/pkg/site/monochange_app.js"), false);
+	assert.equal(trace.navigations(), 0);
+	assert.deepEqual(trace.failures(), [
+		"failed to fetch http://127.0.0.1:4000/pkg/site/monochange_app.js",
+	]);
+	assert.deepEqual(trace.mimeIssues(), ["entry module served as HTML"]);
+});
 
 // The identities are baked into the committed fixture HTML; the tests assert
 // with exactly these values.

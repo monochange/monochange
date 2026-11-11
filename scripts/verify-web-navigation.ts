@@ -762,12 +762,15 @@ class Cdp {
 	}
 
 	once(method: string): Promise<void> {
-		return new Promise<void>((resolveEvent) => {
-			const off = this.on(method, () => {
-				off();
+		let off: (() => void) | undefined;
+		const event = new Promise<void>((resolveEvent) => {
+			off = this.on(method, () => {
+				off?.();
 				resolveEvent();
 			});
 		});
+
+		return withTimeout(event, 15_000, `CDP event ${method} timed out`).finally(() => off?.());
 	}
 
 	send(method: string, params: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
@@ -802,7 +805,7 @@ async function renderBody(cdp: Cdp): Promise<string> {
  * Console errors are run-wide, because hydration damage can surface after the
  * navigation that caused it.
  */
-class NetworkTrace {
+export class NetworkTrace {
 	readonly entries: Array<{ url: string; status: number; mimeType: string }> = [];
 	readonly consoleErrors: string[] = [];
 	private readonly failed: string[] = [];
@@ -818,9 +821,6 @@ class NetworkTrace {
 
 	reset(): void {
 		this.entries.length = 0;
-		this.failed.length = 0;
-		this.mimeErrors.length = 0;
-		this.requestUrls.clear();
 		this.documentNavigations = 0;
 	}
 
@@ -1162,16 +1162,20 @@ export async function executeVerification(config: VerificationConfig): Promise<n
 				timeoutMs: config.chromeTimeoutMs ?? DEFAULT_CHROME_TIMEOUT_MS,
 			});
 			const ws = new WebSocket(wsUrl);
-
-			await new Promise<void>((resolveOpen, rejectOpen) => {
-				ws.addEventListener("open", () => resolveOpen(), { once: true });
-				ws.addEventListener("error", () => rejectOpen(new Error("could not connect to Chrome")), {
-					once: true,
-				});
-			});
-
 			const cdp = new Cdp(ws);
 			browser = { cdp, ws };
+
+			await withTimeout(
+				new Promise<void>((resolveOpen, rejectOpen) => {
+					ws.addEventListener("open", () => resolveOpen(), { once: true });
+					ws.addEventListener("error", () => rejectOpen(new Error("could not connect to Chrome")), {
+						once: true,
+					});
+				}),
+				config.chromeTimeoutMs ?? DEFAULT_CHROME_TIMEOUT_MS,
+				"the CDP WebSocket did not open",
+			);
+
 			await runBrowserJourney({
 				cdp,
 				baseUrl: server.baseUrl,
@@ -1208,10 +1212,17 @@ export async function executeVerification(config: VerificationConfig): Promise<n
 		}
 
 		try {
-			browser.ws.close();
 			await withTimeout(
 				new Promise<void>((resolveClose) => {
-					browser?.ws.addEventListener("close", () => resolveClose(), { once: true });
+					const ws = browser?.ws;
+
+					if (ws === undefined || ws.readyState === WebSocket.CLOSED) {
+						resolveClose();
+						return;
+					}
+
+					ws.addEventListener("close", () => resolveClose(), { once: true });
+					ws.close();
 				}),
 				3000,
 				"the CDP WebSocket did not close",
@@ -1227,7 +1238,9 @@ export async function executeVerification(config: VerificationConfig): Promise<n
 
 	// The temporary Chrome profile lives in the work dir; it is only removed
 	// after every owned process that touched it is confirmed stopped.
-	cleanupErrors.push(...(await removeWorkDir(config.workDir)));
+	if (cleanupErrors.length === 0) {
+		cleanupErrors.push(...(await removeWorkDir(config.workDir)));
+	}
 
 	for (const cleanupError of cleanupErrors) {
 		err(`  cleanup FAIL: ${cleanupError}`);
@@ -1351,9 +1364,6 @@ function parseOptions(args: string[]): { site_root?: string; server_bin?: string
 
 async function main(): Promise<number> {
 	const options = parseOptions(process.argv.slice(2));
-	const workDir = mkdtempSync(join(tmpdir(), "verify-web-navigation-"));
-	const jwtSecret = `verify-web-navigation-${randomBytes(8).toString("hex")}`;
-	const identity = randomIdentity();
 	const serverBin = resolve(repoRoot, options.server_bin ?? "app/target/release/monochange_app");
 	const siteRoot = resolve(repoRoot, options.site_root ?? "app/target/site");
 
@@ -1369,6 +1379,10 @@ async function main(): Promise<number> {
 		);
 	}
 
+	const chrome = findChrome();
+	const workDir = mkdtempSync(join(tmpdir(), "verify-web-navigation-"));
+	const jwtSecret = `verify-web-navigation-${randomBytes(8).toString("hex")}`;
+	const identity = randomIdentity();
 	const databaseFile = join(workDir, "verify.sqlite3");
 
 	return executeVerification({
@@ -1395,7 +1409,7 @@ async function main(): Promise<number> {
 		seedDatabase: (file) => {
 			seedAppDatabase(file, identity);
 		},
-		chrome: { command: findChrome() },
+		chrome: { command: chrome },
 		jwtSecret,
 		identity,
 	});
