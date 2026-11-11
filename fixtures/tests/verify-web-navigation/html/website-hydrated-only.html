@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<title>monochange — Release planning for monorepos</title>
+		<link rel="modulepreload" href="/pkg/site/monochange_app.js" />
+		<link rel="stylesheet" href="/pkg/site/monochange_app.css" />
+	</head>
+	<body>
+		<header>
+			<nav aria-label="Main navigation">
+				<a class="text-xl font-bold" href="/">monochange</a>
+				<!--
+					The raw response bytes carry no signed-in identity: the SSR render
+					was anonymous and this document only looks signed-in after the
+					entry module hydrates and patches the DOM below.
+				-->
+				<form action="/api/logout" method="post">
+					<button type="submit">Sign out</button>
+				</form>
+			</nav>
+		</header>
+		<main>
+			<h1>Release planning for monorepos</h1>
+			<p>One plan, every ecosystem.</p>
+		</main>
+		<script type="module">
+			// Stands in for hydration: identity that only ever exists in the
+			// post-hydration DOM must not satisfy the raw SSR assertion, so
+			// the bytes below never contain the login as one literal string.
+			window.addEventListener("load", () => {
+				const login = ["fixture-alice", "4b81c2"].join("-");
+				const marker = document.createElement("span");
+
+				marker.textContent = `Signed in as ${login}`;
+				document.querySelector("nav")?.append(marker);
+			});
+		</script>
+		<script type="module" src="/pkg/site/monochange_app.js"></script>
+	</body>
+</html>
