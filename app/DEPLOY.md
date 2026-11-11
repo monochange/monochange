@@ -168,7 +168,6 @@ Because the production service account reads the whole vault, deployed code can 
 
 Two production values stay out of the item. Compose sets `DATABASE_URL=sqlite:///data/monochange_app.sqlite3` next to the volume it names, and the entrypoint exports `OP_SERVICE_ACCOUNT_TOKEN` from the Docker secret.
 
-
 ### optional settings in app.env
 
 Settings that are not secrets live in `/opt/monochange/app.env`, which Compose loads into the app container when the file exists. `monochange-deploy` rewrites `.env` with the image tag on every rollout, so never put settings there. Values in the Compose file's `environment` block win over `app.env`.
@@ -234,7 +233,6 @@ Override any limit in [`app.env`](#optional-settings-in-appenv); each must be a 
 | `MONOCHANGE_RATE_LIMIT_AUTHENTICATED_BURST`      | `100`   |
 
 The client address comes from `X-Forwarded-For` only when the connecting peer is a loopback or private address, which in this deployment is Caddy on the Docker network. Caddy [drops the `X-Forwarded-For` a client sends](https://caddyserver.com/docs/caddyfile/directives/reverse_proxy#defaults) and writes the real address, and the app reads the header from the right, so a client can't pick its own bucket. If another proxy or load balancer ever sits in front of Caddy, configure Caddy's `trusted_proxies` for it, or every client will share that proxy's address. Limits live in memory, so a restart resets them and each app instance counts on its own.
-
 
 ## update the server helpers
 
