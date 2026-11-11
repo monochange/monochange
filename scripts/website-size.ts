@@ -17,10 +17,18 @@
 // (`chunk_N.wasm`) are renumbered between builds, so they share one aggregate
 // 5% guard instead of per-file checks. Set
 // MONOCHANGE_WEBSITE_SIZE_TOLERANCE (fraction) to adjust the total tolerance.
-import { readFileSync, readdirSync, writeFileSync } from "node:fs";
+//
+// The baseline predates the dual-frontend split, so its names are flat under
+// `pkg/` while both frontends now assemble under `pkg/site/` and
+// `pkg/projects/`. Per-file comparisons resolve those renames explicitly (see
+// `currentMatches`): a baseline asset that finds no built counterpart fails
+// the check, and a name that matches more than one built asset is rejected
+// instead of silently resolved. New assets with no baseline entry (the
+// projects entry bundle) stay covered by the total guard.
+import { readFileSync, readdirSync, realpathSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import process from "node:process";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { gzipSync } from "node:zlib";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
@@ -125,13 +133,68 @@ function render(
 // renumber them: `chunk_43.wasm` in one build is `chunk_44.wasm` in the next.
 // Comparing them by name reports phantom growth, so they are guarded as one
 // aggregate instead. Named route splits (`split___<route>_<hash>.wasm`) keep
-// stable names and stay per-file.
+// stable route stems and stay per-file (across namespaces and hash changes).
 const ANONYMOUS_CHUNK = /(?:^|\/)chunk_\d+\.wasm$/u;
 
 function anonymousChunkGzipBytes(measurement: SiteMeasurement): number {
 	return Object.entries(measurement.files)
 		.filter(([name]) => ANONYMOUS_CHUNK.test(name))
 		.reduce((sum, [, file]) => sum + file.gzipBytes, 0);
+}
+
+// The baseline is the pre-split bundle: flat names under pkg/, the entry wasm
+// named by cargo-leptos (`monochange_app.wasm`), and one lazy route for the
+// session pages under their old component name. These tables restore per-file
+// comparisons across those legitimate renames without loosening any budget:
+// each baseline asset still has exactly one current counterpart to answer for.
+const WEBSITE_NAMESPACE = "site";
+const ENTRY_RENAMES: Record<string, string> = {
+	// cargo-leptos named the bound module after the output name; wasm-bindgen
+	// names the bound module `{output_name}_bg.wasm`.
+	"monochange_app.wasm": "monochange_app_bg.wasm",
+};
+const ROUTE_VIEW_RENAMES: Record<string, string> = {
+	// `/auth/callback`'s AuthCallbackRoute became SiteSessionRoute when the
+	// session pages (login, connect, account, callback) merged into one lazy
+	// route (PR #886, before the dual-frontend split). The renamed chunk also
+	// absorbed those pages' eager code, so this guard reports the merge — the
+	// total stays the redistribution's real check.
+	auth_callback_route_view: "site_session_route_view",
+};
+const ROUTE_SPLIT = /^split___(?<stem>[a-z0-9_]+)_\d+\.wasm$/u;
+const NAMESPACED_ROUTE_SPLIT = /^(?:[^/]+)\/split___(?<stem>[a-z0-9_]+)_\d+\.wasm$/u;
+
+/**
+ * The current files one baseline name may compare against, in preference
+ * order: the exact name, the website-namespace move, the entry rename, and —
+ * for route splits — every namespace holding that route stem (the hash
+ * suffix renumbers between builds, and the projects frontend owns the
+ * product routes the combined baseline carried).
+ *
+ * Callers reject zero matches (a guardable asset cannot vanish) and multiple
+ * present matches (ambiguous identity) instead of picking silently.
+ */
+export function currentMatches(name: string, currentFiles: string[]): string[] {
+	const candidates = [name, `${WEBSITE_NAMESPACE}/${name}`];
+	const entryRename = ENTRY_RENAMES[name];
+
+	if (entryRename !== undefined) {
+		candidates.push(`${WEBSITE_NAMESPACE}/${entryRename}`);
+	}
+
+	const routeStem = name.match(ROUTE_SPLIT)?.groups?.stem;
+
+	if (routeStem !== undefined) {
+		const currentStem = ROUTE_VIEW_RENAMES[routeStem] ?? routeStem;
+
+		for (const file of currentFiles) {
+			if (NAMESPACED_ROUTE_SPLIT.exec(file)?.groups?.stem === currentStem) {
+				candidates.push(file);
+			}
+		}
+	}
+
+	return [...new Set(candidates)];
 }
 
 function compare(baseline: SiteMeasurement, current: SiteMeasurement, tolerance: number): string[] {
@@ -153,16 +216,34 @@ function compare(baseline: SiteMeasurement, current: SiteMeasurement, tolerance:
 	const exceeds = (before: number, after: number) =>
 		after - before > Math.ceil(before * perFileTolerance);
 	const percent = `${(perFileTolerance * 100).toFixed(2)}%`;
+	const currentNames = Object.keys(current.files);
 
 	for (const [name, before] of Object.entries(baseline.files)) {
 		if (!/\.(?:wasm|js|css)$/u.test(name) || ANONYMOUS_CHUNK.test(name)) continue;
-		const after = current.files[name];
+		const present = currentMatches(name, currentNames).filter((candidate) =>
+			Object.hasOwn(current.files, candidate),
+		);
 
-		if (!after) continue;
+		if (present.length === 0) {
+			differences.push(
+				`${name}: no built asset matches this baseline entry; a renamed or removed asset cannot leave its allowance behind`,
+			);
+
+			continue;
+		}
+
+		if (present.length > 1) {
+			die(
+				`ambiguous size comparison for ${name}: matches ${present.join(", ")}; make the artifact names unambiguous or extend the rename tables`,
+			);
+		}
+
+		const currentName = present[0];
+		const after = current.files[currentName];
 
 		if (exceeds(before.gzipBytes, after.gzipBytes)) {
 			differences.push(
-				`${name} gzip grew from ${before.gzipBytes} to ${after.gzipBytes} bytes (tolerance ${percent})`,
+				`${name} → ${currentName} gzip grew from ${before.gzipBytes} to ${after.gzipBytes} bytes (tolerance ${percent})`,
 			);
 		}
 	}
@@ -224,4 +305,12 @@ function main() {
 	}
 }
 
-main();
+// Run the CLI only when this file is the entry module, so tests can import
+// the pure comparison helpers. The entry path is canonicalized because the
+// ESM loader resolves import.meta.url through real paths (macOS /var →
+// /private/var), while argv[1] keeps the invocation path.
+const entryPath = process.argv[1] ? pathToFileURL(realpathSync(process.argv[1])).href : undefined;
+
+if (entryPath !== undefined && import.meta.url === entryPath) {
+	main();
+}

@@ -3,10 +3,11 @@
 #![cfg(not(target_arch = "wasm32"))]
 #![allow(clippy::disallowed_methods)]
 
+use monochange_projects::server_fns::organizations::ProjectRepositoryView;
+use monochange_projects::server_fns::organizations::ProjectSummary;
+use monochange_projects::server_fns::repos::RepoInfo;
+
 use super::*;
-use crate::server_fns::organizations::ProjectRepositoryView;
-use crate::server_fns::organizations::ProjectSummary;
-use crate::server_fns::repos::RepoInfo;
 
 #[tokio::test]
 async fn the_edit_form_keeps_the_project_selection() {

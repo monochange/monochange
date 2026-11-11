@@ -108,7 +108,7 @@ async fn act(owner: &Owner, act: Act<'_>) -> Result<(), String> {
 			))
 		})
 		.await
-		.map_err(|error| crate::pages::organization::action_error(&error))
+		.map_err(|error| crate::error::action_error(&error))
 }
 
 #[tokio::test]
@@ -144,7 +144,7 @@ async fn only_maintainers_see_the_console() {
 					))
 				})
 				.await
-				.map_err(|error| crate::pages::organization::action_error(&error)),
+				.map_err(|error| crate::error::action_error(&error)),
 			Err("That project isn't available to you.".to_owned())
 		);
 	}
@@ -645,7 +645,7 @@ async fn opt_in(owner: &Owner, enabled: bool) -> Result<(), String> {
 			))
 		})
 		.await
-		.map_err(|error| crate::pages::organization::action_error(&error))
+		.map_err(|error| crate::error::action_error(&error))
 }
 
 async fn share(owner: &Owner, item: &str, check: &str) -> Result<(), String> {
@@ -662,7 +662,7 @@ async fn share(owner: &Owner, item: &str, check: &str) -> Result<(), String> {
 			))
 		})
 		.await
-		.map_err(|error| crate::pages::organization::action_error(&error))
+		.map_err(|error| crate::error::action_error(&error))
 }
 
 async fn withdraw(owner: &Owner, task: &str) -> Result<(), String> {
@@ -675,7 +675,7 @@ async fn withdraw(owner: &Owner, task: &str) -> Result<(), String> {
 			))
 		})
 		.await
-		.map_err(|error| crate::pages::organization::action_error(&error))
+		.map_err(|error| crate::error::action_error(&error))
 }
 
 async fn console(owner: &Owner) -> super::ConsoleView {
@@ -887,8 +887,7 @@ fn every_action_round_trips_through_its_name() {
 
 #[test]
 fn errors_become_sentences_and_hide_internals() {
-	let message =
-		|error: FeedbackError| crate::pages::organization::action_error(&feedback_error(error));
+	let message = |error: FeedbackError| crate::error::action_error(&feedback_error(error));
 	assert_eq!(
 		message(FeedbackError::Store(sqlx::Error::PoolClosed)),
 		"Feedback couldn't be saved. Please try again."

@@ -6,29 +6,21 @@ use leptos_meta::Title;
 use leptos_router::LazyRoute;
 use leptos_router::hooks::use_params_map;
 use leptos_router::lazy_route;
-
-use crate::components::arrow::ArrowIcon;
-use crate::components::repository_list::RepositoryFilters;
-use crate::components::repository_list::RepositoryPager;
-use crate::components::repository_list::RepositoryPicker;
-use crate::components::repository_list::use_repository_filter;
-use crate::pages::home::OrganizationAvatar;
-use crate::projects::MAX_DESCRIPTION_CHARS;
-use crate::projects::MAX_NAME_CHARS;
-use crate::repository_filter::count_matches;
-use crate::server_fns::organizations::CreateProject;
-use crate::server_fns::organizations::OrganizationSummary;
-use crate::server_fns::organizations::organization_overview;
-use crate::server_fns::organizations::organization_path;
-use crate::server_fns::organizations::project_path;
-
-/// The message to show for a failed server action.
-pub fn action_error(error: &server_fn::ServerFnError) -> String {
-	match error {
-		server_fn::ServerFnError::ServerError(message) => message.clone(),
-		other => other.to_string(),
-	}
-}
+use monochange_projects::components::arrow::ArrowIcon;
+use monochange_projects::components::repository_list::RepositoryFilters;
+use monochange_projects::components::repository_list::RepositoryPager;
+use monochange_projects::components::repository_list::RepositoryPicker;
+use monochange_projects::components::repository_list::use_repository_filter;
+use monochange_projects::error::action_error;
+use monochange_projects::pages::home::OrganizationAvatar;
+use monochange_projects::projects::MAX_DESCRIPTION_CHARS;
+use monochange_projects::projects::MAX_NAME_CHARS;
+use monochange_projects::repository_filter::count_matches;
+use monochange_projects::server_fns::organizations::CreateProject;
+use monochange_projects::server_fns::organizations::OrganizationSummary;
+use monochange_projects::server_fns::organizations::organization_overview;
+use monochange_projects::server_fns::organizations::organization_path;
+use monochange_projects::server_fns::organizations::project_path;
 
 /// One-organisation page data, split into its own WASM chunk.
 pub struct OrganizationRoute {
@@ -61,7 +53,7 @@ impl LazyRoute for OrganizationRoute {
 	fn view(this: Self) -> AnyView {
 		let OrganizationRoute { login, overview } = this;
 		if login.get_untracked().is_empty() {
-			view! { <crate::pages::home::ProjectsHome /> }.into_any()
+			view! { <monochange_projects::pages::home::ProjectsHome /> }.into_any()
 		} else {
 			view! {
 			<Title text=move || format!("{} — monochange", login.get()) />

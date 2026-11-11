@@ -25,7 +25,7 @@ async fn the_product_root_renders_the_projects_home() {
 async fn the_projects_stylesheet_url_points_at_the_projects_bundle() {
 	let html = render_app_at("/projects").await;
 	assert!(
-		html.contains("/pkg/projects/monochange_projects.css"),
+		html.contains("/pkg/projects/monochange_projects_web.css"),
 		"{html}"
 	);
 	assert!(!html.contains("/pkg/site/monochange_app.css"), "{html}");
@@ -55,7 +55,7 @@ async fn unknown_product_paths_render_the_projects_error_page() {
 #[tokio::test]
 async fn the_website_error_template_matches_the_projects_one() {
 	let html = render_at("/login", || {
-		view! { <crate::error::ErrorTemplate status=404 message="Page not found" /> }
+		view! { <monochange_projects::error::ErrorTemplate status=404 message="Page not found" /> }
 	})
 	.await;
 	assert!(html.contains("status-page"), "{html}");

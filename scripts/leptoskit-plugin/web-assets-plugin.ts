@@ -11,8 +11,8 @@
 //
 // `after_build` — which upstream runs before its release precompression —
 //
-// 1. minifies the wasm-split loader with the guarded shared implementation
-//    (scripts/minify-split-loader.ts);
+// 1. minifies the wasm-split loader and the entry glue with the guarded
+//    shared implementation (scripts/minify-split-loader.ts);
 // 2. compiles the shared Tailwind input to `pkg/<output_name>.css`;
 // 3. places the frontend's pkg output under `<site_root>/pkg/<namespace>/`,
 //    so the two web frontends assemble into one site root without name
@@ -55,7 +55,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { brotliCompressSync, constants as zlibConstants, gzipSync } from "node:zlib";
 
-import { minifySplitLoaders } from "../minify-split-loader.ts";
+import { minifyEntryGlue, minifySplitLoaders } from "../minify-split-loader.ts";
 
 const PROTOCOL = 1;
 const PLUGIN_NAME = "monochange-web-assets";
@@ -236,9 +236,12 @@ function afterBuild(context: PluginContext): void {
 		fail(`the built wasm module is missing: ${wasmBundle}`);
 	}
 
-	// 1. Minify the split loader with the shared guarded implementation.
+	// 1. Minify the split loader and the entry glue with the shared guarded
+	// implementation (cargo-leptos' js-minify did both; the leptoskit build
+	// emits them unminified).
 	const summary = minifySplitLoaders(pkgDir);
 	log(`minified ${summary.loaders.length} split loader(s) with ${summary.esbuildBin}`);
+	minifyEntryGlue(pkgDir, outputName, summary.esbuildBin);
 
 	// 2. Compile the site CSS into the bundle directory.
 	const cssPath = join(pkgDir, `${outputName}.css`);

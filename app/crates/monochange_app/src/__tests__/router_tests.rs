@@ -96,11 +96,11 @@ async fn product_pages_hydrate_through_the_projects_entry() {
 	let (status, projects) = get(&app, "/projects").await;
 	assert_eq!(status, StatusCode::OK);
 	assert!(
-		projects.contains("/pkg/projects/monochange_projects.js"),
+		projects.contains("/pkg/projects/monochange_projects_web.js"),
 		"{projects}"
 	);
 	assert!(
-		projects.contains("/pkg/projects/monochange_projects.css"),
+		projects.contains("/pkg/projects/monochange_projects_web.css"),
 		"{projects}"
 	);
 	assert!(
@@ -121,7 +121,7 @@ async fn feedback_portals_use_the_projects_entry_too() {
 	let (status, portal) = get(&app, "/p/acme/web").await;
 	assert_eq!(status, StatusCode::OK);
 	assert!(
-		portal.contains("/pkg/projects/monochange_projects.js"),
+		portal.contains("/pkg/projects/monochange_projects_web.js"),
 		"{portal}"
 	);
 }
@@ -188,7 +188,7 @@ async fn unmatched_product_paths_render_the_projects_error_page() {
 	assert_eq!(status, StatusCode::NOT_FOUND);
 	assert!(body.contains("status-page"), "{body}");
 	assert!(
-		body.contains("/pkg/projects/monochange_projects.js"),
+		body.contains("/pkg/projects/monochange_projects_web.js"),
 		"{body}"
 	);
 }

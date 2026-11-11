@@ -86,16 +86,16 @@ async fn website_pages_reference_the_website_entry_bundle() {
 async fn product_pages_reference_the_projects_entry_bundle() {
 	let html = scripts_html(Frontend::PROJECTS).await;
 	assert!(
-		html.contains("modulepreload\" href=\"/pkg/projects/monochange_projects.js\""),
+		html.contains("modulepreload\" href=\"/pkg/projects/monochange_projects_web.js\""),
 		"{html}"
 	);
 	assert!(
-		html.contains("href=\"/pkg/projects/monochange_projects_bg.wasm\""),
+		html.contains("href=\"/pkg/projects/monochange_projects_web_bg.wasm\""),
 		"{html}"
 	);
 	assert!(
 		html.contains(
-			"(\"\", \"pkg/projects\", \"monochange_projects\", \"monochange_projects_bg\", false);"
+			"(\"\", \"pkg/projects\", \"monochange_projects_web\", \"monochange_projects_web_bg\", false);"
 		),
 		"the hydration script must load the projects entry module: {html}"
 	);
@@ -203,11 +203,11 @@ fn frontend_bundle_coordinates_match_the_build_layout() {
 	);
 	assert_eq!(
 		Frontend::PROJECTS.entry_js(),
-		"/pkg/projects/monochange_projects.js"
+		"/pkg/projects/monochange_projects_web.js"
 	);
 	assert_eq!(
 		Frontend::PROJECTS.entry_wasm(),
-		"/pkg/projects/monochange_projects_bg.wasm"
+		"/pkg/projects/monochange_projects_web_bg.wasm"
 	);
 	assert_eq!(
 		Frontend::PROJECTS.stylesheet(),

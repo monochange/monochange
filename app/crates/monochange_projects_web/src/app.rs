@@ -15,10 +15,10 @@ use leptos_router::components::Route;
 use leptos_router::components::Router;
 use leptos_router::components::Routes;
 use leptos_router::path;
+use monochange_projects::error::ErrorTemplate;
+use monochange_projects::pages::home::ProjectsNavigation;
 
-use crate::error::ErrorTemplate;
 use crate::pages::feedback_console::FeedbackConsoleRoute;
-use crate::pages::home::ProjectsNavigation;
 use crate::pages::organization::OrganizationRoute;
 use crate::pages::portal::PortalRoute;
 use crate::pages::project::ProjectRoute;
@@ -65,23 +65,3 @@ pub fn ProjectsApp() -> impl IntoView {
 #[cfg(test)]
 #[path = "__tests__/app_tests.rs"]
 mod tests;
-
-/// Hydrate the projects app on the client (WASM only).
-///
-/// The projects `leptoskit.toml` selects this crate as its browser package
-/// and enables `browser_entry`, so `pkg/projects/monochange_projects.js`
-/// loads this entry and hydrates the server-rendered product page. The
-/// website client links this crate without `browser_entry`, so its wasm
-/// carries only one `hydrate` export. Product RPCs share the page origin
-/// with Class B Axum routes via the leptoskit_rpc web client.
-#[cfg(all(target_arch = "wasm32", feature = "web"))]
-#[wasm_bindgen::prelude::wasm_bindgen]
-pub fn hydrate() {
-	console_error_panic_hook::set_once();
-	_ = console_log::init_with_level(log::Level::Debug);
-	_ = any_spawner::Executor::init_wasm_bindgen();
-
-	// Lazy routes hydrate through their own chunk-loading mount; hydrate_body
-	// panics when it meets one.
-	leptos::mount::hydrate_lazy(crate::app::ProjectsApp);
-}

@@ -181,8 +181,8 @@ jobs:
           test -f app/target/site/pkg/site/monochange_app.js
           test -f app/target/site/pkg/site/monochange_app.css
           test -f app/target/site/pkg/site/__wasm_split_manifest.json
-          test -f app/target/site/pkg/projects/monochange_projects.js
-          test -f app/target/site/pkg/projects/monochange_projects.css
+          test -f app/target/site/pkg/projects/monochange_projects_web.js
+          test -f app/target/site/pkg/projects/monochange_projects_web.css
           test -f app/target/site/pkg/projects/__wasm_split_manifest.json
 
   app-coverage:

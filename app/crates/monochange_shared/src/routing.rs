@@ -31,22 +31,23 @@ pub const PROJECTS_PKG_URL: &str = "pkg/projects";
 /// website `leptoskit.toml` selects.
 pub const WEBSITE_OUTPUT_NAME: &str = "monochange_app";
 /// The projects browser entry's file stem, matching the client lib name the
-/// projects `leptoskit.toml` selects.
-pub const PROJECTS_OUTPUT_NAME: &str = "monochange_projects";
+/// projects `leptoskit.toml` selects (the dedicated
+/// `monochange_projects_web` entry crate).
+pub const PROJECTS_OUTPUT_NAME: &str = "monochange_projects_web";
 
 /// The website entry's stylesheet URL.
 pub const WEBSITE_STYLESHEET: &str = "/pkg/site/monochange_app.css";
 /// The projects entry's stylesheet URL.
-pub const PROJECTS_STYLESHEET: &str = "/pkg/projects/monochange_projects.css";
+pub const PROJECTS_STYLESHEET: &str = "/pkg/projects/monochange_projects_web.css";
 
 /// The website entry's hydration module URL.
 pub const WEBSITE_ENTRY_JS: &str = "/pkg/site/monochange_app.js";
 /// The website entry's wasm module URL.
 pub const WEBSITE_ENTRY_WASM: &str = "/pkg/site/monochange_app_bg.wasm";
 /// The projects entry's hydration module URL.
-pub const PROJECTS_ENTRY_JS: &str = "/pkg/projects/monochange_projects.js";
+pub const PROJECTS_ENTRY_JS: &str = "/pkg/projects/monochange_projects_web.js";
 /// The projects entry's wasm module URL.
-pub const PROJECTS_ENTRY_WASM: &str = "/pkg/projects/monochange_projects_bg.wasm";
+pub const PROJECTS_ENTRY_WASM: &str = "/pkg/projects/monochange_projects_web_bg.wasm";
 
 /// The wasm-split loader file name. The name is fixed: leptos'
 /// `HydrationScripts` and the leptoskit build pipeline both look for it.

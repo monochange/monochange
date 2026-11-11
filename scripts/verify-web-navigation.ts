@@ -467,7 +467,8 @@ async function main() {
 		check(
 			requests.some(
 				(request) =>
-					request.url.endsWith("/pkg/projects/monochange_projects.js") && request.status === 200,
+					request.url.endsWith("/pkg/projects/monochange_projects_web.js") &&
+					request.status === 200,
 			),
 			"the product page loads the projects entry module",
 		);
@@ -475,7 +476,8 @@ async function main() {
 		check(
 			requests.some(
 				(request) =>
-					request.url.endsWith("/pkg/projects/monochange_projects.css") && request.status === 200,
+					request.url.endsWith("/pkg/projects/monochange_projects_web.css") &&
+					request.status === 200,
 			),
 			"the product page loads the projects stylesheet",
 		);

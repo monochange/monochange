@@ -147,12 +147,12 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     && test -f /site/pkg/site/monochange_app_bg.wasm \
     && test -f /site/pkg/site/monochange_app.css \
     && test -f /site/pkg/site/__wasm_split_manifest.json \
-    && test -f /site/pkg/projects/monochange_projects.js \
-    && test -f /site/pkg/projects/monochange_projects_bg.wasm \
-    && test -f /site/pkg/projects/monochange_projects.css \
+    && test -f /site/pkg/projects/monochange_projects_web.js \
+    && test -f /site/pkg/projects/monochange_projects_web_bg.wasm \
+    && test -f /site/pkg/projects/monochange_projects_web.css \
     && test -f /site/pkg/projects/__wasm_split_manifest.json \
     && test -f /site/pkg/site/monochange_app.js.br \
-    && test -f /site/pkg/projects/monochange_projects_bg.wasm.gz
+    && test -f /site/pkg/projects/monochange_projects_web_bg.wasm.gz
 
 # ── Final stage ────────────────────────────────────────────────────────────
 FROM debian:bookworm-slim

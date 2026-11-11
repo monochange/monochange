@@ -14,10 +14,10 @@ use monochange_app_feedback::RepositoryVisibility;
 use monochange_app_feedback::ShippedEntry;
 use monochange_app_feedback::Stage;
 use monochange_app_feedback::StatusFeed;
+use monochange_projects::server_fns::portal::OwnItem;
+use monochange_projects::server_fns::portal::PortalViewer;
 
 use super::*;
-use crate::server_fns::portal::OwnItem;
-use crate::server_fns::portal::PortalViewer;
 use crate::tests::feedback::context;
 use crate::tests::feedback::state;
 use crate::tests::feedback::submit;

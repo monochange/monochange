@@ -28,12 +28,12 @@ port = 3000
 
 [build]
 backend = true
-# Browser crate: product screens, routes, hydrate entry (cdylib + lib).
-client_package = "monochange_projects"
-# The client declares the upstream portable `web`/`native` feature pair, so
-# this web build activates `web` for it — the wasm-bindgen `hydrate` export
-# exists only in this bundle (the website client links monochange_projects
-# without it, and wasm-bindgen rejects duplicate export names).
+# Browser crate: the dedicated projects entry (cdylib) that owns the product
+# route tree and the wasm-bindgen `hydrate` export. The shared
+# monochange_projects library stays out of any browser entry: its wasm client
+# code (pulled in through the website entry) must not carry the product
+# routes' wasm-split exports.
+client_package = "monochange_projects_web"
 features = []
 rustflags = []
 

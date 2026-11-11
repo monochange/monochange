@@ -33,7 +33,9 @@ pub fn routes() -> Vec<leptos_axum::AxumRouteListing> {
 	ROUTES
 		.get_or_init(|| {
 			let mut routes = generate_route_list(crate::app::App);
-			routes.extend(generate_route_list(monochange_projects::app::ProjectsApp));
+			routes.extend(generate_route_list(
+				monochange_projects_web::app::ProjectsApp,
+			));
 			routes
 		})
 		.clone()

@@ -4024,6 +4024,7 @@ dependencies = [
  "monochange_github",
  "monochange_hosting",
  "monochange_projects",
+ "monochange_projects_web",
  "monochange_shared",
  "pulldown-cmark",
  "reqwest 0.13.5",
@@ -4200,12 +4201,9 @@ name = "monochange_projects"
 version = "0.4.0"
 dependencies = [
  "ammonia",
- "any_spawner",
  "axum",
  "axum-extra",
  "chrono",
- "console_error_panic_hook",
- "console_log",
  "hmac 0.12.1",
  "httpmock",
  "insta",
@@ -4216,7 +4214,6 @@ dependencies = [
  "leptos_router",
  "leptoskit",
  "leptoskit_rpc",
- "log",
  "monochange_app_api",
  "monochange_app_db",
  "monochange_app_feedback",
@@ -4234,12 +4231,37 @@ dependencies = [
  "thiserror",
  "time",
  "tokio",
- "tower",
  "tracing",
  "url",
  "urlencoding",
+]
+
+[[package]]
+name = "monochange_projects_web"
+version = "0.4.0"
+dependencies = [
+ "any_spawner",
+ "axum",
+ "console_error_panic_hook",
+ "console_log",
+ "insta",
+ "leptos",
+ "leptos_axum",
+ "leptos_meta",
+ "leptos_router",
+ "leptoskit_rpc",
+ "log",
+ "monochange_app_api",
+ "monochange_app_db",
+ "monochange_app_feedback",
+ "monochange_projects",
+ "monochange_shared",
+ "serde_json",
+ "server_fn",
+ "sqlx",
+ "tokio",
+ "tower",
  "wasm-bindgen",
- "web-sys",
 ]
 
 [[package]]

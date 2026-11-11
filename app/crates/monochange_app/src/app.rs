@@ -2,7 +2,7 @@
 //!
 //! The website browser entry owns landing, auth, the repositories dashboard,
 //! and docs. Product paths belong to the projects entry
-//! (`monochange_projects::app::ProjectsApp`), which the server-side
+//! (`monochange_projects_web::app::ProjectsApp`), which the server-side
 //! composition ([`SurfaceApp`]) renders for the paths
 //! `monochange_shared::routing::is_projects_path` classifies as product.
 
@@ -94,7 +94,7 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
 #[component]
 pub fn SurfaceApp() -> impl IntoView {
 	if crate::frontend::Frontend::current() == crate::frontend::Frontend::PROJECTS {
-		view! { <monochange_projects::app::ProjectsApp /> }.into_any()
+		view! { <monochange_projects_web::app::ProjectsApp /> }.into_any()
 	} else {
 		view! { <App /> }.into_any()
 	}

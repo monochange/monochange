@@ -5,18 +5,18 @@ use leptos_meta::Title;
 use leptos_router::LazyRoute;
 use leptos_router::hooks::use_params_map;
 use leptos_router::lazy_route;
+use monochange_projects::components::repository_list::RepositoryPicker;
+use monochange_projects::error::action_error;
+use monochange_projects::projects::MAX_DESCRIPTION_CHARS;
+use monochange_projects::projects::MAX_NAME_CHARS;
+use monochange_projects::server_fns::organizations::DeleteProject;
+use monochange_projects::server_fns::organizations::ProjectDetails;
+use monochange_projects::server_fns::organizations::UpdateProject;
+use monochange_projects::server_fns::organizations::feedback_console_path;
+use monochange_projects::server_fns::organizations::organization_path;
+use monochange_projects::server_fns::organizations::project_overview;
 
-use crate::components::repository_list::RepositoryPicker;
 use crate::pages::organization::Unavailable;
-use crate::pages::organization::action_error;
-use crate::projects::MAX_DESCRIPTION_CHARS;
-use crate::projects::MAX_NAME_CHARS;
-use crate::server_fns::organizations::DeleteProject;
-use crate::server_fns::organizations::ProjectDetails;
-use crate::server_fns::organizations::UpdateProject;
-use crate::server_fns::organizations::feedback_console_path;
-use crate::server_fns::organizations::organization_path;
-use crate::server_fns::organizations::project_overview;
 
 /// One-project page data, split into its own WASM chunk.
 pub struct ProjectRoute {
@@ -101,7 +101,7 @@ fn ProjectContent(details: ProjectDetails) -> impl IntoView {
 				<p class="form-note">"Bugs and ideas from this project's users, with triage, votes, and the decisions that turn them into issues."</p>
 				<div class="actions">
 					<a class="button button-brand" href=feedback_console_path(&organization, &project.slug)>"Open the feedback console"</a>
-					<a class="text-link" href=crate::server_fns::portal::portal_path(&organization, &project.slug)>"View the public portal"</a>
+					<a class="text-link" href=monochange_projects::server_fns::portal::portal_path(&organization, &project.slug)>"View the public portal"</a>
 				</div>
 			</section>
 			<section class="repository-section" aria-labelledby="project-settings-title">

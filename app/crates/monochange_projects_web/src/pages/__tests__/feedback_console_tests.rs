@@ -11,9 +11,9 @@ use monochange_app_feedback::RepositoryVisibility;
 use monochange_app_feedback::SubmitterIdentity;
 use monochange_app_feedback::TriageReport;
 use monochange_app_feedback::VotingRules;
+use monochange_projects::server_fns::feedback::console_actions;
 
 use super::*;
-use crate::server_fns::feedback::console_actions;
 use crate::tests::render;
 
 fn console(visibility: RepositoryVisibility, items: Vec<ConsoleItem>) -> ConsoleView {

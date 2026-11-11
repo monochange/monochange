@@ -3,8 +3,9 @@
 #![cfg(not(target_arch = "wasm32"))]
 #![allow(clippy::disallowed_methods)]
 
+use monochange_projects::server_fns::repos::RepoInfo;
+
 use super::*;
-use crate::server_fns::repos::RepoInfo;
 
 fn organization(count: usize) -> OrganizationSummary {
 	OrganizationSummary {

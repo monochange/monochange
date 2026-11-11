@@ -1,6 +1,6 @@
 //! Page components of the website browser entry.
 //!
-//! Product pages live in the projects entry (`monochange_projects::pages`);
+//! Product pages live in the projects entry (`monochange_projects_web`);
 //! the website no longer re-exports them now that each entry owns its route
 //! tree.
 

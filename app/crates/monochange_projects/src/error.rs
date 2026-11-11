@@ -16,6 +16,14 @@ fn current_path() -> String {
 		.get_untracked()
 }
 
+/// The message to show for a failed server action.
+pub fn action_error(error: &server_fn::ServerFnError) -> String {
+	match error {
+		server_fn::ServerFnError::ServerError(message) => message.clone(),
+		other => other.to_string(),
+	}
+}
+
 /// Error page component.
 #[component]
 pub fn ErrorTemplate(

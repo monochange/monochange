@@ -16,21 +16,21 @@ use monochange_app_feedback::FeedbackKind;
 use monochange_app_feedback::ReproductionOutcome;
 use monochange_app_feedback::Sensitivity;
 use monochange_app_feedback::Stage;
+use monochange_projects::error::action_error;
+use monochange_projects::server_fns::feedback::ConsoleAction;
+use monochange_projects::server_fns::feedback::ConsoleItem;
+use monochange_projects::server_fns::feedback::ConsoleTask;
+use monochange_projects::server_fns::feedback::ConsoleView;
+use monochange_projects::server_fns::feedback::FeedbackAction;
+use monochange_projects::server_fns::feedback::MaintainerReply;
+use monochange_projects::server_fns::feedback::SetSharedCompute;
+use monochange_projects::server_fns::feedback::ShareTask;
+use monochange_projects::server_fns::feedback::WithdrawTask;
+use monochange_projects::server_fns::feedback::feedback_console;
+use monochange_projects::server_fns::organizations::organization_path;
+use monochange_projects::server_fns::organizations::project_path;
 
 use crate::pages::organization::Unavailable;
-use crate::pages::organization::action_error;
-use crate::server_fns::feedback::ConsoleAction;
-use crate::server_fns::feedback::ConsoleItem;
-use crate::server_fns::feedback::ConsoleTask;
-use crate::server_fns::feedback::ConsoleView;
-use crate::server_fns::feedback::FeedbackAction;
-use crate::server_fns::feedback::MaintainerReply;
-use crate::server_fns::feedback::SetSharedCompute;
-use crate::server_fns::feedback::ShareTask;
-use crate::server_fns::feedback::WithdrawTask;
-use crate::server_fns::feedback::feedback_console;
-use crate::server_fns::organizations::organization_path;
-use crate::server_fns::organizations::project_path;
 
 /// The stages an item moves through on its way to users, for its progress
 /// track.
@@ -167,7 +167,7 @@ impl LazyRoute for FeedbackConsoleRoute {
 					})}
 
 				</Suspense>
-				<crate::pages::embedded_feedback::EmbeddedFeedbackPanel organization=embedded_organization project=embedded_project />
+				<monochange_projects::pages::embedded_feedback::EmbeddedFeedbackPanel organization=embedded_organization project=embedded_project />
 			</section>
 		}
 		.into_any()
@@ -206,7 +206,7 @@ fn ConsoleContent(
 		<div class="project-heading">
 			<h1>"Feedback"</h1>
 			<p>{visibility_note}</p>
-			<div class="actions"><a class="text-link" href=crate::server_fns::portal::portal_path(&organization, &project)>"Open the public portal"</a></div>
+			<div class="actions"><a class="text-link" href=monochange_projects::server_fns::portal::portal_path(&organization, &project)>"Open the public portal"</a></div>
 		</div>
 		{move || act.value().get().and_then(Result::err).map(|error| view! { <p class="form-error" role="alert">{action_error(&error)}</p> })}
 		{move || reply.value().get().and_then(Result::err).map(|error| view! { <p class="form-error" role="alert">{action_error(&error)}</p> })}

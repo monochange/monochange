@@ -14,6 +14,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, test } from "vitest";
 
+import { minifyEntryGlue } from "../../minify-split-loader.ts";
+
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 const scriptPath = join(repoRoot, "scripts/minify-split-loader.ts");
 const fixtureRoot = join(repoRoot, "fixtures/tests/website-split-loader-minify");
@@ -220,5 +222,80 @@ describe("minify-split-loader", () => {
 		});
 		assert.equal(result.status, 1);
 		assert.match(result.stderr, /MONOCHANGE_ESBUILD_BIN does not exist/);
+	});
+});
+
+describe("minify-split-loader entry glue", () => {
+	const roots: string[] = [];
+
+	afterEach(() => {
+		for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
+	});
+
+	const glueFixture = join(fixtureRoot, "glue-site/pkg/monochange_app.js");
+	const esbuildBin = join(repoRoot, "node_modules/.bin/esbuild");
+
+	function glueScenario(): { root: string; pkg: string } {
+		const root = mkdtempSync(join(tmpdir(), "minify-entry-glue-"));
+		roots.push(root);
+		const pkg = join(root, "pkg");
+		mkdirSync(pkg, { recursive: true });
+		cpSync(join(fixtureRoot, "glue-site/pkg"), pkg, { recursive: true });
+
+		return { root, pkg };
+	}
+
+	test("minifies the entry glue and preserves its export surface", () => {
+		const { pkg } = glueScenario();
+		const before = readFileSync(join(pkg, "monochange_app.js"), "utf8");
+		const sizes = minifyEntryGlue(pkg, "monochange_app", esbuildBin);
+		const after = readFileSync(join(pkg, "monochange_app.js"), "utf8");
+
+		assert.ok(sizes.rawAfter < sizes.rawBefore, "minified glue must shrink");
+		// The hydration script consumes `default` (init), `initSync`, and every
+		// #[wasm_bindgen] export such as `hydrate`.
+		assert.ok(after.includes("hydrate"), "named export hydrate must survive");
+		assert.match(after, /as default/);
+		assert.match(after, /initSync/);
+		// The split loader import must stay a module specifier, not a mangled
+		// identifier or a resolved path.
+		assert.match(after, /from\s*"\.\/__wasm_split\..+\.js"/);
+		assert.notEqual(after, before);
+	});
+
+	test("refuses glue output that drops an exported name", () => {
+		const { pkg } = glueScenario();
+		const before = readFileSync(join(pkg, "monochange_app.js"), "utf8");
+		const fakeBin = join(pkg, "fake-esbuild.mjs");
+		writeFileSync(
+			fakeBin,
+			[
+				"#!/usr/bin/env node",
+				'import { readFileSync, writeFileSync } from "node:fs";',
+				"const args = process.argv.slice(2);",
+				'const source = args.find((arg) => !arg.startsWith("--"));',
+				'const out = args.find((arg) => arg.startsWith("--outfile=")).slice("--outfile=".length);',
+				'const code = readFileSync(source, "utf8");',
+				// A broken minifier that silently drops the hydrate export.
+				'writeFileSync(out, code.replace(/export function hydrate[^}]*}/, ""));',
+			].join("\n"),
+		);
+		chmodSync(fakeBin, 0o755);
+
+		assert.throws(
+			() => minifyEntryGlue(pkg, "monochange_app", fakeBin),
+			/changed the exported names \(missing: hydrate\)/,
+		);
+		assert.equal(readFileSync(join(pkg, "monochange_app.js"), "utf8"), before);
+	});
+
+	test("fails when the entry glue is missing", () => {
+		const { root } = glueScenario();
+		rmSync(join(root, "pkg/monochange_app.js"));
+
+		assert.throws(
+			() => minifyEntryGlue(join(root, "pkg"), "monochange_app", esbuildBin),
+			/could not read the entry glue/,
+		);
 	});
 });

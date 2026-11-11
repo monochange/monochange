@@ -1,16 +1,20 @@
 #!/usr/bin/env node
 // Minifies the wasm-split loader JavaScript that the build emits unminified
-// next to the hydrated client bundle. The wasm-bindgen glue minification
-// covers the main `{output_name}.js` glue only, so the
+// next to the hydrated client bundle, and the entry glue
+// (`{output_name}.js`) beside it — everything cargo-leptos' `js-minify`
+// used to compress. The wasm-bindgen glue minification covers the main
+// `{output_name}.js` glue only, so the
 // `__wasm_split.<hash>.js` module would keep its per-chunk route comments and
 // full identifiers — and fail the committed website size gate, which compares
 // that file by name at the 5% per-file gzip tolerance (scripts/website-size.ts).
 //
-// The rewrite is guarded: a loader is replaced only when the minified output
-// still exports the same `__wasm_split_load___*` initializers and still
-// references the same `/pkg/*.js` import and `./*.wasm` chunk URLs. A minifier
-// regression or an unexpected loader shape therefore fails the build instead
-// of reaching a deployment.
+// Both rewrites are guarded: a loader is replaced only when the minified
+// output still exports the same `__wasm_split_load___*` initializers and still
+// references the same `/pkg/*.js` import and `./*.wasm` chunk URLs; an entry
+// glue only when it still exports the same names (its `default` init,
+// `initSync`, every `#[wasm_bindgen]` export) and still imports the same
+// module specifiers. A minifier regression or an unexpected shape therefore
+// fails the build instead of reaching a deployment.
 //
 // The real build pipeline invokes this through the leptoskit tooling plugin
 // (scripts/leptoskit-plugin/), which runs it inside `leptoskit build` before
@@ -70,6 +74,15 @@ export type LoaderSizes = {
 
 /** What minifying every split loader in one pkg directory did. */
 export type MinifySummary = { loaders: LoaderSizes[]; esbuildBin: string };
+
+/** One entry glue's gzip sizes before and after minification. */
+export type GlueSizes = {
+	name: string;
+	gzipBefore: number;
+	gzipAfter: number;
+	rawBefore: number;
+	rawAfter: number;
+};
 
 class MinifyError extends Error {}
 
@@ -244,6 +257,127 @@ export function minifySplitLoaders(pkgDir: string, esbuildBin?: string): MinifyS
 /** Progress output goes to stderr; stdout carries only the plugin's JSON reply. */
 function log(message: string): void {
 	console.error(message);
+}
+
+// The entry glue's exported surface: `export function name(...)`,
+// `export const/let/var name = …`, and every identifier in
+// `export { a, b as c }` lists (the export is the name after `as`, or the
+// bare identifier). Unanchored: the minified glue is one line, so exports
+// appear mid-line.
+const EXPORTED_FUNCTION = /\bexport\s+(?:async\s+)?function\s+(?<name>[A-Za-z0-9_$]+)/gu;
+const EXPORTED_BINDING = /\bexport\s+(?:const|let|var)\s+(?<name>[A-Za-z0-9_$]+)/gu;
+const EXPORT_LIST = /\bexport\s*\{(?<names>[^}]+)\}/gu;
+// Static `import ... from "…"`, re-export `export … from "…"`, and dynamic
+// `import("…")` module specifiers: the sibling modules the glue loads.
+const MODULE_SPECIFIER = /(?:\bfrom\s*|\bimport\s*\(\s*)"(?<specifier>[^"]+)"/gu;
+
+type GlueSurface = { exports: string[]; specifiers: string[] };
+
+function glueSurface(code: string): GlueSurface {
+	const names = new Set<string>();
+
+	for (const match of code.matchAll(EXPORTED_FUNCTION)) {
+		if (match.groups?.name !== undefined) names.add(match.groups.name);
+	}
+
+	for (const match of code.matchAll(EXPORTED_BINDING)) {
+		if (match.groups?.name !== undefined) names.add(match.groups.name);
+	}
+
+	for (const list of code.matchAll(EXPORT_LIST)) {
+		for (const entry of (list.groups?.names ?? "").split(",")) {
+			// `local as exported` exports the name after `as`; a bare entry
+			// exports itself.
+			const exported =
+				entry
+					.trim()
+					.split(/\s+as\s+/)
+					.at(-1) ?? "";
+
+			if (exported.length > 0) names.add(exported);
+		}
+	}
+
+	const specifiers = new Set<string>();
+
+	for (const match of code.matchAll(MODULE_SPECIFIER)) {
+		if (match.groups?.specifier !== undefined) specifiers.add(match.groups.specifier);
+	}
+
+	return { exports: [...names].toSorted(), specifiers: [...specifiers].toSorted() };
+}
+
+/**
+ * Rewrites the entry glue `<outputName>.js` in place with the guarded
+ * minifier contract.
+ *
+ * The glue is replaced only when the minified output still exports the same
+ * names (`default` init, `initSync`, every `#[wasm_bindgen]` export such as
+ * `hydrate`) and still imports the same module specifiers (the wasm-split
+ * loader and any sibling module). Throws a `MinifyError` naming the problem
+ * instead of touching the file otherwise.
+ */
+export function minifyEntryGlue(
+	pkgDir: string,
+	outputName: string,
+	esbuildBin?: string,
+): GlueSizes {
+	const resolved = esbuildBin ?? resolveEsbuild();
+	const name = `${outputName}.js`;
+	const path = join(pkgDir, name);
+	let before: Buffer;
+
+	try {
+		before = readFileSync(path);
+	} catch (error) {
+		throw new MinifyError(
+			`could not read the entry glue ${path}: ${error instanceof Error ? error.message : String(error)}; build the site first`,
+		);
+	}
+
+	const workDir = mkdtempSync(join(tmpdir(), "minify-entry-glue-"));
+	let after: Buffer;
+	try {
+		const outPath = join(workDir, "glue.js");
+		runEsbuild(resolved, path, outPath);
+		after = readFileSync(outPath);
+
+		const beforeSurface = glueSurface(before.toString("utf8"));
+		const afterSurface = glueSurface(after.toString("utf8"));
+		const exportMismatch = referencesMismatch(beforeSurface.exports, afterSurface.exports);
+
+		if (exportMismatch !== undefined) {
+			throw new MinifyError(
+				`minified ${name} changed the exported names (${exportMismatch}); leaving it untouched`,
+			);
+		}
+
+		const specifierMismatch = referencesMismatch(beforeSurface.specifiers, afterSurface.specifiers);
+
+		if (specifierMismatch !== undefined) {
+			throw new MinifyError(
+				`minified ${name} changed the imported module specifiers (${specifierMismatch}); leaving it untouched`,
+			);
+		}
+
+		writeFileSync(path, after);
+	} finally {
+		rmSync(workDir, { recursive: true, force: true });
+	}
+	const written = readFileSync(path);
+	const gzipBefore = gzipSync(before).byteLength;
+	const gzipAfter = gzipSync(written).byteLength;
+	log(
+		`${name} gzip ${gzipBefore} → ${gzipAfter} bytes (raw ${before.byteLength} → ${written.byteLength})`,
+	);
+
+	return {
+		name,
+		gzipBefore,
+		gzipAfter,
+		rawBefore: before.byteLength,
+		rawAfter: written.byteLength,
+	};
 }
 
 function main() {
