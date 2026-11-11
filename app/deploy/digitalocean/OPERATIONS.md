@@ -18,9 +18,9 @@ The committed `ssh_config` uses the existing personal SSH key and refuses intera
 
 ## Automated website releases
 
-The `website-deployment` job in `ci.yml` runs after an approved release commit contains a `monochange_app` release target. It reads the dedicated deployment key directly from the `website-production` environment and validates the key before tooling setup or image building. Library-only releases leave the website alone. The deployment validates the release record and builds the exact tagged commit on GitHub Actions, so the small Droplet only loads the image and restarts the application. The temporary key is removed even if an earlier step fails.
+The `website-deployment` job in `.github/workflows/app.yml` runs after an approved release commit contains a `monochange_app` release target. [How a release reaches production](../../DEPLOY.md#how-a-release-reaches-production) walks through each step, and [recover a failed deployment](../../DEPLOY.md#recover-a-failed-deployment) covers re-runs and rollbacks. It reads the dedicated deployment key directly from the `website-production` environment and validates the key before tooling setup or image building. Library-only releases leave the website alone. The deployment validates the release record and builds the exact tagged commit on GitHub Actions, so the small Droplet only loads the image and restarts the application. The temporary key is removed even if an earlier step fails.
 
-Install `ci-deploy.sh` as root-owned `/usr/local/bin/monochange-ci-deploy` with mode 0755. Add the dedicated key to the deploy user's `authorized_keys` with these options:
+`harden-droplet.sh` installs `ci-deploy.sh` as root-owned `/usr/local/bin/monochange-ci-deploy` with mode 0755; on an existing server, follow [update the server helpers](../../DEPLOY.md#update-the-server-helpers). Add the dedicated key to the deploy user's `authorized_keys` with these options:
 
 ```text
 restrict,command="/usr/local/bin/monochange-ci-deploy" ssh-ed25519 <public-key> monochange-website-actions
@@ -66,7 +66,7 @@ SSH does not require the DigitalOcean token. Inside `devenv shell`:
 ssh -F app/deploy/digitalocean/ssh_config monochange-production 'id; cd /opt/monochange && docker compose ps'
 ```
 
-The `deploy` user belongs to Docker's group and therefore has effective root access. Use the existing personal key for local maintenance. Never copy that private key to GitHub Actions. A future CI key must be a separate credential with its own grant and rotation policy.
+The `deploy` user belongs to Docker's group and therefore has effective root access. Use the existing personal key for local maintenance. Never copy that private key to GitHub Actions; CI uses the separate forced-command key described in [automated website releases](#automated-website-releases).
 
 For an update, first merge the deployment PR and confirm its Docker image smoke check passed. Select that exact commit. Build locally with a Docker engine targeting the Droplet's `linux/amd64` architecture:
 
@@ -83,7 +83,7 @@ let revision = (git rev-parse HEAD)
 git archive HEAD | ssh -F app/deploy/digitalocean/ssh_config monochange-production $"set -eu; mkdir -p /opt/monochange/source-($revision); tar -xf - -C /opt/monochange/source-($revision); docker build -t monochange-app:($revision) /opt/monochange/source-($revision)"
 ```
 
-Update the Compose and Caddy files from the same revision. These public configuration files must be owned by `deploy`, as installed by the bootstrap guide, so ordinary updates can replace them. The secrets directory and service-account token remain root-owned. Back up SQLite before restarting:
+Update the Compose and Caddy files from the same revision. Automated releases never copy them, so compare them with the server copy whenever they change. These public configuration files must be owned by `deploy`, as installed by the bootstrap guide, so ordinary updates can replace them. The secrets directory and service-account token remain root-owned. Back up SQLite before restarting:
 
 ```nu
 scp -F app/deploy/digitalocean/ssh_config app/deploy/digitalocean/docker-compose.yml app/deploy/digitalocean/Caddyfile monochange-production:/opt/monochange/
@@ -92,9 +92,9 @@ ssh -F app/deploy/digitalocean/ssh_config monochange-production $"/usr/local/bin
 curl --fail --silent --show-error https://monochange.dev/health
 ```
 
-The server deploy helper requires a full commit SHA, verifies the image exists locally, persists its tag in `/opt/monochange/.env`, starts Compose without a registry pull, and waits for HTTP health. On failure, inspect the deployment before another restart; do not keep restarting a service with missing production secrets. Schema migrations may make an automatic image rollback unsafe. Restore a consistent backup deliberately when database compatibility requires it.
+The server deploy helper requires a full commit SHA, verifies the image exists locally, writes its tag to `/opt/monochange/.env`, starts Compose without a registry pull, and waits up to 120 seconds for HTTP health, printing the app's startup logs if it never becomes healthy. It overwrites `.env` on every run; keep optional runtime settings in `/opt/monochange/app.env` as described in [optional settings in app.env](../../DEPLOY.md#optional-settings-in-appenv). On failure, inspect the deployment before another restart; do not keep restarting a service with missing production secrets. Schema migrations may make an automatic image rollback unsafe. Restore a consistent backup deliberately when database compatibility requires it.
 
-Deploy helpers are installed by `harden-droplet.sh`. For an already hardened server, update the helper separately rather than rerunning account/firewall bootstrapping. Production secrets remain in the runtime vault and the root-owned token file; ordinary updates do not copy or resolve them locally.
+Deploy helpers are installed by `harden-droplet.sh` from `monochange-deploy.sh` and `ci-deploy.sh` beside it. For an already hardened server, follow [update the server helpers](../../DEPLOY.md#update-the-server-helpers) rather than rerunning account/firewall bootstrapping. Production secrets remain in the runtime vault and the root-owned token file; ordinary updates do not copy or resolve them locally.
 
 ## OS updates and reboots
 
@@ -177,4 +177,4 @@ Use IDs from the list output and re-read the record after an update. Keep the zo
 
 ## Remaining setup
 
-The API token must be created and stored before authenticated DigitalOcean API commands work. The website is live with its runtime service account and GitHub OAuth credentials. GitHub release App credentials remain pending; supply all three bot credentials together before enabling installation-backed automation. Local daily backups exist; offsite backup delivery is still pending. Routine website release deployment uses SSH and does not depend on the API token or release App setup.
+As of 2026-10-19, the `monochange deployment` API token exists in the `deploy` item and expires on 2027-01-17, so replace it in early January 2027. The GitHub App credentials in the `github` section are configured and verified, as of that date. Hosted workflow dispatch, new in `monochange_app` 0.5.0, also needs **Actions: Read and write**; confirm the App and its installation have it before that release (see the [registration checklist](../github-app-registration.md)). Local daily backups exist; offsite backup delivery is still pending. Routine website release deployment uses SSH and does not depend on the API token.
