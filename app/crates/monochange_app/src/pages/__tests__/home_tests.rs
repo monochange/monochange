@@ -151,12 +151,34 @@ fn next_versions_use_the_row_status_bump() {
 }
 
 #[test]
+fn bump_tones_warm_as_the_change_grows() {
+	for (bump, hue) in [
+		(Bump::Patch, "mint"),
+		(Bump::Minor, "signal"),
+		(Bump::Major, "flare"),
+	] {
+		let tone = bump.tone();
+		assert_eq!(tone.row, format!("bg-{hue}/10"));
+		assert_eq!(tone.leading, format!("border-l-2 border-{hue}"));
+		assert_eq!(tone.text, format!("text-{hue}"));
+		assert_eq!(tone.next, format!("font-bold text-{hue}"));
+		assert_eq!(tone.tag, format!("border border-{hue} text-{hue}"));
+		assert_eq!(tone.pressed, format!("bg-{hue} text-hero"));
+	}
+}
+
+#[test]
 fn row_styles_highlight_changed_rows_without_fading_unchanged_ones() {
 	let changed = row_style(RowStatus::Changed(Bump::Minor));
-	assert!(changed.row.contains("bg-brand-400/10"));
+	assert!(changed.row.contains("bg-signal/10"));
 	assert!(changed.leading.contains("border-l-2"));
-	assert!(changed.next.contains("text-brand-300"));
+	assert!(changed.next.contains("text-signal"));
+	assert_eq!(changed.tag_class, Bump::Minor.tone().tag);
 	assert_eq!(changed.tag_label, Some("minor"));
+
+	let major = row_style(RowStatus::Changed(Bump::Major));
+	assert!(major.row.contains("bg-flare/10"));
+	assert_eq!(major.tag_label, Some("major"));
 
 	let dependent = row_style(RowStatus::Dependent);
 	assert!(dependent.row.contains("bg-brand-400/5"));
@@ -170,9 +192,12 @@ fn row_styles_highlight_changed_rows_without_fading_unchanged_ones() {
 
 #[test]
 fn pill_classes_mark_the_pressed_choice() {
-	assert!(pill_class(true).contains("bg-brand-300"));
-	assert!(pill_class(true).contains("text-brand-950"));
-	assert!(pill_class(false).contains("text-hero-muted"));
+	assert!(pill_class(true, PACKAGE_PRESSED).contains("bg-brand-300 text-brand-950"));
+	assert!(pill_class(true, Bump::Major.tone().pressed).contains("bg-flare text-hero"));
+
+	let unpressed = pill_class(false, PACKAGE_PRESSED);
+	assert!(unpressed.contains("text-hero-muted"));
+	assert!(!unpressed.contains(PACKAGE_PRESSED));
 }
 
 #[test]
@@ -213,18 +238,24 @@ async fn home_page_renders_the_release_preview() {
 	assert!(
 		html.contains("href=\"/login?next=%2Fprojects\"") || html.contains("href=\"/projects\"")
 	);
+
+	// The default minor bump paints the changeset keyword, the pressed bump
+	// choice, and the changed row in the signal hue.
+	assert!(html.contains("class=\"text-signal\""), "{html}");
+	assert!(html.contains("bg-signal text-hero"), "{html}");
+	assert!(html.contains("bg-signal/10"), "{html}");
 }
 
 #[tokio::test]
 async fn status_tag_names_the_status_in_its_style() {
 	let html = crate::tests::render(|| {
-		view! { {status_tag("minor", "border border-signal/70 text-signal")} }
+		view! { {status_tag("minor", "border border-signal text-signal")} }
 	})
 	.await;
 
 	assert!(html.contains(">minor</span>"), "{html}");
 	assert!(html.contains("uppercase"), "{html}");
-	assert!(html.contains("border-signal/70"), "{html}");
+	assert!(html.contains("border border-signal text-signal"), "{html}");
 }
 
 #[tokio::test]

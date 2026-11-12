@@ -64,7 +64,7 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
 				<meta charset="utf-8" />
 				<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 				<script inner_html=THEME_INIT></script>
-				<meta name="theme-color" content="#0F766E" />
+				<meta name="theme-color" content="#5433d1" />
 				<meta
 					name="description"
 					content="Free, open-source release planning for monorepos. Coordinate projects, releases, feedback, and org workspaces across six ecosystems."

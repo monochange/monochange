@@ -44,7 +44,58 @@ impl Bump {
 			Self::Major => "major",
 		}
 	}
+
+	/// The bump level's colour in the console. The scale warms as the change
+	/// grows (mint, saffron signal, flare), so the level reads before its label.
+	fn tone(self) -> BumpTone {
+		match self {
+			Self::Patch => {
+				BumpTone {
+					row: "bg-mint/10",
+					leading: "border-l-2 border-mint",
+					text: "text-mint",
+					next: "font-bold text-mint",
+					tag: "border border-mint text-mint",
+					pressed: "bg-mint text-hero",
+				}
+			}
+			Self::Minor => {
+				BumpTone {
+					row: "bg-signal/10",
+					leading: "border-l-2 border-signal",
+					text: "text-signal",
+					next: "font-bold text-signal",
+					tag: "border border-signal text-signal",
+					pressed: "bg-signal text-hero",
+				}
+			}
+			Self::Major => {
+				BumpTone {
+					row: "bg-flare/10",
+					leading: "border-l-2 border-flare",
+					text: "text-flare",
+					next: "font-bold text-flare",
+					tag: "border border-flare text-flare",
+					pressed: "bg-flare text-hero",
+				}
+			}
+		}
+	}
 }
+
+/// Tailwind classes that paint one bump level wherever the console shows it:
+/// the changed row, the changeset keyword, and the pressed bump choice.
+struct BumpTone {
+	row: &'static str,
+	leading: &'static str,
+	text: &'static str,
+	next: &'static str,
+	tag: &'static str,
+	pressed: &'static str,
+}
+
+/// The pressed package choice keeps the brand violet; only bumps take a tone.
+const PACKAGE_PRESSED: &str = "bg-brand-300 text-brand-950";
 
 const BUMPS: [Bump; 3] = [Bump::Patch, Bump::Minor, Bump::Major];
 
@@ -217,11 +268,13 @@ struct RowStyle {
 fn row_style(status: RowStatus) -> RowStyle {
 	match status {
 		RowStatus::Changed(bump) => {
+			let tone = bump.tone();
+
 			RowStyle {
-				row: "bg-brand-400/10",
-				leading: "border-l-2 border-brand-300",
-				next: "font-bold text-brand-300",
-				tag_class: "border border-signal/70 text-signal",
+				row: tone.row,
+				leading: tone.leading,
+				next: tone.next,
+				tag_class: tone.tag,
 				tag_label: Some(bump.label()),
 			}
 		}
@@ -260,12 +313,13 @@ fn status_tag(label: &'static str, class: &'static str) -> impl IntoView {
 	}
 }
 
-/// Pill styling for the console's pressed/unpressed choice buttons.
-fn pill_class(pressed: bool) -> String {
+/// Pill styling for the console's choice buttons; `pressed_class` colours the
+/// pressed choice.
+fn pill_class(pressed: bool, pressed_class: &str) -> String {
 	format!(
 		"inline-flex min-h-11 items-center rounded-full px-3.5 font-mono text-[0.78rem] transition-colors {}",
 		if pressed {
-			"bg-brand-300 text-brand-950"
+			pressed_class
 		} else {
 			"text-hero-muted hover:bg-[color-mix(in_srgb,var(--mc-hero-fg)_10%,transparent)] hover:text-mist"
 		}
@@ -369,7 +423,7 @@ fn PlanConsole() -> impl IntoView {
 				"---\n"
 				<span class="text-brand-300">{move || selected.get().id()}</span>
 				": "
-				<span class="text-signal">{move || bump.get().label()}</span>
+				<span class=move || bump.get().tone().text>{move || bump.get().label()}</span>
 				"\n---\n\n# "
 				{move || changeset_note(selected.get())}
 			</pre>
@@ -382,7 +436,7 @@ fn PlanConsole() -> impl IntoView {
 							view! {
 								<button
 									type="button"
-									class=move || pill_class(selected.get() == choice)
+									class=move || pill_class(selected.get() == choice, PACKAGE_PRESSED)
 									aria-pressed=move || (selected.get() == choice).to_string()
 									on:click=move |_| select_package(set_selected, choice)
 								>
@@ -400,7 +454,7 @@ fn PlanConsole() -> impl IntoView {
 							view! {
 								<button
 									type="button"
-									class=move || pill_class(bump.get() == choice)
+									class=move || pill_class(bump.get() == choice, choice.tone().pressed)
 									aria-pressed=move || (bump.get() == choice).to_string()
 									on:click=move |_| select_bump(set_bump, choice)
 								>
