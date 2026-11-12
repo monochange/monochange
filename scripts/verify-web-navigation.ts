@@ -42,7 +42,15 @@
 // GitHub API).
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { createHmac, randomBytes } from "node:crypto";
-import { existsSync, mkdtempSync, realpathSync, rmSync } from "node:fs";
+import {
+	closeSync,
+	existsSync,
+	mkdtempSync,
+	openSync,
+	readFileSync,
+	realpathSync,
+	rmSync,
+} from "node:fs";
 import net from "node:net";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -648,29 +656,39 @@ function findChrome(): string {
 	return found;
 }
 
-async function startOwnedChrome(options: {
+export async function startOwnedChrome(options: {
 	registry: OwnedProcesses;
 	command: string;
 	workDir: string;
 	port: number;
 	timeoutMs: number;
 }): Promise<string> {
-	const child = spawn(
-		options.command,
-		[
-			"--headless=new",
-			"--no-sandbox",
-			"--disable-gpu",
-			"--no-first-run",
-			"--disable-extensions",
-			`--remote-debugging-port=${options.port}`,
-			`--user-data-dir=${join(options.workDir, "chrome-profile")}`,
-			"about:blank",
-		],
-		{ stdio: ["ignore", "ignore", "pipe"] },
-	);
+	const diagnostics = join(options.workDir, "chrome.stderr.log");
+	const stderr = openSync(diagnostics, "w");
+	let child: ChildProcess;
+
+	try {
+		child = spawn(
+			options.command,
+			[
+				"--headless=new",
+				"--no-sandbox",
+				"--disable-gpu",
+				"--no-first-run",
+				"--disable-extensions",
+				`--remote-debugging-port=${options.port}`,
+				`--user-data-dir=${join(options.workDir, "chrome-profile")}`,
+				"about:blank",
+			],
+			// Browser helpers can inherit stderr after Chrome exits. A file keeps
+			// their diagnostics without keeping a pipe in this verifier open.
+			{ stdio: ["ignore", "ignore", stderr] },
+		);
+	} finally {
+		closeSync(stderr);
+	}
 	const managed = options.registry.register("chrome", child);
-	const outputTail = attachOutputRing(child).read;
+	const outputTail = () => readFileSync(diagnostics, "utf8").slice(-4000);
 	const deadline = Date.now() + options.timeoutMs;
 
 	while (Date.now() < deadline) {

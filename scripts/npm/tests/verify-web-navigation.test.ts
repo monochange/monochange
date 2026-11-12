@@ -17,6 +17,7 @@ import {
 	projectsSignedInFailures,
 	signedOutControlsFailures,
 	startOwnedServer,
+	startOwnedChrome,
 	websiteSignedInFailures,
 } from "../../verify-web-navigation.ts";
 
@@ -253,6 +254,37 @@ describe("raw SSR identity assertions", () => {
 });
 
 // ── Startup waits racing process exit and deadline ──────────────────────────
+
+test("browser helpers retaining stderr do not prevent owned Chrome cleanup", async () => {
+	const registry = new OwnedProcesses();
+	const dir = mkdtempSync(join(tmpdir(), "verify-web-nav-chrome-"));
+	const profile = join(dir, "chrome-profile");
+	try {
+		await startOwnedChrome({
+			registry,
+			command: join(helpersDir, "chrome-inherited-stderr.mjs"),
+			workDir: dir,
+			port: await freePort(),
+			timeoutMs: 8000,
+		});
+		assert.deepEqual(await registry.shutdown(), []);
+		assert.equal(await waitForPidExit(readPid(join(profile, "chrome.pid"))), true);
+		assert.match(
+			readFileSync(join(dir, "chrome.stderr.log"), "utf8"),
+			/fixture browser diagnostic/,
+		);
+		process.kill(readPid(join(profile, "helper.pid")), 0);
+	} finally {
+		await registry.shutdown();
+		const pidFile = join(profile, "helper.pid");
+		if (existsSync(pidFile)) {
+			const pid = readPid(pidFile);
+			process.kill(pid, "SIGTERM");
+			assert.equal(await waitForPidExit(pid), true);
+		}
+		rmSync(dir, { recursive: true, force: true });
+	}
+}, 20_000);
 
 describe("owned server startup", () => {
 	test("resolves when the owned process becomes healthy and reaps it afterwards", async () => {
