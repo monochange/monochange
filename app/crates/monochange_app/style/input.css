@@ -524,8 +524,6 @@ button.button:disabled { opacity: .55; cursor: progress; }
   .hero-layout { gap: 2rem; padding-block: 4rem; }
   .hero h1 { font-size: 3.3rem; }
   .release-manifest { padding: 1.4rem; }
-  .manifest-heading { flex-direction: column; gap: .4rem; }
-  .manifest-heading p { max-width: none; }
   .ecosystem-list { grid-template-columns: repeat(2, 1fr); }
   .workflow-layout, .login-section { gap: 3rem; }
 }
@@ -534,15 +532,7 @@ button.button:disabled { opacity: .55; cursor: progress; }
   .hero-layout, .section-intro, .workflow-layout, .install-layout, .github-app-section, .login-section { grid-template-columns: 1fr; }
   .hero-layout { gap: 1.5rem; padding-block: 2rem; }
   .hero h1 { font-size: clamp(2.4rem, 9vw, 3.6rem); }
-  .hero-copy > p { font-size: 1.05rem; margin-top: 1rem; }
-  .hero-copy .actions { margin-top: 1.25rem; }
   .hero-note { margin-top: 1rem; font-size: .9rem; }
-  .hero-copy .actions { gap: .7rem; }
-  .hero-copy .button { padding-inline: 1rem; }
-  .manifest-heading { flex-direction: row; }
-  .manifest-heading h2 { font-size: 1.6rem; }
-  .manifest-heading p { max-width: 12ch; }
-  .manifest-controls { margin-block: 1rem; }
   .release-manifest tbody th, .release-manifest td { padding-block: .85rem; }
   .release-manifest td { font-size: .85rem; }
   .release-manifest tbody strong { font-size: .95rem; }
