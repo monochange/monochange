@@ -236,7 +236,7 @@ fn row_style(status: RowStatus) -> RowStyle {
 		}
 		RowStatus::Unchanged => {
 			RowStyle {
-				row: "opacity-45",
+				row: "",
 				leading: "",
 				next: "text-hero-muted",
 				tag_class: "",

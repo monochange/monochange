@@ -151,7 +151,7 @@ fn next_versions_use_the_row_status_bump() {
 }
 
 #[test]
-fn row_styles_highlight_changed_rows_and_fade_unchanged_ones() {
+fn row_styles_highlight_changed_rows_without_fading_unchanged_ones() {
 	let changed = row_style(RowStatus::Changed(Bump::Minor));
 	assert!(changed.row.contains("bg-brand-400/10"));
 	assert!(changed.leading.contains("border-l-2"));
@@ -164,7 +164,7 @@ fn row_styles_highlight_changed_rows_and_fade_unchanged_ones() {
 	assert_eq!(dependent.tag_label, Some("dependency"));
 
 	let unchanged = row_style(RowStatus::Unchanged);
-	assert!(unchanged.row.contains("opacity-45"));
+	assert!(unchanged.row.is_empty());
 	assert_eq!(unchanged.tag_label, None);
 }
 

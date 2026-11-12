@@ -93,3 +93,12 @@ The unit's retained runtime run exited successfully against the f540366be server
 The earlier ENOTEMPTY result has a concrete lifecycle cause: the old harness removed a profile shortly after signalling Chrome without awaiting its shutdown. Success now prints after owned process and stream shutdown and directory cleanup. Older orphaned Chrome instances observed by the child were not signalled because they were not owned by that run. Final verification will exercise this harness against the asset-lifecycle unit's output, including its shared stylesheet layout.
 
 Evidence: the verification child's ignored `.monochange/local/verify-ssr-identity/{HANDOFF.md,test-node.log,verify-web-navigation.log,artifact-sha256.txt}` and the primary's focused Vitest results. A primary typecheck attempt using `tsgo --noEmit` was rejected by this repository's rslint tsgo CLI; use the configured `tsgo -config tsconfig.json` command instead.
+
+## Performance pass
+
+Release builds use the existing size baseline and tolerances. The gzip totals below are from `website-size.ts check`; entry sizes are the generated precompressed assets.
+
+| Iteration                      | Site WASM raw / gzip / Brotli | Projects WASM raw / gzip / Brotli | Total gzip | Decision                                                                                                      |
+| ------------------------------ | ----------------------------- | --------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------- |
+| Before                         | 942,779 / 375,484 / 288,530   | 972,812 / 348,132 / 260,010       | 1,559,503  | Gate fails against 1,513,294-byte baseline.                                                                   |
+| Release debug logging disabled | 942,231 / 375,286 / 288,441   | 972,255 / 347,958 / 260,277       | 1,559,049  | Discarded: 454 bytes saved overall, with a 267-byte projects Brotli increase and lost production diagnostics. |
