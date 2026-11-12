@@ -118,14 +118,14 @@ pub fn App() -> impl IntoView {
 					<Route path=path!("/") view=HomePage />
 					<Route path=path!("/dashboard") view={Lazy::<DashboardRoute>::new()} />
 					<Route path=path!("/install") view={Lazy::<InstallRoute>::new()} />
-					<Route path=path!("/connect") view={Lazy::<SiteSessionRoute>::new()} />
-					<Route path=path!("/account") view={Lazy::<SiteSessionRoute>::new()} />
-					<Route path=path!("/login") view={Lazy::<SiteSessionRoute>::new()} />
+					<Route path=path!("/connect") view={Lazy::<ConnectRoute>::new()} />
+					<Route path=path!("/account") view={Lazy::<AccountRoute>::new()} />
+					<Route path=path!("/login") view={Lazy::<LoginRoute>::new()} />
 					<Route path=path!("/pricing") view={Lazy::<PricingRoute>::new()} />
 					<Route path=path!("/changelog") view={Lazy::<ChangelogRoute>::new()} />
 					<Route path=path!("/book") view={Lazy::<BookRoute>::new()} />
 					<Route path=path!("/book/*chapter") view={Lazy::<BookRoute>::new()} />
-					<Route path=path!("/auth/callback") view={Lazy::<SiteSessionRoute>::new()} />
+					<Route path=path!("/auth/callback") view={Lazy::<AuthCallbackRoute>::new()} />
 				</Routes>
 			</main>
 			<Footer />
@@ -248,29 +248,53 @@ fn LoginPage() -> impl IntoView {
 }
 
 // ── Auth Callback Page ──
-/// Browser identity screens share one lazy chunk, separate from product views.
-enum SiteSessionRoute {
-	Login,
-	Connect,
-	Account,
-	Callback {
-		result: Resource<Result<SessionUser, String>>,
-	},
+/// Login and device-management pages load independently.
+struct LoginRoute;
+
+#[lazy_route]
+impl LazyRoute for LoginRoute {
+	fn data() -> Self {
+		Self
+	}
+
+	fn view(_: Self) -> AnyView {
+		view! { <LoginPage /> }.into_any()
+	}
+}
+
+struct ConnectRoute;
+
+#[lazy_route]
+impl LazyRoute for ConnectRoute {
+	fn data() -> Self {
+		Self
+	}
+
+	fn view(_: Self) -> AnyView {
+		view! { <crate::pages::connect::ConnectPage /> }.into_any()
+	}
+}
+
+struct AccountRoute;
+
+#[lazy_route]
+impl LazyRoute for AccountRoute {
+	fn data() -> Self {
+		Self
+	}
+
+	fn view(_: Self) -> AnyView {
+		view! { <crate::pages::account::AccountPage /> }.into_any()
+	}
+}
+
+struct AuthCallbackRoute {
+	result: Resource<Result<SessionUser, String>>,
 }
 
 #[lazy_route]
-impl LazyRoute for SiteSessionRoute {
+impl LazyRoute for AuthCallbackRoute {
 	fn data() -> Self {
-		match leptos_router::hooks::use_location()
-			.pathname
-			.get_untracked()
-			.as_str()
-		{
-			"/login" => return Self::Login,
-			"/connect" => return Self::Connect,
-			"/account" => return Self::Account,
-			_ => {}
-		}
 		let params = leptos_router::hooks::use_query_map();
 
 		// Cookie headers must be complete before SSR starts sending the page.
@@ -290,20 +314,12 @@ impl LazyRoute for SiteSessionRoute {
 				}
 			},
 		);
-		Self::Callback { result }
+		Self { result }
 	}
 
 	fn view(this: Self) -> AnyView {
-		match this {
-			SiteSessionRoute::Login => view! { <LoginPage /> }.into_any(),
-			SiteSessionRoute::Connect => {
-				view! { <crate::pages::connect::ConnectPage /> }.into_any()
-			}
-			SiteSessionRoute::Account => {
-				view! { <crate::pages::account::AccountPage /> }.into_any()
-			}
-			SiteSessionRoute::Callback { result } => {
-				view! {
+		let AuthCallbackRoute { result } = this;
+		view! {
 					<div class="flex min-h-[80vh] items-center justify-center">
 						<Suspense fallback=|| {
 							view! {
@@ -404,8 +420,6 @@ impl LazyRoute for SiteSessionRoute {
 					</div>
 				}
 				.into_any()
-			}
-		}
 	}
 }
 

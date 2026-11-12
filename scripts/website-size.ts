@@ -143,23 +143,14 @@ function anonymousChunkGzipBytes(measurement: SiteMeasurement): number {
 }
 
 // The baseline is the pre-split bundle: flat names under pkg/, the entry wasm
-// named by cargo-leptos (`monochange_app.wasm`), and one lazy route for the
-// session pages under their old component name. These tables restore per-file
-// comparisons across those legitimate renames without loosening any budget:
+// named by cargo-leptos (`monochange_app.wasm`). These rules restore per-file
+// comparisons across legitimate renames without loosening any budget:
 // each baseline asset still has exactly one current counterpart to answer for.
 const WEBSITE_NAMESPACE = "site";
 const ENTRY_RENAMES: Record<string, string> = {
 	// cargo-leptos named the bound module after the output name; wasm-bindgen
 	// names the bound module `{output_name}_bg.wasm`.
 	"monochange_app.wasm": "monochange_app_bg.wasm",
-};
-const ROUTE_VIEW_RENAMES: Record<string, string> = {
-	// `/auth/callback`'s AuthCallbackRoute became SiteSessionRoute when the
-	// session pages (login, connect, account, callback) merged into one lazy
-	// route (PR #886, before the dual-frontend split). The renamed chunk also
-	// absorbed those pages' eager code, so this guard reports the merge — the
-	// total stays the redistribution's real check.
-	auth_callback_route_view: "site_session_route_view",
 };
 const ROUTE_SPLIT = /^split___(?<stem>[a-z0-9_]+)_\d+\.wasm$/u;
 const NAMESPACED_ROUTE_SPLIT = /^(?:[^/]+)\/split___(?<stem>[a-z0-9_]+)_\d+\.wasm$/u;
@@ -185,10 +176,8 @@ export function currentMatches(name: string, currentFiles: string[]): string[] {
 	const routeStem = name.match(ROUTE_SPLIT)?.groups?.stem;
 
 	if (routeStem !== undefined) {
-		const currentStem = ROUTE_VIEW_RENAMES[routeStem] ?? routeStem;
-
 		for (const file of currentFiles) {
-			if (NAMESPACED_ROUTE_SPLIT.exec(file)?.groups?.stem === currentStem) {
+			if (NAMESPACED_ROUTE_SPLIT.exec(file)?.groups?.stem === routeStem) {
 				candidates.push(file);
 			}
 		}

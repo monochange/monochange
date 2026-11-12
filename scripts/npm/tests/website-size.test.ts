@@ -80,7 +80,7 @@ function namespacedCurrentSizes(): Record<string, number> {
 		"site/monochange_app.css": 8_000,
 		"site/monochange_app.js": 27_000,
 		"site/monochange_app_bg.wasm": 200_000,
-		"site/split___site_session_route_view_91.wasm": 5_000,
+		"site/split___auth_callback_route_view_91.wasm": 5_000,
 		"site/split___pricing_route_view_92.wasm": 4_000,
 		"site/chunk_11.wasm": 900,
 		"projects/monochange_projects_web.js": 26_000,
@@ -131,9 +131,9 @@ describe("website-size currentMatches", () => {
 		]);
 	});
 
-	test("resolves renamed and cross-namespace lazy route splits by route stem", () => {
+	test("resolves renumbered and cross-namespace lazy route splits by route stem", () => {
 		const current = [
-			"site/split___site_session_route_view_91.wasm",
+			"site/split___auth_callback_route_view_91.wasm",
 			"projects/split___organization_route_view_93.wasm",
 		];
 
@@ -142,7 +142,7 @@ describe("website-size currentMatches", () => {
 			[
 				"split___auth_callback_route_view_17242783178260986175.wasm",
 				"site/split___auth_callback_route_view_17242783178260986175.wasm",
-				"site/split___site_session_route_view_91.wasm",
+				"site/split___auth_callback_route_view_91.wasm",
 			],
 		);
 		assert.deepEqual(
@@ -220,9 +220,9 @@ describe("website-size check", () => {
 		assert.match(result.stdout, /monochange_app\.wasm → site\/monochange_app_bg\.wasm gzip grew/);
 	});
 
-	test("fails when a renamed lazy route split exceeds its old allowance", () => {
+	test("fails when a renumbered lazy route split exceeds its old allowance", () => {
 		const current = namespacedCurrentSizes();
-		current["site/split___site_session_route_view_91.wasm"] = 50_000;
+		current["site/split___auth_callback_route_view_91.wasm"] = 50_000;
 		const { root, baseline: baselineFile } = writeScenario(
 			"split-grows",
 			current,
@@ -233,7 +233,7 @@ describe("website-size check", () => {
 		assert.notEqual(result.status, 0);
 		assert.match(
 			result.stdout,
-			/auth_callback_route_view[\s\S]*site_session_route_view_91\.wasm gzip grew/,
+			/auth_callback_route_view[\s\S]*auth_callback_route_view_91\.wasm gzip grew/,
 		);
 	});
 
