@@ -113,7 +113,10 @@ pub struct FeedbackConsoleRoute {
 	act: ServerAction<FeedbackAction>,
 	reply: ServerAction<MaintainerReply>,
 	tasks: TaskActions,
-	console: Resource<Result<Option<ConsoleView>, server_fn::ServerFnError>>,
+	console: Resource<
+		Result<Option<ConsoleView>, server_fn::ServerFnError>,
+		crate::resource_codec::JsonSliceCodec,
+	>,
 }
 
 /// The maintainer console: every feedback item with its triage, what users
@@ -136,9 +139,11 @@ impl LazyRoute for FeedbackConsoleRoute {
 				)
 			}
 		};
-		let console = Resource::new_blocking(key, |(organization, project, _)| {
-			feedback_console(organization, project)
-		});
+		let console = Resource::new_with_options(
+			key,
+			|(organization, project, _)| feedback_console(organization, project),
+			true,
+		);
 		Self {
 			act,
 			reply,

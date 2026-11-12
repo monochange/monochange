@@ -17,7 +17,10 @@ crate-type = ["cdylib", "lib"]
 # tree and the wasm hydration export, so linking it into the website client
 # is never needed — and the product routes' wasm-split exports cannot leak
 # into the website bundle.
+codee = "0.3.5"
 monochange_projects = { path = "../monochange_projects" }
+serde = { workspace = true }
+serde_json = { workspace = true }
 # Leptos (available on both native and WASM)
 leptos = { workspace = true, features = ["nightly"] }
 leptos_meta = { workspace = true }
@@ -56,7 +59,6 @@ hydrate = ["leptos/hydrate", "leptos/lazy", "leptoskit_rpc/web", "monochange_pro
 
 [dev-dependencies]
 insta = { version = "1", features = ["json", "filters"] }
-serde_json = { workspace = true }
 sqlx = { workspace = true }
 tokio = { workspace = true, features = ["rt", "rt-multi-thread", "macros"] }
 tower = { workspace = true, features = ["util"] }

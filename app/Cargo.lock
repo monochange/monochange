@@ -4243,6 +4243,7 @@ version = "0.4.0"
 dependencies = [
  "any_spawner",
  "axum",
+ "codee",
  "console_error_panic_hook",
  "console_log",
  "insta",
@@ -4257,6 +4258,7 @@ dependencies = [
  "monochange_app_feedback",
  "monochange_projects",
  "monochange_shared",
+ "serde",
  "serde_json",
  "server_fn",
  "sqlx",

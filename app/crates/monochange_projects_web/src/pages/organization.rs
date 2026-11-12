@@ -23,10 +23,13 @@ use monochange_projects::server_fns::organizations::organization_overview;
 use monochange_projects::server_fns::organizations::organization_path;
 use monochange_projects::server_fns::organizations::project_path;
 
+use crate::resource_codec::JsonSliceCodec;
+
 /// One-organisation page data, split into its own WASM chunk.
 pub struct OrganizationRoute {
 	login: Memo<String>,
-	overview: Resource<Result<Option<OrganizationSummary>, server_fn::ServerFnError>>,
+	overview:
+		Resource<Result<Option<OrganizationSummary>, server_fn::ServerFnError>, JsonSliceCodec>,
 }
 
 /// One organisation: its projects, a form to create one, and its connected
@@ -36,7 +39,7 @@ impl LazyRoute for OrganizationRoute {
 	fn data() -> Self {
 		let params = use_params_map();
 		let login = Memo::new(move |_| params.read().get("organization").unwrap_or_default());
-		let overview = Resource::new_blocking(move || login.get(), organization_overview);
+		let overview = Resource::new_with_options(move || login.get(), organization_overview, true);
 		Self { login, overview }
 	}
 

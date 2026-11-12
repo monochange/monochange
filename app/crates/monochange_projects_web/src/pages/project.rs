@@ -20,7 +20,10 @@ use crate::pages::organization::Unavailable;
 
 /// One-project page data, split into its own WASM chunk.
 pub struct ProjectRoute {
-	details: Resource<Result<Option<ProjectDetails>, server_fn::ServerFnError>>,
+	details: Resource<
+		Result<Option<ProjectDetails>, server_fn::ServerFnError>,
+		crate::resource_codec::JsonSliceCodec,
+	>,
 }
 
 /// One project: the repositories it brings together, and its settings.
@@ -35,9 +38,11 @@ impl LazyRoute for ProjectRoute {
 				params.get("project").unwrap_or_default(),
 			)
 		};
-		let details = Resource::new_blocking(key, |(organization, project)| {
-			project_overview(organization, project)
-		});
+		let details = Resource::new_with_options(
+			key,
+			|(organization, project)| project_overview(organization, project),
+			true,
+		);
 		Self { details }
 	}
 

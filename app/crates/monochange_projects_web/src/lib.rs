@@ -14,6 +14,7 @@
 #![recursion_limit = "256"]
 pub mod app;
 pub mod pages;
+mod resource_codec;
 
 #[cfg(test)]
 #[path = "__tests__/lib_tests.rs"]

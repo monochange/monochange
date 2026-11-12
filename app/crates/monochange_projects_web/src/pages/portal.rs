@@ -160,7 +160,10 @@ pub struct PortalRoute {
 	share: ServerAction<ShareFeedback>,
 	vote: ServerAction<PortalVote>,
 	reply: ServerAction<PortalReply>,
-	snapshot: Resource<Result<Option<PortalSnapshot>, server_fn::ServerFnError>>,
+	snapshot: Resource<
+		Result<Option<PortalSnapshot>, server_fn::ServerFnError>,
+		crate::resource_codec::JsonSliceCodec,
+	>,
 	shared: Memo<Option<String>>,
 }
 
@@ -184,9 +187,11 @@ impl LazyRoute for PortalRoute {
 				)
 			}
 		};
-		let snapshot = Resource::new_blocking(key, |(organization, project, _)| {
-			portal_view(organization, project)
-		});
+		let snapshot = Resource::new_with_options(
+			key,
+			|(organization, project, _)| portal_view(organization, project),
+			true,
+		);
 		let shared = Memo::new(move |_| query.read().get("shared"));
 
 		Self {
