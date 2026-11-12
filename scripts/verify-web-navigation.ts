@@ -797,6 +797,20 @@ async function renderBody(cdp: Cdp): Promise<string> {
 	return String(value.value ?? "");
 }
 
+/** Wait for the entry's promise, including its lazy route attachment. */
+async function waitForHydration(cdp: Cdp): Promise<void> {
+	const deadline = Date.now() + 20_000;
+	while (Date.now() < deadline) {
+		const result = await cdp.send("Runtime.evaluate", {
+			expression: 'document.documentElement.dataset.hydrated === "true"',
+			returnByValue: true,
+		});
+		if ((result.result as { value?: boolean }).value === true) return;
+		await sleep(25);
+	}
+	throw new Error("hydration did not complete");
+}
+
 // ── Browser journey bookkeeping ─────────────────────────────────────────────
 
 /**
@@ -1000,6 +1014,43 @@ async function runBrowserJourney(options: {
 
 	out("website entry:");
 	await navigateToDocument(cdp, trace, `${baseUrl}/`);
+	const replay = await cdp.send("Runtime.evaluate", {
+		expression: `(() => {
+			const before = document.documentElement.dataset.hydrated;
+			const wasDark = document.documentElement.classList.contains('dark');
+			const packageButton = [...document.querySelectorAll('[aria-label="Changed package"] button')].find(b => b.textContent === '@acme/sdk');
+			const major = [...document.querySelectorAll('[aria-label="Bump"] button')].find(b => b.textContent === 'major');
+			packageButton.click(); major.click();
+			document.querySelector('button[aria-label$="theme"]').click();
+			document.querySelector('button[aria-controls="mobile-navigation"]').click();
+			return { pending: before !== 'true', wasDark };
+		})()`,
+		returnByValue: true,
+	});
+	const captured = (replay.result as { value?: { pending?: boolean; wasDark?: boolean } }).value;
+	log.check(captured?.pending === true, "console clicks occur before hydration completes");
+	await waitForHydration(cdp);
+	const applied = await cdp.send("Runtime.evaluate", {
+		expression: `[...document.querySelectorAll('[aria-pressed="true"]')].map(b => b.textContent).join('|') + '|' + document.querySelector('main pre').textContent.includes('@acme/sdk: major')`,
+		returnByValue: true,
+	});
+	log.check(
+		(applied.result as { value?: string }).value === "@acme/sdk|major|true",
+		"pre-hydration sdk then major clicks replay in order",
+	);
+	const chromeState = await cdp.send("Runtime.evaluate", {
+		expression: `({dark: document.documentElement.classList.contains('dark'), menu: document.querySelector('button[aria-controls="mobile-navigation"]').getAttribute('aria-expanded')})`,
+		returnByValue: true,
+	});
+	const controls = (chromeState.result as { value?: { dark?: boolean; menu?: string } }).value;
+	log.check(
+		controls?.dark === !captured?.wasDark,
+		"queued theme click toggles the pre-paint color mode exactly once",
+	);
+	log.check(
+		controls?.menu === "true",
+		"queued homepage menu click opens navigation after hydration",
+	);
 	await waitForEntry(trace, "/pkg/site/monochange_app.js", 10_000);
 	await sleep(settleMs);
 	const landing = await renderBody(cdp);
@@ -1032,6 +1083,15 @@ async function runBrowserJourney(options: {
 	out("cross-frontend navigation (website → projects):");
 	await clickSelector(cdp, trace, 'a[href="/projects"]');
 	await waitForEntry(trace, "/pkg/projects/monochange_projects_web.js", 10_000);
+	await waitForHydration(cdp);
+	const eager = await cdp.send("Runtime.evaluate", {
+		expression: 'document.querySelector("[data-deferred-hydration]")?.dataset.deferredHydration',
+		returnByValue: true,
+	});
+	log.check(
+		(eager.result as { value?: string }).value === "false",
+		"signed-in projects hydrate eagerly",
+	);
 	await sleep(settleMs);
 	const projects = await renderBody(cdp);
 
@@ -1084,6 +1144,49 @@ async function runBrowserJourney(options: {
 	);
 	log.check(/[Ii]nstall/.test(install), "the lazy route rendered without a document reload");
 	log.check(trace.splitChunkRequests() > 0, "the lazy route loaded its own split chunk");
+
+	out("signed-out projects hydration:");
+	await cdp.send("Network.deleteCookies", { name: SESSION_COOKIE, url: baseUrl });
+	await navigateToDocument(cdp, trace, `${baseUrl}/projects`);
+	const deferred = await cdp.send("Runtime.evaluate", {
+		expression: 'document.querySelector("[data-deferred-hydration]")?.dataset.deferredHydration',
+		returnByValue: true,
+	});
+	log.check(
+		(deferred.result as { value?: string }).value === "true",
+		"signed-out projects defer hydration",
+	);
+	log.check(
+		!trace.hasEntry("/pkg/projects/monochange_projects_web_bg.wasm"),
+		"signed-out projects have no eager wasm transfer",
+	);
+	await cdp.send("Runtime.evaluate", {
+		expression: `document.querySelector('[aria-label="Toggle navigation menu"]').click()`,
+	});
+	await waitForHydration(cdp);
+	const menu = await cdp.send("Runtime.evaluate", {
+		expression: `document.querySelector('[aria-label="Toggle navigation menu"]').getAttribute("aria-expanded")`,
+		returnByValue: true,
+	});
+	log.check(
+		(menu.result as { value?: string }).value === "true",
+		"signed-out projects replay the menu click after lazy hydration",
+	);
+
+	out("lazy public route replay:");
+	await navigateToDocument(cdp, trace, `${baseUrl}/book`);
+	await cdp.send("Runtime.evaluate", {
+		expression: 'document.querySelector(".book-chapters-toggle").click()',
+	});
+	await waitForHydration(cdp);
+	const chapters = await cdp.send("Runtime.evaluate", {
+		expression: 'document.querySelector(".book-chapters-toggle").getAttribute("aria-expanded")',
+		returnByValue: true,
+	});
+	log.check(
+		(chapters.result as { value?: string }).value === "true",
+		"book chapter click waits for lazy route attachment",
+	);
 
 	out("asset and console hygiene (whole run):");
 	log.check(
