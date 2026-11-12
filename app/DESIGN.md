@@ -23,6 +23,8 @@ colors:
   rule-dark: "#2A3A4D"
   hero: "#071018"
   signal: "#E4B84A"
+  danger-light: "#b4233f"
+  danger-dark: "#fda4af"
   mc-accent: "#0D9488"
   mc-accent-deep: "#0F766E"
 typography:
@@ -55,6 +57,18 @@ typography:
     fontSize: "2rem"
     fontWeight: 800
     lineHeight: 1.06
+    letterSpacing: "-0.035em"
+  workspace-title:
+    fontFamily: "Bricolage Grotesque, sans-serif"
+    fontSize: "clamp(2rem, 3vw, 2.75rem)"
+    fontWeight: 800
+    lineHeight: 1.1
+    letterSpacing: "-0.035em"
+  workspace-section:
+    fontFamily: "Bricolage Grotesque, sans-serif"
+    fontSize: "clamp(1.5rem, 2vw, 1.75rem)"
+    fontWeight: 800
+    lineHeight: 1.1
     letterSpacing: "-0.035em"
   body:
     fontFamily: "Hanken Grotesk, sans-serif"
@@ -179,7 +193,8 @@ Display and first-level section headings use self-hosted Bricolage Grotesque 800
 ### Hierarchy
 
 - `display` is the desktop home heading. At the intermediate breakpoint it becomes a fixed `3.3rem`; `display-mobile` takes over at the narrow breakpoint.
-- `page-title` is the installation and login introduction. `headline` is the large section-heading style. `title` is the smaller installation and workspace section-heading style.
+- `page-title` is the installation and login introduction. `headline` is the large section-heading style. `title` is the smaller installation section-heading style; the error page title uses the `headline` step.
+- `workspace-title` is the one title scale for the projects pages: the workspace landing, organization, project and account headings. It stays below the marketing display sizes so a page reads as a place to work, and long identifiers such as generated organization logins wrap anywhere instead of filling the viewport. `workspace-section` heads the sections beneath it (repositories, the workspace guide); an organization's heading on the workspace landing steps down once more to `clamp(1.35rem, 2vw, 1.6rem)`, and project and repository card names sit at `1.2rem` and `1.05rem` in the body face.
 - `body` inherits the browser's base font size. Public explanatory paragraphs use local sizes between `1.05rem` and `1.3rem`, with widths between `40ch` and `65ch`.
 - `label` describes the manifest strategy controls. `button-label` leaves size inherited and uses a tighter line height. There is no uppercase label convention.
 - `code` keeps command examples compact. Version tables use tabular numerals. Headings balance their lines.
@@ -220,6 +235,20 @@ Keyboard focus uses a three-pixel accent outline with a four-pixel offset. Indig
 
 The home link pairs the selected mark with the appropriate exact wordmark. Desktop links show an accent hover and current-page state. At the narrow breakpoint, the desktop group and sign-in button give way to a menu control. The menu exposes `aria-expanded` and `aria-controls`, closes on Escape or a route change, and gives each row a minimum `44px` height.
 
+Both browser entries render the same header, so the website and the projects workspace share one set of chrome. Signed out, the right-hand end holds the theme toggle and one filled sign-in button.
+
+### Account menu
+
+Signed in, the right-hand end holds the theme toggle, a **Projects** link, and one account menu in place of the separate buttons it replaces. The Projects link is the header's one filled action and takes the tinted current-page treatment while the visitor is inside the workspace.
+
+The account menu is a `<details>` disclosure. On wide screens its toggle is a pill holding the GitHub avatar (the visitor's initial on a `brand-100` disc when there is no avatar) and a chevron, with the account named for screen readers only. The open menu is a `w-72` panel with the panel curve, a rule border and a soft shadow. It opens with "Signed in as" and the login, followed by **Connect repositories**, **Account and devices**, and **Sign out**. Every row is at least `44px` tall and tints on hover from its own text color, so the same row works in the dropdown and on the homepage's dark mobile panel.
+
+The menu closes on Escape, on a route change, and on an outside click, with CSS only: the open menu draws a transparent full-viewport layer from its toggle. Focus returns to the toggle. In the mobile panel the toggle becomes a full-width row naming the account, the same rows open in place beneath it, and the Projects link closes the panel as a full-width button. Session refetches keep the current controls on screen, so the header never flashes between pages.
+
+### Footer
+
+One shared footer ends every public page and every projects page, so a visitor never notices which entry served the page. It has a hairline top rule and three columns on wide screens: the mark and wordmark above a one-line statement of what monochange is ("Release planning for monorepos."); the site links (Install, Read the book, Changelog, It's free) and GitHub; and the free-and-open-source line with its attribution. Below `760px` the columns stack into one. The tagline stays plain and describes the product, never repeating the homepage headline. Links between the two entries use document navigation, and only the website entry shows the deployed website version, linked to its changelog.
+
 Theme and menu controls have minimum `44px` square hit areas. The theme button names the theme it will select. The app restores a stored preference after hydration, otherwise uses the system preference. The skip link appears on focus and targets `#main-content`. Header anchor clearance uses `7rem` scroll padding.
 
 ### Release manifest
@@ -227,6 +256,10 @@ Theme and menu controls have minimum `44px` square hit areas. The theme button n
 This public-home component is a white panel with ruled package rows. Its padding shrinks to `1.4rem` at the intermediate breakpoint. The heading, ecosystem labels, and current/next versions remain separate. On narrow screens, row padding shrinks and version text stays unbroken.
 
 The two strategy buttons use `aria-pressed` and minimum `44px` heights. Switching strategy changes example versions and explanatory text. The table has a descriptive caption, column and row headers, and a polite atomic live region. Keep the "Example workspace" label. This content demonstrates behavior and does not describe a visitor's connected packages.
+
+### Release plan console
+
+The homepage hero's console pairs a changeset with a plan table. Each row names a package, its current and next version, and a status tag (`minor`, `dependency`, and so on) beside the tinted, left-ruled row. At `760px` and below the table has no room for a status column, so the column gives way and the same tag sits under the package name; every row fits the panel without horizontal scrolling at `360px`. Only one copy of the tag is displayed at a time, so the status is read once. The package and bump buttons keep their markup at every width.
 
 ### Panels and commands
 
@@ -237,6 +270,10 @@ The GitHub App availability notice uses the theme-aware panel background, the co
 ### Workspace and status content
 
 Repository lists use ruled rows, a bold repository name, secondary access and installation details, and a free label. Loading, session failure, repository failure, and empty states use direct messages and the relevant sign-in, book, or setup action. Green and red authentication callback utilities are local status treatments, not additional brand accents.
+
+Status chips use the soft accent fill with `mc-accent-deep` text, and `mc-accent` text in the dark theme, so they stay legible in both themes.
+
+**The Danger Rule.** Destructive actions use one red pair, not the teal accent. `danger-light` (`#b4233f`) fills destructive buttons and colors the danger-zone toggle on light grounds; its hover fill is `#8b1029`. In the dark theme the danger-zone toggle switches to `danger-dark` (`#fda4af`), which keeps contrast on the graphite ground where the light red would sink. The toggle reads as destructive before it opens, and the confirming button stays the filled `danger-light` red in both themes.
 
 ### Feedback portal
 
