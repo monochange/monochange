@@ -53,7 +53,6 @@
     --mc-signal: #E4B84A;
     --mc-glow: rgba(13, 148, 136, 0.35);
     --mc-radius-strategy: 8px;
-    --mc-radius-nav: 10px;
     --mc-radius-control: 12px;
     --mc-radius-panel: 16px;
     --mc-gap-action: 1rem;
@@ -114,23 +113,6 @@
 }
 
 .site-width { width: min(var(--mc-site-max), calc(100% - 6rem)); margin-inline: auto; }
-.site-header { position: sticky; top: 0; z-index: 40; background: var(--mc-page); border-bottom: 1px solid var(--mc-rule); }
-.nav-layout { min-height: 88px; display: flex; align-items: center; justify-content: space-between; gap: 2rem; position: relative; }
-.brand-link { display: inline-flex; align-items: center; gap: .75rem; font-size: 1.5rem; font-weight: 700; letter-spacing: -.035em; text-decoration: none; }
-.brand-link img { flex-shrink: 0; }
-.brand-wordmark { width: 154px; height: auto; }
-.brand-wordmark-dark, :root.dark .brand-wordmark-light { display: none; }
-:root.dark .brand-wordmark-dark { display: block; }
-.desktop-links, .nav-actions { display: flex; align-items: center; gap: 2rem; }
-.desktop-links a { padding-block: .65rem; font-weight: 700; }
-.desktop-links a:hover, .desktop-links a[aria-current="page"] { color: var(--accent); }
-.nav-actions { gap: 1rem; }
-.nav-session { display: flex; align-items: center; gap: 1rem; }
-.theme-toggle, .menu-toggle { display: grid; place-items: center; min-width: 44px; min-height: 44px; border-radius: var(--mc-radius-nav); }
-.theme-toggle:hover, .menu-toggle:hover { background: var(--surface); }
-.menu-toggle, .mobile-links { display: none; }
-.skip-link { position: fixed; z-index: 100; top: .5rem; left: 1rem; padding: .75rem 1rem; background: var(--surface); transform: translateY(-150%); }
-.skip-link:focus { transform: translateY(0); }
 .button { min-height: 48px; padding: .85rem 1.35rem; display: inline-flex; align-items: center; justify-content: center; gap: 1rem; border-radius: var(--mc-radius-control); font-weight: 700; line-height: 1.4; text-decoration: none; transition: background-color .18s ease, color .18s ease; }
 .button-brand { background: #0f766e; color: white; }
 .button-brand:hover { background: #115e59; }
@@ -547,17 +529,6 @@ button.button:disabled { opacity: .55; cursor: progress; }
   .ecosystem-list { grid-template-columns: repeat(2, 1fr); }
   .workflow-layout, .login-section { gap: 3rem; }
 }
-@media (max-width: 900px) {
-  .nav-layout { min-height: 76px; gap: 1rem; flex-wrap: wrap; }
-  .brand-link { font-size: 1.3rem; gap: .55rem; }
-  .brand-wordmark { width: 138px; }
-  .desktop-links, .nav-session { display: none; }
-  .nav-actions { gap: .25rem; }
-  .menu-toggle { display: grid; }
-  .mobile-links { display: flex; flex-direction: column; width: 100%; padding-bottom: 1rem; }
-  .mobile-links a { padding: .7rem 1rem; min-height: 44px; border-top: 1px solid var(--rule); }
-  .mobile-links form button { width: 100%; min-height: 44px; padding: .7rem 1rem; text-align: left; }
-}
 @media (max-width: 760px) {
   .site-width { width: calc(100% - 2.5rem); }
   .hero-layout, .section-intro, .workflow-layout, .install-layout, .github-app-section, .login-section { grid-template-columns: 1fr; }
@@ -620,9 +591,7 @@ button.button:disabled { opacity: .55; cursor: progress; }
 
 /* The book uses the public shell and a compact chapter rail. */
 .brand-icon { display: inline-block; flex: none; width: 1.2em; height: 1.2em; background: currentColor; mask: var(--brand-icon) center / contain no-repeat; vertical-align: -.15em; }
-.ecosystem-list strong, .footer-github, .manifest-table-wrap th span { display: inline-flex; align-items: center; gap: .65rem; }
-.ecosystem-list strong .brand-icon { color: var(--ink); }
-.manifest-table-wrap th .brand-icon { width: 1em; height: 1em; }
+.ecosystem-list strong, .footer-github { display: inline-flex; align-items: center; gap: .65rem; }
 .book-layout { display: grid; grid-template-columns: 16rem minmax(0, 1fr); gap: clamp(2rem, 5vw, 5rem); padding-block: 3rem 6rem; }
 .book-sidebar { position: sticky; top: 6rem; align-self: start; max-height: calc(100vh - 8rem); overflow-y: auto; padding-right: 1rem; }
 .book-home { display: inline-flex; min-height: 44px; align-items: center; margin-bottom: 1.5rem; color: var(--accent); }
