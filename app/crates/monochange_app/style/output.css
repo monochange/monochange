@@ -1565,7 +1565,6 @@
     --mc-signal: #ffc641;
     --mc-glow: #6943ee59;
     --mc-radius-strategy: 8px;
-    --mc-radius-nav: 10px;
     --mc-radius-control: 12px;
     --mc-radius-panel: 16px;
     --mc-gap-action: 1rem;
@@ -1665,88 +1664,6 @@
 .site-width {
   width: min(var(--mc-site-max), calc(100% - 6rem));
   margin-inline: auto;
-}
-.site-header {
-  position: sticky;
-  top: 0;
-  z-index: 40;
-  background: var(--mc-page);
-  border-bottom: 1px solid var(--mc-rule);
-}
-.nav-layout {
-  min-height: 88px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 2rem;
-  position: relative;
-}
-.brand-link {
-  display: inline-flex;
-  align-items: center;
-  gap: .75rem;
-  font-size: 1.5rem;
-  font-weight: 700;
-  letter-spacing: -.035em;
-  text-decoration: none;
-}
-.brand-link img {
-  flex-shrink: 0;
-}
-.brand-wordmark {
-  width: 154px;
-  height: auto;
-}
-.brand-wordmark-dark, :root.dark .brand-wordmark-light {
-  display: none;
-}
-:root.dark .brand-wordmark-dark {
-  display: block;
-}
-.desktop-links, .nav-actions {
-  display: flex;
-  align-items: center;
-  gap: 2rem;
-}
-.desktop-links a {
-  padding-block: .65rem;
-  font-weight: 700;
-}
-.desktop-links a:hover, .desktop-links a[aria-current="page"] {
-  color: var(--accent);
-}
-.nav-actions {
-  gap: 1rem;
-}
-.nav-session {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-.theme-toggle, .menu-toggle {
-  display: grid;
-  place-items: center;
-  min-width: 44px;
-  min-height: 44px;
-  border-radius: var(--mc-radius-nav);
-}
-.theme-toggle:hover, .menu-toggle:hover {
-  background: var(--surface);
-}
-.menu-toggle, .mobile-links {
-  display: none;
-}
-.skip-link {
-  position: fixed;
-  z-index: 100;
-  top: .5rem;
-  left: 1rem;
-  padding: .75rem 1rem;
-  background: var(--surface);
-  transform: translateY(-150%);
-}
-.skip-link:focus {
-  transform: translateY(0);
 }
 .button {
   min-height: 48px;
@@ -3794,68 +3711,11 @@ button.button:disabled {
   .site-width {
     width: calc(100% - 4rem);
   }
-  .hero-layout {
-    gap: 2rem;
-    padding-block: 4rem;
-  }
   .hero h1 {
     font-size: 3.3rem;
   }
-  .release-manifest {
-    padding: 1.4rem;
-  }
-  .manifest-heading {
-    flex-direction: column;
-    gap: .4rem;
-  }
-  .manifest-heading p {
-    max-width: none;
-  }
-  .ecosystem-list {
-    grid-template-columns: repeat(2, 1fr);
-  }
   .workflow-layout, .login-section {
     gap: 3rem;
-  }
-}
-@media (max-width: 900px) {
-  .nav-layout {
-    min-height: 76px;
-    gap: 1rem;
-    flex-wrap: wrap;
-  }
-  .brand-link {
-    font-size: 1.3rem;
-    gap: .55rem;
-  }
-  .brand-wordmark {
-    width: 138px;
-  }
-  .desktop-links, .nav-session {
-    display: none;
-  }
-  .nav-actions {
-    gap: .25rem;
-  }
-  .menu-toggle {
-    display: grid;
-  }
-  .mobile-links {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    padding-bottom: 1rem;
-  }
-  .mobile-links a {
-    padding: .7rem 1rem;
-    min-height: 44px;
-    border-top: 1px solid var(--rule);
-  }
-  .mobile-links form button {
-    width: 100%;
-    min-height: 44px;
-    padding: .7rem 1rem;
-    text-align: left;
   }
 }
 @media (max-width: 760px) {
@@ -3865,77 +3725,14 @@ button.button:disabled {
   .hero-layout, .section-intro, .workflow-layout, .install-layout, .github-app-section, .login-section {
     grid-template-columns: 1fr;
   }
-  .hero-layout {
-    gap: 1.5rem;
-    padding-block: 2rem;
-  }
   .hero h1 {
     font-size: clamp(2.4rem, 9vw, 3.6rem);
-  }
-  .hero-copy > p {
-    font-size: 1.05rem;
-    margin-top: 1rem;
-  }
-  .hero-copy .actions {
-    margin-top: 1.25rem;
-  }
-  .hero-note {
-    margin-top: 1rem;
-    font-size: .9rem;
-  }
-  .hero-copy .actions {
-    gap: .7rem;
-  }
-  .hero-copy .button {
-    padding-inline: 1rem;
-  }
-  .manifest-heading {
-    flex-direction: row;
-  }
-  .manifest-heading h2 {
-    font-size: 1.6rem;
-  }
-  .manifest-heading p {
-    max-width: 12ch;
-  }
-  .manifest-controls {
-    margin-block: 1rem;
-  }
-  .release-manifest tbody th, .release-manifest td {
-    padding-block: .85rem;
-  }
-  .release-manifest td {
-    font-size: .85rem;
-  }
-  .release-manifest tbody strong {
-    font-size: .95rem;
   }
   .ecosystem-section, .workflow-section {
     padding-block: 4rem;
   }
   .section-intro {
     gap: 1.5rem;
-  }
-  .ecosystem-list {
-    column-gap: 1.5rem;
-  }
-  .ecosystem-list li {
-    display: block;
-  }
-  .ecosystem-list span {
-    display: block;
-    text-align: left;
-    font-size: .85rem;
-  }
-  .closing-section {
-    padding-block: 4rem;
-  }
-  .footer-layout {
-    grid-template-columns: 1fr;
-    gap: 2rem;
-  }
-  .footer-credit {
-    text-align: left;
   }
   .install-section, .login-section {
     padding-block: 3.5rem;
@@ -4081,18 +3878,6 @@ button.button:disabled {
   background: currentColor;
   mask: var(--brand-icon) center / contain no-repeat;
   vertical-align: -.15em;
-}
-.ecosystem-list strong, .footer-github, .manifest-table-wrap th span {
-  display: inline-flex;
-  align-items: center;
-  gap: .65rem;
-}
-.ecosystem-list strong .brand-icon {
-  color: var(--ink);
-}
-.manifest-table-wrap th .brand-icon {
-  width: 1em;
-  height: 1em;
 }
 .book-layout {
   display: grid;

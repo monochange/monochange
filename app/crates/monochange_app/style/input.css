@@ -523,27 +523,15 @@ button.button:disabled { opacity: .55; cursor: progress; }
 ::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 8px; }
 @media (max-width: 1050px) {
   .site-width { width: calc(100% - 4rem); }
-  .hero-layout { gap: 2rem; padding-block: 4rem; }
   .hero h1 { font-size: 3.3rem; }
-  .release-manifest { padding: 1.4rem; }
-  .ecosystem-list { grid-template-columns: repeat(2, 1fr); }
   .workflow-layout, .login-section { gap: 3rem; }
 }
 @media (max-width: 760px) {
   .site-width { width: calc(100% - 2.5rem); }
   .hero-layout, .section-intro, .workflow-layout, .install-layout, .github-app-section, .login-section { grid-template-columns: 1fr; }
-  .hero-layout { gap: 1.5rem; padding-block: 2rem; }
   .hero h1 { font-size: clamp(2.4rem, 9vw, 3.6rem); }
-  .hero-note { margin-top: 1rem; font-size: .9rem; }
-  .release-manifest tbody th, .release-manifest td { padding-block: .85rem; }
-  .release-manifest td { font-size: .85rem; }
-  .release-manifest tbody strong { font-size: .95rem; }
   .ecosystem-section, .workflow-section { padding-block: 4rem; }
   .section-intro { gap: 1.5rem; }
-  .ecosystem-list { column-gap: 1.5rem; }
-  .ecosystem-list li { display: block; }
-  .ecosystem-list span { display: block; text-align: left; font-size: .85rem; }
-  .closing-section { padding-block: 4rem; }
   .install-section, .login-section { padding-block: 3.5rem; }
   .install-layout { margin-top: 3rem; gap: 2.5rem; }
   .github-app-section { margin-top: 3rem; padding-top: 3rem; gap: 1rem; }

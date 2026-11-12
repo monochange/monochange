@@ -1,3 +1,4 @@
+use leptos::either::Either;
 use leptos::prelude::*;
 use monochange_shared::OrganizationSummary;
 use monochange_shared::ProjectSummary;
@@ -15,20 +16,20 @@ pub fn OrganizationAvatar(
 	#[prop(optional_no_strip)] avatar_url: Option<String>,
 ) -> impl IntoView {
 	if let Some(url) = avatar_url {
-		return view! { <img class="organization-avatar" src=url alt="" width="48" height="48" /> }
-			.into_any();
+		return Either::Left(
+			view! { <img class="organization-avatar" src=url alt="" width="48" height="48" /> },
+		);
 	}
 
 	let initial = login
 		.chars()
 		.next()
 		.map_or('?', |character| character.to_ascii_uppercase());
-	view! {
+	Either::Right(view! {
 		<span class="organization-avatar" title=login aria-hidden="true">
 			{initial.to_string()}
 		</span>
-	}
-	.into_any()
+	})
 }
 
 /// One project as a card linking to its page at `href`: the workspace landing
@@ -36,7 +37,7 @@ pub fn OrganizationAvatar(
 /// Descendants are snapshot text and native navigation; WASM handlers and
 /// reactive children must be rendered outside the serialized content.
 #[component]
-pub fn ProjectCard(href: String, project: ProjectSummary) -> AnyView {
+pub fn ProjectCard(href: String, project: ProjectSummary) -> impl IntoView {
 	let count = match project.repository_count {
 		1 => "1 repository".to_owned(),
 		count => format!("{count} repositories"),
@@ -53,7 +54,7 @@ pub fn ProjectCard(href: String, project: ProjectSummary) -> AnyView {
 	}
 	.to_html();
 
-	view! { <li inner_html=content /> }.into_any()
+	view! { <li inner_html=content /> }
 }
 
 /// Organization and project entry point, using the website's session authority.

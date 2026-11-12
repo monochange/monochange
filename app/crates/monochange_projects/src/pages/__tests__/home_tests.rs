@@ -5,6 +5,33 @@ use leptos::prelude::*;
 use super::WorkspaceEmpty;
 
 #[tokio::test]
+async fn organization_avatars_use_the_image_or_an_accessible_initial_fallback() {
+	let image = crate::tests::render(|| {
+		view! {
+			<super::OrganizationAvatar login="acme".to_owned() avatar_url=Some("/avatar.png".to_owned()) />
+		}
+	})
+	.await;
+	assert!(image.contains("src=\"/avatar.png\""), "{image}");
+	assert!(!image.contains("<span"), "{image}");
+
+	for (login, initial) in [("acme", "A"), ("", "?")] {
+		let fallback = crate::tests::render(move || {
+			view! {
+				<super::OrganizationAvatar login=login.to_owned() />
+			}
+		})
+		.await;
+		assert!(fallback.contains("aria-hidden=\"true\""), "{fallback}");
+		assert!(
+			fallback.contains(&format!(">{initial}</span>")),
+			"{fallback}"
+		);
+		assert!(!fallback.contains("<img"), "{fallback}");
+	}
+}
+
+#[tokio::test]
 async fn empty_workspace_offers_the_next_step_for_each_session() {
 	let signed_out = crate::tests::render(|| view! { <WorkspaceEmpty signed_in=false /> }).await;
 	assert!(signed_out.contains("Sign in with GitHub"));
