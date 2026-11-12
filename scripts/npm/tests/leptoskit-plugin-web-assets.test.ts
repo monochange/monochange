@@ -15,6 +15,7 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { gunzipSync } from "node:zlib";
 import { afterEach, describe, test } from "vitest";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -46,6 +47,7 @@ function runPluginWithTailwind(envelope: unknown, tailwindBin: string, cwd?: str
 			MONOCHANGE_ESBUILD_BIN: esbuildBin,
 			MONOCHANGE_TAILWIND_BIN: tailwindBin,
 			MONOCHANGE_FONT_SUBSET_BIN: join(dirname(tailwindBin), "font-subset-fake.mjs"),
+			MONOCHANGE_WASM_OPT_BIN: join(dirname(tailwindBin), "wasm-opt-fake.mjs"),
 		},
 	});
 }
@@ -68,7 +70,7 @@ function buildSite(tag: string): { root: string; outDir: string; pkg: string; si
 	}
 
 	// The bound wasm module, which the real build always produces.
-	writeFileSync(join(pkg, "monochange_app_bg.wasm"), new Uint8Array([0, 1, 2, 3]));
+	writeFileSync(join(pkg, "monochange_app_bg.wasm"), new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0]));
 	// The assembled deployment tree (the website build creates it; both
 	// builds assemble into it).
 	const site = join(root, "site");
@@ -119,6 +121,17 @@ function fakeTailwind(root: string): string {
 		].join("\n"),
 	);
 	chmodSync(fontBin, 0o755);
+	const wasmBin = join(root, "wasm-opt-fake.mjs");
+	writeFileSync(
+		wasmBin,
+		[
+			"#!/usr/bin/env node",
+			'import { copyFileSync } from "node:fs";',
+			"const args = process.argv.slice(2);",
+			'copyFileSync(args.at(-3), args[args.indexOf("-o") + 1]);',
+		].join("\n"),
+	);
+	chmodSync(wasmBin, 0o755);
 
 	return bin;
 }
@@ -129,6 +142,46 @@ describe("leptoskit-plugin-monochange-web-assets", () => {
 	afterEach(() => {
 		for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
 	});
+
+	test.each([false, true])(
+		"optimizes before precompression only in release builds (%s)",
+		(release) => {
+			const { root, outDir, pkg, site } = buildSite("wasm-compression");
+			roots.push(root);
+			const tailwind = fakeTailwind(root);
+			const empty = Buffer.from([0, 97, 115, 109, 1, 0, 0, 0]);
+			const original = Buffer.concat([empty, Buffer.from([0, 8, 1, 120, 1, 2, 3, 4, 5, 6])]);
+			writeFileSync(join(pkg, "monochange_app_bg.wasm"), original);
+			writeFileSync(
+				join(root, "wasm-opt-fake.mjs"),
+				[
+					"#!/usr/bin/env node",
+					'import { writeFileSync } from "node:fs";',
+					"const args = process.argv.slice(2);",
+					'writeFileSync(args[args.indexOf("-o") + 1], Buffer.from([0,97,115,109,1,0,0,0]));',
+				].join("\n"),
+			);
+			const result = runPluginWithTailwind(
+				{
+					protocol: 1,
+					hook: "after_build",
+					context: {
+						platform: "web",
+						release,
+						output_dir: outDir,
+						wasm_bundle: join(pkg, "monochange_app_bg.wasm"),
+						options: siteOptions("site"),
+					},
+				},
+				tailwind,
+				root,
+			);
+			assert.equal(result.status, 0, result.stderr);
+			const deployed = join(site, "pkg/site/monochange_app_bg.wasm");
+			assert.deepEqual(readFileSync(deployed), release ? empty : original);
+			if (release) assert.deepEqual(gunzipSync(readFileSync(`${deployed}.gz`)), empty);
+		},
+	);
 
 	test("describes itself over the protocol", () => {
 		const result = runPlugin({

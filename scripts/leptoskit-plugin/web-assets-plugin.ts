@@ -14,6 +14,8 @@
 // 1. minifies the wasm-split loader and the entry glue with the guarded
 //    shared implementation (scripts/minify-split-loader.ts);
 // 2. compiles both frontends' Tailwind sources to `pkg/site/monochange_app.css`;
+//    Release builds also optimize the WASM modules, preserving linking
+//    contracts and rejecting increases in gzip or deployed brotli transfer.
 // 3. places the frontend's pkg output under `<site_root>/pkg/<namespace>/`,
 //    so the two web frontends assemble into one site root without name
 //    collisions (each entry's split manifest, loader, and chunks live in
@@ -56,6 +58,7 @@ import { fileURLToPath } from "node:url";
 import { brotliCompressSync, constants as zlibConstants, gzipSync } from "node:zlib";
 
 import { minifyEntryGlue, minifySplitLoaders } from "../minify-split-loader.ts";
+import { optimizeWebWasm } from "./optimize-web-wasm.ts";
 
 const PROTOCOL = 1;
 const PLUGIN_NAME = "monochange-web-assets";
@@ -309,6 +312,11 @@ function afterBuild(context: PluginContext): void {
 				subset.error?.message || subset.stderr || `exit ${String(subset.status)} or no output`;
 			fail(`could not subset ${source}: ${detail}`);
 		}
+	}
+
+	if (context.release) {
+		const optimized = optimizeWebWasm(pkgDir);
+		log(`optimized ${optimized.files} WASM module(s), saving ${optimized.gzipSaved} gzip bytes`);
 	}
 
 	// 3. Assemble: this frontend's bundle moves under the shared site root's
