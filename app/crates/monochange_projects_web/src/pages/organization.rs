@@ -16,6 +16,7 @@ use monochange_projects::pages::home::OrganizationAvatar;
 use monochange_projects::projects::MAX_DESCRIPTION_CHARS;
 use monochange_projects::projects::MAX_NAME_CHARS;
 use monochange_projects::repository_filter::count_matches;
+use monochange_projects::repository_filter::repository_count;
 use monochange_projects::server_fns::organizations::CreateProject;
 use monochange_projects::server_fns::organizations::OrganizationSummary;
 use monochange_projects::server_fns::organizations::organization_overview;
@@ -99,7 +100,7 @@ fn OrganizationContent(organization: OrganizationSummary) -> impl IntoView {
 		<nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/projects">"Workspace"</a><span aria-hidden="true">"/"</span><span aria-current="page">{login.clone()}</span></nav>
 		<div class="workspace-heading">
 			<OrganizationAvatar login=login.clone() avatar_url=organization.avatar_url.clone() />
-			<div><h1>{login.clone()}</h1><p>{kind} " · " {organization.repositories.len()} " connected repositories"</p></div>
+			<div><h1>{login.clone()}</h1><p>{kind} " · " {format!("{} connected", repository_count(organization.repositories.len()))}</p></div>
 		</div>
 		<section class="repository-section" aria-labelledby="projects-title">
 			<div class="repository-heading"><h2 id="projects-title">"Projects"</h2><p>"Group repositories that ship one product."</p></div>

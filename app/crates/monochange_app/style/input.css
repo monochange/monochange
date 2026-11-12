@@ -262,6 +262,7 @@ details[open] > .organization-summary .chevron { transform: rotate(180deg); }
   .pager p { width: 100%; }
 }
 .organization-avatar { flex: none; display: grid; place-items: center; width: 48px; height: 48px; border-radius: var(--mc-radius-control); background: var(--mc-accent-soft); color: var(--mc-accent-deep); font-family: "Bricolage Grotesque", sans-serif; font-weight: 800; font-size: 1.4rem; object-fit: cover; }
+:root.dark .organization-avatar { color: var(--mc-accent); }
 .breadcrumbs { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; margin-bottom: 2rem; color: var(--muted); font-size: .95rem; }
 .breadcrumbs a { color: var(--accent); font-weight: 700; display: inline-flex; min-height: 44px; align-items: center; }
 .breadcrumbs [aria-current] { color: var(--ink); font-weight: 700; }
@@ -307,6 +308,7 @@ button.button:disabled { opacity: .55; cursor: progress; }
 .stage-badge[data-stage="quarantined"], .stage-badge[data-stage="declined"] { background: #fde8ec; color: #8b1029; }
 .stage-badge[data-stage="discussing"], .stage-badge[data-stage="voting"] { background: #fef3c7; color: #8a5a00; }
 .stage-badge[data-stage="accepted"], .stage-badge[data-stage="building"], .stage-badge[data-stage="in review"], .stage-badge[data-stage="merged"] { background: var(--mc-accent-soft); color: var(--mc-accent-deep); }
+:root.dark .stage-badge[data-stage="accepted"], :root.dark .stage-badge[data-stage="building"], :root.dark .stage-badge[data-stage="in review"], :root.dark .stage-badge[data-stage="merged"] { color: var(--mc-accent); }
 .stage-badge[data-stage="shipped"] { background: #d1fae5; color: #065f46; }
 .stage-track { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; }
 .stage-track i { height: 4px; border-radius: 4px; background: var(--rule); }

@@ -56,3 +56,9 @@ async fn searches_count_their_matches() {
 	assert!(html.contains("10 of 30 match"), "{html}");
 	assert!(!html.contains("<nav class=\"pager\""), "{html}");
 }
+
+#[tokio::test]
+async fn a_single_repository_uses_the_singular_label() {
+	let html = page("/projects/alice", 1).await;
+	assert!(html.contains("1 repository connected"), "{html}");
+}
