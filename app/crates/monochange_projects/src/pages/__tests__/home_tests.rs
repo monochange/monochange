@@ -82,3 +82,18 @@ async fn an_account_without_projects_links_to_its_page() {
 	let single = crate::tests::render(|| view! { <super::WorkspaceOrganization organization=organization(vec![project("api", "", 0)]) /> }).await;
 	assert!(single.contains("1 project<"), "{single}");
 }
+
+#[tokio::test]
+async fn a_workspace_that_fails_to_load_says_how_to_recover() {
+	// A forged session cookie fails to resolve, so the workspace load errors.
+	let state = crate::tests::feedback::state().await;
+	let cookie = format!("{}=forged", monochange_app_api::oauth::SESSION_COOKIE_NAME);
+	let html =
+		crate::tests::render_with_cookie(state, &cookie, || view! { <super::ProjectsHome /> })
+			.await;
+
+	assert!(
+		html.contains("<p role=\"alert\" class=\"project-empty\">Projects couldn't be loaded."),
+		"{html}"
+	);
+}
