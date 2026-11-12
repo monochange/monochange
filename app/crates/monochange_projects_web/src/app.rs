@@ -15,6 +15,7 @@ use leptos_router::components::Route;
 use leptos_router::components::Router;
 use leptos_router::components::Routes;
 use leptos_router::path;
+use monochange_projects::components::footer::Footer;
 use monochange_projects::components::navbar::NavBar;
 use monochange_projects::error::ErrorTemplate;
 
@@ -60,6 +61,7 @@ pub fn ProjectsApp() -> impl IntoView {
 					/>
 				</Routes>
 			</main>
+			<Footer />
 		</Router>
 	}
 }

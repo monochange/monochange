@@ -132,10 +132,15 @@ async fn product_pages_hydrate_through_the_projects_entry() {
 		!projects.contains("/pkg/site/monochange_app.js"),
 		"product pages must not load the website entry: {projects}"
 	);
-	// The projects entry renders its own navigation and no website footer.
+	// The projects entry renders the shared chrome: the same header and footer
+	// as the website, with website links leaving the entry as documents.
 	assert!(projects.contains("Main navigation"), "{projects}");
 	assert!(
-		!projects.contains("aria-label=\"Footer navigation\""),
+		projects.contains("aria-label=\"Footer navigation\""),
+		"{projects}"
+	);
+	assert!(
+		projects.contains("href=\"/pricing\" target=\"_self\""),
 		"{projects}"
 	);
 }

@@ -8,11 +8,19 @@ use monochange_projects::server_fns::repos::RepoInfo;
 use super::*;
 
 fn organization(count: usize) -> OrganizationSummary {
+	with_projects(count, Vec::new(), true)
+}
+
+fn with_projects(
+	count: usize,
+	projects: Vec<monochange_projects::server_fns::organizations::ProjectSummary>,
+	supports_projects: bool,
+) -> OrganizationSummary {
 	OrganizationSummary {
 		login: "alice".to_owned(),
 		personal: true,
 		avatar_url: None,
-		supports_projects: true,
+		supports_projects,
 		repositories: (1..=count)
 			.map(|number| {
 				RepoInfo {
@@ -25,7 +33,7 @@ fn organization(count: usize) -> OrganizationSummary {
 				}
 			})
 			.collect(),
-		projects: Vec::new(),
+		projects,
 	}
 }
 
@@ -61,4 +69,53 @@ async fn searches_count_their_matches() {
 async fn a_single_repository_uses_the_singular_label() {
 	let html = page("/projects/alice", 1).await;
 	assert!(html.contains("1 repository connected"), "{html}");
+}
+
+fn project(slug: &str) -> monochange_projects::server_fns::organizations::ProjectSummary {
+	monochange_projects::server_fns::organizations::ProjectSummary {
+		slug: slug.to_owned(),
+		name: slug.to_uppercase(),
+		description: String::new(),
+		repository_count: 2,
+	}
+}
+
+#[tokio::test]
+async fn new_project_closes_the_project_grid_as_one_more_card() {
+	let html = crate::tests::render_at("/projects/alice", || {
+		view! { <OrganizationContent organization=with_projects(2, vec![project("api")], true) /> }
+	})
+	.await;
+
+	let grid = html.split("<ul class=\"project-grid\">").nth(1).unwrap();
+	assert!(
+		grid.contains("href=\"/projects/alice/projects/api\""),
+		"{html}"
+	);
+	assert!(grid.contains("<li class=\"project-new\">"), "{html}");
+	assert!(!html.contains("No projects yet"), "{html}");
+
+	let empty = page("/projects/alice", 2).await;
+	assert!(empty.contains("No projects yet"), "{empty}");
+	let empty_grid = empty.split("<ul class=\"project-grid\">").nth(1).unwrap();
+	assert!(empty_grid.contains("<li class=\"project-new\">"), "{empty}");
+	assert!(!empty_grid.contains("project-card"), "{empty}");
+}
+
+#[tokio::test]
+async fn unconfirmed_accounts_list_projects_without_the_create_card() {
+	let listed = crate::tests::render_at("/projects/alice", || {
+		view! { <OrganizationContent organization=with_projects(1, vec![project("api")], false) /> }
+	})
+	.await;
+	assert!(listed.contains("project-grid"), "{listed}");
+	assert!(!listed.contains("project-new"), "{listed}");
+	assert!(listed.contains("still confirming this account"), "{listed}");
+
+	let empty = crate::tests::render_at("/projects/alice", || {
+		view! { <OrganizationContent organization=with_projects(1, Vec::new(), false) /> }
+	})
+	.await;
+	assert!(!empty.contains("project-grid"), "{empty}");
+	assert!(empty.contains("still confirming this account"), "{empty}");
 }

@@ -8,12 +8,10 @@ use crate::error::*;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) fn routes() -> Vec<leptos_axum::AxumRouteListing> {
 	// Route discovery temporarily suppresses resource loads process-wide.
-	// Match production startup: discover once before any request can run.
-	static ROUTES: std::sync::OnceLock<Vec<leptos_axum::AxumRouteListing>> =
-		std::sync::OnceLock::new();
-	ROUTES
-		.get_or_init(|| leptos_axum::generate_route_list(crate::app::App))
-		.clone()
+	// Share the production listing so this binary discovers exactly once: a
+	// second discovery here could suppress a page render running in a
+	// parallel test, and that render's resources would never resolve.
+	crate::router::routes()
 }
 
 /// Server-renders `app` inside a minimal document, as a page would be.
