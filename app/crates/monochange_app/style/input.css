@@ -552,8 +552,6 @@ button.button:disabled { opacity: .55; cursor: progress; }
   .ecosystem-list li { display: block; }
   .ecosystem-list span { display: block; text-align: left; font-size: .85rem; }
   .closing-section { padding-block: 4rem; }
-  .footer-layout { grid-template-columns: 1fr; gap: 2rem; }
-  .footer-credit { text-align: left; }
   .install-section, .login-section { padding-block: 3.5rem; }
   .install-layout { margin-top: 3rem; gap: 2.5rem; }
   .github-app-section { margin-top: 3rem; padding-top: 3rem; gap: 1rem; }
@@ -591,7 +589,6 @@ button.button:disabled { opacity: .55; cursor: progress; }
 
 /* The book uses the public shell and a compact chapter rail. */
 .brand-icon { display: inline-block; flex: none; width: 1.2em; height: 1.2em; background: currentColor; mask: var(--brand-icon) center / contain no-repeat; vertical-align: -.15em; }
-.ecosystem-list strong, .footer-github { display: inline-flex; align-items: center; gap: .65rem; }
 .book-layout { display: grid; grid-template-columns: 16rem minmax(0, 1fr); gap: clamp(2rem, 5vw, 5rem); padding-block: 3rem 6rem; }
 .book-sidebar { position: sticky; top: 6rem; align-self: start; max-height: calc(100vh - 8rem); overflow-y: auto; padding-right: 1rem; }
 .book-home { display: inline-flex; min-height: 44px; align-items: center; margin-bottom: 1.5rem; color: var(--accent); }
