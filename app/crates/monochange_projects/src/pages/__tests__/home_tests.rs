@@ -42,6 +42,20 @@ fn project(
 }
 
 #[tokio::test]
+async fn project_cards_escape_snapshot_text_and_link_attributes() {
+	let mut summary = project("api", "<script>alert('description')</script>", 2);
+	summary.name = "<img src=x onerror=alert('name')>".to_owned();
+	let html = crate::tests::render(move || view! {
+		<super::ProjectCard href="/projects/test?name=\" onmouseover=\"alert(1)".to_owned() project=summary.clone() />
+	}).await;
+	assert!(html.contains("&lt;img"), "{html}");
+	assert!(html.contains("&lt;script&gt;"), "{html}");
+	assert!(!html.contains("<script>"), "{html}");
+	assert!(!html.contains("<img src=x"), "{html}");
+	assert!(html.contains("&quot; onmouseover=&quot;"), "{html}");
+}
+
+#[tokio::test]
 async fn each_account_lists_its_projects_as_cards() {
 	let projects = vec![project("api", "Billing API", 1), project("web", "", 3)];
 	let html = crate::tests::render(

@@ -276,8 +276,8 @@ fn SessionControls(
 
 	view! {
 		<Transition fallback=|| view! { <span class="sr-only" role="status">"Loading account…"</span> }>
-			{move || session.get().map(|result| match result {
-				Ok(Some(user)) => view! { <AccountControls user=user sign_out=sign_out menu=menu /> }.into_any(),
+			{move || session.map(|result| match result {
+				Ok(Some(user)) => view! { <AccountControls user=user.clone() sign_out=sign_out menu=menu /> }.into_any(),
 				Ok(None) => sign_in("Sign in").into_any(),
 				Err(_) => sign_in("Sign in again").into_any(),
 			})}

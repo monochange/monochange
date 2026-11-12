@@ -33,22 +33,27 @@ pub fn OrganizationAvatar(
 
 /// One project as a card linking to its page at `href`: the workspace landing
 /// and the organisation page show projects the same way.
+/// Descendants are snapshot text and native navigation; WASM handlers and
+/// reactive children must be rendered outside the serialized content.
 #[component]
-pub fn ProjectCard(href: String, project: ProjectSummary) -> impl IntoView {
+pub fn ProjectCard(href: String, project: ProjectSummary) -> AnyView {
 	let count = match project.repository_count {
 		1 => "1 repository".to_owned(),
 		count => format!("{count} repositories"),
 	};
 
-	view! {
-		<li>
-			<a href=href class="project-card">
-				<h3>{project.name}</h3>
-				{(!project.description.is_empty()).then(|| view! { <p>{project.description}</p> })}
-				<span>{count} <ArrowIcon /></span>
-			</a>
-		</li>
+	// This snapshot has no WASM handlers or reactive children. Framework HTML
+	// rendering preserves escaping without retaining its async hydration tree.
+	let content = view! {
+		<a href=href class="project-card">
+			<h3>{project.name}</h3>
+			{(!project.description.is_empty()).then(|| view! { <p>{project.description}</p> })}
+			<span>{count} <ArrowIcon /></span>
+		</a>
 	}
+	.to_html();
+
+	view! { <li inner_html=content /> }.into_any()
 }
 
 /// Organization and project entry point, using the website's session authority.
@@ -73,10 +78,10 @@ pub fn ProjectsHome() -> impl IntoView {
 			<h1>"Your projects"</h1>
 			<p class="projects-intro">"One place for the products you ship."</p>
 			<Suspense fallback=|| view! { <p class="project-empty" role="status">"Loading projects…"</p> }>
-				{move || workspace.get().map(|result| match result {
+				{move || workspace.map(|result| match result {
 					Ok((None, _)) => view! { <WorkspaceEmpty signed_in=false /> }.into_any(),
 					Ok((Some(_), organizations)) if organizations.is_empty() => view! { <WorkspaceEmpty signed_in=true /> }.into_any(),
-					Ok((Some(_), organizations)) => view! { <ul>{organizations.into_iter().map(|organization| view! { <WorkspaceOrganization organization=organization /> }).collect::<Vec<_>>()}</ul> }.into_any(),
+					Ok((Some(_), organizations)) => view! { <ul>{organizations.iter().cloned().map(|organization| view! { <WorkspaceOrganization organization=organization /> }.into_inner()).collect::<Vec<_>>()}</ul> }.into_any(),
 					Err(_) => view! { <p class="project-empty" role="alert">"Projects couldn't be loaded. Please reload to try again."</p> }.into_any(),
 				})}
 
@@ -88,7 +93,7 @@ pub fn ProjectsHome() -> impl IntoView {
 /// One connected account on the workspace landing: its heading, then its
 /// projects as cards.
 #[component]
-fn WorkspaceOrganization(organization: OrganizationSummary) -> impl IntoView {
+fn WorkspaceOrganization(organization: OrganizationSummary) -> AnyView {
 	let path = organization.path();
 	let login = organization.login.clone();
 	let count = match organization.projects.len() {
@@ -105,14 +110,20 @@ fn WorkspaceOrganization(organization: OrganizationSummary) -> impl IntoView {
 			{if organization.projects.is_empty() {
 				view! { <p class="project-empty">"No projects yet. " <a href=path class="text-link">"Open " {login} " to manage projects" <ArrowIcon /></a></p> }.into_any()
 			} else {
-				view! { <ul class="project-grid">{organization.projects.into_iter().map(|project| view! { <ProjectCard href=monochange_shared::project_path(&login, &project.slug) project=project /> }).collect::<Vec<_>>()}</ul> }.into_any()
+				view! { <ul class="project-grid">{organization.projects.into_iter().map(|project| view! { <ProjectCard href=monochange_shared::project_path(&login, &project.slug) project=project /> }.into_inner()).collect::<Vec<_>>()}</ul> }.into_any()
 			}}
 		</li>
 	}
+	.into_any()
 }
 
 #[component]
 fn WorkspaceEmpty(signed_in: bool) -> impl IntoView {
+	let (href, label) = if signed_in {
+		("/dashboard", "Connect repositories")
+	} else {
+		("/login?next=%2Fprojects", "Sign in with GitHub")
+	};
 	view! {
 		<div class="projects-empty">
 			<div class="projects-empty-mark"><img src="/branding/mark.svg" width="48" height="48" alt="" /></div>
@@ -120,11 +131,7 @@ fn WorkspaceEmpty(signed_in: bool) -> impl IntoView {
 				<h2>"Your next project starts here"</h2>
 				<p>"Bring your repositories together in a workspace for the products you ship."</p>
 				<div class="actions">
-					{if signed_in {
-						view! { <a class="button button-brand" href="/dashboard" target="_self">"Connect repositories"</a> }.into_any()
-					} else {
-						view! { <a class="button button-brand" href="/login?next=%2Fprojects" target="_self">"Sign in with GitHub"</a> }.into_any()
-					}}
+					<a class="button button-brand" href=href target="_self">{label}</a>
 					<a class="text-link" href="/book" target="_self">"Read the book"</a>
 				</div>
 			</div>

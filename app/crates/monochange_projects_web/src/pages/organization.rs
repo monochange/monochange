@@ -100,7 +100,7 @@ fn OrganizationContent(organization: OrganizationSummary) -> impl IntoView {
 			// project starts where the projects are.
 			{(organization.supports_projects || !organization.projects.is_empty()).then(|| view! {
 				<ul class="project-grid">
-					{organization.projects.iter().map(|project| view! { <ProjectCard href=monochange_shared::project_path(&login, &project.slug) project=project.clone() /> }).collect::<Vec<_>>()}
+					{organization.projects.iter().map(|project| view! { <ProjectCard href=monochange_shared::project_path(&login, &project.slug) project=project.clone() /> }.into_inner()).collect::<Vec<_>>()}
 					{organization.supports_projects.then(|| view! { <li class="project-new"><NewProjectForm organization=organization.clone() /></li> })}
 				</ul>
 			})}
