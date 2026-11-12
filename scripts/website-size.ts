@@ -15,16 +15,9 @@
 // beyond 5% — WASM codegen varies slightly across build platforms, so the
 // per-file guard is looser than the total. Anonymous wasm-split chunks
 // (`chunk_N.wasm`) are renumbered between builds, so they share one aggregate
-// 5% guard instead of per-file checks. Set
-// MONOCHANGE_WEBSITE_SIZE_TOLERANCE (fraction) to adjust the total tolerance.
-//
-// The baseline predates the dual-frontend split, so its names are flat under
-// `pkg/` while both frontends now assemble under `pkg/site/` and
-// `pkg/projects/`. Per-file comparisons resolve those renames explicitly (see
-// `currentMatches`): a baseline asset that finds no built counterpart fails
-// the check, and a name that matches more than one built asset is rejected
-// instead of silently resolved. New assets with no baseline entry (the
-// projects entry bundle) stay covered by the total guard.
+// 5% guard instead of per-file checks. The current baseline names both
+// frontend entries, their routes and shared stylesheet, plus deployed WOFF2
+// fonts; each named asset has its own guard and the combined total uses 1%.
 import { readFileSync, readdirSync, realpathSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import process from "node:process";
@@ -78,12 +71,24 @@ function measure(siteRoot) {
 
 	let totalBytes = 0;
 
+	let fontNames: string[] = [];
+	try {
+		fontNames = listFiles(join(siteRoot, "fonts"), "").filter((name) => name.endsWith(".woff2"));
+	} catch (error) {
+		if (error.code !== "ENOENT") throw error;
+	}
 	for (const name of names.toSorted()) {
 		const raw = readFileSync(join(pkgDir, name));
 		const gzipBytes = gzipSync(raw).byteLength;
 		files[name] = { bytes: raw.byteLength, gzipBytes };
 		totalBytes += raw.byteLength;
 		totalGzipBytes += gzipBytes;
+	}
+	for (const name of fontNames.toSorted()) {
+		const raw = readFileSync(join(siteRoot, "fonts", name));
+		files[`fonts/${name}`] = { bytes: raw.byteLength, gzipBytes: raw.byteLength };
+		totalBytes += raw.byteLength;
+		totalGzipBytes += raw.byteLength;
 	}
 
 	return { files, totalBytes, totalGzipBytes };
@@ -136,9 +141,11 @@ function render(
 // stable route stems and stay per-file (across namespaces and hash changes).
 const ANONYMOUS_CHUNK = /(?:^|\/)chunk_\d+\.wasm$/u;
 
-function anonymousChunkGzipBytes(measurement: SiteMeasurement): number {
+function anonymousChunkGzipBytes(measurement: SiteMeasurement, namespace = ""): number {
 	return Object.entries(measurement.files)
-		.filter(([name]) => ANONYMOUS_CHUNK.test(name))
+		.filter(
+			([name]) => ANONYMOUS_CHUNK.test(name) && (!namespace || name.startsWith(`${namespace}/`)),
+		)
 		.reduce((sum, [, file]) => sum + file.gzipBytes, 0);
 }
 
@@ -166,6 +173,18 @@ const NAMESPACED_ROUTE_SPLIT = /^(?:[^/]+)\/split___(?<stem>[a-z0-9_]+)_\d+\.was
  * present matches (ambiguous identity) instead of picking silently.
  */
 export function currentMatches(name: string, currentFiles: string[]): string[] {
+	const namespaced = /^(?<namespace>site|projects)\/split___(?<stem>[a-z0-9_]+)_\d+\.wasm$/u.exec(
+		name,
+	);
+	if (namespaced?.groups) {
+		const { namespace, stem } = namespaced.groups;
+		return currentFiles.filter((file) => {
+			const match = /^(?<namespace>site|projects)\/split___(?<stem>[a-z0-9_]+)_\d+\.wasm$/u.exec(
+				file,
+			);
+			return match?.groups?.namespace === namespace && match.groups.stem === stem;
+		});
+	}
 	const candidates = [name, `${WEBSITE_NAMESPACE}/${name}`];
 	const entryRename = ENTRY_RENAMES[name];
 
@@ -208,7 +227,7 @@ function compare(baseline: SiteMeasurement, current: SiteMeasurement, tolerance:
 	const currentNames = Object.keys(current.files);
 
 	for (const [name, before] of Object.entries(baseline.files)) {
-		if (!/\.(?:wasm|js|css)$/u.test(name) || ANONYMOUS_CHUNK.test(name)) continue;
+		if (!/\.(?:wasm|js|css|woff2)$/u.test(name) || ANONYMOUS_CHUNK.test(name)) continue;
 		const present = currentMatches(name, currentNames).filter((candidate) =>
 			Object.hasOwn(current.files, candidate),
 		);
@@ -237,13 +256,17 @@ function compare(baseline: SiteMeasurement, current: SiteMeasurement, tolerance:
 		}
 	}
 
-	const chunksBefore = anonymousChunkGzipBytes(baseline);
-	const chunksAfter = anonymousChunkGzipBytes(current);
-
-	if (exceeds(chunksBefore, chunksAfter)) {
-		differences.push(
-			`anonymous wasm-split chunks (chunk_N.wasm) gzip grew from ${chunksBefore} to ${chunksAfter} bytes (tolerance ${percent})`,
-		);
+	const namespaces = Object.keys(baseline.files).some((name) => name.startsWith("site/"))
+		? ["site", "projects"]
+		: [""];
+	for (const namespace of namespaces) {
+		const chunksBefore = anonymousChunkGzipBytes(baseline, namespace);
+		const chunksAfter = anonymousChunkGzipBytes(current, namespace);
+		if (exceeds(chunksBefore, chunksAfter)) {
+			differences.push(
+				`anonymous wasm-split chunks (chunk_N.wasm) ${namespace ? `${namespace} ` : ""}gzip grew from ${chunksBefore} to ${chunksAfter} bytes (tolerance ${percent})`,
+			);
+		}
 	}
 
 	return differences;
@@ -276,8 +299,7 @@ function main() {
 	} catch (error) {
 		die(`could not read baseline ${file}: ${error.message}; run the update command first`);
 	}
-	const tolerance = Number.parseFloat(process.env.MONOCHANGE_WEBSITE_SIZE_TOLERANCE ?? "");
-	const toleranceValue = Number.isFinite(tolerance) ? tolerance : DEFAULT_TOLERANCE;
+	const toleranceValue = DEFAULT_TOLERANCE;
 	const differences = compare(baseline, current, toleranceValue);
 
 	const report = render(baseline, current, toleranceValue, differences);

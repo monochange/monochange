@@ -112,6 +112,15 @@ function runCheck(siteRoot: string, baselineFile: string) {
 }
 
 describe("website-size currentMatches", () => {
+	test("matches renumbered routes only within their entry namespace", () => {
+		assert.deepEqual(
+			currentMatches("projects/split___portal_route_view_123.wasm", [
+				"site/split___portal_route_view_456.wasm",
+				"projects/split___portal_route_view_789.wasm",
+			]),
+			["projects/split___portal_route_view_789.wasm"],
+		);
+	});
 	test("resolves the namespace move, the entry wasm rename, and exact names", () => {
 		const current = [
 			"site/monochange_app.js",
@@ -170,6 +179,35 @@ describe("website-size check", () => {
 
 	afterEach(() => {
 		for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
+	});
+
+	test("guards deployed fonts even when the pkg total is otherwise unchanged", () => {
+		const site = writeSite("fonts", { "site/monochange_app.js": 10000 });
+		roots.push(site.root);
+		mkdirSync(join(site.root, "fonts"));
+		writeFileSync(join(site.root, "fonts", "face.woff2"), filler(1000));
+		const initial = spawnSync(
+			process.execPath,
+			[scriptPath, "update", "--site-root", site.root, "--file", site.baseline],
+			{ encoding: "utf8" },
+		);
+		assert.equal(initial.status, 0, initial.stderr);
+		writeFileSync(join(site.root, "fonts", "face.woff2"), filler(1100));
+		const result = runCheck(site.root, site.baseline);
+		assert.notEqual(result.status, 0);
+		assert.match(result.stdout, /fonts\/face\.woff2.*gzip grew/);
+	});
+
+	test("guards each entry's shared chunks independently", () => {
+		const sizes = { "site/chunk_1.wasm": 1000, "projects/chunk_1.wasm": 1000 };
+		const { root, baseline } = writeScenario(
+			"separate-chunks",
+			{ "site/chunk_2.wasm": 1200, "projects/chunk_3.wasm": 800 },
+			sizes,
+		);
+		const result = runCheck(root, baseline);
+		assert.notEqual(result.status, 0);
+		assert.match(result.stdout, /anonymous wasm-split chunks .*site gzip grew/);
 	});
 
 	function writeScenario(
