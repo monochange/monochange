@@ -6,13 +6,13 @@ use leptos_meta::Title;
 use leptos_router::LazyRoute;
 use leptos_router::hooks::use_params_map;
 use leptos_router::lazy_route;
-use monochange_projects::components::arrow::ArrowIcon;
 use monochange_projects::components::repository_list::RepositoryFilters;
 use monochange_projects::components::repository_list::RepositoryPager;
 use monochange_projects::components::repository_list::RepositoryPicker;
 use monochange_projects::components::repository_list::use_repository_filter;
 use monochange_projects::error::action_error;
 use monochange_projects::pages::home::OrganizationAvatar;
+use monochange_projects::pages::home::ProjectCard;
 use monochange_projects::projects::MAX_DESCRIPTION_CHARS;
 use monochange_projects::projects::MAX_NAME_CHARS;
 use monochange_projects::repository_filter::count_matches;
@@ -90,27 +90,20 @@ fn OrganizationContent(organization: OrganizationSummary) -> impl IntoView {
 		<section class="repository-section" aria-labelledby="projects-title">
 			<div class="repository-heading"><h2 id="projects-title">"Projects"</h2><p>"Group repositories that ship one product."</p></div>
 
-			{if organization.projects.is_empty() {
-				view! { <p class="project-empty">"No projects yet. A project brings several of this organisation's repositories together under one name."</p> }.into_any()
-			} else {
-				view! {
-					<ul class="project-grid">
-						{organization.projects.iter().map(|project| {
-							let href = project_path(&login, &project.slug);
-							let count = match project.repository_count { 1 => "1 repository".to_string(), count => format!("{count} repositories") };
-							view! {
-								<li><a href=href class="project-card"><h3>{project.name.clone()}</h3><p>{if project.description.is_empty() { count.clone() } else { project.description.clone() }}</p><span>{count} <ArrowIcon /></span></a></li>
-							}
-						}).collect::<Vec<_>>()}
-					</ul>
-				}.into_any()
-			}}
-
-			{if organization.supports_projects {
-				view! { <NewProjectForm organization=organization.clone() /> }.into_any()
-			} else {
-				view! { <p class="form-note">"monochange is still confirming this account with GitHub. Reload the page in a moment to create projects."</p> }.into_any()
-			}}
+			{organization.projects.is_empty().then(|| view! {
+				<p class="project-empty">"No projects yet. A project brings several of this organisation's repositories together under one name."</p>
+			})}
+			// "New project" closes the grid as one more card, so creating a
+			// project starts where the projects are.
+			{(organization.supports_projects || !organization.projects.is_empty()).then(|| view! {
+				<ul class="project-grid">
+					{organization.projects.iter().map(|project| view! { <ProjectCard href=monochange_shared::project_path(&login, &project.slug) project=project.clone() /> }).collect::<Vec<_>>()}
+					{organization.supports_projects.then(|| view! { <li class="project-new"><NewProjectForm organization=organization.clone() /></li> })}
+				</ul>
+			})}
+			{(!organization.supports_projects).then(|| view! {
+				<p class="form-note">"monochange is still confirming this account with GitHub. Reload the page in a moment to create projects."</p>
+			})}
 
 		</section>
 		<section class="repository-section" id="repositories" aria-labelledby="repositories-title">
@@ -124,6 +117,14 @@ fn OrganizationContent(organization: OrganizationSummary) -> impl IntoView {
 	}
 }
 
+/// Decorative plus that turns into a close mark while the form is open.
+#[component]
+fn PlusIcon() -> impl IntoView {
+	view! {
+		<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+	}
+}
+
 /// Creates a project. Plain form fields, so it also works before the page
 /// hydrates; the server validates everything again.
 #[component]
@@ -133,8 +134,8 @@ fn NewProjectForm(organization: OrganizationSummary) -> impl IntoView {
 	let example = project_path(&login, "invoices");
 
 	view! {
-		<details class="project-form-panel">
-			<summary class="button button-brand">"New project"</summary>
+		<details>
+			<summary class="project-new-toggle"><PlusIcon />"New project"</summary>
 			<ActionForm action=create attr:class="project-form">
 				<input type="hidden" name="organization" value=login />
 				<label class="field"><span>"Name"</span><input name="name" required maxlength=MAX_NAME_CHARS autocomplete="off" aria-describedby="project-address-hint" /></label>

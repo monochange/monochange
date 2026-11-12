@@ -84,17 +84,23 @@ fn ProjectContent(details: ProjectDetails) -> impl IntoView {
 				{(disconnected > 0).then(|| view! {
 					<p class="form-note">"Disconnected repositories stay in the project and come back when the GitHub App is installed on them again."</p>
 				})}
-				<ul class="repository-list">
-					{details.repositories.iter().map(|repository| {
-						let state = match repository.private {
-							Some(true) => "Private",
-							Some(false) => "Public",
-							None => "Disconnected",
-						};
+				{if details.repositories.is_empty() {
+					view! { <p class="project-empty">"No repositories in this project yet. Choose them under Edit project in Settings."</p> }.into_any()
+				} else {
+					view! {
+						<ul class="repository-list">
+							{details.repositories.iter().map(|repository| {
+								let state = match repository.private {
+									Some(true) => "Private",
+									Some(false) => "Public",
+									None => "Disconnected",
+								};
 
-						view! { <li><div><h3>{repository.full_name.clone()}</h3><p>{state}</p></div></li> }
-					}).collect::<Vec<_>>()}
-				</ul>
+								view! { <li><h3>{repository.full_name.clone()}</h3><span class="chip">{state}</span></li> }
+							}).collect::<Vec<_>>()}
+						</ul>
+					}.into_any()
+				}}
 			</section>
 			<section class="repository-section" aria-labelledby="project-feedback-title">
 				<div class="repository-heading"><h2 id="project-feedback-title">"Feedback"</h2></div>
@@ -124,7 +130,7 @@ fn EditProjectForm(details: ProjectDetails) -> impl IntoView {
 
 	view! {
 		<details class="project-form-panel">
-			<summary class="button button-light">"Edit project"</summary>
+			<summary class="button button-quiet">"Edit project"</summary>
 			<ActionForm action=update attr:class="project-form">
 				<input type="hidden" name="organization" value=details.organization.clone() />
 				<input type="hidden" name="project" value=details.project.slug.clone() />

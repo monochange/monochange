@@ -141,14 +141,14 @@
 .button-quiet:hover { border-color: var(--mc-accent); }
 .button-outline:hover { background: color-mix(in srgb, var(--mc-accent) 22%, transparent); }
 .actions { display: flex; align-items: center; flex-wrap: wrap; gap: var(--mc-gap-action); margin-top: 2rem; }
-.projects-home h1 { margin-top: .5rem; font-size: clamp(2.8rem, 5vw, 4.5rem); }
-.projects-eyebrow { color: var(--mc-accent-deep); font-family: var(--font-mono); font-size: .75rem; font-weight: 700; letter-spacing: .14em; }
-:root.dark .projects-eyebrow { color: var(--mc-accent); }
-.projects-intro { margin-top: 1rem; color: var(--mc-muted); font-size: 1.2rem; }
-.projects-empty { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2rem; margin-top: 3rem; padding: clamp(2rem, 5vw, 4rem); border: 1px solid var(--mc-rule); border-radius: var(--mc-radius-panel); background: var(--mc-surface); }
-.projects-empty-mark { display: grid; width: 80px; height: 80px; place-items: center; border-radius: 20px; background: var(--mc-page); }
-.projects-empty h2 { margin-top: .5rem; font-size: clamp(2rem, 3vw, 2.8rem); }
-.projects-empty h2 + p { max-width: 48ch; margin-top: 1rem; color: var(--mc-muted); font-size: 1.1rem; }
+/* Workspace pages share one calm title scale; identifiers such as long
+   organisation logins wrap instead of dominating the page. */
+.projects-home h1, .workspace-heading h1, .project-heading h1, .dashboard-section > h1 { font-size: clamp(2rem, 3vw, 2.75rem); line-height: 1.1; overflow-wrap: anywhere; }
+.projects-intro { margin-top: .75rem; color: var(--mc-muted); font-size: 1.15rem; }
+.projects-empty { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2rem; margin-top: 2.5rem; padding: clamp(2rem, 5vw, 3.5rem); border: 1px solid var(--mc-rule); border-radius: var(--mc-radius-panel); background: var(--mc-surface); }
+.projects-empty-mark { display: grid; width: 80px; height: 80px; place-items: center; border-radius: var(--mc-radius-panel); background: var(--mc-page); }
+.projects-empty h2 { font-size: clamp(1.5rem, 2.2vw, 1.9rem); }
+.projects-empty h2 + p { max-width: 48ch; margin-top: .75rem; color: var(--mc-muted); font-size: 1.1rem; }
 @media (max-width: 600px) { .projects-empty { grid-template-columns: 1fr; gap: 1.5rem; } }
 .text-link { color: #0f766e; font-weight: 700; text-decoration: underline; display: inline-block; padding-block: .65rem; }
 :root.dark .text-link { color: #2dd4bf; }
@@ -183,23 +183,25 @@
 .login-description { color: var(--muted); margin-top: .7rem; }
 .login-notice { color: var(--muted); font-size: .9rem; margin-top: 1.5rem; }
 .status-page { min-height: 65vh; display: grid; place-items: center; padding-block: 5rem; text-align: center; }
-.status-page h1 { font-size: clamp(3rem, 6vw, 5rem); margin-block: 1.5rem; }
+.status-page h1 { font-size: clamp(2.4rem, 3.2vw, 3.4rem); margin-block: 1.5rem 1rem; overflow-wrap: anywhere; }
 .status-page h2 { font-size: 2rem; }
-.status-page p { color: var(--muted); margin-block: 1.5rem; }
+.status-page p { color: var(--muted); margin-block: 1rem 1.5rem; }
 .status-page .actions { justify-content: center; }
 .dashboard-section { padding-block: 4rem; }
-.workspace-heading { display: flex; gap: 1rem; align-items: center; margin-bottom: 3rem; }
-.workspace-heading img { border-radius: 50%; }
-.workspace-heading h1 { font-size: clamp(2rem, 4vw, 3rem); }
+.workspace-heading { display: flex; gap: 1.25rem; align-items: center; margin-bottom: 2.5rem; }
+.workspace-heading > div { min-width: 0; }
+.workspace-heading > img:not(.organization-avatar) { flex: none; border-radius: 50%; }
+.workspace-heading .organization-avatar { width: 56px; height: 56px; }
+.workspace-heading p { margin-top: .35rem; }
 .workspace-heading p, .repository-heading p, .repository-empty p, .repository-list p, .workspace-guide p { color: var(--muted); }
-.repository-section { border-block: 1px solid var(--rule); padding-block: 2rem; }
+.repository-section { border-top: 1px solid var(--rule); padding-block: 2.5rem; }
 .repository-heading { display: flex; flex-wrap: wrap; gap: .25rem 1rem; align-items: baseline; justify-content: space-between; }
-.repository-heading h2, .workspace-guide h2 { font-size: 2rem; }
+.repository-heading h2, .workspace-guide h2 { font-size: clamp(1.5rem, 2vw, 1.75rem); }
 .repository-empty { margin-top: 2rem; padding-block: 2rem; }
-.repository-empty h3, .repository-list h3 { font-size: 1.2rem; font-weight: 700; }
+.repository-empty h3, .repository-list h3 { font-size: 1.05rem; font-weight: 700; }
 .repository-empty p { margin-block: .75rem 1.5rem; max-width: 55ch; }
 .repository-list { margin-top: 1.5rem; }
-.repository-list li { display: flex; gap: 1rem; justify-content: space-between; padding-block: 1.5rem; border-top: 1px solid var(--rule); overflow-wrap: anywhere; }
+.repository-list li { display: flex; gap: 1rem; justify-content: space-between; padding-block: 1rem; border-top: 1px solid var(--rule); overflow-wrap: anywhere; }
 .repository-list p { font-size: .9rem; }
 /* Installations waiting for an owner to approve new app permissions. */
 .permission-update { margin-bottom: 2rem; padding: 1.25rem 1.5rem; border: 1.5px solid var(--accent); border-radius: 16px; background: var(--surface); }
@@ -209,7 +211,7 @@
 .permission-update li > div { min-width: 0; }
 .permission-update h3 { font-size: 1.1rem; font-weight: 700; overflow-wrap: anywhere; }
 .permission-update li p { color: var(--muted); font-size: .9rem; overflow-wrap: anywhere; }
-.workspace-guide { padding-top: 3rem; }
+.workspace-guide { padding-top: 2.5rem; border-top: 1px solid var(--rule); }
 .workspace-guide p { max-width: 65ch; margin-block: 1rem; }
 /* Organisations and projects extend the workspace's ruled lists. */
 .organization-list { display: grid; gap: 1.5rem; margin-top: 1.5rem; }
@@ -264,19 +266,37 @@ details[open] > .organization-summary .chevron { transform: rotate(180deg); }
 }
 .organization-avatar { flex: none; display: grid; place-items: center; width: 48px; height: 48px; border-radius: var(--mc-radius-control); background: var(--mc-accent-soft); color: var(--mc-accent-deep); font-family: "Bricolage Grotesque", sans-serif; font-weight: 800; font-size: 1.4rem; object-fit: cover; }
 :root.dark .organization-avatar { color: var(--mc-accent); }
-.breadcrumbs { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; margin-bottom: 2rem; color: var(--muted); font-size: .95rem; }
+.breadcrumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 0 .6rem; margin-bottom: 1.5rem; overflow-wrap: anywhere; color: var(--muted); font-size: .95rem; }
 .breadcrumbs a { color: var(--accent); font-weight: 700; display: inline-flex; min-height: 44px; align-items: center; }
 .breadcrumbs [aria-current] { color: var(--ink); font-weight: 700; }
-.project-heading { margin-bottom: 3rem; }
-.project-heading h1 { font-size: clamp(2.4rem, 5vw, 3.6rem); }
-.project-heading p { color: var(--muted); font-size: 1.15rem; max-width: 60ch; margin-top: 1rem; }
-.project-empty, .form-note { color: var(--muted); max-width: 60ch; margin-block: 1.25rem; }
-.project-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: 1rem; margin-block: 1.5rem; }
-.project-card { display: flex; flex-direction: column; gap: .5rem; height: 100%; padding: 1.25rem 1.4rem; border: 1px solid var(--rule); border-radius: 16px; background: var(--surface); text-decoration: none; transition: border-color .18s ease, transform .18s ease; }
+.project-heading { margin-bottom: 2.5rem; }
+.project-heading p { color: var(--muted); font-size: 1.15rem; max-width: 60ch; margin-top: .75rem; }
+.project-empty, .form-note { color: var(--muted); max-width: 60ch; margin-block: 1rem; }
+.project-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: 1rem; margin-top: 1.5rem; }
+.project-card { display: flex; flex-direction: column; gap: .4rem; height: 100%; min-height: 8.5rem; padding: 1.25rem 1.4rem; border: 1px solid var(--rule); border-radius: 16px; background: var(--surface); text-decoration: none; transition: border-color .18s ease, transform .18s ease; }
 .project-card:hover { border-color: var(--accent); transform: translateY(-2px); }
-.project-card h3 { font-size: 1.25rem; font-weight: 700; }
-.project-card p { color: var(--muted); font-size: .95rem; flex: 1; }
-.project-card span { display: inline-flex; align-items: center; gap: .3rem; color: var(--accent); font-weight: 700; font-size: .9rem; }
+.project-card h3 { font-size: 1.2rem; font-weight: 700; overflow-wrap: anywhere; }
+.project-card p { color: var(--muted); font-size: .95rem; }
+.project-card span { display: inline-flex; align-items: center; gap: .3rem; margin-top: auto; padding-top: .5rem; color: var(--accent); font-weight: 700; font-size: .9rem; }
+/* "New project" closes the grid as a dashed card and opens across it. */
+.project-new:has(> details[open]) { grid-column: 1 / -1; }
+.project-new > details { height: 100%; }
+.project-new-toggle { display: flex; align-items: center; justify-content: center; gap: .5rem; height: 100%; min-height: 8.5rem; padding: 1.25rem; border: 1.5px dashed var(--rule); border-radius: var(--mc-radius-panel); color: var(--accent); font-weight: 700; list-style: none; transition: border-color .18s ease, background-color .18s ease; }
+.project-new-toggle::-webkit-details-marker { display: none; }
+.project-new-toggle:hover { border-color: var(--accent); background: var(--surface); }
+.project-new-toggle svg { transition: transform .18s ease; }
+.project-new > details[open] > .project-new-toggle { justify-content: flex-start; height: auto; min-height: 48px; margin-bottom: 1rem; padding: 0; border: 0; background: none; font-size: 1.15rem; }
+.project-new > details[open] > .project-new-toggle svg { transform: rotate(45deg); }
+/* The workspace landing groups each account's project cards under a ruled heading. */
+.workspace-organization { margin-top: 2.5rem; padding-top: 2rem; border-top: 1px solid var(--rule); }
+.workspace-organization-heading { display: flex; align-items: center; gap: 1rem; }
+.workspace-organization-heading > div { min-width: 0; }
+.workspace-organization-heading .organization-avatar { width: 40px; height: 40px; font-size: 1.15rem; }
+.workspace-organization-heading h2 { font-size: clamp(1.35rem, 2vw, 1.6rem); overflow-wrap: anywhere; }
+.workspace-organization-heading h2 a { text-decoration: none; transition: color .18s ease; }
+.workspace-organization-heading h2 a:hover { color: var(--accent); text-decoration: underline; }
+.workspace-organization-heading p, .workspace-organization .project-empty { color: var(--muted); }
+.workspace-organization .project-empty { margin-block: 1rem 0; }
 .project-form-panel { margin-top: 1.5rem; }
 .project-form-panel > summary { list-style: none; }
 .project-form-panel > summary::-webkit-details-marker { display: none; }
@@ -294,6 +314,8 @@ details[open] > .organization-summary .chevron { transform: rotate(180deg); }
 .checkbox-list input { width: 1.1rem; height: 1.1rem; accent-color: var(--accent); }
 .form-error { padding: .8rem 1rem; border-radius: 12px; background: #fde8ec; color: #8b1029; font-weight: 700; }
 .danger-zone p { color: var(--muted); }
+.danger-zone > summary.text-link { color: #b4233f; }
+:root.dark .danger-zone > summary.text-link { color: #fda4af; }
 .button-danger { background: #b4233f; color: white; }
 .button-danger:hover { background: #8b1029; }
 button.button:disabled { opacity: .55; cursor: progress; }
@@ -509,7 +531,8 @@ button.button:disabled { opacity: .55; cursor: progress; }
 .editor textarea { display: block; width: 100%; min-height: 11rem; padding: 1rem; border: 0; background: transparent; color: var(--ink); font: inherit; line-height: 1.6; resize: vertical; }
 .editor textarea:focus { outline: none; }
 .editor-preview { min-height: 11rem; padding: 1rem 1.25rem; }
-.chip { display: inline-flex; align-items: center; padding: .1rem .55rem; border-radius: 99px; background: var(--page); color: var(--accent); font-size: .78rem; font-weight: 700; white-space: nowrap; }
+:root.dark .chip { color: var(--mc-accent); }
+.chip { display: inline-flex; align-items: center; padding: .1rem .55rem; border-radius: 99px; background: var(--mc-accent-soft); color: var(--mc-accent-deep); font-size: .78rem; font-weight: 700; white-space: nowrap; }
 .redaction { display: inline-block; min-width: 5.5em; height: 1.05em; margin-inline: .1em; border-radius: 3px; background: repeating-linear-gradient(-45deg, var(--mc-ink) 0 6px, var(--mc-surface) 6px 12px); color: transparent; vertical-align: -.15em; user-select: none; }
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: var(--page); }

@@ -48,3 +48,35 @@ async fn the_edit_form_keeps_the_project_selection() {
 	assert!(html.contains("value=\"acme/web\" checked"), "{html}");
 	assert!(!html.contains("value=\"acme/api\" checked"), "{html}");
 }
+
+#[tokio::test]
+async fn a_project_without_repositories_says_where_to_add_them() {
+	let details = ProjectDetails {
+		organization: "acme".to_owned(),
+		personal: false,
+		project: ProjectSummary {
+			slug: "invoices".to_owned(),
+			name: "Invoices".to_owned(),
+			description: String::new(),
+			repository_count: 0,
+		},
+		repositories: Vec::new(),
+		available: Vec::new(),
+	};
+	// The page sets its title, so it renders inside a full document.
+	let html = crate::tests::render(move || {
+		let details = details.clone();
+		view! { <leptos_router::components::Router><ProjectContent details=details /></leptos_router::components::Router> }
+	})
+	.await;
+
+	assert!(
+		html.contains("No repositories in this project yet."),
+		"{html}"
+	);
+	assert!(!html.contains("class=\"repository-list\""), "{html}");
+	assert!(
+		html.contains("button button-quiet\">Edit project"),
+		"{html}"
+	);
+}

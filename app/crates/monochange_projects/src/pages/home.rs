@@ -1,4 +1,8 @@
 use leptos::prelude::*;
+use monochange_shared::OrganizationSummary;
+use monochange_shared::ProjectSummary;
+
+use crate::components::arrow::ArrowIcon;
 
 #[cfg(test)]
 #[path = "__tests__/home_tests.rs"]
@@ -27,6 +31,26 @@ pub fn OrganizationAvatar(
 	.into_any()
 }
 
+/// One project as a card linking to its page at `href`: the workspace landing
+/// and the organisation page show projects the same way.
+#[component]
+pub fn ProjectCard(href: String, project: ProjectSummary) -> impl IntoView {
+	let count = match project.repository_count {
+		1 => "1 repository".to_owned(),
+		count => format!("{count} repositories"),
+	};
+
+	view! {
+		<li>
+			<a href=href class="project-card">
+				<h3>{project.name}</h3>
+				{(!project.description.is_empty()).then(|| view! { <p>{project.description}</p> })}
+				<span>{count} <ArrowIcon /></span>
+			</a>
+		</li>
+	}
+}
+
 /// Organization and project entry point, using the website's session authority.
 #[component]
 pub fn ProjectsHome() -> impl IntoView {
@@ -46,19 +70,44 @@ pub fn ProjectsHome() -> impl IntoView {
 	);
 	view! {
 		<section class="site-width dashboard-section projects-home">
-			<p class="projects-eyebrow">"YOUR WORKSPACE"</p>
 			<h1>"Your projects"</h1>
 			<p class="projects-intro">"One place for the products you ship."</p>
-			<Suspense fallback=|| view! { <p role="status">"Loading projects…"</p> }>
+			<Suspense fallback=|| view! { <p class="project-empty" role="status">"Loading projects…"</p> }>
 				{move || workspace.get().map(|result| match result {
 					Ok((None, _)) => view! { <WorkspaceEmpty signed_in=false /> }.into_any(),
 					Ok((Some(_), organizations)) if organizations.is_empty() => view! { <WorkspaceEmpty signed_in=true /> }.into_any(),
-					Ok((Some(_), organizations)) => view! { <ul class="organization-list">{organizations.into_iter().map(|org| view! { <li class="organization-card"><a class="text-link" href=org.path()>{org.login.clone()}</a><p>{format!("{} projects", org.projects.len())}</p><ul>{org.projects.into_iter().map(|project| view! { <li><a href=monochange_shared::project_path(&org.login, &project.slug)>{project.name}</a><p>{project.description}</p></li> }).collect::<Vec<_>>()}</ul></li> }).collect::<Vec<_>>()}</ul> }.into_any(),
-					Err(_) => view! { <p role="alert">"Projects couldn't be loaded. Please reload to try again."</p> }.into_any(),
+					Ok((Some(_), organizations)) => view! { <ul>{organizations.into_iter().map(|organization| view! { <WorkspaceOrganization organization=organization /> }).collect::<Vec<_>>()}</ul> }.into_any(),
+					Err(_) => view! { <p class="project-empty" role="alert">"Projects couldn't be loaded. Please reload to try again."</p> }.into_any(),
 				})}
 
 			</Suspense>
 		</section>
+	}
+}
+
+/// One connected account on the workspace landing: its heading, then its
+/// projects as cards.
+#[component]
+fn WorkspaceOrganization(organization: OrganizationSummary) -> impl IntoView {
+	let path = organization.path();
+	let login = organization.login.clone();
+	let count = match organization.projects.len() {
+		1 => "1 project".to_owned(),
+		count => format!("{count} projects"),
+	};
+
+	view! {
+		<li class="workspace-organization">
+			<div class="workspace-organization-heading">
+				<OrganizationAvatar login=login.clone() avatar_url=organization.avatar_url />
+				<div><h2><a href=path.clone()>{login.clone()}</a></h2><p>{count}</p></div>
+			</div>
+			{if organization.projects.is_empty() {
+				view! { <p class="project-empty">"No projects yet. " <a href=path class="text-link">"Open " {login} " to manage projects" <ArrowIcon /></a></p> }.into_any()
+			} else {
+				view! { <ul class="project-grid">{organization.projects.into_iter().map(|project| view! { <ProjectCard href=monochange_shared::project_path(&login, &project.slug) project=project /> }).collect::<Vec<_>>()}</ul> }.into_any()
+			}}
+		</li>
 	}
 }
 
@@ -68,7 +117,6 @@ fn WorkspaceEmpty(signed_in: bool) -> impl IntoView {
 		<div class="projects-empty">
 			<div class="projects-empty-mark"><img src="/branding/mark.svg" width="48" height="48" alt="" /></div>
 			<div>
-				<p class="projects-eyebrow">"START HERE"</p>
 				<h2>"Your next project starts here"</h2>
 				<p>"Bring your repositories together in a workspace for the products you ship."</p>
 				<div class="actions">
