@@ -34,28 +34,20 @@ pub fn OrganizationAvatar(
 
 /// One project as a card linking to its page at `href`: the workspace landing
 /// and the organisation page show projects the same way.
-/// Descendants are snapshot text and native navigation; WASM handlers and
-/// reactive children must be rendered outside the serialized content.
 #[component]
-pub fn ProjectCard(href: String, project: ProjectSummary) -> impl IntoView {
+pub fn ProjectCard(href: String, project: ProjectSummary) -> AnyView {
 	let count = match project.repository_count {
 		1 => "1 repository".to_owned(),
 		count => format!("{count} repositories"),
 	};
-
-	// Keep attributes typed: view! erases them, and erased attributes cannot be
-	// serialized by the browser build. Typed HTML rendering still escapes data.
-	let content = leptos::html::a()
-		.href(href)
-		.class("project-card")
-		.child((
-			leptos::html::h3().child(project.name),
-			(!project.description.is_empty()).then(|| leptos::html::p().child(project.description)),
-			leptos::html::span().child((count, " ", view! { <ArrowIcon /> })),
-		))
-		.to_html();
-
-	view! { <li inner_html=content /> }
+	view! {
+		<li><a href=href class="project-card">
+			<h3>{project.name}</h3>
+			{(!project.description.is_empty()).then(|| view! { <p>{project.description}</p> })}
+			<span>{count} <ArrowIcon /></span>
+		</a></li>
+	}
+	.into_any()
 }
 
 /// Organization and project entry point, using the website's session authority.

@@ -69,7 +69,7 @@ fn project(
 }
 
 #[tokio::test]
-async fn project_cards_escape_snapshot_text_and_link_attributes() {
+async fn project_cards_escape_text_and_link_attributes() {
 	let mut summary = project("api", "<script>alert('description')</script>", 2);
 	summary.name = "<img src=x onerror=alert('name')>".to_owned();
 	let html = crate::tests::render(move || view! {
