@@ -49,6 +49,7 @@ pub fn ProjectCard(href: String, project: ProjectSummary) -> impl IntoView {
 			</a>
 		</li>
 	}
+	.into_any()
 }
 
 /// Organization and project entry point, using the website's session authority.
@@ -109,6 +110,7 @@ fn WorkspaceOrganization(organization: OrganizationSummary) -> impl IntoView {
 			}}
 		</li>
 	}
+	.into_any()
 }
 
 #[component]
@@ -130,4 +132,5 @@ fn WorkspaceEmpty(signed_in: bool) -> impl IntoView {
 			</div>
 		</div>
 	}
+	.into_any()
 }
