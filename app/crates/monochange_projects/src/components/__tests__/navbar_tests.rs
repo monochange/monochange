@@ -16,7 +16,7 @@ fn user(avatar: Option<&str>) -> SessionUser {
 }
 
 #[test]
-fn escape_closes_mobile_navigation_and_the_account_menu() {
+fn escape_closes_mobile_navigation_and_the_account_menus() {
 	let runtime = tokio::runtime::Builder::new_current_thread()
 		.enable_all()
 		.build()
@@ -24,10 +24,10 @@ fn escape_closes_mobile_navigation_and_the_account_menu() {
 	runtime.block_on(async {
 		Owner::new().with(|| {
 			let (mobile_open, set_mobile_open) = signal(true);
-			let account = AccountMenu::new();
-			close_menus_on_key("Enter", set_mobile_open, account);
+			let (desktop, mobile) = (AccountMenu::new(), AccountMenu::new());
+			close_menus_on_key("Enter", set_mobile_open, desktop, mobile);
 			assert!(mobile_open.get());
-			close_menus_on_key("Escape", set_mobile_open, account);
+			close_menus_on_key("Escape", set_mobile_open, desktop, mobile);
 			assert!(!mobile_open.get());
 		});
 	});
@@ -70,8 +70,7 @@ async fn projects_navigation_leaves_the_product_entry_for_website_links() {
 #[tokio::test]
 async fn the_account_menu_holds_every_account_action_behind_one_toggle() {
 	let html = crate::tests::render_at("/projects/acme", || {
-		let on_home = Memo::new(|_| false);
-		view! { <AccountControls user=user(None) sign_out=ServerAction::new() on_home=on_home account=AccountMenu::new() /> }
+		view! { <AccountControls user=user(None) sign_out=ServerAction::new() menu=AccountMenu::new() /> }
 	})
 	.await;
 
@@ -81,13 +80,13 @@ async fn the_account_menu_holds_every_account_action_behind_one_toggle() {
 		"{html}"
 	);
 	assert!(html.contains("bg-brand-100 text-brand-800"), "{html}");
-	assert!(html.contains("<details class=\"group relative\""), "{html}");
+	assert!(html.contains("<details class=\"group relative"), "{html}");
 	assert!(
-		html.contains("Account menu, signed in as <!>octo-cat"),
+		html.contains("<span class=\"sr-only\">Account menu, </span>Signed in as</span>"),
 		"{html}"
 	);
 	assert!(
-		html.contains("border-rule hover:border-brand-600"),
+		html.contains("<span class=\"block truncate\">octo-cat</span>"),
 		"{html}"
 	);
 	// Account pages belong to the website entry: document navigations.
@@ -108,17 +107,12 @@ async fn the_account_menu_holds_every_account_action_behind_one_toggle() {
 #[tokio::test]
 async fn the_account_menu_on_the_website_keeps_navigation_client_side() {
 	let html = crate::tests::render_at("/", || {
-		let on_home = Memo::new(|_| true);
-		view! { <AccountControls user=user(Some("https://avatars.example/octo.png")) sign_out=ServerAction::new() on_home=on_home account=AccountMenu::new() /> }
+		view! { <AccountControls user=user(Some("https://avatars.example/octo.png")) sign_out=ServerAction::new() menu=AccountMenu::new() /> }
 	})
 	.await;
 
 	assert!(!html.contains("aria-current"), "{html}");
 	assert!(html.contains("bg-brand-700 text-white"), "{html}");
-	assert!(
-		html.contains("border-mist/25 hover:border-brand-400"),
-		"{html}"
-	);
 	assert!(!html.contains("href=\"/dashboard\" target"), "{html}");
 	assert!(
 		html.contains("src=\"https://avatars.example/octo.png\""),
@@ -127,23 +121,23 @@ async fn the_account_menu_on_the_website_keeps_navigation_client_side() {
 }
 
 #[tokio::test]
-async fn the_mobile_menu_lists_account_actions_as_rows() {
-	let interior = crate::tests::render_at("/install", || {
-		let on_home = Memo::new(|_| false);
-		view! { <MobileAccount user=user(None) sign_out=ServerAction::new() on_home=on_home /> }
+async fn one_account_component_lays_out_for_the_wide_header_and_the_mobile_panel() {
+	let html = crate::tests::render_at("/install", || {
+		view! { <AccountControls user=user(None) sign_out=ServerAction::new() menu=AccountMenu::new() /> }
 	})
 	.await;
-	assert!(interior.contains("border-t pt-3 border-rule"), "{interior}");
-	assert!(interior.contains("text-ink\">octo-cat"), "{interior}");
-	assert!(interior.contains(">Connect repositories</a>"), "{interior}");
-	assert!(interior.contains("mt-4 w-full\""), "{interior}");
 
-	let home = crate::tests::render_at("/", || {
-		let on_home = Memo::new(|_| true);
-		view! { <MobileAccount user=user(None) sign_out=ServerAction::new() on_home=on_home /> }
-	})
-	.await;
-	assert!(home.contains("border-t pt-3 border-mist/15"), "{home}");
-	assert!(home.contains("text-mist\">octo-cat"), "{home}");
-	assert!(home.contains("hover:bg-mist/10"), "{home}");
+	// Wide screens: an avatar pill whose open menu closes on an outside click.
+	assert!(
+		html.contains("min-[1101px]:group-open:before:fixed"),
+		"{html}"
+	);
+	assert!(html.contains("min-[1101px]:sr-only"), "{html}");
+	// Mobile panel: the toggle names the account, rows open in place, and the
+	// projects action closes the list as a full-width button.
+	assert!(html.contains("max-[1100px]:pl-11"), "{html}");
+	assert!(
+		html.contains("max-[1100px]:mt-4 max-[1100px]:w-full max-[1100px]:order-last"),
+		"{html}"
+	);
 }
