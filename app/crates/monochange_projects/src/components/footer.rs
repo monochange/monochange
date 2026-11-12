@@ -37,7 +37,7 @@ pub fn Footer(#[prop(optional)] website_version: Option<&'static str>) -> impl I
 						<img src="/branding/wordmark.svg" width="154" height="29" alt="" class="h-auto w-[154px] dark:hidden" />
 						<img src="/branding/wordmark-dark.svg" width="154" height="29" alt="" class="hidden h-auto w-[154px] dark:block" />
 					</a>
-					<p class="mt-2.5 text-[0.95rem] text-mute">"Ship every package from one floor."</p>
+					<p class="mt-2.5 text-[0.95rem] text-mute">"Release planning for monorepos."</p>
 				</div>
 				<nav class="grid grid-cols-2 gap-x-8 gap-y-2.5" aria-label="Footer navigation">
 					{LINKS.map(|(href, label)| view! {
