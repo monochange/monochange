@@ -194,7 +194,7 @@ pub fn FrontendScripts(
 
 	view! {
 		<link rel="modulepreload" href=entry_js />
-		<link rel="preload" href=entry_wasm r#as="fetch" r#type="application/wasm" />
+		<link rel="preload" href=entry_wasm r#as="fetch" r#type="application/wasm" crossorigin="anonymous" />
 		<script type="module">{script}</script>
 	}
 }

@@ -98,7 +98,10 @@ Evidence: the verification child's ignored `.monochange/local/verify-ssr-identit
 
 Release builds use the existing size baseline and tolerances. The gzip totals below are from `website-size.ts check`; entry sizes are the generated precompressed assets.
 
-| Iteration                      | Site WASM raw / gzip / Brotli | Projects WASM raw / gzip / Brotli | Total gzip | Decision                                                                                                      |
-| ------------------------------ | ----------------------------- | --------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------- |
-| Before                         | 942,779 / 375,484 / 288,530   | 972,812 / 348,132 / 260,010       | 1,559,503  | Gate fails against 1,513,294-byte baseline.                                                                   |
-| Release debug logging disabled | 942,231 / 375,286 / 288,441   | 972,255 / 347,958 / 260,277       | 1,559,049  | Discarded: 454 bytes saved overall, with a 267-byte projects Brotli increase and lost production diagnostics. |
+| Iteration                           | Site WASM raw / gzip / Brotli | Projects WASM raw / gzip / Brotli | Total gzip | Decision                                                                                                      |
+| ----------------------------------- | ----------------------------- | --------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------- |
+| Before                              | 942,779 / 375,484 / 288,530   | 972,812 / 348,132 / 260,010       | 1,559,503  | Gate fails against 1,513,294-byte baseline.                                                                   |
+| Release debug logging disabled      | 942,231 / 375,286 / 288,441   | 972,255 / 347,958 / 260,277       | 1,559,049  | Discarded: 454 bytes saved overall, with a 267-byte projects Brotli increase and lost production diagnostics. |
+| Shared navigation and preload reuse | 959,221 / 378,456 / 291,149   | 1,093,765 / 394,064 / 293,193     | 1,598,090  | Kept for shared navigation and session-aware workspace; aggregate gate still fails.                           |
+
+The mobile Lighthouse network record shows two eager WASM transfers before the preload correction and one afterward. Website transfers fell from 577,678 to 291,458 bytes and projects transfers from 520,638 to 293,502 bytes, including response headers. The after numbers also include the shared navigation change, so these are observed page-level results rather than an isolated compressed-file comparison.

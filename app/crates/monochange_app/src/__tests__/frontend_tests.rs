@@ -75,6 +75,7 @@ async fn website_pages_reference_the_website_entry_bundle() {
 		html.contains("href=\"/pkg/site/monochange_app_bg.wasm\""),
 		"{html}"
 	);
+	assert!(html.contains("crossorigin=\"anonymous\""), "{html}");
 	assert!(
 		html.contains("(\"\", \"pkg/site\", \"monochange_app\", \"monochange_app_bg\", false);"),
 		"the hydration script must load the website entry module: {html}"
@@ -93,6 +94,7 @@ async fn product_pages_reference_the_projects_entry_bundle() {
 		html.contains("href=\"/pkg/projects/monochange_projects_web_bg.wasm\""),
 		"{html}"
 	);
+	assert!(html.contains("crossorigin=\"anonymous\""), "{html}");
 	assert!(
 		html.contains(
 			"(\"\", \"pkg/projects\", \"monochange_projects_web\", \"monochange_projects_web_bg\", false);"
