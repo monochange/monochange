@@ -69,6 +69,14 @@ async fn probe_html(frontend: Frontend) -> String {
 #[tokio::test]
 async fn website_pages_reference_the_website_entry_bundle() {
 	let html = scripts_html(Frontend::WEBSITE).await;
+	for font in ["hanken-400", "hanken-700"] {
+		assert!(
+			html.contains(&format!(
+				"href=\"/fonts/{font}.woff2\" as=\"font\" type=\"font/woff2\" crossorigin=\"anonymous\""
+			)),
+			"{html}"
+		);
+	}
 	assert!(
 		html.contains("href=\"/fonts/bricolage-800.woff2\""),
 		"{html}"
@@ -92,6 +100,14 @@ async fn website_pages_reference_the_website_entry_bundle() {
 #[tokio::test]
 async fn product_pages_reference_the_projects_entry_bundle() {
 	let html = scripts_html(Frontend::PROJECTS).await;
+	for font in ["hanken-400", "hanken-700"] {
+		assert!(
+			html.contains(&format!(
+				"href=\"/fonts/{font}.woff2\" as=\"font\" type=\"font/woff2\" crossorigin=\"anonymous\""
+			)),
+			"{html}"
+		);
+	}
 	assert!(
 		html.contains("href=\"/fonts/bricolage-800.woff2\""),
 		"{html}"
