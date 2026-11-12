@@ -1715,9 +1715,10 @@ async fn projects_have_their_own_shell_and_legacy_links_redirect() {
 	let state = configured_state(&server).await;
 	let app = router(&state);
 	let projects = page_html(&app, "/projects", "").await;
-	assert!(projects.contains("monochange projects"));
+	assert!(projects.contains("aria-label=\"monochange home\""));
 	assert!(projects.contains("Your next project starts here"));
-	assert!(!projects.contains("aria-label=\"Main navigation\""));
+	assert!(projects.contains("aria-label=\"Main navigation\""));
+	assert!(!projects.contains("Sign out"));
 	for (old, new) in [
 		("/dashboard/alice", "/projects/alice"),
 		(

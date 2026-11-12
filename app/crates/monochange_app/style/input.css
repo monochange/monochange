@@ -1,5 +1,7 @@
 @import "tailwindcss";
 @source "../src/**/*.rs";
+@source "../../monochange_projects/src/**/*.rs";
+@source "../../monochange_projects_web/src/**/*.rs";
 @custom-variant dark (&:where(.dark, .dark *));
 
 @font-face { font-family: "Bricolage Grotesque"; src: url("/fonts/bricolage-800.ttf") format("truetype"); font-weight: 800; font-display: swap; }
@@ -139,6 +141,15 @@
 .button-quiet:hover { border-color: var(--mc-accent); }
 .button-outline:hover { background: color-mix(in srgb, var(--mc-accent) 22%, transparent); }
 .actions { display: flex; align-items: center; flex-wrap: wrap; gap: var(--mc-gap-action); margin-top: 2rem; }
+.projects-home h1 { margin-top: .5rem; font-size: clamp(2.8rem, 5vw, 4.5rem); }
+.projects-eyebrow { color: var(--mc-accent-deep); font-family: var(--font-mono); font-size: .75rem; font-weight: 700; letter-spacing: .14em; }
+:root.dark .projects-eyebrow { color: var(--mc-accent); }
+.projects-intro { margin-top: 1rem; color: var(--mc-muted); font-size: 1.2rem; }
+.projects-empty { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2rem; margin-top: 3rem; padding: clamp(2rem, 5vw, 4rem); border: 1px solid var(--mc-rule); border-radius: var(--mc-radius-panel); background: var(--mc-surface); }
+.projects-empty-mark { display: grid; width: 80px; height: 80px; place-items: center; border-radius: 20px; background: var(--mc-page); }
+.projects-empty h2 { margin-top: .5rem; font-size: clamp(2rem, 3vw, 2.8rem); }
+.projects-empty h2 + p { max-width: 48ch; margin-top: 1rem; color: var(--mc-muted); font-size: 1.1rem; }
+@media (max-width: 600px) { .projects-empty { grid-template-columns: 1fr; gap: 1.5rem; } }
 .text-link { color: #0f766e; font-weight: 700; text-decoration: underline; display: inline-block; padding-block: .65rem; }
 :root.dark .text-link { color: #2dd4bf; }
 .text-link svg { display: inline-block; vertical-align: middle; margin-left: .3rem; }

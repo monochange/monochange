@@ -10,6 +10,7 @@
 //! live in the entry crate, so linking this library into the website client
 //! cannot retain the product routes.
 #![recursion_limit = "256"]
+pub mod color_mode;
 pub mod components;
 pub mod error;
 pub mod markdown;

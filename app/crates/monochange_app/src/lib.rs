@@ -9,7 +9,7 @@
 pub mod app;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod book;
-pub mod color_mode;
+pub use monochange_projects::color_mode;
 pub mod components;
 pub mod error;
 #[cfg(not(target_arch = "wasm32"))]

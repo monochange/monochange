@@ -25,7 +25,7 @@ fn escape_closes_mobile_navigation() {
 #[tokio::test]
 async fn navbar_on_home_uses_hero_chrome() {
 	let html = crate::tests::render_at("/", || view! { <NavBar /> }).await;
-	assert!(html.contains("bg-hero/80"));
+	assert!(html.contains("bg-hero text-mist"));
 	assert!(html.contains("Skip to content"));
 	assert!(html.contains("aria-label=\"Main navigation\""));
 }
@@ -35,4 +35,14 @@ async fn navbar_off_home_uses_page_chrome() {
 	let html = crate::tests::render_at("/install", || view! { <NavBar /> }).await;
 	assert!(html.contains("border-rule bg-page"));
 	assert!(html.contains("Install"));
+}
+
+#[tokio::test]
+async fn projects_navigation_leaves_the_product_entry_for_website_links() {
+	let html = crate::tests::render_at("/projects", || view! { <NavBar /> }).await;
+	assert!(
+		html.contains("href=\"/install\" target=\"_self\""),
+		"{html}"
+	);
+	assert!(html.contains("href=\"/book\" target=\"_self\""), "{html}");
 }

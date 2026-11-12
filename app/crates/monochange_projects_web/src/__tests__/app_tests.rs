@@ -12,10 +12,7 @@ use crate::tests::render_at;
 async fn the_product_root_renders_the_projects_home() {
 	let html = render_app_at("/projects").await;
 	assert!(html.contains("Your projects"), "{html}");
-	assert!(
-		html.contains("aria-label=\"Projects navigation\""),
-		"{html}"
-	);
+	assert!(html.contains("aria-label=\"Main navigation\""), "{html}");
 	// Cross-entry links in the product navigation must load the website
 	// entry as a document navigation.
 	assert!(html.contains("target=\"_self\""), "{html}");

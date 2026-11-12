@@ -1049,8 +1049,8 @@ async function runBrowserJourney(options: {
 		"the projects document loads no website entry module",
 	);
 	log.check(
-		projects.includes("Projects navigation"),
-		"the projects entry renders its own navigation",
+		projects.includes('aria-label="Main navigation"'),
+		"the projects entry renders the shared navigation",
 	);
 	log.check(
 		projects.includes(identity.orgLogin),

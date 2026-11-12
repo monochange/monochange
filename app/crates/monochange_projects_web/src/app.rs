@@ -15,8 +15,8 @@ use leptos_router::components::Route;
 use leptos_router::components::Router;
 use leptos_router::components::Routes;
 use leptos_router::path;
+use monochange_projects::components::navbar::NavBar;
 use monochange_projects::error::ErrorTemplate;
-use monochange_projects::pages::home::ProjectsNavigation;
 
 use crate::pages::feedback_console::FeedbackConsoleRoute;
 use crate::pages::organization::OrganizationRoute;
@@ -34,7 +34,7 @@ pub fn ProjectsApp() -> impl IntoView {
 		// individual pages override it through the meta context.
 		<Title text="monochange — Release planning for monorepos" />
 		<Router>
-			<ProjectsNavigation />
+			<NavBar />
 			<main id="main-content" class="min-h-screen">
 				<Routes fallback=|| {
 					view! { <ErrorTemplate status=404 message="Page not found" /> }

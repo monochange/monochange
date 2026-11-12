@@ -8,13 +8,13 @@ use leptos_router::hooks::use_location;
 use crate::color_mode::ColorMode;
 use crate::color_mode::provide_color_mode;
 use crate::color_mode::use_color_mode;
-use crate::links::BOOK_URL;
 use crate::server_fns::auth::Logout;
 use crate::server_fns::auth::SessionUser;
 use crate::server_fns::auth::get_session;
 use crate::server_fns::portal::navigation_sign_in_path;
 
 const SITE: &str = "mx-auto w-[min(80rem,calc(100%-6rem))] max-[1050px]:w-[calc(100%-4rem)] max-[760px]:w-[calc(100%-2.5rem)]";
+const BOOK_URL: &str = "/book";
 const BTN_BRAND: &str = "inline-flex min-h-12 shrink-0 items-center justify-center gap-4 whitespace-nowrap rounded-xl bg-brand-700 px-[1.35rem] py-[0.85rem] font-bold leading-snug text-white no-underline transition-colors hover:bg-brand-800";
 
 /// Collapse the mobile menu when Escape is pressed.
@@ -50,17 +50,17 @@ pub fn NavBar() -> impl IntoView {
 		</a>
 		<header class=move || {
 			if on_home.get() {
-				"sticky top-0 z-40 border-b border-transparent bg-hero/80 text-mist backdrop-blur-[10px]"
+				"sticky top-0 z-40 border-b border-transparent bg-hero text-mist"
 			} else {
 				"sticky top-0 z-40 border-b border-rule bg-page"
 			}
 		}>
 			<nav
-				class=format!("{SITE} relative flex min-h-[88px] items-center justify-between gap-8 max-[900px]:min-h-[76px] max-[900px]:flex-wrap max-[900px]:gap-4")
+				class=format!("{SITE} relative flex min-h-[88px] items-center justify-between gap-8 max-[1100px]:min-h-[76px] max-[1100px]:flex-wrap max-[1100px]:gap-4")
 				aria-label="Main navigation"
 				on:keydown=move |event| close_mobile_nav_on_key(&event.key(), set_mobile_open)
 			>
-				<a href="/" class="inline-flex items-center gap-3 text-2xl font-bold tracking-[-0.035em] no-underline max-[900px]:gap-2.5 max-[900px]:text-[1.3rem]" aria-label="monochange home">
+				<a href="/" target=move || monochange_shared::routing::cross_surface_target(&location.pathname.get(), "/") class="inline-flex items-center gap-3 text-2xl font-bold tracking-[-0.035em] no-underline max-[1100px]:gap-2.5 max-[1100px]:text-[1.3rem]" aria-label="monochange home">
 					<img src="/branding/mark.svg" width="36" height="36" alt="" class="shrink-0" />
 					<img
 						src="/branding/wordmark.svg"
@@ -69,9 +69,9 @@ pub fn NavBar() -> impl IntoView {
 						alt=""
 						class=move || {
 							if on_home.get() {
-								"hidden h-auto w-[154px] max-[900px]:w-[138px]"
+								"hidden h-auto w-[154px] max-[1100px]:w-[138px]"
 							} else {
-								"h-auto w-[154px] max-[900px]:w-[138px] dark:hidden"
+								"h-auto w-[154px] max-[1100px]:w-[138px] dark:hidden"
 							}
 						}
 					/>
@@ -82,26 +82,26 @@ pub fn NavBar() -> impl IntoView {
 						alt=""
 						class=move || {
 							if on_home.get() {
-								"block h-auto w-[154px] max-[900px]:w-[138px]"
+								"block h-auto w-[154px] max-[1100px]:w-[138px]"
 							} else {
-								"hidden h-auto w-[154px] max-[900px]:w-[138px] dark:block"
+								"hidden h-auto w-[154px] max-[1100px]:w-[138px] dark:block"
 							}
 						}
 					/>
 				</a>
 				<div class=move || {
 					if on_home.get() {
-						"hidden items-center gap-8 min-[901px]:flex [&_a]:py-[0.65rem] [&_a]:font-bold [&_a]:text-mist [&_a:hover]:text-brand-400 [&_a[aria-current=page]]:text-brand-400"
+						"hidden items-center gap-8 min-[1101px]:flex [&_a]:py-[0.65rem] [&_a]:font-bold [&_a]:text-mist [&_a:hover]:text-brand-400 [&_a[aria-current=page]]:text-brand-400"
 					} else {
-						"hidden items-center gap-8 min-[901px]:flex [&_a]:py-[0.65rem] [&_a]:font-bold [&_a:hover]:text-brand-600 [&_a[aria-current=page]]:text-brand-600 dark:[&_a:hover]:text-brand-400 dark:[&_a[aria-current=page]]:text-brand-400"
+						"hidden items-center gap-8 min-[1101px]:flex [&_a]:py-[0.65rem] [&_a]:font-bold [&_a:hover]:text-brand-600 [&_a[aria-current=page]]:text-brand-600 dark:[&_a:hover]:text-brand-400 dark:[&_a[aria-current=page]]:text-brand-400"
 					}
 				}>
-					<a href="/install" aria-current=move || (location.pathname.get() == "/install").then_some("page")>"Install"</a>
-					<a href=BOOK_URL aria-current=move || location.pathname.get().starts_with(BOOK_URL).then_some("page")>"Docs"</a>
-					<a href="/changelog" aria-current=move || (location.pathname.get() == "/changelog").then_some("page")>"Changelog"</a>
-					<a href="/pricing" aria-current=move || (location.pathname.get() == "/pricing").then_some("page")>"Pricing"</a>
+					<a href="/install" target=move || monochange_shared::routing::cross_surface_target(&location.pathname.get(), "/install") aria-current=move || (location.pathname.get() == "/install").then_some("page")>"Install"</a>
+					<a href=BOOK_URL target=move || monochange_shared::routing::cross_surface_target(&location.pathname.get(), BOOK_URL) aria-current=move || location.pathname.get().starts_with(BOOK_URL).then_some("page")>"Docs"</a>
+					<a href="/changelog" target=move || monochange_shared::routing::cross_surface_target(&location.pathname.get(), "/changelog") aria-current=move || (location.pathname.get() == "/changelog").then_some("page")>"Changelog"</a>
+					<a href="/pricing" target=move || monochange_shared::routing::cross_surface_target(&location.pathname.get(), "/pricing") aria-current=move || (location.pathname.get() == "/pricing").then_some("page")>"Pricing"</a>
 				</div>
-				<div class="flex items-center gap-4 max-[900px]:gap-1">
+				<div class="flex items-center gap-4 max-[1100px]:gap-1">
 					<button
 						class=move || {
 							if on_home.get() {
@@ -120,13 +120,13 @@ pub fn NavBar() -> impl IntoView {
 							<circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5" />
 						</svg>
 					</button>
-					<div class="hidden items-center gap-4 min-[901px]:flex"><SessionLinks session=session sign_out=sign_out /></div>
+					<div class="hidden items-center gap-4 min-[1101px]:flex"><SessionLinks session=session sign_out=sign_out /></div>
 					<button
 						class=move || {
 							if on_home.get() {
-								"grid min-h-11 min-w-11 place-items-center rounded-[10px] hover:bg-mist/10 min-[901px]:hidden"
+								"grid min-h-11 min-w-11 place-items-center rounded-[10px] hover:bg-mist/10 min-[1101px]:hidden"
 							} else {
-								"grid min-h-11 min-w-11 place-items-center rounded-[10px] hover:bg-surface min-[901px]:hidden"
+								"grid min-h-11 min-w-11 place-items-center rounded-[10px] hover:bg-surface min-[1101px]:hidden"
 							}
 						}
 						aria-label="Toggle navigation menu"
@@ -139,13 +139,13 @@ pub fn NavBar() -> impl IntoView {
 				</div>
 				<div
 					id="mobile-navigation"
-					class="flex w-full flex-col pb-4 min-[901px]:hidden"
+					class="flex w-full flex-col pb-4 min-[1101px]:hidden"
 					hidden=move || !mobile_open.get()
 				>
-					<a href="/install" class="min-h-11 border-t border-rule px-4 py-2.5">"Install"</a>
-					<a href=BOOK_URL class="min-h-11 border-t border-rule px-4 py-2.5">"Docs"</a>
-					<a href="/changelog" class="min-h-11 border-t border-rule px-4 py-2.5">"Changelog"</a>
-					<a href="/pricing" class="min-h-11 border-t border-rule px-4 py-2.5">"Pricing"</a>
+					<a href="/install" target=move || monochange_shared::routing::cross_surface_target(&location.pathname.get(), "/install") class="min-h-11 border-t border-rule px-4 py-2.5">"Install"</a>
+					<a href=BOOK_URL target=move || monochange_shared::routing::cross_surface_target(&location.pathname.get(), BOOK_URL) class="min-h-11 border-t border-rule px-4 py-2.5">"Docs"</a>
+					<a href="/changelog" target=move || monochange_shared::routing::cross_surface_target(&location.pathname.get(), "/changelog") class="min-h-11 border-t border-rule px-4 py-2.5">"Changelog"</a>
+					<a href="/pricing" target=move || monochange_shared::routing::cross_surface_target(&location.pathname.get(), "/pricing") class="min-h-11 border-t border-rule px-4 py-2.5">"Pricing"</a>
 					<SessionLinks session=session sign_out=sign_out />
 				</div>
 			</nav>
@@ -174,12 +174,16 @@ fn SessionLinks(
 					>
 						"Projects"
 					</a>
+					{move || monochange_shared::routing::is_projects_path(&location.pathname.get()).then(|| view! {
+						<a href="/dashboard" target="_self" class="py-[0.65rem] font-bold">"Connect repositories"</a>
+						<a href="/account" target="_self" class="py-[0.65rem] font-bold">"Account"</a>
+					})}
 					<ActionForm action=sign_out>
 						<button type="submit" class="inline-block py-[0.65rem] font-bold text-brand-600 underline dark:text-brand-400" disabled=move || sign_out.pending().get()>"Sign out"</button>
 					</ActionForm>
 				}.into_any(),
-				Ok(None) => view! { <a href=sign_in() class=BTN_BRAND>"Sign in"</a> }.into_any(),
-				Err(_) => view! { <a href=sign_in() class=BTN_BRAND>"Sign in again"</a> }.into_any(),
+				Ok(None) => view! { <a href=sign_in() target=move || monochange_shared::routing::cross_surface_target(&location.pathname.get(), "/login") class=BTN_BRAND>"Sign in"</a> }.into_any(),
+				Err(_) => view! { <a href=sign_in() target=move || monochange_shared::routing::cross_surface_target(&location.pathname.get(), "/login") class=BTN_BRAND>"Sign in again"</a> }.into_any(),
 			})}
 
 		</Suspense>

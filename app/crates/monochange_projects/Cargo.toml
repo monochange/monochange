@@ -26,6 +26,9 @@ thiserror = { workspace = true }
 tracing = { workspace = true }
 url = { workspace = true }
 
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+web-sys = { workspace = true }
+
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 leptos_axum = { workspace = true }
 server_fn = { workspace = true, features = ["axum"] }

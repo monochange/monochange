@@ -108,7 +108,7 @@ async fn product_pages_hydrate_through_the_projects_entry() {
 		"product pages must not load the website entry: {projects}"
 	);
 	// The projects entry renders its own navigation and no website footer.
-	assert!(projects.contains("Projects navigation"), "{projects}");
+	assert!(projects.contains("Main navigation"), "{projects}");
 	assert!(
 		!projects.contains("aria-label=\"Footer navigation\""),
 		"{projects}"
