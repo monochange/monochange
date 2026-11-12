@@ -203,3 +203,25 @@ afterAll(async () => {
 	expect([...uncovered].map((offset) => source.slice(offset, offset + 30))).toEqual([]);
 	console.log("hydration loader V8 executable ranges: 100% covered");
 });
+
+test("head capture waits for the streamed document before mounting", async () => {
+	const app = setup();
+	const listen = vi.spyOn(app.document, "addEventListener");
+	const button = app.document.createElement("button");
+	const applied = vi.fn();
+	button.addEventListener("click", applied);
+	app.document.body.append(button);
+	Object.defineProperty(app.document, "readyState", { configurable: true, value: "loading" });
+	app.document.dispatchEvent(new app.window.Event("pointerdown", { bubbles: true }));
+	button.click();
+	await vi.waitFor(() =>
+		expect(listen).toHaveBeenCalledWith("DOMContentLoaded", expect.any(Function), { once: true }),
+	);
+	expect(app.hydrate).not.toHaveBeenCalled();
+	expect(applied).not.toHaveBeenCalled();
+	Object.defineProperty(app.document, "readyState", { configurable: true, value: "interactive" });
+	app.document.dispatchEvent(new app.window.Event("DOMContentLoaded"));
+	await vi.waitFor(() => expect(app.hydrate).toHaveBeenCalledOnce());
+	app.complete();
+	await vi.waitFor(() => expect(applied).toHaveBeenCalledOnce());
+});

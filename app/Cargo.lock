@@ -4049,6 +4049,7 @@ dependencies = [
  "urlencoding",
  "uuid",
  "wasm-bindgen",
+ "wasm-bindgen-futures",
  "web-sys",
 ]
 
@@ -4265,6 +4266,7 @@ dependencies = [
  "tokio",
  "tower",
  "wasm-bindgen",
+ "wasm-bindgen-futures",
 ]
 
 [[package]]

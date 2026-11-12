@@ -10,6 +10,13 @@
 		started = (async () => {
 			const mod = await load(`${root}/${pkg_path}/${output_name}.js`);
 			await mod.default({ module_or_path: `${root}/${pkg_path}/${wasm_output_name}.wasm` });
+			// Capture is installed in the head, before streaming SSR can paint controls.
+			// A quick interaction may finish loading WASM before that stream ends.
+			if (document.readyState === "loading") {
+				await new Promise((resolve) =>
+					document.addEventListener("DOMContentLoaded", resolve, { once: true }),
+				);
+			}
 			await mod.hydrate();
 			hydrated = true;
 			for (const type of triggers) document.removeEventListener(type, start, true);
