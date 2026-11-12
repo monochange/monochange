@@ -43,16 +43,17 @@ pub fn ProjectCard(href: String, project: ProjectSummary) -> impl IntoView {
 		count => format!("{count} repositories"),
 	};
 
-	// This snapshot has no WASM handlers or reactive children. Framework HTML
-	// rendering preserves escaping without retaining its async hydration tree.
-	let content = view! {
-		<a href=href class="project-card">
-			<h3>{project.name}</h3>
-			{(!project.description.is_empty()).then(|| view! { <p>{project.description}</p> })}
-			<span>{count} <ArrowIcon /></span>
-		</a>
-	}
-	.to_html();
+	// Keep attributes typed: view! erases them, and erased attributes cannot be
+	// serialized by the browser build. Typed HTML rendering still escapes data.
+	let content = leptos::html::a()
+		.href(href)
+		.class("project-card")
+		.child((
+			leptos::html::h3().child(project.name),
+			(!project.description.is_empty()).then(|| leptos::html::p().child(project.description)),
+			leptos::html::span().child((count, " ", view! { <ArrowIcon /> })),
+		))
+		.to_html();
 
 	view! { <li inner_html=content /> }
 }
