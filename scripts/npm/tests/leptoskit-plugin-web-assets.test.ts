@@ -167,6 +167,13 @@ describe("leptoskit-plugin-monochange-web-assets", () => {
 		const tailwindBin = fakeTailwind(root);
 		mkdirSync(join(outDir, "fonts"), { recursive: true });
 		writeFileSync(join(outDir, "fonts/bricolage-800.ttf"), "old font");
+		mkdirSync(join(site, "pkg/site"), { recursive: true });
+		mkdirSync(join(site, "pkg/projects"), { recursive: true });
+		for (const suffix of ["", ".gz", ".br"]) {
+			writeFileSync(join(site, `pkg/site/split___obsolete_route_view_123.wasm${suffix}`), "stale");
+		}
+		writeFileSync(join(site, "pkg/site/chunk_11.wasm"), "retained");
+		writeFileSync(join(site, "pkg/projects/chunk_99.wasm"), "other frontend");
 
 		const result = runPluginWithTailwind(
 			{
@@ -207,6 +214,11 @@ describe("leptoskit-plugin-monochange-web-assets", () => {
 		assert.ok(existsSync(join(site, "pkg/site/monochange_app.js.gz")));
 		assert.equal(readFileSync(join(site, "fonts/bricolage-800.woff2"), "utf8"), "fixture woff2");
 		assert.ok(!existsSync(join(site, "fonts/bricolage-800.ttf")));
+		for (const suffix of ["", ".gz", ".br"]) {
+			assert.ok(!existsSync(join(site, `pkg/site/split___obsolete_route_view_123.wasm${suffix}`)));
+		}
+		assert.ok(existsSync(join(site, "pkg/site/chunk_11.wasm")));
+		assert.ok(existsSync(join(site, "pkg/projects/chunk_99.wasm")));
 		const gzipped = readFileSync(join(site, "pkg/site/monochange_app_bg.wasm.gz"));
 		assert.ok(gzipped.byteLength > 0);
 		// The Tailwind CLI's own stdout must not leak into the reply channel.
@@ -232,6 +244,63 @@ describe("leptoskit-plugin-monochange-web-assets", () => {
 		assert.equal(result.status, 0, result.stderr || result.stdout);
 		JSON.parse(result.stdout) as { ok: boolean };
 		assert.ok(existsSync(pkg), "a non-web build must stay untouched");
+	});
+
+	test("an incremental build uses the deployed manifest to preserve live chunks", () => {
+		const { root, outDir, pkg, site } = buildSite("incremental");
+		roots.push(root);
+		const tailwindBin = fakeTailwind(root);
+		const deployed = join(site, "pkg/site");
+		mkdirSync(deployed, { recursive: true });
+		cpSync(join(pkg, "__wasm_split_manifest.json"), join(deployed, "__wasm_split_manifest.json"));
+		rmSync(join(pkg, "__wasm_split_manifest.json"));
+		writeFileSync(join(deployed, "chunk_11.wasm"), "live");
+		writeFileSync(join(deployed, "chunk_99.wasm"), "stale");
+		const result = runPluginWithTailwind(
+			{
+				protocol: 1,
+				plugin: "monochange-web-assets",
+				hook: "after_build",
+				context: {
+					platform: "web",
+					output_dir: outDir,
+					wasm_bundle: `${pkg}/monochange_app_bg.wasm`,
+					options: siteOptions("site"),
+				},
+			},
+			tailwindBin,
+			root,
+		);
+		assert.equal(result.status, 0, result.stderr || result.stdout);
+		assert.ok(existsSync(join(deployed, "chunk_11.wasm")));
+		assert.ok(!existsSync(join(deployed, "chunk_99.wasm")));
+	});
+
+	test("a corrupt split manifest leaves the deployed chunks intact", () => {
+		const { root, outDir, pkg, site } = buildSite("bad-manifest");
+		roots.push(root);
+		const tailwindBin = fakeTailwind(root);
+		writeFileSync(join(pkg, "__wasm_split_manifest.json"), "not json");
+		mkdirSync(join(site, "pkg/site"), { recursive: true });
+		writeFileSync(join(site, "pkg/site/chunk_99.wasm"), "keep");
+		const result = runPluginWithTailwind(
+			{
+				protocol: 1,
+				plugin: "monochange-web-assets",
+				hook: "after_build",
+				context: {
+					platform: "web",
+					output_dir: outDir,
+					wasm_bundle: `${pkg}/monochange_app_bg.wasm`,
+					options: siteOptions("site"),
+				},
+			},
+			tailwindBin,
+			root,
+		);
+		assert.equal(result.status, 1);
+		assert.ok(result.stderr.includes("could not read split manifest"), result.stderr);
+		assert.ok(existsSync(join(site, "pkg/site/chunk_99.wasm")));
 	});
 
 	test("after_build fails loudly without a namespace option", () => {

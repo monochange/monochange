@@ -184,6 +184,46 @@ function compileTailwind(input: string, output: string, tailwindBin: string): vo
 	log(`compiled ${input} → ${output}`);
 }
 
+/** Reads the current split manifest before changing the assembled namespace. */
+function splitAssets(manifestPath: string): Set<string> | null {
+	if (!existsSync(manifestPath)) return null;
+	let manifest: unknown;
+	try {
+		manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+	} catch (error) {
+		fail(`could not read split manifest ${manifestPath}: ${String(error)}`);
+	}
+	if (typeof manifest !== "object" || manifest === null || Array.isArray(manifest)) {
+		fail(`invalid split manifest ${manifestPath}`);
+	}
+	const files = new Set<string>();
+	for (const chunks of Object.values(manifest)) {
+		if (
+			!Array.isArray(chunks) ||
+			chunks.some(
+				(chunk) =>
+					typeof chunk !== "string" || !/^(?:chunk_\d+|split___[a-z0-9_]+_\d+)$/u.test(chunk),
+			)
+		) {
+			fail(`invalid split manifest ${manifestPath}`);
+		}
+		for (const chunk of chunks) files.add(`${chunk}.wasm`);
+	}
+	if (files.size === 0) fail(`invalid split manifest ${manifestPath}: no split modules`);
+	return files;
+}
+
+/** Remove only split modules absent from the manifest and their compression twins. */
+function pruneSplitAssets(namespaceDir: string, current: Set<string> | null): void {
+	if (current === null) return;
+	for (const name of readdirSync(namespaceDir)) {
+		const base = name.replace(/\.(?:br|gz)$/u, "");
+		if (/^(?:chunk_\d+|split___[a-z0-9_]+_\d+)\.wasm$/u.test(base) && !current.has(base)) {
+			rmSync(join(namespaceDir, name));
+		}
+	}
+}
+
 function afterBuild(context: PluginContext): void {
 	const platform = context.platform ?? "web";
 
@@ -282,6 +322,11 @@ function afterBuild(context: PluginContext): void {
 	const siteRoot = resolve(root, siteRootOption);
 	mkdirSync(siteRoot, { recursive: true });
 	const outDirResolved = resolve(outputDir);
+	const namespaceDir = join(siteRoot, "pkg", namespace);
+	const newManifest = join(pkgDir, "__wasm_split_manifest.json");
+	const assets = splitAssets(
+		existsSync(newManifest) ? newManifest : join(namespaceDir, "__wasm_split_manifest.json"),
+	);
 	if (namespace !== "site") {
 		const sharedDir = join(siteRoot, "pkg", "site");
 		mkdirSync(sharedDir, { recursive: true });
@@ -290,7 +335,8 @@ function afterBuild(context: PluginContext): void {
 			rmSync(join(siteRoot, "pkg", namespace, `${outputName}.css${suffix}`), { force: true });
 		}
 	}
-	moveInto(pkgDir, join(siteRoot, "pkg", namespace));
+	moveInto(pkgDir, namespaceDir);
+	pruneSplitAssets(namespaceDir, assets);
 	for (const entry of readdirSync(outDirResolved)) {
 		if (entry === "pkg" || entry === ".font-subsets") continue;
 		const from = join(outDirResolved, entry);
