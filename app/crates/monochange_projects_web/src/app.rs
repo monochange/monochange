@@ -34,6 +34,7 @@ pub fn ProjectsApp() -> impl IntoView {
 		// individual pages override it through the meta context.
 		<Title text="monochange — Release planning for monorepos" />
 		<Router>
+			<monochange_projects::components::canonical::Canonical />
 			<NavBar />
 			<main id="main-content" class="min-h-screen">
 				<Routes fallback=|| {

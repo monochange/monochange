@@ -79,6 +79,11 @@ async fn website_pages_hydrate_through_the_website_entry() {
 	let (status, landing) = get(&app, "/").await;
 	assert_eq!(status, StatusCode::OK);
 	assert!(landing.contains("/pkg/site/monochange_app.js"), "{landing}");
+	assert!(landing.contains("rel=\"canonical\""), "{landing}");
+	assert!(
+		landing.contains("href=\"https://monochange.dev/\""),
+		"{landing}"
+	);
 	let theme_script = landing.find(crate::app::THEME_INIT).unwrap();
 	let stylesheet = landing.find("/pkg/site/monochange_app.css").unwrap();
 	assert!(
@@ -94,6 +99,15 @@ async fn website_pages_hydrate_through_the_website_entry() {
 		"website pages must not reference the projects bundle: {landing}"
 	);
 	assert!(landing.contains("monochange — Release planning for monorepos"));
+	let (_, install) = get(&app, "/install?campaign=example").await;
+	assert!(
+		install.contains("href=\"https://monochange.dev/install\""),
+		"{install}"
+	);
+	assert!(
+		!install.contains("https://monochange.dev/install?campaign"),
+		"{install}"
+	);
 }
 
 #[tokio::test]
@@ -101,6 +115,11 @@ async fn product_pages_hydrate_through_the_projects_entry() {
 	let app = production_router(&state().await);
 	let (status, projects) = get(&app, "/projects").await;
 	assert_eq!(status, StatusCode::OK);
+	assert!(projects.contains("rel=\"canonical\""), "{projects}");
+	assert!(
+		projects.contains("href=\"https://monochange.dev/projects\""),
+		"{projects}"
+	);
 	assert!(
 		projects.contains("/pkg/projects/monochange_projects_web.js"),
 		"{projects}"

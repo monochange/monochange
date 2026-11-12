@@ -116,6 +116,7 @@ pub fn App() -> impl IntoView {
 		<Stylesheet id="leptos" href=monochange_shared::routing::WEBSITE_STYLESHEET />
 		<Title text="monochange — Release planning for monorepos" />
 		<Router>
+			<monochange_projects::components::canonical::Canonical />
 			<NavBar />
 			<main id="main-content" class="min-h-screen">
 				<Routes fallback=|| {
