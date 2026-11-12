@@ -362,7 +362,7 @@ fn AccountControls(
 				</span>
 				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true" class="ml-auto shrink-0 transition-transform group-open:rotate-180"><path d="m6 9 6 6 6-6" /></svg>
 			</summary>
-			<div class="min-[1101px]:absolute min-[1101px]:right-0 min-[1101px]:top-[calc(100%+0.6rem)] min-[1101px]:z-10 min-[1101px]:w-72 min-[1101px]:rounded-2xl min-[1101px]:border min-[1101px]:border-rule min-[1101px]:bg-surface min-[1101px]:p-2 min-[1101px]:text-ink min-[1101px]:shadow-[0_24px_48px_-20px_rgb(11_20_31/0.35)] max-[1100px]:pl-11">
+			<div class="min-[1101px]:absolute min-[1101px]:right-0 min-[1101px]:top-[calc(100%+0.6rem)] min-[1101px]:z-10 min-[1101px]:w-72 min-[1101px]:rounded-2xl min-[1101px]:border min-[1101px]:border-rule min-[1101px]:bg-surface min-[1101px]:p-2 min-[1101px]:text-ink min-[1101px]:shadow-[0_24px_48px_-20px_rgb(25_21_46/0.35)] max-[1100px]:pl-11">
 				<p class="mb-1 border-b border-rule px-3 pb-3 pt-2 text-[0.85rem] text-mute max-[1100px]:hidden">
 					"Signed in as" <span class="block truncate text-base font-bold text-ink">{login}</span>
 				</p>
