@@ -161,11 +161,12 @@
 .install-layout > * { min-width: 0; }
 .install-layout h2 { font-size: 2rem; margin-bottom: 1rem; }
 .install-layout p { max-width: 50ch; color: var(--muted); }
-.install-command pre { margin-top: 1.5rem; padding: 1.5rem; background: var(--mc-ink); color: var(--mc-hero-fg); border-radius: var(--mc-radius-control); overflow-x: auto; font-family: var(--font-mono); font-size: .9rem; }
+.install-command pre { margin-top: 1.5rem; padding: 1.5rem; border: 1px solid color-mix(in srgb, var(--mc-hero-fg) 12%, transparent); background: var(--mc-hero); color: var(--mc-hero-fg); border-radius: var(--mc-radius-control); overflow-x: auto; font-family: var(--font-mono); font-size: .9rem; }
 .install-command summary { padding-block: 1rem; min-height: 44px; color: var(--accent); font-weight: 700; }
 .install-next .button { margin-block: 1.5rem; }
 .small-note { font-size: .9rem; }
 .github-app-section { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; border-top: 1px solid var(--rule); margin-top: 5rem; padding-top: 4rem; scroll-margin-top: 7rem; }
+.github-app-section h2, .free-details h2 { font-size: 2rem; }
 .github-app-section p { color: var(--muted); max-width: 50ch; margin-top: 1.5rem; }
 .availability-note { background: var(--surface); padding: 1.5rem; border-radius: 12px; font-weight: 700; }
 .free-section { background: var(--mc-hero); color: var(--mc-hero-fg); }
@@ -571,7 +572,8 @@ button.button:disabled { opacity: .55; cursor: progress; }
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 /* Website notes reuse the ruled release-manifest layout. */
-.release-intro { padding-block: clamp(3rem, 8vw, 6rem) 3rem; max-width: 78rem; }
+.release-intro { padding-block: clamp(3rem, 8vw, 6rem) 3rem; }
+.eyebrow { color: var(--muted); font-size: .95rem; font-weight: 700; }
 .release-intro h1 { font-size: clamp(3.5rem, 9vw, 7rem); line-height: .95; margin-block: 1rem 1.5rem; }
 .release-intro > p:last-child { max-width: 42rem; font-size: 1.125rem; }
 .release-layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(15rem, 1fr); gap: 4rem; padding-bottom: 6rem; }
@@ -623,7 +625,7 @@ button.button:disabled { opacity: .55; cursor: progress; }
 .book-prose blockquote { border-left: 3px solid var(--accent); padding-left: 1.25rem; color: var(--muted); }
 .book-prose table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; font-size: .95rem; }
 .book-prose :is(th,td) { border-bottom: 1px solid var(--rule); padding: .65rem .9rem; text-align: left; }
-.book-prose pre { overflow-x: auto; background: var(--mc-ink); color: var(--mc-hero-fg); padding: 1.25rem; border-radius: .75rem; font-size: .9rem; line-height: 1.6; overflow-wrap: normal; }
+.book-prose pre { overflow-x: auto; border: 1px solid color-mix(in srgb, var(--mc-hero-fg) 12%, transparent); background: var(--mc-hero); color: var(--mc-hero-fg); padding: 1.25rem; border-radius: .75rem; font-size: .9rem; line-height: 1.6; overflow-wrap: normal; }
 .book-prose :not(pre) > code { background: var(--surface); padding: .15em .35em; border-radius: .3rem; font-size: .9em; }
 .book-prose pre .comment { color: var(--mc-hero-muted); }
 .book-prose pre :is(.keyword,.storage) { color: var(--mc-accent); }
