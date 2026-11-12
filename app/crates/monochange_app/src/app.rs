@@ -44,6 +44,11 @@ FORM: Product floor → release manifest demo → ecosystems → workflow → cl
 FINISH: Align with docs/landing-design.md; keep auth and dashboard routes intact.
 -->";
 
+// A fixed script can be allowed by its SHA-256 CSP hash; it runs before CSS
+// paints so a saved dark preference does not flash the server's light theme.
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) const THEME_INIT: &str = include_str!("theme-init.js");
+
 /// Server-rendered document shell.
 ///
 /// The head references the bundle of whichever frontend owns the request
@@ -59,6 +64,7 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
 			<head>
 				<meta charset="utf-8" />
 				<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+				<script inner_html=THEME_INIT></script>
 				<meta name="theme-color" content="#0F766E" />
 				<meta
 					name="description"

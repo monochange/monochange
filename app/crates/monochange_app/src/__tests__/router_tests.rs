@@ -79,6 +79,12 @@ async fn website_pages_hydrate_through_the_website_entry() {
 	let (status, landing) = get(&app, "/").await;
 	assert_eq!(status, StatusCode::OK);
 	assert!(landing.contains("/pkg/site/monochange_app.js"), "{landing}");
+	let theme_script = landing.find(crate::app::THEME_INIT).unwrap();
+	let stylesheet = landing.find("/pkg/site/monochange_app.css").unwrap();
+	assert!(
+		theme_script < stylesheet,
+		"theme script must precede styles: {landing}"
+	);
 	assert!(
 		landing.contains("/pkg/site/monochange_app.css"),
 		"{landing}"
