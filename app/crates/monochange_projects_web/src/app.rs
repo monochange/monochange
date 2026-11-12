@@ -19,6 +19,7 @@ use monochange_projects::components::navbar::NavBar;
 use monochange_projects::error::ErrorTemplate;
 
 use crate::pages::feedback_console::FeedbackConsoleRoute;
+use crate::pages::home::ProjectsHomeRoute;
 use crate::pages::organization::OrganizationRoute;
 use crate::pages::portal::PortalRoute;
 use crate::pages::project::ProjectRoute;
@@ -40,7 +41,7 @@ pub fn ProjectsApp() -> impl IntoView {
 				<Routes fallback=|| {
 					view! { <ErrorTemplate status=404 message="Page not found" /> }
 				}>
-					<Route path=path!("/projects") view={Lazy::<OrganizationRoute>::new()} />
+					<Route path=path!("/projects") view={Lazy::<ProjectsHomeRoute>::new()} />
 					<Route
 						path=path!("/projects/:organization")
 						view={Lazy::<OrganizationRoute>::new()}

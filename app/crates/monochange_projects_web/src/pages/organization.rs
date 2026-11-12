@@ -36,27 +36,13 @@ impl LazyRoute for OrganizationRoute {
 	fn data() -> Self {
 		let params = use_params_map();
 		let login = Memo::new(move |_| params.read().get("organization").unwrap_or_default());
-		let overview = Resource::new_blocking(
-			move || login.get(),
-			|login| {
-				async move {
-					if login.is_empty() {
-						Ok(None)
-					} else {
-						organization_overview(login).await
-					}
-				}
-			},
-		);
+		let overview = Resource::new_blocking(move || login.get(), organization_overview);
 		Self { login, overview }
 	}
 
 	fn view(this: Self) -> AnyView {
 		let OrganizationRoute { login, overview } = this;
-		if login.get_untracked().is_empty() {
-			view! { <monochange_projects::pages::home::ProjectsHome /> }.into_any()
-		} else {
-			view! {
+		view! {
 			<Title text=move || format!("{} — monochange", login.get()) />
 			<section class="site-width dashboard-section">
 				<Suspense fallback=|| view! { <p role="status">"Loading organisation…"</p> }>
@@ -70,7 +56,6 @@ impl LazyRoute for OrganizationRoute {
 			</section>
 		}
 		.into_any()
-		}
 	}
 }
 

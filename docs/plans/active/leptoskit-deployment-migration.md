@@ -116,3 +116,7 @@ The three deployed font files fell from 196,724 bytes of TTF to 59,012 bytes of 
 The combined identity route was 81,630 bytes gzip. Its four replacement chunks are 21,060 bytes for login, 29,623 for connect, 36,125 for account, and 11,074 for the callback. A browser run confirmed each page requested only its own route chunk; shared chunks and the eager entry are additional. Splitting increases aggregate bundle gzip by 20,045 bytes, so this is a per-page transfer tradeoff, not an aggregate size reduction.
 
 A separate `wasm-opt -Oz --converge` probe on the dashboard chunk reduced its gzip size from 100,036 to 99,760 bytes. The extra pass was not added for that 276-byte saving.
+
+The workspace landing page and organization details previously shared one 90,399-byte gzip route chunk. Splitting their routes yields a 26,088-byte landing chunk and a 69,526-byte organization chunk, reducing the code each page downloads. The complete pkg gate grows from 1,610,370 to 1,618,017 gzip bytes due to shared-code duplication; it still fails on the total, dashboard, and organization budgets. These compressed-file sizes use the deployed `.gz` artifacts; the gate computes gzip independently.
+
+In a mobile Lighthouse run after the split, `/projects` improved from 88 to 92 performance, LCP from 3.8 to 3.4 seconds, and total page weight from 519 to 456 KiB. Both runs scored 100 for accessibility, best practices, and SEO.

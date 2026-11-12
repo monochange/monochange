@@ -5,6 +5,7 @@
 //! load this bundle (see the crate documentation).
 
 pub mod feedback_console;
+pub mod home;
 pub mod organization;
 pub mod portal;
 pub mod project;
