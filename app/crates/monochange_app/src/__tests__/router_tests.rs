@@ -78,7 +78,10 @@ async fn website_pages_hydrate_through_the_website_entry() {
 	let app = production_router(&state().await);
 	let (status, landing) = get(&app, "/").await;
 	assert_eq!(status, StatusCode::OK);
-	assert!(landing.contains("/pkg/site/monochange_app.js"), "{landing}");
+	assert!(
+		landing.contains("\"pkg/site\", \"monochange_app\""),
+		"{landing}"
+	);
 	assert!(landing.contains("rel=\"canonical\""), "{landing}");
 	assert!(
 		landing.contains("href=\"https://monochange.dev/\""),
@@ -121,7 +124,7 @@ async fn product_pages_hydrate_through_the_projects_entry() {
 		"{projects}"
 	);
 	assert!(
-		projects.contains("/pkg/projects/monochange_projects_web.js"),
+		projects.contains("\"pkg/projects\", \"monochange_projects_web\""),
 		"{projects}"
 	);
 	assert!(
@@ -173,7 +176,10 @@ async fn paths_near_the_boundary_stay_on_the_website_entry() {
 	// /pricing must not classify as the /p portal prefix.
 	let (status, pricing) = get(&app, "/pricing").await;
 	assert_eq!(status, StatusCode::OK);
-	assert!(pricing.contains("/pkg/site/monochange_app.js"), "{pricing}");
+	assert!(
+		pricing.contains("\"pkg/site\", \"monochange_app\""),
+		"{pricing}"
+	);
 }
 
 #[tokio::test]

@@ -8,10 +8,9 @@
 //! leptos 0.9's `HydrationScripts` resolves entry file names and the split
 //! manifest through process-global `OnceLock`s keyed to the first caller, so
 //! one process cannot serve two output names through it. [`FrontendScripts`]
-//! renders the same markup per frontend instead: a modulepreload for the
-//! entry module, a wasm preload, leptos' hydration script with the
-//! frontend's paths, and the [`WasmSplitManifest`] context the SSR stream
-//! reads to preload the lazy chunks a page renders.
+//! selects preloads and hydration timing per document. Editable pages keep
+//! eager entry and lazy-route preloads; public pages wait for interaction
+//! or idle and replay button clicks after their routes attach.
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -94,24 +93,17 @@ impl Frontend {
 	}
 }
 
-/// leptos 0.9's hydration script, loaded once per entry with that entry's
-/// paths. Mirrors `leptos-0.9.0-rc1/src/hydration/hydration_script.js`
-/// verbatim so the emitted document hydrates exactly as upstream would.
-const HYDRATION_SCRIPT: &str = r#"(function (root, pkg_path, output_name, wasm_output_name, defer) {
-	const hydrate = () =>
-		import(`${root}/${pkg_path}/${output_name}.js`)
-			.then(mod => {
-				mod.default({module_or_path: `${root}/${pkg_path}/${wasm_output_name}.wasm`}).then(() => {
-					mod.hydrate();
-				});
-			});
-	if (defer && "requestIdleCallback" in window) {
-		window.requestIdleCallback(hydrate, { timeout: 2000 });
-	} else {
-		hydrate();
-	}
-})
-"#;
+/// The small loader waits for input on public documents and replays WASM controls.
+const HYDRATION_SCRIPT: &str = include_str!("hydration.js");
+
+/// Only these documents have links and buttons, with no editable form state.
+fn defer_hydration(path: &str, signed_out: bool) -> bool {
+	matches!(
+		path,
+		"/" | "/install" | "/pricing" | "/changelog" | "/login" | "/book"
+	) || path.starts_with("/book/")
+		|| (path == "/projects" && signed_out)
+}
 
 /// Parsed split manifests per frontend: `(pkg url prefix, preloads, loader)`.
 type SplitManifest = (String, HashMap<String, Vec<String>>, String);
@@ -174,29 +166,52 @@ pub fn FrontendScripts(
 ) -> impl IntoView {
 	let entry_js = frontend.entry_js();
 	let entry_wasm = frontend.entry_wasm();
+	let path = use_context::<RequestUrl>()
+		.and_then(|request| request.parse().ok())
+		.map_or_else(String::new, |url| url.path().to_owned());
+	let signed_out = use_context::<axum::http::request::Parts>()
+		.and_then(|parts| {
+			parts
+				.extensions
+				.get::<monochange_app_api::sessions::Principal>()
+				.cloned()
+		})
+		.is_some_and(|principal| {
+			matches!(
+				principal,
+				monochange_app_api::sessions::Principal::Anonymous
+					| monochange_app_api::sessions::Principal::Stale
+			)
+		});
+	let defer = defer_hydration(&path, signed_out);
 
-	if let Some((pkg_url, preloads, split_loader)) = manifest_for(&frontend, &options.site_root) {
+	if let Some((pkg_url, preloads, split_loader)) = (!defer)
+		.then(|| manifest_for(&frontend, &options.site_root))
+		.flatten()
+	{
 		provide_context(WasmSplitManifest(
 			leptos::reactive::owner::ArcStoredValue::new((pkg_url, preloads, split_loader)),
 		));
 	}
 
-	// No defer: the website has always hydrated immediately, and the projects
-	// entry keeps that behavior.
+	// The server selects the policy; the loader never guesses from browser URLs.
+	let loader = HYDRATION_SCRIPT.trim().trim_end_matches(';');
 	let script = format!(
-		"{HYDRATION_SCRIPT}({:?}, {:?}, {:?}, {:?}, {});",
+		"{loader}({:?}, {:?}, {:?}, {:?}, {});",
 		"",
 		frontend.pkg_url,
 		frontend.output_name,
 		format!("{}_bg", frontend.output_name),
-		false,
+		defer,
 	);
 
 	view! {
 		<link rel="preload" href="/fonts/bricolage-800.woff2" r#as="font" r#type="font/woff2" crossorigin="anonymous" />
-		<link rel="modulepreload" href=entry_js />
-		<link rel="preload" href=entry_wasm r#as="fetch" r#type="application/wasm" crossorigin="anonymous" />
-		<script type="module">{script}</script>
+		{(!defer).then(|| view! {
+			<link rel="modulepreload" href=entry_js />
+			<link rel="preload" href=entry_wasm r#as="fetch" r#type="application/wasm" crossorigin="anonymous" />
+		})}
+		<script r#type=(!defer).then_some("module") data-deferred-hydration=defer.to_string()>{script}</script>
 	}
 }
 

@@ -25,6 +25,7 @@ async fn scripts_html(frontend: Frontend) -> String {
 		.site_root(fixture_site_root())
 		.build();
 	render(move || {
+		provide_context(leptos_router::location::RequestUrl::new("/account"));
 		let options = options.clone();
 		view! { <FrontendScripts options=options frontend=frontend /> }
 	})
@@ -55,6 +56,7 @@ async fn probe_html(frontend: Frontend) -> String {
 		.site_root(fixture_site_root())
 		.build();
 	render(move || {
+		provide_context(leptos_router::location::RequestUrl::new("/account"));
 		let options = options.clone();
 		view! {
 			<FrontendScripts options=options frontend=frontend />
@@ -154,6 +156,7 @@ async fn a_missing_split_manifest_degrades_to_entry_only() {
 		)
 		.build();
 	let html = render(move || {
+		provide_context(leptos_router::location::RequestUrl::new("/account"));
 		let options = options.clone();
 		view! { <FrontendScripts options=options frontend=Frontend::WEBSITE /> }
 	})
@@ -181,6 +184,7 @@ async fn an_invalid_split_manifest_degrades_to_entry_only() {
 		)
 		.build();
 	let html = render(move || {
+		provide_context(leptos_router::location::RequestUrl::new("/account"));
 		let options = options.clone();
 		view! { <FrontendScripts options=options frontend=Frontend::WEBSITE /> }
 	})
@@ -230,5 +234,73 @@ fn frontend_bundle_coordinates_match_the_build_layout() {
 	assert_eq!(
 		Frontend::PROJECTS.manifest_path("/srv/site"),
 		std::path::PathBuf::from("/srv/site/pkg/projects/__wasm_split_manifest.json")
+	);
+}
+
+#[rstest::rstest]
+#[case("/", false, true)]
+#[case("/install", false, true)]
+#[case("/pricing", false, true)]
+#[case("/changelog", false, true)]
+#[case("/login", false, true)]
+#[case("/book", false, true)]
+#[case("/book/install", false, true)]
+#[case("/bookish", false, false)]
+#[case("/projects", true, true)]
+#[case("/projects", false, false)]
+#[case("/projects/acme", true, false)]
+#[case("/dashboard", false, false)]
+#[case("/connect", true, false)]
+#[case("/account", true, false)]
+fn only_public_links_and_buttons_defer(
+	#[case] path: &str,
+	#[case] signed_out: bool,
+	#[case] expected: bool,
+) {
+	assert_eq!(crate::frontend::defer_hydration(path, signed_out), expected);
+}
+
+#[rstest::rstest]
+#[case("/", monochange_app_api::sessions::Principal::Anonymous, true)]
+#[case(
+	"/book/install",
+	monochange_app_api::sessions::Principal::Anonymous,
+	true
+)]
+#[case("/projects", monochange_app_api::sessions::Principal::Anonymous, true)]
+#[case("/projects", monochange_app_api::sessions::Principal::Stale, true)]
+#[case("/projects", monochange_app_api::sessions::Principal::Invalid, false)]
+#[case(
+	"/dashboard",
+	monochange_app_api::sessions::Principal::Anonymous,
+	false
+)]
+#[tokio::test]
+async fn server_policy_controls_preloads(
+	#[case] path: &'static str,
+	#[case] principal: monochange_app_api::sessions::Principal,
+	#[case] deferred: bool,
+) {
+	let options = LeptosOptions::builder()
+		.output_name("monochange_app")
+		.site_root(fixture_site_root())
+		.build();
+	let html = render(move || {
+		provide_context(leptos_router::location::RequestUrl::new(path));
+		let (mut parts, ()) = axum::http::Request::new(()).into_parts();
+		parts.extensions.insert(principal.clone());
+		provide_context(parts);
+		view! { <FrontendScripts options=options.clone() frontend=Frontend::current() /> }
+	})
+	.await;
+	assert_eq!(html.contains("rel=\"modulepreload\""), !deferred, "{html}");
+	assert_eq!(
+		html.contains("type=\"application/wasm\""),
+		!deferred,
+		"{html}"
+	);
+	assert!(
+		html.contains(&format!("data-deferred-hydration=\"{deferred}\"")),
+		"{html}"
 	);
 }

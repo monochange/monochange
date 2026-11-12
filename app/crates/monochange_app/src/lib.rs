@@ -34,6 +34,9 @@ mod tests;
 
 /// Hydrate the Leptos app on the client (WASM only).
 ///
+/// The exported promise resolves after lazy routes attach, so the loader can
+/// replay captured clicks on their hydrated controls.
+///
 /// leptoskit SSR apps call this from `HydrationScripts`. Product RPCs share
 /// the page origin with Class B Axum routes via the leptoskit_rpc web client.
 ///
@@ -41,12 +44,17 @@ mod tests;
 /// client until the server provides its live endpoint.
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen::prelude::wasm_bindgen]
-pub fn hydrate() {
+pub async fn hydrate() {
 	console_error_panic_hook::set_once();
 	_ = console_log::init_with_level(log::Level::Debug);
 	_ = any_spawner::Executor::init_wasm_bindgen();
 
 	// Lazy routes hydrate through their own chunk-loading mount; hydrate_body
 	// panics when it meets one.
-	leptos::mount::hydrate_lazy(app::App);
+	leptos::mount::hydrate_from_async(
+		leptos::prelude::document().body().expect("document body"),
+		app::App,
+	)
+	.await
+	.forget();
 }

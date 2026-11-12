@@ -2056,16 +2056,18 @@ async fn shell_hydrates_without_the_externref_import_map() {
 		!html.contains("type=\"importmap\""),
 		"the inert externref import map must stay retired: {html}"
 	);
-	let module_script = html
-		.find("type=\"module\"")
-		.expect("hydration should load a module script");
 	assert!(
-		html.contains("/pkg/site/monochange_app.js"),
-		"the website shell must reference its own entry bundle: {html}"
+		html.contains("<script data-deferred-hydration=\"true\">"),
+		"{html}"
+	);
+	assert!(html.contains("data-deferred-hydration=\"true\""), "{html}");
+	assert!(
+		html.contains("\"pkg/site\", \"monochange_app\""),
+		"the public shell must initialize its website entry: {html}"
 	);
 	assert!(
-		module_script > html.find("/pkg/site/monochange_app.js").unwrap_or(0),
-		"the entry reference must precede the hydration module script"
+		!html.contains("rel=\"modulepreload\""),
+		"public hydration must wait for interaction: {html}"
 	);
 	assert!(!html.contains("wbindgen-externref-xform"));
 }
