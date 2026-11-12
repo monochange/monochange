@@ -13,7 +13,7 @@
 //
 // 1. minifies the wasm-split loader and the entry glue with the guarded
 //    shared implementation (scripts/minify-split-loader.ts);
-// 2. compiles the shared Tailwind input to `pkg/<output_name>.css`;
+// 2. compiles both frontends' Tailwind sources to `pkg/site/monochange_app.css`;
 // 3. places the frontend's pkg output under `<site_root>/pkg/<namespace>/`,
 //    so the two web frontends assemble into one site root without name
 //    collisions (each entry's split manifest, loader, and chunks live in
@@ -243,8 +243,8 @@ function afterBuild(context: PluginContext): void {
 	log(`minified ${summary.loaders.length} split loader(s) with ${summary.esbuildBin}`);
 	minifyEntryGlue(pkgDir, outputName, summary.esbuildBin);
 
-	// 2. Compile the site CSS into the bundle directory.
-	const cssPath = join(pkgDir, `${outputName}.css`);
+	// 2. Both entries use the same stylesheet, compiled from explicit sources.
+	const cssPath = join(pkgDir, "monochange_app.css");
 	compileTailwind(resolve(root, tailwindInput), cssPath, resolveTailwind(root));
 
 	// 3. Assemble: this frontend's bundle moves under the shared site root's
@@ -258,6 +258,14 @@ function afterBuild(context: PluginContext): void {
 	const siteRoot = resolve(root, siteRootOption);
 	mkdirSync(siteRoot, { recursive: true });
 	const outDirResolved = resolve(outputDir);
+	if (namespace !== "site") {
+		const sharedDir = join(siteRoot, "pkg", "site");
+		mkdirSync(sharedDir, { recursive: true });
+		moveFile(cssPath, join(sharedDir, "monochange_app.css"));
+		for (const suffix of ["", ".gz", ".br"]) {
+			rmSync(join(siteRoot, "pkg", namespace, `${outputName}.css${suffix}`), { force: true });
+		}
+	}
 	moveInto(pkgDir, join(siteRoot, "pkg", namespace));
 	for (const entry of readdirSync(outDirResolved)) {
 		if (entry === "pkg") continue;

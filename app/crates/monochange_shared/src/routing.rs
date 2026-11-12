@@ -37,8 +37,8 @@ pub const PROJECTS_OUTPUT_NAME: &str = "monochange_projects_web";
 
 /// The website entry's stylesheet URL.
 pub const WEBSITE_STYLESHEET: &str = "/pkg/site/monochange_app.css";
-/// The projects entry's stylesheet URL.
-pub const PROJECTS_STYLESHEET: &str = "/pkg/projects/monochange_projects_web.css";
+/// The projects entry shares the website stylesheet.
+pub const PROJECTS_STYLESHEET: &str = WEBSITE_STYLESHEET;
 
 /// The website entry's hydration module URL.
 pub const WEBSITE_ENTRY_JS: &str = "/pkg/site/monochange_app.js";

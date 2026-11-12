@@ -100,7 +100,7 @@ async fn product_pages_hydrate_through_the_projects_entry() {
 		"{projects}"
 	);
 	assert!(
-		projects.contains("/pkg/projects/monochange_projects_web.css"),
+		projects.contains("/pkg/site/monochange_app.css"),
 		"{projects}"
 	);
 	assert!(

@@ -61,10 +61,10 @@ impl Frontend {
 		format!("/{}/{}_bg.wasm", self.pkg_url, self.output_name)
 	}
 
-	/// This frontend's stylesheet URL.
+	/// The stylesheet shared by both frontends.
 	#[must_use]
 	pub fn stylesheet(&self) -> String {
-		format!("/{}/{}.css", self.pkg_url, self.output_name)
+		monochange_shared::routing::WEBSITE_STYLESHEET.to_owned()
 	}
 
 	/// The site-root path of this frontend's split manifest.

@@ -325,6 +325,10 @@ describe("leptoskit-plugin-monochange-web-assets", () => {
 		const { root, outDir, pkg, site } = buildSite("cwd");
 		roots.push(root);
 		const tailwindBin = fakeTailwind(root);
+		mkdirSync(join(site, "pkg/projects"), { recursive: true });
+		for (const suffix of ["", ".gz", ".br"]) {
+			writeFileSync(join(site, `pkg/projects/monochange_app.css${suffix}`), "stale");
+		}
 		// Relative paths in the envelope and the tailwind_input resolve
 		// against the project root in the envelope, not the cwd.
 		const result = runPluginWithTailwind(
@@ -345,8 +349,11 @@ describe("leptoskit-plugin-monochange-web-assets", () => {
 			root,
 		);
 		assert.equal(result.status, 0, result.stderr || result.stdout);
-		const css = readFileSync(join(site, "pkg/projects/monochange_app.css"), "utf8");
+		const css = readFileSync(join(site, "pkg/site/monochange_app.css"), "utf8");
 		assert.ok(css.length > 0);
+		for (const suffix of ["", ".gz", ".br"]) {
+			assert.ok(!existsSync(join(site, `pkg/projects/monochange_app.css${suffix}`)));
+		}
 		assert.ok(tailwindBin.length > 0);
 	});
 

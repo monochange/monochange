@@ -41,7 +41,7 @@ wasm_opt = true
 precompress = false
 
 # The tooling plugin owns everything upstream does not build itself, and runs
-# inside `leptoskit build`: Tailwind CSS for the entry, guarded
+# inside `leptoskit build`: shared Tailwind CSS for both entries, guarded
 # wasm-split-loader minification, pkg namespace placement (pkg/site/ here,
 # pkg/projects/ for the projects frontend), and precompression of the
 # assembled site. The plugin resolves as

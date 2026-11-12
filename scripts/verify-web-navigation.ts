@@ -1041,8 +1041,8 @@ async function runBrowserJourney(options: {
 		"the projects document loads the projects entry module",
 	);
 	log.check(
-		trace.hasStatusEntry("/pkg/projects/monochange_projects_web.css", 200),
-		"the projects document loads the projects stylesheet",
+		trace.hasStatusEntry("/pkg/site/monochange_app.css", 200),
+		"the projects document loads the shared stylesheet",
 	);
 	log.check(
 		!trace.entries.some((entry) => entry.url.endsWith("/pkg/site/monochange_app.js")),

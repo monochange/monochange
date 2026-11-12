@@ -19,13 +19,13 @@ async fn the_product_root_renders_the_projects_home() {
 }
 
 #[tokio::test]
-async fn the_projects_stylesheet_url_points_at_the_projects_bundle() {
+async fn the_projects_stylesheet_is_shared_with_the_website() {
 	let html = render_app_at("/projects").await;
+	assert!(html.contains("/pkg/site/monochange_app.css"), "{html}");
 	assert!(
-		html.contains("/pkg/projects/monochange_projects_web.css"),
+		!html.contains("/pkg/projects/monochange_projects_web.css"),
 		"{html}"
 	);
-	assert!(!html.contains("/pkg/site/monochange_app.css"), "{html}");
 }
 
 #[tokio::test]
