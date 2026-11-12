@@ -80,6 +80,14 @@
 			"rule-manifest": {
 				"role": "neutral",
 				"displayName": "Manifest rule"
+			},
+			"danger-light": {
+				"role": "neutral",
+				"displayName": "Destructive red"
+			},
+			"danger-dark": {
+				"role": "neutral",
+				"displayName": "Dark-theme destructive red"
 			}
 		},
 		"typographyMeta": {
@@ -100,8 +108,16 @@
 				"purpose": "Large public sections."
 			},
 			"title": {
+				"displayName": "Installation section",
+				"purpose": "Smaller installation section headings."
+			},
+			"workspace-title": {
 				"displayName": "Workspace title",
-				"purpose": "Installation and workspace sections."
+				"purpose": "The one title scale for workspace, organization, project, and account pages."
+			},
+			"workspace-section": {
+				"displayName": "Workspace section",
+				"purpose": "Repository and guide sections beneath a workspace title."
 			},
 			"body": {
 				"displayName": "Reading text",
@@ -295,6 +311,11 @@
 				"name": "The Wordmark Rule",
 				"body": "Render the exact lettering in `public/branding/wordmark.svg` or `public/branding/wordmark-dark.svg`. A font-rendered product name is not a replacement for these assets.",
 				"section": "typography"
+			},
+			{
+				"name": "The Danger Rule",
+				"body": "Destructive actions use `danger-light` (#b4233f) for fills and the danger-zone toggle, and `danger-dark` (#fda4af) for the toggle in the dark theme. Do not use the teal accent for them.",
+				"section": "colors"
 			}
 		],
 		"dos": [

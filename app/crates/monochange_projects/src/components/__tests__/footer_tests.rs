@@ -12,6 +12,8 @@ async fn the_website_footer_links_its_release_and_stays_client_side() {
 
 	assert!(html.contains("aria-label=\"Footer navigation\""), "{html}");
 	assert!(html.contains("Website v1.2.3"), "{html}");
+	assert!(html.contains("Release planning for monorepos."), "{html}");
+	assert!(!html.contains("one floor"), "{html}");
 	assert!(!html.contains("target=\"_self\""), "{html}");
 	assert!(
 		html.contains("--brand-icon: url('/icons/github.svg')"),
@@ -29,4 +31,5 @@ async fn the_projects_footer_reaches_the_website_by_document_navigation() {
 	);
 	assert!(html.contains("href=\"/\" target=\"_self\""), "{html}");
 	assert!(!html.contains("Website v"), "{html}");
+	assert!(html.contains("Release planning for monorepos."), "{html}");
 }
