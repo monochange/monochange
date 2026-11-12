@@ -193,6 +193,7 @@ pub fn FrontendScripts(
 	);
 
 	view! {
+		<link rel="preload" href="/fonts/bricolage-800.woff2" r#as="font" r#type="font/woff2" crossorigin="anonymous" />
 		<link rel="modulepreload" href=entry_js />
 		<link rel="preload" href=entry_wasm r#as="fetch" r#type="application/wasm" crossorigin="anonymous" />
 		<script type="module">{script}</script>

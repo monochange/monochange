@@ -4,9 +4,9 @@
 @source "../../monochange_projects_web/src/**/*.rs";
 @custom-variant dark (&:where(.dark, .dark *));
 
-@font-face { font-family: "Bricolage Grotesque"; src: url("/fonts/bricolage-800.ttf") format("truetype"); font-weight: 800; font-display: swap; }
-@font-face { font-family: "Hanken Grotesk"; src: url("/fonts/hanken-400.ttf") format("truetype"); font-weight: 400; font-display: swap; }
-@font-face { font-family: "Hanken Grotesk"; src: url("/fonts/hanken-700.ttf") format("truetype"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "Bricolage Grotesque"; src: url("/fonts/bricolage-800.woff2") format("woff2"); font-weight: 800; font-display: swap; unicode-range: U+0000-024F, U+0300-036F, U+2000-206F, U+20AC, U+2122, U+2190-21FF, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Hanken Grotesk"; src: url("/fonts/hanken-400.woff2") format("woff2"); font-weight: 400; font-display: swap; unicode-range: U+0000-024F, U+0300-036F, U+2000-206F, U+20AC, U+2122, U+2190-21FF, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Hanken Grotesk"; src: url("/fonts/hanken-700.woff2") format("woff2"); font-weight: 700; font-display: swap; unicode-range: U+0000-024F, U+0300-036F, U+2000-206F, U+20AC, U+2122, U+2190-21FF, U+2212, U+2215, U+FEFF, U+FFFD; }
 
 @theme {
   --color-brand-50: #f0fdfa;

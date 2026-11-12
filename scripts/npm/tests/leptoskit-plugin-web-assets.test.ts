@@ -45,6 +45,7 @@ function runPluginWithTailwind(envelope: unknown, tailwindBin: string, cwd?: str
 			...process.env,
 			MONOCHANGE_ESBUILD_BIN: esbuildBin,
 			MONOCHANGE_TAILWIND_BIN: tailwindBin,
+			MONOCHANGE_FONT_SUBSET_BIN: join(dirname(tailwindBin), "font-subset-fake.mjs"),
 		},
 	});
 }
@@ -76,13 +77,17 @@ function buildSite(tag: string): { root: string; outDir: string; pkg: string; si
 	// A stub Tailwind input shaped like the shared app stylesheet.
 	mkdirSync(join(root, "style"), { recursive: true });
 	writeFileSync(join(root, "style/input.css"), '@import "tailwindcss";\n');
+	mkdirSync(join(root, "fonts"), { recursive: true });
+	for (const name of ["bricolage-800", "hanken-400", "hanken-700"]) {
+		writeFileSync(join(root, "fonts", `${name}.ttf`), "fixture font");
+	}
 
 	return { root, outDir, pkg, site };
 }
 
 /** Plugin options shaped like the real [[plugins]] declarations. */
 function siteOptions(namespace: string) {
-	return { namespace, site_root: "site", tailwind_input: "style/input.css" };
+	return { namespace, site_root: "site", tailwind_input: "style/input.css", font_source: "fonts" };
 }
 
 /** A tiny fake Tailwind CLI that writes deterministic minified CSS. */
@@ -103,6 +108,17 @@ function fakeTailwind(root: string): string {
 		].join("\n"),
 	);
 	chmodSync(bin, 0o755);
+	const fontBin = join(root, "font-subset-fake.mjs");
+	writeFileSync(
+		fontBin,
+		[
+			"#!/usr/bin/env node",
+			'import { writeFileSync } from "node:fs";',
+			'const output = process.argv.find((arg) => arg.startsWith("--output-file="));',
+			'writeFileSync(output.slice("--output-file=".length), "fixture woff2");',
+		].join("\n"),
+	);
+	chmodSync(fontBin, 0o755);
 
 	return bin;
 }
@@ -149,6 +165,8 @@ describe("leptoskit-plugin-monochange-web-assets", () => {
 		const { root, outDir, pkg, site } = buildSite("assemble");
 		roots.push(root);
 		const tailwindBin = fakeTailwind(root);
+		mkdirSync(join(outDir, "fonts"), { recursive: true });
+		writeFileSync(join(outDir, "fonts/bricolage-800.ttf"), "old font");
 
 		const result = runPluginWithTailwind(
 			{
@@ -187,6 +205,8 @@ describe("leptoskit-plugin-monochange-web-assets", () => {
 		assert.ok(existsSync(join(site, "pkg/site/monochange_app.css.gz")));
 		assert.ok(existsSync(join(site, "pkg/site/monochange_app.css.br")));
 		assert.ok(existsSync(join(site, "pkg/site/monochange_app.js.gz")));
+		assert.equal(readFileSync(join(site, "fonts/bricolage-800.woff2"), "utf8"), "fixture woff2");
+		assert.ok(!existsSync(join(site, "fonts/bricolage-800.ttf")));
 		const gzipped = readFileSync(join(site, "pkg/site/monochange_app_bg.wasm.gz"));
 		assert.ok(gzipped.byteLength > 0);
 		// The Tailwind CLI's own stdout must not leak into the reply channel.
@@ -293,6 +313,57 @@ describe("leptoskit-plugin-monochange-web-assets", () => {
 		assert.ok(result.stderr.includes("MONOCHANGE_TAILWIND_BIN"), result.stderr);
 	});
 
+	test("after_build fails when the font subsetter cannot run", () => {
+		const { root, outDir, pkg } = buildSite("no-font-subsetter");
+		roots.push(root);
+		const tailwindBin = fakeTailwind(root);
+		rmSync(join(root, "font-subset-fake.mjs"));
+		const result = runPluginWithTailwind(
+			{
+				protocol: 1,
+				plugin: "monochange-web-assets",
+				hook: "after_build",
+				context: {
+					platform: "web",
+					output_dir: outDir,
+					wasm_bundle: `${pkg}/monochange_app_bg.wasm`,
+					options: siteOptions("site"),
+				},
+			},
+			tailwindBin,
+			root,
+		);
+		assert.equal(result.status, 1);
+		assert.ok(result.stderr.includes("could not subset"), result.stderr);
+		assert.ok(existsSync(pkg), "a failed hook must leave the bundle in place");
+	});
+
+	test("after_build rejects a successful subsetter that leaves only stale output", () => {
+		const { root, outDir, pkg } = buildSite("stale-font");
+		roots.push(root);
+		const tailwindBin = fakeTailwind(root);
+		writeFileSync(join(root, "font-subset-fake.mjs"), "#!/usr/bin/env node\n");
+		mkdirSync(join(outDir, ".font-subsets"), { recursive: true });
+		writeFileSync(join(outDir, ".font-subsets/bricolage-800.woff2"), "stale");
+		const result = runPluginWithTailwind(
+			{
+				protocol: 1,
+				plugin: "monochange-web-assets",
+				hook: "after_build",
+				context: {
+					platform: "web",
+					output_dir: outDir,
+					wasm_bundle: `${pkg}/monochange_app_bg.wasm`,
+					options: siteOptions("site"),
+				},
+			},
+			tailwindBin,
+			root,
+		);
+		assert.equal(result.status, 1);
+		assert.ok(result.stderr.includes("no output"), result.stderr);
+	});
+
 	test("after_build fails loudly when the loader is missing", () => {
 		const root = rootFor("no-loader");
 		roots.push(root);
@@ -377,6 +448,7 @@ describe("leptoskit-plugin-monochange-web-assets", () => {
 				...process.env,
 				PATH: `${link}:${process.env.PATH ?? ""}`,
 				MONOCHANGE_TAILWIND_BIN: tailwindBin,
+				MONOCHANGE_FONT_SUBSET_BIN: join(root, "font-subset-fake.mjs"),
 				MONOCHANGE_ESBUILD_BIN: esbuildBin,
 			},
 		});
@@ -404,6 +476,7 @@ describe("leptoskit-plugin-monochange-web-assets", () => {
 				...process.env,
 				PATH: `${link}:${process.env.PATH ?? ""}`,
 				MONOCHANGE_TAILWIND_BIN: tailwindBin,
+				MONOCHANGE_FONT_SUBSET_BIN: join(root, "font-subset-fake.mjs"),
 				MONOCHANGE_ESBUILD_BIN: esbuildBin,
 			},
 		});

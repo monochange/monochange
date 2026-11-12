@@ -118,7 +118,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends binaryen jq
+          sudo apt-get install -y --no-install-recommends binaryen jq fonttools
           wasm-opt --version
 
       - name: install tailwindcss
@@ -317,7 +317,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends binaryen jq
+          sudo apt-get install -y --no-install-recommends binaryen jq fonttools
           wasm-opt --version
 
       - name: cache cargo build

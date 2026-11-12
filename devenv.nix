@@ -37,7 +37,10 @@ in
       openssh
       custom.pnpm
       nodejs_24
-      python3
+      (python3.withPackages (p: [
+        p.fonttools
+        p.brotli
+      ]))
       rustup
       shfmt
       taplo

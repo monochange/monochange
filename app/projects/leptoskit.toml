@@ -64,6 +64,7 @@ namespace = "projects"
 site_root = "../target/site"
 # Shared design tokens: one Tailwind input compiles for both frontends.
 tailwind_input = "../crates/monochange_app/style/input.css"
+font_source = "../public/fonts"
 
 [lint]
 # Prefer view! markup over builder trees for human-authored UI.

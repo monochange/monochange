@@ -59,6 +59,9 @@ import { minifyEntryGlue, minifySplitLoaders } from "../minify-split-loader.ts";
 
 const PROTOCOL = 1;
 const PLUGIN_NAME = "monochange-web-assets";
+const FONT_NAMES = ["bricolage-800", "hanken-400", "hanken-700"];
+const FONT_UNICODES =
+	"U+0000-024F,U+0300-036F,U+2000-206F,U+20AC,U+2122,U+2190-21FF,U+2212,U+2215,U+FEFF,U+FFFD";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(scriptDir, "..", "..");
@@ -213,6 +216,7 @@ function afterBuild(context: PluginContext): void {
 	if (typeof tailwindInput !== "string" || tailwindInput.length === 0) {
 		fail("plugin options must declare a `tailwind_input` relative to the project root");
 	}
+	const fontSource = options.font_source;
 
 	const siteRootOption = options.site_root;
 	if (typeof siteRootOption !== "string" || siteRootOption.length === 0) {
@@ -246,6 +250,26 @@ function afterBuild(context: PluginContext): void {
 	// 2. Both entries use the same stylesheet, compiled from explicit sources.
 	const cssPath = join(pkgDir, "monochange_app.css");
 	compileTailwind(resolve(root, tailwindInput), cssPath, resolveTailwind(root));
+	if (typeof fontSource !== "string" || fontSource.length === 0) {
+		fail("plugin options must declare a `font_source` relative to the project root");
+	}
+	const fontDir = join(resolve(outputDir), ".font-subsets");
+	mkdirSync(fontDir, { recursive: true });
+	for (const name of FONT_NAMES) {
+		const source = resolve(root, fontSource, `${name}.ttf`);
+		const output = join(fontDir, `${name}.woff2`);
+		rmSync(output, { force: true });
+		const subset = spawnSync(
+			process.env.MONOCHANGE_FONT_SUBSET_BIN ?? "pyftsubset",
+			[source, `--output-file=${output}`, "--flavor=woff2", `--unicodes=${FONT_UNICODES}`],
+			{ encoding: "utf8" },
+		);
+		if (subset.error !== undefined || subset.status !== 0 || !existsSync(output)) {
+			const detail =
+				subset.error?.message || subset.stderr || `exit ${String(subset.status)} or no output`;
+			fail(`could not subset ${source}: ${detail}`);
+		}
+	}
 
 	// 3. Assemble: this frontend's bundle moves under the shared site root's
 	// pkg/<namespace>/, keeping relative loader and chunk URLs inside the
@@ -268,7 +292,7 @@ function afterBuild(context: PluginContext): void {
 	}
 	moveInto(pkgDir, join(siteRoot, "pkg", namespace));
 	for (const entry of readdirSync(outDirResolved)) {
-		if (entry === "pkg") continue;
+		if (entry === "pkg" || entry === ".font-subsets") continue;
 		const from = join(outDirResolved, entry);
 		const to = join(siteRoot, entry);
 		if (statSync(from).isDirectory()) {
@@ -277,6 +301,13 @@ function afterBuild(context: PluginContext): void {
 			moveFile(from, to);
 		}
 	}
+	const deployedFonts = join(siteRoot, "fonts");
+	mkdirSync(deployedFonts, { recursive: true });
+	for (const name of FONT_NAMES) {
+		moveFile(join(fontDir, `${name}.woff2`), join(deployedFonts, `${name}.woff2`));
+		rmSync(join(deployedFonts, `${name}.ttf`), { force: true });
+	}
+	rmSync(fontDir, { recursive: true, force: true });
 
 	log(`assembled the ${outputName} bundle into ${siteRoot}/pkg/${namespace}/`);
 

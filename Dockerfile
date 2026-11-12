@@ -17,6 +17,7 @@ RUN apt-get update \
         jq \
         perl \
         pkg-config \
+        fonttools \
         libssl-dev \
         curl \
         ca-certificates \

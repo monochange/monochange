@@ -68,6 +68,10 @@ async fn probe_html(frontend: Frontend) -> String {
 async fn website_pages_reference_the_website_entry_bundle() {
 	let html = scripts_html(Frontend::WEBSITE).await;
 	assert!(
+		html.contains("href=\"/fonts/bricolage-800.woff2\""),
+		"{html}"
+	);
+	assert!(
 		html.contains("modulepreload\" href=\"/pkg/site/monochange_app.js\""),
 		"{html}"
 	);
@@ -75,7 +79,7 @@ async fn website_pages_reference_the_website_entry_bundle() {
 		html.contains("href=\"/pkg/site/monochange_app_bg.wasm\""),
 		"{html}"
 	);
-	assert!(html.contains("crossorigin=\"anonymous\""), "{html}");
+	assert!(html.contains("href=\"/pkg/site/monochange_app_bg.wasm\" as=\"fetch\" type=\"application/wasm\" crossorigin=\"anonymous\""), "{html}");
 	assert!(
 		html.contains("(\"\", \"pkg/site\", \"monochange_app\", \"monochange_app_bg\", false);"),
 		"the hydration script must load the website entry module: {html}"
@@ -87,6 +91,10 @@ async fn website_pages_reference_the_website_entry_bundle() {
 async fn product_pages_reference_the_projects_entry_bundle() {
 	let html = scripts_html(Frontend::PROJECTS).await;
 	assert!(
+		html.contains("href=\"/fonts/bricolage-800.woff2\""),
+		"{html}"
+	);
+	assert!(
 		html.contains("modulepreload\" href=\"/pkg/projects/monochange_projects_web.js\""),
 		"{html}"
 	);
@@ -94,7 +102,7 @@ async fn product_pages_reference_the_projects_entry_bundle() {
 		html.contains("href=\"/pkg/projects/monochange_projects_web_bg.wasm\""),
 		"{html}"
 	);
-	assert!(html.contains("crossorigin=\"anonymous\""), "{html}");
+	assert!(html.contains("href=\"/pkg/projects/monochange_projects_web_bg.wasm\" as=\"fetch\" type=\"application/wasm\" crossorigin=\"anonymous\""), "{html}");
 	assert!(
 		html.contains(
 			"(\"\", \"pkg/projects\", \"monochange_projects_web\", \"monochange_projects_web_bg\", false);"
