@@ -246,6 +246,20 @@ fn row_style(status: RowStatus) -> RowStyle {
 	}
 }
 
+/// The pill that names a row's status, such as `minor` or `dependency`.
+///
+/// A row renders it twice: in the status column, and under the package name
+/// for narrow screens, where the table has no room for a status column. Each
+/// copy is `display: none` outside its breakpoint, so assistive technology
+/// reads the status once.
+fn status_tag(label: &'static str, class: &'static str) -> impl IntoView {
+	view! {
+		<span class=format!(
+			"inline-flex items-center rounded-full px-2 py-0.5 font-mono text-[0.62rem] uppercase tracking-[0.08em] {class}",
+		)>{label}</span>
+	}
+}
+
 /// Pill styling for the console's pressed/unpressed choice buttons.
 fn pill_class(pressed: bool) -> String {
 	format!(
@@ -401,7 +415,7 @@ fn PlanConsole() -> impl IntoView {
 				"monochange preview"
 			</p>
 			<div class="mt-3 overflow-x-auto" aria-live="polite">
-				<table class="w-full min-w-[21rem] border-collapse text-left">
+				<table class="w-full min-w-[21rem] border-collapse text-left max-[760px]:min-w-0">
 					<caption class="sr-only">
 						"Illustrative release plan for an example workspace"
 					</caption>
@@ -443,6 +457,15 @@ fn PlanConsole() -> impl IntoView {
 														{package.ecosystem}
 													</span>
 												</span>
+												{style
+													.tag_label
+													.map(|label| {
+														view! {
+															<span class="mt-1.5 hidden max-[760px]:block">
+																{status_tag(label, style.tag_class)}
+															</span>
+														}
+													})}
 											</th>
 											<td class="whitespace-nowrap py-2 pr-2 font-mono text-[0.8rem] text-hero-muted">
 												{format_version(package.version)}
@@ -458,17 +481,10 @@ fn PlanConsole() -> impl IntoView {
 													{next}
 												</span>
 											</td>
-											<td class="py-2 pr-3 text-right">
+											<td class="py-2 pr-3 text-right max-[760px]:hidden">
 												{style
 													.tag_label
-													.map(|label| {
-														view! {
-															<span class=format!(
-																"inline-flex items-center rounded-full px-2 py-0.5 font-mono text-[0.62rem] uppercase tracking-[0.08em] {}",
-																style.tag_class,
-															)>{label}</span>
-														}
-													})}
+													.map(|label| status_tag(label, style.tag_class))}
 											</td>
 										</tr>
 									}

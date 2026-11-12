@@ -214,3 +214,33 @@ async fn home_page_renders_the_release_preview() {
 		html.contains("href=\"/login?next=%2Fprojects\"") || html.contains("href=\"/projects\"")
 	);
 }
+
+#[tokio::test]
+async fn status_tag_names_the_status_in_its_style() {
+	let html = crate::tests::render(|| {
+		view! { {status_tag("minor", "border border-signal/70 text-signal")} }
+	})
+	.await;
+
+	assert!(html.contains(">minor</span>"), "{html}");
+	assert!(html.contains("uppercase"), "{html}");
+	assert!(html.contains("border-signal/70"), "{html}");
+}
+
+#[tokio::test]
+async fn the_console_keeps_every_status_within_a_narrow_table() {
+	let html = crate::tests::render(|| view! { <HomePage /> }).await;
+
+	// acme-core is the changed package and acme-cli its only dependent: each
+	// shows its status under the package name on narrow screens, and in the
+	// status column otherwise.
+	assert_eq!(html.matches("mt-1.5 hidden max-[760px]:block").count(), 2);
+	assert_eq!(
+		html.matches("py-2 pr-3 text-right max-[760px]:hidden")
+			.count(),
+		6
+	);
+	assert!(html.contains(">minor</span>"), "{html}");
+	assert!(html.contains(">dependency</span>"), "{html}");
+	assert!(html.contains("max-[760px]:min-w-0"), "{html}");
+}
