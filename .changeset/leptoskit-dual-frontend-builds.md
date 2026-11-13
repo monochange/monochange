@@ -20,13 +20,15 @@ find /site/pkg -type f \( -name '*.wasm' -o -name '*.js' -o -name '*.css' \) \
 After:
 
 ```bash
-# resolves the CLI from [workspace.metadata.bin] and verifies the Git pin
-leptoskit_bin="$(scripts/leptoskit-cli.sh)"
-(cd app && "$leptoskit_bin" build --release --platform web --out target/web)
-(cd app/projects && "$leptoskit_bin" build --release --platform web --out ../target/site)
+# Resolves the CLI from [workspace.metadata.bin] and verifies the Git pin,
+# builds both frontends into fresh scratch outputs under
+# .monochange/local/web-build/<run>/, and only after both builds pass their
+# own bundle reports and budgets publishes one validated tree at
+# app/target/site. Docker and CI run the same build-then-publish sequence.
+devenv shell build:web --release
 ```
 
-The tooling plugin declared under `[[plugins]]` in both web configs runs inside each build, before release precompression: it compiles the shared Tailwind input to the entry CSS (the leptoskit build produced no CSS on its own), minifies the wasm-split loader and each entry's wasm-bindgen glue through the guarded `scripts/minify-split-loader.ts` (restoring cargo-leptos `js-minify` parity for the main `{output_name}.js`), and places each frontend's bundle under `pkg/site/` or `pkg/projects/` so both entries assemble into one deployment without colliding split manifests or chunk names. Missing tools fail the build loudly; run `leptoskit doctor` to check a build environment. The plugin resolves as `leptoskit-plugin-monochange-web-assets` on PATH (the devenv profile provides it; provide the same symlink in other environments).
+The tooling plugin declared under `[[plugins]]` in both web configs runs inside each build, before release precompression: it compiles the shared Tailwind input to the entry CSS (the leptoskit build produced no CSS on its own), minifies the wasm-split loader and each entry's wasm-bindgen glue through the guarded `scripts/minify-split-loader.ts` (restoring cargo-leptos `js-minify` parity for the main `{output_name}.js`), and leaves each frontend's finished bundle in its own scratch output. After both builds succeed, `scripts/leptoskit-plugin/publish-web-site.ts` assembles the bundles under `pkg/site/` and `pkg/projects/`, so both entries share one deployment without colliding split manifests or chunk names, and promotes the validated tree. Missing tools fail the build loudly; run `leptoskit doctor` to check a build environment. The plugin resolves as `leptoskit-plugin-monochange-web-assets` on PATH (the devenv profile provides it; provide the same symlink in other environments).
 
 The server composes both SSR route sets in one registration — `leptos_routes_with_context` receives the merged route listings of both trees, so `/api` server functions register exactly once — and renders the entry scripts, stylesheet, and split manifest of the frontend that owns the request path. leptos 0.9's `HydrationScripts` caches entry names process-globally, so the composition renders per-frontend hydration scripts explicitly; the emitted markup matches upstream for each entry. Because the router intercepts same-origin anchor clicks, links that cross between the website and projects entries render with `target="_self"`, forcing the real document navigation that loads the other bundle.
 
