@@ -133,7 +133,7 @@ jobs:
         if: startsWith(matrix.os, 'ubuntu') && !contains(matrix.target, '-musl')
 
       - name: install cross
-        uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
+        uses: taiki-e/install-action@cfdb7ed4ccc7c7dce37759eae89dc5674b469b39 # v2.90.3
         with:
           tool: cross
         if: contains(matrix.target, '-musl')
@@ -318,7 +318,7 @@ jobs:
         shell: devenv shell -- bash -e {0}
 
       - name: get crates oidc auth token
-        uses: rust-lang/crates-io-auth-action@c6f97d42243bad5fab37ca0427f495c86d5b1a18 # v1.0.5
+        uses: rust-lang/crates-io-auth-action@3268eb413133e2960fa4ae0e963ca76380c54cd9 # v1.0.6
         id: crates-oidc
 
       - name: download release assets
@@ -348,7 +348,7 @@ jobs:
         shell: devenv shell -- bash -e {0}
 
       - name: check publish readiness
-        uses: monochange/actions@77fe97c0119e8c16e429d6f5cf94859b097cdcf8 # v0.10.1
+        uses: monochange/actions@104b58f3ff8b6d3a6153a87a553a2bdaaa42a78f # v0.12.0
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.crates-oidc.outputs.token }}
         with:
@@ -390,7 +390,7 @@ jobs:
           cache: false
 
       - name: publish packages
-        uses: monochange/actions@77fe97c0119e8c16e429d6f5cf94859b097cdcf8 # v0.10.1
+        uses: monochange/actions@104b58f3ff8b6d3a6153a87a553a2bdaaa42a78f # v0.12.0
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.crates-oidc.outputs.token }}
         with:
