@@ -133,7 +133,15 @@ A failed `website-deployment` leaves the website release as a draft. Where it fa
      '/usr/local/bin/monochange-sqlite-backup && /usr/local/bin/monochange-deploy monochange-app:<previous-full-sha>'
    ```
 
-   An older image may not understand a schema its successor migrated. Read the release's migrations first, and restore a backup from `/opt/monochange/backups` when the older image needs the older schema. A newer website release supersedes a failed one, but it needs the same fix before it can start.
+   Image rollback and database restore are different tools, and nothing downgrades the database automatically. Follow this checklist, in order:
+
+   1. **Back up first, always before any schema change runs**: `/usr/local/bin/monochange-sqlite-backup` takes an online `sqlite3 .backup` snapshot while the app is running. Note the timestamp of the snapshot you made.
+   2. **Prefer the image rollback.** The candidate's migrations are additive: new tables (`oauth_state_uses`, `client_grants`, `client_sessions`) and one new column (`users.session_epoch`, default 0), with every 0.3.3 column, row, and value preserved — proven by the release-upgrade rehearsal (`monochange_app_db` tests and `scripts/sqlite-backup-rehearsal.ts`). An older image's reads keep working against the upgraded schema, and its migration runner no-ops on migrations it does not know. This is reader/runner compatibility, not proof the old binary was re-run; watch its startup logs after it starts.
+   3. **Restore only if an old image cannot run against the newer schema**, and treat a restore as discarding every write newer than the snapshot: stop the app, verify the snapshot before replacing anything (`sqlite3 /opt/monochange/backups/<snapshot>.sqlite3 'PRAGMA quick_check; PRAGMA integrity_check;'` — refuse a snapshot that fails either check), export anything you need from the newer data first, then copy the snapshot over `/opt/monochange/data/monochange_app.sqlite3` as the `deploy` user and start the app again. No helper restores automatically.
+   4. **Preserve the surrounding state**: keep the Droplet's SQLite engine and bind mounts (`/opt/monochange/data`, `/opt/monochange/caddy`, `/opt/monochange/backups`, root-owned `/opt/monochange/secrets` with the server-owned service-account token) exactly as they are, keep Caddy running — its TLS state lives in `/opt/monochange/caddy` — and keep the previous image plus the deployment receipts (`.env`, `.website-version`, the draft GitHub release) until the recovered deployment is verified healthy.
+   5. **Know the limit**: backups are Droplet-local (14-day retention via `find -mtime +14`); no off-Droplet copy exists yet. If the Droplet itself is lost, recover through [build a new production server](#build-a-new-production-server) and restore the latest snapshot onto it — anything newer than that snapshot, and anything never backed up, is gone.
+
+   A newer website release supersedes a failed one, but it needs the same fix before it can start.
 
 ## runtime configuration
 
@@ -257,7 +265,9 @@ Root login is key-only. The helpers are root-owned so the `deploy` user, and the
 
 `harden-droplet.sh` installs `/usr/local/bin/monochange-sqlite-backup` and a daily cron entry. Each run writes a consistent `sqlite3 .backup` snapshot to `/opt/monochange/backups/monochange_app-<UTC timestamp>.sqlite3` and deletes snapshots older than 14 days. Every deployment takes one more snapshot before the restart.
 
-Off-Droplet copies are not set up yet. The preferred first option is `rclone` to Backblaze B2 or DigitalOcean Spaces; use `restic` later if encrypted, deduplicated backups become important. To restore, stop the app, copy a snapshot over `/opt/monochange/data/monochange_app.sqlite3` as the `deploy` user, and start the app again.
+The mechanism is rehearsed against the real release schema: `scripts/sqlite-backup-rehearsal.ts` (its `vitest` suite lives in `scripts/npm/tests/`) builds the upgrade-rehearsal database from `fixtures/tests/app-sqlite-release-upgrade/`, writes committed rows into an uncheckpointed WAL file, takes the same `sqlite3 .backup` snapshot, and restores it into a different directory. The rehearsal proves three things an operator can rely on: a snapshot taken while the app is writing contains every committed row (a torn copy of just the database file misses the rows still in the WAL); a restored snapshot passes `quick_check`, `integrity_check`, and `foreign_key_check`; and restoring verifies the snapshot before replacing anything, so a corrupt or missing snapshot fails and leaves the last-good database untouched.
+
+Off-Droplet copies are not set up yet. The preferred first option is `rclone` to Backblaze B2 or DigitalOcean Spaces; use `restic` later if encrypted, deduplicated backups become important. To restore, stop the app, verify the snapshot first (`sqlite3 <snapshot>.sqlite3 'PRAGMA quick_check; PRAGMA integrity_check;'`), export anything you need from the newer data, copy the verified snapshot over `/opt/monochange/data/monochange_app.sqlite3` as the `deploy` user, and start the app again. A restore is always deliberate: no workflow, helper, or cron job replaces the live database on its own.
 
 ## build a new production server
 

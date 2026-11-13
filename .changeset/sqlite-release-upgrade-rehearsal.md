@@ -1,0 +1,11 @@
+---
+monochange_app: test
+---
+
+# Rehearse the SQLite release upgrade and the deployed backup mechanism
+
+Release readiness for the website now rests on executed proofs instead of plans. A new rehearsal suite in `monochange_app_db` builds an authentic v0.3.3 database (the real first-five migration implementation, byte-identical to the `monochange_app/v0.3.3` tag, seeded from checked-in fixtures in `fixtures/tests/app-sqlite-release-upgrade/`), runs the current migration runner over it, and asserts every legacy row — including the opaque token bytes — survives unchanged, `_welds_migrations` records exactly the two candidate migrations (`006_create_oauth_state_uses`, `007_create_client_sessions`) while keeping the original five rows' ids and timestamps, `quick_check` and `foreign_key_check` stay clean, `users.session_epoch` defaults existing users to 0, and a second migration pass is idempotent without touching post-upgrade writes. A further test pins the rollback limit honestly: the v0.3.3 runner's migration list no-ops against the upgraded schema, which establishes reader/runner compatibility — not old-binary compatibility.
+
+The deployed backup mechanism gets the same treatment: `scripts/sqlite-backup-rehearsal.ts` rehearses `harden-droplet.sh`'s `monochange-sqlite-backup` (`sqlite3 .backup` with a 14-day retention sweep) against the same schema fixtures. It proves a snapshot taken while committed rows sit in an uncheckpointed WAL contains them (a torn copy of just the database file misses those rows), that the snapshot restores into a different directory with clean `quick_check`, `integrity_check`, and `foreign_key_check`, that the source database is untouched, and that corrupt or missing snapshots are refused before any last-good destination is replaced.
+
+`app/DEPLOY.md` and `app/deploy/digitalocean/OPERATIONS.md` now carry the concrete contract these proofs back: a data-preserving rollback checklist (back up before migrations, prefer image rollback, restore only deliberately after verifying the snapshot, preserve the Droplet's engine, bind mounts, secrets, and Caddy state, retain previous images and receipts), the honest limits (off-Droplet backups still unset, restores discard writes newer than the snapshot), and the rehearsal's evidence trail.
