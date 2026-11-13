@@ -278,10 +278,12 @@ export class OwnedProcesses {
 		for (const managed of this.owned.toReversed()) {
 			if (!managed.isEnded()) {
 				managed.child.kill("SIGTERM");
+				// eslint-disable-next-line eslint/no-await-in-loop -- teardown is sequential by contract: each owned process must be confirmed stopped before the next is signalled.
 				const graceful = await Promise.race([managed.end, sleep(GRACEFUL_MS).then(() => null)]);
 
 				if (graceful === null) {
 					managed.child.kill("SIGKILL");
+					// eslint-disable-next-line eslint/no-await-in-loop -- the bounded SIGKILL wait only starts after the graceful wait expired for this same child.
 					const killed = await Promise.race([managed.end, sleep(KILL_MS).then(() => null)]);
 
 					if (killed === null) {
@@ -293,6 +295,7 @@ export class OwnedProcesses {
 				}
 			}
 
+			// eslint-disable-next-line eslint/no-await-in-loop -- teardown is sequential by contract: a child's stdio streams are confirmed closed before the next owned process starts.
 			const streamsClosed = await Promise.race([managed.closed, sleep(STREAM_MS).then(() => null)]);
 
 			if (streamsClosed === null) {
@@ -345,6 +348,7 @@ async function waitForHealthy(options: {
 
 	for (;;) {
 		if (managed.isEnded()) {
+			// eslint-disable-next-line eslint/no-await-in-loop -- the exit detail is only needed once this iteration observed the process end; polling stays sequential by design.
 			const end = await managed.end;
 
 			throw new Error(
@@ -352,15 +356,18 @@ async function waitForHealthy(options: {
 			);
 		}
 
+		// eslint-disable-next-line eslint/no-await-in-loop -- health polling is sequential by contract: the next attempt only starts after this one answered.
 		if ((await fetchHealth()) === "ok") {
 			// A health answer is only proof when OUR process is the
 			// responder. On a reused port a stale process answers while the
 			// child we spawned is still booting towards its own bind
 			// failure, so the answer must still be ours after a
 			// confirmation window and a second fetch.
+			// eslint-disable-next-line eslint/no-await-in-loop -- the confirmation window and re-fetch depend on the answer above and must not overlap it.
 			await sleep(confirmationMs);
 
 			if (managed.isEnded()) {
+				// eslint-disable-next-line eslint/no-await-in-loop -- the exit detail is only needed once this iteration observed the process end.
 				const end = await managed.end;
 
 				throw new Error(
@@ -368,6 +375,7 @@ async function waitForHealthy(options: {
 				);
 			}
 
+			// eslint-disable-next-line eslint/no-await-in-loop -- the confirming re-fetch depends on the confirmation sleep and the earlier answer.
 			if ((await fetchHealth()) === "ok" && !managed.isEnded()) {
 				return;
 			}
@@ -379,6 +387,7 @@ async function waitForHealthy(options: {
 			);
 		}
 
+		// eslint-disable-next-line eslint/no-await-in-loop -- the backoff between polling attempts is deliberately sequential; parallelizing it would hammer the starting server.
 		await sleep(intervalMs);
 	}
 }
@@ -693,6 +702,7 @@ export async function startOwnedChrome(options: {
 
 	while (Date.now() < deadline) {
 		if (managed.isEnded()) {
+			// eslint-disable-next-line eslint/no-await-in-loop -- the exit detail is only needed once this iteration observed the process end; startup polling stays sequential.
 			const end = await managed.end;
 
 			throw new Error(
@@ -701,9 +711,11 @@ export async function startOwnedChrome(options: {
 		}
 
 		try {
+			// eslint-disable-next-line eslint/no-await-in-loop -- DevTools readiness is polled one attempt at a time; the next probe depends on whether this one found the page target.
 			const response = await fetch(`http://127.0.0.1:${options.port}/json/list`, {
 				signal: AbortSignal.timeout(2000),
 			});
+			// eslint-disable-next-line eslint/no-await-in-loop -- the target list belongs to the response fetched above.
 			const targets = (await response.json()) as Array<{
 				type?: string;
 				webSocketDebuggerUrl?: string;
@@ -717,6 +729,7 @@ export async function startOwnedChrome(options: {
 			// Chrome is still starting.
 		}
 
+		// eslint-disable-next-line eslint/no-await-in-loop -- the retry backoff is deliberately sequential; a burst of parallel probes would race Chrome's own startup.
 		await sleep(200);
 	}
 
@@ -819,14 +832,40 @@ async function renderBody(cdp: Cdp): Promise<string> {
 async function waitForHydration(cdp: Cdp): Promise<void> {
 	const deadline = Date.now() + 20_000;
 	while (Date.now() < deadline) {
+		// eslint-disable-next-line eslint/no-await-in-loop -- hydration readiness is polled one CDP evaluation at a time; each check depends on the previous document state.
 		const result = await cdp.send("Runtime.evaluate", {
 			expression: 'document.documentElement.dataset.hydrated === "true"',
 			returnByValue: true,
 		});
 		if ((result.result as { value?: boolean }).value === true) return;
+		// eslint-disable-next-line eslint/no-await-in-loop -- the poll interval is deliberately sequential; parallel evaluations would measure nothing.
 		await sleep(25);
 	}
 	throw new Error("hydration did not complete");
+}
+
+/**
+ * Waits until the mobile navigation toggle reports `expected`, so a reactive
+ * route-change collapse is observed without guessing a fixed sleep. The
+ * toggle's `aria-expanded` is the component's own state contract.
+ */
+async function waitForMobileMenuState(cdp: Cdp, expected: string): Promise<string> {
+	const deadline = Date.now() + 10_000;
+	let state = "";
+	while (Date.now() < deadline) {
+		// eslint-disable-next-line eslint/no-await-in-loop -- UI state is read one CDP evaluation at a time; each observation depends on the previous one.
+		const result = await cdp.send("Runtime.evaluate", {
+			expression: `document.querySelector('button[aria-controls="mobile-navigation"]')?.getAttribute("aria-expanded") ?? ""`,
+			returnByValue: true,
+		});
+		state = String((result.result as { value?: string }).value ?? "");
+
+		if (state === expected) return state;
+		// eslint-disable-next-line eslint/no-await-in-loop -- UI state polling is sequential by contract: each observation follows the previous one.
+		await sleep(50);
+	}
+
+	return state;
 }
 
 // ── Browser journey bookkeeping ─────────────────────────────────────────────
@@ -921,6 +960,7 @@ async function waitForEntry(
 	while (Date.now() < deadline) {
 		if (trace.hasEntry(suffix)) return true;
 
+		// eslint-disable-next-line eslint/no-await-in-loop -- trace polling is sequential by contract: each observation window follows the previous one.
 		await sleep(100);
 	}
 
@@ -1096,6 +1136,29 @@ async function runBrowserJourney(options: {
 	log.check(
 		landing.includes('href="/projects"') && landing.includes('target="_self"'),
 		"the signed-in website nav links to /projects as a document navigation",
+	);
+
+	out("route-change menu collapse (client-side navigation inside one document):");
+	// The homepage's queued menu click left the mobile panel open; following
+	// a section link from the panel itself must collapse it again. The effect
+	// that closes it runs in the browser on route changes only.
+	await clickSelector(cdp, trace, '#mobile-navigation a[href="/pricing"]');
+	const collapsed = await waitForMobileMenuState(cdp, "false");
+	const panelHidden = await cdp.send("Runtime.evaluate", {
+		expression: `document.getElementById("mobile-navigation")?.hasAttribute("hidden")`,
+		returnByValue: true,
+	});
+	log.check(
+		trace.navigations() === 0,
+		"the panel's section link stays client-side inside the website entry",
+	);
+	log.check(
+		collapsed === "false",
+		`a client-side route change collapses the open mobile navigation (aria-expanded="${collapsed}")`,
+	);
+	log.check(
+		(panelHidden.result as { value?: boolean }).value === true,
+		"the collapsed mobile panel is removed from the accessibility tree",
 	);
 
 	out("cross-frontend navigation (website → projects):");

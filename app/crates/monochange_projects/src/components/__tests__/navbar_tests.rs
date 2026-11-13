@@ -34,6 +34,24 @@ fn escape_closes_mobile_navigation_and_the_account_menus() {
 }
 
 #[test]
+fn a_route_change_collapses_an_open_mobile_panel_without_moving_focus() {
+	let runtime = tokio::runtime::Builder::new_current_thread()
+		.enable_all()
+		.build()
+		.unwrap();
+	runtime.block_on(async {
+		Owner::new().with(|| {
+			let (mobile_open, set_mobile_open) = signal(true);
+			let (desktop, mobile) = (AccountMenu::new(), AccountMenu::new());
+			// The browser effect runs exactly this collapse when the route
+			// changes: the panel closes and neither toggle is refocused.
+			close_menus(set_mobile_open, desktop, mobile, false);
+			assert!(!mobile_open.get());
+		});
+	});
+}
+
+#[test]
 fn sections_mark_the_current_page_and_every_book_chapter() {
 	assert!(section_is_current("/install", "/install"));
 	assert!(!section_is_current("/install/more", "/install"));

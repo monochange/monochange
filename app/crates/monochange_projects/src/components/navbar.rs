@@ -81,6 +81,20 @@ impl AccountMenu {
 	}
 }
 
+/// Collapse the mobile panel and both account menus. Escape hands focus back
+/// to the wide-screen toggle, whose menu hides under it; a route change and
+/// the mobile panel's own toggle hide without moving focus.
+fn close_menus(
+	set_mobile_open: WriteSignal<bool>,
+	desktop: AccountMenu,
+	mobile: AccountMenu,
+	restore_focus: bool,
+) {
+	set_mobile_open.set(false);
+	desktop.close(restore_focus);
+	mobile.close(false);
+}
+
 /// Collapse the mobile panel and both account menus when Escape is pressed.
 /// Focus returns to the wide-screen toggle; the mobile one hides with its panel.
 fn close_menus_on_key(
@@ -90,9 +104,7 @@ fn close_menus_on_key(
 	mobile: AccountMenu,
 ) {
 	if key == "Escape" {
-		set_mobile_open.set(false);
-		desktop.close(true);
-		mobile.close(false);
+		close_menus(set_mobile_open, desktop, mobile, true);
 	}
 }
 
@@ -111,13 +123,14 @@ pub fn NavBar() -> impl IntoView {
 		|_| get_session(),
 	);
 
+	// A route change collapses the panel and both menus exactly like Escape,
+	// without moving focus. Effects only run in the browser after hydration,
+	// so like `color_mode` the effect is created only in the browser build;
+	// the collapse contract itself is `close_menus`, covered on the server.
+	#[cfg(target_arch = "wasm32")]
 	Effect::new(move || {
 		location.pathname.get();
-		set_mobile_open.set(false);
-		// patch-coverage:ignore-start -- effects only run in the browser after hydration.
-		desktop_menu.close(false);
-		mobile_menu.close(false);
-		// patch-coverage:ignore-end
+		close_menus(set_mobile_open, desktop_menu, mobile_menu, false);
 	});
 
 	let on_home = Memo::new(move |_| location.pathname.get() == "/");

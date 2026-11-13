@@ -172,11 +172,13 @@ async function waitForHealth(baseUrl, timeoutMs) {
 	const deadline = Date.now() + timeoutMs;
 	while (Date.now() < deadline) {
 		try {
+			// eslint-disable-next-line eslint/no-await-in-loop -- health polling is sequential by contract: the next attempt only starts after this one answered.
 			const response = await fetch(`${baseUrl}/health`);
 			if (response.ok) return;
 		} catch {
 			// Server not ready yet.
 		}
+		// eslint-disable-next-line eslint/no-await-in-loop -- the backoff between polling attempts is deliberately sequential; parallel probes would load the starting server.
 		await new Promise((sleep) => setTimeout(sleep, 500));
 	}
 	die(`server did not become healthy within ${timeoutMs} ms at ${baseUrl}`);
@@ -348,6 +350,7 @@ async function run(options) {
 		};
 	} = { preset, routes: {}, consoleErrors: {}, assets: { files, totals } };
 	for (const [route] of routes) {
+		// eslint-disable-next-line eslint/no-await-in-loop -- measurement is sequential by contract: each route is warmed and measured alone so no Lighthouse run shares the server with another.
 		await warmRoute(baseUrl, route);
 		const lhr = runLighthouse(baseUrl, route, preset);
 		const metrics = collectRouteMetrics(lhr);

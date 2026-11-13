@@ -1,3 +1,7 @@
+/* eslint-disable eslint/no-unused-expressions -- this file is one bare function
+   expression by contract: frontend.rs embeds the source, strips the trailing
+   semicolon, and invokes it inline with the entry arguments, and deferred pages
+   embed the same source as a classic script, so `export` is unavailable. */
 (function (root, pkg_path, output_name, wasm_output_name, defer, load = (url) => import(url)) {
 	let started;
 	let hydrated = false;
