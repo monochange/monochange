@@ -112,6 +112,10 @@ function setup(fixed = false, plain = false) {
 	owned.push(scratch);
 	const root = fixed ? "/opt/monochange" : join(scratch, plain ? "deploy" : 'deploy space "quote');
 	if (fixed) {
+		assert.ok(
+			existsSync("/.dockerenv") || existsSync("/run/.containerenv"),
+			"fixed deployment paths may only be installed inside an isolated container",
+		);
 		assert.equal(existsSync(root), false);
 		owned.push(root);
 	}

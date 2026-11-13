@@ -246,12 +246,12 @@ The client address comes from `X-Forwarded-For` only when the connecting peer is
 
 `harden-droplet.sh` installs three helpers on a new server. On the running server, replace a helper when its source changes, without rerunning the hardening:
 
-| Source in `app/deploy/digitalocean/`  | Installed as                          | Used by                                                                                  |
-| ------------------------------------- | ------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `monochange-deploy.sh`                | `/usr/local/bin/monochange-deploy`    | `monochange-sqlite-backup.sh`                                                            |
-| `ci-deploy.sh` and manual deployments |                                       |                                                                                          |
-| `ci-deploy.sh`                        | `/usr/local/bin/monochange-ci-deploy` | the forced command of the Actions key                                                    |
-| `mitigate-cve-2026-98432.sh`          | systemd unit and nftables rules       | see [OPERATIONS.md](deploy/digitalocean/OPERATIONS.md#cve-2026-98432-interim-mitigation) |
+| Source in `app/deploy/digitalocean/` | Installed as                              | Used by                                                                                  |
+| ------------------------------------ | ----------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `monochange-deploy.sh`               | `/usr/local/bin/monochange-deploy`        | `ci-deploy.sh` and manual deployments                                                    |
+| `monochange-sqlite-backup.sh`        | `/usr/local/bin/monochange-sqlite-backup` | deployment transaction and daily cron                                                    |
+| `ci-deploy.sh`                       | `/usr/local/bin/monochange-ci-deploy`     | the forced command of the Actions key                                                    |
+| `mitigate-cve-2026-98432.sh`         | systemd unit and nftables rules           | see [OPERATIONS.md](deploy/digitalocean/OPERATIONS.md#cve-2026-98432-interim-mitigation) |
 
 ```bash
 scp app/deploy/digitalocean/monochange-deploy.sh app/deploy/digitalocean/monochange-sqlite-backup.sh app/deploy/digitalocean/ci-deploy.sh root@167.172.51.148:/root/
