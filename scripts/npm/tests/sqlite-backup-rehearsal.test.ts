@@ -7,14 +7,15 @@ import { afterAll, describe, test } from "vitest";
 import {
 	backupDatabase,
 	rehearse,
+	resolveSqlite3,
 	restoreBackup,
 	tableRowCounts,
 	verifyIntegrity,
 } from "../../sqlite-backup-rehearsal.ts";
 
 /** Run SQL through the same deployed CLI the rehearsal drives. */
-function runSqlite(dbPath: string, sql: string): void {
-	const run = spawnSync("sqlite3", [dbPath], { input: sql, encoding: "utf8" });
+function runSqlite(bin: string, dbPath: string, sql: string): void {
+	const run = spawnSync(bin, [dbPath], { input: sql, encoding: "utf8" });
 	if (run.error !== undefined) {
 		throw new Error(`sqlite3 is required for the backup rehearsal tests: ${run.error.message}`);
 	}
@@ -24,6 +25,7 @@ function runSqlite(dbPath: string, sql: string): void {
 }
 
 describe("sqlite backup rehearsal", () => {
+	const bin = resolveSqlite3();
 	const runDirs: string[] = [];
 
 	afterAll(() => {
@@ -62,39 +64,40 @@ describe("sqlite backup rehearsal", () => {
 	test("verifyIntegrity rejects a corrupt database before any restore decision", () => {
 		const dir = makeRunDir();
 		const good = join(dir, "good.sqlite3");
-		runSqlite(good, "CREATE TABLE t (v INTEGER);\nINSERT INTO t VALUES (1);\n");
-		assert.equal(verifyIntegrity("sqlite3", good).quickCheck, "ok");
+		runSqlite(bin, good, "CREATE TABLE t (v INTEGER);\nINSERT INTO t VALUES (1);\n");
+		assert.equal(verifyIntegrity(bin, good).quickCheck, "ok");
 
 		const corrupt = join(dir, "corrupt.sqlite3");
-		runSqlite(corrupt, "CREATE TABLE t (v BLOB);\n");
+		runSqlite(bin, corrupt, "CREATE TABLE t (v BLOB);\n");
 		runSqlite(
+			bin,
 			corrupt,
 			"INSERT INTO t VALUES (randomblob(4096));\nINSERT INTO t VALUES (randomblob(4096));\n",
 		);
 		const bytes = Buffer.from(readFileSync(corrupt));
 		bytes.fill(0x00, 4096, 8192);
 		writeFileSync(corrupt, bytes);
-		assert.throws(() => verifyIntegrity("sqlite3", corrupt), /integrity verification failed/);
+		assert.throws(() => verifyIntegrity(bin, corrupt), /integrity verification failed/);
 	});
 
 	test("restoreBackup fails closed on a missing snapshot without touching the destination", () => {
 		const dir = makeRunDir();
 		const destination = join(dir, "last-good.sqlite3");
-		runSqlite(destination, "CREATE TABLE t (v INTEGER);\n");
+		runSqlite(bin, destination, "CREATE TABLE t (v INTEGER);\n");
 		assert.throws(
-			() => restoreBackup("sqlite3", join(dir, "absent.sqlite3"), destination),
+			() => restoreBackup(bin, join(dir, "absent.sqlite3"), destination),
 			/refusing to restore/,
 		);
-		assert.equal(tableRowCounts("sqlite3", destination).length, 1);
+		assert.equal(tableRowCounts(bin, destination).length, 1);
 	});
 
 	test("backupDatabase produces a file sqlite3 can verify independently", () => {
 		const dir = makeRunDir();
 		const source = join(dir, "source.sqlite3");
-		runSqlite(source, "CREATE TABLE t (v INTEGER);\nINSERT INTO t VALUES (7);\n");
+		runSqlite(bin, source, "CREATE TABLE t (v INTEGER);\nINSERT INTO t VALUES (7);\n");
 		const snapshot = join(dir, "snapshot.sqlite3");
-		backupDatabase("sqlite3", source, snapshot);
-		assert.equal(verifyIntegrity("sqlite3", snapshot).quickCheck, "ok");
-		assert.equal(tableRowCounts("sqlite3", snapshot)[0]?.[1], 1);
+		backupDatabase(bin, source, snapshot);
+		assert.equal(verifyIntegrity(bin, snapshot).quickCheck, "ok");
+		assert.equal(tableRowCounts(bin, snapshot)[0]?.[1], 1);
 	});
 });

@@ -63,17 +63,33 @@ export interface IntegrityReport {
 	foreignKeyViolations: string[];
 }
 
-function requireSqlite3(sqlite3Bin?: string): string {
-	const bin = sqlite3Bin ?? "sqlite3";
-	const probe = spawnSync(bin, ["--version"], { encoding: "utf8" });
-	if (probe.error !== undefined || probe.status !== 0) {
-		throw new Error(
-			`the sqlite3 CLI is required to rehearse the deployed backup mechanism (${bin}: ${
-				probe.error?.message ?? `exit ${probe.status}`
-			})`,
-		);
+/**
+ * Resolve the sqlite3 CLI the deployed helper runs. The caller's override
+ * wins, then PATH, then the standard host locations (the nix-only devenv
+ * PATH intentionally omits /usr/bin, where macOS and Ubuntu both ship it).
+ */
+export function resolveSqlite3(sqlite3Bin?: string): string {
+	const candidates = [
+		...(sqlite3Bin ? [sqlite3Bin] : []),
+		...(process.env.SQLITE3_BIN ? [process.env.SQLITE3_BIN] : []),
+		"sqlite3",
+		"/usr/bin/sqlite3",
+		"/opt/homebrew/bin/sqlite3",
+		"/usr/local/bin/sqlite3",
+	].filter((candidate): candidate is string => typeof candidate === "string");
+	for (const bin of candidates) {
+		const probe = spawnSync(bin, ["--version"], { encoding: "utf8" });
+		if (probe.error === undefined && probe.status === 0) {
+			return bin;
+		}
 	}
-	return bin;
+	throw new Error(
+		`the sqlite3 CLI is required to rehearse the deployed backup mechanism (tried: ${candidates.join(", ")}); install it or point SQLITE3_BIN at it`,
+	);
+}
+
+function requireSqlite3(sqlite3Bin?: string): string {
+	return resolveSqlite3(sqlite3Bin);
 }
 
 function runSqlite(bin: string, dbPath: string, sql: string): string {
