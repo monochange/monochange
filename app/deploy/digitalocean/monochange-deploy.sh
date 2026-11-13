@@ -176,9 +176,18 @@ if [[ "$bootstrap" == 0 ]]; then
 		exit 1
 	}
 	# Independent verification also checks command exit status, never just stdout.
-	quick="$(sqlite3 "$backup_path" 'PRAGMA quick_check;' 2>/dev/null)"
-	integrity="$(sqlite3 "$backup_path" 'PRAGMA integrity_check;' 2>/dev/null)"
-	fk="$(sqlite3 "$backup_path" 'PRAGMA foreign_key_check;' 2>/dev/null)"
+	quick="$(sqlite3 "$backup_path" 'PRAGMA quick_check;' 2>/dev/null)" || {
+		echo 'snapshot quick_check command failed' >&2
+		exit 1
+	}
+	integrity="$(sqlite3 "$backup_path" 'PRAGMA integrity_check;' 2>/dev/null)" || {
+		echo 'snapshot integrity_check command failed' >&2
+		exit 1
+	}
+	fk="$(sqlite3 "$backup_path" 'PRAGMA foreign_key_check;' 2>/dev/null)" || {
+		echo 'snapshot foreign_key_check command failed' >&2
+		exit 1
+	}
 	[[ "$quick" == ok && "$integrity" == ok && -z "$fk" ]] || {
 		echo 'snapshot validation failed' >&2
 		exit 1

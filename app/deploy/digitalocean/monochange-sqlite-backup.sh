@@ -24,11 +24,17 @@ chmod 0750 "$BACKUP_DIR"
 # and quotes without treating a path as another dot-command argument.
 owned="$(mktemp -d "$BACKUP_DIR/snapshot-XXXXXXXXXXXX")"
 dest="$owned/monochange_app.sqlite3"
+validated=0
 cleanup() {
 	local code=$?
 	if [[ "$code" != 0 ]]; then
-		rm -f "$dest"
-		rmdir "$owned"
+		rm -f "$owned/prune-list"
+		if [[ "$validated" == 0 ]]; then
+			rm -f "$dest"
+			rmdir "$owned"
+		else
+			echo "retention failed; validated snapshot retained at $dest" >&2
+		fi
 	fi
 }
 trap cleanup EXIT
@@ -38,14 +44,24 @@ sqlite3 "$DB" ".backup '$escaped'" >/dev/null 2>&1 || {
 	exit 1
 }
 chmod 0640 "$dest"
-quick="$(sqlite3 "$dest" 'PRAGMA quick_check;' 2>/dev/null)"
-integrity="$(sqlite3 "$dest" 'PRAGMA integrity_check;' 2>/dev/null)"
-fk="$(sqlite3 "$dest" 'PRAGMA foreign_key_check;' 2>/dev/null)"
+quick="$(sqlite3 "$dest" 'PRAGMA quick_check;' 2>/dev/null)" || {
+	echo 'snapshot quick_check command failed' >&2
+	exit 1
+}
+integrity="$(sqlite3 "$dest" 'PRAGMA integrity_check;' 2>/dev/null)" || {
+	echo 'snapshot integrity_check command failed' >&2
+	exit 1
+}
+fk="$(sqlite3 "$dest" 'PRAGMA foreign_key_check;' 2>/dev/null)" || {
+	echo 'snapshot foreign_key_check command failed' >&2
+	exit 1
+}
 [[ "$quick" == ok && "$integrity" == ok && -z "$fk" ]] || {
 	echo 'SQLite snapshot validation failed' >&2
 	exit 1
 }
 sync -f "$dest"
+validated=1
 if [[ "$mode" == daily ]]; then
 	# Never traverse or delete an unrelated file, legacy snapshot or release backup.
 	find "$BACKUP_DIR" -mindepth 1 -maxdepth 1 -type d -name 'snapshot-????????????' -mtime +14 -print0 >"$owned/prune-list"

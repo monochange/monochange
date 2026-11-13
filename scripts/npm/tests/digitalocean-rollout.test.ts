@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import {
 	chmodSync,
+	chownSync,
 	copyFileSync,
 	existsSync,
 	mkdirSync,
@@ -177,6 +178,40 @@ function preserved(root: string, db: string, rows = "42\n") {
 }
 
 describe.skipIf(!linux)("digitalocean transaction (real Linux SQLite, flock and HTTP)", () => {
+	test.skipIf(
+		process.getuid?.() !== 0 || (!existsSync("/.dockerenv") && !existsSync("/run/.containerenv")),
+	)("daily prune failure preserves the newly validated snapshot", () => {
+		const { root, db } = setup(false, true);
+		const identity = spawnSync("id", ["-u", "nobody"], { encoding: "utf8" });
+		assert.equal(identity.status, 0, identity.stderr);
+		const uid = Number(identity.stdout.trim());
+		assert.ok(Number.isInteger(uid) && uid > 0);
+		for (const path of [dirname(root), root, join(root, "data"), db, join(root, "backups")]) {
+			chownSync(path, uid, uid);
+		}
+		const daily = join(root, "backups/daily");
+		mkdirSync(daily);
+		chownSync(daily, uid, uid);
+		const old = join(daily, "snapshot-AAAAAAAAAAAA");
+		mkdirSync(old);
+		copyFileSync(db, join(old, "monochange_app.sqlite3"));
+		chmodSync(old, 0o555);
+		const aged = new Date(Date.now() - 30 * 86400 * 1000);
+		utimesSync(old, aged, aged);
+		const result = spawnSync(
+			"/usr/sbin/runuser",
+			["-u", "nobody", "--", join(scripts, "monochange-sqlite-backup.sh"), "--daily"],
+			{ env: { ...process.env, MONOCHANGE_DEPLOY_DIR: root }, encoding: "utf8", timeout: 10000 },
+		);
+		assert.equal(result.error, undefined);
+		assert.notEqual(result.status, 0, "retention failure must be reported");
+		const fresh = readdirSync(daily).filter((name) => name !== "snapshot-AAAAAAAAAAAA");
+		assert.equal(fresh.length, 1);
+		const retained = join(daily, fresh[0], "monochange_app.sqlite3");
+		assert.ok(existsSync(retained), "a prune failure must not discard a validated snapshot");
+		assert.equal(sql(retained, "rows.sql"), "42\n");
+		assert.equal(existsSync(join(daily, fresh[0], "prune-list")), false);
+	});
 	test("WAL snapshot, newer writes, settings and unique same-SHA receipts survive success and failure", async () => {
 		const { root, db, env } = setup();
 		await ready([join(fixtures, "health-server.ts"), root]);
