@@ -134,8 +134,10 @@ RUN chmod +x scripts/leptoskit-plugin/leptoskit-plugin-monochange-web-assets \
 # a rejected build can never have touched the deployment. The publisher runs
 # only after BOTH builds succeeded: it stages pkg/site + pkg/projects plus
 # the public assets and fonts from the scratch outputs alone, precompresses
-# the staged tree, validates it, and promotes it over app/target/site,
-# keeping the last good tree on any failure. The cargo registry and target
+# the staged tree, validates it, and publishes it inside this invocation's
+# run root. The publication lease stays outside the compiler cache mount,
+# so a cancelled image build cannot poison a later build's destination.
+# The cargo registry and target
 # directory live in BuildKit cache mounts so dependency artifacts survive
 # between image builds; anything the final image needs is copied out of the
 # mounts because their contents are not part of the layer. The server binary
@@ -149,9 +151,9 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     && mkdir -p "$run_root/web" "$run_root/projects-web" \
     && (cd app && MONOCHANGE_ESBUILD_BIN=/usr/local/bin/esbuild leptoskit build --release --platform web --out "/app/$run_root/web") \
     && (cd app/projects && MONOCHANGE_ESBUILD_BIN=/usr/local/bin/esbuild leptoskit build --release --platform web --out "/app/$run_root/projects-web") \
-    && node scripts/leptoskit-plugin/publish-web-site.ts --web-root "$run_root" --site-root app/target/site \
+    && node scripts/leptoskit-plugin/publish-web-site.ts --web-root "$run_root" --site-root "$run_root/site" \
     && strip app/target/release/monochange_app \
-    && cp -a app/target/site /site \
+    && cp -a "$run_root/site" /site \
     && cp app/target/release/monochange_app /monochange_app \
     && test -f /site/pkg/site/monochange_app.js \
     && test -f /site/pkg/site/monochange_app_bg.wasm \

@@ -630,6 +630,19 @@ describe("publish-web-site exclusive ownership", () => {
 		},
 	);
 
+	test("an empty unknown lease is preserved instead of replaced", () => {
+		const { site, parent, lease } = destination("empty-lease");
+		publishSite(generation("zero"), site);
+		const zero = treeDigest(site);
+		mkdirSync(lease);
+
+		const refused = publishFailure(() => publishSite(generation("next"), site));
+		assert.match(refused, /its owner cannot be identified; this publication changed nothing/u);
+		assert.deepEqual(entries(lease), []);
+		assert.equal(treeDigest(site), zero);
+		assert.deepEqual(entries(parent), [".site.publish-lease", "site"]);
+	});
+
 	test("a lease without an owner record fails closed and cannot be adopted", () => {
 		const { site, parent, lease } = destination("ownerless");
 		publishSite(generation("zero"), site);

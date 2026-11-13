@@ -330,6 +330,9 @@ function acquireLease(site: string): HeldLease {
 	const claim = artifactPath(site, `claim-${token}`);
 
 	mkdirSync(dirname(site), { recursive: true });
+	// Our complete claims never create an empty lease. A pre-existing empty
+	// directory has unknown ownership and must not be replaced by rename.
+	if (existsSync(lease)) fail(heldLeaseMessage(site));
 	mkdirSync(claim);
 	writeFileSync(join(claim, ownerRecordName(token)), ownerRecord());
 	try {
