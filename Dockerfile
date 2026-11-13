@@ -112,8 +112,10 @@ RUN arch="$(dpkg --print-architecture)" \
     && esbuild --version
 
 # Copy the remaining workspace files. The leptoskit tooling plugin (on PATH
-# as `leptoskit-plugin-monochange-web-assets`) owns the site CSS, split-loader
-# minification, and pkg namespace assembly inside `leptoskit build`.
+# as `leptoskit-plugin-monochange-web-assets`) prepares the site CSS,
+# split-loader minification, and WASM optimization inside each build's own
+# scratch output; publish-web-site.ts stages, validates, and promotes the
+# assembled site after both builds.
 COPY app/ app/
 COPY scripts/leptoskit-plugin/ scripts/leptoskit-plugin/
 COPY scripts/minify-split-loader.ts scripts/minify-split-loader.ts
@@ -123,24 +125,31 @@ RUN chmod +x scripts/leptoskit-plugin/leptoskit-plugin-monochange-web-assets \
         | leptoskit-plugin-monochange-web-assets \
         | grep '"ok":true'
 
-# Build both web frontends with the provenance-verified leptoskit CLI.
+# Build both web frontends with the provenance-verified leptoskit CLI, then
+# publish one complete deployment tree.
 #
-# Both builds assemble into the same site root (dist/pkg/site and
-# dist/pkg/projects, plus the shared public assets at the root), and each
-# build's release precompression runs over the assembled tree, so the shipped
-# assets and their precompressed siblings are the same bytes CI's size gate
-# measures. The cargo registry and target directory live in BuildKit cache
-# mounts so dependency artifacts survive between image builds; anything the
-# final image needs is copied out of the mounts because their contents are not
-# part of the layer. The server binary is stripped here rather than through a
-# cargo profile, which would also strip proc-macro dylibs and corrupt them on
-# macOS hosts.
+# Each build compiles into a fresh scratch directory under
+# .monochange/local/web-build (inside this layer, outside the served tree) so
+# the SDK's bundle report and budget check measure the real scratch bytes and
+# a rejected build can never have touched the deployment. The publisher runs
+# only after BOTH builds succeeded: it stages pkg/site + pkg/projects plus
+# the public assets and fonts from the scratch outputs alone, precompresses
+# the staged tree, validates it, and promotes it over app/target/site,
+# keeping the last good tree on any failure. The cargo registry and target
+# directory live in BuildKit cache mounts so dependency artifacts survive
+# between image builds; anything the final image needs is copied out of the
+# mounts because their contents are not part of the layer. The server binary
+# is stripped here rather than through a cargo profile, which would also
+# strip proc-macro dylibs and corrupt them on macOS hosts.
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/app/app/target \
     set -eu \
     && leptoskit doctor \
-    && (cd app && MONOCHANGE_ESBUILD_BIN=/usr/local/bin/esbuild leptoskit build --release --platform web --out target/web) \
-    && (cd app/projects && MONOCHANGE_ESBUILD_BIN=/usr/local/bin/esbuild leptoskit build --release --platform web --out target/projects-web) \
+    && run_root=".monochange/local/web-build/docker-$(date +%Y%m%d-%H%M%S)" \
+    && mkdir -p "$run_root/web" "$run_root/projects-web" \
+    && (cd app && MONOCHANGE_ESBUILD_BIN=/usr/local/bin/esbuild leptoskit build --release --platform web --out "/app/$run_root/web") \
+    && (cd app/projects && MONOCHANGE_ESBUILD_BIN=/usr/local/bin/esbuild leptoskit build --release --platform web --out "/app/$run_root/projects-web") \
+    && node scripts/leptoskit-plugin/publish-web-site.ts --web-root "$run_root" --site-root app/target/site \
     && strip app/target/release/monochange_app \
     && cp -a app/target/site /site \
     && cp app/target/release/monochange_app /monochange_app \
@@ -150,9 +159,16 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     && test -f /site/pkg/site/__wasm_split_manifest.json \
     && test -f /site/pkg/projects/monochange_projects_web.js \
     && test -f /site/pkg/projects/monochange_projects_web_bg.wasm \
-    && test -f /site/pkg/projects/monochange_projects_web.css \
     && test -f /site/pkg/projects/__wasm_split_manifest.json \
+    && test ! -e /site/pkg/projects/monochange_app.css \
+    && test -f /site/fonts/bricolage-800.woff2 \
+    && test -f /site/fonts/hanken-400.woff2 \
+    && test -f /site/fonts/hanken-700.woff2 \
+    && test -f /site/favicon.svg \
+    && test -f /site/branding/social.png \
     && test -f /site/pkg/site/monochange_app.js.br \
+    && test -f /site/pkg/site/monochange_app.js.gz \
+    && test -f /site/pkg/projects/monochange_projects_web_bg.wasm.br \
     && test -f /site/pkg/projects/monochange_projects_web_bg.wasm.gz
 
 # ── Final stage ────────────────────────────────────────────────────────────

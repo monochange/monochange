@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
 	chmodSync,
-	cpSync,
 	existsSync,
 	mkdirSync,
 	mkdtempSync,
@@ -15,15 +14,12 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { gunzipSync } from "node:zlib";
 import { afterEach, describe, test } from "vitest";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 const pluginPath = join(repoRoot, "scripts/leptoskit-plugin/web-assets-plugin.ts");
 const shimPath = join(repoRoot, "scripts/leptoskit-plugin/leptoskit-plugin-monochange-web-assets");
 const esbuildBin = join(repoRoot, "node_modules/.bin/esbuild");
-const tailwindInput = join(repoRoot, "app/crates/monochange_app/style/input.css");
-
 const loaderName = "__wasm_split.______________________.js";
 const fixturePkg = join(repoRoot, "fixtures/tests/website-split-loader-minify/loader-site/pkg");
 
@@ -53,30 +49,24 @@ function runPluginWithTailwind(envelope: unknown, tailwindBin: string, cwd?: str
 }
 
 function rootFor(tag: string): string {
-	const root = mkdtempSync(join(tmpdir(), `leptoskit-plugin-${tag}-`));
-
-	return root;
+	return mkdtempSync(join(tmpdir(), `leptoskit-plugin-${tag}-`));
 }
 
-/** A site root shaped like a finished `leptoskit build --release` output. */
-function buildSite(tag: string): { root: string; outDir: string; pkg: string; site: string } {
+/** A scratch build output shaped like a finished `leptoskit build` run. */
+function buildScratch(tag: string): { root: string; outDir: string; pkg: string } {
 	const root = rootFor(tag);
-	const outDir = join(root, "dist");
+	const outDir = join(root, "scratch");
 	const pkg = join(outDir, "pkg");
 	mkdirSync(pkg, { recursive: true });
 
 	for (const name of readdirSync(fixturePkg)) {
-		cpSync(join(fixturePkg, name), join(pkg, name));
+		cpFile(join(fixturePkg, name), join(pkg, name));
 	}
 
 	// The bound wasm module, which the real build always produces.
-	writeFileSync(join(pkg, "monochange_app_bg.wasm"), new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0]));
-	// The assembled deployment tree (the website build creates it; both
-	// builds assemble into it).
-	const site = join(root, "site");
+	writeFileSync(join(pkg, "monochange_app_bg.wasm"), wasmBytes());
 
-	mkdirSync(site, { recursive: true });
-	// A stub Tailwind input shaped like the shared app stylesheet.
+	// A stub Tailwind input and font sources shaped like the app workspace.
 	mkdirSync(join(root, "style"), { recursive: true });
 	writeFileSync(join(root, "style/input.css"), '@import "tailwindcss";\n');
 	mkdirSync(join(root, "fonts"), { recursive: true });
@@ -84,12 +74,22 @@ function buildSite(tag: string): { root: string; outDir: string; pkg: string; si
 		writeFileSync(join(root, "fonts", `${name}.ttf`), "fixture font");
 	}
 
-	return { root, outDir, pkg, site };
+	return { root, outDir, pkg };
+}
+
+function cpFile(from: string, to: string): void {
+	if (existsSync(to)) return;
+	writeFileSync(to, readFileSync(from));
+}
+
+/** The eight-byte header every fixture wasm module needs to stay parseable. */
+function wasmBytes(): Buffer {
+	return Buffer.from([0, 97, 115, 109, 1, 0, 0, 0]);
 }
 
 /** Plugin options shaped like the real [[plugins]] declarations. */
-function siteOptions(namespace: string) {
-	return { namespace, site_root: "site", tailwind_input: "style/input.css", font_source: "fonts" };
+function pluginOptions() {
+	return { tailwind_input: "style/input.css", font_source: "fonts" };
 }
 
 /** A tiny fake Tailwind CLI that writes deterministic minified CSS. */
@@ -126,9 +126,9 @@ function fakeTailwind(root: string): string {
 		wasmBin,
 		[
 			"#!/usr/bin/env node",
-			'import { copyFileSync } from "node:fs";',
+			'import { writeFileSync } from "node:fs";',
 			"const args = process.argv.slice(2);",
-			'copyFileSync(args.at(-3), args[args.indexOf("-o") + 1]);',
+			'writeFileSync(args[args.indexOf("-o") + 1], Buffer.from([0,97,115,109,1,0,0,0]));',
 		].join("\n"),
 	);
 	chmodSync(wasmBin, 0o755);
@@ -143,45 +143,100 @@ describe("leptoskit-plugin-monochange-web-assets", () => {
 		for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
 	});
 
-	test.each([false, true])(
-		"optimizes before precompression only in release builds (%s)",
-		(release) => {
-			const { root, outDir, pkg, site } = buildSite("wasm-compression");
-			roots.push(root);
-			const tailwind = fakeTailwind(root);
-			const empty = Buffer.from([0, 97, 115, 109, 1, 0, 0, 0]);
-			const original = Buffer.concat([empty, Buffer.from([0, 8, 1, 120, 1, 2, 3, 4, 5, 6])]);
+	test("after_build finishes inside the scratch output and never publishes", () => {
+		const { root, outDir, pkg } = buildScratch("in-place");
+		roots.push(root);
+		const tailwindBin = fakeTailwind(root);
+		const result = runPluginWithTailwind(
+			{
+				protocol: 1,
+				plugin: "monochange-web-assets",
+				hook: "after_build",
+				context: {
+					platform: "web",
+					release: false,
+					output_dir: outDir,
+					wasm_bundle: `${pkg}/monochange_app_bg.wasm`,
+					options: pluginOptions(),
+				},
+			},
+			tailwindBin,
+			root,
+		);
+		assert.equal(result.status, 0, result.stderr || result.stdout);
+
+		// stdout is only the JSON reply: plugin and tool logs stay on stderr.
+		const reply = JSON.parse(result.stdout) as { ok: boolean; protocol: number };
+		assert.equal(reply.ok, true);
+		assert.equal(reply.protocol, 1);
+
+		// The guarded minifier ran inside the scratch pkg.
+		const loader = readFileSync(join(pkg, loaderName), "utf8");
+		assert.ok(loader.includes("__wasm_split_load___book_route_view"));
+		assert.ok(!loader.includes("makeLoad"), "the loader must be minified");
+		// The shared stylesheet compiled beside the entry, in the scratch only.
+		const css = readFileSync(join(pkg, "monochange_app.css"), "utf8");
+		assert.match(css, /\/\* tailwind input\.css \*\/\.mc\{color:teal\}/u);
+		// The WOFF2 subsets landed in the scratch output's hidden directory.
+		assert.equal(
+			readFileSync(join(outDir, ".font-subsets/hanken-400.woff2"), "utf8"),
+			"fixture woff2",
+		);
+
+		// No publication happened: no site root, no assembled namespaces, and
+		// the scratch bundle is still complete for the SDK's own report.
+		// (The fake tool bins beside the fixture are the test's own.)
+		assert.deepEqual(readdirSync(root).toSorted(), [
+			"font-subset-fake.mjs",
+			"fonts",
+			"scratch",
+			"style",
+			"tailwindcss-fake.mjs",
+			"wasm-opt-fake.mjs",
+		]);
+		assert.ok(existsSync(join(pkg, "monochange_app_bg.wasm")));
+		assert.ok(existsSync(join(pkg, "monochange_app.js")));
+		assert.ok(existsSync(join(pkg, "__wasm_split_manifest.json")));
+		assert.ok(!existsSync(join(root, "site")));
+		assert.ok(!existsSync(join(pkg, "monochange_app.css.gz")));
+		// The Tailwind CLI's own stdout must not leak into the reply channel.
+		assert.ok(!result.stdout.includes("fake tailwind"));
+	});
+
+	test("release builds optimize the scratch wasm before the SDK's budget check", () => {
+		const { root, outDir, pkg } = buildScratch("wasm-compression");
+		roots.push(root);
+		const tailwind = fakeTailwind(root);
+		const empty = wasmBytes();
+		const original = Buffer.concat([empty, Buffer.from([0, 8, 1, 120, 1, 2, 3, 4, 5, 6])]);
+		writeFileSync(join(pkg, "monochange_app_bg.wasm"), original);
+		for (const release of [false, true]) {
 			writeFileSync(join(pkg, "monochange_app_bg.wasm"), original);
-			writeFileSync(
-				join(root, "wasm-opt-fake.mjs"),
-				[
-					"#!/usr/bin/env node",
-					'import { writeFileSync } from "node:fs";',
-					"const args = process.argv.slice(2);",
-					'writeFileSync(args[args.indexOf("-o") + 1], Buffer.from([0,97,115,109,1,0,0,0]));',
-				].join("\n"),
-			);
 			const result = runPluginWithTailwind(
 				{
 					protocol: 1,
+					plugin: "monochange-web-assets",
 					hook: "after_build",
 					context: {
 						platform: "web",
 						release,
 						output_dir: outDir,
 						wasm_bundle: join(pkg, "monochange_app_bg.wasm"),
-						options: siteOptions("site"),
+						options: pluginOptions(),
 					},
 				},
 				tailwind,
 				root,
 			);
 			assert.equal(result.status, 0, result.stderr);
-			const deployed = join(site, "pkg/site/monochange_app_bg.wasm");
-			assert.deepEqual(readFileSync(deployed), release ? empty : original);
-			if (release) assert.deepEqual(gunzipSync(readFileSync(`${deployed}.gz`)), empty);
-		},
-	);
+			const scratchWasm = readFileSync(join(pkg, "monochange_app_bg.wasm"));
+			assert.deepEqual(
+				scratchWasm,
+				release ? empty : original,
+				`${release ? "release" : "debug"} scratch wasm must be the ${release ? "optimized" : "original"} bytes`,
+			);
+		}
+	});
 
 	test("describes itself over the protocol", () => {
 		const result = runPlugin({
@@ -198,8 +253,8 @@ describe("leptoskit-plugin-monochange-web-assets", () => {
 		assert.deepEqual(reply.platforms, []);
 	});
 
-	test("no-op hooks reply ok without touching the site", () => {
-		const { root } = buildSite("noop");
+	test("no-op hooks reply ok without touching anything", () => {
+		const { root, outDir, pkg } = buildScratch("noop");
 		roots.push(root);
 		for (const hook of ["generate", "before_build", "before_serve"]) {
 			const result = runPlugin({
@@ -212,74 +267,12 @@ describe("leptoskit-plugin-monochange-web-assets", () => {
 			const reply = JSON.parse(result.stdout) as { ok: boolean };
 			assert.equal(reply.ok, true);
 		}
-	});
-
-	test("after_build minifies, compiles CSS, and namespaces the bundle", () => {
-		const { root, outDir, pkg, site } = buildSite("assemble");
-		roots.push(root);
-		const tailwindBin = fakeTailwind(root);
-		mkdirSync(join(outDir, "fonts"), { recursive: true });
-		writeFileSync(join(outDir, "fonts/bricolage-800.ttf"), "old font");
-		mkdirSync(join(site, "pkg/site"), { recursive: true });
-		mkdirSync(join(site, "pkg/projects"), { recursive: true });
-		for (const suffix of ["", ".gz", ".br"]) {
-			writeFileSync(join(site, `pkg/site/split___obsolete_route_view_123.wasm${suffix}`), "stale");
-		}
-		writeFileSync(join(site, "pkg/site/chunk_11.wasm"), "retained");
-		writeFileSync(join(site, "pkg/projects/chunk_99.wasm"), "other frontend");
-
-		const result = runPluginWithTailwind(
-			{
-				protocol: 1,
-				plugin: "monochange-web-assets",
-				hook: "after_build",
-				context: {
-					root,
-					platform: "web",
-					release: true,
-					output_dir: outDir,
-					wasm_bundle: `${pkg}/monochange_app_bg.wasm`,
-					options: siteOptions("site"),
-				},
-			},
-			tailwindBin,
-			root,
-		);
-		assert.equal(result.status, 0, result.stderr || result.stdout);
-
-		// stdout is only the JSON reply: plugin and tool logs stay on stderr.
-		const reply = JSON.parse(result.stdout) as { ok: boolean; protocol: number };
-		assert.equal(reply.ok, true);
-		assert.equal(reply.protocol, 1);
-
-		const namespaced = join(site, "pkg/site");
-		assert.ok(existsSync(join(namespaced, loaderName)));
-		// The loader was minified by the shared guarded implementation.
-		const loader = readFileSync(join(namespaced, loaderName), "utf8");
-		assert.ok(loader.includes("__wasm_split_load___book_route_view"));
-		assert.ok(!loader.includes("makeLoad"), "the loader must be minified");
-		// The Tailwind output lands beside the entry as `<output_name>.css`.
-		const css = readFileSync(join(namespaced, "monochange_app.css"), "utf8");
-		assert.match(css, /\/\* tailwind input\.css \*\/\.mc\{color:teal\}/u);
-		// Precompressed twins land beside the assembled assets.
-		assert.ok(existsSync(join(site, "pkg/site/monochange_app.css.gz")));
-		assert.ok(existsSync(join(site, "pkg/site/monochange_app.css.br")));
-		assert.ok(existsSync(join(site, "pkg/site/monochange_app.js.gz")));
-		assert.equal(readFileSync(join(site, "fonts/bricolage-800.woff2"), "utf8"), "fixture woff2");
-		assert.ok(!existsSync(join(site, "fonts/bricolage-800.ttf")));
-		for (const suffix of ["", ".gz", ".br"]) {
-			assert.ok(!existsSync(join(site, `pkg/site/split___obsolete_route_view_123.wasm${suffix}`)));
-		}
-		assert.ok(existsSync(join(site, "pkg/site/chunk_11.wasm")));
-		assert.ok(existsSync(join(site, "pkg/projects/chunk_99.wasm")));
-		const gzipped = readFileSync(join(site, "pkg/site/monochange_app_bg.wasm.gz"));
-		assert.ok(gzipped.byteLength > 0);
-		// The Tailwind CLI's own stdout must not leak into the reply channel.
-		assert.ok(!result.stdout.includes("fake tailwind"));
+		assert.ok(existsSync(pkg), "a no-op hook must leave the scratch untouched");
+		assert.ok(!existsSync(join(outDir, ".font-subsets")));
 	});
 
 	test("after_build skips non-web platforms", () => {
-		const { root, outDir, pkg, site } = buildSite("native");
+		const { root, outDir, pkg } = buildScratch("native");
 		roots.push(root);
 		const result = runPlugin({
 			protocol: 1,
@@ -291,7 +284,7 @@ describe("leptoskit-plugin-monochange-web-assets", () => {
 				release: false,
 				output_dir: outDir,
 				wasm_bundle: null,
-				options: siteOptions("site"),
+				options: pluginOptions(),
 			},
 		});
 		assert.equal(result.status, 0, result.stderr || result.stdout);
@@ -299,65 +292,8 @@ describe("leptoskit-plugin-monochange-web-assets", () => {
 		assert.ok(existsSync(pkg), "a non-web build must stay untouched");
 	});
 
-	test("an incremental build uses the deployed manifest to preserve live chunks", () => {
-		const { root, outDir, pkg, site } = buildSite("incremental");
-		roots.push(root);
-		const tailwindBin = fakeTailwind(root);
-		const deployed = join(site, "pkg/site");
-		mkdirSync(deployed, { recursive: true });
-		cpSync(join(pkg, "__wasm_split_manifest.json"), join(deployed, "__wasm_split_manifest.json"));
-		rmSync(join(pkg, "__wasm_split_manifest.json"));
-		writeFileSync(join(deployed, "chunk_11.wasm"), "live");
-		writeFileSync(join(deployed, "chunk_99.wasm"), "stale");
-		const result = runPluginWithTailwind(
-			{
-				protocol: 1,
-				plugin: "monochange-web-assets",
-				hook: "after_build",
-				context: {
-					platform: "web",
-					output_dir: outDir,
-					wasm_bundle: `${pkg}/monochange_app_bg.wasm`,
-					options: siteOptions("site"),
-				},
-			},
-			tailwindBin,
-			root,
-		);
-		assert.equal(result.status, 0, result.stderr || result.stdout);
-		assert.ok(existsSync(join(deployed, "chunk_11.wasm")));
-		assert.ok(!existsSync(join(deployed, "chunk_99.wasm")));
-	});
-
-	test("a corrupt split manifest leaves the deployed chunks intact", () => {
-		const { root, outDir, pkg, site } = buildSite("bad-manifest");
-		roots.push(root);
-		const tailwindBin = fakeTailwind(root);
-		writeFileSync(join(pkg, "__wasm_split_manifest.json"), "not json");
-		mkdirSync(join(site, "pkg/site"), { recursive: true });
-		writeFileSync(join(site, "pkg/site/chunk_99.wasm"), "keep");
-		const result = runPluginWithTailwind(
-			{
-				protocol: 1,
-				plugin: "monochange-web-assets",
-				hook: "after_build",
-				context: {
-					platform: "web",
-					output_dir: outDir,
-					wasm_bundle: `${pkg}/monochange_app_bg.wasm`,
-					options: siteOptions("site"),
-				},
-			},
-			tailwindBin,
-			root,
-		);
-		assert.equal(result.status, 1);
-		assert.ok(result.stderr.includes("could not read split manifest"), result.stderr);
-		assert.ok(existsSync(join(site, "pkg/site/chunk_99.wasm")));
-	});
-
-	test("after_build fails loudly without a namespace option", () => {
-		const { root, outDir, pkg, site } = buildSite("no-namespace");
+	test("after_build fails loudly without the tailwind_input option", () => {
+		const { root, outDir, pkg } = buildScratch("no-namespace");
 		roots.push(root);
 		const result = runPlugin({
 			protocol: 1,
@@ -369,20 +305,41 @@ describe("leptoskit-plugin-monochange-web-assets", () => {
 				release: true,
 				output_dir: outDir,
 				wasm_bundle: `${pkg}/monochange_app_bg.wasm`,
-				options: { site_root: "site", tailwind_input: "style/input.css" },
+				options: { font_source: "fonts" },
 			},
 		});
 		assert.equal(result.status, 1);
-		assert.ok(result.stderr.includes("namespace"), result.stderr);
-		// The failure happened before any site mutation.
+		assert.ok(result.stderr.includes("tailwind_input"), result.stderr);
+		// The failure happened before any mutation.
 		assert.ok(existsSync(pkg));
+		assert.ok(!existsSync(join(outDir, ".font-subsets")));
+	});
+
+	test("after_build fails loudly without the font_source option", () => {
+		const { root, outDir, pkg } = buildScratch("no-font-option");
+		roots.push(root);
+		const result = runPlugin({
+			protocol: 1,
+			plugin: "monochange-web-assets",
+			hook: "after_build",
+			context: {
+				root,
+				platform: "web",
+				release: true,
+				output_dir: outDir,
+				wasm_bundle: `${pkg}/monochange_app_bg.wasm`,
+				options: { tailwind_input: "style/input.css" },
+			},
+		});
+		assert.equal(result.status, 1);
+		assert.ok(result.stderr.includes("font_source"), result.stderr);
 	});
 
 	test("after_build fails loudly when the tailwind input is missing", () => {
-		const { root, outDir, pkg, site } = buildSite("no-input");
+		const { root, outDir, pkg } = buildScratch("no-input");
 		roots.push(root);
-		rmSync(join(root, "style/input.css"));
 		const tailwindBin = fakeTailwind(root);
+		rmSync(join(root, "style/input.css"));
 		const result = runPlugin(
 			{
 				protocol: 1,
@@ -394,7 +351,7 @@ describe("leptoskit-plugin-monochange-web-assets", () => {
 					release: true,
 					output_dir: outDir,
 					wasm_bundle: `${pkg}/monochange_app_bg.wasm`,
-					options: { namespace: "site", site_root: "site", tailwind_input: "style/missing.css" },
+					options: { tailwind_input: "style/missing.css", font_source: "fonts" },
 				},
 			},
 			root,
@@ -406,7 +363,7 @@ describe("leptoskit-plugin-monochange-web-assets", () => {
 	});
 
 	test("after_build fails loudly when no tailwind compiler exists", () => {
-		const { root, outDir, pkg, site } = buildSite("no-tailwind");
+		const { root, outDir, pkg } = buildScratch("no-tailwind");
 		roots.push(root);
 		const result = spawnSync(process.execPath, [pluginPath], {
 			input: `${JSON.stringify({
@@ -419,7 +376,7 @@ describe("leptoskit-plugin-monochange-web-assets", () => {
 					release: true,
 					output_dir: outDir,
 					wasm_bundle: `${pkg}/monochange_app_bg.wasm`,
-					options: siteOptions("site"),
+					options: pluginOptions(),
 				},
 			})}\n`,
 			encoding: "utf8",
@@ -436,7 +393,7 @@ describe("leptoskit-plugin-monochange-web-assets", () => {
 	});
 
 	test("after_build fails when the font subsetter cannot run", () => {
-		const { root, outDir, pkg } = buildSite("no-font-subsetter");
+		const { root, outDir, pkg } = buildScratch("no-font-subsetter");
 		roots.push(root);
 		const tailwindBin = fakeTailwind(root);
 		rmSync(join(root, "font-subset-fake.mjs"));
@@ -449,7 +406,7 @@ describe("leptoskit-plugin-monochange-web-assets", () => {
 					platform: "web",
 					output_dir: outDir,
 					wasm_bundle: `${pkg}/monochange_app_bg.wasm`,
-					options: siteOptions("site"),
+					options: pluginOptions(),
 				},
 			},
 			tailwindBin,
@@ -461,7 +418,7 @@ describe("leptoskit-plugin-monochange-web-assets", () => {
 	});
 
 	test("after_build rejects a successful subsetter that leaves only stale output", () => {
-		const { root, outDir, pkg } = buildSite("stale-font");
+		const { root, outDir, pkg } = buildScratch("stale-font");
 		roots.push(root);
 		const tailwindBin = fakeTailwind(root);
 		writeFileSync(join(root, "font-subset-fake.mjs"), "#!/usr/bin/env node\n");
@@ -476,7 +433,7 @@ describe("leptoskit-plugin-monochange-web-assets", () => {
 					platform: "web",
 					output_dir: outDir,
 					wasm_bundle: `${pkg}/monochange_app_bg.wasm`,
-					options: siteOptions("site"),
+					options: pluginOptions(),
 				},
 			},
 			tailwindBin,
@@ -487,13 +444,9 @@ describe("leptoskit-plugin-monochange-web-assets", () => {
 	});
 
 	test("after_build fails loudly when the loader is missing", () => {
-		const root = rootFor("no-loader");
+		const { root, outDir, pkg } = buildScratch("no-loader");
 		roots.push(root);
-		const outDir = join(root, "dist");
-		const pkg = join(outDir, "pkg");
-		mkdirSync(pkg, { recursive: true });
-		mkdirSync(join(root, "site"), { recursive: true });
-		writeFileSync(join(pkg, "monochange_app_bg.wasm"), new Uint8Array([0]));
+		rmSync(join(pkg, loaderName));
 		const result = runPlugin(
 			{
 				protocol: 1,
@@ -505,7 +458,7 @@ describe("leptoskit-plugin-monochange-web-assets", () => {
 					release: true,
 					output_dir: outDir,
 					wasm_bundle: `${pkg}/monochange_app_bg.wasm`,
-					options: { namespace: "site", site_root: "site", tailwind_input: join(tailwindInput) },
+					options: pluginOptions(),
 				},
 			},
 			root,
@@ -514,16 +467,12 @@ describe("leptoskit-plugin-monochange-web-assets", () => {
 		assert.ok(result.stderr.includes("__wasm_split"), result.stderr);
 	});
 
-	test("the plugin runs from any working directory", () => {
-		const { root, outDir, pkg, site } = buildSite("cwd");
+	test("after_build runs from any working directory", () => {
+		const { root, outDir, pkg } = buildScratch("cwd");
 		roots.push(root);
 		const tailwindBin = fakeTailwind(root);
-		mkdirSync(join(site, "pkg/projects"), { recursive: true });
-		for (const suffix of ["", ".gz", ".br"]) {
-			writeFileSync(join(site, `pkg/projects/monochange_app.css${suffix}`), "stale");
-		}
-		// Relative paths in the envelope and the tailwind_input resolve
-		// against the project root in the envelope, not the cwd.
+		// Relative paths in the envelope resolve against the project root in
+		// the envelope's cwd, not the publisher's working directory.
 		const result = runPluginWithTailwind(
 			{
 				protocol: 1,
@@ -532,78 +481,61 @@ describe("leptoskit-plugin-monochange-web-assets", () => {
 				context: {
 					root,
 					platform: "web",
-					release: true,
-					output_dir: "dist",
-					wasm_bundle: "dist/pkg/monochange_app_bg.wasm",
-					options: siteOptions("projects"),
+					release: false,
+					output_dir: "scratch",
+					wasm_bundle: "scratch/pkg/monochange_app_bg.wasm",
+					options: pluginOptions(),
 				},
 			},
 			tailwindBin,
 			root,
 		);
 		assert.equal(result.status, 0, result.stderr || result.stdout);
-		const css = readFileSync(join(site, "pkg/site/monochange_app.css"), "utf8");
-		assert.ok(css.length > 0);
-		for (const suffix of ["", ".gz", ".br"]) {
-			assert.ok(!existsSync(join(site, `pkg/projects/monochange_app.css${suffix}`)));
-		}
+		assert.ok(existsSync(join(pkg, "monochange_app.css")));
 		assert.ok(tailwindBin.length > 0);
 	});
 
 	test("the PATH shim resolves the plugin through symlinks from any cwd", () => {
-		const { root, outDir, pkg, site } = buildSite("shim");
+		const { root, outDir, pkg } = buildScratch("shim");
 		roots.push(root);
 		const tailwindBin = fakeTailwind(root);
 		const link = join(root, "bin");
 		mkdirSync(link, { recursive: true });
 		symlinkSync(shimPath, join(link, "leptoskit-plugin-monochange-web-assets"));
-		const result = spawnSync("leptoskit-plugin-monochange-web-assets", [], {
-			input: `${JSON.stringify({
-				protocol: 1,
-				plugin: "monochange-web-assets",
-				hook: "describe",
-				context: {},
-			})}\n`,
-			encoding: "utf8",
-			cwd: root,
-			env: {
-				...process.env,
-				PATH: `${link}:${process.env.PATH ?? ""}`,
-				MONOCHANGE_TAILWIND_BIN: tailwindBin,
-				MONOCHANGE_FONT_SUBSET_BIN: join(root, "font-subset-fake.mjs"),
-				MONOCHANGE_ESBUILD_BIN: esbuildBin,
-			},
-		});
-		assert.equal(result.status, 0, result.stderr || result.stdout);
-		const reply = JSON.parse(result.stdout) as { ok: boolean };
+		const run = (hook: string, extra: Record<string, unknown>) =>
+			spawnSync("leptoskit-plugin-monochange-web-assets", [], {
+				input: `${JSON.stringify({
+					protocol: 1,
+					plugin: "monochange-web-assets",
+					hook,
+					context: extra,
+				})}\n`,
+				encoding: "utf8",
+				cwd: root,
+				env: {
+					...process.env,
+					PATH: `${link}:${process.env.PATH ?? ""}`,
+					MONOCHANGE_TAILWIND_BIN: tailwindBin,
+					MONOCHANGE_FONT_SUBSET_BIN: join(root, "font-subset-fake.mjs"),
+					MONOCHANGE_ESBUILD_BIN: esbuildBin,
+					MONOCHANGE_WASM_OPT_BIN: join(root, "wasm-opt-fake.mjs"),
+				},
+			});
+		const described = run("describe", {});
+		assert.equal(described.status, 0, described.stderr || described.stdout);
+		const reply = JSON.parse(described.stdout) as { ok: boolean };
 		assert.equal(reply.ok, true);
 		// And the shim reaches the real plugin for the working hook too.
-		const assembled = spawnSync("leptoskit-plugin-monochange-web-assets", [], {
-			input: `${JSON.stringify({
-				protocol: 1,
-				plugin: "monochange-web-assets",
-				hook: "after_build",
-				context: {
-					root,
-					platform: "web",
-					release: true,
-					output_dir: outDir,
-					wasm_bundle: `${pkg}/monochange_app_bg.wasm`,
-					options: siteOptions("site"),
-				},
-			})}\n`,
-			encoding: "utf8",
-			cwd: root,
-			env: {
-				...process.env,
-				PATH: `${link}:${process.env.PATH ?? ""}`,
-				MONOCHANGE_TAILWIND_BIN: tailwindBin,
-				MONOCHANGE_FONT_SUBSET_BIN: join(root, "font-subset-fake.mjs"),
-				MONOCHANGE_ESBUILD_BIN: esbuildBin,
-			},
+		const assembled = run("after_build", {
+			root,
+			platform: "web",
+			release: true,
+			output_dir: outDir,
+			wasm_bundle: `${pkg}/monochange_app_bg.wasm`,
+			options: pluginOptions(),
 		});
 		assert.equal(assembled.status, 0, assembled.stderr || assembled.stdout);
-		assert.ok(existsSync(join(site, "pkg/site/monochange_app.css")));
+		assert.ok(existsSync(join(pkg, "monochange_app.css")));
 	});
 
 	test("rejects a foreign protocol or plugin name", () => {

@@ -35,30 +35,26 @@ rustflags = []
 optimize = "smallest"
 split = true
 wasm_opt = true
-# The tooling plugin precompresses the assembled site (both frontends share
-# one deployment tree, which upstream's per-build precompression cannot
-# cover); this build's own compression is off so compression happens once.
+# The publisher (scripts/leptoskit-plugin/publish-web-site.ts) compresses
+# the staged site after both builds (gzip 9 / brotli 11, upstream's set and
+# qualities); both frontends share one deployment tree, which upstream's
+# per-build precompression cannot cover, so this build's own compression is
+# off and compression happens exactly once over the staged tree.
 precompress = false
 
 # The tooling plugin owns everything upstream does not build itself, and runs
 # inside `leptoskit build`: shared Tailwind CSS for both entries, guarded
-# wasm-split-loader minification, pkg namespace placement (pkg/site/ here,
-# pkg/projects/ for the projects frontend), and precompression of the
-# assembled site. The plugin resolves as
-# `leptoskit-plugin-monochange-web-assets` on PATH; devenv, CI, and Docker
-# all provide it from scripts/leptoskit-plugin/.
+# wasm-split-loader minification, and — in release builds — the compressed
+# WASM optimization. It works strictly inside the build's own scratch output,
+# which stays intact for the SDK's bundle report and budget check. The plugin
+# resolves as `leptoskit-plugin-monochange-web-assets` on PATH; devenv, CI,
+# and Docker all provide it from scripts/leptoskit-plugin/.
 [[plugins]]
 name = "monochange-web-assets"
 
 [plugins.options]
-namespace = "site"
-# The assembled deployment tree both web builds share. Each build compiles
-# into its own scratch out dir (upstream wipes pkg/ when a fingerprint
-# changes) and the plugin assembles into this tree; build with
-# `--out target/web` for the website and `--out target/projects-web` for the
-# projects frontend (see build:web).
-site_root = "target/site"
-# Shared design tokens: one Tailwind input compiles for both frontends.
+# Shared design tokens: one Tailwind input compiles for both frontends (the
+# publisher verifies the two results are byte-identical before staging).
 tailwind_input = "crates/monochange_app/style/input.css"
 font_source = "public/fonts"
 

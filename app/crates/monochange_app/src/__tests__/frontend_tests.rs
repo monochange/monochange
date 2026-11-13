@@ -188,6 +188,96 @@ async fn a_missing_split_manifest_degrades_to_entry_only() {
 	);
 }
 
+/// A throwaway site root holding one split manifest, for freshness tests.
+/// Committed fixtures are never mutated by tests.
+struct ManifestSite {
+	site_root: String,
+	_dir: tempfile::TempDir,
+}
+
+impl ManifestSite {
+	fn with_manifest(content: &str) -> Self {
+		let dir = tempfile::tempdir().expect("tempdir");
+		std::fs::create_dir_all(dir.path().join("pkg/site")).expect("mkdir");
+		std::fs::write(
+			dir.path().join("pkg/site/__wasm_split_manifest.json"),
+			content,
+		)
+		.expect("write manifest");
+		let site_root = dir.path().to_string_lossy().into_owned();
+
+		Self {
+			site_root,
+			_dir: dir,
+		}
+	}
+}
+
+async fn website_probe_with(site_root: &str) -> String {
+	let options = leptos::config::LeptosOptions::builder()
+		.output_name(monochange_shared::routing::WEBSITE_OUTPUT_NAME)
+		.site_root(site_root.to_owned())
+		.build();
+	render(move || {
+		provide_context(leptos_router::location::RequestUrl::new("/account"));
+		let options = options.clone();
+		view! {
+			<FrontendScripts options=options frontend=Frontend::WEBSITE />
+			<ManifestProbe />
+		}
+	})
+	.await
+}
+
+#[tokio::test]
+async fn a_repaired_manifest_reaches_the_next_render() {
+	let site = ManifestSite::with_manifest("not json");
+	let html = website_probe_with(&site.site_root).await;
+	assert!(
+		html.contains("no-manifest"),
+		"an invalid manifest must degrade: {html}"
+	);
+
+	// The publisher replaces the broken file with a valid one; the very next
+	// render must pick the repair up.
+	std::fs::write(
+		std::path::Path::new(&site.site_root).join("pkg/site/__wasm_split_manifest.json"),
+		r#"{"split___login_route_view_5096727190328531431":["chunk_11"]}"#,
+	)
+	.expect("repair manifest");
+	let html = website_probe_with(&site.site_root).await;
+	assert!(
+		html.contains("|chunk_11|"),
+		"the repaired manifest must drive the next render: {html}"
+	);
+}
+
+#[tokio::test]
+async fn a_same_sized_manifest_edit_reaches_the_next_render() {
+	// Same byte length, different chunk names: a size-keyed cache could never
+	// see this change; the fresh read must.
+	let site = ManifestSite::with_manifest(
+		r#"{"split___login_route_view_5096727190328531431":["chunk_11"]}"#,
+	);
+	let html = website_probe_with(&site.site_root).await;
+	assert!(html.contains("|chunk_11|"), "{html}");
+
+	std::fs::write(
+		std::path::Path::new(&site.site_root).join("pkg/site/__wasm_split_manifest.json"),
+		r#"{"split___login_route_view_5096727190328531431":["chunk_12"]}"#,
+	)
+	.expect("rewrite manifest");
+	let html = website_probe_with(&site.site_root).await;
+	assert!(
+		html.contains("|chunk_12|"),
+		"the edit must reach the next render: {html}"
+	);
+	assert!(
+		!html.contains("|chunk_11|"),
+		"the old chunk must be gone: {html}"
+	);
+}
+
 #[tokio::test]
 async fn an_invalid_split_manifest_degrades_to_entry_only() {
 	let options = leptos::config::LeptosOptions::builder()

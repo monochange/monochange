@@ -630,10 +630,21 @@ in
       exec = ''
         set -euo pipefail
         leptoskit_bin="$(${currentDir}/scripts/leptoskit-cli.sh)"
-        (cd ${currentDir}/app && "$leptoskit_bin" build "$@" --platform web --out target/web)
-        (cd ${currentDir}/app/projects && "$leptoskit_bin" build "$@" --platform web --out target/projects-web)
+        # Fresh per-invocation scratch directories under the ignored local
+        # artifacts: upstream wipes a build's pkg/ only when its fingerprint
+        # changes, so a reused out directory could keep removed public files
+        # alive. This is asset output, not a Rust target directory.
+        run_root="''${MONOCHANGE_WEB_BUILD_ROOT:-${currentDir}/.monochange/local/web-build/$(date +%Y%m%d-%H%M%S)-$$}"
+        mkdir -p "$run_root/web" "$run_root/projects-web"
+        (cd ${currentDir}/app && "$leptoskit_bin" build "$@" --platform web --out "$run_root/web")
+        (cd ${currentDir}/app/projects && "$leptoskit_bin" build "$@" --platform web --out "$run_root/projects-web")
+        # Both builds passed their own bundle report and budget check: stage,
+        # validate, and publish one complete deployment tree. Any failure here
+        # keeps the last good site at app/target/site.
+        pnpm node ${currentDir}/scripts/leptoskit-plugin/publish-web-site.ts \
+          --web-root "$run_root" --site-root ${currentDir}/app/target/site
       '';
-      description = "Build both web frontends with the provenance-verified leptoskit CLI into one assembled site (app/target/site, from per-build scratch dirs); forward flags like --release.";
+      description = "Build both web frontends with the provenance-verified leptoskit CLI into fresh scratch outputs, then stage, validate, and publish one complete site (app/target/site); forward flags like --release.";
       binary = "bash";
     };
     # The leptoskit tooling plugin resolves as `leptoskit-plugin-<name>` on

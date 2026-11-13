@@ -2,37 +2,36 @@
 // leptoskit tooling plugin for the monochange web frontends.
 //
 // The upstream leptoskit build compiles the server, the wasm client,
-// wasm-bindgen, and the split chunks, and release-builds precompress the
-// output. What it does not build is the site CSS or a minified split loader;
-// this plugin owns both inside `leptoskit build` (and `leptoskit dev`), on the
-// documented `[[plugins]]` process protocol (protocol 1, see
-// crates/leptoskit_plugin/src/process.rs upstream): one JSON envelope on
-// stdin, one JSON reply on stdout, one process per hook.
+// wasm-bindgen, and the split chunks. What it does not build is the site CSS
+// or a minified split loader; this plugin owns both inside `leptoskit build`
+// (and `leptoskit dev`), on the documented `[[plugins]]` process protocol
+// (protocol 1, see crates/leptoskit_plugin/src/process.rs upstream): one JSON
+// envelope on stdin, one JSON reply on stdout, one process per hook.
 //
-// `after_build` — which upstream runs before its release precompression —
+// `after_build` — which upstream runs BEFORE its bundle report and budget
+// check (crates/leptoskit_cli/src/build.rs at the pinned revision) — works
+// strictly inside the build's own scratch output directory:
 //
 // 1. minifies the wasm-split loader and the entry glue with the guarded
 //    shared implementation (scripts/minify-split-loader.ts);
-// 2. compiles both frontends' Tailwind sources to `pkg/site/monochange_app.css`;
-//    Release builds also optimize the WASM modules, preserving linking
+// 2. compiles the shared Tailwind input to `pkg/monochange_app.css`;
+// 3. subsets the source fonts to WOFF2 into `.font-subsets/`;
+// 4. release builds re-optimize the WASM modules, preserving linking
 //    contracts and rejecting increases in gzip or deployed brotli transfer.
-// 3. places the frontend's pkg output under `<site_root>/pkg/<namespace>/`,
-//    so the two web frontends assemble into one site root without name
-//    collisions (each entry's split manifest, loader, and chunks live in
-//    their own directory, and upstream's per-build `pkg/` wipe cannot touch
-//    the other frontend's namespace);
-// 4. precompresses the assembled site with gzip and brotli — upstream's
-//    per-build precompression covers one output directory, while the
-//    assembled tree spans both builds, so the plugin owns it (same
-//    compressible set and quality: gzip level 9, brotli quality 11).
 //
-// `namespace`, `site_root`, and `tailwind_input` (relative to the project
-// root, which is the CLI's working directory for every documented
-// invocation) come from the `[[plugins]]` options in `app/leptoskit.toml`
-// and `app/projects/leptoskit.toml`; both configs set
-// `bundle.precompress = false` so compression happens exactly once, over the
-// assembled tree. Missing tools or assets fail the hook loudly rather than
-// producing an unstyled or oversized deployment.
+// The plugin never moves or publishes anything: the SDK's bundle report and
+// `bundle.budget_kib` check read the scratch output after this hook, and a
+// build its own budget rejects must never have reached the deployed tree.
+// Publication is a separate step (scripts/leptoskit-plugin/publish-web-site.ts)
+// that runs only after BOTH web builds succeed; see build:web in devenv.nix.
+//
+// `tailwind_input` and `font_source` (relative to the project root, which is
+// the CLI's working directory for every documented invocation) come from the
+// `[[plugins]]` options in `app/leptoskit.toml` and `app/projects/leptoskit.toml`.
+// Both frontends compile the same canonical input, so their CSS must come out
+// byte-identical — the publisher verifies that before staging. Missing tools
+// or assets fail the hook loudly rather than producing an unstyled or
+// oversized deployment.
 //
 // The plugin resolves as `leptoskit-plugin-monochange-web-assets` on PATH
 // (devenv, CI, and Docker provide it from this directory), so the same
@@ -40,22 +39,10 @@
 //
 // Logs go to stderr only; stdout carries the JSON reply and nothing else.
 import { spawnSync } from "node:child_process";
-import {
-	cpSync,
-	existsSync,
-	mkdirSync,
-	readFileSync,
-	readSync,
-	readdirSync,
-	renameSync,
-	rmSync,
-	statSync,
-	writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, readSync, rmSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
-import { brotliCompressSync, constants as zlibConstants, gzipSync } from "node:zlib";
 
 import { minifyEntryGlue, minifySplitLoaders } from "../minify-split-loader.ts";
 import { optimizeWebWasm } from "./optimize-web-wasm.ts";
@@ -187,46 +174,6 @@ function compileTailwind(input: string, output: string, tailwindBin: string): vo
 	log(`compiled ${input} → ${output}`);
 }
 
-/** Reads the current split manifest before changing the assembled namespace. */
-function splitAssets(manifestPath: string): Set<string> | null {
-	if (!existsSync(manifestPath)) return null;
-	let manifest: unknown;
-	try {
-		manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
-	} catch (error) {
-		fail(`could not read split manifest ${manifestPath}: ${String(error)}`);
-	}
-	if (typeof manifest !== "object" || manifest === null || Array.isArray(manifest)) {
-		fail(`invalid split manifest ${manifestPath}`);
-	}
-	const files = new Set<string>();
-	for (const chunks of Object.values(manifest)) {
-		if (
-			!Array.isArray(chunks) ||
-			chunks.some(
-				(chunk) =>
-					typeof chunk !== "string" || !/^(?:chunk_\d+|split___[a-z0-9_]+_\d+)$/u.test(chunk),
-			)
-		) {
-			fail(`invalid split manifest ${manifestPath}`);
-		}
-		for (const chunk of chunks) files.add(`${chunk}.wasm`);
-	}
-	if (files.size === 0) fail(`invalid split manifest ${manifestPath}: no split modules`);
-	return files;
-}
-
-/** Remove only split modules absent from the manifest and their compression twins. */
-function pruneSplitAssets(namespaceDir: string, current: Set<string> | null): void {
-	if (current === null) return;
-	for (const name of readdirSync(namespaceDir)) {
-		const base = name.replace(/\.(?:br|gz)$/u, "");
-		if (/^(?:chunk_\d+|split___[a-z0-9_]+_\d+)\.wasm$/u.test(base) && !current.has(base)) {
-			rmSync(join(namespaceDir, name));
-		}
-	}
-}
-
 function afterBuild(context: PluginContext): void {
 	const platform = context.platform ?? "web";
 
@@ -250,20 +197,13 @@ function afterBuild(context: PluginContext): void {
 	// project root.
 	const root = process.cwd();
 
-	const namespace = options.namespace;
-	if (typeof namespace !== "string" || namespace.length === 0 || /[/\\]/.test(namespace)) {
-		fail("plugin options must declare a `namespace` without path separators");
-	}
-
 	const tailwindInput = options.tailwind_input;
 	if (typeof tailwindInput !== "string" || tailwindInput.length === 0) {
 		fail("plugin options must declare a `tailwind_input` relative to the project root");
 	}
 	const fontSource = options.font_source;
-
-	const siteRootOption = options.site_root;
-	if (typeof siteRootOption !== "string" || siteRootOption.length === 0) {
-		fail("plugin options must declare a `site_root` relative to the project root");
+	if (typeof fontSource !== "string" || fontSource.length === 0) {
+		fail("plugin options must declare a `font_source` relative to the project root");
 	}
 
 	// The wasm-bindgen output names the entry: `{output_name}.js` and
@@ -285,160 +225,49 @@ function afterBuild(context: PluginContext): void {
 
 	// 1. Minify the split loader and the entry glue with the shared guarded
 	// implementation (cargo-leptos' js-minify did both; the leptoskit build
-	// emits them unminified).
+	// emits them unminified). The scratch bundle stays the build's own
+	// output: the SDK's bundle report and budget check read it after this
+	// hook, so it must remain complete and truthful here.
 	const summary = minifySplitLoaders(pkgDir);
 	log(`minified ${summary.loaders.length} split loader(s) with ${summary.esbuildBin}`);
 	minifyEntryGlue(pkgDir, outputName, summary.esbuildBin);
 
-	// 2. Both entries use the same stylesheet, compiled from explicit sources.
+	// 2. Both frontends compile the same canonical stylesheet; the publisher
+	// verifies the two results agree byte for byte before staging.
 	const cssPath = join(pkgDir, "monochange_app.css");
 	compileTailwind(resolve(root, tailwindInput), cssPath, resolveTailwind(root));
-	if (typeof fontSource !== "string" || fontSource.length === 0) {
-		fail("plugin options must declare a `font_source` relative to the project root");
-	}
-	const fontDir = join(resolve(outputDir), ".font-subsets");
-	mkdirSync(fontDir, { recursive: true });
-	for (const name of FONT_NAMES) {
-		const source = resolve(root, fontSource, `${name}.ttf`);
-		const output = join(fontDir, `${name}.woff2`);
-		rmSync(output, { force: true });
-		const subset = spawnSync(
-			process.env.MONOCHANGE_FONT_SUBSET_BIN ?? "pyftsubset",
-			[source, `--output-file=${output}`, "--flavor=woff2", `--unicodes=${FONT_UNICODES}`],
-			{ encoding: "utf8" },
-		);
-		if (subset.error !== undefined || subset.status !== 0 || !existsSync(output)) {
-			const detail =
-				subset.error?.message || subset.stderr || `exit ${String(subset.status)} or no output`;
-			fail(`could not subset ${source}: ${detail}`);
+
+	// 3. Subset the shared fonts to WOFF2 inside the scratch output. The
+	// publisher deploys the website build's set; subsetting in both builds
+	// keeps the two scratch outputs independently complete.
+	if (fontSource.length > 0) {
+		const fontDir = join(resolve(outputDir), ".font-subsets");
+		mkdirSync(fontDir, { recursive: true });
+		for (const name of FONT_NAMES) {
+			const source = resolve(root, fontSource, `${name}.ttf`);
+			const output = join(fontDir, `${name}.woff2`);
+			rmSync(output, { force: true });
+			const subset = spawnSync(
+				process.env.MONOCHANGE_FONT_SUBSET_BIN ?? "pyftsubset",
+				[source, `--output-file=${output}`, "--flavor=woff2", `--unicodes=${FONT_UNICODES}`],
+				{ encoding: "utf8" },
+			);
+			if (subset.error !== undefined || subset.status !== 0 || !existsSync(output)) {
+				const detail =
+					subset.error?.message || subset.stderr || `exit ${String(subset.status)} or no output`;
+				fail(`could not subset ${source}: ${detail}`);
+			}
 		}
 	}
 
+	// 4. Release builds re-optimize the scratch WASM modules in place, so the
+	// SDK's own report and budget check measure the deployed bytes.
 	if (context.release) {
 		const optimized = optimizeWebWasm(pkgDir);
 		log(`optimized ${optimized.files} WASM module(s), saving ${optimized.gzipSaved} gzip bytes`);
 	}
 
-	// 3. Assemble: this frontend's bundle moves under the shared site root's
-	// pkg/<namespace>/, keeping relative loader and chunk URLs inside the
-	// entry's own directory. Upstream wipes its per-build pkg/ when a build's
-	// fingerprint changes, so each build owns a scratch out directory that
-	// upstream may wipe, and the plugin owns the move into the shared tree.
-	// The build's root files (public assets, favicons) move to the site root
-	// the same way; the website build contributes them, the projects build
-	// contributes only its pkg.
-	const siteRoot = resolve(root, siteRootOption);
-	mkdirSync(siteRoot, { recursive: true });
-	const outDirResolved = resolve(outputDir);
-	const namespaceDir = join(siteRoot, "pkg", namespace);
-	const newManifest = join(pkgDir, "__wasm_split_manifest.json");
-	const assets = splitAssets(
-		existsSync(newManifest) ? newManifest : join(namespaceDir, "__wasm_split_manifest.json"),
-	);
-	if (namespace !== "site") {
-		const sharedDir = join(siteRoot, "pkg", "site");
-		mkdirSync(sharedDir, { recursive: true });
-		moveFile(cssPath, join(sharedDir, "monochange_app.css"));
-		for (const suffix of ["", ".gz", ".br"]) {
-			rmSync(join(siteRoot, "pkg", namespace, `${outputName}.css${suffix}`), { force: true });
-		}
-	}
-	moveInto(pkgDir, namespaceDir);
-	pruneSplitAssets(namespaceDir, assets);
-	for (const entry of readdirSync(outDirResolved)) {
-		if (entry === "pkg" || entry === ".font-subsets") continue;
-		const from = join(outDirResolved, entry);
-		const to = join(siteRoot, entry);
-		if (statSync(from).isDirectory()) {
-			moveInto(from, to);
-		} else {
-			moveFile(from, to);
-		}
-	}
-	const deployedFonts = join(siteRoot, "fonts");
-	mkdirSync(deployedFonts, { recursive: true });
-	for (const name of FONT_NAMES) {
-		moveFile(join(fontDir, `${name}.woff2`), join(deployedFonts, `${name}.woff2`));
-		rmSync(join(deployedFonts, `${name}.ttf`), { force: true });
-	}
-	rmSync(fontDir, { recursive: true, force: true });
-
-	log(`assembled the ${outputName} bundle into ${siteRoot}/pkg/${namespace}/`);
-
-	// 4. Precompress the assembled site (bundle.precompress is false in both
-	// web configs, so this is the only compression pass).
-	const compressed = precompressSite(siteRoot);
-	log(`precompressed the assembled site (${compressed.gzip} gzip, ${compressed.brotli} brotli)`);
-}
-
-/**
- * Moves one file to `target`, replacing it when present. Rename is atomic on
- * one filesystem and falls back to a copy for cross-device targets (a build
- * cache mount is a different filesystem from the output layer).
- */
-function moveFile(from: string, to: string): void {
-	try {
-		renameSync(from, to);
-	} catch (error) {
-		const code = (error as NodeJS.ErrnoException).code;
-		if (code !== "EXDEV") throw error;
-		cpSync(from, to);
-		rmSync(from);
-	}
-}
-
-/**
- * Moves a directory's contents into `target`, replacing existing files so a
- * rebuild refreshes the assembled tree. Directory shells may remain in the
- * scratch out directory; only the site root's contents matter.
- */
-function moveInto(source: string, target: string): void {
-	mkdirSync(target, { recursive: true });
-	for (const entry of readdirSync(source)) {
-		const from = join(source, entry);
-		const to = join(target, entry);
-		if (statSync(from).isDirectory()) {
-			moveInto(from, to);
-		} else {
-			moveFile(from, to);
-		}
-	}
-}
-
-// The compressible set upstream's compress.rs precompresses.
-const COMPRESSIBLE = /\.(?:wasm|js|mjs|css|html|svg|json|map|txt|xml|webmanifest)$/u;
-// Upstream's twin names: `<file>.gz` and `<file>.br` beside the source.
-const PRECOMPRESSED = /\.(?:gz|br)$/u;
-
-function precompressSite(siteRoot: string): { gzip: number; brotli: number } {
-	let gzipCount = 0;
-	let brotliCount = 0;
-	const stack = [siteRoot];
-	while (stack.length > 0) {
-		const directory = stack.pop() ?? fail("unreachable directory entry");
-		for (const entry of readdirSync(directory, { withFileTypes: true })) {
-			const path = join(directory, entry.name);
-			if (entry.isDirectory()) {
-				stack.push(path);
-				continue;
-			}
-			if (!entry.isFile() || PRECOMPRESSED.test(path) || !COMPRESSIBLE.test(path)) continue;
-			const raw = readFileSync(path);
-			writeFileSync(`${path}.gz`, gzipSync(raw, { level: 9 }));
-			writeFileSync(
-				`${path}.br`,
-				brotliCompressSync(raw, {
-					params: {
-						[zlibConstants.BROTLI_PARAM_QUALITY]: 11,
-						[zlibConstants.BROTLI_PARAM_LGWIN]: 24,
-					},
-				}),
-			);
-			gzipCount += 1;
-			brotliCount += 1;
-		}
-	}
-	return { gzip: gzipCount, brotli: brotliCount };
+	log(`finished the ${outputName} build in ${resolve(outputDir)}`);
 }
 
 function reply(payload: Record<string, unknown>): never {

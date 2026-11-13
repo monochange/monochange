@@ -38,10 +38,10 @@ function moduleInterface(bytes: Buffer): string {
 	return JSON.stringify({
 		imports: WebAssembly.Module.imports(module)
 			.map((entry) => JSON.stringify(entry))
-			.sort(),
+			.toSorted(),
 		exports: WebAssembly.Module.exports(module)
 			.map((entry) => JSON.stringify(entry))
-			.sort(),
+			.toSorted(),
 	});
 }
 

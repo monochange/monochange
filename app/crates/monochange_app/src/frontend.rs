@@ -14,7 +14,6 @@
 
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::Mutex;
 
 use leptos::WasmSplitManifest;
 use leptos::prelude::*;
@@ -108,23 +107,11 @@ fn defer_hydration(path: &str, signed_out: bool) -> bool {
 /// Parsed split manifests per frontend: `(pkg url prefix, preloads, loader)`.
 type SplitManifest = (String, HashMap<String, Vec<String>>, String);
 
-static MANIFESTS: Mutex<Option<HashMap<String, Option<SplitManifest>>>> = Mutex::new(None);
-
-fn manifest_for(frontend: &Frontend, site_root: &str) -> Option<SplitManifest> {
-	// Keyed by site root as well: the running server has one stable site
-	// root, and tests render several fixtures against one process.
-	let cache_key = format!("{site_root}\u{0}{}", frontend.pkg_url);
-	// A poisoned cache lock still holds valid cached entries.
-	let mut cache = MANIFESTS
-		.lock()
-		.unwrap_or_else(std::sync::PoisonError::into_inner);
-	let cached = cache
-		.get_or_insert_with(HashMap::new)
-		.entry(cache_key)
-		.or_insert_with(|| read_manifest(frontend, site_root));
-	cached.clone()
-}
-
+/// Reads one frontend's split manifest fresh for every non-deferred render.
+/// These files are tiny, and the publisher replaces the whole tree between
+/// builds: a manifest that was missing, invalid, or from the previous
+/// generation must reach the very next request after a publication, so no
+/// cache may stand between the file and the render.
 fn read_manifest(frontend: &Frontend, site_root: &str) -> Option<SplitManifest> {
 	let path = frontend.manifest_path(site_root);
 
@@ -186,7 +173,7 @@ pub fn FrontendScripts(
 	let defer = defer_hydration(&path, signed_out);
 
 	if let Some((pkg_url, preloads, split_loader)) = (!defer)
-		.then(|| manifest_for(&frontend, &options.site_root))
+		.then(|| read_manifest(&frontend, &options.site_root))
 		.flatten()
 	{
 		provide_context(WasmSplitManifest(

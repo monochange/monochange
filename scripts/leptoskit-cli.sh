@@ -10,7 +10,7 @@
 #
 #   leptoskit_bin="$(scripts/leptoskit-cli.sh)"
 #   scripts/leptoskit-cli.sh migrate --check
-#   scripts/leptoskit-cli.sh build --release --platform web --out target/site
+#   scripts/leptoskit-cli.sh serve --dir app/target/site
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

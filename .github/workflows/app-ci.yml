@@ -159,6 +159,7 @@ jobs:
           node-version: 24
 
       - name: resolve the provenance-verified leptoskit CLI
+        working-directory: .
         run: |
           set -euo pipefail
           leptoskit_bin="$(scripts/leptoskit-cli.sh)"
@@ -166,24 +167,36 @@ jobs:
           printf 'leptoskit resolved: %s\n' "$("$leptoskit_bin" --version)"
 
       - name: build both web frontends
+        working-directory: .
         run: |
           set -euo pipefail
           # The tooling plugin resolves on PATH from the repository scripts
           # directory; the shim locates the TypeScript plugin beside itself.
+          # Fresh per-invocation scratch directories keep the SDK's report
+          # truthful; publish-web-site.ts promotes one validated tree only
+          # after both builds passed their own budget checks.
           export PATH="$PWD/scripts/leptoskit-plugin:$PATH"
-          leptoskit doctor
-          (cd app && "$LEPTOSKIT_BIN" build --platform web --out target/web)
-          (cd app/projects && "$LEPTOSKIT_BIN" build --platform web --out target/projects-web)
+          "$LEPTOSKIT_BIN" doctor
+          run_root=".monochange/local/web-build/ci-$(date +%Y%m%d-%H%M%S)-$$"
+          mkdir -p "$run_root/web" "$run_root/projects-web"
+          (cd app && "$LEPTOSKIT_BIN" build --platform web --out "$GITHUB_WORKSPACE/$run_root/web")
+          (cd app/projects && "$LEPTOSKIT_BIN" build --platform web --out "$GITHUB_WORKSPACE/$run_root/projects-web")
+          node scripts/leptoskit-plugin/publish-web-site.ts \
+            --web-root "$GITHUB_WORKSPACE/$run_root" --site-root app/target/site
 
       - name: the assembled site holds both frontends
+        working-directory: .
         run: |
           set -euo pipefail
           test -f app/target/site/pkg/site/monochange_app.js
           test -f app/target/site/pkg/site/monochange_app.css
           test -f app/target/site/pkg/site/__wasm_split_manifest.json
           test -f app/target/site/pkg/projects/monochange_projects_web.js
-          test -f app/target/site/pkg/projects/monochange_projects_web.css
           test -f app/target/site/pkg/projects/__wasm_split_manifest.json
+          test ! -e app/target/site/pkg/projects/monochange_app.css
+          test -f app/target/site/fonts/bricolage-800.woff2
+          test -f app/target/site/pkg/site/monochange_app.js.br
+          test -f app/target/site/pkg/site/monochange_app.js.gz
 
   app-coverage:
     timeout-minutes: 60
@@ -372,10 +385,12 @@ jobs:
           sudo mv "tailwindcss-linux-${tw_arch}" /usr/local/bin/tailwindcss
           tailwindcss --help >/dev/null
 
-      # Both web frontends build through the provenance-verified leptoskit CLI.
-      # The tooling plugin runs inside each build before release precompression
-      # (esbuild resolves from the workspace devDependency), so the site CSS,
-      # minified split loaders, and pkg/site + pkg/projects namespaces ship as
+      # Both web frontends build through the provenance-verified leptoskit
+      # CLI. The tooling plugin prepares each scratch bundle inside its own
+      # build (esbuild resolves from the workspace devDependency), and
+      # publish-web-site.ts stages, validates, and promotes one complete site
+      # after both builds passed their own bundle reports and budgets, so the
+      # pkg/site + pkg/projects namespaces and precompressed twins ship as
       # the exact bytes the size gate measures below.
       - name: build release site
         working-directory: app
@@ -385,8 +400,12 @@ jobs:
           # plugin resolves on PATH from the repository scripts directory.
           export PATH="$GITHUB_WORKSPACE/scripts/leptoskit-plugin:$PATH"
           leptoskit_bin="$(../scripts/leptoskit-cli.sh)"
-          "$leptoskit_bin" build --release --platform web --out target/web
-          (cd projects && "$leptoskit_bin" build --release --platform web --out target/projects-web)
+          run_root="../.monochange/local/web-build/ci-$(date +%Y%m%d-%H%M%S)-$$"
+          mkdir -p "$run_root/web" "$run_root/projects-web"
+          "$leptoskit_bin" build --release --platform web --out "$GITHUB_WORKSPACE/$run_root/web"
+          (cd projects && "$leptoskit_bin" build --release --platform web --out "$GITHUB_WORKSPACE/$run_root/projects-web")
+          pnpm node "$GITHUB_WORKSPACE/scripts/leptoskit-plugin/publish-web-site.ts" \
+            --web-root "$GITHUB_WORKSPACE/$run_root" --site-root "$GITHUB_WORKSPACE/app/target/site"
 
       - name: check website bundle size
         run: |

@@ -6,13 +6,14 @@ Leptos SSR web app for monochange release planning.
 
 The app uses SQLite by default, so no database service is required. It loads its secrets through [Monosecret](https://monosecret.dev) from `app/monosecret.toml`. The `development` profile reads the ignored `app/.env` first, then the process environment, then local defaults. It never contacts 1Password.
 
-The two web frontends build through their own `leptoskit.toml` configs: `app/leptoskit.toml` (website entry) and `app/projects/leptoskit.toml` (projects entry). Both name the shared `monochange_app` backend and assemble into one site root. The `build:web` devenv task resolves the provenance-verified CLI and builds both frontends into `app/target/site`; the tooling plugin (site CSS, split-loader minification, pkg namespaces) runs inside each build.
+The two web frontends build through their own `leptoskit.toml` configs: `app/leptoskit.toml` (website entry) and `app/projects/leptoskit.toml` (projects entry). Both name the shared `monochange_app` backend. The `build:web` devenv task resolves the provenance-verified CLI, builds both frontends into fresh per-invocation scratch directories under the ignored `.monochange/local/web-build/<run>/`, and only after both builds passed their own bundle reports and budgets runs `scripts/leptoskit-plugin/publish-web-site.ts`, which stages one complete deployment tree, validates it, and promotes it to `app/target/site` — keeping the last good site on any failure. The tooling plugin (shared site CSS, split-loader minification, release WASM optimization) runs inside each build's scratch output.
 
 ```bash
 # Build both frontends (add --release for the size/benchmark gates)
 devenv shell build:web
-# Serve the assembled site; the backend composes both SSR route sets
-cd app && MONOSECRET_PROFILE=development devenv shell leptoskit serve
+# Serve the assembled site statically through the managed CLI
+# (SSR development runs the server binary with LEPTOS_SITE_ROOT instead)
+cd app && ../scripts/leptoskit-cli.sh serve --dir target/site
 ```
 
 Default database:
@@ -24,7 +25,8 @@ sqlite://./monochange_app.sqlite3
 Override any value, such as `DATABASE_URL` or the GitHub App client credentials, in `app/.env` or the environment:
 
 ```bash
-DATABASE_URL=sqlite://.devenv/state/monochange_app.sqlite3 MONOSECRET_PROFILE=development devenv shell leptoskit serve
+DATABASE_URL=sqlite://.devenv/state/monochange_app.sqlite3 LEPTOS_SITE_ROOT=target/site \
+  MONOSECRET_PROFILE=development devenv shell -- bash -c 'cd app && cargo run'
 ```
 
 ## tests
@@ -41,16 +43,15 @@ Release automation uses the same SQLite database and remains disabled unless `MO
 Every app pull request runs a Lighthouse suite over the core flows (`/`, `/install`, `/pricing`, `/changelog`, `/book`, a book chapter, `/login`, and the signed-out `/dashboard`) plus a gzip bundle-size check against the committed baseline. Locally, after a release build:
 
 ```bash
-# from the repository root; both frontends assemble into app/target/site and
-# the tooling plugin compiles the CSS and minifies the split loaders inside
-# the build, before precompression
+# from the repository root; build:web builds both frontends into fresh
+# scratch outputs and publishes one validated site to app/target/site
 devenv shell build:web --release
 pnpm bench:website          # Lighthouse against a throwaway local server
 pnpm size:website           # compare app/target/site/pkg against the baseline
 pnpm size:website:update    # accept a deliberate size change in the same PR
 ```
 
-The release builds go through the pinned **leptoskit** CLI (`build:web` resolves it from `[workspace.metadata.bin]` and verifies the Git provenance), never cargo-leptos. The tooling plugin (`scripts/leptoskit-plugin/`) owns what the leptoskit build does not produce itself: the Tailwind site CSS, the guarded `__wasm_split.*.js` loader minification (scripts/minify-split-loader.ts), and placement of each frontend's bundle under `pkg/site/` / `pkg/projects/` so both entries share one deployment without name collisions. Its `after_build` hook runs before upstream precompression, so the shipped assets and their `.br`/`.gz` twins are the same bytes the size gate measures.
+The release builds go through the pinned **leptoskit** CLI (`build:web` resolves it from `[workspace.metadata.bin]` and verifies the Git provenance), never cargo-leptos. The tooling plugin (`scripts/leptoskit-plugin/web-assets-plugin.ts`) prepares each build's own scratch bundle inside `leptoskit build`: the Tailwind site CSS, the guarded `__wasm_split.*.js` loader minification (scripts/minify-split-loader.ts), the WOFF2 font subsets, and — in release builds — the guarded WASM re-optimization. It never moves or publishes anything: the SDK's bundle report and `bundle.budget_kib` check read that scratch bundle after the hook, so a build its own budget rejects can never have touched the deployment. Publication is `scripts/leptoskit-plugin/publish-web-site.ts`, which runs only after BOTH builds succeeded: it stages `pkg/site/` + `pkg/projects/`, the public assets, and the fonts from the scratch outputs alone (so removed files and stale chunks cannot survive), verifies both builds compiled byte-identical CSS, precompresses the staged tree (gzip 9 / brotli 11), validates completeness, and promotes it over `app/target/site` with a two-rename swap that keeps the last good site on any failure. The swap's window between the two renames is documented in the publisher's header: readers that open the site root in that instant see a missing directory, and every in-repo consumer only reads the tree after `build:web` exits.
 
 Budgets live in `scripts/website-budgets.json`; the size baseline in `scripts/website-size-baseline.json`. `pnpm bench:website` needs Chrome or Chromium locally (`CHROME_PATH` is honoured). The app CI job fails on budget violations unless `MONOCHANGE_ALLOW_BENCHMARK_BUDGET_FAILURES=true` is set, mirroring the CLI benchmark escape hatch.
 
