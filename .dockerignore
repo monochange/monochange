@@ -1,2 +1,13 @@
 # Local Monosecret development values never enter the image build context.
 app/.env
+
+# Host-local dependency and artifact trees must not enter the context: a
+# macOS node_modules would shadow the pinned standalone tools the image
+# installs (the tooling plugin would resolve the workspace tailwind wrapper
+# with linux-incompatible native bindings), and the local build scratch,
+# Rust target, and lockfile noise are image-irrelevant.
+**/node_modules
+app/pnpm-lock.yaml
+.monochange
+target
+app/target

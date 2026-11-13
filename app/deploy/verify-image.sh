@@ -70,5 +70,8 @@ done
 if [ -n "$version" ]; then
 	curl --fail --silent --show-error "${base}/releases/$version.json" |
 		jq -e --arg version "$version" '.title == $version'
-	curl --fail --silent --show-error "${base}/changelog" | grep -Fq "v$version"
+	# Buffer the page before matching: `curl | grep -q` lets grep exit on the
+	# first match and SIGPIPE the transfer into a false failure.
+	changelog="$(curl --fail --silent --show-error "${base}/changelog")"
+	printf '%s\n' "$changelog" | grep -Fq "v$version"
 fi
