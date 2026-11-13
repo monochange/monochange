@@ -4,6 +4,8 @@
 )]
 #![forbid(clippy::indexing_slicing)]
 #![doc = include_str!("crate_docs.md")]
+pub mod body_limit;
+
 use std::fmt::Display;
 use std::path::Path;
 use std::path::PathBuf;
@@ -169,7 +171,7 @@ pub fn release_pull_request_body_for_source(
 
 /// Render the markdown body used for provider release requests, bounded to a provider limit.
 ///
-/// The prepared-release header and the outward target list always survive. When
+/// The prepared-release header and outward target list survive when they fit. When
 /// the body would exceed `max_chars`, release-note sections are dropped from the
 /// end until it fits and a pointer to the changelog files that still carry every
 /// note is appended, so a shortened body never reads as complete. A body that
@@ -198,7 +200,8 @@ pub fn render_release_pull_request_body(
 	let mut kept = sections.len();
 
 	if let Some(max_chars) = max_chars {
-		while kept > 0
+		while original_chars > max_chars
+			&& kept > 0
 			&& assemble_release_pull_request_body(
 				&header,
 				&sections,
@@ -219,14 +222,26 @@ pub fn render_release_pull_request_body(
 	// deliberately omits the notes. An unbounded full-style body is never
 	// altered, so existing output is preserved byte-for-byte.
 	let shows_pointer = truncated || summary_style;
-	let body = assemble_release_pull_request_body(
+	let mut body = assemble_release_pull_request_body(
 		&header,
 		&sections,
 		kept,
 		shows_pointer.then_some(dropped_entries),
 		manifest,
 	);
-	let truncation = truncated.then(|| {
+	// A huge target list or path list can exceed the cap even after all notes
+	// were removed. Reserve a short continuation notice for that case too.
+	let hard_truncated = max_chars.is_some_and(|limit| body.chars().count() > limit);
+	if let Some(limit) = max_chars {
+		body = body_limit::bound_body(
+			&body,
+			&[],
+			"and more... See the changelog files in this PR for full details.",
+			limit,
+		);
+	}
+
+	let truncation = (truncated || hard_truncated).then(|| {
 		SourceChangeRequestBodyTruncation {
 			max_chars: max_chars.unwrap_or_default(),
 			original_chars,

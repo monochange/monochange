@@ -1,0 +1,11 @@
+---
+source: crates/monochange_github/src/__tests__/body_tests.rs
+expression: bounded
+---
+## Features
+### One
+_Packages:_ core
+
+
+
+For more, [view the changelog for the full details](https://github.com/ifiokjr/monochange/blob/v1.2.0/changelog.md).
