@@ -10,6 +10,15 @@ if [ "$(id -u)" -ne 0 ]; then
 	exit 1
 fi
 
+# Helper scripts are copied next to this one and installed from there.
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+for sibling in monochange-deploy.sh ci-deploy.sh mitigate-cve-2026-98432.sh; do
+	if [ ! -f "${SCRIPT_DIR}/${sibling}" ]; then
+		echo "missing ${SCRIPT_DIR}/${sibling}; copy it next to harden-droplet.sh" >&2
+		exit 1
+	fi
+done
+
 apt-get update
 apt-get install -y \
 	ca-certificates \
@@ -95,25 +104,10 @@ chown -R "${DEPLOY_USER}:${DEPLOY_USER}" /opt/monochange/data /opt/monochange/ba
 install -d -m 700 /opt/monochange/secrets
 chown root:root /opt/monochange/secrets
 
-cat >/usr/local/bin/monochange-deploy <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
-cd /opt/monochange
-IMAGE="${1:?usage: monochange-deploy monochange-app:<commit-sha>}"
-if [[ ! "$IMAGE" =~ ^monochange-app:[0-9a-f]{40}$ ]]; then
-	echo 'expected monochange-app:<40-character commit SHA>' >&2
-	exit 1
-fi
-docker image inspect "$IMAGE" >/dev/null
-# Keep the selected local image across subsequent Compose invocations.
-printf 'MONOCHANGE_IMAGE=%s\n' "$IMAGE" >.env
-docker compose up -d --pull never
-docker compose ps
-curl --fail --silent --show-error --retry 20 --retry-all-errors \
-	--retry-delay 1 --retry-max-time 60 --max-time 5 http://127.0.0.1:3000/health
-echo
-EOF
-chmod 0755 /usr/local/bin/monochange-deploy
+install -o root -g root -m 0755 "${SCRIPT_DIR}/monochange-deploy.sh" /usr/local/bin/monochange-deploy
+# Forced command for the GitHub Actions deployment key. It does nothing until
+# that key is added to the deploy user's authorized_keys (see OPERATIONS.md).
+install -o root -g root -m 0755 "${SCRIPT_DIR}/ci-deploy.sh" /usr/local/bin/monochange-ci-deploy
 
 cat >/usr/local/bin/monochange-sqlite-backup <<'EOF'
 #!/usr/bin/env bash
@@ -136,7 +130,7 @@ set -euo pipefail
 EOF
 chmod 0755 /etc/cron.daily/monochange-sqlite-backup
 
-MITIGATION_SCRIPT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/mitigate-cve-2026-98432.sh"
+MITIGATION_SCRIPT="${SCRIPT_DIR}/mitigate-cve-2026-98432.sh"
 if [ ! -x "${MITIGATION_SCRIPT}" ]; then
 	echo "missing ${MITIGATION_SCRIPT}; copy it next to harden-droplet.sh" >&2
 	exit 1

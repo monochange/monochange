@@ -846,6 +846,8 @@ repo = "monochange"
 #   enabled        — enable/disable release creation (default: true)
 #   draft          — create releases as drafts (default: false)
 #   prerelease     — mark releases as pre-releases (default: false)
+#   max_body_chars — optional smaller release body cap; GitHub always enforces
+#                    125000 characters, keeping complete entries and a changelog link
 #   generate_notes — ask the provider to auto-generate release notes (default: false)
 #   source         — release notes source: "monochange" (use monochange-rendered
 #                    notes) or "github_generated" (use provider-generated notes)

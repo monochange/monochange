@@ -4,6 +4,8 @@
 )]
 #![forbid(clippy::indexing_slicing)]
 #![doc = include_str!("crate_docs.md")]
+mod body;
+
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::env;
@@ -625,7 +627,8 @@ pub fn build_release_requests(
 					target.rendered_title.clone()
 				},
 
-				body: release_body(source, manifest, target),
+				body: release_body(source, manifest, target)
+					.map(|body| body::bounded_release_body(source, manifest, target, &body)),
 				draft: source.releases.draft,
 				prerelease: source.releases.prerelease,
 				generate_release_notes: source.releases.generate_notes,
@@ -641,7 +644,15 @@ pub fn build_release_pull_request_request(
 	manifest: &ReleaseManifest,
 ) -> GitHubPullRequestRequest {
 	let repository = format!("{}/{}", source.owner, source.repo);
-	let rendered = release_pull_request_body_for_source(source, manifest);
+	let mut bounded_source = source.clone();
+	bounded_source.pull_requests.max_body_chars = Some(
+		source
+			.pull_requests
+			.max_body_chars
+			.unwrap_or(65_536)
+			.min(65_536),
+	);
+	let rendered = release_pull_request_body_for_source(&bounded_source, manifest);
 	GitHubPullRequestRequest {
 		provider: SourceProvider::GitHub,
 		repository: repository.clone(),

@@ -6643,6 +6643,11 @@ pub enum ProviderReleaseNotesSource {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ProviderReleaseSettings {
+	/// Maximum hosted release body size. GitHub defaults to 125,000 characters;
+	/// larger configured values are clamped to that provider limit.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	#[cfg_attr(feature = "schema", schemars(range(min = 1)))]
+	pub max_body_chars: Option<usize>,
 	#[serde(default = "default_true")]
 	pub enabled: bool,
 	#[serde(default)]
@@ -6677,6 +6682,7 @@ pub struct ProviderReleaseSettings {
 impl Default for ProviderReleaseSettings {
 	fn default() -> Self {
 		Self {
+			max_body_chars: None,
 			enabled: true,
 			draft: false,
 			prerelease: false,
