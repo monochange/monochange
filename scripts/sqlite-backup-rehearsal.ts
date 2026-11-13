@@ -2,12 +2,11 @@
 /**
  * Local rehearsal of the SQLite backup mechanism that the project deploys.
  *
- * Production (app/deploy/digitalocean/harden-droplet.sh) installs
- * `/usr/local/bin/monochange-sqlite-backup`, whose entire mechanism is one
- * online snapshot — `sqlite3 "$DB" ".backup $BACKUP_DIR/monochange_app-<UTC
- * timestamp>.sqlite3"` — plus a 14-day `find -mtime +14 -delete` retention
- * sweep. Restoring is a deliberate operator copy over the live database after
- * stopping the app (app/DEPLOY.md, "backups").
+ * Production installs monochange-sqlite-backup.sh as
+ * /usr/local/bin/monochange-sqlite-backup. It takes one online SQLite .backup,
+ * validates all three integrity pragmas and retains release snapshots forever.
+ * Only --daily snapshots in backups/daily have 14-day retention. Restoring is
+ * a deliberate operator action after stopping the app (app/DEPLOY.md, backups).
  *
  * This tool rehearses exactly that mechanism against a deliberately fake
  * fixture database built from the real release-upgrade schema
@@ -168,7 +167,7 @@ function sha256File(path: string): string {
 
 /**
  * The deployed mechanism, verbatim: `sqlite3 "$DB" ".backup $DEST"` from
- * harden-droplet.sh's monochange-sqlite-backup.
+ * monochange-sqlite-backup.sh.
  */
 export function backupDatabase(bin: string, dbPath: string, backupPath: string): void {
 	runSqlite(bin, dbPath, `.backup '${backupPath}'\n`);

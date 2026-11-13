@@ -1,0 +1,3 @@
+PRAGMA journal_mode=WAL;
+CREATE TABLE t(x);
+INSERT INTO t VALUES (42);

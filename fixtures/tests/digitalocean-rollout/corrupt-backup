@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -eu
+cp "$ROLLOUT_FIXTURES/corrupt.txt" "$MONOCHANGE_DEPLOY_DIR/backups/corrupt.sqlite3"
+printf '%s\n' "$MONOCHANGE_DEPLOY_DIR/backups/corrupt.sqlite3"

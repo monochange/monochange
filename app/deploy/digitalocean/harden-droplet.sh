@@ -12,7 +12,7 @@ fi
 
 # Helper scripts are copied next to this one and installed from there.
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-for sibling in monochange-deploy.sh ci-deploy.sh mitigate-cve-2026-98432.sh; do
+for sibling in monochange-deploy.sh ci-deploy.sh monochange-sqlite-backup.sh mitigate-cve-2026-98432.sh; do
 	if [ ! -f "${SCRIPT_DIR}/${sibling}" ]; then
 		echo "missing ${SCRIPT_DIR}/${sibling}; copy it next to harden-droplet.sh" >&2
 		exit 1
@@ -25,6 +25,7 @@ apt-get install -y \
 	curl \
 	fail2ban \
 	gnupg \
+	jq \
 	nftables \
 	sqlite3 \
 	ufw \
@@ -109,24 +110,12 @@ install -o root -g root -m 0755 "${SCRIPT_DIR}/monochange-deploy.sh" /usr/local/
 # that key is added to the deploy user's authorized_keys (see OPERATIONS.md).
 install -o root -g root -m 0755 "${SCRIPT_DIR}/ci-deploy.sh" /usr/local/bin/monochange-ci-deploy
 
-cat >/usr/local/bin/monochange-sqlite-backup <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
-DB=/opt/monochange/data/monochange_app.sqlite3
-BACKUP_DIR=/opt/monochange/backups
-STAMP=$(date -u +%Y%m%dT%H%M%SZ)
-mkdir -p "$BACKUP_DIR"
-if [ -f "$DB" ]; then
-	sqlite3 "$DB" ".backup $BACKUP_DIR/monochange_app-$STAMP.sqlite3"
-fi
-find "$BACKUP_DIR" -name "monochange_app-*.sqlite3" -mtime +14 -delete
-EOF
-chmod 0755 /usr/local/bin/monochange-sqlite-backup
+install -o root -g root -m 0755 "${SCRIPT_DIR}/monochange-sqlite-backup.sh" /usr/local/bin/monochange-sqlite-backup
 
 cat >/etc/cron.daily/monochange-sqlite-backup <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-/usr/local/bin/monochange-sqlite-backup
+/usr/local/bin/monochange-sqlite-backup --daily
 EOF
 chmod 0755 /etc/cron.daily/monochange-sqlite-backup
 
