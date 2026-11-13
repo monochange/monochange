@@ -218,47 +218,31 @@ async function withOpenWalWriter(
 	writer.on("error", (error) => {
 		stderr += error.message;
 	});
+	writer.stdin?.on("error", (error) => {
+		stderr += error.message;
+	});
 
 	const walPath = `${dbPath}-wal`;
-	let writerInputError: Error | null = null;
 	try {
 		writer.stdin?.write(readFixture("uncheckpointed-wal-row.sql"));
-	} catch (error) {
-		writerInputError = error instanceof Error ? error : new Error(String(error));
-	}
-	if (writerInputError !== null) {
-		writer.stdin?.end();
-		await reapWriter(writer, 5_000);
-		throw writerInputError;
-	}
-
-	// Wait until the WAL file holds bytes AND a separate reader can see the
-	// committed row. Nonzero WAL size alone can precede the commit marker.
-	const startupDeadline = Date.now() + 5_000;
-	while (true) {
-		if (exited) {
-			throw new Error(`the open writer exited before committing WAL frames: ${stderr.trim()}`);
+		// Wait for a committed row visible to a separate reader. Nonzero WAL
+		// size alone can precede commit. Every startup path shares cleanup.
+		const startupDeadline = Date.now() + 5_000;
+		while (true) {
+			if (exited || stderr.length > 0) {
+				throw new Error(`the open writer failed before committing WAL frames: ${stderr.trim()}`);
+			}
+			if (existsSync(walPath) && statSync(walPath).size > 0 && committedWalRow(bin, dbPath)) {
+				break;
+			}
+			if (Date.now() > startupDeadline) {
+				throw new Error("the open writer never produced a committed WAL transaction");
+			}
+			// eslint-disable-next-line eslint/no-await-in-loop -- readiness polling waits between observations of this one transaction.
+			await new Promise<void>((resolveWait) => {
+				setTimeout(resolveWait, 10);
+			});
 		}
-		const walReady =
-			existsSync(walPath) && statSync(walPath).size > 0 && committedWalRow(bin, dbPath);
-		if (walReady) {
-			break;
-		}
-		if (Date.now() > startupDeadline) {
-			writer.stdin?.end();
-			// eslint-disable-next-line eslint/no-await-in-loop -- cleanup of the timed-out writer must finish before throwing.
-			await reapWriter(writer, 5_000);
-			throw new Error(
-				`the open writer never produced a committed WAL transaction: ${stderr.trim()}`,
-			);
-		}
-		// eslint-disable-next-line eslint/no-await-in-loop -- WAL polling is sequential by contract: each bounded wait only starts after the previous check found no frames yet.
-		await new Promise<void>((resolveWait) => {
-			setTimeout(resolveWait, 10);
-		});
-	}
-
-	try {
 		whileOpen();
 	} finally {
 		writer.stdin?.end();
@@ -284,28 +268,34 @@ function committedWalRow(bin: string, dbPath: string): boolean {
 	}
 }
 
-async function reapWriter(writer: ReturnType<typeof spawn>, timeoutMs: number): Promise<void> {
-	if (exitedFlag(writer)) {
+/** Wait for the owned writer and its streams, escalating once and failing if cleanup is unconfirmed. */
+export async function reapWriter(
+	writer: ReturnType<typeof spawn>,
+	timeoutMs: number,
+): Promise<void> {
+	const terminated =
+		writer.exitCode !== null || writer.signalCode !== null || writer.pid === undefined;
+	const streamsClosed =
+		writer.stdin?.closed !== false &&
+		writer.stdout?.closed !== false &&
+		writer.stderr?.closed !== false;
+	if (terminated && streamsClosed) {
 		return;
 	}
-	await new Promise<void>((resolveReap) => {
-		const timer = setTimeout(() => {
-			try {
-				writer.kill("SIGKILL");
-			} catch {
-				// The process may already be gone; ignore.
-			}
-			resolveReap();
-		}, timeoutMs);
-		writer.once("exit", () => {
+	await new Promise<void>((resolveReap, rejectReap) => {
+		const onClose = () => {
 			clearTimeout(timer);
 			resolveReap();
-		});
+		};
+		writer.once("close", onClose);
+		let timer = setTimeout(() => {
+			writer.kill("SIGKILL");
+			timer = setTimeout(() => {
+				writer.removeListener("close", onClose);
+				rejectReap(new Error("the owned SQLite writer did not close after SIGKILL"));
+			}, timeoutMs);
+		}, timeoutMs);
 	});
-}
-
-function exitedFlag(writer: ReturnType<typeof spawn>): boolean {
-	return writer.exitCode !== null || writer.signalCode !== null;
 }
 
 /**

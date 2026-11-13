@@ -1,5 +1,6 @@
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import assert from "node:assert/strict";
+import { once } from "node:events";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -8,6 +9,7 @@ import {
 	backupDatabase,
 	fixtureDir,
 	rehearse,
+	reapWriter,
 	resolveSqlite3,
 	restoreBackup,
 	tableRowCounts,
@@ -107,6 +109,28 @@ describe("sqlite backup rehearsal", () => {
 			} else {
 				process.env.SQLITE3_BIN = previous;
 			}
+		}
+	});
+
+	test("cleanup confirms a stubborn writer has stopped before returning", async () => {
+		const writer = spawn(process.execPath, [join(fixtureDir, "stubborn-writer.mjs")]);
+		let closed = false;
+		const completion = new Promise<void>((resolveClose) => {
+			writer.once("close", () => {
+				closed = true;
+				resolveClose();
+			});
+		});
+		try {
+			await once(writer.stdout, "data");
+			writer.stdin.end();
+			await reapWriter(writer, 30);
+			assert.equal(closed, true, "sending SIGKILL alone is not confirmed cleanup");
+			assert.equal(writer.signalCode, "SIGKILL");
+			await reapWriter(writer, 30);
+		} finally {
+			if (!closed) writer.kill("SIGKILL");
+			await completion;
 		}
 	});
 
