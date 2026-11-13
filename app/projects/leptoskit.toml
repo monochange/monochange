@@ -38,6 +38,8 @@ features = []
 rustflags = []
 
 [bundle]
+# Enforce the SDK's initial-load Brotli budget before site publication.
+budget_kib = 302
 # Match the lazy routes (`#[lazy_route]`) of the product UI.
 optimize = "smallest"
 split = true
