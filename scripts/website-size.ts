@@ -149,10 +149,10 @@ function anonymousChunkGzipBytes(measurement: SiteMeasurement, namespace = ""): 
 		.reduce((sum, [, file]) => sum + file.gzipBytes, 0);
 }
 
-// The baseline is the pre-split bundle: flat names under pkg/, the entry wasm
-// named by cargo-leptos (`monochange_app.wasm`). These rules restore per-file
-// comparisons across legitimate renames without loosening any budget:
-// each baseline asset still has exactly one current counterpart to answer for.
+// Older baselines used flat names under pkg/ and the cargo-leptos entry name
+// (`monochange_app.wasm`). These compatibility rules preserve comparisons
+// across legitimate renames. The current baseline names both namespaces;
+// each guardable baseline asset must still have exactly one counterpart.
 const WEBSITE_NAMESPACE = "site";
 const ENTRY_RENAMES: Record<string, string> = {
 	// cargo-leptos named the bound module after the output name; wasm-bindgen
