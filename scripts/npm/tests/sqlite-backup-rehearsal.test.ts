@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { afterAll, describe, test } from "vitest";
 import {
 	backupDatabase,
+	fixtureDir,
 	rehearse,
 	resolveSqlite3,
 	restoreBackup,
@@ -64,16 +65,12 @@ describe("sqlite backup rehearsal", () => {
 	test("verifyIntegrity rejects a corrupt database before any restore decision", () => {
 		const dir = makeRunDir();
 		const good = join(dir, "good.sqlite3");
-		runSqlite(bin, good, "CREATE TABLE t (v INTEGER);\nINSERT INTO t VALUES (1);\n");
+		runSqlite(bin, good, readFileSync(join(fixtureDir, "node-good-table.sql"), "utf8"));
 		assert.equal(verifyIntegrity(bin, good).quickCheck, "ok");
 
 		const corrupt = join(dir, "corrupt.sqlite3");
-		runSqlite(bin, corrupt, "CREATE TABLE t (v BLOB);\n");
-		runSqlite(
-			bin,
-			corrupt,
-			"INSERT INTO t VALUES (randomblob(4096));\nINSERT INTO t VALUES (randomblob(4096));\n",
-		);
+		runSqlite(bin, corrupt, readFileSync(join(fixtureDir, "node-corrupt-schema.sql"), "utf8"));
+		runSqlite(bin, corrupt, readFileSync(join(fixtureDir, "node-corrupt-rows.sql"), "utf8"));
 		const bytes = Buffer.from(readFileSync(corrupt));
 		bytes.fill(0x00, 4096, 8192);
 		writeFileSync(corrupt, bytes);
@@ -83,7 +80,7 @@ describe("sqlite backup rehearsal", () => {
 	test("restoreBackup fails closed on a missing snapshot without touching the destination", () => {
 		const dir = makeRunDir();
 		const destination = join(dir, "last-good.sqlite3");
-		runSqlite(bin, destination, "CREATE TABLE t (v INTEGER);\n");
+		runSqlite(bin, destination, readFileSync(join(fixtureDir, "node-good-table.sql"), "utf8"));
 		assert.throws(
 			() => restoreBackup(bin, join(dir, "absent.sqlite3"), destination),
 			/refusing to restore/,
@@ -91,10 +88,32 @@ describe("sqlite backup rehearsal", () => {
 		assert.equal(tableRowCounts(bin, destination).length, 1);
 	});
 
+	test("resolveSqlite3 fails precisely on an explicit invalid override", () => {
+		assert.throws(
+			() => resolveSqlite3("/definitely/not/sqlite3"),
+			/explicit sqlite3 override is invalid or unavailable: \/definitely\/not\/sqlite3/,
+		);
+
+		const previous = process.env.SQLITE3_BIN;
+		process.env.SQLITE3_BIN = "/definitely/not/sqlite3-either";
+		try {
+			assert.throws(
+				() => resolveSqlite3(),
+				/explicit sqlite3 override is invalid or unavailable: \/definitely\/not\/sqlite3-either/,
+			);
+		} finally {
+			if (previous === undefined) {
+				delete process.env.SQLITE3_BIN;
+			} else {
+				process.env.SQLITE3_BIN = previous;
+			}
+		}
+	});
+
 	test("backupDatabase produces a file sqlite3 can verify independently", () => {
 		const dir = makeRunDir();
 		const source = join(dir, "source.sqlite3");
-		runSqlite(bin, source, "CREATE TABLE t (v INTEGER);\nINSERT INTO t VALUES (7);\n");
+		runSqlite(bin, source, readFileSync(join(fixtureDir, "node-backup-source.sql"), "utf8"));
 		const snapshot = join(dir, "snapshot.sqlite3");
 		backupDatabase(bin, source, snapshot);
 		assert.equal(verifyIntegrity(bin, snapshot).quickCheck, "ok");

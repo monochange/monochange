@@ -69,14 +69,28 @@ export interface IntegrityReport {
  * PATH intentionally omits /usr/bin, where macOS and Ubuntu both ship it).
  */
 export function resolveSqlite3(sqlite3Bin?: string): string {
+	// An explicit override is a configuration choice, not a fallback: if the
+	// caller or environment names a binary, a failure to run it is an error
+	// rather than a silent fallthrough to another location.
+	const explicit = sqlite3Bin ?? process.env.SQLITE3_BIN;
+	if (explicit !== undefined && explicit.length > 0) {
+		const probe = spawnSync(explicit, ["--version"], { encoding: "utf8" });
+		if (probe.error === undefined && probe.status === 0) {
+			return explicit;
+		}
+		const reason =
+			probe.error !== undefined
+				? probe.error.message
+				: `sqlite3 exited ${probe.status}: ${(probe.stderr ?? "").trim()}`;
+		throw new Error(`explicit sqlite3 override is invalid or unavailable: ${explicit} (${reason})`);
+	}
+
 	const candidates = [
-		...(sqlite3Bin ? [sqlite3Bin] : []),
-		...(process.env.SQLITE3_BIN ? [process.env.SQLITE3_BIN] : []),
 		"sqlite3",
 		"/usr/bin/sqlite3",
 		"/opt/homebrew/bin/sqlite3",
 		"/usr/local/bin/sqlite3",
-	].filter((candidate): candidate is string => typeof candidate === "string");
+	];
 	for (const bin of candidates) {
 		const probe = spawnSync(bin, ["--version"], { encoding: "utf8" });
 		if (probe.error === undefined && probe.status === 0) {
@@ -189,51 +203,110 @@ async function withOpenWalWriter(
 ): Promise<void> {
 	const writer = spawn(bin, [dbPath], { stdio: ["pipe", "ignore", "pipe"] });
 	let stderr = "";
+	let exited = false;
+	// Register completion before any input is written or ended, so a fast
+	// exit is never missed and the await below cannot hang.
+	writer.on("exit", (code) => {
+		exited = true;
+		if (code !== null && code !== 0) {
+			stderr += ` writer exited ${code}`;
+		}
+	});
 	writer.stderr?.on("data", (chunk: Buffer) => {
 		stderr += chunk.toString();
 	});
-	writer.stdin?.write(
-		"PRAGMA journal_mode = WAL;\n" +
-			"INSERT INTO feedback_notifications (id, project_id, recipient, item_id, notification_json, created_at)" +
-			' VALUES (3, 1, \'newcomer@example.com\', \'fixture-item-1\', \'{"kind":"new_item","itemId":"fixture-item-1"}\',' +
-			" '2026-11-13T12:00:00.000Z');\n",
-	);
-	// Wait for committed WAL frames: poll the -wal file until it holds bytes,
-	// bounded so a stuck writer fails the rehearsal instead of hanging it.
+	writer.on("error", (error) => {
+		stderr += error.message;
+	});
+
 	const walPath = `${dbPath}-wal`;
-	const deadline = Date.now() + 5_000;
-	while (!existsSync(walPath) || statSync(walPath).size === 0) {
-		if (Date.now() > deadline || writer.exitCode !== null) {
+	let writerInputError: Error | null = null;
+	try {
+		writer.stdin?.write(readFixture("uncheckpointed-wal-row.sql"));
+	} catch (error) {
+		writerInputError = error instanceof Error ? error : new Error(String(error));
+	}
+	if (writerInputError !== null) {
+		writer.stdin?.end();
+		await reapWriter(writer, 5_000);
+		throw writerInputError;
+	}
+
+	// Wait until the WAL file holds bytes AND a separate reader can see the
+	// committed row. Nonzero WAL size alone can precede the commit marker.
+	const startupDeadline = Date.now() + 5_000;
+	while (true) {
+		if (exited) {
+			throw new Error(`the open writer exited before committing WAL frames: ${stderr.trim()}`);
+		}
+		const walReady =
+			existsSync(walPath) && statSync(walPath).size > 0 && committedWalRow(bin, dbPath);
+		if (walReady) {
+			break;
+		}
+		if (Date.now() > startupDeadline) {
 			writer.stdin?.end();
-			throw new Error(`the open writer never produced uncheckpointed WAL frames: ${stderr.trim()}`);
+			// eslint-disable-next-line eslint/no-await-in-loop -- cleanup of the timed-out writer must finish before throwing.
+			await reapWriter(writer, 5_000);
+			throw new Error(
+				`the open writer never produced a committed WAL transaction: ${stderr.trim()}`,
+			);
 		}
 		// eslint-disable-next-line eslint/no-await-in-loop -- WAL polling is sequential by contract: each bounded wait only starts after the previous check found no frames yet.
 		await new Promise<void>((resolveWait) => {
 			setTimeout(resolveWait, 10);
 		});
 	}
+
 	try {
 		whileOpen();
 	} finally {
 		writer.stdin?.end();
-		await new Promise<void>((resolveExit) => {
-			writer.once("exit", (code) => {
-				if (code !== 0) {
-					stderr += ` writer exited ${code}`;
-				}
-				resolveExit();
-			});
-		});
+		await reapWriter(writer, 5_000);
 	}
+
 	if (stderr.trim().length > 0) {
 		throw new Error(`open WAL writer reported errors: ${stderr.trim()}`);
 	}
 }
 
-/** The rehearsal's fake post-upgrade rows, written through plain SQL. */
-const POST_UPGRADE_USER_SQL =
-	"INSERT INTO users (id, github_id, github_login, github_access_token)" +
-	" VALUES (4, 77004, 'fixture-post-upgrade', CAST(X'C0DEC0DE1234' AS TEXT));\n";
+function committedWalRow(bin: string, dbPath: string): boolean {
+	try {
+		return (
+			runSqlite(
+				bin,
+				dbPath,
+				"SELECT count(*) FROM feedback_notifications WHERE id = 3;\n",
+			).trim() === "1"
+		);
+	} catch {
+		return false;
+	}
+}
+
+async function reapWriter(writer: ReturnType<typeof spawn>, timeoutMs: number): Promise<void> {
+	if (exitedFlag(writer)) {
+		return;
+	}
+	await new Promise<void>((resolveReap) => {
+		const timer = setTimeout(() => {
+			try {
+				writer.kill("SIGKILL");
+			} catch {
+				// The process may already be gone; ignore.
+			}
+			resolveReap();
+		}, timeoutMs);
+		writer.once("exit", () => {
+			clearTimeout(timer);
+			resolveReap();
+		});
+	});
+}
+
+function exitedFlag(writer: ReturnType<typeof spawn>): boolean {
+	return writer.exitCode !== null || writer.signalCode !== null;
+}
 
 /**
  * Run the whole rehearsal inside `dataDir` and return the per-step evidence.
@@ -269,7 +342,7 @@ export async function rehearse(options: {
 
 	// 2. First writes after the upgrade: a new user (session_epoch defaults to
 	// 0) — the candidate release's own schema in use.
-	runSqlite(bin, sourceDb, POST_UPGRADE_USER_SQL);
+	runSqlite(bin, sourceDb, readFixture("post-upgrade-user.sql"));
 	const epoch = runSqlite(bin, sourceDb, "SELECT session_epoch FROM users WHERE id = 4;\n").trim();
 	if (epoch !== "0") {
 		throw new Error(`post-upgrade user session_epoch should default to 0, got ${epoch}`);

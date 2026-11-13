@@ -768,16 +768,10 @@ async fn second_upgrade_pass_is_idempotent_and_preserves_post_upgrade_writes() {
 
 	// First writes the upgraded app performs: a new user (epoch default
 	// applies), an oauth state nonce, and a hashed client session.
-	sqlx::raw_sql(
-		"INSERT INTO users (id, github_id, github_login, github_access_token)
-		 VALUES (4, 77004, 'fixture-post-upgrade', CAST(X'C0DEC0DE1234' AS TEXT));
-		 INSERT INTO oauth_state_uses (nonce, expires_at) VALUES (X'6E6F6E636531323334353637383930', 1792000000);
-		 INSERT INTO client_sessions (id, user_id, token_hash, client, session_epoch, created_at, last_used_at, expires_at)
-		 VALUES (X'73657373696F6E3132333435363738', 4, X'AABBCCDD0011EE2233445566', 'extension', 0, 1791000000, NULL, 1792000000);",
-	)
-	.execute(&pool)
-	.await
-	.unwrap_or_else(|error| panic!("post-upgrade writes: {error}"));
+	sqlx::raw_sql(&release_upgrade_fixture_content("post-upgrade-writes.sql"))
+		.execute(&pool)
+		.await
+		.unwrap_or_else(|error| panic!("post-upgrade writes: {error}"));
 
 	// A second migration pass over the running database must change nothing:
 	// compare a full digest taken after these writes with one taken after the

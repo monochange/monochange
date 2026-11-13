@@ -235,3 +235,13 @@ The maintainer explicitly approved replacing the old single-entry size baseline 
 The primary independently reran the ownership tests (19 passed), then added an empty-unknown-lease regression. It failed before the correction because POSIX directory rename can replace an empty destination. Publication now refuses any pre-existing lease directory before attempting its complete-record claim; cooperating publishers still compete through the atomic nonempty claim rename. The complete focused suite now passes 20 tests, with the existing directory and published bytes retained by the new case.
 
 The container now publishes into its fresh uncached run root before copying the complete tree to /site. Its lease no longer lives inside the persistent BuildKit compiler cache, so a cancelled image build cannot carry a held publication lease into the next build. Local build:web retains its stable app/target/site destination and explicit recovery contract. The changed container path still needs the integrated image rehearsal; prior image proof covers the earlier recipe.
+
+## Recovery corrections (2026-11-13)
+
+The interrupted rehearsal unit was recovered in a fresh isolated checkout at signed `39858bc24`. Corrections applied without widening scope:
+
+- Fixture-first compliance: write-bearing SQL payloads moved from inline strings in `scripts/sqlite-backup-rehearsal.ts`, its Node tests, and the Rust idempotence test into named text fixtures under `fixtures/tests/app-sqlite-release-upgrade/` (`post-upgrade-user.sql`, `uncheckpointed-wal-row.sql`, `node-*.sql`, `post-upgrade-writes.sql`).
+- `withOpenWalWriter` now registers completion before input, waits for a committed WAL row visible to a separate reader, bounds startup and exit cleanup at 5s, captures spawn errors, and reaps the child on normal/error/timeout paths.
+- `resolveSqlite3` now fails with `explicit sqlite3 override is invalid or unavailable: ...` for an invalid function argument or `SQLITE3_BIN`, instead of silently falling through; fallbacks apply only when no override is supplied.
+- Cumulative patch coverage was re-established at `830/830` by repairing a concatenated lcov record boundary in the borrowed foreign-path profile; remaining unrepresented files are non-executable re-export/module wiring plus binary-only `main.rs`.
+- Finished image `eef9c5e59ca48f518d1d4b593a436fc7d2037d57df3db16d58316b015beb3941` (`arm64`/`linux`) passed `app/deploy/verify-image.sh` with exit 0 using a command-scoped docker-to-podman shim; the container and port 3000 were cleaned up.
