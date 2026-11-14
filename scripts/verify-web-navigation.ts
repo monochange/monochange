@@ -1145,7 +1145,7 @@ async function runBrowserJourney(options: {
 		deviceScaleFactor: 1,
 		mobile: false,
 	});
-	const desktopDetailsSelector = `[...document.querySelectorAll("details")].find((node) => !node.closest("#mobile-navigation"))`;
+	const desktopDetailsSelector = `[...document.querySelectorAll('nav[aria-label="Main navigation"] details')].find((node) => !node.closest("#mobile-navigation"))`;
 	const desktopClosedBefore = await cdp.send("Runtime.evaluate", {
 		expression: `(() => { const details = ${desktopDetailsSelector}; return Boolean(details && !details.open); })()`,
 		returnByValue: true,
@@ -1178,12 +1178,12 @@ async function runBrowserJourney(options: {
 		awaitPromise: true,
 	});
 	const focusInside = await cdp.send("Runtime.evaluate", {
-		expression: `(() => { const details = ${desktopDetailsSelector}; return Boolean(details?.contains(document.activeElement)); })()`,
+		expression: `(() => { const details = ${desktopDetailsSelector}; const link = details?.querySelector("a, button"); return Boolean(link && document.activeElement === link && link !== details?.querySelector("summary")); })()`,
 		returnByValue: true,
 	});
 	log.check(
 		(focusInside.result as { value?: boolean }).value === true,
-		"focus can move into the open account menu",
+		"focus moves from the account toggle to a menu action before Escape",
 	);
 	await cdp.send("Input.dispatchKeyEvent", {
 		type: "keyDown",
@@ -1208,17 +1208,21 @@ async function runBrowserJourney(options: {
 		const value = (state.result as { value?: { open?: boolean; focused?: boolean } }).value;
 		desktopClosedAfterEscape = value?.open === false;
 		desktopFocusRestored = value?.focused === true;
-		if (desktopClosedAfterEscape) break;
+		if (desktopClosedAfterEscape && desktopFocusRestored) break;
 		// eslint-disable-next-line eslint/no-await-in-loop -- state polling is sequential by contract.
 		await sleep(25);
 	}
 	log.check(desktopClosedAfterEscape, "Escape closes the desktop account disclosure");
 	log.check(desktopFocusRestored, "Escape restores focus to the desktop account toggle");
 
-	await cdp.send("Runtime.evaluate", {
-		expression: `document.querySelector('a[href="/pricing"]')?.focus()`,
-		awaitPromise: true,
+	const closedMenuFocusControl = await cdp.send("Runtime.evaluate", {
+		expression: `(() => { const link = document.querySelector('a[href="/pricing"]'); link?.focus(); return Boolean(link && document.activeElement === link); })()`,
+		returnByValue: true,
 	});
+	log.check(
+		(closedMenuFocusControl.result as { value?: boolean }).value === true,
+		"a different navigation link holds focus before the closed-menu Escape control",
+	);
 	await cdp.send("Input.dispatchKeyEvent", {
 		type: "keyDown",
 		key: "Escape",
@@ -1231,7 +1235,6 @@ async function runBrowserJourney(options: {
 		code: "Escape",
 		windowsVirtualKeyCode: 27,
 	});
-	await sleep(settleMs);
 	const focusAfterClosedEscape = await cdp.send("Runtime.evaluate", {
 		expression: `(() => { const link = document.querySelector('a[href="/pricing"]'); return document.activeElement === link; })()`,
 		returnByValue: true,
@@ -1240,12 +1243,31 @@ async function runBrowserJourney(options: {
 		(focusAfterClosedEscape.result as { value?: boolean }).value === true,
 		"Escape on a closed account menu does not steal focus",
 	);
-	await cdp.send("Emulation.clearDeviceMetricsOverride", {});
+	await cdp.send("Emulation.setDeviceMetricsOverride", {
+		width: 900,
+		height: 800,
+		deviceScaleFactor: 1,
+		mobile: false,
+	});
 
 	out("route-change menu collapse (client-side navigation inside one document):");
-	// The homepage's queued menu click left the mobile panel open; following
-	// a section link from the panel itself must collapse it again. The effect
-	// that closes it runs in the browser on route changes only.
+	// The desktop Escape check closed the panel too. Open it explicitly so
+	// this navigation uses a visible section link and an open account menu.
+	await cdp.send("Runtime.evaluate", {
+		expression: `document.querySelector('button[aria-controls="mobile-navigation"]')?.click()`,
+	});
+	log.check(
+		(await waitForMobileMenuState(cdp, "true")) === "true",
+		"the mobile panel is open before the route-change check",
+	);
+	const mobileAccountBeforeRoute = await cdp.send("Runtime.evaluate", {
+		expression: `(() => { const details = document.querySelector('#mobile-navigation details'); details?.querySelector('summary')?.click(); return Boolean(details?.open); })()`,
+		returnByValue: true,
+	});
+	log.check(
+		(mobileAccountBeforeRoute.result as { value?: boolean }).value === true,
+		"the mobile account disclosure is open before client-side navigation",
+	);
 	await clickSelector(cdp, trace, '#mobile-navigation a[href="/pricing"]');
 	const collapsed = await waitForMobileMenuState(cdp, "false");
 	const panelHidden = await cdp.send("Runtime.evaluate", {
@@ -1264,6 +1286,21 @@ async function runBrowserJourney(options: {
 		(panelHidden.result as { value?: boolean }).value === true,
 		"the collapsed mobile panel is removed from the accessibility tree",
 	);
+	const mobileAccountAfterRoute = await cdp.send("Runtime.evaluate", {
+		expression: `(() => { const details = document.querySelector('#mobile-navigation details'); const desktop = ${desktopDetailsSelector}; return { closed: Boolean(details && !details.open), desktopFocused: document.activeElement === desktop?.querySelector('summary') }; })()`,
+		returnByValue: true,
+	});
+	const routeAccountState = (
+		mobileAccountAfterRoute.result as { value?: { closed?: boolean; desktopFocused?: boolean } }
+	).value;
+	log.check(
+		routeAccountState?.closed === true,
+		"client-side navigation closes the mobile account disclosure",
+	);
+	log.check(
+		routeAccountState?.desktopFocused === false,
+		"route-change dismissal does not move focus to the desktop account toggle",
+	);
 
 	out("mobile navigation Escape dismissal:");
 	await cdp.send("Runtime.evaluate", {
@@ -1274,34 +1311,56 @@ async function runBrowserJourney(options: {
 		openedMobile === "true",
 		"the mobile navigation can be opened for an Escape dismissal check",
 	);
-	await cdp.send("Runtime.evaluate", {
-		expression: `document.querySelector('#mobile-navigation a')?.focus()`,
-		awaitPromise: true,
+	const mobileAccountBeforeEscape = await cdp.send("Runtime.evaluate", {
+		expression: `(() => { const details = document.querySelector('#mobile-navigation details'); details?.querySelector('summary')?.click(); const link = details?.querySelector('a'); link?.focus(); return { open: Boolean(details?.open), focusedAction: Boolean(link && document.activeElement === link) }; })()`,
+		returnByValue: true,
 	});
-	await sleep(settleMs);
-	for (let attempt = 0; attempt < 3; attempt += 1) {
-		// eslint-disable-next-line eslint/no-await-in-loop -- retrying a real key press is sequential by contract.
-		await cdp.send("Input.dispatchKeyEvent", {
-			type: "keyDown",
-			key: "Escape",
-			code: "Escape",
-			windowsVirtualKeyCode: 27,
-		});
-		// eslint-disable-next-line eslint/no-await-in-loop -- retrying a real key press is sequential by contract.
-		await cdp.send("Input.dispatchKeyEvent", {
-			type: "keyUp",
-			key: "Escape",
-			code: "Escape",
-			windowsVirtualKeyCode: 27,
-		});
-		// eslint-disable-next-line eslint/no-await-in-loop -- state polling is sequential by contract.
-		const mobileCollapsed = await waitForMobileMenuState(cdp, "false");
-		if (mobileCollapsed === "false") break;
-		// eslint-disable-next-line eslint/no-await-in-loop -- retrying a real key press is sequential by contract.
-		await sleep(settleMs);
-	}
+	const mobileEscapeState = (
+		mobileAccountBeforeEscape.result as { value?: { open?: boolean; focusedAction?: boolean } }
+	).value;
+	log.check(
+		mobileEscapeState?.open === true,
+		"the mobile account disclosure is open before Escape",
+	);
+	log.check(
+		mobileEscapeState?.focusedAction === true,
+		"a mobile account action holds focus before Escape",
+	);
+	await cdp.send("Input.dispatchKeyEvent", {
+		type: "keyDown",
+		key: "Escape",
+		code: "Escape",
+		windowsVirtualKeyCode: 27,
+	});
+	await cdp.send("Input.dispatchKeyEvent", {
+		type: "keyUp",
+		key: "Escape",
+		code: "Escape",
+		windowsVirtualKeyCode: 27,
+	});
 	const escapedMobile = await waitForMobileMenuState(cdp, "false");
 	log.check(escapedMobile === "false", "Escape collapses the mobile navigation");
+	const mobileAccountAfterEscape = await cdp.send("Runtime.evaluate", {
+		expression: `(() => { const details = document.querySelector('#mobile-navigation details'); const desktop = ${desktopDetailsSelector}; return { closed: Boolean(details && !details.open), desktopFocused: document.activeElement === desktop?.querySelector('summary') }; })()`,
+		returnByValue: true,
+	});
+	const escapedAccountState = (
+		mobileAccountAfterEscape.result as { value?: { closed?: boolean; desktopFocused?: boolean } }
+	).value;
+	log.check(
+		escapedAccountState?.closed === true,
+		"one Escape press closes the mobile account disclosure",
+	);
+	log.check(
+		escapedAccountState?.desktopFocused === false,
+		"mobile dismissal does not move focus to the hidden desktop toggle",
+	);
+	await cdp.send("Emulation.setDeviceMetricsOverride", {
+		width: 1280,
+		height: 800,
+		deviceScaleFactor: 1,
+		mobile: false,
+	});
 
 	out("cross-frontend navigation (website → projects):");
 	await clickSelector(cdp, trace, 'a[href="/projects"]');
@@ -1339,9 +1398,49 @@ async function runBrowserJourney(options: {
 		projects.includes(identity.orgLogin),
 		`the session cookie carries the seeded organization identity into the projects document (${identity.orgLogin})`,
 	);
+	const projectsAccountBeforeEscape = await cdp.send("Runtime.evaluate", {
+		expression: `(() => { const details = ${desktopDetailsSelector}; details?.querySelector('summary')?.click(); const link = details?.querySelector('a'); link?.focus(); return Boolean(details?.open && link && document.activeElement === link); })()`,
+		returnByValue: true,
+	});
+	log.check(
+		(projectsAccountBeforeEscape.result as { value?: boolean }).value === true,
+		"the projects entry opens its account disclosure and focuses an account action",
+	);
+	await cdp.send("Input.dispatchKeyEvent", {
+		type: "keyDown",
+		key: "Escape",
+		code: "Escape",
+		windowsVirtualKeyCode: 27,
+	});
+	await cdp.send("Input.dispatchKeyEvent", {
+		type: "keyUp",
+		key: "Escape",
+		code: "Escape",
+		windowsVirtualKeyCode: 27,
+	});
+	const projectsAccountAfterEscape = await cdp.send("Runtime.evaluate", {
+		expression: `(() => { const details = ${desktopDetailsSelector}; return Boolean(details && !details.open && document.activeElement === details.querySelector('summary')); })()`,
+		returnByValue: true,
+	});
+	log.check(
+		(projectsAccountAfterEscape.result as { value?: boolean }).value === true,
+		"the projects entry closes its account disclosure and restores toggle focus after one Escape",
+	);
 
 	out("cross-frontend navigation (projects → website):");
-	await clickSelector(cdp, trace, 'a[href="/dashboard"]');
+	const projectsAccountForNavigation = await cdp.send("Runtime.evaluate", {
+		expression: `(() => { const details = ${desktopDetailsSelector}; details?.querySelector('summary')?.click(); return Boolean(details?.open); })()`,
+		returnByValue: true,
+	});
+	log.check(
+		(projectsAccountForNavigation.result as { value?: boolean }).value === true,
+		"the account menu is open before selecting Connect repositories",
+	);
+	await clickSelector(
+		cdp,
+		trace,
+		'nav[aria-label="Main navigation"] details[open] a[href="/dashboard"]',
+	);
 	await waitForEntry(trace, "/pkg/site/monochange_app.js", 10_000);
 	await sleep(settleMs);
 	const dashboard = await renderBody(cdp);
@@ -1369,6 +1468,7 @@ async function runBrowserJourney(options: {
 	log.check(trace.splitChunkRequests() > 0, "the lazy route loaded its own split chunk");
 
 	out("signed-out projects hydration:");
+	await cdp.send("Emulation.clearDeviceMetricsOverride", {});
 	await cdp.send("Network.deleteCookies", { name: SESSION_COOKIE, url: baseUrl });
 	await navigateToDocument(cdp, trace, `${baseUrl}/projects`);
 	const deferred = await cdp.send("Runtime.evaluate", {
