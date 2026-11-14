@@ -351,6 +351,20 @@ jobs:
       - name: install node dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: install tailwindcss
+        run: |
+          set -euo pipefail
+          arch="$(dpkg --print-architecture)"
+          case "$arch" in
+            amd64) tw_arch=x64 ;;
+            arm64) tw_arch=arm64 ;;
+            *) echo "unsupported architecture: $arch" >&2; exit 1 ;;
+          esac
+          curl -fsSLO "https://github.com/tailwindlabs/tailwindcss/releases/download/v4.2.1/tailwindcss-linux-${tw_arch}"
+          chmod +x "tailwindcss-linux-${tw_arch}"
+          sudo mv "tailwindcss-linux-${tw_arch}" /usr/local/bin/tailwindcss
+          tailwindcss --help >/dev/null
+
       - name: record website build tools
         working-directory: app
         run: |
@@ -365,25 +379,11 @@ jobs:
             printf 'leptoskit path: %s\n' "$leptos_path"
             printf 'leptoskit SHA256: %s\n' "$(sha256sum "$leptos_path" | cut -d ' ' -f 1)"
             tailwindcss --help 2>&1 | head -1
-            esbuild --version
+            pnpm --dir .. exec esbuild --version
             wasm-opt --version
             node --print 'JSON.stringify({node: process.versions.node, zlib: process.versions.zlib})'
             pnpm --version
           } | tee /tmp/website-build-provenance.txt
-
-      - name: install tailwindcss
-        run: |
-          set -euo pipefail
-          arch="$(dpkg --print-architecture)"
-          case "$arch" in
-            amd64) tw_arch=x64 ;;
-            arm64) tw_arch=arm64 ;;
-            *) echo "unsupported architecture: $arch" >&2; exit 1 ;;
-          esac
-          curl -fsSLO "https://github.com/tailwindlabs/tailwindcss/releases/download/v4.2.1/tailwindcss-linux-${tw_arch}"
-          chmod +x "tailwindcss-linux-${tw_arch}"
-          sudo mv "tailwindcss-linux-${tw_arch}" /usr/local/bin/tailwindcss
-          tailwindcss --help >/dev/null
 
       # Both web frontends build through the provenance-verified leptoskit
       # CLI. The tooling plugin prepares each scratch bundle inside its own
@@ -400,12 +400,12 @@ jobs:
           # plugin resolves on PATH from the repository scripts directory.
           export PATH="$GITHUB_WORKSPACE/scripts/leptoskit-plugin:$PATH"
           leptoskit_bin="$(../scripts/leptoskit-cli.sh)"
-          run_root="../.monochange/local/web-build/ci-$(date +%Y%m%d-%H%M%S)-$$"
+          run_root="$GITHUB_WORKSPACE/.monochange/local/web-build/ci-$(date +%Y%m%d-%H%M%S)-$$"
           mkdir -p "$run_root/web" "$run_root/projects-web"
-          "$leptoskit_bin" build --release --platform web --out "$GITHUB_WORKSPACE/$run_root/web"
-          (cd projects && "$leptoskit_bin" build --release --platform web --out "$GITHUB_WORKSPACE/$run_root/projects-web")
+          "$leptoskit_bin" build --release --platform web --out "$run_root/web"
+          (cd projects && "$leptoskit_bin" build --release --platform web --out "$run_root/projects-web")
           pnpm node "$GITHUB_WORKSPACE/scripts/leptoskit-plugin/publish-web-site.ts" \
-            --web-root "$GITHUB_WORKSPACE/$run_root" --site-root "$GITHUB_WORKSPACE/app/target/site"
+            --web-root "$run_root" --site-root "$GITHUB_WORKSPACE/app/target/site"
 
       - name: check website bundle size
         run: |
