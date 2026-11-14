@@ -4,6 +4,48 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.22.0](https://github.com/monochange/monochange/releases/tag/v0.22.0) (2026-11-14)
+
+### 💥 Breaking Change
+
+#### Configure smaller GitHub release bodies
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #880](https://github.com/monochange/monochange/pull/880)
+
+> **Breaking change:** Rust callers constructing every field of `ProviderReleaseSettings` must initialize the new `max_body_chars: Option<usize>` field. See [the 0.22 migration guide](https://monochange.github.io/monochange/guide/migrations/0.22.html).
+
+Hosted releases default to GitHub's 125,000-character cap. Set `[source.releases].max_body_chars` to choose a smaller preview while preserving full changelog files.
+
+Rust callers can add `max_body_chars: None` to existing complete struct literals, or use struct update syntax:
+
+```rust
+use monochange_core::ProviderReleaseSettings;
+
+let settings = ProviderReleaseSettings {
+    max_body_chars: Some(100_000),
+    ..Default::default()
+};
+```
+
+Existing TOML configurations and callers using `Default` need no changes.
+
+### 🚀 Feature
+
+#### Dispatch GitHub Actions workflows through the monochange app
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #866](https://github.com/monochange/monochange/pull/866)
+
+`monochange gh workflow run` dispatches a workflow in a connected repository without a personal access token. The command mirrors the useful part of `gh workflow run`:
+
+```bash
+monochange gh workflow run release.yml --repo monochange/actions --ref main
+monochange gh workflow run release-pr-merge.yml --repo monochange/actions -f pull_request=103
+```
+
+A GitHub Actions job authenticates with its OIDC token by granting `id-token: write`; local runs use `--hosted-auth token` and a deployment `MONOCHANGE_TOKEN`. The monochange app checks that an OIDC caller and the target repository belong to the same GitHub App installation, so an organisation repository can dispatch a sibling repository's release workflow while other installations remain isolated. `--dry-run` validates the target without starting a run, and `--field KEY=VALUE` passes workflow inputs.
+
+The new `HostedWorkflowDispatchRequest` and `HostedWorkflowDispatchResponse` types expose the same contract to other clients. `publish.yml` now uses the command to refresh the `monochange/actions` release PR after a CLI release, replacing the `MONOCHANGE_ACTIONS_TOKEN` credential.
+
 ## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-11-08)
 
 ### 🚀 Feature

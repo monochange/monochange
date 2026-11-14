@@ -3,7 +3,7 @@ members = ["crates/*"]
 resolver = "2"
 
 [workspace.package]
-version = "0.4.0"
+version = "0.5.0"
 authors = ["Ifiok Jr. <ifiokotung@gmail.com>"]
 edition = "2024"
 license = "Unlicense"
@@ -99,9 +99,9 @@ monochange_backend = { path = "crates/monochange_backend" }
 monochange_shared = { path = "crates/monochange_shared" }
 
 # monochange crates (path deps from parent workspace)
-monochange_core = { path = "../crates/monochange_core", version = "0.21.1" }
-monochange_github = { path = "../crates/monochange_github", version = "0.21.1" }
-monochange_hosting = { path = "../crates/monochange_hosting", version = "0.21.1" }
+monochange_core = { path = "../crates/monochange_core", version = "0.22.0" }
+monochange_github = { path = "../crates/monochange_github", version = "0.22.0" }
+monochange_hosting = { path = "../crates/monochange_hosting", version = "0.22.0" }
 
 # cargo-leptos loads [[workspace.metadata.leptos]] arrays only. This object
 # form is intentionally ignored; live config is [package.metadata.leptos] in

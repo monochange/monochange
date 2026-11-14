@@ -9,6 +9,12 @@
 - Replaced obsolete examples with current `monochange.toml`, changeset, release-preview, and publishing workflow examples.
 - Added the release-aware change-classification workflow, including confidence, completeness, comparison baselines, cargo-semver-checks follow-up, and changeset validation.
 
+## [0.22.0](https://github.com/monochange/monochange/releases/tag/v0.22.0) (2026-11-14)
+
+### 🐛 Fixed
+
+- **Document hosted workflow dispatch in the command inventory.** The generated command inventory now includes `monochange gh` and `gh workflow`, so agents using the skill can discover the hosted dispatch command alongside the rest of the CLI surface. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #866](https://github.com/monochange/monochange/pull/866)
+
 ## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-11-08)
 
 ### 🚀 Feature

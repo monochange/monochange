@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.22.0](https://github.com/monochange/monochange/releases/tag/v0.22.0) (2026-11-14)
+
+### 🐛 Fixed
+
+#### Prefer configured package IDs over shared published names
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #889](https://github.com/monochange/monochange/pull/889)
+
+`monochange preview` and `resolve_package_reference` now honor an exact configured package ID before matching published names. Repositories can keep a Rust ID unprefixed while assigning the same-name Dart package a distinct ID:
+
+```toml
+[package.shared]
+path = "crates/shared"
+
+[package."dart:shared"]
+path = "packages/shared"
+type = "dart"
+```
+
+A changeset targeting `shared` selects Rust and one targeting `dart:shared` selects Dart. This previously failed as ambiguous despite the explicit IDs. Unconfigured published names still resolve when unique and still report ambiguity when they identify multiple packages. Canonical IDs and manifest/directory paths continue to resolve in both direct and cached lookup paths.
+
 ## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-11-08)
 
 ### 🚀 Feature
