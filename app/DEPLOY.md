@@ -71,7 +71,7 @@ Production is one hardened DigitalOcean Droplet running Docker Compose with two 
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `monochange_app` 0.4.0 | Add the required `TOKEN_ENCRYPTION_KEY` field to the `auth` section of `monochange.dev` (any long random string, for example from `openssl rand -base64 48`). Tokens stored before 0.4.0 stay readable and are sealed on their next refresh. Changing the key later signs every user out of GitHub. Copy the 0.4.0 `docker-compose.yml`, which disables Multipath TCP for Caddy.                                                                                                                                                                                                                                                                                                                                                                |
 | `monochange_app` 0.5.0 | Grant the GitHub App **Actions: Read and write** and approve it on the installation that covers `monochange/monochange` and `monochange/actions`, so `publish.yml` can dispatch the actions release through `POST /api/workflow-dispatches`. That last `publish.yml` step calls the new endpoint, so it fails if the website deployment has not finished or failed; packages and the CLI release are already public by then, so once the website is healthy just run the `release` workflow in `monochange/actions` by hand. The workspace moves to `/projects` with redirects from old bookmarks. Set `MONOCHANGE_EXTENSION_REDIRECT_URIS` in `app.env` before the browser extension can sign in. Additive database migrations run at startup. |
-| `monochange_app` 0.5.0 | Server files: copy the new `docker-compose.yml` and reinstall `monochange-deploy` (see [update the server helpers](#update-the-server-helpers)). The helper now waits up to 120 seconds for health and prints the app's startup logs when it fails. Optional settings move to `/opt/monochange/app.env`.                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `monochange_app` 0.5.0 | Server files: install jq/sqlite3/util-linux/curl/gzip/coreutils, reinstall all three helpers (`monochange-deploy`, `monochange-ci-deploy`, `monochange-sqlite-backup`), switch the daily cron to `--daily`, and move legacy optional settings into `/opt/monochange/app.env`. Copy the new Compose file. Follow [update the server helpers](#update-the-server-helpers) before approving the release.                                                                                                                                                                                                                                                                                                                                           |
 
 Add a row here whenever a website change needs an operator step, and say which release it shipped in.
 
@@ -90,8 +90,8 @@ merge release PR ──► push to main
 2. **Wait for the tag.** `release-post-merge` in `ci.yml` creates the `monochange_app/vX.Y.Z` tag and draft release concurrently. The deployment polls for the tag for up to 30 minutes.
 3. **Verify identity.** The job checks that `HEAD`, the tag, and the release record all name the same commit on `main`, and that `app/public/releases/X.Y.Z.json` and the website release notes exist.
 4. **Build and smoke-test.** It builds the repository `Dockerfile` on the runner and runs `app/deploy/verify-image.sh`, which starts the image with test credentials and checks `/health`, privilege dropping, the main pages, the WASM assets, precompression, and the release JSON. A failure here leaves production untouched.
-5. **Transfer.** It streams `docker save | gzip` over SSH with the `WEBSITE_DEPLOY_SSH_KEY` secret. That key is restricted on the server to the forced command `/usr/local/bin/monochange-ci-deploy` (`ci-deploy.sh`), which takes a lock, refuses to replace a newer website version, loads the image, backs up SQLite, and runs `monochange-deploy`.
-6. **Roll out.** `monochange-deploy` (`monochange-deploy.sh`) writes `MONOCHANGE_IMAGE=monochange-app:<sha>` to `/opt/monochange/.env`, runs `docker compose up -d --pull never`, and waits up to 120 seconds for `http://127.0.0.1:3000/health`. On success `ci-deploy.sh` records the version in `/opt/monochange/.website-version`.
+5. **Transfer.** It streams `docker save | gzip` over SSH with the `WEBSITE_DEPLOY_SSH_KEY` secret. That key is restricted on the server to the forced command `/usr/local/bin/monochange-ci-deploy` (`ci-deploy.sh`), which validates the wire and calls the transaction owner `monochange-deploy`.
+6. **Roll out.** `monochange-deploy` (`monochange-deploy.sh`) writes `MONOCHANGE_IMAGE=monochange-app:<sha>` to `/opt/monochange/.env`, runs `docker compose up -d --pull never`, and waits up to 120 seconds for `http://127.0.0.1:3000/health`. On verified success `monochange-deploy` records the version in `/opt/monochange/.website-version`.
 7. **Verify publicly and publish notes.** The job checks `https://monochange.dev/health` reports the new version, `/changelog` lists it, and `/releases/X.Y.Z.json` serves. Only then does it publish the `monochange_app/vX.Y.Z` GitHub release with the website notes.
 
 Deployments are serialized by the `monochange-website-production` concurrency group and the server lock. The workflow builds the exact tagged commit, so re-running it rebuilds the same image.
@@ -100,13 +100,13 @@ Deployments are serialized by the `monochange-website-production` concurrency gr
 
 A failed `website-deployment` leaves the website release as a draft. Where it failed decides what production is running:
 
-| Failed step                                             | Production state                                                                                           |
-| ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| Any step up to and including `verify the release image` | Unchanged, still the previous version                                                                      |
-| `transfer and deploy through the restricted key`        | Compose already points at the **new** image; if it never became healthy, the site is down or crash-looping |
-| `verify public website and publish its release notes`   | New version running locally; check Caddy, DNS, and the public checks                                       |
+| Failed step                                             | Production state                                                                                                                  |
+| ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Any step up to and including `verify the release image` | Unchanged, still the previous version                                                                                             |
+| `transfer and deploy through the restricted key`        | Preflight failures preserve the old desired image; after the compose stage, inspect the receipt, desired image and running health |
+| `verify public website and publish its release notes`   | New version running locally; check Caddy, DNS, and the public checks                                                              |
 
-1. **Read the startup logs.** The deploy helper prints them in the Actions log when the health check fails. To read them directly:
+1. **Read the startup logs.** The receipt records the failed stage; inspect startup logs directly:
 
    ```bash
    ssh -F app/deploy/digitalocean/ssh_config monochange-production \
@@ -130,16 +130,16 @@ A failed `website-deployment` leaves the website release as a draft. Where it fa
    ssh -F app/deploy/digitalocean/ssh_config monochange-production \
      'docker image ls monochange-app --format "{{.Tag}} {{.CreatedSince}}"'
    ssh -F app/deploy/digitalocean/ssh_config monochange-production \
-     '/usr/local/bin/monochange-sqlite-backup && /usr/local/bin/monochange-deploy monochange-app:<previous-full-sha>'
+     '/usr/local/bin/monochange-deploy --rollback monochange-app:<previous-full-sha> <previous-stable-version>'
    ```
 
    Image rollback and database restore are different tools, and nothing downgrades the database automatically. Follow this checklist, in order:
 
-   1. **Back up first, always before any schema change runs**: `/usr/local/bin/monochange-sqlite-backup` takes an online `sqlite3 .backup` snapshot while the app is running. Note the timestamp of the snapshot you made.
+   1. **Use the transaction helper**: it takes one verified online SQLite snapshot before migration startup. Read its path and digest in `deployments/attempt-*/receipt.json`; do not duplicate the backup outside the transaction.
    2. **Prefer the image rollback.** The candidate's migrations are additive: new tables (`oauth_state_uses`, `client_grants`, `client_sessions`) and one new column (`users.session_epoch`, default 0), with every 0.3.3 column, row, and value preserved — proven by the release-upgrade rehearsal (`monochange_app_db` tests and `scripts/sqlite-backup-rehearsal.ts`). An older image's reads keep working against the upgraded schema, and its migration runner no-ops on migrations it does not know. This is reader/runner compatibility, not proof the old binary was re-run; watch its startup logs after it starts.
    3. **Restore only if an old image cannot run against the newer schema**, and treat a restore as discarding every write newer than the snapshot: stop the app, verify the snapshot before replacing anything (`sqlite3 /opt/monochange/backups/<snapshot>.sqlite3 'PRAGMA quick_check; PRAGMA integrity_check;'` — refuse a snapshot that fails either check), export anything you need from the newer data first, then copy the snapshot over `/opt/monochange/data/monochange_app.sqlite3` as the `deploy` user and start the app again. No helper restores automatically.
    4. **Preserve the surrounding state**: keep the Droplet's SQLite engine and bind mounts (`/opt/monochange/data`, `/opt/monochange/caddy`, `/opt/monochange/backups`, root-owned `/opt/monochange/secrets` with the server-owned service-account token) exactly as they are, keep Caddy running — its TLS state lives in `/opt/monochange/caddy` — and keep the previous image plus the deployment receipts (`.env`, `.website-version`, the draft GitHub release) until the recovered deployment is verified healthy.
-   5. **Know the limit**: backups are Droplet-local (14-day retention via `find -mtime +14`); no off-Droplet copy exists yet. If the Droplet itself is lost, recover through [build a new production server](#build-a-new-production-server) and restore the latest snapshot onto it — anything newer than that snapshot, and anything never backed up, is gone.
+   5. **Know the limit**: backups are Droplet-local (only daily snapshots expire after 14 days); no off-Droplet copy exists yet. If the Droplet itself is lost, recover through [build a new production server](#build-a-new-production-server) and restore the latest snapshot onto it — anything newer than that snapshot, and anything never backed up, is gone.
 
    A newer website release supersedes a failed one, but it needs the same fix before it can start.
 
@@ -246,24 +246,29 @@ The client address comes from `X-Forwarded-For` only when the connecting peer is
 
 `harden-droplet.sh` installs three helpers on a new server. On the running server, replace a helper when its source changes, without rerunning the hardening:
 
-| Source in `app/deploy/digitalocean/` | Installed as                          | Used by                                                                                  |
-| ------------------------------------ | ------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `monochange-deploy.sh`               | `/usr/local/bin/monochange-deploy`    | `ci-deploy.sh` and manual deployments                                                    |
-| `ci-deploy.sh`                       | `/usr/local/bin/monochange-ci-deploy` | the forced command of the Actions key                                                    |
-| `mitigate-cve-2026-98432.sh`         | systemd unit and nftables rules       | see [OPERATIONS.md](deploy/digitalocean/OPERATIONS.md#cve-2026-98432-interim-mitigation) |
+| Source in `app/deploy/digitalocean/` | Installed as                              | Used by                                                                                  |
+| ------------------------------------ | ----------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `monochange-deploy.sh`               | `/usr/local/bin/monochange-deploy`        | `ci-deploy.sh` and manual deployments                                                    |
+| `monochange-sqlite-backup.sh`        | `/usr/local/bin/monochange-sqlite-backup` | deployment transaction and daily cron                                                    |
+| `ci-deploy.sh`                       | `/usr/local/bin/monochange-ci-deploy`     | the forced command of the Actions key                                                    |
+| `mitigate-cve-2026-98432.sh`         | systemd unit and nftables rules           | see [OPERATIONS.md](deploy/digitalocean/OPERATIONS.md#cve-2026-98432-interim-mitigation) |
 
 ```bash
-scp app/deploy/digitalocean/monochange-deploy.sh app/deploy/digitalocean/ci-deploy.sh root@167.172.51.148:/root/
-ssh root@167.172.51.148 'install -o root -g root -m 0755 /root/monochange-deploy.sh /usr/local/bin/monochange-deploy \
+scp app/deploy/digitalocean/monochange-deploy.sh app/deploy/digitalocean/monochange-sqlite-backup.sh app/deploy/digitalocean/ci-deploy.sh root@167.172.51.148:/root/
+ssh root@167.172.51.148 'apt-get install -y jq sqlite3 util-linux curl gzip coreutils \
+  && install -o root -g root -m 0755 /root/monochange-deploy.sh /usr/local/bin/monochange-deploy \
   && install -o root -g root -m 0755 /root/ci-deploy.sh /usr/local/bin/monochange-ci-deploy \
-  && rm /root/monochange-deploy.sh /root/ci-deploy.sh'
+  && install -o root -g root -m 0755 /root/monochange-sqlite-backup.sh /usr/local/bin/monochange-sqlite-backup \
+  && printf "%s\n" "#!/usr/bin/env bash" "set -euo pipefail" "/usr/local/bin/monochange-sqlite-backup --daily" > /etc/cron.daily/monochange-sqlite-backup \
+  && chmod 0755 /etc/cron.daily/monochange-sqlite-backup \
+  && rm /root/monochange-deploy.sh /root/ci-deploy.sh /root/monochange-sqlite-backup.sh'
 ```
 
 Root login is key-only. The helpers are root-owned so the `deploy` user, and therefore the Actions key, cannot change them.
 
 ## backups
 
-`harden-droplet.sh` installs `/usr/local/bin/monochange-sqlite-backup` and a daily cron entry. Each run writes a consistent `sqlite3 .backup` snapshot to `/opt/monochange/backups/monochange_app-<UTC timestamp>.sqlite3` and deletes snapshots older than 14 days. Every deployment takes one more snapshot before the restart.
+`harden-droplet.sh` installs `/usr/local/bin/monochange-sqlite-backup` and a daily cron entry. Release snapshots live in collision-safe `/opt/monochange/backups/snapshot-<random>/monochange_app.sqlite3` directories and never expire. The cron command must be `/usr/local/bin/monochange-sqlite-backup --daily`; only owned snapshots under `backups/daily/` expire after 14 days. Update an existing cron entry to include `--daily`. Every routine deployment takes one snapshot before the restart; explicit first bootstrap has no database to snapshot.
 
 The mechanism is rehearsed against the real release schema: `scripts/sqlite-backup-rehearsal.ts` (its `vitest` suite lives in `scripts/npm/tests/`) builds the upgrade-rehearsal database from `fixtures/tests/app-sqlite-release-upgrade/`, writes committed rows into an uncheckpointed WAL file, takes the same `sqlite3 .backup` snapshot, and restores it into a different directory. The rehearsal proves three things an operator can rely on: a snapshot taken while the app is writing contains every committed row (a torn copy of just the database file misses the rows still in the WAL); a restored snapshot passes `quick_check`, `integrity_check`, and `foreign_key_check`; and restoring verifies the snapshot before replacing anything, so a corrupt or missing snapshot fails and leaves the last-good database untouched.
 
@@ -324,6 +329,7 @@ Copy the hardening script with its sibling helpers; it refuses to run without th
 scp app/deploy/digitalocean/harden-droplet.sh \
   app/deploy/digitalocean/monochange-deploy.sh \
   app/deploy/digitalocean/ci-deploy.sh \
+  app/deploy/digitalocean/monochange-sqlite-backup.sh \
   app/deploy/digitalocean/mitigate-cve-2026-98432.sh \
   root@$DROPLET_IP:/root/
 ssh root@$DROPLET_IP 'chmod +x /root/*.sh && /root/harden-droplet.sh'
@@ -331,7 +337,7 @@ ssh root@$DROPLET_IP 'chmod +x /root/*.sh && /root/harden-droplet.sh'
 
 The script:
 
-- installs Docker and the Compose plugin from Docker's apt repository, plus `sqlite3`, `fail2ban`, `nftables`, `ufw`, and `unattended-upgrades`;
+- installs Docker and the Compose plugin from Docker's apt repository, plus `jq`, `sqlite3`, `fail2ban`, `nftables`, `ufw`, and `unattended-upgrades`;
 - creates the `deploy` user in the `docker` group with root's authorized keys;
 - sets SSH to keys only (`PasswordAuthentication no`, `KbdInteractiveAuthentication no`, `PermitRootLogin prohibit-password`, `AllowUsers deploy root`);
 - enables UFW (deny incoming except `22`, `80`, `443`) and a fail2ban SSH jail;
@@ -367,7 +373,7 @@ Store the private key as the `WEBSITE_DEPLOY_SSH_KEY` secret of the `website-pro
 
 ### 6. first deployment
 
-Re-run the `website-deployment` job of the `app` workflow run for the latest website release, or deploy a commit by hand as described in [SSH checks and updates](deploy/digitalocean/OPERATIONS.md#ssh-checks-and-updates). Both end with `monochange-deploy monochange-app:<full-sha>`, which starts Caddy and the app. Restore the latest SQLite backup into `/opt/monochange/data` first when you are replacing a server rather than starting fresh.
+For a genuinely new empty server, load the chosen image and run `monochange-deploy --bootstrap monochange-app:<full-sha> <stable-version>` manually. Bootstrap refuses prior deployment history or data and is unavailable through the CI wire. For a replacement server, restore and verify the chosen snapshot first, then use the routine version-required call without `--bootstrap`. Routine CI/manual rollouts reject a missing database; investigate vanished data rather than initializing an empty database.
 
 ### 7. verify
 
