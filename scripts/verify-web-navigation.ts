@@ -1138,6 +1138,110 @@ async function runBrowserJourney(options: {
 		"the signed-in website nav links to /projects as a document navigation",
 	);
 
+	out("account menu (desktop disclosure, wide viewport):");
+	await cdp.send("Emulation.setDeviceMetricsOverride", {
+		width: 1280,
+		height: 800,
+		deviceScaleFactor: 1,
+		mobile: false,
+	});
+	const desktopDetailsSelector = `[...document.querySelectorAll("details")].find((node) => !node.closest("#mobile-navigation"))`;
+	const desktopClosedBefore = await cdp.send("Runtime.evaluate", {
+		expression: `(() => { const details = ${desktopDetailsSelector}; return Boolean(details && !details.open); })()`,
+		returnByValue: true,
+	});
+	log.check(
+		(desktopClosedBefore.result as { value?: boolean }).value === true,
+		"the desktop account disclosure starts closed",
+	);
+	await cdp.send("Runtime.evaluate", {
+		expression: `(() => { const details = ${desktopDetailsSelector}; details?.querySelector("summary")?.click(); return true; })()`,
+		awaitPromise: true,
+	});
+	let desktopOpened = false;
+	for (let attempt = 0; attempt < 40; attempt += 1) {
+		// eslint-disable-next-line eslint/no-await-in-loop -- account menu state is polled one CDP evaluation at a time.
+		const state = await cdp.send("Runtime.evaluate", {
+			expression: `(() => { const details = ${desktopDetailsSelector}; return Boolean(details?.open); })()`,
+			returnByValue: true,
+		});
+		if ((state.result as { value?: boolean }).value === true) {
+			desktopOpened = true;
+			break;
+		}
+		// eslint-disable-next-line eslint/no-await-in-loop -- state polling is sequential by contract.
+		await sleep(25);
+	}
+	log.check(desktopOpened, "opening the desktop account disclosure sets open");
+	await cdp.send("Runtime.evaluate", {
+		expression: `(() => { const details = ${desktopDetailsSelector}; const link = details?.querySelector("a, button"); link?.focus(); return document.activeElement === link; })()`,
+		awaitPromise: true,
+	});
+	const focusInside = await cdp.send("Runtime.evaluate", {
+		expression: `(() => { const details = ${desktopDetailsSelector}; return Boolean(details?.contains(document.activeElement)); })()`,
+		returnByValue: true,
+	});
+	log.check(
+		(focusInside.result as { value?: boolean }).value === true,
+		"focus can move into the open account menu",
+	);
+	await cdp.send("Input.dispatchKeyEvent", {
+		type: "keyDown",
+		key: "Escape",
+		code: "Escape",
+		windowsVirtualKeyCode: 27,
+	});
+	await cdp.send("Input.dispatchKeyEvent", {
+		type: "keyUp",
+		key: "Escape",
+		code: "Escape",
+		windowsVirtualKeyCode: 27,
+	});
+	let desktopClosedAfterEscape = false;
+	let desktopFocusRestored = false;
+	for (let attempt = 0; attempt < 40; attempt += 1) {
+		// eslint-disable-next-line eslint/no-await-in-loop -- account menu state is polled one CDP evaluation at a time.
+		const state = await cdp.send("Runtime.evaluate", {
+			expression: `(() => { const details = ${desktopDetailsSelector}; const summary = details?.querySelector("summary"); return { open: Boolean(details?.open), focused: document.activeElement === summary }; })()`,
+			returnByValue: true,
+		});
+		const value = (state.result as { value?: { open?: boolean; focused?: boolean } }).value;
+		desktopClosedAfterEscape = value?.open === false;
+		desktopFocusRestored = value?.focused === true;
+		if (desktopClosedAfterEscape) break;
+		// eslint-disable-next-line eslint/no-await-in-loop -- state polling is sequential by contract.
+		await sleep(25);
+	}
+	log.check(desktopClosedAfterEscape, "Escape closes the desktop account disclosure");
+	log.check(desktopFocusRestored, "Escape restores focus to the desktop account toggle");
+
+	await cdp.send("Runtime.evaluate", {
+		expression: `document.querySelector('a[href="/pricing"]')?.focus()`,
+		awaitPromise: true,
+	});
+	await cdp.send("Input.dispatchKeyEvent", {
+		type: "keyDown",
+		key: "Escape",
+		code: "Escape",
+		windowsVirtualKeyCode: 27,
+	});
+	await cdp.send("Input.dispatchKeyEvent", {
+		type: "keyUp",
+		key: "Escape",
+		code: "Escape",
+		windowsVirtualKeyCode: 27,
+	});
+	await sleep(settleMs);
+	const focusAfterClosedEscape = await cdp.send("Runtime.evaluate", {
+		expression: `(() => { const link = document.querySelector('a[href="/pricing"]'); return document.activeElement === link; })()`,
+		returnByValue: true,
+	});
+	log.check(
+		(focusAfterClosedEscape.result as { value?: boolean }).value === true,
+		"Escape on a closed account menu does not steal focus",
+	);
+	await cdp.send("Emulation.clearDeviceMetricsOverride", {});
+
 	out("route-change menu collapse (client-side navigation inside one document):");
 	// The homepage's queued menu click left the mobile panel open; following
 	// a section link from the panel itself must collapse it again. The effect
@@ -1160,6 +1264,44 @@ async function runBrowserJourney(options: {
 		(panelHidden.result as { value?: boolean }).value === true,
 		"the collapsed mobile panel is removed from the accessibility tree",
 	);
+
+	out("mobile navigation Escape dismissal:");
+	await cdp.send("Runtime.evaluate", {
+		expression: `document.querySelector('button[aria-controls="mobile-navigation"]')?.click()`,
+	});
+	const openedMobile = await waitForMobileMenuState(cdp, "true");
+	log.check(
+		openedMobile === "true",
+		"the mobile navigation can be opened for an Escape dismissal check",
+	);
+	await cdp.send("Runtime.evaluate", {
+		expression: `document.querySelector('#mobile-navigation a')?.focus()`,
+		awaitPromise: true,
+	});
+	await sleep(settleMs);
+	for (let attempt = 0; attempt < 3; attempt += 1) {
+		// eslint-disable-next-line eslint/no-await-in-loop -- retrying a real key press is sequential by contract.
+		await cdp.send("Input.dispatchKeyEvent", {
+			type: "keyDown",
+			key: "Escape",
+			code: "Escape",
+			windowsVirtualKeyCode: 27,
+		});
+		// eslint-disable-next-line eslint/no-await-in-loop -- retrying a real key press is sequential by contract.
+		await cdp.send("Input.dispatchKeyEvent", {
+			type: "keyUp",
+			key: "Escape",
+			code: "Escape",
+			windowsVirtualKeyCode: 27,
+		});
+		// eslint-disable-next-line eslint/no-await-in-loop -- state polling is sequential by contract.
+		const mobileCollapsed = await waitForMobileMenuState(cdp, "false");
+		if (mobileCollapsed === "false") break;
+		// eslint-disable-next-line eslint/no-await-in-loop -- retrying a real key press is sequential by contract.
+		await sleep(settleMs);
+	}
+	const escapedMobile = await waitForMobileMenuState(cdp, "false");
+	log.check(escapedMobile === "false", "Escape collapses the mobile navigation");
 
 	out("cross-frontend navigation (website → projects):");
 	await clickSelector(cdp, trace, 'a[href="/projects"]');

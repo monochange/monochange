@@ -62,22 +62,29 @@ impl AccountMenu {
 	}
 
 	/// Close the menu if it is open, optionally returning focus to its toggle.
+	///
+	/// The disclosure element and its focus target only exist in a hydrated
+	/// browser, so the DOM work is compiled only for `wasm32`; native SSR and
+	/// host tests keep the noop contract and never touch a missing element.
 	fn close(self, restore_focus: bool) {
-		// patch-coverage:ignore-start -- the menu only exists in a hydrated browser; server renders have no element to close.
-		let Some(menu) = self.menu.get_untracked() else {
-			return;
-		};
+		#[cfg(target_arch = "wasm32")]
+		{
+			let Some(menu) = self.menu.get_untracked() else {
+				return;
+			};
 
-		if !menu.has_attribute("open") {
-			return;
+			if !menu.has_attribute("open") {
+				return;
+			}
+
+			let _ = menu.remove_attribute("open");
+
+			if let Some(toggle) = self.toggle.get_untracked().filter(|_| restore_focus) {
+				let _ = toggle.focus();
+			}
 		}
-
-		let _ = menu.remove_attribute("open");
-
-		if let Some(toggle) = self.toggle.get_untracked().filter(|_| restore_focus) {
-			let _ = toggle.focus();
-		}
-		// patch-coverage:ignore-end
+		#[cfg(not(target_arch = "wasm32"))]
+		let _ = (self, restore_focus);
 	}
 }
 
