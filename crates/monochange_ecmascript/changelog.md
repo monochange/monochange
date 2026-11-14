@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.22.0](https://github.com/monochange/monochange/releases/tag/v0.22.0) (2026-11-14)
+
+### Changed
+
+#### No package-specific changes were recorded; `monochange_ecmascript` was updated to 0.22.0 as part of group `main`.
+
 ## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-11-08)
 
 ### Changed

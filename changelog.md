@@ -4,6 +4,99 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.22.0](https://github.com/monochange/monochange/releases/tag/v0.22.0) (2026-11-14)
+
+Grouped release for `main`.
+
+### 💥 Breaking Change
+
+#### Configure smaller GitHub release bodies
+
+_Packages:_ 🔴 _monochange_core_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #880](https://github.com/monochange/monochange/pull/880)
+
+> **Breaking change:** Rust callers constructing every field of `ProviderReleaseSettings` must initialize the new `max_body_chars: Option<usize>` field. See [the 0.22 migration guide](https://monochange.github.io/monochange/guide/migrations/0.22.html).
+
+Hosted releases default to GitHub's 125,000-character cap. Set `[source.releases].max_body_chars` to choose a smaller preview while preserving full changelog files.
+
+Rust callers can add `max_body_chars: None` to existing complete struct literals, or use struct update syntax:
+
+```rust
+use monochange_core::ProviderReleaseSettings;
+
+let settings = ProviderReleaseSettings {
+    max_body_chars: Some(100_000),
+    ..Default::default()
+};
+```
+
+Existing TOML configurations and callers using `Default` need no changes.
+
+### 🚀 Feature
+
+#### Dispatch GitHub Actions workflows through the monochange app
+
+_Packages:_ 🟠 _monochange_, 🟠 _monochange_core_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #866](https://github.com/monochange/monochange/pull/866)
+
+`monochange gh workflow run` dispatches a workflow in a connected repository without a personal access token. The command mirrors the useful part of `gh workflow run`:
+
+```bash
+monochange gh workflow run release.yml --repo monochange/actions --ref main
+monochange gh workflow run release-pr-merge.yml --repo monochange/actions -f pull_request=103
+```
+
+A GitHub Actions job authenticates with its OIDC token by granting `id-token: write`; local runs use `--hosted-auth token` and a deployment `MONOCHANGE_TOKEN`. The monochange app checks that an OIDC caller and the target repository belong to the same GitHub App installation, so an organisation repository can dispatch a sibling repository's release workflow while other installations remain isolated. `--dry-run` validates the target without starting a run, and `--field KEY=VALUE` passes workflow inputs.
+
+The new `HostedWorkflowDispatchRequest` and `HostedWorkflowDispatchResponse` types expose the same contract to other clients. `publish.yml` now uses the command to refresh the `monochange/actions` release PR after a CLI release, replacing the `MONOCHANGE_ACTIONS_TOKEN` credential.
+
+#### Keep GitHub release notes and release PRs within body limits
+
+_Packages:_ 🟢 _monochange_github_, 🟠 _monochange_hosting_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #880](https://github.com/monochange/monochange/pull/880)
+
+Large release notes now retain metadata and whole entries up to GitHub's 125,000-character limit, reserving room for a link to the complete changelog at the release tag. Smaller notes remain unchanged. Entries that cannot fit are omitted whole. Non-Markdown formats fall back to the changelog link.
+
+Release PR limits now also cover oversized target lists and changelog pointers. Those descriptions become a short continuation notice; the committed changelog files retain every detail.
+
+No configuration is required. To choose smaller bodies:
+
+```toml
+[source.releases]
+max_body_chars = 100000
+
+[source.pull_requests]
+max_body_chars = 60000
+```
+
+GitHub caps cannot be raised by configuration. Library callers can use `monochange_hosting::body_limit::bound_body(body, boundaries, notice, max_chars)` to retain complete blocks while budgeting for a continuation notice. `ProviderReleaseSettings` gains `max_body_chars: Option<usize>`; struct literals can use `..Default::default()` for the default cap.
+
+### 🐛 Fixed
+
+- **Document hosted workflow dispatch in the command inventory.** The generated command inventory now includes `monochange gh` and `gh workflow`, so agents using the skill can discover the hosted dispatch command alongside the rest of the CLI surface. _Packages:_ 🟢 _@monochange/skill_ _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #866](https://github.com/monochange/monochange/pull/866)
+
+#### Prefer configured package IDs over shared published names
+
+_Packages:_ 🟢 _monochange_, 🟢 _monochange_config_
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #889](https://github.com/monochange/monochange/pull/889)
+
+`monochange preview` and `resolve_package_reference` now honor an exact configured package ID before matching published names. Repositories can keep a Rust ID unprefixed while assigning the same-name Dart package a distinct ID:
+
+```toml
+[package.shared]
+path = "crates/shared"
+
+[package."dart:shared"]
+path = "packages/shared"
+type = "dart"
+```
+
+A changeset targeting `shared` selects Rust and one targeting `dart:shared` selects Dart. This previously failed as ambiguous despite the explicit IDs. Unconfigured published names still resolve when unique and still report ambiguity when they identify multiple packages. Canonical IDs and manifest/directory paths continue to resolve in both direct and cached lookup paths.
+
 ## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-11-08)
 
 Grouped release for `main`.
