@@ -1,16 +1,14 @@
-//! Page components.
+//! Page components of the website browser entry.
+//!
+//! Product pages live in the projects entry (`monochange_projects_web`);
+//! the website no longer re-exports them now that each entry owns its route
+//! tree.
 
+pub mod account;
 pub mod book;
 pub mod changelog;
+pub mod connect;
 pub mod dashboard;
-pub use monochange_projects::pages::embedded_feedback;
-pub use monochange_projects::pages::feedback_console;
 pub mod home;
 pub mod install;
-pub use monochange_projects::pages::organization;
-pub use monochange_projects::pages::portal;
-
 pub mod pricing;
-pub use monochange_projects::pages::project;
-pub mod account;
-pub mod connect;

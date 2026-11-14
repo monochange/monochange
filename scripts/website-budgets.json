@@ -64,6 +64,14 @@
 			"lcpMs": 2600,
 			"tbtMs": 250,
 			"cls": 0.1
+		},
+		"/projects": {
+			"performance": 0.85,
+			"ttfbMs": 600,
+			"fcpMs": 1500,
+			"lcpMs": 2600,
+			"tbtMs": 250,
+			"cls": 0.1
 		}
 	},
 	"assets": {

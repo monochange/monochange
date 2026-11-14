@@ -150,7 +150,7 @@ async fn create(
 }
 
 fn message(error: &server_fn::ServerFnError) -> String {
-	crate::pages::organization::action_error(error)
+	crate::error::action_error(error)
 }
 
 #[tokio::test]
@@ -730,8 +730,5 @@ async fn database_failures_surface_as_errors() {
 #[test]
 fn transport_errors_are_shown_as_they_are() {
 	let error = server_fn::ServerFnError::Request("offline".to_owned());
-	assert_eq!(
-		crate::pages::organization::action_error(&error),
-		error.to_string()
-	);
+	assert_eq!(crate::error::action_error(&error), error.to_string());
 }

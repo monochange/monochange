@@ -6,14 +6,23 @@ Leptos SSR web app for monochange release planning.
 
 The app uses SQLite by default, so no database service is required. It loads its secrets through [Monosecret](https://monosecret.dev) from `app/monosecret.toml`. The `development` profile reads the ignored `app/.env` first, then the process environment, then local defaults. It never contacts 1Password.
 
-`app/leptoskit.toml` configures SSR on port 3000 with route-split WASM bundles. Prefer the **leptoskit** CLI when it is installed (same layout as other leptoskit apps); keep **cargo-leptos** as a fallback until CI and Docker switch.
+The two web frontends build through their own `leptoskit.toml` configs: `app/leptoskit.toml` (website entry) and `app/projects/leptoskit.toml` (projects entry). Both name the shared `monochange_app` backend. The `build:web` devenv task resolves the provenance-verified CLI, builds both frontends into fresh per-invocation scratch directories under the ignored `.monochange/local/web-build/<run>/`, and only after both builds passed their own bundle reports and budgets runs `scripts/leptoskit-plugin/publish-web-site.ts`, which stages one complete deployment tree, validates it, and promotes it to `app/target/site` — keeping the last good site on any failure. One publication at a time owns the site through its lease, `app/target/.site.publish-lease`; while it is held, every other publication of that site fails without changing anything. The tooling plugin (shared site CSS, split-loader minification, release WASM optimization) runs inside each build's scratch output.
 
 ```bash
-# From the repository root — preferred when `leptoskit` is on PATH
-cd app && MONOSECRET_PROFILE=development devenv shell leptoskit serve
-# Fallback (cargo-leptos metadata still present in app/Cargo.toml)
-MONOSECRET_PROFILE=development devenv shell cargo leptos --manifest-path app/crates/monochange_app/Cargo.toml serve
+# Build both frontends (add --release for the size/benchmark gates)
+devenv shell build:web
+# Serve the assembled site statically through the managed CLI
+# (SSR development runs the server binary with LEPTOS_SITE_ROOT instead)
+cd app && ../scripts/leptoskit-cli.sh serve --dir target/site
 ```
+
+An interrupted publication (Ctrl-C, a killed container) leaves its lease behind, and later publications of the site fail closed. The error names the lease, its owner (token, pid, host, start time), the trees it retains, and the recovery command. The publisher never guesses that an owner is dead. Confirm that publisher is not running anywhere, then run the command the error names:
+
+```bash
+node scripts/leptoskit-plugin/publish-web-site.ts --site-root app/target/site --recover-abandoned-lease <token>
+```
+
+Recovery restores the retained last-good tree when the site root is absent. Otherwise it moves the retained tree aside to `app/target/.site.publish-retained-<token>` for you to inspect and remove. The publisher never removes anything beside the site root by name pattern. Remove these by hand once no publisher is running: a `.site.publish-retired-<token>` directory reported after a cleanup failure, and the older format's `.site-staging-*` and `.site-previous-*` leftovers.
 
 Default database:
 
@@ -24,7 +33,8 @@ sqlite://./monochange_app.sqlite3
 Override any value, such as `DATABASE_URL` or the GitHub App client credentials, in `app/.env` or the environment:
 
 ```bash
-DATABASE_URL=sqlite://.devenv/state/monochange_app.sqlite3 MONOSECRET_PROFILE=development devenv shell cargo leptos --manifest-path app/crates/monochange_app/Cargo.toml serve
+DATABASE_URL=sqlite://.devenv/state/monochange_app.sqlite3 LEPTOS_SITE_ROOT=target/site \
+  MONOSECRET_PROFILE=development devenv shell -- bash -c 'cd app && cargo run'
 ```
 
 ## tests
@@ -41,22 +51,23 @@ Release automation uses the same SQLite database and remains disabled unless `MO
 Every app pull request runs a Lighthouse suite over the core flows (`/`, `/install`, `/pricing`, `/changelog`, `/book`, a book chapter, `/login`, and the signed-out `/dashboard`) plus a gzip bundle-size check against the committed baseline. Locally, after a release build:
 
 ```bash
-# from the repository root, with pnpm dependencies installed
-# Preferred: `cd app && leptoskit build --release` (split + size optimize from leptoskit.toml)
-cargo leptos --manifest-path app/crates/monochange_app/Cargo.toml build --release --split
-pnpm node scripts/minify-split-loader.ts --site-root app/target/site
+# from the repository root; build:web builds both frontends into fresh
+# scratch outputs and publishes one validated site to app/target/site
+devenv shell build:web --release
 pnpm bench:website          # Lighthouse against a throwaway local server
 pnpm size:website           # compare app/target/site/pkg against the baseline
 pnpm size:website:update    # accept a deliberate size change in the same PR
 ```
 
-`minify-split-loader.ts` minifies the `pkg/__wasm_split.*.js` loader that cargo-leptos emits unminified (`js-minify` covers the main glue only), so the committed size gate measures the shipped bytes. CI runs it between the release build and the size/Lighthouse checks, and the Docker builder runs it before the site is copied out and precompressed. The upstream leptoskit web build emits the same loader, so pass its output directory to `--site-root` when building with `leptoskit build --release`.
+The release builds go through the pinned **leptoskit** CLI (`build:web` resolves it from `[workspace.metadata.bin]` and verifies the Git provenance), never cargo-leptos. The tooling plugin (`scripts/leptoskit-plugin/web-assets-plugin.ts`) prepares each build's own scratch bundle inside `leptoskit build`: the Tailwind site CSS, the guarded `__wasm_split.*.js` loader minification (scripts/minify-split-loader.ts), the WOFF2 font subsets, and — in release builds — the guarded WASM re-optimization. It never moves or publishes anything: the SDK's bundle report and `bundle.budget_kib` check read that scratch bundle after the hook, so a build its own budget rejects can never have touched the deployment. Publication is `scripts/leptoskit-plugin/publish-web-site.ts`, which runs only after BOTH builds succeeded: it stages `pkg/site/` + `pkg/projects/`, the public assets, and the fonts from the scratch outputs alone (so removed files and stale chunks cannot survive), verifies both builds compiled byte-identical CSS, precompresses the staged tree (gzip 9 / brotli 11), validates completeness, and promotes it over `app/target/site` with a two-rename swap that keeps the last good site on any failure. The whole publication holds one exclusive lease per destination. The lease directory contains the staging tree and the superseded tree, so concurrent publications of one site fail cleanly instead of interleaving, and sibling destinations stay independent. The window between the two renames is documented in the publisher's header: a reader that opens the site root at that instant sees a missing directory. Every in-repo consumer reads the tree only after `build:web` exits, and production copies the finished tree into the image before anything serves it.
 
 Budgets live in `scripts/website-budgets.json`; the size baseline in `scripts/website-size-baseline.json`. `pnpm bench:website` needs Chrome or Chromium locally (`CHROME_PATH` is honoured). The app CI job fails on budget violations unless `MONOCHANGE_ALLOW_BENCHMARK_BUDGET_FAILURES=true` is set, mirroring the CLI benchmark escape hatch.
 
-The client is split into per-route WASM chunks (`#[lazy_route]` boundaries, `split = true` in `leptoskit.toml` / cargo-leptos): the landing and login views stay in the initial bundle while every other route loads its code on first navigation. `/pkg` assets are served with revalidation caching, and the deployment image precompresses them (gzip and brotli) alongside compression at the Caddy edge.
+Each browser entry is split into per-route WASM chunks (`#[lazy_route]` boundaries, `split = true` in `leptoskit.toml`): the landing and login views stay in the website's initial bundle while every other route loads its code on first navigation, and the projects entry hydrates the product routes from its own bundle. `/pkg` assets are served with revalidation caching, and the deployment image precompresses them (gzip and brotli) alongside compression at the Caddy edge.
 
-Shared wire DTOs for the website and future extension/native guests live in `crates/monochange_shared`. Class B machine APIs (webhooks, hosted release OIDC, embed SDK) mount through `crates/monochange_backend`.
+Links that cross between the website and projects entries render with `target="_self"`, so the click loads the other entry as a real document navigation instead of client-side routing into a bundle that does not own the route.
+
+Shared wire DTOs for the website, projects, extension, and native guests live in `crates/monochange_shared`. Class B machine APIs (webhooks, hosted release OIDC, embed SDK) mount through `crates/monochange_backend`.
 
 ## deploy
 

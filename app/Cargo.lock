@@ -2896,9 +2896,9 @@ dependencies = [
 
 [[package]]
 name = "itoa"
-version = "1.0.18"
+version = "1.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
+checksum = "3bd1574e617a9a6c1f8f8181bd7e841e1f20e4277607ef28945765188d6284d4"
 
 [[package]]
 name = "jiff"
@@ -4024,6 +4024,7 @@ dependencies = [
  "monochange_github",
  "monochange_hosting",
  "monochange_projects",
+ "monochange_projects_web",
  "monochange_shared",
  "pulldown-cmark",
  "reqwest 0.13.5",
@@ -4048,6 +4049,7 @@ dependencies = [
  "urlencoding",
  "uuid",
  "wasm-bindgen",
+ "wasm-bindgen-futures",
  "web-sys",
 ]
 
@@ -4118,6 +4120,7 @@ dependencies = [
  "serde_json",
  "sha2 0.10.9",
  "sqlx",
+ "tempfile",
  "thiserror",
  "tokio",
  "typed-builder",
@@ -4233,6 +4236,38 @@ dependencies = [
  "tracing",
  "url",
  "urlencoding",
+ "web-sys",
+]
+
+[[package]]
+name = "monochange_projects_web"
+version = "0.4.0"
+dependencies = [
+ "any_spawner",
+ "axum",
+ "codee",
+ "console_error_panic_hook",
+ "console_log",
+ "insta",
+ "leptos",
+ "leptos_axum",
+ "leptos_meta",
+ "leptos_router",
+ "leptoskit_rpc",
+ "log",
+ "monochange_app_api",
+ "monochange_app_db",
+ "monochange_app_feedback",
+ "monochange_projects",
+ "monochange_shared",
+ "serde",
+ "serde_json",
+ "server_fn",
+ "sqlx",
+ "tokio",
+ "tower",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
 ]
 
 [[package]]
@@ -4266,6 +4301,7 @@ name = "monochange_shared"
 version = "0.4.0"
 dependencies = [
  "base64 0.22.1",
+ "rstest",
  "schemars",
  "serde",
  "serde_json",

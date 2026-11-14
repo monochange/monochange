@@ -64,6 +64,11 @@ monochange_app_db = { workspace = true }
 monochange_app_automation = { workspace = true }
 monochange_app_api = { workspace = true }
 monochange_backend = { workspace = true }
+# The projects route tree, rendered server-side only: the projects browser
+# entry (monochange_projects_web) is a wasm cdylib whose lazy-route split
+# exports must stay out of this crate's client bundle, so the website client
+# never links it.
+monochange_projects_web = { path = "../monochange_projects_web" }
 
 # WASM-only dependencies (compiled only on wasm32 target)
 [target.'cfg(target_arch = "wasm32")'.dependencies]
@@ -72,6 +77,7 @@ console_error_panic_hook = { workspace = true }
 console_log = { workspace = true }
 log = { workspace = true }
 wasm-bindgen = { workspace = true }
+wasm-bindgen-futures = { workspace = true }
 web-sys = { workspace = true }
 
 [package.metadata.leptos]
@@ -97,6 +103,7 @@ ssr = [
 	"dep:leptoskit",
 	"leptos/ssr",
 	"monochange_projects/ssr",
+	"monochange_projects_web/ssr",
 	"leptos_meta/ssr",
 	"leptos_router/ssr",
 	"leptoskit/server",

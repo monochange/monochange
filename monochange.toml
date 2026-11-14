@@ -431,6 +431,12 @@ path = "app/crates/monochange_app"
 # Workflow files stay out of the affected paths: CI and deployment changes
 # are repository plumbing and never require a monochange_app changeset.
 additional_paths = ["app/**", "docs/src/**", "Dockerfile"]
+# The application leptoskit configs declare the deployed app version in
+# [app].version; keep them stamped with the responsible crate's release.
+versioned_files = [
+	{ path = "app/leptoskit.toml", format = "toml", fields = ["app.version"] },
+	{ path = "app/projects/leptoskit.toml", format = "toml", fields = ["app.version"] },
+]
 publish = { enabled = false }
 changelog = false
 tag = true

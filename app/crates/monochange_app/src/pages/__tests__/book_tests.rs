@@ -4,7 +4,9 @@ use super::*;
 
 #[tokio::test]
 async fn book_route_view_wraps_resolved_chapter_in_site_layout() {
-	let html = crate::tests::render(|| {
+	// Rendered inside a router, as production book pages are: the not-found
+	// branch renders the shared error page, which reads the location.
+	let html = crate::tests::render_at("/book", || {
 		let chapter = Resource::new_blocking(|| (), |()| async { Ok::<_, ServerFnError>(None) });
 		book_route_view(chapter)
 	})
@@ -16,10 +18,14 @@ async fn book_route_view_wraps_resolved_chapter_in_site_layout() {
 	);
 }
 
-#[test]
-fn chapter_errors_distinguish_not_found_and_unavailable() {
-	let missing = Owner::new().with(|| view! { <BookPageView result=Ok(None) /> }.to_html());
-	assert!(missing.contains("Chapter not found"));
+#[tokio::test]
+async fn chapter_errors_distinguish_not_found_and_unavailable() {
+	// The not-found branch renders the shared error template inside a router.
+	let missing = crate::tests::render_at("/book", || {
+		view! { <BookPageView result=Ok(None) /> }
+	})
+	.await;
+	assert!(missing.contains("Chapter not found"), "{missing}");
 	let unavailable = Owner::new().with(|| {
 		view! { <BookPageView result=Err(server_fn::ServerFnError::new("transport error")) /> }
 			.to_html()

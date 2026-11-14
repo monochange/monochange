@@ -14,12 +14,12 @@
 // without failing (matches the CLI benchmark job's escape hatch).
 
 import { spawn, spawnSync } from "node:child_process";
-import { createWriteStream } from "node:fs";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { createWriteStream, existsSync } from "node:fs";
+import { readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
 import net from "node:net";
 import { dirname, join, resolve } from "node:path";
 import process from "node:process";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { gzipSync } from "node:zlib";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
@@ -64,25 +64,54 @@ function formatValue(value, format) {
 	return format === "score" ? value.toFixed(3) : `${Math.round(value)} ms`;
 }
 
-function listSiteFiles(siteRoot) {
+/** Lists every transferred asset under `<siteRoot>/pkg`, compression twins excluded. */
+export function listSiteFiles(siteRoot) {
 	const pkgDir = join(siteRoot, "pkg");
 	let entries;
 	try {
-		entries = readdirSync(pkgDir);
+		entries = readdirSync(pkgDir, { withFileTypes: true });
 	} catch {
-		die(`missing ${pkgDir}; build the site first with cargo leptos build --release`);
+		die(`missing ${pkgDir}; build both frontends first (build:web --release)`);
 	}
-	return entries
-		.filter((name) => statSync(join(pkgDir, name)).isFile())
-		.map((name) => {
-			const path = join(pkgDir, name);
+	const files = [];
+	for (const entry of entries) {
+		const path = join(pkgDir, entry.name);
+		if (entry.isDirectory()) {
+			// Both frontends assemble under their own namespace.
+			for (const nested of readdirSync(path)) {
+				const nestedPath = join(path, nested);
+				if (!statSync(nestedPath).isFile()) continue;
+				// Precompressed `.br`/`.gz` twins are alternate encodings of a
+				// counted asset, not additional payload: counting them would
+				// double every compressible file in the raw budgets.
+				if (/\.(?:br|gz)$/u.test(nested)) continue;
+				const raw = readFileSync(nestedPath);
+				files.push({
+					name: `${entry.name}/${nested}`,
+					bytes: raw.byteLength,
+					gzipBytes: gzipSync(raw).byteLength,
+				});
+			}
+		} else if (entry.isFile()) {
+			if (/\.(?:br|gz)$/u.test(entry.name)) continue;
 			const raw = readFileSync(path);
-			return { name, bytes: raw.byteLength, gzipBytes: gzipSync(raw).byteLength };
-		})
-		.toSorted((left, right) => right.bytes - left.bytes);
+			files.push({ name: entry.name, bytes: raw.byteLength, gzipBytes: gzipSync(raw).byteLength });
+		}
+	}
+	return files.toSorted((left, right) => right.bytes - left.bytes);
 }
 
-function checkAssetBudgets(budgets, files, violations) {
+// The main wasm modules browsers download eagerly, one per frontend entry
+// (a document loads its own entry's wasm, never both). Kept in sync with
+// `WEBSITE_ENTRY_WASM` and `PROJECTS_ENTRY_WASM` in
+// app/crates/monochange_shared/src/routing.rs.
+export const EAGER_WASM_ENTRIES = [
+	"site/monochange_app_bg.wasm",
+	"projects/monochange_projects_web_bg.wasm",
+];
+
+/** Checks the assembled pkg tree against the raw asset budgets. */
+export function checkAssetBudgets(budgets, files, violations) {
 	const totals = files.reduce(
 		(acc, file) => {
 			acc.totalBytes += file.bytes;
@@ -93,18 +122,31 @@ function checkAssetBudgets(budgets, files, violations) {
 		},
 		{ totalBytes: 0, wasmBytes: 0, jsBytes: 0, cssBytes: 0 },
 	);
-	const mainWasm = files.find((file) => file.name === "monochange_app.wasm");
+	// Every frontend's eager entry must fit the eager budget on its own; the
+	// all-wasm sum has its own (looser) pkgWasmBytes budget above.
+	const eagerEntries = files.filter((file) => EAGER_WASM_ENTRIES.includes(file.name));
+	const missingEntries = EAGER_WASM_ENTRIES.filter(
+		(name) => !eagerEntries.some((file) => file.name === name),
+	);
+	if (missingEntries.length > 0) {
+		violations.push(`missing eager wasm entry bundle(s): ${missingEntries.join(", ")}`);
+	}
 	const limits = [
 		["pkgTotalBytes", totals.totalBytes],
 		["pkgWasmBytes", totals.wasmBytes],
 		["pkgJsBytes", totals.jsBytes],
 		["pkgCssBytes", totals.cssBytes],
-		["pkgEagerWasmBytes", mainWasm?.bytes ?? 0],
 	];
 	for (const [key, actual] of limits) {
 		const budget = budgets.assets?.[key];
 		if (budget !== undefined && actual > budget) {
 			violations.push(`${key} ${actual} exceeds budget ${budget}`);
+		}
+	}
+	for (const file of eagerEntries) {
+		const budget = budgets.assets?.pkgEagerWasmBytes;
+		if (budget !== undefined && file.bytes > budget) {
+			violations.push(`pkgEagerWasmBytes ${file.name} ${file.bytes} exceeds budget ${budget}`);
 		}
 	}
 	return totals;
@@ -130,11 +172,13 @@ async function waitForHealth(baseUrl, timeoutMs) {
 	const deadline = Date.now() + timeoutMs;
 	while (Date.now() < deadline) {
 		try {
+			// eslint-disable-next-line eslint/no-await-in-loop -- health polling is sequential by contract: the next attempt only starts after this one answered.
 			const response = await fetch(`${baseUrl}/health`);
 			if (response.ok) return;
 		} catch {
 			// Server not ready yet.
 		}
+		// eslint-disable-next-line eslint/no-await-in-loop -- the backoff between polling attempts is deliberately sequential; parallel probes would load the starting server.
 		await new Promise((sleep) => setTimeout(sleep, 500));
 	}
 	die(`server did not become healthy within ${timeoutMs} ms at ${baseUrl}`);
@@ -181,15 +225,6 @@ function lighthouseBin() {
 	if (process.env.MONOCHANGE_LIGHTHOUSE_BIN) return process.env.MONOCHANGE_LIGHTHOUSE_BIN;
 	const local = join(repoRoot, "node_modules/.bin/lighthouse");
 	return existsSync(local) ? local : "lighthouse";
-}
-
-function existsSync(path) {
-	try {
-		statSync(path);
-		return true;
-	} catch {
-		return false;
-	}
 }
 
 function runLighthouse(baseUrl, route, preset) {
@@ -315,6 +350,7 @@ async function run(options) {
 		};
 	} = { preset, routes: {}, consoleErrors: {}, assets: { files, totals } };
 	for (const [route] of routes) {
+		// eslint-disable-next-line eslint/no-await-in-loop -- measurement is sequential by contract: each route is warmed and measured alone so no Lighthouse run shares the server with another.
 		await warmRoute(baseUrl, route);
 		const lhr = runLighthouse(baseUrl, route, preset);
 		const metrics = collectRouteMetrics(lhr);
@@ -395,6 +431,14 @@ async function main() {
 	await run(options);
 }
 
-main().catch((error) => {
-	die(error instanceof Error ? (error.stack ?? error.message) : String(error));
-});
+// Run the CLI only when this file is the entry module, so tests can import
+// the pure asset-accounting helpers. The entry path is canonicalized because
+// the ESM loader resolves import.meta.url through real paths (macOS /var →
+// /private/var), while argv[1] keeps the invocation path.
+const entryPath = process.argv[1] ? pathToFileURL(realpathSync(process.argv[1])).href : undefined;
+
+if (entryPath !== undefined && import.meta.url === entryPath) {
+	main().catch((error) => {
+		die(error instanceof Error ? (error.stack ?? error.message) : String(error));
+	});
+}

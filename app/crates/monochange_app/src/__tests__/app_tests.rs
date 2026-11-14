@@ -22,7 +22,6 @@ use httpmock::Method::GET;
 use httpmock::Method::POST;
 use httpmock::MockServer;
 use leptos::prelude::*;
-use leptos_axum::LeptosRoutes;
 use monochange_app_api::AppSecrets;
 use monochange_app_api::AppState;
 use monochange_app_api::oauth;
@@ -139,9 +138,11 @@ async fn repository_lifecycle_updates_the_dashboard_and_keeps_connection_availab
 		monochange_app_api::create_token(&state.jwt_secret, 1, 101, "alice", 0).unwrap();
 	let alice_cookie = format!("{}={alice_token}", oauth::SESSION_COOKIE_NAME);
 	let bob_token = monochange_app_api::create_token(&state.jwt_secret, 2, 202, "bob", 0).unwrap();
+
 	let bob_cookie = format!("{}={bob_token}", oauth::SESSION_COOKIE_NAME);
 
-	let app = router(state.clone()).merge(monochange_app_api::api_router((*state).clone()));
+	// The production router already mounts the machine APIs.
+	let app = router(&state);
 	let owner = serde_json::json!({"id":1001,"account":{"id":101,"login":"alice","type":"User"},"repository_selection":"all"});
 	let empty = dashboard_html(&app, &alice_cookie).await;
 	assert!(empty.contains("No repositories connected yet"));
@@ -258,6 +259,7 @@ async fn dashboard_rechecks_organization_ownership_and_reports_expired_authoriza
 	sqlx::query("INSERT INTO installations (id, user_id, github_installation_id, github_account_login, github_account_type) VALUES (1, 1, 1001, 'acme', 'Organization')").execute(&state.db).await.unwrap();
 	sqlx::query("INSERT INTO repositories (installation_id, github_repo_id, github_full_name, github_private) VALUES (1, 11, 'acme/private', 1)").execute(&state.db).await.unwrap();
 	sqlx::query("INSERT INTO organizations (id, provider, github_id, github_login, account_type) VALUES (1, 'github', 5001, 'acme', 'Organization')").execute(&state.db).await.unwrap();
+
 	sqlx::query("UPDATE installations SET organization_id = 1 WHERE id = 1")
 		.execute(&state.db)
 		.await
@@ -265,7 +267,7 @@ async fn dashboard_rechecks_organization_ownership_and_reports_expired_authoriza
 	let token = monochange_app_api::create_token(&state.jwt_secret, 1, 101, "alice", 0).unwrap();
 
 	let cookie = format!("{}={token}", oauth::SESSION_COOKIE_NAME);
-	let app = router(state);
+	let app = router(&state);
 	assert!(dashboard_html(&app, &cookie).await.contains("acme/private"));
 	membership.delete_async().await;
 	let membership = server
@@ -279,6 +281,7 @@ async fn dashboard_rechecks_organization_ownership_and_reports_expired_authoriza
 	let revoked = dashboard_html(&app, &cookie).await;
 	assert!(!revoked.contains("acme/private"));
 	assert!(revoked.contains("No repositories connected yet"));
+
 	assert!(revoked.contains("Connect repositories on GitHub"));
 	membership.delete_async().await;
 	let membership = server
@@ -308,7 +311,7 @@ async fn dashboard_rechecks_organization_ownership_and_reports_expired_authoriza
 	assert!(!expired.contains("test-only-sensitive-provider-response"));
 }
 
-fn router(state: Arc<AppState>) -> Router {
+fn router(state: &Arc<AppState>) -> Router {
 	let options = LeptosOptions::builder()
 		.output_name("monochange_app")
 		.site_root(
@@ -318,34 +321,17 @@ fn router(state: Arc<AppState>) -> Router {
 				.into_owned(),
 		)
 		.build();
-	let routes = crate::tests::routes();
-	let request_state = state.clone();
-	Router::<LeptosOptions>::new()
-		.leptos_routes_with_context(
-			&options,
-			routes,
-			move || {
-				provide_context(request_state.clone());
-			},
-			{
-				let options = options.clone();
-				move || crate::app::shell(options.clone())
-			},
-		)
-		.fallback(leptos_axum::file_and_error_handler(
-			move |options: LeptosOptions| {
-				provide_context(state.clone());
-				provide_context(options.clone());
-				crate::app::shell(options)
-			},
-		))
-		.with_state(options)
-		.layer(axum::middleware::from_fn(
-			crate::public_routes::legacy_projects,
-		))
+	// The exact production router, including the legacy redirect and
+	// rate-limit middleware; defaults are generous enough for tests.
+	let rate_limit = crate::rate_limit::RateLimit::new(
+		crate::rate_limit::RateLimitConfig::default(),
+		state.jwt_secret.clone(),
+		server_fn::axum::server_fn_paths().map(|(path, _)| path),
+	);
+	crate::router::build_router(state, options, rate_limit)
 }
 
-fn oauth_limited_router(state: Arc<AppState>) -> Router {
+fn oauth_limited_router(state: &Arc<AppState>) -> Router {
 	use crate::rate_limit::RateLimit;
 	use crate::rate_limit::RateLimitConfig;
 	use crate::rate_limit::RateLimitTier;
@@ -377,7 +363,7 @@ fn oauth_limited_router(state: Arc<AppState>) -> Router {
 #[tokio::test]
 async fn fallback_login_aliases_spend_the_bucket_before_generating_state(#[case] path: &str) {
 	let server = MockServer::start_async().await;
-	let app = oauth_limited_router(state(&server).await);
+	let app = oauth_limited_router(&state(&server).await);
 	let request = || {
 		// Host makes leptos_axum build an absolute RequestUrl so url::Url collapses
 		// `.` / `..` the same way rate_limit::surface classifies these aliases.
@@ -417,7 +403,7 @@ async fn fallback_callback_aliases_are_limited_before_provider_work(#[case] path
 		})
 		.await;
 	let state = state(&server).await;
-	let app = oauth_limited_router(state.clone());
+	let app = oauth_limited_router(&state);
 	let request = || {
 		let pending = oauth::login_state(&state.jwt_secret).unwrap();
 		let request = Request::builder()
@@ -432,6 +418,7 @@ async fn fallback_callback_aliases_are_limited_before_provider_work(#[case] path
 	let first = app.clone().oneshot(request()).await.unwrap();
 	assert_eq!(first.status(), StatusCode::NOT_FOUND);
 	let _ = html(first).await;
+
 	exchange.assert_calls_async(1).await;
 	let second = app.oneshot(request()).await.unwrap();
 
@@ -462,8 +449,9 @@ async fn unmatched_static_oauth_aliases_do_not_run_provider_work(#[case] path: &
 		.body(Body::empty())
 		.unwrap();
 	assert_eq!(request.uri().path(), path);
-	let response = router(state).oneshot(request).await.unwrap();
+	let response = router(&state).oneshot(request).await.unwrap();
 	assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
 	assert!(!response.headers().contains_key(SET_COOKIE));
 	let _ = html(response).await;
 	exchange.assert_calls_async(0).await;
@@ -472,7 +460,7 @@ async fn unmatched_static_oauth_aliases_do_not_run_provider_work(#[case] path: &
 #[tokio::test]
 async fn public_navigation_names_the_changelog_in_desktop_mobile_and_footer_links() {
 	let server = MockServer::start_async().await;
-	let response = router(state(&server).await)
+	let response = router(&state(&server).await)
 		.oneshot(
 			Request::builder()
 				.uri("/install")
@@ -494,7 +482,7 @@ async fn public_navigation_names_the_changelog_in_desktop_mobile_and_footer_link
 #[tokio::test]
 async fn unknown_route_renders_an_actionable_not_found_page() {
 	let server = MockServer::start_async().await;
-	let response = router(state(&server).await)
+	let response = router(&state(&server).await)
 		.oneshot(
 			Request::builder()
 				.uri("/missing-test-page")
@@ -513,7 +501,7 @@ async fn unknown_route_renders_an_actionable_not_found_page() {
 async fn login_delivers_browser_state_before_github_authorization_link() {
 	let server = MockServer::start_async().await;
 	let state = state(&server).await;
-	let response = router(state.clone())
+	let response = router(&state)
 		.oneshot(
 			Request::builder()
 				.uri("/login")
@@ -549,6 +537,7 @@ async fn login_delivers_browser_state_before_github_authorization_link() {
 	let jar = axum_extra::extract::cookie::CookieJar::new().add(cookie.into_owned());
 	let verified = oauth::verify_login_state(&state.jwt_secret, &jar, &nonce).unwrap();
 	assert_eq!(verified.intent, oauth::OAuthIntent::Login);
+
 	assert!(verified.code_verifier.is_some());
 	assert!(
 		url.query_pairs()
@@ -576,7 +565,7 @@ async fn portal_sign_in_returns_to_the_portal_it_started_from() {
 		})
 		.await;
 	let state = state(&server).await;
-	let app = router(state.clone());
+	let app = router(&state);
 	let response = app
 		.clone()
 		.oneshot(
@@ -591,6 +580,7 @@ async fn portal_sign_in_returns_to_the_portal_it_started_from() {
 		Cookie::parse_encoded(response.headers()[SET_COOKIE].to_str().unwrap().to_string())
 			.unwrap()
 			.into_owned();
+
 	let body = html(response).await;
 	assert!(body.contains("Sign in to share feedback"), "{body}");
 	let nonce = body
@@ -628,7 +618,7 @@ async fn portal_sign_in_returns_to_the_portal_it_started_from() {
 #[tokio::test]
 async fn invalid_session_dashboard_offers_sign_in_again_without_protected_data() {
 	let server = MockServer::start_async().await;
-	let response = router(state(&server).await)
+	let response = router(&state(&server).await)
 		.oneshot(
 			Request::builder()
 				.uri("/dashboard")
@@ -672,8 +662,9 @@ async fn configured_dashboard_connects_to_verified_app_and_shows_suspended_repos
 	sqlx::query("INSERT INTO installations (id, user_id, github_installation_id, github_account_login, github_account_type, target_type) VALUES (1, 1, 1001, 'alice', 'User', 'suspended')").execute(&state.db).await.unwrap();
 	sqlx::query("INSERT INTO repositories (installation_id, github_repo_id, github_full_name, github_private) VALUES (1, 11, 'alice/private', 1)").execute(&state.db).await.unwrap();
 	let token = monochange_app_api::create_token(&state.jwt_secret, 1, 101, "alice", 0).unwrap();
+
 	let cookie = format!("{}={token}", oauth::SESSION_COOKIE_NAME);
-	let app = router(state.clone());
+	let app = router(&state);
 	let response = app
 		.clone()
 		.oneshot(
@@ -696,6 +687,7 @@ async fn configured_dashboard_connects_to_verified_app_and_shows_suspended_repos
 	// its GitHub settings page for approval.
 	assert!(body.contains("Checks: write (now none)"), "{body}");
 	assert!(body.contains("href=\"https://github.com/settings/installations/1001\""));
+
 	// Once for the installation link, once for the requested permissions.
 	metadata.assert_calls_async(2).await;
 	// Concurrent organization and permission resources may both see the legacy row.
@@ -739,7 +731,7 @@ async fn failed_app_metadata_dashboard_shows_retry_without_unverified_install_li
 	let state = configured_state(&server).await;
 	sqlx::query("INSERT INTO users (id, github_id, github_login, github_access_token) VALUES (1, 101, 'alice', 'test-only-token')").execute(&state.db).await.unwrap();
 	let token = monochange_app_api::create_token(&state.jwt_secret, 1, 101, "alice", 0).unwrap();
-	let response = router(state)
+	let response = router(&state)
 		.oneshot(
 			Request::builder()
 				.uri("/dashboard")
@@ -786,7 +778,7 @@ async fn callback_delivers_session_cookie_before_showing_success_and_dashboard_u
 		.await;
 	let state = state(&server).await;
 	let pending = oauth::login_state(&state.jwt_secret).unwrap();
-	let app = router(state.clone());
+	let app = router(&state);
 	let response = app
 		.clone()
 		.oneshot(
@@ -830,6 +822,7 @@ async fn callback_delivers_session_cookie_before_showing_success_and_dashboard_u
 	assert!(monochange_app_api::token_vault::TokenVault::is_sealed(
 		&stored.0
 	));
+
 	assert!(monochange_app_api::token_vault::TokenVault::is_sealed(
 		&stored.1
 	));
@@ -874,7 +867,7 @@ async fn signed_in_site_navigation_opens_projects_and_offers_sign_out() {
 	let state = state(&server).await;
 	sqlx::query("INSERT INTO users (id, github_id, github_login, github_access_token) VALUES (1, 101, 'alice', 'test-only-token')").execute(&state.db).await.unwrap();
 	let token = monochange_app_api::create_token(&state.jwt_secret, 1, 101, "alice", 0).unwrap();
-	let response = router(state)
+	let response = router(&state)
 		.oneshot(
 			Request::builder()
 				.uri("/dashboard")
@@ -929,7 +922,7 @@ async fn simultaneous_callbacks_share_one_identity_and_preserve_an_existing_work
 			.body(Body::empty())
 			.unwrap()
 	};
-	let app = router(state.clone());
+	let app = router(&state);
 
 	let (first, second) = tokio::join!(app.clone().oneshot(request()), app.oneshot(request()));
 	assert_eq!(first.unwrap().status(), StatusCode::FOUND);
@@ -949,6 +942,7 @@ async fn simultaneous_callbacks_share_one_identity_and_preserve_an_existing_work
 		state.token_vault.open(&identity.2).unwrap(),
 		"updated-test-token"
 	);
+
 	assert_eq!(
 		sqlx::query_scalar::<_, i32>(
 			"SELECT user_id FROM installations WHERE github_installation_id = 1001"
@@ -972,7 +966,7 @@ async fn callback_failure_does_not_create_a_session_and_consumes_the_pending_log
 		.await;
 	let state = state(&server).await;
 	let pending = oauth::login_state(&state.jwt_secret).unwrap();
-	let response = router(state.clone())
+	let response = router(&state)
 		.oneshot(
 			Request::builder()
 				.uri(format!(
@@ -997,6 +991,7 @@ async fn callback_failure_does_not_create_a_session_and_consumes_the_pending_log
 		.collect();
 	let body = html(response).await;
 	assert!(body.contains("Sign in failed"));
+
 	assert!(body.contains("GitHub rejected the sign-in: bad_verification_code"));
 
 	assert!(
@@ -1014,7 +1009,7 @@ async fn callback_failure_does_not_create_a_session_and_consumes_the_pending_log
 			.unwrap(),
 		0
 	);
-	let replay = router(state.clone())
+	let replay = router(&state)
 		.oneshot(
 			Request::builder()
 				.uri(format!(
@@ -1041,7 +1036,7 @@ async fn callback_without_browser_state_cannot_exchange_a_code() {
 			then.status(500);
 		})
 		.await;
-	let response = router(state(&server).await)
+	let response = router(&state(&server).await)
 		.oneshot(
 			Request::builder()
 				.uri("/auth/callback?code=must-not-be-used&state=wrong-state")
@@ -1068,7 +1063,7 @@ async fn sign_out_expires_cookie_and_returns_to_public_site() {
 	let server = MockServer::start_async().await;
 	let state = state(&server).await;
 	let token = monochange_app_api::create_token(&state.jwt_secret, 1, 101, "alice", 0).unwrap();
-	let app = router(state);
+	let app = router(&state);
 	let response = app
 		.clone()
 		.oneshot(
@@ -1135,7 +1130,7 @@ async fn browser_flow_fixture_server() {
 	sqlx::query("INSERT INTO repositories (installation_id, github_repo_id, github_full_name, github_private) VALUES (1, 11, 'alice/public', 0), (1, 12, 'alice/private', 1)").execute(&state.db).await.unwrap();
 
 	let site = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../target/site");
-	let app = router(state)
+	let app = router(&state)
 		.merge(crate::public_routes::book_redirects())
 		.route_service(
 			"/pkg/monochange_app_bg.wasm",
@@ -1156,7 +1151,7 @@ async fn login_explains_when_github_authorization_is_unavailable() {
 	let server = MockServer::start_async().await;
 	let mut state = state(&server).await;
 	Arc::get_mut(&mut state).unwrap().github_oauth_origin = "invalid-origin".to_owned();
-	let body = page_html(&router(state), "/login", "").await;
+	let body = page_html(&router(&state), "/login", "").await;
 	assert!(body.contains("GitHub sign-in is unavailable right now. Please try again later."));
 	assert!(!body.contains("Continue with GitHub"));
 }
@@ -1200,7 +1195,8 @@ async fn organisations_lead_to_projects_that_work_without_javascript() {
 	sqlx::query("INSERT INTO users (id, github_id, github_login, github_access_token) VALUES (1, 101, 'alice', 'test-only-alice-token')").execute(&state.db).await.unwrap();
 	let token = monochange_app_api::create_token(&state.jwt_secret, 1, 101, "alice", 0).unwrap();
 	let cookie = format!("{}={token}", oauth::SESSION_COOKIE_NAME);
-	let app = router(state.clone()).merge(monochange_app_api::api_router((*state).clone()));
+	// The production router already mounts the machine APIs.
+	let app = router(&state);
 
 	deliver_repository_event(
 		&app,
@@ -1541,7 +1537,7 @@ async fn feedback_journey() {
 	sqlx::query("INSERT INTO users (id, github_id, github_login, github_access_token) VALUES (5, 505, 'erin', 'unused')").execute(&state.db).await.unwrap();
 	let token = monochange_app_api::create_token(&state.jwt_secret, 1, 101, "alice", 0).unwrap();
 	let session = format!("{}={token}", oauth::SESSION_COOKIE_NAME);
-	let app = router(state.clone());
+	let app = router(&state);
 
 	// The maintainer console draws every stage.
 	let console = page_html(
@@ -1605,6 +1601,7 @@ async fn feedback_journey() {
 	let site = page_html(&app, "/p/alice/site", "").await;
 	assert!(site.contains("Ships in the next release"));
 	assert!(site.contains("In progress"));
+
 	assert!(site.contains(">Issue<") && site.contains(">Pull request<"));
 
 	// Sharing needs an account, even from a hand-made form post.
@@ -1716,11 +1713,12 @@ async fn feedback_journey() {
 async fn projects_have_their_own_shell_and_legacy_links_redirect() {
 	let server = MockServer::start_async().await;
 	let state = configured_state(&server).await;
-	let app = router(state);
+	let app = router(&state);
 	let projects = page_html(&app, "/projects", "").await;
-	assert!(projects.contains("monochange projects"));
+	assert!(projects.contains("aria-label=\"monochange home\""));
 	assert!(projects.contains("Your next project starts here"));
-	assert!(!projects.contains("aria-label=\"Main navigation\""));
+	assert!(projects.contains("aria-label=\"Main navigation\""));
+	assert!(!projects.contains("Sign out"));
 	for (old, new) in [
 		("/dashboard/alice", "/projects/alice"),
 		(
@@ -1750,12 +1748,13 @@ async fn projects_have_their_own_shell_and_legacy_links_redirect() {
 async fn consent_requires_a_valid_request_and_preserves_login_return_query() {
 	let server = MockServer::start_async().await;
 	let state = configured_state(&server).await;
-	let app = router(state.clone());
+	let app = router(&state);
 	let consent = page_html(&app, "/connect?client=native&redirect_uri=dev.monochange.app%3A%2Fauth%2Fnative%2Freturn&code_challenge=challenge&code_challenge_method=S256&state=state", "").await;
 	assert!(consent.contains("Sign in to review this connection request"));
 	assert!(consent.contains("next=%2Fconnect%3Fclient%3Dnative"));
 	let invalid = page_html(&app, "/connect?code_challenge_method=plain", "").await;
 	assert!(invalid.contains("This connection request is invalid"));
+
 	let account = page_html(&app, "/account", "").await;
 	assert!(account.contains("Account and devices"));
 	assert!(account.contains("Your devices couldn"));
@@ -1777,9 +1776,11 @@ impl monochange_shared::Transport for MountedTransport {
 			.uri(url.path())
 			.header("Content-Type", content_type)
 			.header(ACCEPT, "application/json");
+
 		if let Some(token) = bearer {
 			request = request.header("Authorization", format!("Bearer {token}"));
 		}
+
 		let response = self
 			.0
 			.clone()
@@ -1803,7 +1804,7 @@ async fn restored_shared_client_reads_the_mounted_session_and_revocation_returns
 		.unwrap();
 	let client = monochange_shared::ApiClient::with_bearer(
 		MountedTransport(
-			router(state.clone())
+			router(&state)
 				.layer(axum::middleware::from_fn(
 					crate::server_fns::session::bearer_gate,
 				))
@@ -1820,6 +1821,7 @@ async fn restored_shared_client_reads_the_mounted_session_and_revocation_returns
 		"alice"
 	);
 	assert_eq!(client.organizations().await.unwrap()[0].projects.len(), 2);
+
 	assert_eq!(
 		client
 			.project("alice", "pocketbook")
@@ -1850,7 +1852,8 @@ async fn signed_in_consent_and_devices_share_the_projects_account() {
 		.unwrap();
 	let token = monochange_app_api::create_token(&state.jwt_secret, 1, 101, "alice", 0).unwrap();
 	let cookie = format!("{}={token}", oauth::SESSION_COOKIE_NAME);
-	let app = router(state.clone());
+	let app = router(&state);
+
 	let api =
 		monochange_shared::ApiClient::new(MountedTransport(app.clone()), "https://site.example");
 	let url = api.connect_url(
@@ -1878,6 +1881,7 @@ async fn signed_in_consent_and_devices_share_the_projects_account() {
 		.next()
 		.unwrap();
 	let mut body = url::form_urlencoded::Serializer::new(String::new());
+
 	for input in approval_form.split("<input").skip(1) {
 		let name = input
 			.split("name=\"")
@@ -1895,6 +1899,7 @@ async fn signed_in_consent_and_devices_share_the_projects_account() {
 			.unwrap();
 		body.append_pair(name, value);
 	}
+
 	let approval = monochange_app_api::api_router((*state).clone())
 		.oneshot(
 			Request::builder()
@@ -1953,9 +1958,22 @@ async fn an_unavailable_database_shows_a_projects_error_instead_of_an_empty_work
 	let token = monochange_app_api::create_token(&state.jwt_secret, 1, 101, "alice", 0).unwrap();
 	let cookie = format!("{}={token}", oauth::SESSION_COOKIE_NAME);
 	state.db.close().await;
-	let content = page_html(&router(state), "/projects", &cookie).await;
-	assert!(content.contains("Projects couldn"));
-	assert!(!content.contains("Your next project starts here"));
+	// The production stack's principal middleware answers a session-resolution
+	// outage with 503 before the page renders — never an empty workspace.
+	let response = router(&state)
+		.oneshot(
+			Request::builder()
+				.uri("/projects")
+				.header(COOKIE, &cookie)
+				.body(Body::empty())
+				.unwrap(),
+		)
+		.await
+		.unwrap();
+	assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+	let body = html(response).await;
+
+	assert!(!body.contains("Your next project starts here"), "{body}");
 }
 
 /// A loopback-only authority for native device checks. The injected browser
@@ -1993,14 +2011,17 @@ async fn native_projects_fixture_server() {
 		"http://127.0.0.1:3010/auth/callback".into();
 	// Keep the in-memory database alive across pauses during device checks.
 	let _database_lifetime = state.db.acquire().await.unwrap();
+
 	if let Ok(redirect) = std::env::var("MONOCHANGE_FIXTURE_EXTENSION_REDIRECT") {
 		Arc::get_mut(&mut state).unwrap().extension_redirect_uris = vec![redirect];
 	}
+
 	seeded_feedback(&state).await;
+
 	let token = monochange_app_api::create_token(&state.jwt_secret, 1, 101, "alice", 0).unwrap();
 	let cookie = format!("{}={token}", oauth::SESSION_COOKIE_NAME);
-	let app = router(state.clone())
-		.merge(monochange_app_api::api_router((*state).clone()))
+	// The production router already mounts the machine APIs.
+	let app = router(&state)
 		.layer(axum::middleware::from_fn(
 			crate::server_fns::session::bearer_gate,
 		))
@@ -2020,34 +2041,33 @@ async fn native_projects_fixture_server() {
 }
 
 #[tokio::test]
-async fn shell_maps_the_wasm_bindgen_externref_helper_before_hydration() {
+async fn shell_hydrates_without_the_externref_import_map() {
+	// Upstream leptoskit glue (fa3d29f8) inlines externref table handling, so
+	// neither browser entry imports `__wbindgen_externref_xform__` anymore and
+	// the helper shim is retired. The regression contract keeps guarding the
+	// replacement: both entries must hydrate through their own frontend
+	// scripts without any import map in the document.
 	let options = LeptosOptions::builder()
 		.output_name("monochange_app")
 		.site_root("target/site")
 		.build();
 	let html = crate::tests::render(move || crate::app::shell(options.clone())).await;
-	let import_map = html
-		.find("type=\"importmap\"")
-		.expect("document shell should declare an import map");
-	let module_script = html
-		.find("type=\"module\"")
-		.expect("hydration should load a module script");
 	assert!(
-		import_map < module_script,
-		"the import map has to be parsed before the hydration module imports a bare specifier"
+		!html.contains("type=\"importmap\""),
+		"the inert externref import map must stay retired: {html}"
 	);
-	assert!(html.contains(
-		r#"{"imports":{"__wbindgen_externref_xform__":"/wbindgen-externref-xform.js"}}"#
-	));
-
-	let shim = std::fs::read_to_string(
-		std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-			.join("../../public/wbindgen-externref-xform.js"),
-	)
-	.expect("externref helper");
-	assert!(shim.contains("export function __wbindgen_externref_statics_end"));
 	assert!(
-		shim.contains("return 1028;"),
-		"the helper must match the reserved-slot boundary hardcoded in the generated glue"
+		html.contains("<script data-deferred-hydration=\"true\">"),
+		"{html}"
 	);
+	assert!(html.contains("data-deferred-hydration=\"true\""), "{html}");
+	assert!(
+		html.contains("\"pkg/site\", \"monochange_app\""),
+		"the public shell must initialize its website entry: {html}"
+	);
+	assert!(
+		!html.contains("rel=\"modulepreload\""),
+		"public hydration must wait for interaction: {html}"
+	);
+	assert!(!html.contains("wbindgen-externref-xform"));
 }

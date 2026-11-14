@@ -6,54 +6,81 @@ FROM rust:1-slim-bookworm AS builder
 # The app workspace builds on nightly (edition 2024).
 ARG NIGHTLY_TOOLCHAIN=nightly-2026-05-08
 
-# Install build dependencies
+# Install build dependencies. binaryen supplies `wasm-opt` for the leptoskit
+# release builds (upstream: "sudo apt install binaryen"); jq reads the
+# leptoskit CLI pin from [workspace.metadata.bin] so the image never copies
+# the revision into this file.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        build-essential \
+        binaryen \
         brotli \
+        jq \
         perl \
         pkg-config \
+        fonttools \
         libssl-dev \
         curl \
         ca-certificates \
         xz-utils \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && wasm-opt --version
 
 RUN rustup toolchain install ${NIGHTLY_TOOLCHAIN} \
     && rustup default ${NIGHTLY_TOOLCHAIN} \
     && rustup target add wasm32-unknown-unknown
 
-# Use the official pinned binary so a small deployment host need not compile
-# cargo-leptos itself. Verify the release archive before executing its contents.
-RUN arch="$(dpkg --print-architecture)" \
-    && case "$arch" in \
-        amd64) leptos_arch=x86_64; leptos_sha=895cc7ff10702b4f64b3ea5f9f0872e169c870692429650e13a3ae5550b0cdeb ;; \
-        arm64) leptos_arch=aarch64; leptos_sha=d45cd862c45628c9bbca43499eb7755e10f166a752a1dbc2ef2b34b3fd6fe622 ;; \
-        *) echo "unsupported architecture: $arch" >&2; exit 1 ;; \
-    esac \
-    && leptos_target="${leptos_arch}-unknown-linux-musl" \
-    && curl -fsSL "https://github.com/leptos-rs/cargo-leptos/releases/download/v0.3.6/cargo-leptos-${leptos_target}.tar.gz" -o /tmp/cargo-leptos.tar.gz \
-    && echo "${leptos_sha}  /tmp/cargo-leptos.tar.gz" | sha256sum -c - \
-    && tar -xzf /tmp/cargo-leptos.tar.gz -C /usr/local/bin --strip-components=1 "cargo-leptos-${leptos_target}/cargo-leptos" \
-    && rm /tmp/cargo-leptos.tar.gz \
-    && cargo leptos --version
+WORKDIR /app
 
-# Install Tailwind CSS v4 standalone binary (Linux glibc)
+# The root manifests come first so the CLI pin read has its source of truth:
+# root `cargo metadata` parses every workspace member, so the crates and the
+# docs manifest must exist before it runs.
+COPY Cargo.toml Cargo.lock ./
+COPY crates/ crates/
+COPY docs/Cargo.toml docs/Cargo.toml
+COPY docs/src/ docs/src/
+
+# Build the provenance-verified leptoskit CLI from the SAME Git revision the
+# workspaces pin in [workspace.metadata.bin] — never the stale crates.io
+# release. `leptoskit generate deploy` cannot export this workspace (the
+# root crates monochange_core, monochange_github, and monochange_hosting are
+# path dependencies outside the app/ workspace, which the upstream exporter
+# refuses to move or vendor), so this hand-maintained recipe follows the
+# upstream deployment and runtime conventions with the real schemas instead:
+# it is a reviewed deployment, not generated output.
+#
+# After installing, cargo's own install manifest must name the pinned Git
+# revision and own the `leptoskit` binary before anything built with it is
+# trusted — the same proof scripts/leptoskit-cli.sh enforces on the host.
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/tmp/leptoskit-install \
+    set -eu \
+    && pin="$(cargo metadata --no-deps --format-version 1 | jq -c '.metadata.bin.leptoskit_cli')" \
+    && cli_git="$(printf '%s' "${pin}" | jq -r '.git')" \
+    && cli_rev="$(printf '%s' "${pin}" | jq -r '.rev')" \
+    && cli_version="$(printf '%s' "${pin}" | jq -r '.version')" \
+    && cli_bin="$(printf '%s' "${pin}" | jq -r '.bins[0]')" \
+    && printf 'leptoskit CLI pin: leptoskit_cli %s from %s at %s\n' "${cli_version}" "${cli_git}" "${cli_rev}" \
+    && cargo install --root /usr/local --git "${cli_git}" --rev "${cli_rev}" --version "${cli_version}" --bin "${cli_bin}" --locked leptoskit_cli \
+    && jq -e --arg package "leptoskit_cli" --arg version "${cli_version}" --arg rev "${cli_rev}" --arg bin "${cli_bin}" '(.installs // {}) | to_entries | any((.key | startswith($package + " " + $version + " (git+") and endswith("#" + $rev + ")")) and ((.value.bins // []) | index($bin) != null))' /usr/local/.crates2.json >/dev/null \
+    && leptoskit --version
+
+# Install Tailwind CSS v4 standalone binary (Linux glibc). The leptoskit
+# tooling plugin compiles the site CSS with it before precompression.
 RUN arch="$(dpkg --print-architecture)" \
     && case "$arch" in \
         amd64) tw_arch=x64 ;; \
         arm64) tw_arch=arm64 ;; \
         *) echo "unsupported architecture: $arch" >&2; exit 1 ;; \
     esac \
-    && curl -fsSLO "https://github.com/tailwindlabs/tailwindcss/releases/download/v4.0.8/tailwindcss-linux-${tw_arch}" \
+    && curl -fsSLO "https://github.com/tailwindlabs/tailwindcss/releases/download/v4.2.1/tailwindcss-linux-${tw_arch}" \
     && chmod +x "tailwindcss-linux-${tw_arch}" \
     && mv "tailwindcss-linux-${tw_arch}" /usr/local/bin/tailwindcss \
     && tailwindcss --help
 
-# Pinned Node.js LTS (same major as CI's actions/setup-node) so the release
-# minification script runs here exactly as it does in CI. The script itself is
-# dependency-free TypeScript (Node type stripping, no node_modules); verify the
-# pinned digest from the official SHASUMS256.txt before extracting.
+# Pinned Node.js LTS (same major as CI's actions/setup-node) so the leptoskit
+# tooling plugin runs here exactly as it does in CI. The plugin is
+# dependency-free TypeScript (Node type stripping, no node_modules); verify
+# the pinned digest from the official SHASUMS256.txt before extracting.
 RUN arch="$(dpkg --print-architecture)" \
     && case "$arch" in \
         amd64) node_arch=x64; node_sha=48cc0e21e048790e54c0cf5749c2725005313d652651c40b7a21feb9697aaf75 ;; \
@@ -84,43 +111,67 @@ RUN arch="$(dpkg --print-architecture)" \
     && rm -rf /tmp/esbuild.tgz /tmp/package \
     && esbuild --version
 
-WORKDIR /app
-
-# Copy workspace files. `docs/Cargo.toml` is required for `cargo metadata` to
-# parse the root workspace during split builds, even though the image never
-# compiles the docs crate.
-COPY Cargo.toml Cargo.lock ./
-COPY crates/ crates/
+# Copy the remaining workspace files. The leptoskit tooling plugin (on PATH
+# as `leptoskit-plugin-monochange-web-assets`) prepares the site CSS,
+# split-loader minification, and WASM optimization inside each build's own
+# scratch output; publish-web-site.ts stages, validates, and promotes the
+# assembled site after both builds.
 COPY app/ app/
+COPY scripts/leptoskit-plugin/ scripts/leptoskit-plugin/
 COPY scripts/minify-split-loader.ts scripts/minify-split-loader.ts
-COPY docs/Cargo.toml docs/Cargo.toml
-COPY docs/src/ docs/src/
+RUN chmod +x scripts/leptoskit-plugin/leptoskit-plugin-monochange-web-assets \
+    && ln -s /app/scripts/leptoskit-plugin/leptoskit-plugin-monochange-web-assets /usr/local/bin/leptoskit-plugin-monochange-web-assets \
+    && printf '%s' '{"protocol":1,"plugin":"monochange-web-assets","hook":"describe","context":{}}' \
+        | leptoskit-plugin-monochange-web-assets \
+        | grep '"ok":true'
 
-# Build the Leptos SSR application.
+# Build both web frontends with the provenance-verified leptoskit CLI, then
+# publish one complete deployment tree.
 #
-# The cargo registry and target directory live in BuildKit cache mounts so
-# dependency artifacts survive between image builds; anything the final image
-# needs is copied out of the mounts because their contents are not part of the
-# layer. The server binary is stripped here rather than through a cargo
-# profile, which would also strip proc-macro dylibs and corrupt them on macOS
-# hosts.
-# Precompress the pkg assets: the static file handler serves these `.gz` and
-# `.br` siblings to clients that accept them, so the 1-vCPU droplet never
-# compresses the WASM chunks at request time.
-WORKDIR /app/app
-# cargo-leptos `js-minify` covers the main glue only; the wasm-split loader
-# keeps its route comments and full identifiers. Minify it before the site is
-# copied out so the shipped assets and their precompressed siblings are the
-# same bytes CI's size gate measures.
+# Each build compiles into a fresh scratch directory under
+# .monochange/local/web-build (inside this layer, outside the served tree) so
+# the SDK's bundle report and budget check measure the real scratch bytes and
+# a rejected build can never have touched the deployment. The publisher runs
+# only after BOTH builds succeeded: it stages pkg/site + pkg/projects plus
+# the public assets and fonts from the scratch outputs alone, precompresses
+# the staged tree, validates it, and publishes it inside this invocation's
+# run root. The publication lease stays outside the compiler cache mount,
+# so a cancelled image build cannot poison a later build's destination.
+# The cargo registry and target
+# directory live in BuildKit cache mounts so dependency artifacts survive
+# between image builds; anything the final image needs is copied out of the
+# mounts because their contents are not part of the layer. The server binary
+# is stripped here rather than through a cargo profile, which would also
+# strip proc-macro dylibs and corrupt them on macOS hosts.
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/app/app/target \
-    cargo leptos build --release --split \
-    && node /app/scripts/minify-split-loader.ts --site-root app/target/site \
-    && strip target/release/monochange_app \
-    && cp -a target/site /site \
-    && cp target/release/monochange_app /monochange_app \
-    && find /site/pkg -type f \( -name '*.wasm' -o -name '*.js' -o -name '*.css' \) \
-        -exec sh -c 'gzip -9 -k "$1" && brotli -q 11 -c "$1" > "$1.br"' _ {} \;
+    set -eu \
+    && leptoskit doctor \
+    && run_root=".monochange/local/web-build/docker-$(date +%Y%m%d-%H%M%S)" \
+    && mkdir -p "$run_root/web" "$run_root/projects-web" \
+    && (cd app && MONOCHANGE_ESBUILD_BIN=/usr/local/bin/esbuild leptoskit build --release --platform web --out "/app/$run_root/web") \
+    && (cd app/projects && MONOCHANGE_ESBUILD_BIN=/usr/local/bin/esbuild leptoskit build --release --platform web --out "/app/$run_root/projects-web") \
+    && node scripts/leptoskit-plugin/publish-web-site.ts --web-root "$run_root" --site-root "$run_root/site" \
+    && strip app/target/release/monochange_app \
+    && cp -a "$run_root/site" /site \
+    && cp app/target/release/monochange_app /monochange_app \
+    && test -f /site/pkg/site/monochange_app.js \
+    && test -f /site/pkg/site/monochange_app_bg.wasm \
+    && test -f /site/pkg/site/monochange_app.css \
+    && test -f /site/pkg/site/__wasm_split_manifest.json \
+    && test -f /site/pkg/projects/monochange_projects_web.js \
+    && test -f /site/pkg/projects/monochange_projects_web_bg.wasm \
+    && test -f /site/pkg/projects/__wasm_split_manifest.json \
+    && test ! -e /site/pkg/projects/monochange_app.css \
+    && test -f /site/fonts/bricolage-800.woff2 \
+    && test -f /site/fonts/hanken-400.woff2 \
+    && test -f /site/fonts/hanken-700.woff2 \
+    && test -f /site/favicon.svg \
+    && test -f /site/branding/social.png \
+    && test -f /site/pkg/site/monochange_app.js.br \
+    && test -f /site/pkg/site/monochange_app.js.gz \
+    && test -f /site/pkg/projects/monochange_projects_web_bg.wasm.br \
+    && test -f /site/pkg/projects/monochange_projects_web_bg.wasm.gz
 
 # ── Final stage ────────────────────────────────────────────────────────────
 FROM debian:bookworm-slim
