@@ -62,7 +62,9 @@ jobs:
           tool: cargo-deny@0.19.0
 
       - name: check cargo-deny
-        run: cargo deny check
+        # `.cargo/config.toml` aliases `cargo deny` to `cargo bin`, which is a
+        # local devenv helper. Call the installed binary directly.
+        run: cargo-deny check
 
   test:
     timeout-minutes: 45
