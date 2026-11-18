@@ -1434,6 +1434,111 @@ Adopting monochange in a repository whose app already has a production build num
 
 Re-running `prepare-release` for a version that already has a release record reuses the frozen values instead of stamping counters again, so a repeated run never double-increments.
 
+## CI gatekeeper
+
+The `[ci]` table configures `monochange ci decide`, the conditional CI gatekeeper. Job ids are the GitHub job ids (kebab-case strings), and `[ci.jobs.<id>]` declares what each job builds:
+
+```toml
+[ci]
+provider = "graph" # graph | opencode-go | openrouter | cloudflare | jev | openai-compatible
+model = "deepseek-v4.1" # optional model for AI providers
+ai_can_skip = false # a provider may only turn n into y, never skip a graph `y`
+max_skips_on_main = 5
+unconditional_events = ["schedule", "workflow_dispatch"]
+unconditional_branches = ["release/*", "monochange/release/*", "refs/tags/v*"]
+unconditional_paths = ["Cargo.lock", "rust-toolchain.toml", ".github/workflows/**"]
+ignore_paths = ["**/*.md", "docs/**"] # changes that never trigger a job on their own
+
+[ci.jobs.test-windows]
+packages = [
+	"leptoskit_windows",
+	"gallery",
+	"leptoskit_plugin_*",
+] # roots the job builds; globs allowed
+paths = ["crates/leptoskit_windows/android/**"] # non-package inputs
+always = false
+```
+
+Every key except the job tables is optional; the values above are the defaults.
+
+### Feature-aware job roots
+
+A bare string root conservatively follows every dependency edge, optional ones included. That overshoots for facade crates: when one crate optionally depends on half the workspace, a job that only runs `cargo check -p facade --no-default-features` would trigger on almost any change. A table entry pins the exact feature selection the job builds, and only the dependencies that selection actually activates run the job:
+
+```toml
+[ci.jobs.nightly]
+packages = [
+	"leptoskit_rpc", # string = all features (conservative, unchanged)
+	{ name = "leptoskit", features = ["nightly", "leptos"] }, # default features + these
+	{ name = "leptoskit_use", default_features = false }, # no default features
+	{ name = "leptoskit", all_features = true }, # same as the string form
+]
+```
+
+Keys: `name` (required; globs allowed but must keep the all-features form), `features` (default `[]`), `default_features` (default `true`), and `all_features` (default `false`; setting it together with `features` or `default_features` is a configuration error). List the crate once per way the job builds it — the union of every selection decides.
+
+Resolution mirrors cargo: optional dependencies count only when the selection activates them, `dep:name`, `name/feat`, and `name?/feat` feature syntax is expanded transitively, features reaching a crate through different paths are unioned, the root's normal, build, and dev edges all count (the job compiles the root's tests) while transitive dependencies contribute only normal and build edges, and target-specific edges are kept. A feature name the package does not define falls back to all-features for that root with a warning in the decision reason — unknown must mean run, never skip.
+
+### Decision semantics
+
+`monochange ci decide` evaluates each job with this precedence:
+
+1. **Unconditional context** — event, branch or ref glob, label, `[ci:full]` commit message, an unconditional path, `--unconditional`, or the `max_skips_on_main` counter tripping on `main` runs every job.
+2. **`always = true`** runs the job.
+3. **Learned rules** (from `monochange ci verify` false negatives) run the job.
+4. **Roots** — a job runs when a changed file is owned by a root package, or by a transitive dependency of a root (normal, dev, and build edges). `packages` lists only roots; globs expand against every workspace package, so a new `leptoskit_plugin_foo` crate is covered with zero config edits. Cargo edges come from `cargo metadata --format-version 1 --no-deps --offline`, which resolves offline (the gate never downloads the crates.io index) and includes unpublished members, crates nested at any depth, `foo.workspace = true` inheritance, renamed dependencies, and `[target.'cfg(..)'.dependencies]`. A root `Cargo.toml` that Cargo cannot parse is an error, never a silent fallback to manifest discovery. Feature-aware roots (see above) resolve the exact closure cargo builds for their selection instead of following every edge.
+5. **Paths** — any changed file matching the job's `paths` runs it. A job-path claim wins over `ignore_paths`, so a job that explicitly claims `docs/**` still triggers on docs changes.
+6. **Unowned changes** — a changed file owned by no package, claimed by no job's `paths`, and outside `ignore_paths` runs **every** job, with a reason naming the file. Unknown must mean run, never skip.
+7. Otherwise the job is skipped with a reason naming what changed and what the job covers.
+
+A `--job` id that is not configured in `[ci.jobs]` runs with the reason `no ci rule for <id>` plus a warning. With no `--job`, `decide` evaluates every configured job.
+
+### Providers
+
+`provider = "graph"` (the default) is deterministic. The AI providers (`opencode-go`, `openrouter`, `cloudflare`, `jev`, `openai-compatible`) receive **one** request per `decide` run covering every job, with each job's graph verdict and reason, the changed files, and recent history; they answer with `{"<job>": {"run": bool, "reason": string}}`. With `ai_can_skip = false` (the default) a provider `false` on a graph `true` is ignored and recorded in the reason; rules 1–3 are never overridden; a provider failure falls back to the graph verdict.
+
+### GitHub Actions outputs
+
+`--format github-outputs` writes exactly three keys to `$GITHUB_OUTPUT` (or stdout when the variable is unset):
+
+```text
+decisions={"test-windows":true,"docs":false}
+affected-packages=["gallery","ws_support"]
+run-all=false
+```
+
+Gate downstream jobs with `if: fromJSON(needs.<gate>.outputs.decisions)['test-windows']`. A failure to write `$GITHUB_OUTPUT` fails the command instead of silently dropping the outputs.
+
+### Failing safe with `--on-error run-all`
+
+GitHub **skips** every job that needs a failed gate, and a skipped required check counts as passing — so a broken gate would let any PR merge without tests. The recommended gate runs `decide` with `--on-error run-all` so failure means "run everything", visibly:
+
+```yaml
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Decide which jobs run
+        run: monochange ci decide --format github-outputs --on-error run-all
+  test-windows:
+    needs: gate
+    if: fromJSON(needs.gate.outputs.decisions)['test-windows']
+```
+
+`--on-error` controls what happens after argument parsing fails:
+
+- `fail` (the default) exits non-zero with the error.
+- `run-all` prints the error to stderr as a GitHub annotation (`::error title=monochange ci decide::…`), writes `decisions` with every configured job (plus every `--job` id) set to `true`, `affected-packages=[]`, and `run-all=true` to `$GITHUB_OUTPUT`, and exits 0.
+
+If even the fallback write fails, the command exits non-zero.
+
+### `monochange ci check`
+
+`monochange ci check [--workflow <path>]...` validates the configuration and exits non-zero listing every problem: an unknown root package, a package glob matching zero workspace packages, a path glob matching zero tracked files, a job with none of `packages`/`paths`/`always`, and a job id that is not kebab-case. With `--workflow`, the workflow text is scanned for `fromJSON(needs.<id>.outputs.decisions)['<job>']` and `...decisions).<job>` references, reporting ids that are used but not configured and configured ids that are never referenced.
+
 ## Package references
 
 <!-- {=configurationPackageReferenceRules} -->

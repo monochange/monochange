@@ -1,0 +1,5 @@
+---
+source: crates/monochange_app/src/pages/__tests__/account_tests.rs
+expression: output
+---
+<!><p role="alert">Sign out failed. Please try again.</p>

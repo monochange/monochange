@@ -13,6 +13,7 @@ use crate::submission::FeedbackKind;
 use crate::submission::FeedbackSubmission;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(tag = "outcome", rename_all = "snake_case")]
 pub enum ReproductionOutcome {
 	NotApplicable,
@@ -24,12 +25,14 @@ pub enum ReproductionOutcome {
 /// Maintainer-only technical detail. Findings carry a sensitivity tag so the
 /// disclosure rules know what would leak if published.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct TriageFinding {
 	pub detail: String,
 	pub sensitivity: Sensitivity,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct TriageReport {
 	pub classification: FeedbackKind,
 	pub reproduction: ReproductionOutcome,
@@ -53,6 +56,7 @@ pub trait TriageEngine {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(tag = "verdict", rename_all = "snake_case")]
 pub enum ScreeningVerdict {
 	Clean,

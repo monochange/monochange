@@ -16,7 +16,7 @@ fn test_create_and_verify_token() {
 	let github_id = 123_456;
 	let login = "testuser";
 
-	let token = create_token(secret, user_id, github_id, login)
+	let token = create_token(secret, user_id, github_id, login, 0)
 		.unwrap_or_else(|error| panic!("Token creation should succeed: {error}"));
 	assert!(!token.is_empty());
 
@@ -36,7 +36,7 @@ fn test_verify_invalid_token() {
 #[rstest]
 fn test_verify_wrong_secret() {
 	let secret = "correct-secret";
-	let token = create_token(secret, 1, 1, "user").unwrap();
+	let token = create_token(secret, 1, 1, "user", 0).unwrap();
 	let result = verify_token("wrong-secret", &token);
 	assert!(result.is_err());
 }
@@ -114,15 +114,15 @@ mod app_state_tests {
 #[rstest]
 fn test_token_is_unique() {
 	let secret = "secret";
-	let token1 = create_token(secret, 1, 100, "a").unwrap();
-	let token2 = create_token(secret, 2, 200, "b").unwrap();
+	let token1 = create_token(secret, 1, 100, "a", 0).unwrap();
+	let token2 = create_token(secret, 2, 200, "b", 0).unwrap();
 	assert_ne!(token1, token2);
 }
 
 #[rstest]
 fn test_token_contains_expected_claims() {
 	let secret = "my-secret";
-	let token = create_token(secret, 7, 999, "example").unwrap();
+	let token = create_token(secret, 7, 999, "example", 0).unwrap();
 	let claims = verify_token(secret, &token).unwrap();
 	assert_eq!(claims.sub, 7);
 	assert_eq!(claims.github_id, 999);
@@ -132,7 +132,7 @@ fn test_token_contains_expected_claims() {
 #[rstest]
 fn test_token_expiry_is_future() {
 	let secret = "secret";
-	let token = create_token(secret, 1, 1, "user").unwrap();
+	let token = create_token(secret, 1, 1, "user", 0).unwrap();
 	let claims = verify_token(secret, &token).unwrap();
 	let now = chrono::Utc::now().timestamp() as usize;
 	assert!(claims.exp > now, "Token expiry should be in the future");
@@ -142,7 +142,7 @@ fn test_token_expiry_is_future() {
 fn test_token_with_special_characters_in_login() {
 	let secret = "secret";
 	let login = "user-name_test.123";
-	let token = create_token(secret, 1, 1, login).unwrap();
+	let token = create_token(secret, 1, 1, login, 0).unwrap();
 	let claims = verify_token(secret, &token).unwrap();
 	assert_eq!(claims.github_login, login);
 }
@@ -156,6 +156,7 @@ fn test_claims_serialization_roundtrip() {
 		github_login: "serializer".to_string(),
 		exp: 9_999_999_999,
 		iat: 1_111_111_111,
+		epoch: 3,
 	};
 
 	let json = serde_json::to_string(&claims).unwrap_or_else(|error| panic!("Serialize: {error}"));
@@ -165,6 +166,14 @@ fn test_claims_serialization_roundtrip() {
 	assert_eq!(parsed.sub, claims.sub);
 	assert_eq!(parsed.github_id, claims.github_id);
 	assert_eq!(parsed.github_login, claims.github_login);
+	assert_eq!(parsed.epoch, 3);
+}
+
+#[rstest]
+fn legacy_claims_without_an_epoch_deserialize_as_zero() {
+	let json = r#"{"sub":1,"github_id":2,"github_login":"test","exp":100,"iat":50}"#;
+	let claims: Claims = serde_json::from_str(json).unwrap();
+	assert_eq!(claims.epoch, 0);
 }
 
 #[rstest]
@@ -175,11 +184,13 @@ fn test_claims_json_has_expected_fields() {
 		github_login: "test".into(),
 		exp: 100,
 		iat: 50,
+		epoch: 0,
 	};
 	let json = serde_json::to_string(&claims).unwrap();
 	assert!(json.contains("\"sub\":1"));
 	assert!(json.contains("\"github_id\":2"));
 	assert!(json.contains("\"github_login\":\"test\""));
+	assert!(json.contains("\"epoch\":0"));
 }
 
 // ── GitHub App webhook signature tests ──
@@ -537,6 +548,32 @@ mod secret_loading_tests {
 				("MONOCHANGE_TOKEN", section("release")),
 				("OPENROUTER_API_KEY", section("ai")),
 			])
+		);
+	}
+}
+
+mod redirect_allowlist_tests {
+	use crate::parse_allowlist;
+
+	#[test]
+	fn missing_empty_and_whitespace_configs_fall_back_to_the_default() {
+		assert_eq!(parse_allowlist(None, &["a"]), vec!["a"]);
+		assert_eq!(parse_allowlist(Some(String::new()), &["a"]), vec!["a"]);
+		assert_eq!(
+			parse_allowlist(Some("   \n\t ".to_owned()), &["a", "b"]),
+			vec!["a", "b"]
+		);
+	}
+
+	#[test]
+	fn configured_values_split_on_commas_and_whitespace() {
+		assert_eq!(
+			parse_allowlist(Some("a , b\nc\td".to_owned()), &["x"]),
+			vec!["a", "b", "c", "d"]
+		);
+		assert_eq!(
+			parse_allowlist(Some(", ,".to_owned()), &["only"]),
+			vec!["only"]
 		);
 	}
 }

@@ -1,7 +1,8 @@
 //! `monochange_app` server binary.
 //!
-//! Starts an axum HTTP server with Leptos SSR integration,
-//! `SQLite` connection pool, and JWT session management.
+//! Starts an axum HTTP server with Leptos SSR integration for both browser
+//! frontends (the website entry and the projects entry), a `SQLite`
+//! connection pool, and JWT session management.
 //!
 //! ## Secret management
 //!
@@ -13,7 +14,8 @@
 //!
 //! ```bash
 //! # Development (reads app/.env, then the environment, then local defaults)
-//! MONOSECRET_PROFILE=development cargo leptos watch
+//! # Prefer: MONOSECRET_PROFILE=development leptoskit serve  (from app/)
+//! MONOSECRET_PROFILE=development leptoskit serve
 //!
 //! # Production (the container entrypoint exports OP_SERVICE_ACCOUNT_TOKEN and
 //! # the app reads the `monochange.dev` item in the `monochange` vault)
@@ -28,15 +30,8 @@
 
 use std::sync::Arc;
 
-use axum::Router;
-use axum::response::Json;
-use leptos::prelude::*;
-use leptos_axum::LeptosRoutes;
-use leptos_axum::generate_route_list;
-use monochange_app::app::App;
-use monochange_app::app::shell;
+use leptos::prelude::get_configuration;
 use monochange_app_api::AppState;
-use serde::Serialize;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 
@@ -59,13 +54,6 @@ impl std::fmt::Display for MonochangeError {
 }
 
 impl std::error::Error for MonochangeError {}
-
-#[derive(Serialize)]
-struct HealthResponse {
-	status: &'static str,
-	http: &'static str,
-	version: &'static str,
-}
 
 // `#[tokio::main]` generates `Builder::expect("Failed building the Runtime")`
 // internally; this function never calls `Result::expect` directly.
@@ -127,65 +115,15 @@ async fn main() -> Result<(), MonochangeError> {
 	let _rate_limit_cleanup =
 		rate_limit.spawn_cleanup(monochange_app::rate_limit::CLEANUP_INTERVAL);
 
-	// Leptos configuration
+	// Leptos configuration: the site root and pkg layout the leptoskit build
+	// assembled, shared by both browser frontends.
 	let conf = get_configuration(None).map_err(|e| MonochangeError::Server(e.to_string()))?;
 	let leptos_options = conf.leptos_options.clone();
-	let routes = generate_route_list(App);
 
-	// Build the axum application
-	// The SSR routes run on the LeptosOptions state; the hosted API routes
-	// own their AppState. Build each router and merge them as Router<()>, so
-	// the machine-to-machine endpoints stay decoupled from the SSR state.
-	let ssr_router = Router::<leptos::prelude::LeptosOptions>::new()
-		.leptos_routes_with_context(
-			&leptos_options,
-			routes,
-			{
-				let leptos_options = leptos_options.clone();
-				let state = app_state.clone();
-				move || {
-					provide_context(leptos_options.clone());
-					provide_context(state.clone());
-				}
-			},
-			{
-				let leptos_options = leptos_options.clone();
-				move || shell(leptos_options.clone())
-			},
-		)
-		.fallback(leptos_axum::file_and_error_handler({
-			let state = app_state.clone();
-			move |leptos_options: leptos::prelude::LeptosOptions| {
-				provide_context(leptos_options.clone());
-				provide_context(state.clone());
-				shell(leptos_options)
-			}
-		}))
-		.with_state(leptos_options.clone());
-
-	let app = Router::<()>::new()
-		.merge(monochange_app::public_routes::book_redirects())
-		.route(
-			"/health",
-			axum::routing::get(|| {
-				async move {
-					Json(HealthResponse {
-						status: "ok",
-						version: env!("CARGO_PKG_VERSION"),
-						http: "up",
-					})
-				}
-			}),
-		)
-		.merge(monochange_app_api::api_router((*app_state).clone()))
-		.merge(ssr_router)
-		.layer(axum::middleware::from_fn(
-			monochange_app::public_routes::pkg_cache_control,
-		))
-		.layer(axum::middleware::from_fn_with_state(
-			rate_limit,
-			monochange_app::rate_limit::limit,
-		));
+	// One router composes both browser frontends behind the same backend:
+	// the website entry and the projects entry. Listings merge before
+	// registration, so the server-function `/api` routes register once.
+	let app = monochange_app::router::build_router(&app_state, leptos_options.clone(), rate_limit);
 
 	let addr = std::env::var("PORT")
 		.ok()
@@ -197,7 +135,7 @@ async fn main() -> Result<(), MonochangeError> {
 		.await
 		.map_err(|e| MonochangeError::Server(e.to_string()))?;
 	// Anonymous clients are rate limited by address, which needs the peer.
-	axum::serve(
+	leptoskit::server::axum::serve(
 		listener,
 		app.into_make_service_with_connect_info::<std::net::SocketAddr>(),
 	)

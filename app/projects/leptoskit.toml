@@ -1,0 +1,92 @@
+#:schema https://leptoskit.dev/schemas/leptoskit.v0.schema.json
+
+schema_version = 0
+
+# monochange projects browser entry: product routes, public feedback portals,
+# and product hydration. This config lives in a config-only subdirectory;
+# Cargo workspace discovery resolves the app/ workspace from here.
+#
+# Like the website config, it names the ONE shared backend package
+# (monochange_app owns the server binary) while selecting a distinct browser
+# package. The two web frontends are independently built and assembled into
+# one deployment behind the same origin — not separate identity services.
+#
+# Sibling surfaces (extension/, app/native/, …) copy the same `[lint]` /
+# `[lint.rules]` block into their own leptoskit.toml. See docs/agents/tooling.md.
+
+[app]
+name = "monochange_app"
+version = "0.4.0"
+default_platform = "web"
+platforms = ["web"]
+render = "ssr"
+
+[serve]
+# The same backend serves both frontends, so both configs share port 3000.
+address = "0.0.0.0"
+port = 3000
+
+[build]
+backend = true
+# Browser crate: the dedicated projects entry (cdylib) that owns the product
+# route tree and the wasm-bindgen `hydrate` export. The shared
+# monochange_projects library stays out of any browser entry: its wasm client
+# code (pulled in through the website entry) must not carry the product
+# routes' wasm-split exports.
+client_package = "monochange_projects_web"
+features = []
+rustflags = []
+
+[bundle]
+# Enforce the SDK's initial-load Brotli budget before site publication.
+budget_kib = 302
+# Match the lazy routes (`#[lazy_route]`) of the product UI.
+optimize = "smallest"
+split = true
+wasm_opt = true
+# The publisher (scripts/leptoskit-plugin/publish-web-site.ts) compresses
+# the staged site after both builds (gzip 9 / brotli 11, upstream's set and
+# qualities); both frontends share one deployment tree, which upstream's
+# per-build precompression cannot cover, so this build's own compression is
+# off and compression happens exactly once over the staged tree.
+precompress = false
+
+# The tooling plugin runs inside this build and owns what upstream does not
+# produce: the shared Tailwind CSS and guarded wasm-split-loader minification
+# inside this build's own scratch output, which stays intact for the SDK's
+# bundle report and budget check. Publication into the one shared site tree
+# happens after BOTH builds succeed (see build:web). It resolves as
+# `leptoskit-plugin-monochange-web-assets` on PATH from
+# scripts/leptoskit-plugin/.
+[[plugins]]
+name = "monochange-web-assets"
+
+[plugins.options]
+# Shared design tokens: one Tailwind input compiles for both frontends (the
+# publisher verifies the two results are byte-identical before staging).
+tailwind_input = "../crates/monochange_app/style/input.css"
+font_source = "../public/fonts"
+
+[lint]
+# Prefer view! markup over builder trees for human-authored UI.
+markup = "view"
+# Workspace `lint:clippy` already denies warnings; lint:leptoskit passes
+# `--no-clippy` so this flag only matters for a bare `leptoskit lint` run.
+clippy = true
+
+[lint.rules]
+# Always #[component], always view! XML, PascalCase components.
+component_attribute = "deny"
+markup_style = "deny"
+
+# Product RPCs are shared with the website backend; this declaration mirrors
+# app/leptoskit.toml so `migrate --check` and lints validate the same set.
+[rpc]
+title = "monochange"
+servers = ["https://monochange.dev"]
+exclude = []
+include_internal = false
+targets = []
+
+[codepush]
+enabled = false

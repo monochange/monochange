@@ -10154,3 +10154,101 @@ fn toml_syntax_errors_render_a_source_snippet() {
 	);
 	assert!(rendered.contains('^'), "the snippet must show a caret");
 }
+
+fn shared_ecosystem_packages(root: &Path) -> Vec<PackageRecord> {
+	[
+		(Ecosystem::Cargo, "crates/core/Cargo.toml", "shared"),
+		(
+			Ecosystem::Dart,
+			"packages/shared/pubspec.yaml",
+			"dart:shared",
+		),
+	]
+	.into_iter()
+	.map(|(ecosystem, manifest, config_id)| {
+		let mut package = PackageRecord::new(
+			ecosystem,
+			"shared",
+			root.join(manifest),
+			root.to_path_buf(),
+			Some(Version::new(1, 0, 0)),
+			PublishState::Public,
+		);
+		package
+			.metadata
+			.insert("config_id".into(), config_id.into());
+		package
+	})
+	.collect()
+}
+
+#[test]
+fn configured_package_ids_take_precedence_over_shared_published_names() {
+	let mut configuration =
+		load_workspace_configuration(&fixture_path("config/accepts-mixed-changeset"))
+			.unwrap_or_else(|error| panic!("configuration: {error}"));
+	configuration.root_path = configuration
+		.root_path
+		.canonicalize()
+		.unwrap_or_else(|error| panic!("fixture root: {error}"));
+	let root = &configuration.root_path;
+	let packages = shared_ecosystem_packages(root);
+	let context = crate::build_changeset_load_context(&configuration, &packages);
+	for (reference, expected) in [
+		("shared", packages[0].id.as_str()),
+		("dart:shared", packages[1].id.as_str()),
+		(packages[0].id.as_str(), packages[0].id.as_str()),
+		(packages[1].id.as_str(), packages[1].id.as_str()),
+		("crates/core", packages[0].id.as_str()),
+		("packages/shared/pubspec.yaml", packages[1].id.as_str()),
+	] {
+		assert_eq!(
+			resolve_package_reference(reference, root, &packages)
+				.unwrap_or_else(|error| panic!("{reference}: {error}")),
+			expected
+		);
+		assert_eq!(
+			crate::resolve_package_reference_with_context(reference, &context)
+				.unwrap_or_else(|error| panic!("{reference}: {error}")),
+			expected
+		);
+	}
+}
+
+#[test]
+fn configured_id_precedence_keeps_name_fallbacks_and_ambiguity_checks() {
+	let mut configuration =
+		load_workspace_configuration(&fixture_path("config/accepts-mixed-changeset"))
+			.unwrap_or_else(|error| panic!("configuration: {error}"));
+	configuration.root_path = configuration
+		.root_path
+		.canonicalize()
+		.unwrap_or_else(|error| panic!("fixture root: {error}"));
+	let root = &configuration.root_path;
+	let mut packages = shared_ecosystem_packages(root);
+	packages[0].metadata.clear();
+	let context = crate::build_changeset_load_context(&configuration, &packages);
+	assert!(resolve_package_reference("shared", root, &packages).is_err());
+
+	assert!(crate::resolve_package_reference_with_context("shared", &context).is_err());
+	packages.truncate(1);
+	let context = crate::build_changeset_load_context(&configuration, &packages);
+	assert_eq!(
+		resolve_package_reference("shared", root, &packages)
+			.unwrap_or_else(|error| panic!("unique name: {error}")),
+		packages[0].id
+	);
+	assert_eq!(
+		crate::resolve_package_reference_with_context("shared", &context)
+			.unwrap_or_else(|error| panic!("unique name: {error}")),
+		packages[0].id
+	);
+
+	let mut packages = shared_ecosystem_packages(root);
+	packages[1]
+		.metadata
+		.insert("config_id".into(), "shared".into());
+	let context = crate::build_changeset_load_context(&configuration, &packages);
+	assert!(resolve_package_reference("shared", root, &packages).is_err());
+	assert!(crate::resolve_package_reference_with_context("shared", &context).is_err());
+}

@@ -56,6 +56,7 @@ pub enum TaskError {
 
 /// What a maintainer writes when sharing a task.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct TaskDraft {
 	pub title: String,
 	pub acceptance: Vec<String>,
@@ -91,6 +92,7 @@ impl TaskDraft {
 /// Where a task runs: the repository, the commit it is pinned to, and the
 /// issue it implements.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct TaskTarget {
 	/// `owner/name`.
 	pub repository: String,
@@ -100,6 +102,7 @@ pub struct TaskTarget {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(tag = "status", rename_all = "snake_case")]
 pub enum TaskStatus {
 	/// Passed screening; contributors can run it until it expires.
@@ -112,6 +115,7 @@ pub enum TaskStatus {
 
 /// A task on an accepted item, listed or not.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct ContributorTask {
 	/// `task-{n}`, unique within the project.
 	pub id: String,
@@ -130,6 +134,7 @@ pub struct ContributorTask {
 
 /// A listed task exactly as a contributor's agent receives it.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct PublicTask {
 	pub id: String,
 	pub item: String,
@@ -162,6 +167,7 @@ impl PublicTask {
 
 /// The part of a task a rule refers to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum TaskField {
 	Title,
@@ -181,6 +187,7 @@ impl fmt::Display for TaskField {
 
 /// Why screening refused a task. Each reason names what to change.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(tag = "rule", rename_all = "snake_case")]
 pub enum TaskRejection {
 	Missing {

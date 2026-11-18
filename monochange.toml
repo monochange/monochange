@@ -431,6 +431,12 @@ path = "app/crates/monochange_app"
 # Workflow files stay out of the affected paths: CI and deployment changes
 # are repository plumbing and never require a monochange_app changeset.
 additional_paths = ["app/**", "docs/src/**", "Dockerfile"]
+# The application leptoskit configs declare the deployed app version in
+# [app].version; keep them stamped with the responsible crate's release.
+versioned_files = [
+	{ path = "app/leptoskit.toml", format = "toml", fields = ["app.version"] },
+	{ path = "app/projects/leptoskit.toml", format = "toml", fields = ["app.version"] },
+]
 publish = { enabled = false }
 changelog = false
 tag = true
@@ -471,6 +477,14 @@ path = "crates/monochange_deno"
 
 [package.monochange_ecmascript]
 path = "crates/monochange_ecmascript"
+
+# leptoskit browser extension (separate Cargo workspace under extension/).
+[package.monochange_extension]
+path = "extension/monochange_extension_app"
+additional_paths = ["extension/**", "app/crates/monochange_shared/**"]
+publish = { enabled = false }
+changelog = false
+ignore_ecosystem_versioned_files = true
 
 [package.monochange_feedback]
 path = "packages/monochange__feedback_flutter"
@@ -777,6 +791,19 @@ rules = { "npm/workspace-protocol" = "off" }
 enabled = true
 versioned_files = ["Cargo.toml"]
 
+# `app/` is a second Cargo workspace whose members depend on released
+# workspace crates by path, so a release bump also stale-dates `app/Cargo.lock`
+# and every `--locked` app build on the release pull request fails. Refresh
+# both lockfiles with real cargo resolution during release preparation instead
+# of only rewriting the root lockfile in place.
+[[ecosystems.cargo.lockfile_commands]]
+command = "cargo generate-lockfile"
+cwd = "."
+
+[[ecosystems.cargo.lockfile_commands]]
+command = "cargo generate-lockfile"
+cwd = "app"
+
 [ecosystems.npm]
 enabled = true
 
@@ -819,6 +846,8 @@ repo = "monochange"
 #   enabled        — enable/disable release creation (default: true)
 #   draft          — create releases as drafts (default: false)
 #   prerelease     — mark releases as pre-releases (default: false)
+#   max_body_chars — optional smaller release body cap; GitHub always enforces
+#                    125000 characters, keeping complete entries and a changelog link
 #   generate_notes — ask the provider to auto-generate release notes (default: false)
 #   source         — release notes source: "monochange" (use monochange-rendered
 #                    notes) or "github_generated" (use provider-generated notes)

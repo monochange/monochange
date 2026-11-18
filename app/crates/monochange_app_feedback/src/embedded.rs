@@ -10,6 +10,7 @@ use crate::FeedbackKind;
 use crate::PageContext;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum ClientSurface {
 	Web,
@@ -32,6 +33,7 @@ pub enum EmbeddedError {
 
 /// Backend credential digests never leave maintainer-facing storage.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Integration {
 	pub id: String,
 	pub name: String,
@@ -44,6 +46,7 @@ pub struct Integration {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct FeedbackSession {
 	pub token_hash: String,
 	pub integration: String,
@@ -54,6 +57,7 @@ pub struct FeedbackSession {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum ChatRole {
 	User,
@@ -61,12 +65,14 @@ pub enum ChatRole {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct ChatMessage {
 	pub role: ChatRole,
 	pub body: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Conversation {
 	pub id: String,
 	pub subject: String,
@@ -80,12 +86,14 @@ pub struct Conversation {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct SourceContext {
 	pub integration: String,
 	pub surface: ClientSurface,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct SubmissionKey {
 	pub subject: String,
 	pub key: String,
@@ -95,6 +103,7 @@ pub struct SubmissionKey {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Worker {
 	pub id: String,
 	pub name: String,
@@ -105,6 +114,7 @@ pub struct Worker {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct WorkerPairing {
 	pub code_hash: String,
 	pub name: String,
@@ -113,6 +123,7 @@ pub struct WorkerPairing {
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct EmbeddedState {
 	/// Persistent project salt keeps pseudonyms stable across credential rotation.
 	pub identity_salt: String,

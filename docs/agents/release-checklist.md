@@ -39,6 +39,7 @@ push to main → ci.yml (release-pr: refresh release PR + dispatch publish dry r
 - [ ] Verify each step above is present and triggered by the correct event.
 - [ ] Confirm `monochange step release-record --from HEAD` correctly detects a release commit after merge (the `release-post-merge` job gates on this).
 - [ ] Confirm the `release-pr` job dispatches a publish dry run against the `monochange/release/release` branch with `tag`, `checkout_ref`, and `dry_run=true` inputs whenever pending changesets exist. The dry run builds every release artifact for the exact release PR tree without tagging or publishing.
+- [ ] Confirm the monochange GitHub App is installed on both `monochange/monochange` and `monochange/actions` in the same installation, and that the `publish` job grants `id-token: write`. `publish.yml` uses that OIDC identity to run `monochange gh workflow run release.yml --repo monochange/actions`; no personal access token or Actions secret is required.
 - [ ] Confirm tag push triggers `publish.yml` automatically (`on: push: tags: "v*"`); `release-post-merge` dispatches it explicitly because `GITHUB_TOKEN` tag pushes do not trigger workflows.
 - [ ] Verify concurrency groups prevent duplicate runs without silently canceling important work (`publish.yml` must never cancel mid-publish).
 

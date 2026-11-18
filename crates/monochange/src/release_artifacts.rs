@@ -2380,26 +2380,40 @@ pub(crate) async fn hosted_release_request_result(
 	})
 }
 
-/// Resolve the bearer token for the monochange app request.
-async fn hosted_commit_bearer_token(options: &HostedCommitOptions) -> MonochangeResult<String> {
+/// Resolve the bearer token for a monochange app request.
+///
+/// `operation` names the hosted operation in error messages so a workflow
+/// dispatch failure does not read like a release-commit failure.
+pub(crate) async fn hosted_app_bearer_token(
+	options: &HostedCommitOptions,
+	operation: &str,
+) -> MonochangeResult<String> {
 	match options.auth {
-		monochange_core::HostedCommitAuth::Token => hosted_monochange_token(),
-		monochange_core::HostedCommitAuth::Oidc => hosted_github_actions_oidc_token(options).await,
+		monochange_core::HostedCommitAuth::Token => hosted_monochange_token(operation),
+		monochange_core::HostedCommitAuth::Oidc => {
+			hosted_github_actions_oidc_token(options, operation).await
+		}
 		monochange_core::HostedCommitAuth::Auto => {
 			if std::env::var_os("ACTIONS_ID_TOKEN_REQUEST_URL").is_some() {
-				hosted_github_actions_oidc_token(options).await
+				hosted_github_actions_oidc_token(options, operation).await
 			} else {
-				hosted_monochange_token()
+				hosted_monochange_token(operation)
 			}
 		}
 	}
 }
 
-fn hosted_monochange_token() -> MonochangeResult<String> {
+/// Resolve the bearer token for the hosted release commit and release request
+/// operations.
+async fn hosted_commit_bearer_token(options: &HostedCommitOptions) -> MonochangeResult<String> {
+	hosted_app_bearer_token(options, "CommitRelease").await
+}
+
+fn hosted_monochange_token(operation: &str) -> MonochangeResult<String> {
 	std::env::var("MONOCHANGE_TOKEN").map_err(|_| {
-		MonochangeError::Config(
-			"hosted CommitRelease token auth requires MONOCHANGE_TOKEN".to_string(),
-		)
+		MonochangeError::Config(format!(
+			"hosted {operation} token auth requires MONOCHANGE_TOKEN"
+		))
 	})
 }
 
@@ -2420,16 +2434,17 @@ const HOSTED_OIDC_RETRY_DELAYS: [Duration; 3] = [
 /// Request a GitHub Actions OIDC token for the configured audience.
 async fn hosted_github_actions_oidc_token(
 	options: &HostedCommitOptions,
+	operation: &str,
 ) -> MonochangeResult<String> {
 	let request_url = std::env::var("ACTIONS_ID_TOKEN_REQUEST_URL").map_err(|_| {
-		MonochangeError::Config(
-			"hosted CommitRelease OIDC auth requires ACTIONS_ID_TOKEN_REQUEST_URL".to_string(),
-		)
+		MonochangeError::Config(format!(
+			"hosted {operation} OIDC auth requires ACTIONS_ID_TOKEN_REQUEST_URL"
+		))
 	})?;
 	let request_token = std::env::var("ACTIONS_ID_TOKEN_REQUEST_TOKEN").map_err(|_| {
-		MonochangeError::Config(
-			"hosted CommitRelease OIDC auth requires ACTIONS_ID_TOKEN_REQUEST_TOKEN".to_string(),
-		)
+		MonochangeError::Config(format!(
+			"hosted {operation} OIDC auth requires ACTIONS_ID_TOKEN_REQUEST_TOKEN"
+		))
 	})?;
 	let audience = &options.oidc_audience;
 	let separator = if request_url.contains('?') { '&' } else { '?' };
@@ -2437,6 +2452,7 @@ async fn hosted_github_actions_oidc_token(
 		&format!("{request_url}{separator}audience={audience}"),
 		&request_token,
 		&HOSTED_OIDC_RETRY_DELAYS,
+		operation,
 	)
 	.await
 }
@@ -2447,6 +2463,7 @@ async fn request_github_actions_oidc_token(
 	url: &str,
 	request_token: &str,
 	retry_delays: &[Duration],
+	operation: &str,
 ) -> MonochangeResult<String> {
 	let client = monochange_hosting::build_http_client("monochange app")?;
 	let attempts = retry_delays.len() + 1;
@@ -2463,7 +2480,7 @@ async fn request_github_actions_oidc_token(
 	};
 	let response = response.map_err(|error| {
 		MonochangeError::Config(format!(
-			"hosted CommitRelease OIDC token request failed after {attempts} attempts: {error}. \
+			"hosted {operation} OIDC token request failed after {attempts} attempts: {error}. \
 			 GitHub Actions could not issue the job's OIDC token; rerun the job."
 		))
 	})?;
@@ -2471,14 +2488,14 @@ async fn request_github_actions_oidc_token(
 	let status = response.status();
 	if status.is_server_error() {
 		return Err(MonochangeError::Config(format!(
-			"hosted CommitRelease OIDC token request failed with status {status} after \
+			"hosted {operation} OIDC token request failed with status {status} after \
 			 {attempts} attempts. GitHub Actions could not issue the job's OIDC token, which \
 			 is a GitHub outage rather than a problem with this workspace; rerun the job."
 		)));
 	}
 	if !status.is_success() {
 		return Err(MonochangeError::Config(format!(
-			"hosted CommitRelease OIDC token request failed with status {status}. Check that \
+			"hosted {operation} OIDC token request failed with status {status}. Check that \
 			 the job grants `permissions: id-token: write`, then rerun it."
 		)));
 	}
@@ -2489,7 +2506,7 @@ async fn request_github_actions_oidc_token(
 		.map(|response| response.value)
 		.map_err(|error| {
 			MonochangeError::Config(format!(
-				"hosted CommitRelease OIDC token response was invalid: {error}"
+				"hosted {operation} OIDC token response was invalid: {error}"
 			))
 		})
 }

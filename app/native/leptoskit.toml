@@ -1,0 +1,58 @@
+#:schema https://leptoskit.dev/schemas/leptoskit.v0.schema.json
+
+schema_version = 0
+
+# Native projects guests call the same authority as the separate website.
+# The root Rust package anchors host packaging; it does not run a backend.
+
+[app]
+name = "monochange_native"
+version = "0.1.0"
+default_platform = "android"
+platforms = ["android", "ios", "web"]
+render = "csr"
+
+[serve]
+address = "127.0.0.1"
+port = 3010
+
+[build]
+backend = false
+client_package = "monochange_native_app"
+features = []
+rustflags = []
+
+[bundle]
+optimize = "fast"
+split = false
+# wasm-opt is optional for local scaffolds; enable when binaryen is installed.
+wasm_opt = false
+precompress = false
+
+[lint]
+markup = "view"
+clippy = true
+
+[lint.rules]
+component_attribute = "deny"
+markup_style = "deny"
+
+[native]
+update_contract = "mobile-v1"
+package_id = "dev.monochange.app"
+viewport_width = 390.0
+viewport_height = 844.0
+plugins = ["http", "secure-store", "crypto", "web-auth", "linking"]
+
+# Exact origins the HTTP plugin may call. MONOCHANGE_SERVER selects one at build time.
+[native.plugin-options.http]
+origins = ["http://127.0.0.1:3000", "http://127.0.0.1:3010", "https://monochange.dev"]
+
+[codepush]
+enabled = false
+allow_http = false
+server = ""
+channel = "production"
+mandatory = false
+staging_dir = "codepush"
+public_keys = []

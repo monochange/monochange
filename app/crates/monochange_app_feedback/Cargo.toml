@@ -9,8 +9,13 @@ repository.workspace = true
 description = "Feedback intake, AI triage, disclosure gating, and release status pipeline for the monochange web app"
 
 [dependencies]
+schemars = { workspace = true, optional = true }
 serde = { workspace = true }
 thiserror = { workspace = true }
+
+[features]
+default = []
+schema = ["dep:schemars"]
 
 [dev-dependencies]
 serde_json = { workspace = true }

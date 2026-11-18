@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+root="${MONOCHANGE_DEPLOY_DIR:-/opt/monochange}"
+printf '%s\n' "$*" >> "$root/docker.calls"
+case "$*" in
+load) cat > "$root/loaded.txt" ;;
+'image inspect '*) [[ ! -e "$root/image-missing" ]] ;;
+'compose up '*)
+ touch "$root/compose-entered"
+ deadline=$((SECONDS + 5))
+ while [[ -e "$root/hold-compose" ]]; do
+  (( SECONDS < deadline )) || exit 1
+  sleep 0.05
+ done
+ [[ ! -e "$root/compose-fail" ]] ;;
+'compose ps -q app') [[ ! -e "$root/running-image" ]] || echo owned-container ;;
+'inspect --format {{.Config.Image}} owned-container') cat "$root/running-image" ;;
+*) exit 2 ;;
+esac

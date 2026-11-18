@@ -35,6 +35,7 @@ use crate::triage::ReproductionOutcome;
 use crate::triage::TriageReport;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct IssueDraft {
 	pub title: String,
 	pub body: String,
@@ -46,6 +47,7 @@ pub struct IssueDraft {
 /// outcomes, so these are normally user-stream types such as
 /// `website_feature` and `website_fix`; triage's classification picks one.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct ChangesetTarget {
 	pub package: String,
 	pub feature_type: String,
@@ -53,12 +55,14 @@ pub struct ChangesetTarget {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct ChangesetDraft {
 	pub path: String,
 	pub contents: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct AgentBrief {
 	pub branch: String,
 	pub issue_number: u64,
@@ -320,6 +324,7 @@ pub fn issue_draft(
 /// The issue already carries the brief a maintainer reviewed, so nothing a
 /// user wrote travels with the request.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct BuildRequest {
 	pub item: String,
 	/// `owner/name` of the repository the issue, and so the build, lives in.

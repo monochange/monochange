@@ -12,6 +12,7 @@ pub const MAX_DESCRIPTION_CHARS: usize = 4_000;
 
 /// What the submitter believes they are reporting. Triage may reclassify.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum FeedbackKind {
 	FeatureRequest,
@@ -23,6 +24,7 @@ pub enum FeedbackKind {
 /// Pinning feedback to an element is what turns "the export is broken" into a
 /// reproducible report: triage gets the exact control instead of guessing.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct PinnedElement {
 	/// A selector the integrating app can resolve, such as `#export-csv`.
 	pub selector: String,
@@ -32,6 +34,7 @@ pub struct PinnedElement {
 
 /// Where in the integrated app the feedback was captured.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct PageContext {
 	/// App-defined route such as `/reports/quarterly`.
 	pub route: String,
@@ -43,6 +46,7 @@ pub struct PageContext {
 /// Evidence attached by the widget. Media bytes live in object storage; the
 /// pipeline only ever sees opaque identifiers.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Attachment {
 	Screenshot { media_id: String },
@@ -52,6 +56,7 @@ pub enum Attachment {
 /// Pseudonymous submitter identity. The anonymous id is a stable hash so
 /// votes can be deduplicated without storing raw contact details.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct SubmitterIdentity {
 	pub anonymous_id: String,
 	pub email: Option<String>,
@@ -59,6 +64,7 @@ pub struct SubmitterIdentity {
 
 /// A third-party app allowed to submit feedback for one repository.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct RegisteredApp {
 	pub slug: String,
 	pub display_name: String,
@@ -81,6 +87,7 @@ impl RegisteredApp {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct FeedbackSubmission {
 	pub kind: FeedbackKind,
 	pub description: String,

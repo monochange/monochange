@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /account
+Disallow: /connect
+Disallow: /dashboard
+Disallow: /login
+Disallow: /auth/
+
+Sitemap: https://monochange.dev/sitemap.xml

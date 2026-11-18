@@ -1,4 +1,7 @@
 [toolchain]
+# leptoskit 0.3 / wasm-split prefer a recent nightly (MSRV 1.95+). Keep the
+# repo pin until devenv's rust-overlay ships a matching channel; 1.97 nightly
+# from 2026-05 already satisfies the language MSRV.
 channel = "nightly-2026-05-08"
 components = ["rustfmt", "cargo", "clippy", "rust-analyzer"]
 profile = "default"

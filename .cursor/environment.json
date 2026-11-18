@@ -1,0 +1,4 @@
+{
+	"name": "monochange",
+	"install": "[ ! -d '/agent/repos/monochange' ] || cd '/agent/repos/monochange' || exit $?\nbash .cursor/cloud-install.sh"
+}

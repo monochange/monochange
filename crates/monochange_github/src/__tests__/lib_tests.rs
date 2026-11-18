@@ -4047,7 +4047,7 @@ fn provider_body_from_changelog_rendered_strips_title_and_promotes_github_sectio
 	assert_eq!(provider_body_from_changelog_rendered("## 1.0.0"), "");
 }
 
-fn sample_source(api_url: Option<String>) -> SourceConfiguration {
+pub(super) fn sample_source(api_url: Option<String>) -> SourceConfiguration {
 	SourceConfiguration {
 		provider: SourceProvider::GitHub,
 		owner: "ifiokjr".to_string(),
@@ -4069,7 +4069,7 @@ fn sample_source_with_verified_commits(api_url: Option<String>) -> SourceConfigu
 	}
 }
 
-fn sample_manifest() -> ReleaseManifest {
+pub(super) fn sample_manifest() -> ReleaseManifest {
 	ReleaseManifest {
 		command: "release".to_string(),
 		dry_run: true,

@@ -1,0 +1,49 @@
+[package]
+name = "monochange_native_app"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "monochange native guest screens (Android / iOS wasm)."
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+[features]
+default = []
+native = [
+	"leptoskit/guest",
+	"dep:leptoskit_plugin_http",
+	"dep:leptoskit_plugin_linking",
+	"dep:leptoskit_plugin_web_auth",
+	"dep:leptoskit_plugin_crypto",
+	"dep:leptoskit_plugin_secure_store",
+]
+ios = ["native", "leptoskit/ios"]
+android = ["native", "leptoskit/android"]
+web = ["leptoskit/web", "dep:leptos"]
+csr = ["web", "leptos/csr"]
+
+[dependencies]
+leptos = { workspace = true, optional = true }
+leptoskit = { workspace = true }
+leptoskit_plugin_crypto = { workspace = true, features = ["guest"], optional = true }
+leptoskit_plugin_http = { workspace = true, features = ["guest"], optional = true }
+leptoskit_plugin_linking = { workspace = true, features = ["guest"], optional = true }
+leptoskit_plugin_secure_store = { workspace = true, features = ["guest"], optional = true }
+leptoskit_plugin_web_auth = { workspace = true, features = ["guest"], optional = true }
+monochange_shared = { workspace = true }
+reactive_graph = "0.3.0-rc1"
+serde = { workspace = true }
+serde_json = { workspace = true }
+url = "2"
+# Keep the wasm-bindgen family aligned with the wasm-bindgen-cli-support version
+# embedded in the pinned leptoskit CLI (0.2.129); a newer resolved family makes
+# the CLI reject the produced wasm.
+wasm-bindgen = "=0.2.129"
+
+[build-dependencies]
+leptoskit_build = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }

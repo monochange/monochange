@@ -24,6 +24,7 @@ Visible top-level commands:
   change
   changeset
   check
+  ci
   command
   completions
   config
@@ -32,6 +33,7 @@ Visible top-level commands:
   discover
   doctor
   format
+  gh
   help
   init
   lint

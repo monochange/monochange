@@ -144,6 +144,7 @@ pub enum ServiceError {
 
 /// What the widget learns right after submitting.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Receipt {
 	pub id: String,
 	pub stage: Stage,
@@ -152,6 +153,7 @@ pub struct Receipt {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct SimilarItem {
 	pub id: String,
 	pub title: String,
@@ -162,6 +164,7 @@ pub struct SimilarItem {
 
 /// A status change addressed to one subscriber, already through the gate.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Notification {
 	pub recipient: String,
 	pub item_id: String,
@@ -171,6 +174,7 @@ pub struct Notification {
 
 /// Who wrote a public discussion message, without revealing identities.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum PublicAuthor {
 	Submitter,
@@ -180,6 +184,7 @@ pub enum PublicAuthor {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct PublicMessage {
 	pub author: PublicAuthor,
 	pub body: String,
@@ -189,6 +194,7 @@ pub struct PublicMessage {
 /// A release seen by the release automation, listing the pull requests it
 /// contains. monochange release records carry exactly this.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct ReleaseObservation {
 	/// The repository that released, when known.
 	#[serde(default)]
@@ -203,6 +209,7 @@ pub struct ReleaseObservation {
 /// policy, and release cadence come from the deployment and the current state
 /// of the project's repositories, so they are supplied when restoring.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct FeedbackState {
 	#[serde(default)]
 	pub embedded: embedded::EmbeddedState,

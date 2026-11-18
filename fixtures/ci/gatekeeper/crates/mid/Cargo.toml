@@ -1,0 +1,18 @@
+[package]
+name = "mid"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = ["dep:shared"]
+extra = ["dep:shared_extra"]
+
+[dependencies]
+shared = { path = "../shared", optional = true }
+shared_extra = { path = "../shared_extra", optional = true }
+
+[build-dependencies]
+shared = { path = "../shared" }
+
+[dev-dependencies]
+mid_dev_only = { path = "../mid_dev_only" }

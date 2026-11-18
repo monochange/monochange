@@ -1,0 +1,412 @@
+//! Frontend bundle selection: a document must reference the entry bundle of
+//! the frontend that owns the request path, with that frontend's split
+//! manifest driving lazy-chunk preloads.
+
+#![cfg(not(target_arch = "wasm32"))]
+#![allow(clippy::disallowed_methods)]
+
+use leptos::WasmSplitManifest;
+use leptos::prelude::*;
+
+use crate::frontend::Frontend;
+use crate::frontend::FrontendScripts;
+use crate::tests::render;
+
+fn fixture_site_root() -> String {
+	std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+		.join("../../../fixtures/tests/app-frontend-scripts/site")
+		.to_string_lossy()
+		.into_owned()
+}
+
+async fn scripts_html(frontend: Frontend) -> String {
+	let options = leptos::config::LeptosOptions::builder()
+		.output_name(monochange_shared::routing::WEBSITE_OUTPUT_NAME)
+		.site_root(fixture_site_root())
+		.build();
+	render(move || {
+		provide_context(leptos_router::location::RequestUrl::new("/account"));
+		let options = options.clone();
+		view! { <FrontendScripts options=options frontend=frontend /> }
+	})
+	.await
+}
+
+/// Reads the split-manifest context `FrontendScripts` provides, as the SSR
+/// stream does when it emits lazy-chunk preloads.
+#[component]
+fn ManifestProbe() -> impl IntoView {
+	let read = use_context::<WasmSplitManifest>().and_then(|manifest| manifest.0.try_read_value());
+	let text = read.map_or_else(
+		|| "no-manifest".to_owned(),
+		|guard| {
+			let (pkg_url, preloads, split_loader) = &*guard;
+			let mut chunks: Vec<String> = preloads.values().flatten().cloned().collect();
+			chunks.sort();
+			chunks.dedup();
+			format!("{pkg_url}|{}|{split_loader}", chunks.join(","))
+		},
+	);
+	view! { <span id="manifest-probe">{text}</span> }
+}
+
+async fn probe_html(frontend: Frontend) -> String {
+	let options = leptos::config::LeptosOptions::builder()
+		.output_name(monochange_shared::routing::WEBSITE_OUTPUT_NAME)
+		.site_root(fixture_site_root())
+		.build();
+	render(move || {
+		provide_context(leptos_router::location::RequestUrl::new("/account"));
+		let options = options.clone();
+		view! {
+			<FrontendScripts options=options frontend=frontend />
+			<ManifestProbe />
+		}
+	})
+	.await
+}
+
+#[tokio::test]
+async fn website_pages_reference_the_website_entry_bundle() {
+	let html = scripts_html(Frontend::WEBSITE).await;
+	for font in ["hanken-400", "hanken-700"] {
+		assert!(
+			html.contains(&format!(
+				"href=\"/fonts/{font}.woff2\" as=\"font\" type=\"font/woff2\" crossorigin=\"anonymous\""
+			)),
+			"{html}"
+		);
+	}
+	assert!(
+		html.contains("href=\"/fonts/bricolage-800.woff2\""),
+		"{html}"
+	);
+	assert!(
+		html.contains("modulepreload\" href=\"/pkg/site/monochange_app.js\""),
+		"{html}"
+	);
+	assert!(
+		html.contains("href=\"/pkg/site/monochange_app_bg.wasm\""),
+		"{html}"
+	);
+	assert!(html.contains("href=\"/pkg/site/monochange_app_bg.wasm\" as=\"fetch\" type=\"application/wasm\" crossorigin=\"anonymous\""), "{html}");
+	assert!(
+		html.contains("(\"\", \"pkg/site\", \"monochange_app\", \"monochange_app_bg\", false);"),
+		"the hydration script must load the website entry module: {html}"
+	);
+	assert!(!html.contains("/pkg/projects/"), "{html}");
+}
+
+#[tokio::test]
+async fn product_pages_reference_the_projects_entry_bundle() {
+	let html = scripts_html(Frontend::PROJECTS).await;
+	for font in ["hanken-400", "hanken-700"] {
+		assert!(
+			html.contains(&format!(
+				"href=\"/fonts/{font}.woff2\" as=\"font\" type=\"font/woff2\" crossorigin=\"anonymous\""
+			)),
+			"{html}"
+		);
+	}
+	assert!(
+		html.contains("href=\"/fonts/bricolage-800.woff2\""),
+		"{html}"
+	);
+	assert!(
+		html.contains("modulepreload\" href=\"/pkg/projects/monochange_projects_web.js\""),
+		"{html}"
+	);
+	assert!(
+		html.contains("href=\"/pkg/projects/monochange_projects_web_bg.wasm\""),
+		"{html}"
+	);
+	assert!(html.contains("href=\"/pkg/projects/monochange_projects_web_bg.wasm\" as=\"fetch\" type=\"application/wasm\" crossorigin=\"anonymous\""), "{html}");
+	assert!(
+		html.contains(
+			"(\"\", \"pkg/projects\", \"monochange_projects_web\", \"monochange_projects_web_bg\", false);"
+		),
+		"the hydration script must load the projects entry module: {html}"
+	);
+	assert!(!html.contains("/pkg/site/"), "{html}");
+}
+
+#[tokio::test]
+async fn the_website_split_manifest_reaches_the_stream_context() {
+	let html = probe_html(Frontend::WEBSITE).await;
+	assert!(
+		html.contains(
+			"pkg/site|chunk_15,split___changelog_route_view_18050757885357555981,split___site_session_route_view_2158154892423587711|__wasm_split.______________________.js"
+		),
+		"the website manifest must resolve chunks in its own namespace: {html}"
+	);
+	assert!(
+		!html.contains("portal_route_view"),
+		"projects chunks must not preload on website pages: {html}"
+	);
+}
+
+#[tokio::test]
+async fn the_projects_split_manifest_reaches_the_stream_context() {
+	let html = probe_html(Frontend::PROJECTS).await;
+	assert!(
+		html.contains(
+			"pkg/projects|chunk_11,chunk_12,chunk_13,split___organization_route_view_7110038765603574149,split___portal_route_view_10330659768788240853|__wasm_split.______________________.js"
+		),
+		"the projects manifest must resolve chunks in its own namespace: {html}"
+	);
+	assert!(
+		!html.contains("site_session_route_view"),
+		"website chunks must not preload on product pages: {html}"
+	);
+}
+
+#[tokio::test]
+async fn a_missing_split_manifest_degrades_to_entry_only() {
+	let options = leptos::config::LeptosOptions::builder()
+		.output_name(monochange_shared::routing::WEBSITE_OUTPUT_NAME)
+		.site_root(
+			std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+				.join("../../../fixtures/tests/app-frontend-scripts/empty-site")
+				.to_string_lossy()
+				.into_owned(),
+		)
+		.build();
+	let html = render(move || {
+		provide_context(leptos_router::location::RequestUrl::new("/account"));
+		let options = options.clone();
+		view! { <FrontendScripts options=options frontend=Frontend::WEBSITE /> }
+	})
+	.await;
+	// No manifest on disk: the entry still hydrates, without chunk preloads.
+	assert!(
+		html.contains("modulepreload\" href=\"/pkg/site/monochange_app.js\""),
+		"{html}"
+	);
+	assert!(
+		!html.contains("manifest-probe") || html.contains("no-manifest"),
+		"{html}"
+	);
+}
+
+/// A throwaway site root holding one split manifest, for freshness tests.
+/// Committed fixtures are never mutated by tests.
+struct ManifestSite {
+	site_root: String,
+	_dir: tempfile::TempDir,
+}
+
+impl ManifestSite {
+	fn with_manifest(content: &str) -> Self {
+		let dir = tempfile::tempdir().expect("tempdir");
+		std::fs::create_dir_all(dir.path().join("pkg/site")).expect("mkdir");
+		std::fs::write(
+			dir.path().join("pkg/site/__wasm_split_manifest.json"),
+			content,
+		)
+		.expect("write manifest");
+		let site_root = dir.path().to_string_lossy().into_owned();
+
+		Self {
+			site_root,
+			_dir: dir,
+		}
+	}
+}
+
+async fn website_probe_with(site_root: &str) -> String {
+	let options = leptos::config::LeptosOptions::builder()
+		.output_name(monochange_shared::routing::WEBSITE_OUTPUT_NAME)
+		.site_root(site_root.to_owned())
+		.build();
+	render(move || {
+		provide_context(leptos_router::location::RequestUrl::new("/account"));
+		let options = options.clone();
+		view! {
+			<FrontendScripts options=options frontend=Frontend::WEBSITE />
+			<ManifestProbe />
+		}
+	})
+	.await
+}
+
+#[tokio::test]
+async fn a_repaired_manifest_reaches_the_next_render() {
+	let site = ManifestSite::with_manifest("not json");
+	let html = website_probe_with(&site.site_root).await;
+	assert!(
+		html.contains("no-manifest"),
+		"an invalid manifest must degrade: {html}"
+	);
+
+	// The publisher replaces the broken file with a valid one; the very next
+	// render must pick the repair up.
+	std::fs::write(
+		std::path::Path::new(&site.site_root).join("pkg/site/__wasm_split_manifest.json"),
+		r#"{"split___login_route_view_5096727190328531431":["chunk_11"]}"#,
+	)
+	.expect("repair manifest");
+	let html = website_probe_with(&site.site_root).await;
+	assert!(
+		html.contains("|chunk_11|"),
+		"the repaired manifest must drive the next render: {html}"
+	);
+}
+
+#[tokio::test]
+async fn a_same_sized_manifest_edit_reaches_the_next_render() {
+	// Same byte length, different chunk names: a size-keyed cache could never
+	// see this change; the fresh read must.
+	let site = ManifestSite::with_manifest(
+		r#"{"split___login_route_view_5096727190328531431":["chunk_11"]}"#,
+	);
+	let html = website_probe_with(&site.site_root).await;
+	assert!(html.contains("|chunk_11|"), "{html}");
+
+	std::fs::write(
+		std::path::Path::new(&site.site_root).join("pkg/site/__wasm_split_manifest.json"),
+		r#"{"split___login_route_view_5096727190328531431":["chunk_12"]}"#,
+	)
+	.expect("rewrite manifest");
+	let html = website_probe_with(&site.site_root).await;
+	assert!(
+		html.contains("|chunk_12|"),
+		"the edit must reach the next render: {html}"
+	);
+	assert!(
+		!html.contains("|chunk_11|"),
+		"the old chunk must be gone: {html}"
+	);
+}
+
+#[tokio::test]
+async fn an_invalid_split_manifest_degrades_to_entry_only() {
+	let options = leptos::config::LeptosOptions::builder()
+		.output_name(monochange_shared::routing::WEBSITE_OUTPUT_NAME)
+		.site_root(
+			std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+				.join("../../../fixtures/tests/app-frontend-scripts/broken-site")
+				.to_string_lossy()
+				.into_owned(),
+		)
+		.build();
+	let html = render(move || {
+		provide_context(leptos_router::location::RequestUrl::new("/account"));
+		let options = options.clone();
+		view! { <FrontendScripts options=options frontend=Frontend::WEBSITE /> }
+	})
+	.await;
+	// A corrupt manifest must not fail the render: the entry hydrates without
+	// chunk preloads rather than serving a broken document.
+	assert!(
+		html.contains("modulepreload\" href=\"/pkg/site/monochange_app.js\""),
+		"{html}"
+	);
+	assert!(
+		!html.contains("manifest-probe") || html.contains("no-manifest"),
+		"{html}"
+	);
+}
+
+#[test]
+fn frontend_bundle_coordinates_match_the_build_layout() {
+	// The leptoskit pipeline (see the [[plugins]] options in both web
+	// leptoskit.toml files) places each client bundle under pkg/<namespace>/,
+	// named after the client lib crate. The shell constants must mirror that.
+	assert_eq!(Frontend::WEBSITE.entry_js(), "/pkg/site/monochange_app.js");
+	assert_eq!(
+		Frontend::WEBSITE.entry_wasm(),
+		"/pkg/site/monochange_app_bg.wasm"
+	);
+	assert_eq!(
+		Frontend::WEBSITE.stylesheet(),
+		monochange_shared::routing::WEBSITE_STYLESHEET
+	);
+	assert_eq!(
+		Frontend::PROJECTS.entry_js(),
+		"/pkg/projects/monochange_projects_web.js"
+	);
+	assert_eq!(
+		Frontend::PROJECTS.entry_wasm(),
+		"/pkg/projects/monochange_projects_web_bg.wasm"
+	);
+	assert_eq!(
+		Frontend::PROJECTS.stylesheet(),
+		monochange_shared::routing::PROJECTS_STYLESHEET
+	);
+	assert_eq!(
+		Frontend::WEBSITE.manifest_path("/srv/site"),
+		std::path::PathBuf::from("/srv/site/pkg/site/__wasm_split_manifest.json")
+	);
+	assert_eq!(
+		Frontend::PROJECTS.manifest_path("/srv/site"),
+		std::path::PathBuf::from("/srv/site/pkg/projects/__wasm_split_manifest.json")
+	);
+}
+
+#[rstest::rstest]
+#[case("/", false, true)]
+#[case("/install", false, true)]
+#[case("/pricing", false, true)]
+#[case("/changelog", false, true)]
+#[case("/login", false, true)]
+#[case("/book", false, true)]
+#[case("/book/install", false, true)]
+#[case("/bookish", false, false)]
+#[case("/projects", true, true)]
+#[case("/projects", false, false)]
+#[case("/projects/acme", true, false)]
+#[case("/dashboard", false, false)]
+#[case("/connect", true, false)]
+#[case("/account", true, false)]
+fn only_public_links_and_buttons_defer(
+	#[case] path: &str,
+	#[case] signed_out: bool,
+	#[case] expected: bool,
+) {
+	assert_eq!(crate::frontend::defer_hydration(path, signed_out), expected);
+}
+
+#[rstest::rstest]
+#[case("/", monochange_app_api::sessions::Principal::Anonymous, true)]
+#[case(
+	"/book/install",
+	monochange_app_api::sessions::Principal::Anonymous,
+	true
+)]
+#[case("/projects", monochange_app_api::sessions::Principal::Anonymous, true)]
+#[case("/projects", monochange_app_api::sessions::Principal::Stale, true)]
+#[case("/projects", monochange_app_api::sessions::Principal::Invalid, false)]
+#[case(
+	"/dashboard",
+	monochange_app_api::sessions::Principal::Anonymous,
+	false
+)]
+#[tokio::test]
+async fn server_policy_controls_preloads(
+	#[case] path: &'static str,
+	#[case] principal: monochange_app_api::sessions::Principal,
+	#[case] deferred: bool,
+) {
+	let options = LeptosOptions::builder()
+		.output_name("monochange_app")
+		.site_root(fixture_site_root())
+		.build();
+	let html = render(move || {
+		provide_context(leptos_router::location::RequestUrl::new(path));
+		let (mut parts, ()) = axum::http::Request::new(()).into_parts();
+		parts.extensions.insert(principal.clone());
+		provide_context(parts);
+		view! { <FrontendScripts options=options.clone() frontend=Frontend::current() /> }
+	})
+	.await;
+	assert_eq!(html.contains("rel=\"modulepreload\""), !deferred, "{html}");
+	assert_eq!(
+		html.contains("type=\"application/wasm\""),
+		!deferred,
+		"{html}"
+	);
+	assert!(
+		html.contains(&format!("data-deferred-hydration=\"{deferred}\"")),
+		"{html}"
+	);
+}

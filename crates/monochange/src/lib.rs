@@ -246,6 +246,7 @@ mod analyze;
 
 mod changeset_policy;
 mod changesets;
+pub mod ci;
 mod cli;
 mod cli_runtime;
 
@@ -277,6 +278,7 @@ mod tracing_setup;
 mod trusted_publishing_readiness;
 mod versioned_files;
 mod versioning_state;
+mod workflow_dispatch;
 mod workspace_ops;
 
 pub(crate) use prepared_release_cache::ensure_monochange_artifact_ignored;
@@ -1598,6 +1600,7 @@ async fn run_cli_subcommand(
 				selected_cli_output_format(doctor_matches)?,
 			)
 		}
+		Some(("ci", ci_matches)) => ci::run_ci_subcommand(root, ci_matches).await,
 		Some(("skill", skill_matches)) => run_skill_subcommand(context.quiet, skill_matches),
 		Some(("subagents", subagent_matches)) => run_subagents_subcommand(root, subagent_matches),
 		Some(("change", change_matches)) => {
@@ -1635,6 +1638,16 @@ async fn run_cli_subcommand(
 		}
 		Some(("lint", lint_matches)) => lint::handle_lint_subcommand(root, lint_matches),
 		Some(("versions", versions_matches)) => run_versions_subcommand(root, versions_matches),
+		Some(("gh", gh_matches)) => {
+			let workflow_matches = gh_matches
+				.subcommand_matches("workflow")
+				.expect("clap requires the gh workflow subcommand");
+			let run_matches = workflow_matches
+				.subcommand_matches("run")
+				.expect("clap requires the gh workflow run subcommand");
+
+			workflow_dispatch::run(run_matches).await
+		}
 		Some(("publish", publish_matches)) => {
 			let (publish_command, publish_command_matches) = publish_matches
 				.subcommand()

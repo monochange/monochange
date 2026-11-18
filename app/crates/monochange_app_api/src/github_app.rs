@@ -1511,6 +1511,54 @@ pub async fn dispatch_repository_event<P: Serialize>(
 	Ok(())
 }
 
+#[derive(Debug, Serialize)]
+struct WorkflowDispatchRequest<'a> {
+	#[serde(rename = "ref")]
+	git_ref: &'a str,
+	#[serde(skip_serializing_if = "BTreeMap::is_empty")]
+	inputs: &'a BTreeMap<String, String>,
+}
+
+/// Dispatch a GitHub Actions workflow in `full_name`.
+///
+/// The caller has already validated the workflow file name or id, the ref, and
+/// the inputs. GitHub runs the workflow from a ref that must contain the
+/// workflow file.
+///
+/// # Errors
+/// Returns an error if the request fails or GitHub rejects it, for example
+/// when the installation lacks Actions write access or the ref does not exist.
+pub async fn dispatch_workflow(
+	http: &reqwest::Client,
+	api_url: &str,
+	installation_token: &str,
+	full_name: &str,
+	workflow: &str,
+	git_ref: &str,
+	inputs: &BTreeMap<String, String>,
+) -> Result<(), GitHubAppError> {
+	let response = http
+		.post(format!(
+			"{}/repos/{full_name}/actions/workflows/{workflow}/dispatches",
+			api_url.trim_end_matches('/')
+		))
+		.bearer_auth(installation_token)
+		.header("Accept", "application/vnd.github+json")
+		.header("User-Agent", "monochange")
+		.json(&WorkflowDispatchRequest { git_ref, inputs })
+		.send()
+		.await?;
+
+	if !response.status().is_success() {
+		let status = response.status();
+		let body = response.text().await.unwrap_or_default();
+
+		return Err(api_error("dispatch workflow", status, body));
+	}
+
+	Ok(())
+}
+
 /// The commit at the tip of `full_name`'s default branch, as a full SHA.
 ///
 /// # Errors

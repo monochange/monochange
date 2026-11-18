@@ -3,24 +3,30 @@ members = ["crates/*"]
 resolver = "2"
 
 [workspace.package]
-version = "0.3.3"
+version = "0.4.0"
 authors = ["Ifiok Jr. <ifiokotung@gmail.com>"]
 edition = "2024"
 license = "Unlicense"
 repository = "https://github.com/monochange/monochange"
 
 [workspace.dependencies]
-# Leptos v0.8
-leptos = { version = "0.8" }
-leptos_axum = "0.8"
-leptos_meta = "0.8"
-leptos_router = "0.8"
+# Leptos 0.9 matches upstream leptoskit / leptoskit_rpc.
+leptos = { version = "0.9.0-rc1", default-features = false }
+leptos_axum = "0.9.0-rc1"
+leptos_meta = "0.9.0-rc1"
+leptos_router = { version = "0.9.0-rc1", default-features = false }
 
-# Server functions
-server_fn = "0.8"
+# Server functions (aligned with leptos 0.9)
+server_fn = { version = "0.9.0-rc1", default-features = false }
 
-# Utilities
-leptos-use = "0.16"
+# leptoskit SSR + RPC from the pinned upstream revision. Cargo.lock resolves the
+# same immutable rev, so lockfile regeneration cannot advance the source. To
+# upgrade, change this rev and the root [workspace.metadata.bin] leptoskit_cli
+# rev together, then regenerate every leptoskit lockfile in one deliberate change.
+leptoskit = { git = "https://github.com/leptoskit/leptoskit", rev = "fa3d29f8e8c837b19f92f1e9a95f699803543767", default-features = false }
+leptoskit_rpc = { git = "https://github.com/leptoskit/leptoskit", rev = "fa3d29f8e8c837b19f92f1e9a95f699803543767", default-features = false }
+leptoskit_plugin_web_auth = { git = "https://github.com/leptoskit/leptoskit", rev = "fa3d29f8e8c837b19f92f1e9a95f699803543767", default-features = false }
+schemars = { version = "1.2", features = ["semver1"] }
 
 # Testing
 rstest = "0.27"
@@ -76,10 +82,12 @@ axum-extra = { version = "0.10", features = ["cookie"] }
 time = "0.3"
 
 # WASM
+any_spawner = { version = "0.3", default-features = false, features = ["wasm-bindgen"] }
 console_error_panic_hook = "0.1"
 console_log = "1"
 log = "0.4"
-wasm-bindgen = "0.2"
+wasm-bindgen = "=0.2.129"
+wasm-bindgen-futures = "0.4"
 web-sys = { version = "0.3", features = ["Window", "Document", "Element", "HtmlElement", "Storage", "MediaQueryList"] }
 
 # monochange app crates
@@ -87,13 +95,19 @@ monochange_app_api = { path = "crates/monochange_app_api" }
 monochange_app_automation = { path = "crates/monochange_app_automation" }
 monochange_app_db = { path = "crates/monochange_app_db" }
 monochange_app_feedback = { path = "crates/monochange_app_feedback" }
+monochange_backend = { path = "crates/monochange_backend" }
+monochange_shared = { path = "crates/monochange_shared" }
 
 # monochange crates (path deps from parent workspace)
-monochange_core = { path = "../crates/monochange_core", version = "0.21.0" }
-monochange_github = { path = "../crates/monochange_github", version = "0.21.0" }
-monochange_hosting = { path = "../crates/monochange_hosting", version = "0.21.0" }
+monochange_core = { path = "../crates/monochange_core", version = "0.21.1" }
+monochange_github = { path = "../crates/monochange_github", version = "0.21.1" }
+monochange_hosting = { path = "../crates/monochange_hosting", version = "0.21.1" }
 
-# cargo-leptos metadata
+# cargo-leptos loads [[workspace.metadata.leptos]] arrays only. This object
+# form is intentionally ignored; live config is [package.metadata.leptos] in
+# crates/monochange_app/Cargo.toml (site-root = "target/site"). Do not convert
+# this table to an array with site-root under crates/ — cargo-leptos erases
+# site-root on every build.
 [workspace.metadata.leptos]
 name = "monochange_app"
 bin-name = "monochange_app"
@@ -101,7 +115,7 @@ bin-package = "monochange_app"
 lib-name = "monochange_app"
 lib-package = "monochange_app"
 bin-repository = "https://github.com/monochange/monochange"
-site-root = "crates/monochange_app"
+site-root = "target/site"
 site-pkg-dir = "pkg"
 assets-dir = "public"
 style-file = "style/output.css"

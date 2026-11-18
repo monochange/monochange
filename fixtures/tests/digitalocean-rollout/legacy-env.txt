@@ -1,0 +1,2 @@
+MONOCHANGE_IMAGE=monochange-app:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+SECRET_KEY=should-not-leak

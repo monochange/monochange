@@ -57,7 +57,7 @@ jobs:
           - target: aarch64-unknown-linux-musl
             os: ubuntu-latest
           - target: aarch64-apple-darwin
-            os: macos-14
+            os: macos-latest
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
           - target: x86_64-unknown-linux-musl
@@ -378,6 +378,17 @@ jobs:
         with:
           version: 12
 
+      # monochange publishes the Flutter feedback package with
+      # `flutter pub publish`; the composite publish action runs the monochange
+      # CLI with the runner PATH, where this action installs the SDK. Keep
+      # caching off like the node setup above: the publish job must not depend
+      # on restore-key caches.
+      - name: setup flutter for publish
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version: "3.47.9"
+          cache: false
+
       - name: publish packages
         uses: monochange/actions@104b58f3ff8b6d3a6153a87a553a2bdaaa42a78f # v0.12.0
         env:
@@ -422,3 +433,20 @@ jobs:
         run: gh release edit "$RELEASE_TAG" --draft=false --latest --repo "${{ github.repository }}"
         env:
           GH_TOKEN: ${{ github.token }}
+
+      # The actions repository is a separate release stream. Once the CLI
+      # release is public, ask it to refresh its release PR so any pending
+      # action changesets are ready for the maintainer to release alongside
+      # this CLI release. The call authenticates with the job's OIDC token and
+      # the monochange GitHub App installation, so no personal access token is
+      # stored in this repository. This handoff never merges the actions PR:
+      # the merge stays a maintainer decision.
+      - name: dispatch monochange actions release
+        env:
+          RELEASE_TAG: ${{ steps.release_tag.outputs.tag }}
+        run: |
+          set -euo pipefail
+          "${RUNNER_TEMP}/bin/monochange" gh workflow run release.yml \
+            --repo monochange/actions \
+            --ref main \
+            --format json

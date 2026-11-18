@@ -516,11 +516,10 @@ fn render_release_pull_request_body_bounds_an_oversized_body() {
 	assert_eq!(unbounded.truncation, None);
 	assert!(!unbounded.body.contains("## Full release notes"));
 
-	// The smallest achievable body is the header plus the truncation notice; a
-	// limit above that always fits, because every note can be dropped.
+	// Leave room for the header and continuation pointer while dropping notes.
 	let floor =
-		render_release_pull_request_body(&manifest, ProviderPullRequestBodyStyle::Full, Some(1));
-	let limit = floor.body.chars().count() + 40;
+		render_release_pull_request_body(&manifest, ProviderPullRequestBodyStyle::Full, None);
+	let limit = floor.body.chars().count() - 40;
 	assert!(limit < unbounded.body.chars().count());
 
 	let bounded = render_release_pull_request_body(
@@ -563,7 +562,7 @@ fn render_release_pull_request_body_bounds_to_a_tiny_limit_without_panicking() {
 		truncation.dropped_entries >= 1,
 		"every note is dropped once the limit cannot fit a single entry"
 	);
-	assert!(bounded.body.contains("## Prepared release"));
+	assert!(bounded.body.chars().count() <= 1);
 }
 
 #[test]
@@ -598,14 +597,14 @@ fn render_release_pull_request_body_reports_what_was_dropped() {
 		vec![(
 			"Features",
 			vec![
-				"a first entry with enough characters to exceed a small limit",
-				"a second entry with enough characters to exceed a small limit",
+				"a first entry with enough characters to exceed a small limit. More details about this change. More details about this change. More details about this change. More details about this change. More details about this change. More details about this change. More details about this change. More details about this change. More details about this change. More details about this change. More details about this change. More details about this change. More details about this change. More details about this change. More details about this change. ",
+				"a second entry with enough characters to exceed a small limit. More details about this change. More details about this change. More details about this change. More details about this change. More details about this change. More details about this change. More details about this change. More details about this change. More details about this change. More details about this change. More details about this change. More details about this change. More details about this change. More details about this change. More details about this change. ",
 			],
 		)],
 	)];
 
 	let floored =
-		render_release_pull_request_body(&manifest, ProviderPullRequestBodyStyle::Full, Some(1));
+		render_release_pull_request_body(&manifest, ProviderPullRequestBodyStyle::Full, Some(360));
 	let truncation = floored
 		.truncation
 		.unwrap_or_else(|| panic!("expected a truncation report"));
@@ -650,9 +649,7 @@ fn release_pull_request_body_for_source_uses_the_config_limit() {
 	);
 
 	let unbounded = release_pull_request_body_for_source(&source, &manifest);
-	let smallest =
-		render_release_pull_request_body(&manifest, ProviderPullRequestBodyStyle::Full, Some(1));
-	let limit = smallest.body.chars().count() + 40;
+	let limit = unbounded.body.chars().count() - 40;
 	assert!(limit < unbounded.body.chars().count());
 	source.pull_requests.max_body_chars = Some(limit);
 	let bounded = release_pull_request_body_for_source(&source, &manifest);
@@ -1588,4 +1585,35 @@ fn patch_json_returns_error_for_non_success_status() {
 	assert!(error.contains("test API PATCH"));
 	assert!(error.contains("409"));
 	mock.assert();
+}
+
+#[test]
+fn oversized_headers_and_summary_pointers_still_obey_the_cap() {
+	let mut manifest = sample_manifest();
+	manifest.release_targets = vec![minimal_target(&"target".repeat(20_000))];
+	for style in [
+		ProviderPullRequestBodyStyle::Full,
+		ProviderPullRequestBodyStyle::Summary,
+	] {
+		let result = render_release_pull_request_body(&manifest, style, Some(65_536));
+		assert!(result.body.chars().count() <= 65_536);
+		assert!(result.truncation.is_some());
+		assert_eq!(
+			result.body,
+			"and more... See the changelog files in this PR for full details."
+		);
+	}
+}
+
+#[test]
+fn exact_limit_does_not_reserve_an_unneeded_pointer() {
+	let manifest = sample_manifest();
+	let original = release_pull_request_body(&manifest);
+	let rendered = render_release_pull_request_body(
+		&manifest,
+		ProviderPullRequestBodyStyle::Full,
+		Some(original.chars().count()),
+	);
+	assert_eq!(rendered.body, original);
+	assert!(rendered.truncation.is_none());
 }

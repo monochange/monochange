@@ -1,0 +1,10 @@
+[package]
+name = "opt_hidden"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+extra_kit = ["dep:hidden_leaf"]
+
+[dependencies]
+hidden_leaf = { path = "../hidden_leaf", optional = true }

@@ -1,270 +1,130 @@
 {
 	"files": {
-		"__wasm_split.______________________.js": {
-			"bytes": 16774,
-			"gzipBytes": 1763
-		},
-		"__wasm_split_manifest.json": {
-			"bytes": 3728,
-			"gzipBytes": 584
-		},
-		"chunk_11.wasm": {
-			"bytes": 953,
-			"gzipBytes": 607
-		},
-		"chunk_12.wasm": {
-			"bytes": 618,
-			"gzipBytes": 473
-		},
-		"chunk_13.wasm": {
-			"bytes": 291,
-			"gzipBytes": 257
-		},
-		"chunk_14.wasm": {
-			"bytes": 190,
-			"gzipBytes": 169
-		},
-		"chunk_15.wasm": {
-			"bytes": 784,
-			"gzipBytes": 488
-		},
-		"chunk_16.wasm": {
-			"bytes": 947,
-			"gzipBytes": 667
-		},
-		"chunk_17.wasm": {
-			"bytes": 1251,
-			"gzipBytes": 749
-		},
-		"chunk_18.wasm": {
-			"bytes": 190,
-			"gzipBytes": 169
-		},
-		"chunk_19.wasm": {
-			"bytes": 190,
-			"gzipBytes": 169
-		},
-		"chunk_20.wasm": {
-			"bytes": 597,
-			"gzipBytes": 450
-		},
-		"chunk_21.wasm": {
-			"bytes": 587,
-			"gzipBytes": 411
-		},
-		"chunk_22.wasm": {
-			"bytes": 1001,
-			"gzipBytes": 702
-		},
-		"chunk_23.wasm": {
-			"bytes": 190,
-			"gzipBytes": 169
-		},
-		"chunk_24.wasm": {
-			"bytes": 587,
-			"gzipBytes": 457
-		},
-		"chunk_25.wasm": {
-			"bytes": 1689,
-			"gzipBytes": 1049
-		},
-		"chunk_26.wasm": {
-			"bytes": 2372,
-			"gzipBytes": 1194
-		},
-		"chunk_27.wasm": {
-			"bytes": 615,
-			"gzipBytes": 456
-		},
-		"chunk_28.wasm": {
-			"bytes": 190,
-			"gzipBytes": 169
-		},
-		"chunk_29.wasm": {
-			"bytes": 887,
-			"gzipBytes": 634
-		},
-		"chunk_30.wasm": {
-			"bytes": 4141,
-			"gzipBytes": 2094
-		},
-		"chunk_31.wasm": {
-			"bytes": 707,
-			"gzipBytes": 447
-		},
-		"chunk_32.wasm": {
-			"bytes": 190,
-			"gzipBytes": 169
-		},
-		"chunk_33.wasm": {
-			"bytes": 190,
-			"gzipBytes": 169
-		},
-		"chunk_34.wasm": {
-			"bytes": 1157,
-			"gzipBytes": 673
-		},
-		"chunk_35.wasm": {
-			"bytes": 1173,
-			"gzipBytes": 778
-		},
-		"chunk_36.wasm": {
-			"bytes": 1107,
-			"gzipBytes": 765
-		},
-		"chunk_37.wasm": {
-			"bytes": 696,
-			"gzipBytes": 463
-		},
-		"chunk_38.wasm": {
-			"bytes": 2016,
-			"gzipBytes": 1203
-		},
-		"chunk_39.wasm": {
-			"bytes": 485,
-			"gzipBytes": 351
-		},
-		"chunk_40.wasm": {
-			"bytes": 884,
-			"gzipBytes": 641
-		},
-		"chunk_41.wasm": {
-			"bytes": 1271,
-			"gzipBytes": 585
-		},
-		"chunk_42.wasm": {
-			"bytes": 115549,
-			"gzipBytes": 47330
-		},
-		"chunk_43.wasm": {
-			"bytes": 632,
-			"gzipBytes": 438
-		},
-		"chunk_44.wasm": {
-			"bytes": 3717,
-			"gzipBytes": 2102
-		},
-		"chunk_45.wasm": {
-			"bytes": 5403,
-			"gzipBytes": 2820
-		},
-		"chunk_46.wasm": {
-			"bytes": 381,
-			"gzipBytes": 315
-		},
-		"chunk_47.wasm": {
-			"bytes": 707,
-			"gzipBytes": 444
-		},
-		"chunk_48.wasm": {
-			"bytes": 1292,
-			"gzipBytes": 811
-		},
-		"chunk_49.wasm": {
-			"bytes": 4255,
-			"gzipBytes": 2099
-		},
-		"chunk_50.wasm": {
-			"bytes": 190,
-			"gzipBytes": 169
-		},
-		"chunk_51.wasm": {
-			"bytes": 20894,
-			"gzipBytes": 8771
-		},
-		"chunk_52.wasm": {
-			"bytes": 1071,
-			"gzipBytes": 726
-		},
-		"chunk_53.wasm": {
-			"bytes": 8419,
-			"gzipBytes": 3860
-		},
-		"chunk_54.wasm": {
-			"bytes": 543,
-			"gzipBytes": 418
-		},
-		"chunk_55.wasm": {
-			"bytes": 2616,
-			"gzipBytes": 1492
-		},
-		"chunk_56.wasm": {
-			"bytes": 624,
-			"gzipBytes": 444
-		},
-		"chunk_57.wasm": {
-			"bytes": 4669,
-			"gzipBytes": 2252
-		},
-		"chunk_58.wasm": {
-			"bytes": 35385,
-			"gzipBytes": 16097
-		},
-		"chunk_59.wasm": {
-			"bytes": 4903,
-			"gzipBytes": 2309
-		},
-		"monochange_app.css": {
-			"bytes": 108092,
-			"gzipBytes": 17758
-		},
-		"monochange_app.d.ts": {
-			"bytes": 4615,
-			"gzipBytes": 1219
-		},
-		"monochange_app.js": {
-			"bytes": 28594,
-			"gzipBytes": 7900
-		},
-		"monochange_app.wasm": {
-			"bytes": 1699276,
-			"gzipBytes": 548508
-		},
-		"monochange_app_bg.wasm.d.ts": {
-			"bytes": 2594,
-			"gzipBytes": 570
-		},
-		"split___auth_callback_route_view_7607307890070960239.wasm": {
-			"bytes": 31868,
-			"gzipBytes": 12198
-		},
-		"split___book_route_view_3782146196699104827.wasm": {
-			"bytes": 65979,
-			"gzipBytes": 27814
-		},
-		"split___changelog_route_view_6025115133537265126.wasm": {
-			"bytes": 59254,
-			"gzipBytes": 25504
-		},
-		"split___dashboard_route_view_3414560792153109934.wasm": {
-			"bytes": 190412,
-			"gzipBytes": 76897
-		},
-		"split___feedback_console_route_view_16314146554626852393.wasm": {
-			"bytes": 793030,
-			"gzipBytes": 303067
-		},
-		"split___install_route_view_3132497258130033493.wasm": {
-			"bytes": 19626,
-			"gzipBytes": 8572
-		},
-		"split___organization_route_view_8368774849835180060.wasm": {
-			"bytes": 110701,
-			"gzipBytes": 45934
-		},
-		"split___portal_route_view_6486699372513665897.wasm": {
-			"bytes": 492942,
-			"gzipBytes": 200931
-		},
-		"split___pricing_route_view_7627688755584235732.wasm": {
-			"bytes": 14004,
-			"gzipBytes": 6475
-		},
-		"split___project_route_view_4822358848948531418.wasm": {
-			"bytes": 131737,
-			"gzipBytes": 51024
+		"projects/__wasm_split.______________________.js": {
+			"bytes": 2377,
+			"gzipBytes": 680
+		},
+		"projects/__wasm_split_manifest.json": {
+			"bytes": 709,
+			"gzipBytes": 233
+		},
+		"projects/chunk_6.wasm": {
+			"bytes": 13713,
+			"gzipBytes": 6433
+		},
+		"projects/chunk_7.wasm": {
+			"bytes": 30939,
+			"gzipBytes": 15110
+		},
+		"projects/chunk_8.wasm": {
+			"bytes": 57059,
+			"gzipBytes": 23644
+		},
+		"projects/monochange_projects_web.js": {
+			"bytes": 26742,
+			"gzipBytes": 7605
+		},
+		"projects/monochange_projects_web_bg.wasm": {
+			"bytes": 960969,
+			"gzipBytes": 364309
+		},
+		"projects/split___feedback_console_route_view_8526866189374603487.wasm": {
+			"bytes": 591150,
+			"gzipBytes": 213286
+		},
+		"projects/split___organization_route_view_13495822508671786041.wasm": {
+			"bytes": 155632,
+			"gzipBytes": 69517
+		},
+		"projects/split___portal_route_view_5891345368219601793.wasm": {
+			"bytes": 359838,
+			"gzipBytes": 148550
+		},
+		"projects/split___project_route_view_10158607162556956734.wasm": {
+			"bytes": 90977,
+			"gzipBytes": 38842
+		},
+		"projects/split___projects_home_route_view_2703567038992046176.wasm": {
+			"bytes": 67717,
+			"gzipBytes": 30004
+		},
+		"site/__wasm_split.______________________.js": {
+			"bytes": 3197,
+			"gzipBytes": 797
+		},
+		"site/__wasm_split_manifest.json": {
+			"bytes": 1124,
+			"gzipBytes": 318
+		},
+		"site/chunk_10.wasm": {
+			"bytes": 8715,
+			"gzipBytes": 3829
+		},
+		"site/chunk_11.wasm": {
+			"bytes": 14104,
+			"gzipBytes": 6414
+		},
+		"site/monochange_app.css": {
+			"bytes": 72775,
+			"gzipBytes": 14976
+		},
+		"site/monochange_app.js": {
+			"bytes": 26422,
+			"gzipBytes": 7462
+		},
+		"site/monochange_app_bg.wasm": {
+			"bytes": 970417,
+			"gzipBytes": 382210
+		},
+		"site/split___account_route_view_15404463439875678756.wasm": {
+			"bytes": 83424,
+			"gzipBytes": 36138
+		},
+		"site/split___auth_callback_route_view_12016627425288013836.wasm": {
+			"bytes": 24119,
+			"gzipBytes": 11071
+		},
+		"site/split___book_route_view_17666993872358248534.wasm": {
+			"bytes": 48551,
+			"gzipBytes": 22446
+		},
+		"site/split___changelog_route_view_18050757885357555981.wasm": {
+			"bytes": 49372,
+			"gzipBytes": 22754
+		},
+		"site/split___connect_route_view_16354542081929312001.wasm": {
+			"bytes": 64299,
+			"gzipBytes": 29613
+		},
+		"site/split___dashboard_route_view_14578883471362314054.wasm": {
+			"bytes": 231733,
+			"gzipBytes": 100014
+		},
+		"site/split___install_route_view_9651537698978891125.wasm": {
+			"bytes": 14538,
+			"gzipBytes": 7444
+		},
+		"site/split___login_route_view_5096727190328531431.wasm": {
+			"bytes": 44598,
+			"gzipBytes": 21052
+		},
+		"site/split___pricing_route_view_14841084612111332454.wasm": {
+			"bytes": 13500,
+			"gzipBytes": 6946
+		},
+		"fonts/bricolage-800.woff2": {
+			"bytes": 25128,
+			"gzipBytes": 25128
+		},
+		"fonts/hanken-400.woff2": {
+			"bytes": 16732,
+			"gzipBytes": 16732
+		},
+		"fonts/hanken-700.woff2": {
+			"bytes": 17152,
+			"gzipBytes": 17152
 		}
 	},
-	"totalBytes": 4012622,
-	"totalGzipBytes": 1447392
+	"totalBytes": 4087722,
+	"totalGzipBytes": 1650709
 }

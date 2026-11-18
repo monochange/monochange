@@ -4,6 +4,47 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-11-08)
+
+### 🚀 Feature
+
+#### Add a config-driven `monochange ci` gatekeeper with the full workspace graph
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #867](https://github.com/monochange/monochange/pull/867)
+
+`monochange ci` gates CI jobs from declarative `[ci]` configuration in `monochange.toml` instead of hand-listing packages per job:
+
+- `[ci.jobs.<id>]` declares each job's **root** packages (globs allowed) plus optional non-package `paths` and an `always` override. Globs expand against every workspace package and transitive dependencies are derived, so a new `leptoskit_plugin_foo` crate is covered by `leptoskit_plugin_*` with zero configuration edits.
+- `packages` entries can be tables pinning the cargo feature selection the job builds: `{ name = "leptoskit", features = ["nightly", "leptos"] }`, `{ name = "leptoskit_use", default_features = false }`, or `{ name = "leptoskit", all_features = true }` (equal to the bare string form). Optional dependencies then run the job only when the selection activates them; `dep:name`, `name/feat`, and `name?/feat` syntax is expanded transitively, features union across paths into a crate, the root's normal, build, and dev edges count while transitive dependencies contribute only normal and build edges. A facade crate that optionally depends on half the workspace no longer drags a `--no-default-features` job into running on almost any change; unknown feature names fall back to all-features with a warning in the decision reason, because unknown must mean run, never skip.
+- The dependency graph comes from `cargo metadata --format-version 1 --no-deps --offline`, which resolves offline (the gate never downloads the crates.io index) and includes unpublished members, crates nested at any depth, `foo.workspace = true` inheritance, renamed dependencies, and `[target.'cfg(..)'.dependencies]` sections; monochange's manifest discovery adds every other ecosystem. A root `Cargo.toml` that Cargo cannot parse is an error carrying cargo's own diagnostics, never a silent fallback to discovery.
+- Decisions are safe by default: unknown must mean run. An unconfigured `--job` id runs with `no ci rule for <id>`, and a changed file that no package owns, no job claims, and `ignore_paths` ignores runs every job with a reason naming the file.
+- `--on-error run-all` fails the gate open: GitHub skips every job that needs a failed gate, and a skipped required check counts as passing, so a broken gate would let any PR merge. With `run-all`, any error after argument parsing prints a `::error title=monochange ci decide::` annotation, writes `decisions` with every configured job (plus every `--job` id) set to `true`, `affected-packages=[]`, and `run-all=true` to the outputs, and exits 0; the default `--on-error fail` stays loud. A failure writing `$GITHUB_OUTPUT` fails the command instead of silently dropping the outputs.
+- Providers (`opencode-go`, `openrouter`, `cloudflare`, `jev`, `openai-compatible`) are a preset table plus one OpenAI-compatible client making **one** request per `decide` run covering every job. With `ai_can_skip = false` (the default) a provider can only turn `n` into `y`; unconditional, `always`, and learned-rule verdicts are never overridden; provider failures fall back to the graph.
+- `--format github-outputs` writes exactly `decisions` (compact JSON of job id to boolean), `affected-packages`, and `run-all`, so consumers gate jobs with `if: fromJSON(needs.<job>.outputs.decisions)['<id>']`.
+- New `monochange ci check [--workflow <path>]...` fails with the full list of configuration problems: unknown root packages, zero-match package or path globs, jobs with no trigger, non-kebab-case ids, and workflow `decisions` references that point at unconfigured or never-referenced jobs.
+- `monochange ci auth`, `verify`, `analytics`, and `history` keep their purpose, now keyed by configured job ids; `verify` still learns override rules from false negatives.
+
+#### Add canonical `monochange format` command
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #854](https://github.com/monochange/monochange/pull/854)
+
+Adds `monochange format` to rewrite `monochange.toml` in the idiomatic layout: top-level sections in a fixed order, `[package.*]` and `[group.*]` tables sorted by id, group members sorted alphabetically, and `[cli.*]` workflows last. Comments stay attached to their tables and the document header stays at the top.
+
+The command formats the result with taplo using the repository's tab-based, 100-column configuration, so it does not require a separate taplo installation. Use `monochange format --check` to fail CI when the file needs formatting without writing changes. The repository's `lint:monochange` task and CI lint job now run that check.
+
+### 🐛 Fixed
+
+#### Preview `check --fix`, print init next steps, and retire `monochange populate`
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #857](https://github.com/monochange/monochange/pull/857)
+
+Three usability fixes:
+
+- `monochange check --fix --dry-run` previews the fixes `--fix` would apply without writing any file. The summary says `would fix N files`, and the check still fails when errors remain on disk, so a dry run never silently passes a workspace that fixing would repair. `--dry-run` now requires `--fix`.
+- `monochange init` prints the next commands to run (validate, discover, create, preview) instead of only naming the file it wrote.
+- The legacy `monochange populate` command is removed. It has been a documented no-op since the default workflow set became empty; scripts calling it now get an unknown-command error and should call the steps they need directly.
+- TOML syntax errors in `monochange.toml` render with the same source snippet semantic errors get: file, line and column, the offending line with a caret, and the parser's reason, instead of a flat `failed to parse` message.
+
 ## [0.21.0](https://github.com/monochange/monochange/releases/tag/v0.21.0) (2026-10-22)
 
 ### 🚀 Feature

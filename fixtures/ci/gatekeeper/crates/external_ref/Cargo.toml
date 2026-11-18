@@ -1,0 +1,12 @@
+[package]
+name = "external_ref"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+# `outside/thing` names a dependency outside the workspace: valid cargo that
+# must resolve to no workspace edge instead of a fallback.
+ext = ["outside/thing", "dep:outside"]
+
+[dependencies]
+outside = { path = "../../outside", optional = true }

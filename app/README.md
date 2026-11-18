@@ -6,10 +6,23 @@ Leptos SSR web app for monochange release planning.
 
 The app uses SQLite by default, so no database service is required. It loads its secrets through [Monosecret](https://monosecret.dev) from `app/monosecret.toml`. The `development` profile reads the ignored `app/.env` first, then the process environment, then local defaults. It never contacts 1Password.
 
+The two web frontends build through their own `leptoskit.toml` configs: `app/leptoskit.toml` (website entry) and `app/projects/leptoskit.toml` (projects entry). Both name the shared `monochange_app` backend. The `build:web` devenv task resolves the provenance-verified CLI, builds both frontends into fresh per-invocation scratch directories under the ignored `.monochange/local/web-build/<run>/`, and only after both builds passed their own bundle reports and budgets runs `scripts/leptoskit-plugin/publish-web-site.ts`, which stages one complete deployment tree, validates it, and promotes it to `app/target/site` — keeping the last good site on any failure. One publication at a time owns the site through its lease, `app/target/.site.publish-lease`; while it is held, every other publication of that site fails without changing anything. The tooling plugin (shared site CSS, split-loader minification, release WASM optimization) runs inside each build's scratch output.
+
 ```bash
-# From the repository root
-MONOSECRET_PROFILE=development devenv shell cargo leptos --manifest-path app/crates/monochange_app/Cargo.toml serve
+# Build both frontends (add --release for the size/benchmark gates)
+devenv shell build:web
+# Serve the assembled site statically through the managed CLI
+# (SSR development runs the server binary with LEPTOS_SITE_ROOT instead)
+cd app && ../scripts/leptoskit-cli.sh serve --dir target/site
 ```
+
+An interrupted publication (Ctrl-C, a killed container) leaves its lease behind, and later publications of the site fail closed. The error names the lease, its owner (token, pid, host, start time), the trees it retains, and the recovery command. The publisher never guesses that an owner is dead. Confirm that publisher is not running anywhere, then run the command the error names:
+
+```bash
+node scripts/leptoskit-plugin/publish-web-site.ts --site-root app/target/site --recover-abandoned-lease <token>
+```
+
+Recovery restores the retained last-good tree when the site root is absent. Otherwise it moves the retained tree aside to `app/target/.site.publish-retained-<token>` for you to inspect and remove. The publisher never removes anything beside the site root by name pattern. Remove these by hand once no publisher is running: a `.site.publish-retired-<token>` directory reported after a cleanup failure, and the older format's `.site-staging-*` and `.site-previous-*` leftovers.
 
 Default database:
 
@@ -20,7 +33,8 @@ sqlite://./monochange_app.sqlite3
 Override any value, such as `DATABASE_URL` or the GitHub App client credentials, in `app/.env` or the environment:
 
 ```bash
-DATABASE_URL=sqlite://.devenv/state/monochange_app.sqlite3 MONOSECRET_PROFILE=development devenv shell cargo leptos --manifest-path app/crates/monochange_app/Cargo.toml serve
+DATABASE_URL=sqlite://.devenv/state/monochange_app.sqlite3 LEPTOS_SITE_ROOT=target/site \
+  MONOSECRET_PROFILE=development devenv shell -- bash -c 'cd app && cargo run'
 ```
 
 ## tests
@@ -37,16 +51,23 @@ Release automation uses the same SQLite database and remains disabled unless `MO
 Every app pull request runs a Lighthouse suite over the core flows (`/`, `/install`, `/pricing`, `/changelog`, `/book`, a book chapter, `/login`, and the signed-out `/dashboard`) plus a gzip bundle-size check against the committed baseline. Locally, after a release build:
 
 ```bash
-# from the repository root, with pnpm dependencies installed
-cargo leptos --manifest-path app/crates/monochange_app/Cargo.toml build --release --split
+# from the repository root; build:web builds both frontends into fresh
+# scratch outputs and publishes one validated site to app/target/site
+devenv shell build:web --release
 pnpm bench:website          # Lighthouse against a throwaway local server
 pnpm size:website           # compare app/target/site/pkg against the baseline
 pnpm size:website:update    # accept a deliberate size change in the same PR
 ```
 
+The release builds go through the pinned **leptoskit** CLI (`build:web` resolves it from `[workspace.metadata.bin]` and verifies the Git provenance), never cargo-leptos. The tooling plugin (`scripts/leptoskit-plugin/web-assets-plugin.ts`) prepares each build's own scratch bundle inside `leptoskit build`: the Tailwind site CSS, the guarded `__wasm_split.*.js` loader minification (scripts/minify-split-loader.ts), the WOFF2 font subsets, and — in release builds — the guarded WASM re-optimization. It never moves or publishes anything: the SDK's bundle report and `bundle.budget_kib` check read that scratch bundle after the hook, so a build its own budget rejects can never have touched the deployment. Publication is `scripts/leptoskit-plugin/publish-web-site.ts`, which runs only after BOTH builds succeeded: it stages `pkg/site/` + `pkg/projects/`, the public assets, and the fonts from the scratch outputs alone (so removed files and stale chunks cannot survive), verifies both builds compiled byte-identical CSS, precompresses the staged tree (gzip 9 / brotli 11), validates completeness, and promotes it over `app/target/site` with a two-rename swap that keeps the last good site on any failure. The whole publication holds one exclusive lease per destination. The lease directory contains the staging tree and the superseded tree, so concurrent publications of one site fail cleanly instead of interleaving, and sibling destinations stay independent. The window between the two renames is documented in the publisher's header: a reader that opens the site root at that instant sees a missing directory. Every in-repo consumer reads the tree only after `build:web` exits, and production copies the finished tree into the image before anything serves it.
+
 Budgets live in `scripts/website-budgets.json`; the size baseline in `scripts/website-size-baseline.json`. `pnpm bench:website` needs Chrome or Chromium locally (`CHROME_PATH` is honoured). The app CI job fails on budget violations unless `MONOCHANGE_ALLOW_BENCHMARK_BUDGET_FAILURES=true` is set, mirroring the CLI benchmark escape hatch.
 
-The client is split into per-route WASM chunks (`#[lazy_route]` boundaries, built with `cargo leptos build --split`): the landing and login views stay in the initial bundle while every other route loads its code on first navigation. `/pkg` assets are served with revalidation caching, and the deployment image precompresses them (gzip and brotli) alongside compression at the Caddy edge.
+Each browser entry is split into per-route WASM chunks (`#[lazy_route]` boundaries, `split = true` in `leptoskit.toml`): the landing and login views stay in the website's initial bundle while every other route loads its code on first navigation, and the projects entry hydrates the product routes from its own bundle. `/pkg` assets are served with revalidation caching, and the deployment image precompresses them (gzip and brotli) alongside compression at the Caddy edge.
+
+Links that cross between the website and projects entries render with `target="_self"`, so the click loads the other entry as a real document navigation instead of client-side routing into a bundle that does not own the route.
+
+Shared wire DTOs for the website, projects, extension, and native guests live in `crates/monochange_shared`. Class B machine APIs (webhooks, hosted release OIDC, embed SDK) mount through `crates/monochange_backend`.
 
 ## deploy
 
@@ -141,6 +162,16 @@ To keep the backend in `monochange.toml` instead of the environment, set `commit
 The release branch only exists on GitHub after a hosted run. A later step that reads it, such as `monochange step release-record --from monochange/release/release`, must fetch it first with `git fetch origin "+refs/heads/monochange/release/release:refs/heads/monochange/release/release"`.
 
 Every run rebuilds the release pull request branch from `[source.pull_requests].base` and the bot replaces the previous release commit, so each push refreshes the open release pull request. A run whose base branch moved while it was preparing the release fails with a conflict and leaves the refresh to the run for the newer commit. The bot only replaces monochange release branches: the branch must be named `<branch_prefix>/release`, which `monochange step commit-release`, `monochange step open-release-request`, and a `[cli.release]` workflow produce, and it must not be the repository's default branch. Workflows with other names, such as `[cli.release-pr]`, get `<branch_prefix>/release-pr`; the first run creates that branch, but later runs fail with a conflict until the branch is deleted. The bot never writes files under `.git` or `.github/workflows`: monochange.dev refuses uploaded paths there and refuses a tree whose `.github/workflows` differs from the base commit's.
+
+### Dispatch a workflow in another repository
+
+The same app installation can dispatch a workflow in another repository owned by the same account or organization. This lets a CLI release prepare the matching actions release without storing a personal access token in either repository:
+
+```yaml
+- run: monochange gh workflow run release.yml --repo monochange/actions --ref main
+```
+
+The command sends the request to monochange.dev, which checks that the calling repository and the target repository belong to the same app installation and starts the existing workflow with the installation token. A GitHub Actions job must grant `id-token: write`, and the installation must grant the Actions write permission the app already requests for release automation. Use `--field KEY=VALUE` for workflow inputs and `--dry-run` to validate the target without starting a run. Local runs need `--hosted-auth token` and a deployment `MONOCHANGE_TOKEN`; the public app does not issue per-user tokens, so use GitHub Actions for unattended dispatches. The target repository must be connected to the app in the dashboard. The app does not need Workflows write access: it dispatches an existing workflow and never edits workflow files.
 
 Keep your repository's branch protection and required checks enabled. Review and merge the bot's release pull request through your normal process; registry publishing remains a separate workflow.
 
@@ -273,12 +304,12 @@ The `/changelog` components and stylesheet own the visual layout. Change those f
 
 ## Deploy after release approval
 
-The existing release workflow prepares a release PR. A maintainer approves and merges that PR through the repository's required checks. Post-merge automation creates release tags and draft releases, then runs the `website-deployment` job in `ci.yml` only when the release record contains `monochange_app`.
+The existing release workflow prepares a release PR. A maintainer approves and merges that PR through the repository's required checks. Post-merge automation in `ci.yml` creates release tags and draft releases. The separate `app.yml` workflow runs its `website-deployment` job only when the release record contains `monochange_app`, and waits for that release's tag before it builds.
 
 The deployment job reads its dedicated SSH key directly from the `website-production` environment and validates it before setting up tooling or building an image. It verifies the exact commit, tag, and recorded website artifacts, then builds and smoke-tests a Linux image, transfers it through a pinned SSH connection, backs up SQLite, and restarts the application with its existing runtime credentials. It removes the temporary key even if an earlier step fails. Public HTTPS, health, JSON, and changelog checks must pass before automation publishes the website's GitHub release with the recorded user notes. CLI publication remains separate.
 
 Production deployments are serialized. Failed deployments leave the website release as a draft and report the failure in Actions. Inspect migrations and backups before a rollback, because an older image may not support the new database schema. Re-run the failed deployment job after fixing its cause; do not create another tag or release record.
 
-The workflow needs a dedicated `WEBSITE_DEPLOY_SSH_KEY` secret in the `website-production` Actions environment and the corresponding forced-command key on the server. Restrict that environment to `main`. Keep the key separate from personal SSH access. Production passwords stay in the runtime vault, and the private deployment key belongs in the recovery vault. See `app/deploy/digitalocean/OPERATIONS.md` for the server setup and credential rotation procedure.
+The workflow needs a dedicated `WEBSITE_DEPLOY_SSH_KEY` secret in the `website-production` Actions environment and the corresponding forced-command key on the server. Restrict that environment to `main`. Keep the key separate from personal SSH access. Production passwords stay in the runtime vault, and the private deployment key belongs in the recovery vault. See `app/DEPLOY.md` for the release-day checklist and recovery steps, and `app/deploy/digitalocean/OPERATIONS.md` for the server setup and credential rotation procedure.
 
 <!-- {/websiteReleaseNotes} -->

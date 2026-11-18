@@ -8,6 +8,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct VotingRules {
 	/// Votes needed before a maintainer can accept without recording an
 	/// override rationale.
@@ -23,6 +24,7 @@ impl Default for VotingRules {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(tag = "outcome", rename_all = "snake_case")]
 pub enum VotingOutcome {
 	BelowThreshold { votes: u32 },
@@ -31,6 +33,7 @@ pub enum VotingOutcome {
 
 /// One vote per anonymous submitter id.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct VoteTally {
 	recorded: BTreeSet<String>,
 }

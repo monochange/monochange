@@ -11,6 +11,7 @@
 #[path = "__tests__/lib_tests.rs"]
 mod tests;
 
+pub mod client_auth;
 mod config;
 pub mod embedded_api;
 pub mod feedback;
@@ -18,10 +19,12 @@ pub mod github_app;
 pub mod oauth;
 pub mod oidc;
 pub mod release_api;
+pub mod sessions;
 pub mod tasks_api;
 
 pub mod token_vault;
 pub mod webhooks;
+pub mod workflow_api;
 
 use std::sync::Arc;
 
@@ -86,6 +89,7 @@ pub const RELEASE_REQUEST_BODY_LIMIT: usize = 2 * 1024 * 1024;
 pub fn api_router(state: AppState) -> Router<()> {
 	Router::new()
 		.merge(embedded_api::iframe_router())
+		.merge(client_auth::handoff_router())
 		.merge(
 			embedded_api::router().layer(axum::middleware::from_fn_with_state(
 				state.clone(),
@@ -100,6 +104,10 @@ pub fn api_router(state: AppState) -> Router<()> {
 		.route(
 			"/api/release-requests",
 			post(release_api::publish_release_request),
+		)
+		.route(
+			"/api/workflow-dispatches",
+			post(workflow_api::dispatch_workflow),
 		)
 		.route(
 			"/api/projects/{organization}/{project}/tasks",
@@ -125,14 +133,20 @@ pub struct Claims {
 	pub exp: usize,
 	/// Issued at timestamp
 	pub iat: usize,
+	/// The user's `session_epoch` when this token was minted. Old tokens
+	/// without the field deserialize as `0`, so they stay valid until the
+	/// first global sign-out increments the epoch.
+	#[serde(default)]
+	pub epoch: i64,
 }
 
-/// Create a JWT for a user session.
+/// Create a JWT for a user session at the user's current `session_epoch`.
 pub fn create_token(
 	secret: &str,
 	user_id: i32,
 	github_id: i64,
 	github_login: &str,
+	epoch: i64,
 ) -> Result<String, jsonwebtoken::errors::Error> {
 	let now = Utc::now();
 	let exp = now + Duration::days(7);
@@ -143,6 +157,7 @@ pub fn create_token(
 		github_login: github_login.to_string(),
 		exp: exp.timestamp() as usize,
 		iat: now.timestamp() as usize,
+		epoch,
 	};
 
 	encode(
@@ -203,6 +218,27 @@ pub struct AppState {
 	pub github_token_refresh_lock: Arc<tokio::sync::Mutex<()>>,
 	/// Bound provider work even when callbacks arrive from many addresses.
 	pub oauth_exchange_slots: Arc<tokio::sync::Semaphore>,
+	/// Exact redirect URIs the native handoff may return to.
+	pub native_redirect_uris: Vec<String>,
+	/// Exact redirect URIs the extension handoff may return to. Empty until an
+	/// extension id is configured, so an unconfigured extension cannot connect.
+	pub extension_redirect_uris: Vec<String>,
+}
+
+/// Parse a comma- or whitespace-separated allowlist, falling back to `default`
+/// when the configured value is missing or empty.
+fn parse_allowlist(raw: Option<String>, default: &[&str]) -> Vec<String> {
+	raw.filter(|value| !value.trim().is_empty())
+		.map(|value| {
+			value
+				.split([',', ' ', '\n', '\t'])
+				.map(str::trim)
+				.filter(|entry| !entry.is_empty())
+				.map(str::to_string)
+				.collect::<Vec<_>>()
+		})
+		.filter(|values| !values.is_empty())
+		.unwrap_or_else(|| default.iter().map(|entry| (*entry).to_string()).collect())
 }
 
 impl AppState {
@@ -281,6 +317,24 @@ impl AppState {
 			http,
 			github_token_refresh_lock: Arc::new(tokio::sync::Mutex::new(())),
 			oauth_exchange_slots: Arc::new(tokio::sync::Semaphore::new(16)),
+			native_redirect_uris: parse_allowlist(
+				std::env::var("MONOCHANGE_NATIVE_REDIRECT_URIS").ok(),
+				&[client_auth::NATIVE_REDIRECT_DEFAULT],
+			),
+			extension_redirect_uris: parse_allowlist(
+				std::env::var("MONOCHANGE_EXTENSION_REDIRECT_URIS").ok(),
+				&[],
+			),
 		})
+	}
+}
+
+impl AppState {
+	/// The site's own origin, used to check same-origin handoff requests.
+	#[must_use]
+	pub fn site_origin(&self) -> Option<String> {
+		url::Url::parse(&self.github_callback_url)
+			.ok()
+			.map(|url| url.origin().ascii_serialization())
 	}
 }

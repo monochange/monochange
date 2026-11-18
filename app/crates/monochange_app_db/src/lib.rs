@@ -11,6 +11,7 @@ use sqlx::sqlite::SqliteConnectOptions;
 use sqlx::sqlite::SqlitePoolOptions;
 use thiserror::Error;
 
+pub mod client_sessions;
 pub mod feedback;
 pub mod models;
 pub mod oauth;
@@ -62,6 +63,7 @@ pub async fn run_migrations(pool: &DbPool) -> Result<(), DbError> {
 		add_organizations_and_projects,
 		create_project_feedback,
 		create_oauth_state_uses,
+		create_client_sessions,
 	];
 
 	welds::migrations::up(&client, migrations)
@@ -138,12 +140,24 @@ fn create_oauth_state_uses(
 	))
 }
 
+// The welds migration callback requires this Result signature.
+#[allow(clippy::unnecessary_wraps)]
+fn create_client_sessions(
+	_state: &welds::migrations::TableState,
+) -> Result<welds::migrations::MigrationStep, welds::WeldsError> {
+	Ok(welds::migrations::MigrationStep::new(
+		"007_create_client_sessions",
+		CreateClientSessions,
+	))
+}
+
 pub(crate) struct CreateUsersTable;
 pub(crate) struct CreateReleaseAutomationTables;
 pub(crate) struct AddGitHubUserTokenRefresh;
 pub(crate) struct AddOrganizationsAndProjects;
 pub(crate) struct CreateProjectFeedback;
 pub(crate) struct CreateOAuthStateUses;
+pub(crate) struct CreateClientSessions;
 
 fn sql_statements(sql: &str) -> Vec<String> {
 	sql.split(';')
@@ -439,5 +453,62 @@ impl welds::migrations::MigrationWriter for CreateOAuthStateUses {
 
 	fn down_sql(&self, _syntax: welds::Syntax) -> Vec<String> {
 		sql_statements("DROP TABLE IF EXISTS oauth_state_uses;")
+	}
+}
+
+/// Opaque client-session grants and tokens for the native guest and extension
+/// handoff. Only hashes are stored. `users.session_epoch` lets one transaction
+/// revoke every browser JWT and client credential a user owns.
+impl welds::migrations::MigrationWriter for CreateClientSessions {
+	fn up_sql(&self, _syntax: welds::Syntax) -> Vec<String> {
+		sql_statements(
+			r"
+            ALTER TABLE users ADD COLUMN session_epoch INTEGER NOT NULL DEFAULT 0;
+
+            CREATE TABLE IF NOT EXISTS client_grants (
+                code_hash TEXT PRIMARY KEY NOT NULL,
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                client TEXT NOT NULL,
+                redirect_uri TEXT NOT NULL,
+                code_challenge TEXT NOT NULL,
+                session_epoch INTEGER NOT NULL,
+                expires_at INTEGER NOT NULL,
+                created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_client_grants_user ON client_grants(user_id);
+            CREATE INDEX IF NOT EXISTS idx_client_grants_expiry ON client_grants(expires_at);
+
+            CREATE TABLE IF NOT EXISTS client_sessions (
+                id TEXT PRIMARY KEY NOT NULL,
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                token_hash TEXT NOT NULL UNIQUE,
+                client TEXT NOT NULL,
+                session_epoch INTEGER NOT NULL,
+                created_at INTEGER NOT NULL,
+                last_used_at INTEGER,
+                expires_at INTEGER NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_client_sessions_user ON client_sessions(user_id);
+            CREATE INDEX IF NOT EXISTS idx_client_sessions_expiry ON client_sessions(expires_at);
+            CREATE INDEX IF NOT EXISTS idx_client_sessions_token ON client_sessions(token_hash);
+        ",
+		)
+	}
+
+	fn down_sql(&self, _syntax: welds::Syntax) -> Vec<String> {
+		sql_statements(
+			r"
+            DROP INDEX IF EXISTS idx_client_sessions_token;
+            DROP INDEX IF EXISTS idx_client_sessions_expiry;
+            DROP INDEX IF EXISTS idx_client_sessions_user;
+            DROP TABLE IF EXISTS client_sessions;
+            DROP INDEX IF EXISTS idx_client_grants_expiry;
+            DROP INDEX IF EXISTS idx_client_grants_user;
+            DROP TABLE IF EXISTS client_grants;
+            ALTER TABLE users DROP COLUMN session_epoch;
+        ",
+		)
 	}
 }

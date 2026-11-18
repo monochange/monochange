@@ -9,10 +9,11 @@ This is the executable form of the request "kick off the release flow, then upda
 The chain is strictly ordered, because each phase consumes an artifact the previous one published.
 
 ```text
-1. monochange release PR merged        -> vX.Y.Z tag + GitHub release + crates.io + npm
+1. monochange release PR merged         -> vX.Y.Z tag + GitHub release + crates.io + npm
+   publish.yml dispatches the actions release refresh through the monochange app
 2. monochange/actions release PR merged -> actions vA.B.C tag
-3. ifiokjr/nixpkgs package.nix bump     -> downstream repos can resolve the new binary
-4. downstream repo updates              -> devenv.lock refresh, monochange/actions pins
+3. ifiokjr/nixpkgs package.nix bump      -> downstream repos can resolve the new binary
+4. downstream repo updates               -> devenv.lock refresh, monochange/actions pins
 5. downstream PRs merged
 ```
 
@@ -85,6 +86,22 @@ Do not delete or re-point the release tag to work around this: the tag is the re
 
 - a `workflow_dispatch` run, which fast-forwards the release PR;
 - a comment of `/merge` on the release PR, which does the same from the issue thread.
+
+The handoff from phase 1 is automatic. After the main `vX.Y.Z` release becomes public, `publish.yml` dispatches `monochange/actions`'s `release.yml` through the monochange GitHub App:
+
+```bash
+monochange gh workflow run release.yml --repo monochange/actions --ref main
+```
+
+The command authenticates with the release job's GitHub Actions OIDC token, and the app starts the workflow with its installation token. No `MONOCHANGE_ACTIONS_TOKEN` exists in this repository. The app must be installed on both `monochange/monochange` and `monochange/actions`, and both must be in the same installation; that boundary prevents one organisation from dispatching workflows in another. The handoff only prepares the actions release PR; it never merges it, because the merge remains a maintainer decision.
+
+To release the refreshed action changes alongside the CLI release, merge the actions release PR through its guarded workflow. The same command works from a GitHub Actions job with `id-token: write`:
+
+```bash
+monochange gh workflow run release-pr-merge.yml --repo monochange/actions
+```
+
+Or comment `/merge` on the open actions release PR. The merge triggers `release-publish.yml`, which creates the `vA.B.C` tag and GitHub release.
 
 Verify the actions release the same way:
 

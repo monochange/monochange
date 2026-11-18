@@ -1,0 +1,30 @@
+#:schema https://leptoskit.dev/schemas/leptoskit.workspace.v1.schema.json
+
+# The monochange repository as one leptoskit workspace: two browser frontends
+# assembled into one deployment behind the same origin, plus the native and
+# extension surfaces of the product. `leptoskit workspace check` validates
+# configuration only — it is not runtime or deployment evidence.
+format_version = 1
+
+# The website entry: landing, auth, account, GitHub repository connection,
+# docs, changelog, pricing, install, and the repositories dashboard.
+[applications.website]
+path = "app"
+kind = "landing"
+
+# The projects entry: the product root, /projects routes, and public project
+# feedback/portal views. It names the same backend package as the website;
+# both web configs are independently built frontends of one deployment.
+[applications.projects]
+path = "app/projects"
+kind = "product"
+
+# Native mobile guests of the same product (separate Cargo workspace).
+[applications.native]
+path = "app/native"
+kind = "product"
+
+# The browser extension surface (separate Cargo workspace).
+[applications.extension]
+path = "extension"
+kind = "product"

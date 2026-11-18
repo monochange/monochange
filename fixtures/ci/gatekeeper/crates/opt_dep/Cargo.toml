@@ -1,0 +1,10 @@
+[package]
+name = "opt_dep"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+boosted = ["dep:opt_boosted"]
+
+[dependencies]
+opt_boosted = { path = "../opt_boosted", optional = true }

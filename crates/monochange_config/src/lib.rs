@@ -94,7 +94,20 @@ use semver::Version;
 use serde::Deserialize;
 use serde_yaml_ng::Mapping;
 
+mod ci;
 mod format;
+pub use ci::CI_PROVIDERS;
+pub use ci::CiJob;
+pub use ci::CiJobPackage;
+pub use ci::CiSettings;
+pub use ci::DEFAULT_CI_PROVIDER;
+pub use ci::DEFAULT_IGNORE_PATHS;
+pub use ci::DEFAULT_MAX_SKIPS_ON_MAIN;
+pub use ci::DEFAULT_UNCONDITIONAL_BRANCHES;
+pub use ci::DEFAULT_UNCONDITIONAL_EVENTS;
+pub use ci::DEFAULT_UNCONDITIONAL_PATHS;
+pub use ci::FeatureSelection;
+pub use ci::load_ci_settings;
 pub use format::format_workspace_configuration;
 
 const CONFIG_FILE: &str = "monochange.toml";
@@ -180,6 +193,9 @@ pub(crate) struct RawWorkspaceConfiguration {
 	lints: WorkspaceLintSettings,
 	#[serde(default)]
 	ecosystems: RawEcosystems,
+	/// Conditional CI gatekeeper settings read by `monochange ci`.
+	#[serde(default)]
+	ci: ci::RawCiConfiguration,
 }
 
 /// Raw `[version_scheme.<id>]` value.
@@ -2427,6 +2443,7 @@ pub fn load_workspace_configuration(root: &Path) -> MonochangeResult<WorkspaceCo
 		version_scheme,
 		lints,
 		ecosystems,
+		ci: _,
 	} = raw;
 	let cli = merge_cli_commands(cli);
 	let default_package_type = defaults.package_type;
@@ -2718,11 +2735,19 @@ pub fn build_changeset_load_context<'a>(
 		})
 		.collect::<HashMap<_, _>>();
 	let mut package_reference_matches = HashMap::<String, Vec<&'a str>>::new();
+	let mut configured_id_matches = HashMap::<String, Vec<&'a str>>::new();
 	// Canonicalize the workspace root once instead of re-resolving it for every
 	// package reference below; discovery usually runs this per changeset file.
 	let normalized_root = normalize_path(configuration.root_path.as_path());
 
 	for package in packages {
+		if let Some(config_id) = package.metadata.get("config_id") {
+			configured_id_matches
+				.entry(config_id.clone())
+				.or_default()
+				.push(package.id.as_str());
+		}
+
 		for reference in changeset_package_references(&normalized_root, package) {
 			package_reference_matches
 				.entry(reference)
@@ -2730,6 +2755,9 @@ pub fn build_changeset_load_context<'a>(
 				.push(package.id.as_str());
 		}
 	}
+
+	// Explicit IDs identify one configured target even when published names overlap.
+	package_reference_matches.extend(configured_id_matches);
 
 	let mut change_types_by_target = HashMap::new();
 
@@ -3515,6 +3543,7 @@ fn infer_bump_from_versions(current_version: &Version, explicit_version: &Versio
 
 #[must_use = "the resolution result must be checked"]
 /// Resolve a package reference without a pre-built context.
+/// Explicit configured IDs take precedence over published-name matches.
 ///
 /// Prefer [`resolve_package_reference_with_context`] for batch changeset loading
 /// as it reuses pre-computed lookup maps instead of scanning all packages on each call.
@@ -7576,6 +7605,21 @@ fn find_matching_package_ids(
 	root: &Path,
 	packages: &[PackageRecord],
 ) -> Vec<String> {
+	let configured_ids: Vec<_> = packages
+		.iter()
+		.filter(|package| {
+			package
+				.metadata
+				.get("config_id")
+				.is_some_and(|config_id| config_id == reference)
+		})
+		.map(|package| package.id.clone())
+		.collect();
+
+	if !configured_ids.is_empty() {
+		return configured_ids;
+	}
+
 	packages
 		.iter()
 		.filter(|package| package_matches_reference(package, root, reference))

@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<title>monochange projects</title>
+		<link rel="modulepreload" href="/pkg/projects/monochange_projects_web.js" />
+		<link rel="stylesheet" href="/pkg/projects/monochange_projects_web.css" />
+	</head>
+	<body>
+		<header class="site-width">
+			<nav class="flex items-center justify-between gap-4 py-6" aria-label="Projects navigation">
+				<a class="text-xl font-bold" href="/projects">monochange projects</a>
+				<form><button type="submit">Sign out</button></form>
+			</nav>
+		</header>
+		<section class="site-width dashboard-section">
+			<h1>Your projects</h1>
+			<p>One place for the products you ship.</p>
+			<!--
+				The raw response bytes carry no organization identity: this
+				document only shows the fixture data after the entry module
+				hydrates and fetches it client-side.
+			-->
+			<p role="status">Loading projects…</p>
+		</section>
+		<script type="module">
+			// Stands in for client-side loading: organization identity that only
+			// ever exists in the hydrated DOM must not satisfy the raw SSR
+			// assertion, so the bytes below never contain the login as one
+			// literal string.
+			window.addEventListener("load", () => {
+				const org = ["fixture-org", "9a7c31"].join("-");
+				const list = document.createElement("ul");
+				const item = document.createElement("li");
+				const link = document.createElement("a");
+
+				link.className = "text-link";
+				link.href = `/projects/${org}`;
+				link.textContent = org;
+				item.append(link);
+				list.append(item);
+				document.querySelector("section")?.append(list);
+			});
+		</script>
+		<script type="module" src="/pkg/projects/monochange_projects_web.js"></script>
+	</body>
+</html>

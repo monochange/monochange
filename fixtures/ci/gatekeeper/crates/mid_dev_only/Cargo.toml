@@ -1,0 +1,4 @@
+[package]
+name = "mid_dev_only"
+version = "0.1.0"
+edition = "2021"

@@ -18,9 +18,11 @@ in
     with pkgs;
 
     [
+      binaryen
       cargo-binstall
       cargo-run-bin
       cacert
+      custom.mbx
       custom.mdt
       custom.monostyle
       doctl
@@ -35,7 +37,10 @@ in
       openssh
       custom.pnpm
       nodejs_24
-      python3
+      (python3.withPackages (p: [
+        p.fonttools
+        p.brotli
+      ]))
       rustup
       shfmt
       taplo
@@ -50,7 +55,14 @@ in
 
   enterShell = ''
     set -euo pipefail
-    export PATH="${currentDir}/.bin/rust-nightly/cargo-semver-checks/0.47.0/bin:$DEVENV_PROFILE/bin:$PATH"
+    # Builds share one content-addressed cache across worktrees; `mbx` manages
+    # `target/` on disk, so reclaim space with `mbx gc`, not by deleting `target/`.
+    # CI keeps plain Cargo so its own target/ restore and upload steps keep working.
+    if [ -z "''${CI:-}" ]; then
+      export PATH="${custom.mbx}/libexec/mbx:${currentDir}/.bin/rust-nightly/cargo-semver-checks/0.47.0/bin:$DEVENV_PROFILE/bin:$PATH"
+    else
+      export PATH="${currentDir}/.bin/rust-nightly/cargo-semver-checks/0.47.0/bin:$DEVENV_PROFILE/bin:$PATH"
+    fi
   '';
 
   # disable dotenv since it interferes with variable interpolation in the shell
@@ -173,6 +185,14 @@ in
     "publish:check" = {
       exec = ''
         set -euo pipefail
+        # `devenv shell` resets PATH, and monochange publishes Dart and Flutter
+        # packages through `dart`/`flutter` from the ambient toolchain. Expose
+        # the Flutter SDK the workflows install (subosito/flutter-action sets
+        # FLUTTER_ROOT) so those publish commands resolve inside the shell.
+        feedback_flutter_sdk="''${FLUTTER_SDK:-''${FLUTTER_ROOT:-$DEVENV_ROOT/.monochange/local/tooling/flutter}}"
+        if [ -x "$feedback_flutter_sdk/bin/flutter" ]; then
+          export PATH="$feedback_flutter_sdk/bin:$PATH"
+        fi
         monochange publish packages --dry-run
       '';
       description = "Check that publication is valid for this project";
@@ -508,6 +528,7 @@ in
         run_step "gitleaks detect" ${pkgs.gitleaks}/bin/gitleaks detect --verbose --redact
         run_step "lint:rust-cfg-test" ${currentDir}/.devenv/profile/bin/lint:rust-cfg-test
         run_step "lint:clippy" ${currentDir}/.devenv/profile/bin/lint:clippy
+        run_step "lint:leptoskit" ${currentDir}/.devenv/profile/bin/lint:leptoskit
         run_step "schema:check" ${currentDir}/.devenv/profile/bin/schema:check
         run_step "lint:format" ${currentDir}/.devenv/profile/bin/lint:format
         run_step "lint:architecture" ${currentDir}/.devenv/profile/bin/lint:architecture
@@ -536,6 +557,7 @@ in
 
         run_step "lint:rust-cfg-test" lint:rust-cfg-test
         run_step "lint:clippy" lint:clippy
+        run_step "lint:leptoskit" lint:leptoskit
         run_step "schema:check" schema:check
         run_step "lint:format" lint:format
         run_step "lint:architecture" lint:architecture
@@ -594,6 +616,43 @@ in
         cargo clippy --workspace --all-features --all-targets -- -D warnings
       '';
       description = "Check that all rust lints are passing with warnings denied.";
+      binary = "bash";
+    };
+    "lint:leptoskit" = {
+      exec = ''
+        set -euo pipefail
+        ${currentDir}/scripts/lint-leptoskit.sh
+      '';
+      description = "Run leptoskit component lints (#[component], view! markup, PascalCase) for every leptoskit.toml.";
+      binary = "bash";
+    };
+    "build:web" = {
+      exec = ''
+        set -euo pipefail
+        leptoskit_bin="$(${currentDir}/scripts/leptoskit-cli.sh)"
+        # Fresh per-invocation scratch directories under the ignored local
+        # artifacts: upstream wipes a build's pkg/ only when its fingerprint
+        # changes, so a reused out directory could keep removed public files
+        # alive. This is asset output, not a Rust target directory.
+        run_root="''${MONOCHANGE_WEB_BUILD_ROOT:-${currentDir}/.monochange/local/web-build/$(date +%Y%m%d-%H%M%S)-$$}"
+        mkdir -p "$run_root/web" "$run_root/projects-web"
+        (cd ${currentDir}/app && "$leptoskit_bin" build "$@" --platform web --out "$run_root/web")
+        (cd ${currentDir}/app/projects && "$leptoskit_bin" build "$@" --platform web --out "$run_root/projects-web")
+        # Both builds passed their own bundle report and budget check: stage,
+        # validate, and publish one complete deployment tree. Any failure here
+        # keeps the last good site at app/target/site.
+        pnpm node ${currentDir}/scripts/leptoskit-plugin/publish-web-site.ts \
+          --web-root "$run_root" --site-root ${currentDir}/app/target/site
+      '';
+      description = "Build both web frontends with the provenance-verified leptoskit CLI into fresh scratch outputs, then stage, validate, and publish one complete site (app/target/site); forward flags like --release.";
+      binary = "bash";
+    };
+    # The leptoskit tooling plugin resolves as `leptoskit-plugin-<name>` on
+    # PATH; this profile entry puts it there under its default name so both
+    # web leptoskit.toml declarations work from every project root.
+    "leptoskit-plugin-monochange-web-assets" = {
+      exec = ''exec pnpm node ${currentDir}/scripts/leptoskit-plugin/web-assets-plugin.ts "$@"'';
+      description = "The leptoskit tooling plugin that owns site CSS, split-loader minification, and pkg namespace assembly.";
       binary = "bash";
     };
     "lint:architecture" = {

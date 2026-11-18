@@ -230,10 +230,11 @@ impl Decision {
 
 		let mut response = match surface {
 			Surface::ServerFunction => {
-				let body = server_fn::ServerFnError::new(message).ser();
+				// Leptos 0.9: `ser()` returns response parts (body + content type + status).
+				let parts = server_fn::ServerFnError::new(message).ser();
 				(
-					[(header::CONTENT_TYPE, "text/plain; charset=utf-8")],
-					Body::from(body),
+					[(header::CONTENT_TYPE, parts.content_type)],
+					Body::from(parts.body),
 				)
 					.into_response()
 			}

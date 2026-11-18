@@ -9,6 +9,7 @@ use crate::submission::Attachment;
 /// Everyone who can act on an item. Authority rules in the pipeline match on
 /// this type, so it is the single place where "who may do what" is decided.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(tag = "type", content = "id", rename_all = "snake_case")]
 pub enum Actor {
 	System,
@@ -31,6 +32,7 @@ impl Actor {
 
 /// One entry in an item's discussion thread.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct DiscussionMessage {
 	pub author: Actor,
 	pub body: String,

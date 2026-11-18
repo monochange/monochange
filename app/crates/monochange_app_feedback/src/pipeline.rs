@@ -33,6 +33,7 @@ use crate::voting::VotingRules;
 use crate::voting::evaluate;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum Stage {
 	Received,
@@ -64,6 +65,7 @@ impl Stage {
 /// reached, accepting requires an explicit override rationale so bypassing
 /// community demand is always a recorded, reviewable act.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct MaintainerDecision {
 	pub maintainer: String,
 	pub rationale: String,
@@ -71,6 +73,7 @@ pub struct MaintainerDecision {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct IssueRef {
 	/// `owner/name` of the repository the issue lives in. A project spans
 	/// several repositories, so a number alone is ambiguous.
@@ -81,6 +84,7 @@ pub struct IssueRef {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct PullRequestRef {
 	#[serde(default)]
 	pub repository: Option<String>,
@@ -113,6 +117,7 @@ impl PullRequestRef {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct ReleaseLink {
 	pub version: String,
 	pub notes_url: String,
@@ -198,6 +203,7 @@ pub enum TransitionError {
 
 /// Audit entry shown to maintainers as a timeline.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct FeedbackEvent {
 	pub stage: Stage,
 	pub actor: Actor,
@@ -238,6 +244,7 @@ const VOTABLE: [Stage; 5] = [
 ];
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct FeedbackItem {
 	pub id: String,
 	pub submission: FeedbackSubmission,
