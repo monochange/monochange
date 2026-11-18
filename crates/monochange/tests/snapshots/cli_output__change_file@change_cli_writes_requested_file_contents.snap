@@ -1,9 +1,0 @@
----
-source: crates/monochange/tests/cli_output.rs
-expression: change_file
----
----
-core: minor
----
-
-# document cli snapshots

@@ -1,5 +1,0 @@
----
-source: crates/monochange_integration_tests/tests/schema_assets.rs
-expression: redacted_description
----
-Durable commit-embedded release record schema for monochange release records.

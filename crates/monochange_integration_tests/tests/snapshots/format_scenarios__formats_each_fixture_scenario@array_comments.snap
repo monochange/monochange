@@ -1,9 +1,0 @@
----
-source: crates/monochange_integration_tests/tests/format_scenarios.rs
-expression: formatted
----
-[group.main]
-packages = [ # zeta package
-	"alpha",
-	"zeta", # alpha package
-]

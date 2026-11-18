@@ -1,9 +1,0 @@
----
-source: crates/monochange/tests/release_pull_requests.rs
-expression: contents
----
-Prepare release.
-
-- release targets: app (1.0.1), core (1.1.0)
-- released packages: workflow-app, workflow-core
-- updated changelogs: crates/app/CHANGELOG.md, crates/core/CHANGELOG.md

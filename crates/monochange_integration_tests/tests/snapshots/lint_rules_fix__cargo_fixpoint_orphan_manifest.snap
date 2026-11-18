@@ -1,9 +1,0 @@
----
-source: crates/monochange_integration_tests/tests/lint_rules_fix.rs
-expression: orphan
----
-[package]
-name = "orphan"
-version = "0.1.0"
-edition = "2021"
-publish = false
