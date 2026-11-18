@@ -30,16 +30,17 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
 
-      - name: setup
-        uses: $/.github/actions/devenv
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: install rust toolchain
+        uses: $/.github/actions/rust
+
+      - name: build monochange
+        run: cargo build --locked --bin monochange -p monochange
 
       - name: classify changes
         id: classify
         uses: monochange/actions/change-classification@104b58f3ff8b6d3a6153a87a553a2bdaaa42a78f # v0.12.0
         with:
-          setup-monochange: devenv shell monochange
+          setup-monochange: ${{ github.workspace }}/target/debug/monochange
           # Compare with the branch this pull request targets, not the default
           # branch, so a stacked pull request does not inherit its parent's
           # changes, and classify the exact head commit of this push.

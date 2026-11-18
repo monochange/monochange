@@ -305,17 +305,15 @@ jobs:
 
           echo "Verified: checked-out commit matches tag $expected_tag and is on main"
 
-      - name: setup current monochange cli
-        uses: $/.github/actions/devenv
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: install rust toolchain
+        uses: $/.github/actions/rust
 
       - name: build current monochange cli
         run: |
-          cargo build --release --package monochange --bin monochange
+          cargo build --locked --release --package monochange --bin monochange
           mkdir -p "$RUNNER_TEMP/bin"
           cp target/release/monochange "$RUNNER_TEMP/bin/monochange"
-        shell: devenv shell -- bash -e {0}
+        shell: bash -e {0}
 
       - name: get crates oidc auth token
         uses: rust-lang/crates-io-auth-action@3268eb413133e2960fa4ae0e963ca76380c54cd9 # v1.0.6
@@ -333,34 +331,7 @@ jobs:
             --pattern "monochange-*-${RELEASE_TAG}.tar.gz" \
             --pattern "monochange-*-${RELEASE_TAG}.zip" \
             --dir "$RUNNER_TEMP/release-assets"
-        shell: devenv shell -- bash -e {0}
-
-      - name: populate cli npm packages with release binaries
-        env:
-          RELEASE_TAG: ${{ steps.release_tag.outputs.tag }}
-        run: |
-          pnpm build
-          pnpm node scripts/npm/build-packages.ts \
-            --release-tag "$RELEASE_TAG" \
-            --assets-dir "$RUNNER_TEMP/release-assets"
-          pnpm node scripts/npm/populate-packages.ts \
-            --packages-dir packages
-        shell: devenv shell -- bash -e {0}
-
-      - name: check publish readiness
-        uses: monochange/actions@104b58f3ff8b6d3a6153a87a553a2bdaaa42a78f # v0.12.0
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ steps.crates-oidc.outputs.token }}
-        with:
-          name: publish-readiness
-          setup-monochange: ${{ runner.temp }}/bin/monochange
-          ref: HEAD
-          output: ${{ runner.temp }}/publish-readiness.json
-
-      - name: setup cargo stable for publish
-        uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
-        with:
-          toolchain: stable
+        shell: bash -e {0}
 
       - name: setup node for publish
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -377,6 +348,37 @@ jobs:
         uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         with:
           version: 12
+
+      - name: install node dependencies
+        run: pnpm install --frozen-lockfile
+        shell: bash -e {0}
+
+      - name: populate cli npm packages with release binaries
+        env:
+          RELEASE_TAG: ${{ steps.release_tag.outputs.tag }}
+        run: |
+          pnpm build
+          pnpm node scripts/npm/build-packages.ts \
+            --release-tag "$RELEASE_TAG" \
+            --assets-dir "$RUNNER_TEMP/release-assets"
+          pnpm node scripts/npm/populate-packages.ts \
+            --packages-dir packages
+        shell: bash -e {0}
+
+      - name: check publish readiness
+        uses: monochange/actions@104b58f3ff8b6d3a6153a87a553a2bdaaa42a78f # v0.12.0
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.crates-oidc.outputs.token }}
+        with:
+          name: publish-readiness
+          setup-monochange: ${{ runner.temp }}/bin/monochange
+          ref: HEAD
+          output: ${{ runner.temp }}/publish-readiness.json
+
+      - name: setup cargo stable for publish
+        uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: stable
 
       # monochange publishes the Flutter feedback package with
       # `flutter pub publish`; the composite publish action runs the monochange

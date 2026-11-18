@@ -37,14 +37,18 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: setup release tooling
-        uses: $/.github/actions/devenv
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: install rust toolchain
+        uses: $/.github/actions/rust
+
+      - name: build monochange
+        run: |
+          cargo build --locked --release --bin monochange -p monochange
+          echo "$GITHUB_WORKSPACE/target/release" >> "$GITHUB_PATH"
+        shell: bash -e {0}
 
       - name: select the website release
         id: website_release
-        shell: devenv shell -- bash -e {0}
+        shell: bash -e {0}
         env:
           RELEASE_COMMIT: ${{ github.sha }}
         run: |
@@ -95,10 +99,14 @@ jobs:
           unset DEPLOY_KEY
           ssh-keygen -y -P '' -f "$key" >/dev/null
 
-      - name: setup release tooling
-        uses: $/.github/actions/devenv
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: install rust toolchain
+        uses: $/.github/actions/rust
+
+      - name: build monochange
+        run: |
+          cargo build --locked --release --bin monochange -p monochange
+          echo "$GITHUB_WORKSPACE/target/release" >> "$GITHUB_PATH"
+        shell: bash -e {0}
 
       # release-post-merge in ci.yml runs concurrently and pushes the
       # batch's tags; the deployment only starts once this release's tag
@@ -129,7 +137,7 @@ jobs:
         env:
           RELEASE_COMMIT: ${{ github.sha }}
           RELEASE_TAG: ${{ needs.select-website-release.outputs.tag }}
-        shell: devenv shell -- bash -e {0}
+        shell: bash -e {0}
         run: |
           set -euo pipefail
           [[ "$RELEASE_COMMIT" =~ ^[0-9a-f]{40}$ ]]
