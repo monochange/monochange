@@ -1,7 +1,0 @@
----
-source: crates/monochange/tests/source_providers.rs
-expression: contents
----
-## Features
-
-- **add gitlab fixture coverage.**

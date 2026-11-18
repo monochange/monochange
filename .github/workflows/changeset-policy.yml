@@ -27,10 +27,11 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: setup
-        uses: $/.github/actions/devenv
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: install rust toolchain
+        uses: $/.github/actions/rust
+
+      - name: build monochange
+        run: cargo build --locked --bin monochange -p monochange
 
       - name: read current pull request labels
         id: pull_request_labels
@@ -46,7 +47,7 @@ jobs:
       - name: run changeset policy
         uses: monochange/actions/changeset-policy@104b58f3ff8b6d3a6153a87a553a2bdaaa42a78f # v0.12.0
         with:
-          setup-monochange: devenv shell monochange
+          setup-monochange: ${{ github.workspace }}/target/debug/monochange
           from: origin/main
           labels: ${{ join(fromJSON(steps.pull_request_labels.outputs.labels), ',') }}
           github-token: ${{ secrets.GITHUB_TOKEN }}

@@ -1,6 +1,0 @@
----
-source: crates/monochange/tests/cli_step_input_overrides.rs
-expression: "String::from_utf8_lossy(&output.stdout)"
----
-Log
-  ran `printf '%s' 'hardcoded-message' > command-output.txt`
