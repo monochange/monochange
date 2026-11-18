@@ -41,13 +41,13 @@ runs:
     - name: cache rust dependencies
       id: cache-rust-dependencies
       continue-on-error: true
-      uses: Swatinem/rust-cache@63fed3e2fecf6f7b51dc6f043341b79ef82a9ae7 # v2.9.2
+      uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
       with:
         prefix-key: "${{ inputs.cache-version }}"
 
     - name: retry cache rust dependencies
       if: steps.cache-rust-dependencies.outcome != 'success'
-      uses: Swatinem/rust-cache@63fed3e2fecf6f7b51dc6f043341b79ef82a9ae7 # v2.9.2
+      uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
       with:
         prefix-key: "${{ inputs.cache-version }}"
 
