@@ -22,6 +22,11 @@ ignore = [
 	# release; the maintainer tracks it upstream and the crate is not used on
 	# untrusted input paths beyond fixture parsing.
 	"RUSTSEC-2024-0449",
+	# chrono is marked unmaintained (RUSTSEC-2026-0543, imported 2026-11-17).
+	# The advisory lists no patched release. Replacing every caller with jiff
+	# or time is a separate migration; this ignore keeps the existing uses
+	# auditable until that migration lands.
+	"RUSTSEC-2026-0543",
 ]
 
 [licenses]
