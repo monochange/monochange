@@ -96,27 +96,28 @@ jobs:
           - ubuntu-latest
           - macos-latest
           - windows-latest
-    runs-on: ${{ matrix.os }}
+    # The check name is `build (${{ matrix.os }})`, which the main ruleset
+    # requires for macOS and Windows as well as Linux. Every leg runs on
+    # Linux: hosted macOS runners can sit unacquired until GitHub cancels
+    # the job. publish.yml still builds the macOS and Windows release binaries.
+    runs-on: ubuntu-latest
     steps:
       - name: checkout repository
-        if: runner.os == 'Linux'
+        if: matrix.os == 'ubuntu-latest'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: install rust toolchain
-        if: runner.os == 'Linux'
+        if: matrix.os == 'ubuntu-latest'
         uses: $/.github/actions/rust
 
       - name: build workspace
-        if: runner.os == 'Linux'
+        if: matrix.os == 'ubuntu-latest'
         run: cargo build --workspace --all-features --locked
 
-      # The main ruleset still requires these check names. Release binaries for
-      # macOS and Windows are built by publish.yml, so pull requests do not
-      # compile on those runners.
       - name: release artifacts for this OS are built by publish
-        if: runner.os != 'Linux'
+        if: matrix.os != 'ubuntu-latest'
         run: echo "publish.yml builds release artifacts for this OS."
 
   # The main ruleset still requires a check named coverage. Measurement stays
