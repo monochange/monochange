@@ -90,3 +90,143 @@ it("reuses an opaque session across status polls instead of exhausting session i
 		clock.mockRestore();
 	}
 });
+
+describe("feedback protocol", () => {
+	const ENDPOINT = "https://monochange.example";
+	type Sent = { url: string; method: string; body: unknown; key?: string };
+	function recording(answer: (sent: Sent) => Response) {
+		const sent: Sent[] = [];
+		const fetcher = vi.fn(async (url: string, init: RequestInit) => {
+			const request: Sent = {
+				url,
+				method: init.method ?? "GET",
+				body: init.body === undefined ? undefined : JSON.parse(init.body as string),
+				key: (init.headers as Record<string, string>)["Idempotency-Key"],
+			};
+			sent.push(request);
+			return answer(request);
+		});
+		const client = new FeedbackClient({
+			endpoint: ENDPOINT,
+			project: 7,
+			getClientToken: async () => "token",
+			getContext: () => ({ route: "/settings?tab=billing#export" }),
+			fetch: fetcher as typeof fetch,
+		});
+		return { client, sent };
+	}
+	const conversation = {
+		id: "draft/1",
+		version: 2,
+		kind: "feature_request" as const,
+		messages: [],
+	};
+
+	it("calls each RPC operation with the project in the query and the arguments", async () => {
+		const { client, sent } = recording(() => Response.json({}));
+		await client.suggest("CSV");
+		await client.startConversation("Export CSV");
+		await client.getConversation("draft/1");
+		await client.sendMessage(conversation, "Monthly");
+		await client.submit("draft/1", 2);
+		await client.getItem("fb-1");
+		await client.reply("fb-1", "Thanks");
+		await client.vote("fb-1");
+		await client.vote("fb-1", false);
+		expect(sent.map(({ url }) => url)).toEqual(
+			[
+				"suggestions",
+				"create_conversation",
+				"conversation",
+				"conversation_message",
+				"submit",
+				"item",
+				"reply",
+				"vote",
+				"vote",
+			].map((operation) => `${ENDPOINT}/api/feedback_sdk_${operation}?project=7`),
+		);
+		expect(sent.every(({ method }) => method === "POST")).toBe(true);
+		expect(sent.map(({ body }) => body)).toEqual([
+			{ project: 7, input: { text: "CSV" } },
+			{
+				project: 7,
+				input: { message: "Export CSV", kind: "feature_request", context: { route: "/settings" } },
+			},
+			{ project: 7, id: "draft/1" },
+			{ project: 7, id: "draft/1", input: { body: "Monthly", version: 2 } },
+			{ project: 7, input: { conversation: "draft/1", version: 2 } },
+			{ project: 7, id: "fb-1" },
+			{ project: 7, id: "fb-1", input: { body: "Thanks" } },
+			{ project: 7, id: "fb-1", voted: true },
+			{ project: 7, id: "fb-1", voted: false },
+		]);
+		expect(sent[4].key).toBeTruthy();
+		client.destroy();
+	});
+
+	it("keeps an RPC failure's code and status", async () => {
+		const { client, sent } = recording(() =>
+			Response.json(
+				{ status: 404, code: "not_found", message: "No such request" },
+				{ status: 404 },
+			),
+		);
+		await expect(client.getItem("fb-9")).rejects.toMatchObject({
+			code: "not_found",
+			status: 404,
+			message: "No such request",
+		});
+		expect(sent).toHaveLength(1);
+		client.destroy();
+	});
+
+	it("falls back to the REST routes on a site that predates the operations", async () => {
+		const { client, sent } = recording(({ url }) =>
+			url.includes("/api/feedback_sdk_")
+				? new Response("<html>Not found</html>", { status: 404 })
+				: Response.json({}),
+		);
+		await client.suggest("CSV");
+		await client.startConversation("Export CSV");
+		await client.getConversation("draft/1");
+		await client.sendMessage(conversation, "Monthly");
+		await client.submit("draft/1", 2);
+		await client.getItem("fb-1");
+		await client.reply("fb-1", "Thanks");
+		await client.vote("fb-1");
+		await client.vote("fb-1", false);
+		const base = `${ENDPOINT}/api/v1/feedback/7`;
+		// Only the first call probes the RPC operation.
+		expect(sent.slice(1).map(({ method, url }) => `${method} ${url}`)).toEqual([
+			`POST ${base}/suggestions`,
+			`POST ${base}/conversations`,
+			`GET ${base}/conversations/draft%2F1`,
+			`POST ${base}/conversations/draft%2F1/messages`,
+			`POST ${base}/items`,
+			`GET ${base}/items/fb-1`,
+			`POST ${base}/items/fb-1/messages`,
+			`PUT ${base}/items/fb-1/vote`,
+			`DELETE ${base}/items/fb-1/vote`,
+		]);
+		expect(sent[1].body).toEqual({ text: "CSV" });
+		expect(sent[2].body).toEqual({
+			message: "Export CSV",
+			kind: "feature_request",
+			context: { route: "/settings" },
+		});
+		expect(sent[5].key).toBeTruthy();
+		client.destroy();
+	});
+
+	it("falls back when an older site answers a JSON 404 without a code", async () => {
+		const { client, sent } = recording(({ url }) =>
+			url.includes("/api/feedback_sdk_")
+				? Response.json({ error: "missing" }, { status: 404 })
+				: Response.json({ reply: "REST", similar: [], mode: "basic" }),
+		);
+		await expect(client.suggest("CSV")).resolves.toMatchObject({ reply: "REST" });
+		expect(sent[1].url).toBe(`${ENDPOINT}/api/v1/feedback/7/suggestions`);
+		client.destroy();
+	});
+});
