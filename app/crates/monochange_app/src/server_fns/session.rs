@@ -187,6 +187,13 @@ pub async fn bearer_gate(
 	use axum::http::StatusCode;
 
 	let path = request.uri().path().to_owned();
+
+	// Hosted release operations carry a workflow's OIDC token or
+	// MONOCHANGE_TOKEN, not a client session; `machine_gate` verifies it.
+	if crate::server_fns::hosted::is_machine_path(&path) {
+		return next.run(request).await;
+	}
+
 	let is_server_fn = server_fn_paths().contains(path.as_str());
 	let is_handoff = path == client_auth::TOKEN_PATH
 		|| path == client_auth::REVOKE_PATH

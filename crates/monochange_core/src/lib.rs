@@ -7257,6 +7257,7 @@ pub struct SourceReleaseOutcome {
 	pub url: Option<String>,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct CommitMessage {
@@ -7330,6 +7331,7 @@ impl std::str::FromStr for HostedCommitAuth {
 	}
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct SourceChangeRequest {
@@ -7350,6 +7352,7 @@ pub struct SourceChangeRequest {
 }
 
 /// Records that a release request body was shortened to fit a provider limit.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct SourceChangeRequestBodyTruncation {
@@ -7361,6 +7364,7 @@ pub struct SourceChangeRequestBodyTruncation {
 	pub dropped_entries: usize,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SourceChangeRequestOperation {
@@ -7476,6 +7480,7 @@ pub struct HostedCommitResponse {
 /// The CLI computes the full `SourceChangeRequest` locally (title, rendered
 /// body, labels, base and head branch) and posts it; the server only needs to
 /// create or update the pull request with its installation token.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct HostedReleaseRequest {
@@ -7490,6 +7495,7 @@ pub struct HostedReleaseRequest {
 }
 
 /// The monochange app's response to a [`HostedReleaseRequest`].
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct HostedReleaseResponse {
