@@ -15,6 +15,8 @@ pub mod ai;
 pub use monochange_projects::server_fns::auth;
 pub mod book;
 #[cfg(not(target_arch = "wasm32"))]
+pub mod client_handoff;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod hosted;
 pub use monochange_projects::server_fns::embedded;
 pub use monochange_projects::server_fns::feedback;

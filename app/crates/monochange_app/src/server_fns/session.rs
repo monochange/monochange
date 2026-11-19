@@ -197,10 +197,13 @@ pub async fn bearer_gate(
 		return next.run(request).await;
 	}
 
-	let is_server_fn = server_fn_paths().contains(path.as_str());
+	// The sign-in RPC operations answer like the REST handoff routes: a
+	// revoked bearer may still revoke, so they skip the server-function 401.
 	let is_handoff = path == client_auth::TOKEN_PATH
 		|| path == client_auth::REVOKE_PATH
-		|| path == client_auth::APPROVE_PATH;
+		|| path == client_auth::APPROVE_PATH
+		|| crate::server_fns::client_handoff::is_handoff_path(&path);
+	let is_server_fn = !is_handoff && server_fn_paths().contains(path.as_str());
 
 	if !is_server_fn && !is_handoff {
 		return next.run(request).await;
@@ -237,7 +240,9 @@ pub async fn bearer_gate(
 		return next.run(request).await;
 	}
 
-	let allowed = CLIENT_ALLOWED_PATHS.contains(&path.as_str()) || path == client_auth::REVOKE_PATH;
+	let allowed = CLIENT_ALLOWED_PATHS.contains(&path.as_str())
+		|| path == client_auth::REVOKE_PATH
+		|| crate::server_fns::client_handoff::is_revoke_path(&path);
 	if allowed {
 		return next.run(request).await;
 	}

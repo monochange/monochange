@@ -66,6 +66,18 @@ impl HandoffError {
 		Self { status, message }
 	}
 
+	/// The HTTP status the rejection answers with.
+	#[must_use]
+	pub fn status(&self) -> StatusCode {
+		self.status
+	}
+
+	/// The rejection's public message.
+	#[must_use]
+	pub fn message(&self) -> &'static str {
+		self.message
+	}
+
 	fn invalid() -> Self {
 		Self::new(StatusCode::BAD_REQUEST, "invalid handoff request")
 	}
@@ -179,14 +191,24 @@ pub async fn exchange(
 	body: Result<Json<ClientTokenRequest>, JsonRejection>,
 ) -> Result<Response, HandoffError> {
 	let Json(request) = body.map_err(|_| HandoffError::invalid())?;
+	let session = exchange_code(&state, &headers, request).await?;
+	Ok(Json(session).into_response())
+}
 
+/// Exchange a one-time code for a client session: the shared core of the
+/// REST route and the `client_session_token` RPC operation.
+pub async fn exchange_code(
+	state: &AppState,
+	headers: &HeaderMap,
+	request: ClientTokenRequest,
+) -> Result<ClientSession, HandoffError> {
 	// A code string that cannot name a grant is rejected without a lookup.
 	if request.code.is_empty() || request.code.len() > client_sessions::MAX_CLIENT_CODE_LEN {
 		return Err(HandoffError::invalid());
 	}
 
 	// A cross-site browser POST must not burn the code for the real client.
-	if !origin_allowed(&headers) {
+	if !origin_allowed(headers) {
 		return Err(HandoffError::invalid());
 	}
 
@@ -203,7 +225,7 @@ pub async fn exchange(
 	let now = chrono::Utc::now().timestamp();
 
 	if !is_valid_code_verifier(&request.code_verifier)
-		|| !redirect_allowed(&state, request.client, &request.redirect_uri)
+		|| !redirect_allowed(state, request.client, &request.redirect_uri)
 		|| grant.expires_at <= now
 		|| grant.client.as_str() != request.client.as_str()
 		|| grant.redirect_uri != request.redirect_uri
@@ -245,7 +267,7 @@ pub async fn exchange(
 	.await
 	.map_err(|_| HandoffError::invalid())?;
 
-	Ok(Json(ClientSession {
+	Ok(ClientSession {
 		id: session.id,
 		access_token,
 		expires_at: session.expires_at,
@@ -256,7 +278,6 @@ pub async fn exchange(
 			plan_tier,
 		},
 	})
-	.into_response())
 }
 
 /// Revoke the caller's own client session. Any well-formed bearer is accepted
@@ -265,6 +286,13 @@ pub async fn revoke(
 	State(state): State<AppState>,
 	headers: HeaderMap,
 ) -> Result<Response, HandoffError> {
+	revoke_bearer(&state, &headers).await?;
+	Ok(StatusCode::NO_CONTENT.into_response())
+}
+
+/// Revoke the session named by the request's bearer: the shared core of the
+/// REST route and the `client_session_revoke` RPC operation.
+pub async fn revoke_bearer(state: &AppState, headers: &HeaderMap) -> Result<(), HandoffError> {
 	let token = headers
 		.get(header::AUTHORIZATION)
 		.and_then(|value| value.to_str().ok())
@@ -276,7 +304,7 @@ pub async fn revoke(
 		.await
 		.map_err(|_| HandoffError::invalid())?;
 
-	Ok(StatusCode::NO_CONTENT.into_response())
+	Ok(())
 }
 
 /// The browser consent approval input.
