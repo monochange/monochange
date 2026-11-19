@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## @monochange/feedback-react-native [0.2.1](https://github.com/monochange/monochange/releases/tag/@monochange/feedback-react-native/v0.2.1) (2026-11-19)
+
+### Changed
+
+- **No package-specific changes were recorded; `@monochange/feedback-react-native` was updated to 0.2.1.**
+
 ## @monochange/feedback-react-native [0.2.0](https://github.com/monochange/monochange/releases/tag/@monochange/feedback-react-native/v0.2.0) (2026-11-08)
 
 ### 💥 Breaking Change
