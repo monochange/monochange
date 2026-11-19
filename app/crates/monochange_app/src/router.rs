@@ -112,6 +112,11 @@ pub fn build_router(
 			state.clone(),
 			crate::server_fns::hosted::machine_gate,
 		))
+		// Embedded feedback SDK and worker RPC operations: per-project CORS.
+		.layer(from_fn_with_state(
+			state.clone(),
+			crate::server_fns::feedback_sdk::sdk_gate,
+		))
 		.layer(from_fn(crate::public_routes::legacy_projects))
 		// The gate runs after the principal middleware, so a client token is
 		// already in request extensions when its path is checked.

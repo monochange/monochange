@@ -189,8 +189,11 @@ pub async fn bearer_gate(
 	let path = request.uri().path().to_owned();
 
 	// Hosted release operations carry a workflow's OIDC token or
-	// MONOCHANGE_TOKEN, not a client session; `machine_gate` verifies it.
-	if crate::server_fns::hosted::is_machine_path(&path) {
+	// MONOCHANGE_TOKEN, and SDK and worker operations a feedback credential,
+	// not a client session; their own gates and handlers verify them.
+	if crate::server_fns::hosted::is_machine_path(&path)
+		|| crate::server_fns::feedback_sdk::is_sdk_path(&path)
+	{
 		return next.run(request).await;
 	}
 

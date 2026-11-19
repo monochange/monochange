@@ -18,6 +18,8 @@ pub mod book;
 pub mod hosted;
 pub use monochange_projects::server_fns::embedded;
 pub use monochange_projects::server_fns::feedback;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod feedback_sdk;
 pub mod installation;
 pub use monochange_projects::server_fns::organizations;
 pub use monochange_projects::server_fns::portal;

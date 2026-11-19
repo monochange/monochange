@@ -91,21 +91,26 @@ impl FromServerFnError for HostedRpcError {
 	type Encoder = JsonEncoding;
 
 	fn from_server_fn_error(value: ServerFnErrorErr) -> Self {
-		let status = match &value {
-			ServerFnErrorErr::Deserialization(message) if message.contains("size limit") => {
-				StatusCode::PAYLOAD_TOO_LARGE
-			}
-			ServerFnErrorErr::Args(_)
-			| ServerFnErrorErr::MissingArg(_)
-			| ServerFnErrorErr::Deserialization(_) => StatusCode::BAD_REQUEST,
-			_ => StatusCode::INTERNAL_SERVER_ERROR,
-		};
-
-		Self::new(status, value.to_string())
+		Self::new(framework_status(&value), value.to_string())
 	}
 
 	fn status_code(&self) -> StatusCode {
 		StatusCode::from_u16(self.status).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR)
+	}
+}
+
+/// The status of a failure the server function framework reports itself:
+/// `413` for a body over the limit, `400` for arguments that don't decode,
+/// and `500` otherwise.
+pub(crate) fn framework_status(error: &ServerFnErrorErr) -> StatusCode {
+	match error {
+		ServerFnErrorErr::Deserialization(message) if message.contains("size limit") => {
+			StatusCode::PAYLOAD_TOO_LARGE
+		}
+		ServerFnErrorErr::Args(_)
+		| ServerFnErrorErr::MissingArg(_)
+		| ServerFnErrorErr::Deserialization(_) => StatusCode::BAD_REQUEST,
+		_ => StatusCode::INTERNAL_SERVER_ERROR,
 	}
 }
 
@@ -253,7 +258,7 @@ pub async fn machine_gate(
 		.unwrap_or_else(|never| match never {})
 }
 
-fn rejection_response(error: &HostedRpcError) -> Response {
+pub(crate) fn rejection_response<E: FromServerFnError>(error: &E) -> Response {
 	let parts = error.ser();
 	let mut response = (
 		[(axum::http::header::CONTENT_TYPE, parts.content_type)],

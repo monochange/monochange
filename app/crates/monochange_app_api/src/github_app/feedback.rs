@@ -9,7 +9,7 @@ use serde_json::json;
 use super::GitHubAppError;
 use super::api_error;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct FeedbackFile {
 	pub path: String,
