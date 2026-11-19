@@ -2274,43 +2274,20 @@ fn hosted_commit_file(root: &Path, path: &Path) -> MonochangeResult<HostedCommit
 /// [`monochange_hosting::PROVIDER_HTTP_TIMEOUT`] that suits other provider calls.
 const HOSTED_COMMIT_REQUEST_TIMEOUT: Duration = Duration::from_secs(300);
 
-/// POST the hosted commit request and validate the response.
+/// Send the hosted commit request and validate the response.
 async fn send_hosted_commit_request(
 	request: &HostedCommitRequest,
 	options: &HostedCommitOptions,
 	token: &str,
 ) -> MonochangeResult<HostedCommitResponse> {
-	let base_url = options.url.trim_end_matches('/');
-	let client = monochange_hosting::build_http_client("monochange app")?;
-	let response = client
-		.post(format!("{base_url}/api/release-commits"))
-		.timeout(HOSTED_COMMIT_REQUEST_TIMEOUT)
-		.bearer_auth(token)
-		.json(request)
-		.send()
-		.await
-		.map_err(|error| {
-			MonochangeError::Config(format!("hosted CommitRelease request failed: {error}"))
-		})?;
-	let status = response.status();
-	// patch-coverage:ignore-start -- a mid-body connection drop is needed to fail the text read; httpmock always serves complete bodies.
-	let text = response.text().await.map_err(|error| {
-		MonochangeError::Config(format!(
-			"hosted CommitRelease response read failed: {error}"
-		))
-	})?;
-	// patch-coverage:ignore-end
-	if !status.is_success() {
-		return Err(MonochangeError::Config(format!(
-			"hosted CommitRelease failed with HTTP {status}: {text}"
-		)));
-	}
-
-	serde_json::from_str(&text).map_err(|error| {
-		MonochangeError::Config(format!(
-			"hosted CommitRelease response was invalid JSON: {error}"
-		))
-	})
+	hosted_rpc::call(
+		hosted_rpc::RELEASE_COMMIT,
+		&options.url,
+		token,
+		request,
+		Some(HOSTED_COMMIT_REQUEST_TIMEOUT),
+	)
+	.await
 }
 
 /// Ask the monochange app to open or refresh the release pull request through
@@ -2338,36 +2315,14 @@ pub(crate) async fn hosted_release_request_result(
 			.collect(),
 		dry_run,
 	};
-	let base_url = options.url.trim_end_matches('/');
-	let client = monochange_hosting::build_http_client("monochange app")?;
-	let response = client
-		.post(format!("{base_url}/api/release-requests"))
-		.bearer_auth(token)
-		.json(&payload)
-		.send()
-		.await
-		.map_err(|error| {
-			MonochangeError::Config(format!("hosted OpenReleaseRequest failed: {error}"))
-		})?;
-	let status = response.status();
-	// patch-coverage:ignore-start -- a mid-body connection drop is needed to fail the text read; httpmock always serves complete bodies.
-	let text = response.text().await.map_err(|error| {
-		MonochangeError::Config(format!(
-			"hosted OpenReleaseRequest response read failed: {error}"
-		))
-	})?;
-	// patch-coverage:ignore-end
-	if !status.is_success() {
-		return Err(MonochangeError::Config(format!(
-			"hosted OpenReleaseRequest failed with HTTP {status}: {text}"
-		)));
-	}
-
-	let outcome: HostedReleaseResponse = serde_json::from_str(&text).map_err(|error| {
-		MonochangeError::Config(format!(
-			"hosted OpenReleaseRequest response was invalid JSON: {error}"
-		))
-	})?;
+	let outcome: HostedReleaseResponse = hosted_rpc::call(
+		hosted_rpc::RELEASE_REQUEST,
+		&options.url,
+		&token,
+		&payload,
+		None,
+	)
+	.await?;
 	let repository = &request.repository;
 	Ok(match (outcome.number, outcome.operation) {
 		(Some(number), Some(operation)) => {
