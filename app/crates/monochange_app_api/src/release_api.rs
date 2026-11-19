@@ -56,8 +56,8 @@ pub(crate) async fn find_connected_repository(
 }
 
 /// The caller identity accepted by the hosted endpoints.
-#[derive(Debug, PartialEq, Eq)]
-pub(crate) enum Caller {
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Caller {
 	/// A GitHub Actions run, proven by an OIDC token for this repository.
 	ActionsRun { repository: String },
 	/// A `MONOCHANGE_TOKEN` API token.
@@ -68,7 +68,7 @@ pub(crate) enum Caller {
 ///
 /// This runs before the request body is read, so a caller without valid
 /// credentials can never make the server buffer a release payload.
-pub(crate) async fn authenticate(
+pub async fn authenticate(
 	state: &AppState,
 	headers: &axum::http::HeaderMap,
 ) -> Result<Caller, (StatusCode, Json<ApiError>)> {
@@ -325,6 +325,9 @@ fn release_commit_error_status(error: &github_app::GitHubAppError) -> StatusCode
 /// [`github_app::create_release_commit`]), then creates blobs, tree, and
 /// commit through the Git Database API with an installation token so GitHub
 /// signs the result.
+///
+/// Kept for monochange CLIs released before the `hosted_release_commit` RPC
+/// operation; both run [`release_commit`].
 pub async fn create_release_commit(
 	State(state): State<AppState>,
 	headers: axum::http::HeaderMap,
@@ -332,7 +335,25 @@ pub async fn create_release_commit(
 ) -> Result<Json<HostedCommitResponse>, (StatusCode, Json<ApiError>)> {
 	let caller = authenticate(&state, &headers).await?;
 	let request: HostedCommitRequest = read_json_body(body, RELEASE_COMMIT_BODY_LIMIT).await?;
+	release_commit(&state, &caller, request).await.map(Json)
+}
 
+/// Create a release commit for an authenticated caller.
+///
+/// The transport-independent core of the REST route and the
+/// `hosted_release_commit` RPC operation.
+///
+/// # Errors
+///
+/// The status and message the caller receives: `400` for an invalid request,
+/// `403` when the caller may not act on the repository, `404` when the
+/// repository has no installation, `409` when a branch moved, `503` when the
+/// GitHub App is not configured, and `502` for GitHub failures.
+pub async fn release_commit(
+	state: &AppState,
+	caller: &Caller,
+	request: HostedCommitRequest,
+) -> Result<HostedCommitResponse, (StatusCode, Json<ApiError>)> {
 	if request.provider != "github" {
 		return Err((
 			StatusCode::BAD_REQUEST,
@@ -349,8 +370,8 @@ pub async fn create_release_commit(
 		.map_err(|message| (StatusCode::BAD_REQUEST, Json(ApiError::new(message))))?;
 
 	let full_name = format!("{}/{}", request.owner, request.repository);
-	authorize(&state, &caller, &full_name)?;
-	let repository = find_connected_repository(&state, &full_name)
+	authorize(state, caller, &full_name)?;
+	let repository = find_connected_repository(state, &full_name)
 		.await
 		.map_err(|message| (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiError::new(message))))?
 		.ok_or_else(|| {
@@ -380,16 +401,15 @@ pub async fn create_release_commit(
 		})?;
 
 	if request.dry_run {
-		return Ok(Json(HostedCommitResponse {
+		return Ok(HostedCommitResponse {
 			commit: None,
 			verified: false,
 			status: Some("dry_run".to_string()),
 			message: None,
-		}));
+		});
 	}
 
-	let response = commit_release_files(&state.http, &app.api_url, &token, &request).await?;
-	Ok(Json(response))
+	commit_release_files(&state.http, &app.api_url, &token, &request).await
 }
 
 /// Create the release commit through the GitHub App and shape the response.
@@ -430,6 +450,9 @@ async fn commit_release_files(
 }
 
 /// `POST /api/release-requests` — open or update the release pull request.
+///
+/// Kept for monochange CLIs released before the `hosted_release_request` RPC
+/// operation; both run [`release_request`].
 pub async fn publish_release_request(
 	State(state): State<AppState>,
 	headers: axum::http::HeaderMap,
@@ -437,13 +460,29 @@ pub async fn publish_release_request(
 ) -> Result<Json<HostedReleaseResponse>, (StatusCode, Json<ApiError>)> {
 	let caller = authenticate(&state, &headers).await?;
 	let payload: HostedReleaseRequest = read_json_body(body, RELEASE_REQUEST_BODY_LIMIT).await?;
+	release_request(&state, &caller, payload).await.map(Json)
+}
+
+/// Open or update the release pull request for an authenticated caller.
+///
+/// The transport-independent core of the REST route and the
+/// `hosted_release_request` RPC operation.
+///
+/// # Errors
+///
+/// The status and message the caller receives, as for [`release_commit`].
+pub async fn release_request(
+	state: &AppState,
+	caller: &Caller,
+	payload: HostedReleaseRequest,
+) -> Result<HostedReleaseResponse, (StatusCode, Json<ApiError>)> {
 	let request = &payload.request;
 	validate_branch_names(&request.head_branch, Some(&request.base_branch))
 		.map_err(|message| (StatusCode::BAD_REQUEST, Json(ApiError::new(message))))?;
 	let full_name = format!("{}/{}", request.owner, request.repo);
-	authorize(&state, &caller, &full_name)?;
+	authorize(state, caller, &full_name)?;
 
-	let repository = find_connected_repository(&state, &full_name)
+	let repository = find_connected_repository(state, &full_name)
 		.await
 		.map_err(|message| {
 			(
@@ -478,13 +517,13 @@ pub async fn publish_release_request(
 		})?;
 
 	if payload.dry_run {
-		return Ok(Json(HostedReleaseResponse {
+		return Ok(HostedReleaseResponse {
 			number: None,
 			operation: None,
 			url: None,
 			head_branch: Some(request.head_branch.clone()),
 			message: Some("dry_run".to_string()),
-		}));
+		});
 	}
 
 	let (number, operation, url) = github_app::publish_release_pull_request(
@@ -510,11 +549,11 @@ pub async fn publish_release_request(
 		"hosted release pull request published"
 	);
 
-	Ok(Json(HostedReleaseResponse {
+	Ok(HostedReleaseResponse {
 		number: Some(number),
 		operation: Some(operation),
 		url: Some(url),
 		head_branch: Some(request.head_branch.clone()),
 		message: None,
-	}))
+	})
 }

@@ -99,7 +99,7 @@ monochange_backend = { path = "crates/monochange_backend" }
 monochange_shared = { path = "crates/monochange_shared" }
 
 # monochange crates (path deps from parent workspace)
-monochange_core = { path = "../crates/monochange_core", version = "0.21.1" }
+monochange_core = { path = "../crates/monochange_core", version = "0.21.1", features = ["schema"] }
 monochange_github = { path = "../crates/monochange_github", version = "0.21.1" }
 monochange_hosting = { path = "../crates/monochange_hosting", version = "0.21.1" }
 

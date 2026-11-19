@@ -8,15 +8,22 @@
 //! once the app links `leptoskit_rpc` 0.3 and annotates them with `#[api]`.
 //! Wire DTOs for those RPCs live in `monochange_shared`.
 //!
+//! ## Hosted release RPC
+//!
+//! The hosted release commit, release pull request, and workflow dispatch
+//! the CLI calls from CI are RPC operations too
+//! (`monochange_app::server_fns::hosted`). They authenticate a workflow's
+//! OIDC token or `MONOCHANGE_TOKEN` in `machine_gate` before the body is
+//! read, instead of a browser session.
+//!
 //! ## Machine HTTP (Class B)
 //!
-//! GitHub App webhooks, hosted release commit/request endpoints (OIDC /
-//! `MONOCHANGE_TOKEN`), public CLI task GETs, and the embed SDK
+//! GitHub App webhooks, the REST aliases of the hosted release operations
+//! kept for older CLIs, public CLI task GETs, and the embed SDK
 //! (`/api/v1/feedback/...`) remain thin Axum adapters. Mount them with
 //! [`machine_api_router`], which forwards to
-//! [`monochange_app_api::api_router`]. Do not rewrite these as Leptos server
-//! functions: native guests, CI OIDC callers, and the embed iframe need
-//! stable plain-HTTP contracts.
+//! [`monochange_app_api::api_router`]. GitHub webhooks stay plain HTTP
+//! because GitHub defines their format.
 //!
 //! ## Auth cookies (preserve)
 //!

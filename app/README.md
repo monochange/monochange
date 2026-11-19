@@ -182,8 +182,11 @@ Keep your repository's branch protection and required checks enabled. Review and
 Endpoints (all under `monochange.dev` in production):
 
 - `POST /api/github/webhooks` — installation lifecycle events; verifies the `X-Hub-Signature-256` HMAC with the app webhook secret and keeps the `installations` and `repositories` tables in sync.
-- `POST /api/release-commits` — hosted `CommitRelease` backend. Authenticates with a GitHub Actions OIDC token (audience `monochange.dev`) or the `MONOCHANGE_TOKEN` API token, mints a one-hour installation token, and creates blobs/tree/commit through the Git Database API with a branch-moved guard.
-- `POST /api/release-requests` — hosted `OpenReleaseRequest` backend. Opens or updates the release pull request under the bot identity, applies configured labels, and enables auto-merge when requested.
+- `POST /api/hosted_release_commit` — hosted `CommitRelease` backend, a leptoskit RPC operation (`#[api]`, JSON in and out, argument `request`). Authenticates with a GitHub Actions OIDC token (audience `monochange.dev`) or the `MONOCHANGE_TOKEN` API token, mints a one-hour installation token, and creates blobs/tree/commit through the Git Database API with a branch-moved guard.
+- `POST /api/hosted_release_request` — hosted `OpenReleaseRequest` backend, a leptoskit RPC operation. Opens or updates the release pull request under the bot identity, applies configured labels, and enables auto-merge when requested.
+- `POST /api/hosted_workflow_dispatch` — hosted workflow dispatch for `monochange gh workflow run`, a leptoskit RPC operation.
+
+The hosted operations verify the bearer token before reading the body (release commits accept up to 8 MiB) and answer failures with the HTTP status and a `{"status", "message"}` JSON body. `POST /api/release-commits`, `POST /api/release-requests`, and `POST /api/workflow-dispatches` remain as REST aliases for monochange CLIs released before the RPC operations; both run the same code.
 
 Required runtime secrets (beyond the website's OAuth secrets):
 

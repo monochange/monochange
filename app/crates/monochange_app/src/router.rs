@@ -106,6 +106,12 @@ pub fn build_router(
 			state.as_ref().clone(),
 		))
 		.merge(ssr_router)
+		// Hosted release RPC operations authenticate their workflow before
+		// the body is read; the gate ignores every other path.
+		.layer(from_fn_with_state(
+			state.clone(),
+			crate::server_fns::hosted::machine_gate,
+		))
 		.layer(from_fn(crate::public_routes::legacy_projects))
 		// The gate runs after the principal middleware, so a client token is
 		// already in request extensions when its path is checked.

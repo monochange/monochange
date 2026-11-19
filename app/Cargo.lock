@@ -4158,6 +4158,7 @@ dependencies = [
  "glob",
  "ignore",
  "monochange_schema",
+ "schemars",
  "semver",
  "serde",
  "serde_json",
