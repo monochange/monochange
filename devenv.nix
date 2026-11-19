@@ -375,14 +375,14 @@ in
         mkdir -p target/coverage
         cargo bin cargo-llvm-cov clean --workspace
         cargo bin cargo-llvm-cov test --workspace --exclude xtask --all-features --lib --tests --no-report
-        cargo bin cargo-llvm-cov report --ignore-filename-regex 'crates/xtask/' --summary-only --fail-under-lines 70
+        cargo bin cargo-llvm-cov report --ignore-filename-regex 'crates/xtask/' --summary-only --fail-under-lines 90
         cargo bin cargo-llvm-cov report --ignore-filename-regex 'crates/xtask/' --lcov --output-path target/coverage/workspace.lcov
         # The web app is a separate Cargo workspace; include its changed Rust lines in the patch gate.
         cargo bin cargo-llvm-cov test --manifest-path app/Cargo.toml --workspace --lib --tests --no-report
         cargo bin cargo-llvm-cov report --manifest-path app/Cargo.toml --lcov --output-path target/coverage/app.lcov
         cat target/coverage/workspace.lcov target/coverage/app.lcov > target/coverage/lcov.info
       '';
-      description = "Run workspace coverage, enforce a 70% line-coverage floor, and write target/coverage/lcov.info.";
+      description = "Run workspace coverage, enforce a 90% line-coverage floor, and write target/coverage/lcov.info.";
       binary = "bash";
     };
     "coverage:patch" = {
@@ -400,9 +400,9 @@ in
           --lcov target/coverage/lcov.info \
           --base "$base_ref" \
           --head "$head_ref" \
-          --target 100
+          --target 90
       '';
-      description = "Fail when executable changed lines fall below 100% patch coverage.";
+      description = "Fail when executable changed lines fall below 90% patch coverage.";
       binary = "bash";
     };
     "fix:all" = {

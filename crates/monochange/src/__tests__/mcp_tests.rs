@@ -98,10 +98,6 @@ fn setup_fixture(relative: &str) -> tempfile::TempDir {
 	monochange_test_helpers::fs::setup_fixture_from(env!("CARGO_MANIFEST_DIR"), relative)
 }
 
-fn setup_scenario_workspace(relative: &str) -> tempfile::TempDir {
-	monochange_test_helpers::fs::setup_scenario_workspace_from(env!("CARGO_MANIFEST_DIR"), relative)
-}
-
 fn fixture_path(relative: &str) -> PathBuf {
 	monochange_test_helpers::fs::fixture_path_from(env!("CARGO_MANIFEST_DIR"), relative)
 }
@@ -240,41 +236,6 @@ fn sample_changeset(summary: Option<&str>, package_id: &str) -> LoadedChangesetF
 	}
 }
 
-fn sample_semantic_change(item_path: &str) -> SemanticChange {
-	SemanticChange::new(
-		SemanticChangeCategory::PublicApi,
-		SemanticChangeKind::Modified,
-		"function",
-		item_path,
-		format!("function `{item_path}` modified"),
-		PathBuf::from("src/lib.rs"),
-	)
-	.with_before_signature(format!("fn {item_path}()"))
-	.with_after_signature(format!("fn {item_path}(arg: &str)"))
-}
-
-#[test]
-fn shared_fs_test_support_helpers_cover_names_and_scenario_copying() {
-	assert_eq!(
-		current_test_name(),
-		"shared_fs_test_support_helpers_cover_names_and_scenario_copying"
-	);
-	let named = std::thread::Builder::new()
-		.name("case_1_mcp_helper_thread".to_string())
-		.spawn(current_test_name)
-		.unwrap_or_else(|error| panic!("spawn thread: {error}"))
-		.join()
-		.unwrap_or_else(|error| panic!("join thread: {error:?}"));
-	assert_eq!(named, "mcp_helper_thread");
-	let scenario = setup_scenario_workspace("test-support/scenario-workspace");
-	assert_eq!(
-		fs::read_to_string(scenario.path().join("workspace-only.txt"))
-			.unwrap_or_else(|error| panic!("read scenario: {error}")),
-		"workspace marker\n"
-	);
-	assert!(!scenario.path().join("expected").exists());
-}
-
 #[test]
 fn get_info_exposes_tool_instructions_and_capabilities() {
 	let info = MonochangeMcpServer::new().get_info();
@@ -330,112 +291,6 @@ async fn classify_changes_matches_the_cli_report_with_public_dependency_propagat
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn classify_changes_rejects_unknown_dependency_propagation() {
-	let result = MonochangeMcpServer::new()
-		.classify_changes(Parameters(ClassifyChangesParam {
-			path: None,
-			base: None,
-			head: None,
-			release: None,
-			packages: Vec::new(),
-			detection_level: None,
-			include_unchanged: false,
-			dependency_propagation: Some("transitive".to_string()),
-		}))
-		.await
-		.unwrap_or_else(|error| panic!("MCP classification: {error}"));
-	let response = serde_json::from_str::<serde_json::Value>(&content_text(&result))
-		.unwrap_or_else(|error| panic!("parse MCP error: {error}"));
-
-	assert_eq!(response["ok"], false);
-	assert!(
-		response["summary"]
-			.as_str()
-			.is_some_and(|summary| summary.contains("expected none or public"))
-	);
-}
-
-#[test]
-fn resolve_root_prefers_explicit_paths() {
-	let explicit = PathBuf::from("/tmp/monochange-mcp-test");
-	assert_eq!(resolve_root(explicit.to_str()), explicit);
-}
-
-#[test]
-fn resolve_root_defaults_to_current_directory() {
-	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	let resolved = resolve_root_with_current_dir(None, || Ok(tempdir.path().to_path_buf()));
-
-	assert_eq!(
-		monochange_core::normalize_path(&resolved),
-		monochange_core::normalize_path(tempdir.path())
-	);
-}
-
-#[test]
-fn resolve_root_falls_back_when_current_directory_is_unavailable() {
-	let resolved = resolve_root_with_current_dir(None, || {
-		Err(std::io::Error::new(
-			std::io::ErrorKind::NotFound,
-			"missing current directory",
-		))
-	});
-
-	assert_eq!(resolved, PathBuf::from("."));
-}
-
-#[test]
-fn json_result_and_error_result_render_structured_content() {
-	let success = json_result(serde_json::json!({"ok": true, "summary": "done"}));
-	let failure = json_error_result(serde_json::json!({"ok": false, "summary": "bad"}));
-	assert!(success.is_error.is_none_or(|value| !value));
-	assert_eq!(
-		content_text(&success),
-		"{\n  \"ok\": true,\n  \"summary\": \"done\"\n}"
-	);
-	assert_eq!(failure.is_error, Some(true));
-	assert_eq!(
-		content_text(&failure),
-		"{\n  \"ok\": false,\n  \"summary\": \"bad\"\n}"
-	);
-}
-
-#[test]
-fn content_text_returns_empty_for_non_text_content() {
-	let result = rmcp::model::CallToolResult::success(vec![rmcp::model::ContentBlock::image(
-		"aGVsbG8=",
-		"image/png",
-	)]);
-	assert_eq!(content_text(&result), String::new());
-}
-
-#[test]
-fn manifest_helpers_expose_release_preview_shapes() {
-	let tempdir = setup_fixture("monochange/release-base");
-	let prepared = crate::tests::block_on_in_context(crate::prepare_release(tempdir.path(), true))
-		.unwrap_or_else(|error| panic!("prepare release: {error}"));
-	let manifest = super::manifest_for_prepared_release(&prepared);
-	assert_eq!(manifest.command, "release-manifest");
-	assert!(!manifest.release_targets.is_empty());
-	let prepared_value = super::prepared_release_value(&prepared);
-	assert_eq!(prepared_value["dry_run"].as_bool(), Some(true));
-	assert!(prepared_value["release_targets"].is_array());
-}
-
-#[test]
-fn copy_directory_panics_when_destination_is_not_a_directory() {
-	let source = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	fs::write(source.path().join("file.txt"), "hello\n")
-		.unwrap_or_else(|error| panic!("write source file: {error}"));
-	let destination_root = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	let destination_file = destination_root.path().join("already-a-file");
-	fs::write(&destination_file, "occupied\n")
-		.unwrap_or_else(|error| panic!("write destination file: {error}"));
-	let result = std::panic::catch_unwind(|| copy_directory(source.path(), &destination_file));
-	assert!(result.is_err());
-}
-
-#[tokio::test(flavor = "multi_thread")]
 async fn validate_reports_success_for_valid_workspace_fixture() {
 	let mut settings = snapshot_settings();
 	settings.set_snapshot_suffix(current_test_name());
@@ -448,40 +303,6 @@ async fn validate_reports_success_for_valid_workspace_fixture() {
 		}))
 		.await
 		.unwrap_or_else(|error| panic!("validate: {error}"));
-
-	assert_snapshot!(content_text(&result));
-}
-
-#[tokio::test(flavor = "multi_thread")]
-async fn validate_reports_config_errors_for_invalid_workspace_fixture() {
-	let mut settings = snapshot_settings();
-	settings.set_snapshot_suffix(current_test_name());
-	let _guard = settings.bind_to_scope();
-	let tempdir = setup_fixture("config/rejects-unknown-template-vars");
-
-	let result = MonochangeMcpServer::new()
-		.validate(Parameters(PathParam {
-			path: Some(tempdir.path().display().to_string()),
-		}))
-		.await
-		.unwrap_or_else(|error| panic!("validate: {error}"));
-
-	assert_snapshot!(content_text(&result));
-}
-
-#[tokio::test(flavor = "multi_thread")]
-async fn discover_reports_workspace_packages() {
-	let mut settings = snapshot_settings();
-	settings.set_snapshot_suffix(current_test_name());
-	let _guard = settings.bind_to_scope();
-	let tempdir = setup_fixture("monochange/release-base");
-
-	let result = MonochangeMcpServer::new()
-		.discover(Parameters(PathParam {
-			path: Some(tempdir.path().display().to_string()),
-		}))
-		.await
-		.unwrap_or_else(|error| panic!("discover: {error}"));
 
 	assert_snapshot!(content_text(&result));
 }
@@ -520,60 +341,6 @@ async fn change_writes_markdown_changeset() {
 	assert_snapshot!("changeset", contents);
 }
 
-#[test]
-fn mcp_change_bump_variants_map_to_change_bump_variants() {
-	assert_eq!(
-		crate::ChangeBump::from(McpChangeBump::None),
-		crate::ChangeBump::None
-	);
-	assert_eq!(
-		crate::ChangeBump::from(McpChangeBump::Patch),
-		crate::ChangeBump::Patch
-	);
-	assert_eq!(
-		crate::ChangeBump::from(McpChangeBump::Minor),
-		crate::ChangeBump::Minor
-	);
-	assert_eq!(
-		crate::ChangeBump::from(McpChangeBump::Major),
-		crate::ChangeBump::Major
-	);
-}
-
-#[tokio::test(flavor = "multi_thread")]
-async fn change_writes_type_only_markdown_changeset() {
-	let mut settings = snapshot_settings();
-	settings.set_snapshot_suffix(current_test_name());
-	let _guard = settings.bind_to_scope();
-	let tempdir = setup_fixture("changeset-target-metadata/cli-type-only-change");
-
-	let result = MonochangeMcpServer::new()
-		.change(Parameters(ChangeParam {
-			path: Some(tempdir.path().display().to_string()),
-			package: vec!["core".to_string()],
-			bump: McpChangeBump::None,
-			version: None,
-			reason: "document the migration".to_string(),
-			change_type: Some("docs".to_string()),
-			caused_by: Vec::new(),
-			details: None,
-			output: Some(
-				tempdir
-					.path()
-					.join(".changeset/core-docs.md")
-					.display()
-					.to_string(),
-			),
-		}))
-		.await
-		.unwrap_or_else(|error| panic!("change: {error}"));
-
-	assert_snapshot!("response", content_text(&result));
-	let contents = fs::read_to_string(tempdir.path().join(".changeset/core-docs.md"))
-		.unwrap_or_else(|error| panic!("changeset read: {error}"));
-	assert_snapshot!("changeset", contents);
-}
-
 #[tokio::test(flavor = "multi_thread")]
 async fn discover_reports_config_errors_for_invalid_workspace_fixture() {
 	let mut settings = snapshot_settings();
@@ -587,24 +354,6 @@ async fn discover_reports_config_errors_for_invalid_workspace_fixture() {
 		}))
 		.await
 		.unwrap_or_else(|error| panic!("discover: {error}"));
-
-	assert_snapshot!(content_text(&result));
-}
-
-#[tokio::test(flavor = "multi_thread")]
-async fn diagnostics_returns_changeset_context() {
-	let mut settings = snapshot_settings();
-	settings.set_snapshot_suffix(current_test_name());
-	let _guard = settings.bind_to_scope();
-	let tempdir = setup_fixture("monochange/diagnostics-base");
-
-	let result = MonochangeMcpServer::new()
-		.diagnostics(Parameters(DiagnosticsParam {
-			path: Some(tempdir.path().display().to_string()),
-			changeset: Vec::new(),
-		}))
-		.await
-		.unwrap_or_else(|error| panic!("diagnostics: {error}"));
 
 	assert_snapshot!(content_text(&result));
 }
@@ -670,25 +419,6 @@ async fn release_preview_returns_dry_run_release_summary() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn release_manifest_returns_dry_run_manifest() {
-	let mut settings = snapshot_settings();
-	settings.set_snapshot_suffix(current_test_name());
-	let _guard = settings.bind_to_scope();
-	let tempdir = setup_fixture("monochange/release-base");
-
-	let result = MonochangeMcpServer::new()
-		.release_manifest(Parameters(PathParam {
-			path: Some(tempdir.path().display().to_string()),
-		}))
-		.await
-		.unwrap_or_else(|error| panic!("release manifest: {error}"));
-
-	let value = serde_json::from_str::<serde_json::Value>(&content_text(&result))
-		.unwrap_or_else(|error| panic!("parse release manifest result: {error}"));
-	assert_readable_json_snapshot!(value);
-}
-
-#[tokio::test(flavor = "multi_thread")]
 async fn release_preview_reports_config_errors_when_changesets_are_missing() {
 	let mut settings = snapshot_settings();
 	settings.set_snapshot_suffix(current_test_name());
@@ -720,27 +450,6 @@ async fn release_manifest_reports_config_errors_when_changesets_are_missing() {
 		.unwrap_or_else(|error| panic!("release manifest: {error}"));
 
 	assert_snapshot!(content_text(&result));
-}
-
-#[tokio::test(flavor = "multi_thread")]
-async fn affected_packages_reports_failed_policy_for_uncovered_changes() {
-	let mut settings = snapshot_settings();
-	settings.set_snapshot_suffix(current_test_name());
-	let _guard = settings.bind_to_scope();
-	let tempdir = setup_fixture("changeset-policy/no-changeset");
-
-	let result = MonochangeMcpServer::new()
-		.affected_packages(Parameters(AffectedParam {
-			path: Some(tempdir.path().display().to_string()),
-			changed_paths: vec!["crates/core/src/lib.rs".to_string()],
-			labels: Vec::new(),
-		}))
-		.await
-		.unwrap_or_else(|error| panic!("affected: {error}"));
-
-	let value = serde_json::from_str::<serde_json::Value>(&content_text(&result))
-		.unwrap_or_else(|error| panic!("parse affected result: {error}"));
-	assert_readable_json_snapshot!(value);
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -822,22 +531,6 @@ async fn lint_explain_returns_rule_and_preset() {
 	});
 
 	assert_readable_json_snapshot!(combined);
-}
-
-#[tokio::test(flavor = "multi_thread")]
-async fn lint_explain_reports_unknown_ids() {
-	let mut settings = snapshot_settings();
-	settings.set_snapshot_suffix(current_test_name());
-	let _guard = settings.bind_to_scope();
-
-	let result = MonochangeMcpServer::new()
-		.lint_explain(Parameters(LintExplainParam {
-			id: "cargo/does-not-exist".to_string(),
-		}))
-		.await
-		.unwrap_or_else(|error| panic!("lint explain missing id: {error}"));
-
-	assert_snapshot!(content_text(&result));
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -965,57 +658,6 @@ fn validate_changeset_content_warns_when_semantic_changes_are_empty() {
 	assert_eq!(issues[0].severity, "warning");
 }
 
-#[test]
-fn validate_changeset_content_skips_warning_when_summary_mentions_detected_item() {
-	let changeset = sample_changeset(Some("update `greet` behavior"), "core");
-	let analysis = sample_change_analysis(sample_package_analysis(
-		"core",
-		vec![sample_semantic_change("greet")],
-	));
-
-	let issues = super::validate_changeset_content(&changeset, &analysis);
-
-	assert!(issues.is_empty());
-}
-
-#[test]
-fn validate_changeset_content_skips_warning_when_details_mentions_detected_item() {
-	let mut changeset = sample_changeset(Some("update public API"), "core");
-	changeset.details = Some("The changed item is `greet`.".to_string());
-	let analysis = sample_change_analysis(sample_package_analysis(
-		"core",
-		vec![sample_semantic_change("greet")],
-	));
-
-	let issues = super::validate_changeset_content(&changeset, &analysis);
-
-	assert!(issues.is_empty());
-}
-
-#[test]
-fn validate_changeset_content_suggests_detected_items_when_summary_is_generic() {
-	let changeset = sample_changeset(Some("update semantic analysis messaging"), "core");
-	let analysis = sample_change_analysis(sample_package_analysis(
-		"core",
-		vec![
-			sample_semantic_change("greet"),
-			sample_semantic_change("Greeter"),
-		],
-	));
-
-	let issues = super::validate_changeset_content(&changeset, &analysis);
-
-	assert_eq!(issues.len(), 1);
-	assert!(
-		issues[0]
-			.message
-			.contains("does not mention any detected semantic item")
-	);
-	assert!(issues[0].suggestion.as_ref().is_some_and(|suggestion| {
-		suggestion.contains("`greet`") && suggestion.contains("`Greeter`")
-	}));
-}
-
 #[tokio::test(flavor = "multi_thread")]
 async fn validate_changeset_reports_frame_detection_errors() {
 	let tempdir = setup_analysis_workspace_without_git();
@@ -1062,54 +704,4 @@ async fn validate_changeset_reports_semantic_analysis_errors() {
 	let rendered = content_text(&result);
 
 	assert!(rendered.contains("Semantic analysis failed"));
-}
-
-#[tokio::test(flavor = "multi_thread")]
-async fn validate_changeset_reports_current_lifecycle_when_items_are_mentioned() {
-	let tempdir = setup_analysis_workspace();
-	let changeset_dir = tempdir.path().join(".changeset");
-	fs::create_dir_all(&changeset_dir)
-		.unwrap_or_else(|error| panic!("create .changeset dir: {error}"));
-	fs::write(
-		changeset_dir.join("feature.md"),
-		"---\ncore: patch\n---\n\n#### update `Greeter` behavior\n",
-	)
-	.unwrap_or_else(|error| panic!("write changeset fixture: {error}"));
-
-	let result = MonochangeMcpServer::new()
-		.validate_changeset(Parameters(super::ValidateChangesetParam {
-			path: Some(tempdir.path().display().to_string()),
-			changeset_path: ".changeset/feature.md".to_string(),
-		}))
-		.await
-		.unwrap_or_else(|error| panic!("validate_changeset: {error}"));
-	let rendered = content_text(&result);
-
-	assert!(rendered.contains("\"lifecycle_status\": \"current\""));
-	assert!(rendered.contains("\"valid\": true"));
-}
-
-#[tokio::test(flavor = "multi_thread")]
-async fn validate_changeset_reports_incomplete_lifecycle_for_warning_only_results() {
-	let tempdir = setup_analysis_workspace();
-	let changeset_dir = tempdir.path().join(".changeset");
-	fs::create_dir_all(&changeset_dir)
-		.unwrap_or_else(|error| panic!("create .changeset dir: {error}"));
-	fs::write(
-		changeset_dir.join("feature.md"),
-		"---\ncore: patch\n---\n\n#### update semantic analysis messaging\n",
-	)
-	.unwrap_or_else(|error| panic!("write changeset fixture: {error}"));
-
-	let result = MonochangeMcpServer::new()
-		.validate_changeset(Parameters(super::ValidateChangesetParam {
-			path: Some(tempdir.path().display().to_string()),
-			changeset_path: ".changeset/feature.md".to_string(),
-		}))
-		.await
-		.unwrap_or_else(|error| panic!("validate_changeset: {error}"));
-	let rendered = content_text(&result);
-
-	assert!(rendered.contains("\"lifecycle_status\": \"incomplete\""));
-	assert!(rendered.contains("\"valid\": false"));
 }

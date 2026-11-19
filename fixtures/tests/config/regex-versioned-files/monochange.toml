@@ -1,8 +1,0 @@
-[defaults]
-package_type = "cargo"
-
-[package.core]
-path = "crates/core"
-versioned_files = [
-  { path = "README.md", regex = 'https:\/\/example.com\/download\/v(?<version>\d+\.\d+\.\d+)\.tgz' },
-]

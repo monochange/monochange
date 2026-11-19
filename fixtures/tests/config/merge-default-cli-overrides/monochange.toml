@@ -1,5 +1,0 @@
-[cli.release]
-help_text = "Prepare a release and refresh the cached release manifest"
-
-[[cli.release.steps]]
-type = "PrepareRelease"

@@ -1,4 +1,0 @@
-[project]
-name = "dynamic-pkg"
-dynamic = ["version"]
-dependencies = []

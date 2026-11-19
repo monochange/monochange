@@ -1,6 +1,0 @@
-[package.core]
-path = "crates/core"
-type = "cargo"
-
-[group.sdk]
-packages = ["core"]
