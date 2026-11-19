@@ -1,5 +1,5 @@
 ---
-"@monochange/feedback": feat
+"@monochange/feedback": major
 "@monochange/feedback-worker": feat
 monochange_feedback: feat
 ---
@@ -21,3 +21,5 @@ monochange_feedback: feat
 | worker pair, claim, heartbeat, result | `feedback_worker_pair`, `feedback_worker_claim`, `feedback_worker_heartbeat`, `feedback_worker_result` |
 
 Errors keep their `code`, `status`, and `Retry-After`. When a site answers an operation with a `404` that carries no `code`, it predates the RPC operations, so the client switches to the REST routes for the rest of its life, and the worker for the rest of its process. No host code changes are needed. The hosted sign-in page now calls `feedback_iframe_session`, and the host-backend example issues sessions with `feedback_sdk_session` (`{project, input: {user_id, surface}}`); the REST `POST /api/v1/feedback/{project}/sessions` keeps working.
+
+`FeedbackClient` (npm) gains a public `origin` field beside `base`; its method signatures are unchanged. The API classifier treats any change to an exported class as modified, so `@monochange/feedback` takes a major bump.
