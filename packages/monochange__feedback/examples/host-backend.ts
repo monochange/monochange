@@ -10,11 +10,14 @@ export async function issueFeedbackSession(
 
 	if (!project || !credential) throw new Error("Configure the project's feedback integration");
 	const response = await fetch(
-		`${endpoint}/api/v1/feedback/${encodeURIComponent(project)}/sessions`,
+		`${endpoint}/api/feedback_sdk_session?project=${encodeURIComponent(project)}`,
 		{
 			method: "POST",
 			headers: { Authorization: `Bearer ${credential}`, "Content-Type": "application/json" },
-			body: JSON.stringify({ user_id: authenticatedUser.id, surface }),
+			body: JSON.stringify({
+				project: Number(project),
+				input: { user_id: authenticatedUser.id, surface },
+			}),
 			redirect: "error",
 		},
 	);

@@ -73,9 +73,20 @@ export class FeedbackError extends Error {
 let sequence = 0;
 const V1_SESSION_LIFETIME_SECONDS = 600;
 
+/** One protocol call: its leptoskit RPC operation and the REST route older sites serve. */
+interface Call {
+	operation: string;
+	args: Record<string, unknown>;
+	legacy: { path: string; method: string; body?: unknown };
+}
+
 /** No browser storage or host identity is sent; the host callback supplies a scoped token. */
 export class FeedbackClient {
+	/** The site's RPC operations live under `${origin}/api/<operation>`. */
+	readonly origin: string;
+	/** The REST routes a site released before the RPC operations serves. */
 	readonly base: string;
+	private legacy = false;
 	private token?: ClientToken;
 	private refreshing?: Promise<ClientToken>;
 	private epoch = 0;
@@ -102,7 +113,8 @@ export class FeedbackClient {
 		) {
 			throw new FeedbackError("Invalid feedback endpoint or project", "invalid_configuration");
 		}
-		this.base = `${url.href.replace(/\/$/, "")}/api/v1/feedback/${options.project}`;
+		this.origin = url.href.replace(/\/$/, "");
+		this.base = `${this.origin}/api/v1/feedback/${options.project}`;
 		this.fetcher = options.fetch ?? globalThis.fetch.bind(globalThis);
 	}
 
@@ -137,13 +149,14 @@ export class FeedbackClient {
 		}
 	}
 
-	private async request<T>(
-		path: string,
-		method: string,
-		body?: unknown,
-		key?: string,
-		refresh = true,
-	): Promise<T> {
+	private async request<T>(call: Call, key?: string, refresh = true): Promise<T> {
+		const legacy = this.legacy;
+		const { project } = this.options;
+		const url = legacy
+			? `${this.base}${call.legacy.path}`
+			: `${this.origin}/api/${call.operation}?project=${project}`;
+		const method = legacy ? call.legacy.method : "POST";
+		const body = legacy ? call.legacy.body : { project, ...call.args };
 		const epoch = this.epoch;
 		const session = await this.session();
 
@@ -159,7 +172,7 @@ export class FeedbackClient {
 			};
 
 			if (key) headers["Idempotency-Key"] = key;
-			const response = await this.fetcher(`${this.base}${path}`, {
+			const response = await this.fetcher(url, {
 				method,
 				headers,
 				body: body === undefined ? undefined : JSON.stringify(body),
@@ -174,7 +187,7 @@ export class FeedbackClient {
 			if (response.status === 401 && refresh) {
 				if (this.token === session) this.token = undefined;
 
-				return this.request<T>(path, method, body, key, false);
+				return this.request<T>(call, key, false);
 			}
 
 			const text = await response.text();
@@ -188,11 +201,22 @@ export class FeedbackClient {
 			try {
 				value = text ? JSON.parse(text) : {};
 			} catch {
+				if (response.status === 404 && !legacy) {
+					this.legacy = true;
+					return this.request<T>(call, key, refresh);
+				}
 				throw new FeedbackError(
 					"Feedback returned an invalid response",
 					"invalid_response",
 					response.status,
 				);
+			}
+
+			// Every RPC failure carries a `code`; a bare 404 is a site that
+			// predates the operations, so use its REST routes from now on.
+			if (response.status === 404 && !legacy && typeof value?.code !== "string") {
+				this.legacy = true;
+				return this.request<T>(call, key, refresh);
 			}
 
 			if (!response.ok) {
@@ -212,7 +236,12 @@ export class FeedbackClient {
 	}
 
 	suggest(text: string): Promise<AssistantReply> {
-		return this.request("/suggestions", "POST", { text });
+		const input = { text };
+		return this.request({
+			operation: "feedback_sdk_suggestions",
+			args: { input },
+			legacy: { path: "/suggestions", method: "POST", body: input },
+		});
 	}
 	startConversation(
 		message: string,
@@ -222,16 +251,31 @@ export class FeedbackClient {
 		const context = supplied ? { ...supplied } : undefined;
 
 		if (context) context.route = context.route.split(/[?#]/, 1)[0];
+		const input = { message, kind, context };
 
-		return this.request("/conversations", "POST", { message, kind, context });
+		return this.request({
+			operation: "feedback_sdk_create_conversation",
+			args: { input },
+			legacy: { path: "/conversations", method: "POST", body: input },
+		});
 	}
 	getConversation(id: string): Promise<{ conversation: Conversation }> {
-		return this.request(`/conversations/${encodeURIComponent(id)}`, "GET");
+		return this.request({
+			operation: "feedback_sdk_conversation",
+			args: { id },
+			legacy: { path: `/conversations/${encodeURIComponent(id)}`, method: "GET" },
+		});
 	}
 	sendMessage(conversation: Conversation, body: string): Promise<ConversationReply> {
-		return this.request(`/conversations/${encodeURIComponent(conversation.id)}/messages`, "POST", {
-			body,
-			version: conversation.version,
+		const input = { body, version: conversation.version };
+		return this.request({
+			operation: "feedback_sdk_conversation_message",
+			args: { id: conversation.id, input },
+			legacy: {
+				path: `/conversations/${encodeURIComponent(conversation.id)}/messages`,
+				method: "POST",
+				body: input,
+			},
 		});
 	}
 	submit(conversation: string, version: number): Promise<Receipt> {
@@ -242,17 +286,38 @@ export class FeedbackClient {
 			key = globalThis.crypto?.randomUUID?.() ?? `request-${Date.now()}-${sequence++}`;
 			this.submissionKeys.set(scope, key);
 		}
+		const input = { conversation, version };
 
-		return this.request("/items", "POST", { conversation, version }, key);
+		return this.request(
+			{
+				operation: "feedback_sdk_submit",
+				args: { input },
+				legacy: { path: "/items", method: "POST", body: input },
+			},
+			key,
+		);
 	}
 	getItem(id: string): Promise<Item> {
-		return this.request(`/items/${encodeURIComponent(id)}`, "GET");
+		return this.request({
+			operation: "feedback_sdk_item",
+			args: { id },
+			legacy: { path: `/items/${encodeURIComponent(id)}`, method: "GET" },
+		});
 	}
 	reply(id: string, body: string): Promise<Receipt> {
-		return this.request(`/items/${encodeURIComponent(id)}/messages`, "POST", { body });
+		const input = { body };
+		return this.request({
+			operation: "feedback_sdk_reply",
+			args: { id, input },
+			legacy: { path: `/items/${encodeURIComponent(id)}/messages`, method: "POST", body: input },
+		});
 	}
 	vote(id: string, on = true): Promise<{ id: string; votes: number; voted: boolean }> {
-		return this.request(`/items/${encodeURIComponent(id)}/vote`, on ? "PUT" : "DELETE");
+		return this.request({
+			operation: "feedback_sdk_vote",
+			args: { id, voted: on },
+			legacy: { path: `/items/${encodeURIComponent(id)}/vote`, method: on ? "PUT" : "DELETE" },
+		});
 	}
 
 	/** Call on logout or account change before requesting another user's token. */

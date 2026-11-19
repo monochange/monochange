@@ -3185,7 +3185,7 @@ fn hosted_release_request_result_reports_connection_failures() {
 				assert!(
 					error
 						.to_string()
-						.contains("hosted OpenReleaseRequest failed"),
+						.contains("hosted OpenReleaseRequest request failed"),
 					"error should explain the request failure: {error}"
 				);
 			},

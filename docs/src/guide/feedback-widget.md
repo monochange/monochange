@@ -100,7 +100,7 @@ export async function feedbackSession(request: Request): Promise<Response> {
 	}
 
 	const response = await fetch(
-		`${endpoint.replace(/\/$/, "")}/api/v1/feedback/${encodeURIComponent(project)}/sessions`,
+		`${endpoint.replace(/\/$/, "")}/api/feedback_sdk_session?project=${encodeURIComponent(project)}`,
 		{
 			method: "POST",
 			redirect: "error",
@@ -108,7 +108,10 @@ export async function feedbackSession(request: Request): Promise<Response> {
 				Authorization: `Bearer ${credential}`,
 				"Content-Type": "application/json",
 			},
-			body: JSON.stringify({ user_id: user.id, surface: "web" }),
+			body: JSON.stringify({
+				project: Number(project),
+				input: { user_id: user.id, surface: "web" },
+			}),
 		},
 	);
 	if (!response.ok) {

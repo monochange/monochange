@@ -286,12 +286,32 @@ async function checkedFile(root: string, path: string): Promise<string> {
 	return current;
 }
 
+/** POST JSON to the model endpoint and read its JSON answer. */
 async function jsonRequest(
 	url: string,
 	token: string,
 	body: unknown,
 	signal?: AbortSignal,
 ): Promise<any> {
+	const response = await send(url, token, body, signal);
+
+	if (!response.ok) throw new Error(`Agent endpoint returned ${response.status}`);
+
+	return JSON.parse(response.text);
+}
+
+/** One worker protocol call: its leptoskit RPC operation and the REST route older sites serve. */
+interface ProtocolCall {
+	operation: string;
+	args?: Record<string, unknown>;
+	legacy: string;
+	body: unknown;
+}
+
+/** Sites that answered a bare 404 for an RPC operation, so predate them. */
+const legacySites = new Set<string>();
+
+async function send(url: string, token: string, body: unknown, signal?: AbortSignal) {
 	const response = await fetch(url, {
 		method: "POST",
 		headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
@@ -303,9 +323,58 @@ async function jsonRequest(
 
 	if (text.length > 1024 * 1024) throw new Error("Remote response exceeded its size limit");
 
-	if (!response.ok) throw new Error(`Agent endpoint returned ${response.status}`);
+	return { status: response.status, ok: response.ok, text };
+}
 
-	return JSON.parse(text);
+/** Every RPC failure carries a `code`; a 404 without one is a site that predates the operations. */
+function missingOperation(status: number, text: string): boolean {
+	if (status !== 404) return false;
+	try {
+		return typeof JSON.parse(text)?.code !== "string";
+	} catch {
+		return true;
+	}
+}
+
+async function protocolRequest(
+	config: WorkerConfig,
+	token: string,
+	call: ProtocolCall,
+	signal?: AbortSignal,
+): Promise<any> {
+	const origin = config.endpoint.replace(/\/$/, "");
+
+	if (!legacySites.has(origin)) {
+		const response = await send(
+			`${origin}/api/${call.operation}?project=${config.project}`,
+			token,
+			{ project: config.project, ...call.args },
+			signal,
+		);
+
+		if (!missingOperation(response.status, response.text)) {
+			if (!response.ok) throw new Error(`Agent endpoint returned ${response.status}`);
+
+			return JSON.parse(response.text);
+		}
+		legacySites.add(origin);
+	}
+
+	return jsonRequest(
+		`${origin}/api/v1/feedback/${config.project}${call.legacy}`,
+		token,
+		call.body,
+		signal,
+	);
+}
+
+function resultCall(id: string, payload: unknown): ProtocolCall {
+	return {
+		operation: "feedback_worker_result",
+		args: { id, input: payload },
+		legacy: `/jobs/${encodeURIComponent(id)}/result`,
+		body: payload,
+	};
 }
 
 async function check(
@@ -608,11 +677,7 @@ async function readPendingResult(spool: string): Promise<any> {
 }
 
 /** Recover the previous attempt before fetching another job, even after a lost acknowledgement. */
-async function replayPendingResult(
-	config: WorkerConfig,
-	api: string,
-	spool?: string,
-): Promise<boolean> {
+async function replayPendingResult(config: WorkerConfig, spool?: string): Promise<boolean> {
 	if (!spool) return false;
 	const pending = await readPendingResult(spool);
 
@@ -623,10 +688,10 @@ async function replayPendingResult(
 		!/^job-\d+$/u.test(pending.id)
 	)
 		throw new Error("Pending result belongs to another worker configuration");
-	await jsonRequest(
-		`${api}/jobs/${pending.id}/result`,
+	await protocolRequest(
+		config,
 		config.workerToken!,
-		pending.result,
+		resultCall(pending.id, pending.result),
 		AbortSignal.timeout(60_000),
 	);
 	await rm(spool);
@@ -656,7 +721,7 @@ async function savePendingResult(
 		await rename(temporary, spool);
 	}
 }
-function monitorJob(config: WorkerConfig, api: string, id: string, lease: string) {
+function monitorJob(config: WorkerConfig, id: string, lease: string) {
 	const controller = new AbortController();
 	const deadline = setTimeout(() => controller.abort(), 30 * 60_000);
 	let cancelled = false;
@@ -665,10 +730,15 @@ function monitorJob(config: WorkerConfig, api: string, id: string, lease: string
 		if (heartbeatRunning) return;
 		heartbeatRunning = true;
 		try {
-			const result = await jsonRequest(
-				`${api}/jobs/${encodeURIComponent(id)}/heartbeat`,
+			const result = await protocolRequest(
+				config,
 				config.workerToken!,
-				{ lease: lease },
+				{
+					operation: "feedback_worker_heartbeat",
+					args: { id, input: { lease } },
+					legacy: `/jobs/${encodeURIComponent(id)}/heartbeat`,
+					body: { lease },
+				},
 				AbortSignal.timeout(15_000),
 			);
 			if (result.cancel) {
@@ -694,15 +764,17 @@ function monitorJob(config: WorkerConfig, api: string, id: string, lease: string
 
 export async function runOnce(config: WorkerConfig, spool?: string): Promise<boolean> {
 	if (!config.workerToken) throw new Error("Pair this worker first");
-	const api = `${config.endpoint.replace(/\/$/, "")}/api/v1/feedback/${config.project}`;
+	if (await replayPendingResult(config, spool)) return true;
 
-	if (await replayPendingResult(config, api, spool)) return true;
-
-	const claimed = await jsonRequest(`${api}/workers/claim`, config.workerToken, {});
+	const claimed = await protocolRequest(config, config.workerToken, {
+		operation: "feedback_worker_claim",
+		legacy: "/workers/claim",
+		body: {},
+	});
 
 	if (!claimed.job) return false;
 	const job = claimed.job as Job;
-	const monitor = monitorJob(config, api, job.id, claimed.lease);
+	const monitor = monitorJob(config, job.id, claimed.lease);
 	try {
 		let result;
 		try {
@@ -716,10 +788,10 @@ export async function runOnce(config: WorkerConfig, spool?: string): Promise<boo
 
 		await savePendingResult(spool, config, job.id, payload);
 
-		await jsonRequest(
-			`${api}/jobs/${encodeURIComponent(job.id)}/result`,
+		await protocolRequest(
+			config,
 			config.workerToken,
-			payload,
+			resultCall(job.id, payload),
 			AbortSignal.timeout(60_000),
 		);
 
@@ -735,11 +807,11 @@ async function pairWorker(config: WorkerConfig, file: string) {
 	const code = process.env[config.pairingCodeEnvironment ?? "MONOCHANGE_PAIRING_CODE"];
 
 	if (!code) throw new Error("Set the configured pairing-code environment variable");
-	const result = await jsonRequest(
-		`${config.endpoint.replace(/\/$/, "")}/api/v1/feedback/${config.project}/workers/pair`,
-		code,
-		{},
-	);
+	const result = await protocolRequest(config, code, {
+		operation: "feedback_worker_pair",
+		legacy: "/workers/pair",
+		body: {},
+	});
 
 	config.workerToken = result.token;
 	const temporary = `${file}.${randomUUID()}.tmp`;

@@ -123,12 +123,78 @@ it("reconciles a saved result before claiming work and preserves it when acknowl
 		fetcher.mockImplementation(async () => Response.json({ ok: true }));
 		expect(await runOnce(config as any, spool)).toBe(true);
 		expect(fetcher).toHaveBeenCalledTimes(2);
-		expect(fetcher.mock.calls.every(([url]) => String(url).endsWith("/jobs/job-1/result"))).toBe(
-			true,
-		);
+		expect(
+			fetcher.mock.calls.every(
+				([url]) => url === "https://feedback.example/api/feedback_worker_result?project=1",
+			),
+		).toBe(true);
+		const [, init] = fetcher.mock.calls[1] as unknown as [string, RequestInit];
+		expect(JSON.parse(init.body as string)).toMatchObject({
+			project: 1,
+			id: "job-1",
+			input: JSON.parse(original).result,
+		});
 		await expect(readFile(spool)).rejects.toThrow();
 	} finally {
 		vi.unstubAllGlobals();
 		await rm(root, { recursive: true, force: true });
+	}
+});
+
+it("claims over RPC and keeps an RPC failure that carries a code", async () => {
+	const config = {
+		endpoint: "https://rpc.feedback.example",
+		project: 2,
+		workerToken: "test-only-worker",
+	};
+	const fetcher = vi.fn(async (_url: string, _init: RequestInit) => Response.json({ job: null }));
+	vi.stubGlobal("fetch", fetcher);
+	try {
+		expect(await runOnce(config as any)).toBe(false);
+		expect(fetcher.mock.calls[0][0]).toBe(
+			"https://rpc.feedback.example/api/feedback_worker_claim?project=2",
+		);
+		expect(JSON.parse(fetcher.mock.calls[0][1].body as string)).toEqual({ project: 2 });
+
+		fetcher.mockImplementation(async () =>
+			Response.json({ status: 404, code: "not_found", message: "No project" }, { status: 404 }),
+		);
+		await expect(runOnce(config as any)).rejects.toThrow("404");
+		expect(fetcher).toHaveBeenCalledTimes(2);
+	} finally {
+		vi.unstubAllGlobals();
+	}
+});
+
+it("falls back to the REST routes on a site that predates the RPC operations", async () => {
+	const config = {
+		endpoint: "https://legacy.feedback.example/",
+		project: 3,
+		workerToken: "test-only-worker",
+	};
+	const fetcher = vi.fn(async (url: string, _init: RequestInit) =>
+		url.includes("/api/feedback_worker_")
+			? new Response("<html>Not found</html>", { status: 404 })
+			: Response.json({ job: null }),
+	);
+	vi.stubGlobal("fetch", fetcher);
+	try {
+		expect(await runOnce(config as any)).toBe(false);
+		expect(await runOnce(config as any)).toBe(false);
+		expect(fetcher.mock.calls.map(([url]) => url)).toEqual([
+			"https://legacy.feedback.example/api/feedback_worker_claim?project=3",
+			"https://legacy.feedback.example/api/v1/feedback/3/workers/claim",
+			"https://legacy.feedback.example/api/v1/feedback/3/workers/claim",
+		]);
+		expect(JSON.parse(fetcher.mock.calls[1][1].body as string)).toEqual({});
+
+		fetcher.mockImplementation(async () => Response.json({ error: "missing" }, { status: 404 }));
+		const other = { ...config, endpoint: "https://json404.feedback.example" };
+		await expect(runOnce(other as any)).rejects.toThrow("404");
+		expect(fetcher.mock.calls.at(-1)![0]).toBe(
+			"https://json404.feedback.example/api/v1/feedback/3/workers/claim",
+		);
+	} finally {
+		vi.unstubAllGlobals();
 	}
 });
