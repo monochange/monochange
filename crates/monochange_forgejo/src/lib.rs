@@ -27,7 +27,7 @@ use monochange_core::SourceReleaseOperation;
 use monochange_core::SourceReleaseOutcome;
 use monochange_core::SourceReleaseRequest;
 use monochange_core::git::git_head_commit;
-use monochange_hosting::ensure_rustls_provider;
+use monochange_hosting::build_http_client;
 use monochange_hosting::git_checkout_branch;
 use monochange_hosting::git_commit_paths;
 use monochange_hosting::git_push_branch;
@@ -408,15 +408,11 @@ pub fn build_release_pull_request_request(
 /// Publish or update all planned Forgejo releases for a manifest.
 #[tracing::instrument(skip_all)]
 #[must_use = "the publish result must be checked"]
-#[allow(clippy::disallowed_methods)]
 pub async fn publish_release_requests(
 	source: &SourceConfiguration,
 	requests: &[SourceReleaseRequest],
 ) -> MonochangeResult<Vec<SourceReleaseOutcome>> {
-	ensure_rustls_provider();
-	let client = Client::builder()
-		.build()
-		.expect("failed to build Forgejo HTTP client");
+	let client = build_http_client("Forgejo")?;
 	let token = forgejo_token()?;
 	let headers = auth_headers(&token)?;
 	let api_base = forgejo_api_base(source)?;
@@ -432,7 +428,6 @@ pub async fn publish_release_requests(
 
 /// Commit, push, and publish the release pull request against Forgejo.
 #[must_use = "the pull request result must be checked"]
-#[allow(clippy::disallowed_methods)]
 pub async fn publish_release_pull_request(
 	source: &SourceConfiguration,
 	root: &Path,
@@ -444,10 +439,7 @@ pub async fn publish_release_pull_request(
 	let lookup_source = source.clone();
 	let lookup_request = request.clone();
 	let existing_pull_request = tokio::spawn(async move {
-		ensure_rustls_provider();
-		let client = Client::builder()
-			.build()
-			.expect("failed to build Forgejo HTTP client");
+		let client = build_http_client("Forgejo")?;
 		let token = forgejo_token()?;
 		let headers = auth_headers(&token)?;
 		let api_base = forgejo_api_base(&lookup_source)?;
@@ -490,10 +482,7 @@ pub async fn publish_release_pull_request(
 		.await?;
 	}
 
-	ensure_rustls_provider();
-	let client = Client::builder()
-		.build()
-		.expect("failed to build Forgejo HTTP client");
+	let client = build_http_client("Forgejo")?;
 	let token = forgejo_token()?;
 	let headers = auth_headers(&token)?;
 	let api_base = forgejo_api_base(source)?;

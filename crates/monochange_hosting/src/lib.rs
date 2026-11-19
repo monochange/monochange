@@ -5,6 +5,7 @@
 #![forbid(clippy::indexing_slicing)]
 #![doc = include_str!("crate_docs.md")]
 pub mod body_limit;
+pub mod retry;
 
 use std::fmt::Display;
 use std::path::Path;
