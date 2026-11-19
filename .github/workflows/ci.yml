@@ -195,6 +195,52 @@ jobs:
           echo "has_changesets=${has_changesets}" >> "$GITHUB_OUTPUT"
         shell: bash
 
+      # The release command generates a pnpm lockfile and runs `dprint fmt`
+      # over the workspace. Both used to come from the devenv shell, so install
+      # the same pinned tools before the release runs with pending changesets.
+      - name: setup node for release
+        if: steps.release_record.outputs.is_release_commit != 'true' && steps.pending_changesets.outputs.has_changesets == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          # The release job needs a runtime, not a dependency cache.
+          package-manager-cache: false
+
+      - name: install pnpm for release
+        if: steps.release_record.outputs.is_release_commit != 'true' && steps.pending_changesets.outputs.has_changesets == 'true'
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          version: 12
+
+      - name: install dprint for release
+        if: steps.release_record.outputs.is_release_commit != 'true' && steps.pending_changesets.outputs.has_changesets == 'true'
+        uses: taiki-e/install-action@cfdb7ed4ccc7c7dce37759eae89dc5674b469b39 # v2.90.3
+        with:
+          # dprint 0.60.1 matches the repo toolchain. `dprint.json` also shells
+          # out to taplo for TOML and shfmt for shell files; rustfmt comes from
+          # the Rust toolchain installed above.
+          tool: dprint@0.60.1, taplo@0.10.0, shfmt@3.14.1
+
+      - name: install nixfmt for release
+        if: steps.release_record.outputs.is_release_commit != 'true' && steps.pending_changesets.outputs.has_changesets == 'true'
+        env:
+          NIXFMT_VERSION: 1.5.0
+          NIXFMT_SHA256: aa029247ab89c897e2f3948463967553f902f86e86e3402fa28cb29c4a44f745
+        # `dprint.json` routes Nix files through nixfmt, so the whole-workspace
+        # `dprint fmt` needs it on PATH. The release is a static Linux binary.
+        run: |
+          set -euo pipefail
+          binary_dir="${RUNNER_TEMP}/bin"
+          binary="${binary_dir}/nixfmt"
+          mkdir -p "$binary_dir"
+          curl --proto '=https' --tlsv1.2 -fsSL \
+            "https://github.com/NixOS/nixfmt/releases/download/v${NIXFMT_VERSION}/nixfmt" \
+            -o "$binary"
+          echo "${NIXFMT_SHA256}  ${binary}" | sha256sum --check --strict
+          chmod +x "$binary"
+          echo "$binary_dir" >> "$GITHUB_PATH"
+        shell: bash -e {0}
+
       - name: refresh release pull request
         if: steps.release_record.outputs.is_release_commit != 'true'
         env:
