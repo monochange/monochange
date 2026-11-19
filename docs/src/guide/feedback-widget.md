@@ -267,16 +267,16 @@ Embed the sheet in a page or use `showModalBottomSheet` with `isScrollControlled
 
 The feedback protocol is a set of leptoskit RPC operations. Each is a `POST /api/<operation>?project={project}` with a JSON object of named arguments, and answers JSON. Every call carries `project` both in the query (so browser preflights can check the project's registered origins) and in the arguments; a mismatch is rejected with `400`. The client token goes in `Authorization: Bearer`, and submissions still send an `Idempotency-Key` header.
 
-| Operation                           | Arguments                                         | Purpose                                                               |
-| ----------------------------------- | ------------------------------------------------- | --------------------------------------------------------------------- |
-| `feedback_sdk_suggestions`          | `project`, `input: {text}`                        | Search visible requests without creating an item                      |
-| `feedback_sdk_create_conversation`  | `project`, `input: {kind, message, context?}`     | Start a private draft                                                 |
-| `feedback_sdk_conversation`         | `project`, `id`                                   | Recover the current user's private draft                              |
-| `feedback_sdk_conversation_message` | `project`, `id`, `input: {body, version}`         | Add a message with the expected draft `version`                       |
-| `feedback_sdk_submit`               | `project`, `input: {conversation, version}`       | Submit a draft with an `Idempotency-Key` header                       |
-| `feedback_sdk_item`                 | `project`, `id`                                   | Read an owned or visible request, its discussion, and delivery status |
-| `feedback_sdk_reply`                | `project`, `id`, `input: {body}`                  | Add a discussion reply                                                |
-| `feedback_sdk_vote`                 | `project`, `id`, `voted`                          | Add (`true`) or remove (`false`) the current user's vote              |
+| Operation                           | Arguments                                     | Purpose                                                               |
+| ----------------------------------- | --------------------------------------------- | --------------------------------------------------------------------- |
+| `feedback_sdk_suggestions`          | `project`, `input: {text}`                    | Search visible requests without creating an item                      |
+| `feedback_sdk_create_conversation`  | `project`, `input: {kind, message, context?}` | Start a private draft                                                 |
+| `feedback_sdk_conversation`         | `project`, `id`                               | Recover the current user's private draft                              |
+| `feedback_sdk_conversation_message` | `project`, `id`, `input: {body, version}`     | Add a message with the expected draft `version`                       |
+| `feedback_sdk_submit`               | `project`, `input: {conversation, version}`   | Submit a draft with an `Idempotency-Key` header                       |
+| `feedback_sdk_item`                 | `project`, `id`                               | Read an owned or visible request, its discussion, and delivery status |
+| `feedback_sdk_reply`                | `project`, `id`, `input: {body}`              | Add a discussion reply                                                |
+| `feedback_sdk_vote`                 | `project`, `id`, `voted`                      | Add (`true`) or remove (`false`) the current user's vote              |
 
 Each operation publishes its argument and result JSON Schema through leptoskit's API catalog. The REST routes under `/api/v1/feedback/{project}` (`/suggestions`, `/conversations`, `/items`, and so on) remain as aliases for SDK releases that predate the RPC operations; both run the same handlers.
 

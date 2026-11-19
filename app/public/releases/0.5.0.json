@@ -1,0 +1,432 @@
+{
+	"title": "0.5.0",
+	"summary": [],
+	"sections": [
+		{
+			"title": "Changed",
+			"collapsed": false,
+			"entries": [
+				{
+					"summary": "Open projects with the same GitHub account",
+					"details_markdown": "> Your workspace now opens at `/projects`.\n\nmonochange projects has its own workspace navigation while keeping the same GitHub account as the website. Open workspace returns you to projects after sign-in. Use Connect repositories to manage repository access on the website. Existing project and feedback bookmarks continue to point to their project through compatibility redirects.\n\nUpdate your bookmarks when convenient:\n\n```text\nPrevious bookmark: /dashboard/your-account/projects/your-project\nNew bookmark:      /projects/your-account/projects/your-project\n```\n\nReview connected devices and revoke their access in Account and devices. Native installations require an updated app binary to support browser sign-in.",
+					"change_type": "website_change",
+					"bump": "major",
+					"stream": "website",
+					"style": "expanded",
+					"provenance": {
+						"source_path": ".changeset/projects-workspace-experience.md",
+						"changeset_path": ".changeset/projects-workspace-experience.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #886",
+							"url": "https://github.com/monochange/monochange/pull/886"
+						},
+						"introduced_commit": {
+							"label": "579b89c",
+							"url": "https://github.com/monochange/monochange/commit/579b89c709e51e42d4330cfcc51f878624e4b878"
+						}
+					}
+				}
+			]
+		},
+		{
+			"title": "New",
+			"collapsed": false,
+			"entries": [
+				{
+					"summary": "Try a release plan right on the homepage",
+					"details_markdown": "The homepage now opens with a live release preview. Pick the package that changed and whether it is a patch, minor, or major change, then watch the changeset update and the plan show every package that releases, including dependents that follow with a patch release. The rest of the page walks through the three commands behind it, the supported ecosystems, the shared GitHub sign-in, and the fact that monochange is free.",
+					"change_type": "website_feature",
+					"bump": "minor",
+					"stream": "website",
+					"style": "compact",
+					"provenance": {
+						"source_path": ".changeset/homepage-pull-one-thread.md",
+						"changeset_path": ".changeset/homepage-pull-one-thread.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #893",
+							"url": "https://github.com/monochange/monochange/pull/893"
+						},
+						"introduced_commit": {
+							"label": "4e43d1d",
+							"url": "https://github.com/monochange/monochange/commit/4e43d1df7b57dd7d3974d598d9134cf852ef5c62"
+						}
+					}
+				},
+				{
+					"summary": "A brighter monochange, in its own colours",
+					"details_markdown": "The website and the projects workspace now share the violet of the monochange logo instead of a borrowed teal. Pages sit on a soft lavender ground in the light theme and a deep aubergine in the dark theme, and the homepage opens on a rich ultraviolet band. Links, buttons and focus outlines stay easy to see in both themes.\n\nThe release preview on the homepage now shows each change by its colour as well as its label: a patch shows in mint, a minor in saffron and a major in coral. Packages that only release because they depend on the change stay violet, so you can see at a glance what you changed and what it pulled along. Status badges, notices and errors in the workspace use the same small set of colours, so they look the same wherever you see them.",
+					"change_type": "website_feature",
+					"bump": "minor",
+					"stream": "website",
+					"style": "expanded",
+					"provenance": {
+						"source_path": ".changeset/vivid-ultraviolet-palette.md",
+						"changeset_path": ".changeset/vivid-ultraviolet-palette.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #893",
+							"url": "https://github.com/monochange/monochange/pull/893"
+						},
+						"introduced_commit": {
+							"label": "4e43d1d",
+							"url": "https://github.com/monochange/monochange/commit/4e43d1df7b57dd7d3974d598d9134cf852ef5c62"
+						}
+					}
+				}
+			]
+		},
+		{
+			"title": "Improved",
+			"collapsed": false,
+			"entries": [
+				{
+					"summary": "Download interactive pages once",
+					"details_markdown": "The website and projects workspace reuse their preloaded interactive code, reducing the data needed to open a page.",
+					"change_type": "website_fix",
+					"bump": "patch",
+					"stream": "website",
+					"style": "compact",
+					"provenance": {
+						"source_path": ".changeset/avoid-duplicate-wasm-download.md",
+						"changeset_path": ".changeset/avoid-duplicate-wasm-download.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #893",
+							"url": "https://github.com/monochange/monochange/pull/893"
+						},
+						"introduced_commit": {
+							"label": "4e43d1d",
+							"url": "https://github.com/monochange/monochange/commit/4e43d1df7b57dd7d3974d598d9134cf852ef5c62"
+						}
+					}
+				},
+				{
+					"summary": "Load account pages independently",
+					"details_markdown": "Signing in, connecting an app, and managing devices now load only the code needed for the page you open.",
+					"change_type": "website_fix",
+					"bump": "patch",
+					"stream": "website",
+					"style": "compact",
+					"provenance": {
+						"source_path": ".changeset/lazy-identity-pages.md",
+						"changeset_path": ".changeset/lazy-identity-pages.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #893",
+							"url": "https://github.com/monochange/monochange/pull/893"
+						},
+						"introduced_commit": {
+							"label": "4e43d1d",
+							"url": "https://github.com/monochange/monochange/commit/4e43d1df7b57dd7d3974d598d9134cf852ef5c62"
+						}
+					}
+				},
+				{
+					"summary": "Load your workspace faster",
+					"details_markdown": "The projects landing page now loads less code when you open your workspace.",
+					"change_type": "website_fix",
+					"bump": "patch",
+					"stream": "website",
+					"style": "compact",
+					"provenance": {
+						"source_path": ".changeset/load-workspace-independently.md",
+						"changeset_path": ".changeset/load-workspace-independently.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #893",
+							"url": "https://github.com/monochange/monochange/pull/893"
+						},
+						"introduced_commit": {
+							"label": "4e43d1d",
+							"url": "https://github.com/monochange/monochange/commit/4e43d1df7b57dd7d3974d598d9134cf852ef5c62"
+						}
+					}
+				},
+				{
+					"summary": "A more welcoming projects workspace",
+					"details_markdown": "The projects workspace now shares the site's navigation and theme controls. Signed-out visitors see a clear way to sign in, while connected accounts see the next step for their workspace.",
+					"change_type": "website_fix",
+					"bump": "patch",
+					"stream": "website",
+					"style": "compact",
+					"provenance": {
+						"source_path": ".changeset/projects-welcome-navigation.md",
+						"changeset_path": ".changeset/projects-welcome-navigation.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #893",
+							"url": "https://github.com/monochange/monochange/pull/893"
+						},
+						"introduced_commit": {
+							"label": "4e43d1d",
+							"url": "https://github.com/monochange/monochange/commit/4e43d1df7b57dd7d3974d598d9134cf852ef5c62"
+						}
+					}
+				},
+				{
+					"summary": "Polish the projects workspace",
+					"details_markdown": "Organisation pages now describe a single connected repository correctly, and account initials and status labels are easier to read in dark mode.",
+					"change_type": "website_fix",
+					"bump": "patch",
+					"stream": "website",
+					"style": "compact",
+					"provenance": {
+						"source_path": ".changeset/projects-workspace-polish.md",
+						"changeset_path": ".changeset/projects-workspace-polish.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #893",
+							"url": "https://github.com/monochange/monochange/pull/893"
+						},
+						"introduced_commit": {
+							"label": "4e43d1d",
+							"url": "https://github.com/monochange/monochange/commit/4e43d1df7b57dd7d3974d598d9134cf852ef5c62"
+						}
+					}
+				},
+				{
+					"summary": "Pages show their text sooner",
+					"details_markdown": "Public pages show text sooner on slower connections, with fewer font shifts while loading. Website and projects workspace downloads are smaller.",
+					"change_type": "website_fix",
+					"bump": "patch",
+					"stream": "website",
+					"style": "compact",
+					"provenance": {
+						"source_path": ".changeset/public-page-loading.md",
+						"changeset_path": ".changeset/public-page-loading.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #893",
+							"url": "https://github.com/monochange/monochange/pull/893"
+						},
+						"introduced_commit": {
+							"label": "4e43d1d",
+							"url": "https://github.com/monochange/monochange/commit/4e43d1df7b57dd7d3974d598d9134cf852ef5c62"
+						}
+					}
+				},
+				{
+					"summary": "Read the release plan on a phone",
+					"details_markdown": "The homepage's release plan now fits on a phone-sized screen, with each package's status shown under its name instead of running off the edge. The footer on the website and in projects now says \"Release planning for monorepos.\" in place of the old slogan.",
+					"change_type": "website_fix",
+					"bump": "patch",
+					"stream": "website",
+					"style": "compact",
+					"provenance": {
+						"source_path": ".changeset/readable-console-and-footer.md",
+						"changeset_path": ".changeset/readable-console-and-footer.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #893",
+							"url": "https://github.com/monochange/monochange/pull/893"
+						},
+						"introduced_commit": {
+							"label": "4e43d1d",
+							"url": "https://github.com/monochange/monochange/commit/4e43d1df7b57dd7d3974d598d9134cf852ef5c62"
+						}
+					}
+				},
+				{
+					"summary": "Keep your theme between pages",
+					"details_markdown": "Your saved light or dark theme now appears before the page paints when moving between the website and projects workspace.",
+					"change_type": "website_fix",
+					"bump": "patch",
+					"stream": "website",
+					"style": "compact",
+					"provenance": {
+						"source_path": ".changeset/restore-theme-before-paint.md",
+						"changeset_path": ".changeset/restore-theme-before-paint.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #893",
+							"url": "https://github.com/monochange/monochange/pull/893"
+						},
+						"introduced_commit": {
+							"label": "4e43d1d",
+							"url": "https://github.com/monochange/monochange/commit/4e43d1df7b57dd7d3974d598d9134cf852ef5c62"
+						}
+					}
+				},
+				{
+					"summary": "Load projects with a smaller download",
+					"details_markdown": "Projects pages now need less browser code to load their data.",
+					"change_type": "website_fix",
+					"bump": "patch",
+					"stream": "website",
+					"style": "compact",
+					"provenance": {
+						"source_path": ".changeset/smaller-projects-download.md",
+						"changeset_path": ".changeset/smaller-projects-download.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #893",
+							"url": "https://github.com/monochange/monochange/pull/893"
+						},
+						"introduced_commit": {
+							"label": "4e43d1d",
+							"url": "https://github.com/monochange/monochange/commit/4e43d1df7b57dd7d3974d598d9134cf852ef5c62"
+						}
+					}
+				},
+				{
+					"summary": "Load page typography with less data",
+					"details_markdown": "The website and projects workspace now use smaller self-hosted font files, helping pages show their headings sooner and reducing the data needed to load them.",
+					"change_type": "website_fix",
+					"bump": "patch",
+					"stream": "website",
+					"style": "compact",
+					"provenance": {
+						"source_path": ".changeset/subset-website-fonts.md",
+						"changeset_path": ".changeset/subset-website-fonts.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #893",
+							"url": "https://github.com/monochange/monochange/pull/893"
+						},
+						"introduced_commit": {
+							"label": "4e43d1d",
+							"url": "https://github.com/monochange/monochange/commit/4e43d1df7b57dd7d3974d598d9134cf852ef5c62"
+						}
+					}
+				},
+				{
+					"summary": "Help search engines find the right pages",
+					"details_markdown": "Website and workspace pages now identify their canonical addresses, and the site provides a sitemap for its public pages.",
+					"change_type": "website_fix",
+					"bump": "patch",
+					"stream": "website",
+					"style": "compact",
+					"provenance": {
+						"source_path": ".changeset/website-canonical-sitemap.md",
+						"changeset_path": ".changeset/website-canonical-sitemap.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #893",
+							"url": "https://github.com/monochange/monochange/pull/893"
+						},
+						"introduced_commit": {
+							"label": "4e43d1d",
+							"url": "https://github.com/monochange/monochange/commit/4e43d1df7b57dd7d3974d598d9134cf852ef5c62"
+						}
+					}
+				},
+				{
+					"summary": "Keep pages interactive after they load",
+					"details_markdown": "Opening a page left it stuck on the server-rendered view. Sign-in, navigation, and the dashboard never started.\n\nPages now finish loading their interactive parts, including the home page, install, pricing, the book, and the dashboard.",
+					"change_type": "website_fix",
+					"bump": "patch",
+					"stream": "website",
+					"style": "expanded",
+					"provenance": {
+						"source_path": ".changeset/website-externref-hydration.md",
+						"changeset_path": ".changeset/website-externref-hydration.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #883",
+							"url": "https://github.com/monochange/monochange/pull/883"
+						},
+						"introduced_commit": {
+							"label": "ab54001",
+							"url": "https://github.com/monochange/monochange/commit/ab540015a0389e7f2d3493d102e5db86bd4e14b5"
+						}
+					}
+				},
+				{
+					"summary": "Make the website and projects feel like one place",
+					"details_markdown": "When you're signed in, the header is calmer. Connect repositories, Account and devices, and Sign out are now together in one account menu. That menu is the same on the website and in your projects, and it works with a keyboard and screen readers. On a phone, the menu groups the same account links under your name.\n\nProjects pages now end with the same footer as the rest of the website. Long organization and project names wrap instead of filling the screen. Projects appear as matching cards on your workspace and on each organization page, and \"New project\" sits at the end of that grid. A project with no repositories now tells you where to add them.\n\nInstall commands and code samples in the book are now readable in the dark theme. Headings, sections and status labels share one size and spacing across both themes.",
+					"change_type": "website_fix",
+					"bump": "patch",
+					"stream": "website",
+					"style": "expanded",
+					"provenance": {
+						"source_path": ".changeset/website-projects-design-pass.md",
+						"changeset_path": ".changeset/website-projects-design-pass.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #893",
+							"url": "https://github.com/monochange/monochange/pull/893"
+						},
+						"introduced_commit": {
+							"label": "4e43d1d",
+							"url": "https://github.com/monochange/monochange/commit/4e43d1df7b57dd7d3974d598d9134cf852ef5c62"
+						}
+					}
+				},
+				{
+					"summary": "Make release previews and links easier to read",
+					"details_markdown": "Release preview rows and navigation links now have clearer contrast in light and dark themes.",
+					"change_type": "website_fix",
+					"bump": "patch",
+					"stream": "website",
+					"style": "compact",
+					"provenance": {
+						"source_path": ".changeset/website-readable-controls.md",
+						"changeset_path": ".changeset/website-readable-controls.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #893",
+							"url": "https://github.com/monochange/monochange/pull/893"
+						},
+						"introduced_commit": {
+							"label": "4e43d1d",
+							"url": "https://github.com/monochange/monochange/commit/4e43d1df7b57dd7d3974d598d9134cf852ef5c62"
+						}
+					}
+				}
+			]
+		}
+	]
+}
