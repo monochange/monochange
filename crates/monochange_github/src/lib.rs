@@ -1744,21 +1744,30 @@ pub fn read_release_tree_files(
 /// is layered on in a further tree request chained through `base_tree`.
 const RELEASE_TREE_INLINE_BYTES_PER_REQUEST: usize = 4 * 1024 * 1024;
 
-/// Waits before retrying a git object write that GitHub rate limited.
+/// Waits before retrying a git object write that GitHub rate limited without
+/// saying how long to wait.
 ///
-/// GitHub asks clients to wait at least a minute before retrying after a
-/// secondary rate limit without a `retry-after` header, which octocrab's
-/// errors do not expose.
+/// GitHub asks clients to wait at least a minute after a secondary rate limit
+/// that carries no `retry-after` header, and to back off exponentially while
+/// the limit persists; requests sent while limited can get an integration
+/// banned. See
+/// <https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api#exceeding-the-rate-limit>.
 const RELEASE_TREE_RATE_LIMIT_RETRY_DELAYS: [Duration; 3] = [
-	Duration::from_secs(20),
-	Duration::from_secs(40),
 	Duration::from_secs(60),
+	Duration::from_secs(120),
+	Duration::from_secs(240),
 ];
+
+/// The longest single wait a rate-limited git object write accepts. A
+/// `retry-after` or `x-ratelimit-reset` further out than this ends the
+/// retries, so a release job does not sleep for most of an hour.
+const RELEASE_TREE_RATE_LIMIT_MAX_WAIT: Duration = Duration::from_secs(5 * 60);
 
 /// How [`create_release_tree`] batches and retries its git object writes.
 struct ReleaseTreeLimits<'a> {
 	inline_bytes_per_request: usize,
 	rate_limit_retry_delays: &'a [Duration],
+	rate_limit_max_wait: Duration,
 }
 
 /// Create a tree on top of `base_commit` holding the release files, with the
@@ -1792,6 +1801,7 @@ pub async fn create_release_tree(
 		&ReleaseTreeLimits {
 			inline_bytes_per_request: RELEASE_TREE_INLINE_BYTES_PER_REQUEST,
 			rate_limit_retry_delays: &RELEASE_TREE_RATE_LIMIT_RETRY_DELAYS,
+			rate_limit_max_wait: RELEASE_TREE_RATE_LIMIT_MAX_WAIT,
 		},
 	)
 	.await
@@ -1836,7 +1846,7 @@ async fn create_release_tree_with_limits(
 						&repository,
 						&blob_path,
 						&payload,
-						limits.rate_limit_retry_delays,
+						limits,
 					)
 					.await?;
 
@@ -1875,7 +1885,7 @@ async fn create_release_tree_with_limits(
 			&repository,
 			&tree_path,
 			&payload,
-			limits.rate_limit_retry_delays,
+			limits,
 		)
 		.await?;
 
@@ -1926,67 +1936,142 @@ enum GitObjectWrite<T> {
 
 /// POST a git object, backing off while GitHub rate limits the write.
 ///
-/// A rate-limited write is retried after each of `retry_delays`; if GitHub
-/// still rate limits it, or the token lacks `contents: write`, the write is
-/// [`GitObjectWrite::Refused`] with a reason naming the actual cause.
+/// A rate-limited write is retried once per entry of
+/// `limits.rate_limit_retry_delays`. Each retry waits as long as GitHub's
+/// `retry-after` header (or `x-ratelimit-reset`, when no requests remain)
+/// asks, and the configured delay when GitHub gives no hint. If GitHub still
+/// rate limits the write, asks for a wait longer than
+/// `limits.rate_limit_max_wait`, or the token lacks `contents: write`, the
+/// write is [`GitObjectWrite::Refused`] with a reason naming the actual cause.
 async fn write_git_object<Body, Response>(
 	client: &Octocrab,
 	repository: &str,
 	path: &str,
 	body: &Body,
-	retry_delays: &[Duration],
+	limits: &ReleaseTreeLimits<'_>,
 ) -> MonochangeResult<GitObjectWrite<Response>>
 where
 	Body: Serialize + ?Sized,
 	Response: DeserializeOwned,
 {
-	let mut delays = retry_delays.iter();
+	let api_error = |error: &octocrab::Error| {
+		MonochangeError::Config(format_github_api_error("POST", path, error))
+	};
+	let mut delays = limits.rate_limit_retry_delays.iter();
 
 	loop {
-		let error = match client.post::<_, Response>(path, Some(body)).await {
-			Ok(created) => return Ok(GitObjectWrite::Created(created)),
+		let response = client
+			._post(path, Some(body))
+			.await
+			.map_err(|error| api_error(&error))?;
+		let header = |name: &str| {
+			response
+				.headers()
+				.get(name)
+				.and_then(|value| value.to_str().ok())
+		};
+		let requested_wait = github_rate_limit_wait(
+			header("retry-after"),
+			header("x-ratelimit-remaining"),
+			header("x-ratelimit-reset"),
+			unix_now_seconds(),
+		);
+
+		let error = match octocrab::map_github_error(response).await {
+			Ok(response) => {
+				return <Response as octocrab::FromResponse>::from_response(response)
+					.await
+					.map(GitObjectWrite::Created)
+					.map_err(|error| api_error(&error));
+			}
 			Err(error) => error,
 		};
 
-		let octocrab::Error::GitHub { source, .. } = &error else {
-			return Err(MonochangeError::Config(format_github_api_error(
-				"POST", path, &error,
-			)));
-		};
-		let status = source.status_code.as_u16();
+		let (status, message) = github_error_status(&error);
 
-		if is_github_rate_limit(status, &source.message) {
-			if let Some(&delay) = delays.next() {
-				let delay_seconds = delay.as_secs();
-				tracing::warn!(
-					path,
-					status,
-					delay_seconds,
-					"GitHub rate limited a git object write; retrying: {}",
-					source.message
-				);
-				tokio::time::sleep(delay).await;
-				continue;
+		if is_github_rate_limit(status, message) {
+			let Some(&fallback) = delays.next() else {
+				return Ok(GitObjectWrite::Refused(format!(
+					"GitHub kept rate limiting git object writes in {repository} after {} retries (status {status}: {})",
+					limits.rate_limit_retry_delays.len(),
+					message
+				)));
+			};
+			let delay = requested_wait.unwrap_or(fallback);
+
+			if delay > limits.rate_limit_max_wait {
+				return Ok(GitObjectWrite::Refused(format!(
+					"GitHub rate limited git object writes in {repository} and asked for a {}s wait, longer than the {}s monochange allows (status {status}: {})",
+					delay.as_secs(),
+					limits.rate_limit_max_wait.as_secs(),
+					message
+				)));
 			}
 
-			return Ok(GitObjectWrite::Refused(format!(
-				"GitHub kept rate limiting git object writes in {repository} after {} retries (status {status}: {})",
-				retry_delays.len(),
-				source.message
-			)));
+			let delay_seconds = delay.as_secs();
+			tracing::warn!(
+				path,
+				status,
+				delay_seconds,
+				"GitHub rate limited a git object write; retrying: {message}"
+			);
+			tokio::time::sleep(delay).await;
+			continue;
 		}
 
 		if status == 403 {
 			return Ok(GitObjectWrite::Refused(format!(
-				"the token cannot create git objects in {repository} ({}); grant the job `contents: write`",
-				source.message
+				"the token cannot create git objects in {repository} ({message}); grant the job `contents: write`"
 			)));
 		}
 
-		return Err(MonochangeError::Config(format_github_api_error(
-			"POST", path, &error,
-		)));
+		return Err(api_error(&error));
 	}
+}
+
+/// The HTTP status and message of a GitHub API error, or `(0, "")` for an
+/// error that never got a GitHub response.
+fn github_error_status(error: &octocrab::Error) -> (u16, &str) {
+	match error {
+		octocrab::Error::GitHub { source, .. } => {
+			(source.status_code.as_u16(), source.message.as_str())
+		}
+		_ => (0, ""),
+	}
+}
+
+/// How long GitHub asked a rate-limited client to wait, from the response's
+/// `retry-after`, `x-ratelimit-remaining`, and `x-ratelimit-reset` headers.
+///
+/// `retry-after` wins. Otherwise, when no requests remain, the wait lasts
+/// until `x-ratelimit-reset` (a UNIX timestamp), and at least one second.
+/// `None` means GitHub gave no usable hint.
+fn github_rate_limit_wait(
+	retry_after: Option<&str>,
+	remaining: Option<&str>,
+	reset: Option<&str>,
+	now_unix_seconds: u64,
+) -> Option<Duration> {
+	let parse = |value: Option<&str>| value?.trim().parse::<u64>().ok();
+
+	if let Some(seconds) = parse(retry_after) {
+		return Some(Duration::from_secs(seconds));
+	}
+
+	if parse(remaining) != Some(0) {
+		return None;
+	}
+
+	let reset = parse(reset)?;
+	Some(Duration::from_secs(
+		reset.saturating_sub(now_unix_seconds).max(1),
+	))
+}
+
+fn unix_now_seconds() -> u64 {
+	std::time::SystemTime::now()
+		.duration_since(std::time::UNIX_EPOCH)
+		.map_or(0, |elapsed| elapsed.as_secs())
 }
 
 /// Whether GitHub answered with a primary or secondary rate limit rather

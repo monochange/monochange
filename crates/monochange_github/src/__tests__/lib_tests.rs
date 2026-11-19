@@ -4767,6 +4767,7 @@ async fn create_release_tree_chains_tree_requests_past_the_inline_budget() {
 			&ReleaseTreeLimits {
 				inline_bytes_per_request: 13,
 				rate_limit_retry_delays: &[],
+				rate_limit_max_wait: RELEASE_TREE_RATE_LIMIT_MAX_WAIT,
 			},
 		),
 	)
@@ -4834,6 +4835,7 @@ async fn create_release_tree_retries_a_secondary_rate_limit() {
 			&ReleaseTreeLimits {
 				inline_bytes_per_request: RELEASE_TREE_INLINE_BYTES_PER_REQUEST,
 				rate_limit_retry_delays: &[Duration::ZERO; 3],
+				rate_limit_max_wait: RELEASE_TREE_RATE_LIMIT_MAX_WAIT,
 			},
 		),
 	)
@@ -4866,6 +4868,7 @@ async fn create_release_tree_reports_a_persistent_rate_limit_as_a_rate_limit() {
 			&ReleaseTreeLimits {
 				inline_bytes_per_request: RELEASE_TREE_INLINE_BYTES_PER_REQUEST,
 				rate_limit_retry_delays: &[Duration::ZERO; 2],
+				rate_limit_max_wait: RELEASE_TREE_RATE_LIMIT_MAX_WAIT,
 			},
 		),
 	)
@@ -4887,6 +4890,141 @@ async fn create_release_tree_reports_a_persistent_rate_limit_as_a_rate_limit() {
 	);
 
 	assert!(!reason.contains("contents: write"), "{reason}");
+}
+
+/// Answer the first tree request with a secondary rate limit carrying
+/// `retry_after`, and later ones with `release_tree`.
+fn mock_tree_rate_limited_with_retry_after<'server>(
+	server: &'server MockServer,
+	retry_after: &str,
+) -> (httpmock::Mock<'server>, httpmock::Mock<'server>) {
+	let seen = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+	let limited = server.mock(|when, then| {
+		when.method(POST)
+			.path("/repos/acme/widgets/git/trees")
+			.is_true(move |_| seen.fetch_add(1, std::sync::atomic::Ordering::SeqCst) == 0);
+		then.status(403)
+			.header("retry-after", retry_after)
+			.json_body(json!({ "message": SECONDARY_RATE_LIMIT_MESSAGE }));
+	});
+	let created = server.mock(|when, then| {
+		when.method(POST).path("/repos/acme/widgets/git/trees");
+		then.status(201).json_body(json!({ "sha": "release_tree" }));
+	});
+	(limited, created)
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn create_release_tree_waits_as_long_as_retry_after_asks() {
+	let server = MockServer::start();
+	let base_commit = mock_release_tree_base_commit(&server);
+	let (limited, created) = mock_tree_rate_limited_with_retry_after(&server, "0");
+	let base_url = server.base_url();
+
+	// The fallback delay is far beyond the allowed wait, so the retry only
+	// happens if the `retry-after: 0` header is honored instead.
+	let result = temp_env::async_with_vars(
+		[("GITHUB_TOKEN", Some("workflow-token"))],
+		create_release_tree_with_limits(
+			Some(base_url.as_str()),
+			"acme",
+			"widgets",
+			"base123",
+			&text_release_tree_files(),
+			&ReleaseTreeLimits {
+				inline_bytes_per_request: RELEASE_TREE_INLINE_BYTES_PER_REQUEST,
+				rate_limit_retry_delays: &[Duration::from_secs(3600)],
+				rate_limit_max_wait: Duration::from_secs(1),
+			},
+		),
+	)
+	.await;
+
+	base_commit.assert();
+	limited.assert_calls(1);
+	created.assert_calls(1);
+	assert_eq!(
+		result.unwrap_or_else(|error| panic!("create release tree: {error}")),
+		ReleaseTree::Created("release_tree".to_string())
+	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn create_release_tree_stops_when_github_asks_for_too_long_a_wait() {
+	let server = MockServer::start();
+	let base_commit = mock_release_tree_base_commit(&server);
+	let (limited, created) = mock_tree_rate_limited_with_retry_after(&server, "600");
+	let base_url = server.base_url();
+
+	let result = temp_env::async_with_vars(
+		[("GITHUB_TOKEN", Some("workflow-token"))],
+		create_release_tree_with_limits(
+			Some(base_url.as_str()),
+			"acme",
+			"widgets",
+			"base123",
+			&text_release_tree_files(),
+			&ReleaseTreeLimits {
+				inline_bytes_per_request: RELEASE_TREE_INLINE_BYTES_PER_REQUEST,
+				rate_limit_retry_delays: &[Duration::ZERO],
+				rate_limit_max_wait: Duration::from_secs(300),
+			},
+		),
+	)
+	.await;
+
+	base_commit.assert();
+	limited.assert_calls(1);
+	created.assert_calls(0);
+	assert_eq!(
+		result.unwrap_or_else(|error| panic!("create release tree: {error}")),
+		ReleaseTree::Unavailable(format!(
+			"GitHub rate limited git object writes in acme/widgets and asked for a 600s wait, longer than the 300s monochange allows (status 403: {SECONDARY_RATE_LIMIT_MESSAGE})"
+		))
+	);
+}
+
+#[test]
+fn github_rate_limit_wait_follows_the_response_headers() {
+	let now = 1_000;
+
+	assert_eq!(
+		github_rate_limit_wait(Some(" 42 "), Some("0"), Some("2000"), now),
+		Some(Duration::from_secs(42)),
+		"retry-after wins over the reset time"
+	);
+	assert_eq!(
+		github_rate_limit_wait(None, Some("0"), Some("1090"), now),
+		Some(Duration::from_secs(90)),
+		"an exhausted limit waits until the reset time"
+	);
+	assert_eq!(
+		github_rate_limit_wait(None, Some("0"), Some("900"), now),
+		Some(Duration::from_secs(1)),
+		"a reset time in the past still waits a second"
+	);
+	assert_eq!(github_rate_limit_wait(None, Some("0"), None, now), None);
+	assert_eq!(
+		github_rate_limit_wait(None, Some("12"), Some("1090"), now),
+		None,
+		"remaining requests mean the reset time is not the cause"
+	);
+	assert_eq!(github_rate_limit_wait(Some("soon"), None, None, now), None);
+	assert_eq!(github_rate_limit_wait(None, None, None, now), None);
+}
+
+#[test]
+fn unix_now_seconds_is_after_the_epoch() {
+	assert!(unix_now_seconds() > 1_700_000_000);
+}
+
+#[test]
+fn github_error_status_is_empty_without_a_github_response() {
+	let error = octocrab::Error::Installation {
+		backtrace: std::backtrace::Backtrace::disabled(),
+	};
+
+	assert_eq!(github_error_status(&error), (0, ""));
 }
 
 #[test]
