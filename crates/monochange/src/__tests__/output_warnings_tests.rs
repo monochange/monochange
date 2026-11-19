@@ -141,3 +141,46 @@ fn workflow_command_escaping_protects_messages_and_properties() {
 		"monochange%3A run%2C release"
 	);
 }
+
+fn emit_rate_limit_retries(sink: WarningSink) {
+	use monochange_hosting::retry::RetryNotice;
+	use monochange_hosting::retry::RetryReason;
+	use monochange_hosting::retry::warn_retry;
+
+	tracing::subscriber::with_default(warning_subscriber(sink), || {
+		for retry in 1..=2 {
+			warn_retry(&RetryNotice {
+				service: "monochange app",
+				operation: "hosted CommitRelease",
+				reason: RetryReason::RateLimited,
+				wait: std::time::Duration::from_secs(30),
+				retry,
+				max_retries: 3,
+			});
+		}
+	});
+}
+
+#[test]
+fn rate_limit_retries_show_one_line_per_wait() {
+	let (sink, bytes) = recorded_sink(WarningMode::Human, false);
+	emit_rate_limit_retries(sink);
+
+	assert_eq!(
+		recorded_text(&bytes),
+		"warning: monochange app rate limit hit, retrying hosted CommitRelease in 30s (retry 1 of 3)\n\
+		 warning: monochange app rate limit hit, retrying hosted CommitRelease in 30s (retry 2 of 3)\n"
+	);
+}
+
+#[test]
+fn rate_limit_retries_are_annotated_in_github_actions() {
+	let (sink, bytes) = recorded_sink(WarningMode::GitHub, false);
+	emit_rate_limit_retries(sink);
+
+	assert_eq!(
+		recorded_text(&bytes),
+		"::warning title=monochange::monochange app rate limit hit, retrying hosted CommitRelease in 30s (retry 1 of 3)\n\
+		 ::warning title=monochange::monochange app rate limit hit, retrying hosted CommitRelease in 30s (retry 2 of 3)\n"
+	);
+}

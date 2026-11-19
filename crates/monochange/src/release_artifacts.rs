@@ -3,6 +3,9 @@ use std::io::BufRead;
 use std::io::BufReader;
 use std::io::BufWriter;
 
+use monochange_hosting::retry::RetryNotice;
+use monochange_hosting::retry::RetryReason;
+use monochange_hosting::retry::warn_retry;
 use similar::TextDiff;
 
 use super::*;
@@ -2425,11 +2428,31 @@ async fn request_github_actions_oidc_token(
 	let mut delays = retry_delays.iter();
 	let response = loop {
 		let result = client.get(url).bearer_auth(request_token).send().await;
-		let retryable = result
-			.as_ref()
-			.map_or(true, |response| response.status().is_server_error());
-		match delays.next() {
-			Some(delay) if retryable => tokio::time::sleep(*delay).await,
+		let status_detail;
+		let reason = match &result {
+			Err(_) => Some(RetryReason::Failed("no response")),
+			Ok(response) if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS => {
+				Some(RetryReason::RateLimited)
+			}
+			Ok(response) if response.status().is_server_error() => {
+				status_detail = format!("HTTP {}", response.status().as_u16());
+				Some(RetryReason::Failed(&status_detail))
+			}
+			Ok(_) => None,
+		};
+		match (delays.next(), reason) {
+			(Some(delay), Some(reason)) => {
+				let operation = format!("the {operation} OIDC token request");
+				warn_retry(&RetryNotice {
+					service: "GitHub Actions",
+					operation: &operation,
+					reason,
+					wait: *delay,
+					retry: retry_delays.len() - delays.len(),
+					max_retries: retry_delays.len(),
+				});
+				tokio::time::sleep(*delay).await;
+			}
 			_ => break result,
 		}
 	};
@@ -2446,6 +2469,13 @@ async fn request_github_actions_oidc_token(
 			"hosted {operation} OIDC token request failed with status {status} after \
 			 {attempts} attempts. GitHub Actions could not issue the job's OIDC token, which \
 			 is a GitHub outage rather than a problem with this workspace; rerun the job."
+		)));
+	}
+	if status == reqwest::StatusCode::TOO_MANY_REQUESTS {
+		return Err(MonochangeError::Config(format!(
+			"hosted {operation} OIDC token request was still rate limited after {attempts} \
+			 attempts. GitHub Actions could not issue the job's OIDC token; rerun the job in \
+			 a few minutes."
 		)));
 	}
 	if !status.is_success() {
