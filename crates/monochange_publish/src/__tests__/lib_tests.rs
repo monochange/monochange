@@ -617,10 +617,12 @@ fn render_publish_command_error_adds_npm_otp_recovery_guidance() {
 	assert!(message.contains("monochange publish placeholder --otp <CODE>"));
 	assert!(!message.contains("`mc "));
 	assert!(message.contains("NPM_CONFIG_OTP=<CODE>"));
+	assert!(message.contains("PNPM_CONFIG_OTP=<CODE>"));
 
 	let release_message =
 		render_publish_command_error(&output, &request, PackagePublishRunMode::Release);
 	assert!(release_message.contains("rerun the publish command with `NPM_CONFIG_OTP=<CODE>`"));
+	assert!(release_message.contains("`PNPM_CONFIG_OTP=<CODE>`"));
 }
 
 #[test]

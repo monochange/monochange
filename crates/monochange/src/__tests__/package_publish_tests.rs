@@ -5303,6 +5303,10 @@ fn build_npm_placeholder_publish_command_uses_otp_as_environment() {
 		Some("123456")
 	);
 	assert_eq!(
+		command.env.get("PNPM_CONFIG_OTP").map(String::as_str),
+		Some("123456")
+	);
+	assert_eq!(
 		render_command(&command),
 		"npm publish /tmp/placeholder --access public"
 	);
