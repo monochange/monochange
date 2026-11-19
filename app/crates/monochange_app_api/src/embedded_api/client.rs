@@ -20,6 +20,7 @@ use monochange_app_feedback::embedded::FeedbackSession;
 use monochange_app_feedback::embedded::SourceContext;
 use monochange_app_feedback::embedded::SubmissionKey;
 use serde::Deserialize;
+use serde::Serialize;
 use serde_json::Value;
 use serde_json::json;
 
@@ -34,9 +35,9 @@ use super::now;
 use crate::AppState;
 use crate::feedback;
 
-#[derive(Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
-pub(super) struct SessionInput {
+pub struct SessionInput {
 	user_id: String,
 	surface: ClientSurface,
 }
@@ -102,9 +103,9 @@ pub(super) async fn session(
 	Ok(Json(json!({"token":token,"expires_at":expires})))
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
-pub(super) struct SuggestInput {
+pub struct SuggestInput {
 	text: String,
 }
 
@@ -136,9 +137,9 @@ pub(super) async fn suggestions(
 	))
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
-pub(super) struct DraftInput {
+pub struct DraftInput {
 	kind: FeedbackKind,
 	message: String,
 	context: Option<PageContext>,
@@ -234,9 +235,9 @@ pub(super) async fn show_conversation(
 	Ok(Json(json!({"conversation":conversation})))
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
-pub(super) struct MessageInput {
+pub struct MessageInput {
 	body: String,
 	version: u32,
 }
@@ -276,9 +277,9 @@ pub(super) async fn conversation_message(
 	respond_to_draft(&state, &scope, &headers, draft).await
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
-pub(super) struct SubmitInput {
+pub struct SubmitInput {
 	conversation: String,
 	version: u32,
 }
@@ -363,9 +364,9 @@ pub(super) async fn item(
 	Ok(Json(result))
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
-pub(super) struct ReplyInput {
+pub struct ReplyInput {
 	body: String,
 }
 

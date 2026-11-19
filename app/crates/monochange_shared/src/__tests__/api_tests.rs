@@ -23,16 +23,21 @@ struct Recorded {
 	body: String,
 }
 
-#[derive(Clone, Default)]
+/// Answers with its canned responses in order, repeating the last.
+#[derive(Clone)]
 struct MockTransport {
-	response: Arc<Mutex<Option<HttpResponse>>>,
+	responses: Arc<Mutex<Vec<HttpResponse>>>,
 	requests: Arc<Mutex<Vec<Recorded>>>,
 }
 
 impl MockTransport {
 	fn new(response: HttpResponse) -> Self {
+		Self::sequence(vec![response])
+	}
+
+	fn sequence(responses: Vec<HttpResponse>) -> Self {
 		Self {
-			response: Arc::new(Mutex::new(Some(response))),
+			responses: Arc::new(Mutex::new(responses)),
 			requests: Arc::new(Mutex::new(Vec::new())),
 		}
 	}
@@ -56,11 +61,12 @@ impl Transport for MockTransport {
 			content_type: content_type.to_string(),
 			body: body.to_string(),
 		});
-		self.response
-			.lock()
-			.unwrap()
-			.clone()
-			.ok_or_else(|| ApiError::Transport("no canned response".into()))
+		let mut responses = self.responses.lock().unwrap();
+		if responses.len() > 1 {
+			Ok(responses.remove(0))
+		} else {
+			Ok(responses[0].clone())
+		}
 	}
 }
 
@@ -170,12 +176,14 @@ async fn exchange_posts_json_and_returns_the_session_for_the_caller() {
 	let session = client.exchange(exchange_request()).await.unwrap();
 
 	let requests = transport.requests();
-	assert_eq!(requests[0].url, format!("{BASE}/api/client-sessions/token"));
+	assert_eq!(requests.len(), 1);
+	assert_eq!(requests[0].url, format!("{BASE}/api/client_session_token"));
 	assert_eq!(requests[0].bearer, None, "the exchange sends no bearer");
 	assert_eq!(requests[0].content_type, "application/json");
-	assert!(requests[0].body.contains("\"code\":\"one-time-code\""));
-	assert!(requests[0].body.contains("\"client\":\"native\""));
-	assert!(requests[0].body.contains("\"code_verifier\":\"verifier\""));
+	let arguments: serde_json::Value = serde_json::from_str(&requests[0].body).unwrap();
+	assert_eq!(arguments["request"]["code"], "one-time-code");
+	assert_eq!(arguments["request"]["client"], "native");
+	assert_eq!(arguments["request"]["code_verifier"], "verifier");
 
 	assert_eq!(session.id, "mcs_1");
 	assert_eq!(session.access_token, "mcd_token");
@@ -218,11 +226,68 @@ async fn revoke_sends_the_supplied_bearer() {
 	client.revoke("mcd_token").await.unwrap();
 
 	let requests = transport.requests();
+	assert_eq!(requests.len(), 1);
+	assert_eq!(requests[0].url, format!("{BASE}/api/client_session_revoke"));
+	assert_eq!(requests[0].bearer.as_deref(), Some("mcd_token"));
+	assert_eq!(requests[0].content_type, "application/json");
+	assert_eq!(requests[0].body, "{}");
+}
+
+fn not_found() -> HttpResponse {
+	HttpResponse {
+		status: 404,
+		body: "Not Found".into(),
+	}
+}
+
+#[tokio::test]
+async fn exchange_falls_back_to_the_rest_route_on_an_older_site() {
+	let transport = MockTransport::sequence(vec![not_found(), session_response()]);
+	let client = ApiClient::new(transport.clone(), BASE);
+	let session = client.exchange(exchange_request()).await.unwrap();
+	assert_eq!(session.access_token, "mcd_token");
+
+	let requests = transport.requests();
+	assert_eq!(requests[1].url, format!("{BASE}/api/client-sessions/token"));
+	assert_eq!(requests[1].bearer, None);
+	let body: serde_json::Value = serde_json::from_str(&requests[1].body).unwrap();
+	assert_eq!(body["code"], "one-time-code");
+}
+
+#[tokio::test]
+async fn a_rejected_exchange_does_not_fall_back() {
+	let transport = MockTransport::new(HttpResponse {
+		status: 400,
+		body: r#"{"status":400,"error":"invalid handoff request"}"#.into(),
+	});
+	let client = ApiClient::new(transport.clone(), BASE);
+	let error = client.exchange(exchange_request()).await.unwrap_err();
+	assert!(matches!(error, ApiError::Status { status: 400, .. }));
+	assert_eq!(transport.requests().len(), 1);
+}
+
+#[tokio::test]
+async fn revoke_falls_back_to_the_rest_route_on_an_older_site() {
+	let transport = MockTransport::sequence(vec![
+		not_found(),
+		HttpResponse {
+			status: 204,
+			body: String::new(),
+		},
+	]);
+	let client = ApiClient::new(transport.clone(), BASE);
+	client.revoke("mcd_token").await.unwrap();
+
+	let requests = transport.requests();
 	assert_eq!(
-		requests[0].url,
+		requests[1].url,
 		format!("{BASE}/api/client-sessions/revoke")
 	);
-	assert_eq!(requests[0].bearer.as_deref(), Some("mcd_token"));
+	assert_eq!(requests[1].bearer.as_deref(), Some("mcd_token"));
+	assert_eq!(
+		requests[1].content_type,
+		"application/x-www-form-urlencoded"
+	);
 }
 
 #[tokio::test]

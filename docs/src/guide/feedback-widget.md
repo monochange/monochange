@@ -52,12 +52,14 @@ Copy the returned backend credential immediately and keep it in your backend's s
 After authenticating the host user, call:
 
 ```http
-POST /api/v1/feedback/123/sessions
+POST /api/feedback_sdk_session?project=123
 Authorization: Bearer <backend credential>
 Content-Type: application/json
 
-{"user_id":"your-authenticated-user-id","surface":"web"}
+{"project":123,"input":{"user_id":"your-authenticated-user-id","surface":"web"}}
 ```
+
+`POST /api/v1/feedback/123/sessions` with the bare `{"user_id","surface"}` body still works for backends written against the earlier REST protocol.
 
 Use `surface: "mobile"` for React Native and Flutter. The response is `{ "token": "…", "expires_at": 1793740000 }`, with expiry in Unix seconds. Sessions last ten minutes. Your host token endpoint should return this response only to its authenticated user. Derive `user_id` from the server-side session, never from a user-supplied request field. Do not put the backend credential in a browser bundle, native app, URL, or log.
 
@@ -260,18 +262,20 @@ Embed the sheet in a page or use `showModalBottomSheet` with `isScrollControlled
 
 ## Conversations and submissions
 
-All SDKs use `/api/v1/feedback/{project}`:
+The feedback protocol is a set of leptoskit RPC operations. Each is a `POST /api/<operation>?project={project}` with a JSON object of named arguments, and answers JSON. Every call carries `project` both in the query (so browser preflights can check the project's registered origins) and in the arguments; a mismatch is rejected with `400`. The client token goes in `Authorization: Bearer`, and submissions still send an `Idempotency-Key` header.
 
-| Method       | Path                           | Purpose                                                               |
-| ------------ | ------------------------------ | --------------------------------------------------------------------- |
-| POST         | `/suggestions`                 | Search visible requests without creating an item                      |
-| POST         | `/conversations`               | Start a private draft with `kind`, `message`, and optional `context`  |
-| GET          | `/conversations/{id}`          | Recover the current user's private draft                              |
-| POST         | `/conversations/{id}/messages` | Add a message with `body` and the expected draft `version`            |
-| POST         | `/items`                       | Submit `{conversation, version}` with an `Idempotency-Key` header     |
-| GET          | `/items/{id}`                  | Read an owned or visible request, its discussion, and delivery status |
-| POST         | `/items/{id}/messages`         | Add a discussion reply with `body`                                    |
-| PUT / DELETE | `/items/{id}/vote`             | Add or remove the current user's vote                                 |
+| Operation                           | Arguments                                         | Purpose                                                               |
+| ----------------------------------- | ------------------------------------------------- | --------------------------------------------------------------------- |
+| `feedback_sdk_suggestions`          | `project`, `input: {text}`                        | Search visible requests without creating an item                      |
+| `feedback_sdk_create_conversation`  | `project`, `input: {kind, message, context?}`     | Start a private draft                                                 |
+| `feedback_sdk_conversation`         | `project`, `id`                                   | Recover the current user's private draft                              |
+| `feedback_sdk_conversation_message` | `project`, `id`, `input: {body, version}`         | Add a message with the expected draft `version`                       |
+| `feedback_sdk_submit`               | `project`, `input: {conversation, version}`       | Submit a draft with an `Idempotency-Key` header                       |
+| `feedback_sdk_item`                 | `project`, `id`                                   | Read an owned or visible request, its discussion, and delivery status |
+| `feedback_sdk_reply`                | `project`, `id`, `input: {body}`                  | Add a discussion reply                                                |
+| `feedback_sdk_vote`                 | `project`, `id`, `voted`                          | Add (`true`) or remove (`false`) the current user's vote              |
+
+Each operation publishes its argument and result JSON Schema through leptoskit's API catalog. The REST routes under `/api/v1/feedback/{project}` (`/suggestions`, `/conversations`, `/items`, and so on) remain as aliases for SDK releases that predate the RPC operations; both run the same handlers.
 
 Choosing a match does not silently submit or vote. The SDKs preserve submission keys across retries. Stale draft versions return `409`; reload the draft before editing further. Errors have `code` and `message`; quota failures return `429` with `Retry-After`. Quotas are persisted per project, app, and subject, while the existing server middleware also limits client addresses. Refreshing a token cannot reset a user's quota.
 

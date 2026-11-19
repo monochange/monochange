@@ -126,6 +126,24 @@ pub(super) async fn mutate<R>(
 
 /// Explicit origins only; preflight never grants credentials or bypasses authentication.
 pub async fn cors(State(state): State<AppState>, request: Request, next: Next) -> Response {
+	let project = request
+		.uri()
+		.path()
+		.split('/')
+		.nth(4)
+		.and_then(|value| value.parse().ok());
+	cors_for_project(&state, project, request, next).await
+}
+
+/// [`cors`] for a request whose project is known some other way, such as the
+/// `?project=` query of an RPC operation. A browser request (one with an
+/// `Origin`) needs a project whose web integrations register that origin.
+pub async fn cors_for_project(
+	state: &AppState,
+	project: Option<i32>,
+	request: Request,
+	next: Next,
+) -> Response {
 	let Some(origin) = request.headers().get("origin").cloned() else {
 		let mut response = next.run(request).await;
 		response
@@ -134,16 +152,10 @@ pub async fn cors(State(state): State<AppState>, request: Request, next: Next) -
 
 		return response;
 	};
-	let project = request
-		.uri()
-		.path()
-		.split('/')
-		.nth(4)
-		.and_then(|value| value.parse().ok());
 	let allowed = if let Some(project) = project {
-		match scope(&state, project).await {
+		match scope(state, project).await {
 			Ok(scope) => {
-				feedback::load(&state, &scope)
+				feedback::load(state, &scope)
 					.await
 					.ok()
 					.is_some_and(|loaded| {

@@ -12,6 +12,7 @@ use monochange_app_feedback::embedded::EmbeddedError;
 use monochange_app_feedback::embedded::FeedbackSession;
 use monochange_app_feedback::embedded::Integration;
 use serde::Deserialize;
+use serde::Serialize;
 use serde_json::json;
 
 use super::ApiFailure;
@@ -23,9 +24,9 @@ use crate::feedback;
 
 pub(super) const INTEGRATION: &str = "monochange-iframe";
 
-#[derive(Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
-pub(super) struct SessionInput {
+pub struct SessionInput {
 	organization: String,
 	project: String,
 }
@@ -38,6 +39,18 @@ pub(super) async fn session(
 	input: Result<Json<SessionInput>, JsonRejection>,
 ) -> Result<Response, ApiFailure> {
 	let input = super::json(input)?;
+	let session = issue(&state, &headers, &cookies, input).await?;
+	Ok(([("cache-control", "no-store")], Json(session)).into_response())
+}
+
+/// Issue a frame session for the signed-in browser; the REST route and the
+/// `feedback_iframe_session` RPC operation share it.
+pub(super) async fn issue(
+	state: &AppState,
+	headers: &HeaderMap,
+	cookies: &CookieJar,
+	input: SessionInput,
+) -> Result<serde_json::Value, ApiFailure> {
 	let origin = url::Url::parse(&state.github_callback_url)
 		.map_err(|_| ApiFailure::invalid("invalid sign-in callback URL"))?
 		.origin()
@@ -51,14 +64,14 @@ pub(super) async fn session(
 	let login = cookies
 		.get(crate::oauth::SESSION_COOKIE_NAME)
 		.ok_or(EmbeddedError::Unauthorized)?;
-	let principal = crate::sessions::resolve_browser(&state, login.value())
+	let principal = crate::sessions::resolve_browser(state, login.value())
 		.await
 		.map_err(|_| EmbeddedError::Unauthorized)?;
 	let crate::sessions::Principal::Browser(claims) = principal else {
 		return Err(EmbeddedError::Unauthorized.into());
 	};
 
-	let public = feedback::public_project(&state, &input.organization, &input.project)
+	let public = feedback::public_project(state, &input.organization, &input.project)
 		.await?
 		.ok_or(EmbeddedError::NotFound)?;
 	let project = public.project.id;
@@ -73,7 +86,7 @@ pub(super) async fn session(
 	let expires_at = time + 600;
 	let credential_hash = fingerprint(&credential("mcfi", project));
 	let salt = credential("identity", project);
-	feedback::update(&state, &public.scope, |service| {
+	feedback::update(state, &public.scope, |service| {
 		if !service
 			.embedded()
 			.integrations
@@ -115,9 +128,5 @@ pub(super) async fn session(
 		Ok(())
 	})
 	.await?;
-	Ok((
-		[("cache-control", "no-store")],
-		Json(json!({"token":token,"expires_at":expires_at,"project":project,"identity":subject})),
-	)
-		.into_response())
+	Ok(json!({"token":token,"expires_at":expires_at,"project":project,"identity":subject}))
 }

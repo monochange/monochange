@@ -6,8 +6,10 @@ pub use assistant::AssistantConfig;
 mod auth;
 mod client;
 mod iframe;
+pub mod rpc;
 mod worker;
 pub use auth::cors;
+pub use auth::cors_for_project;
 
 #[cfg(test)]
 #[path = "__tests__/mod_tests.rs"]

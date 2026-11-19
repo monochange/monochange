@@ -407,7 +407,8 @@ pub async fn limit(State(rate_limit): State<RateLimit>, request: Request, next: 
 		let mut response = decision.reject(surface, seconds);
 		// Address limits run before project lookup. Only the generic rejection is exposed here;
 		// feedback data still requires the registered origin and integration credential.
-		if request.uri().path().starts_with("/api/v1/feedback/")
+		if (request.uri().path().starts_with("/api/v1/feedback/")
+			|| crate::server_fns::feedback_sdk::is_sdk_path(request.uri().path()))
 			&& let Some(origin) = request.headers().get("origin")
 		{
 			response
