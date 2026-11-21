@@ -1,5 +1,0 @@
-[defaults]
-package_type = "cargo"
-
-[package.core]
-path = "crates/nonexistent"

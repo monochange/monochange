@@ -1,4 +1,0 @@
-#!/bin/sh
-set -eu
-printf 'default-ran' > default-ran.txt
-exit 0

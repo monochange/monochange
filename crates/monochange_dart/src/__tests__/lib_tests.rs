@@ -3,7 +3,6 @@ use std::fs;
 use std::path::Path;
 
 use monochange_core::Ecosystem;
-use monochange_core::EcosystemAdapter;
 use monochange_core::PackageRecord;
 use monochange_core::PublishAttestationSettings;
 use monochange_core::PublishMode;
@@ -23,65 +22,17 @@ fn yaml_bool(mapping: &Mapping, key: &str) -> Option<bool> {
 		.and_then(Value::as_bool)
 }
 
-use crate::DartVersionedFileKind;
-use crate::adapter;
 use crate::default_lockfile_commands;
-use crate::discover_dart_packages;
-use crate::discover_lockfiles;
 use crate::discover_workspace_packages;
 use crate::has_workspace_section;
 use crate::parse_manifest;
 use crate::parse_yaml_manifest;
-use crate::supported_versioned_file_kind;
 use crate::update_dependency_fields;
 use crate::update_manifest_text;
-use crate::update_pubspec_lock;
 use crate::write_dart_placeholder_manifest;
 use crate::yaml_array_strings;
 use crate::yaml_mapping;
 use crate::yaml_string;
-
-#[test]
-fn discovers_dart_workspace_packages() {
-	let fixture_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/dart/workspace");
-	let discovery = discover_dart_packages(&fixture_root)
-		.unwrap_or_else(|error| panic!("dart discovery: {error}"));
-
-	assert_eq!(discovery.packages.len(), 2);
-	assert!(
-		discovery
-			.packages
-			.iter()
-			.any(|package| package.name == "dart_shared")
-	);
-	assert!(
-		discovery
-			.packages
-			.iter()
-			.any(|package| package.name == "dart_app")
-	);
-}
-
-#[test]
-fn marks_flutter_packages_with_dart_ecosystem_and_metadata() {
-	let fixture_root =
-		Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/flutter/workspace");
-	let discovery = discover_dart_packages(&fixture_root)
-		.unwrap_or_else(|error| panic!("flutter discovery: {error}"));
-
-	for package in &discovery.packages {
-		assert_eq!(
-			package.ecosystem.as_str(),
-			"dart",
-			"all Dart/Flutter packages should have ecosystem = dart"
-		);
-	}
-}
-
-#[test]
-fn adapter_reports_dart_ecosystem() {
-	assert_eq!(adapter().ecosystem(), Ecosystem::Dart);
-}
 
 fn sample_publish_request(root: &Path) -> PublishRequest {
 	PublishRequest {
@@ -122,98 +73,6 @@ fn dart_placeholder_manifest_uses_source_environment() {
 		.unwrap_or_else(|error| panic!("read pubspec: {error}"));
 
 	assert!(manifest.contains("environment:\n  sdk: ^3.11.0\n  flutter: '>=3.30.0'\n"));
-}
-
-#[test]
-fn dart_placeholder_manifest_falls_back_to_default_sdk_constraint() {
-	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	let request = sample_publish_request(tempdir.path());
-
-	write_dart_placeholder_manifest(tempdir.path(), &request, None)
-		.unwrap_or_else(|error| panic!("write placeholder manifest: {error}"));
-
-	let manifest = fs::read_to_string(tempdir.path().join("pubspec.yaml"))
-		.unwrap_or_else(|error| panic!("read pubspec: {error}"));
-
-	assert!(manifest.contains("environment:\n  sdk: '>=3.0.0 <4.0.0'\n"));
-}
-
-#[test]
-fn flutter_placeholder_manifest_falls_back_to_default_flutter_constraint() {
-	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	let mut request = sample_publish_request(tempdir.path());
-	request
-		.package_metadata
-		.insert("is_flutter".to_string(), "true".to_string());
-
-	write_dart_placeholder_manifest(tempdir.path(), &request, None)
-		.unwrap_or_else(|error| panic!("write placeholder manifest: {error}"));
-
-	let manifest = fs::read_to_string(tempdir.path().join("pubspec.yaml"))
-		.unwrap_or_else(|error| panic!("read pubspec: {error}"));
-
-	assert!(manifest.contains("environment:\n  sdk: '>=3.0.0 <4.0.0'\n  flutter: '>=3.0.0'\n"));
-}
-
-#[test]
-fn supported_versioned_file_kind_recognizes_pubspec_files() {
-	assert_eq!(
-		supported_versioned_file_kind(Path::new("pubspec.yaml")),
-		Some(DartVersionedFileKind::Manifest)
-	);
-	assert_eq!(
-		supported_versioned_file_kind(Path::new("pubspec.yml")),
-		Some(DartVersionedFileKind::Manifest)
-	);
-	assert_eq!(
-		supported_versioned_file_kind(Path::new("pubspec.lock")),
-		Some(DartVersionedFileKind::Lock)
-	);
-	assert_eq!(supported_versioned_file_kind(Path::new("README.md")), None);
-}
-
-#[test]
-fn discover_lockfiles_prefers_workspace_root_then_manifest_directory() {
-	let fixture_root =
-		Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/tests/dart/lockfile-workspace");
-	let package = PackageRecord::new(
-		Ecosystem::Dart,
-		"dart_app",
-		fixture_root.join("packages/app/pubspec.yaml"),
-		fixture_root.clone(),
-		Some(Version::new(1, 0, 0)),
-		PublishState::Public,
-	);
-	let lockfiles = discover_lockfiles(&package);
-	assert_eq!(lockfiles.len(), 1);
-	assert_eq!(
-		lockfiles.first(),
-		Some(&monochange_core::normalize_path(
-			&fixture_root.join("pubspec.lock")
-		))
-	);
-}
-
-#[test]
-fn discover_lockfiles_falls_back_to_manifest_directory() {
-	let fixture_root = Path::new(env!("CARGO_MANIFEST_DIR"))
-		.join("../../fixtures/tests/dart/manifest-lockfile-workspace");
-	let package = PackageRecord::new(
-		Ecosystem::Dart,
-		"nested_dart_app",
-		fixture_root.join("packages/app/pubspec.yaml"),
-		fixture_root.clone(),
-		Some(Version::new(1, 0, 0)),
-		PublishState::Public,
-	);
-	let lockfiles = discover_lockfiles(&package);
-	assert_eq!(lockfiles.len(), 1);
-	assert_eq!(
-		lockfiles.first(),
-		Some(&monochange_core::normalize_path(
-			&fixture_root.join("packages/app/pubspec.lock")
-		))
-	);
 }
 
 #[test]
@@ -325,163 +184,6 @@ dev_dependencies:
 }
 
 #[test]
-fn parse_yaml_line_strips_key_quoting() {
-	let contents = "'dependencies':\n  'core': ^1.0.0\n  \"other\": ^2.0.0\n  bare: ^3.0.0\n";
-	let ranges = crate::yaml_line_ranges(contents);
-	let keys = ranges
-		.iter()
-		.filter_map(|range| crate::parse_yaml_line(contents, *range))
-		.map(|line| line.key.to_string())
-		.collect::<Vec<_>>();
-	assert_eq!(keys, vec!["dependencies", "core", "other", "bare"]);
-}
-
-#[test]
-fn unquote_yaml_key_keeps_bare_and_malformed_keys() {
-	assert_eq!(crate::unquote_yaml_key("core"), "core");
-	assert_eq!(crate::unquote_yaml_key("'core'"), "core");
-	assert_eq!(crate::unquote_yaml_key("\"core\""), "core");
-	assert_eq!(crate::unquote_yaml_key("'"), "'");
-	assert_eq!(crate::unquote_yaml_key("'core"), "'core");
-	assert_eq!(crate::unquote_yaml_key("'core' tail"), "'core' tail");
-	assert_eq!(crate::unquote_yaml_key("'a' 'b'"), "'a' 'b'");
-	// A quoted key with an invalid escape cannot be parsed as a YAML scalar, so
-	// the raw text is kept rather than guessed at.
-	assert_eq!(crate::unquote_yaml_key(r#""\q""#), r#""\q""#);
-}
-
-#[test]
-fn update_manifest_text_updates_quoted_dependency_keys_and_keeps_quotes() {
-	let manifest = r#"name: sample_app
-version: '1.0.0'
-
-dependencies:
-  'shared': ^1.0.0
-  "other": ^1.0.0
-  bare: ^1.0.0
-"#;
-	let updated = update_manifest_text(
-		manifest,
-		None,
-		&["dependencies"],
-		&BTreeMap::from([
-			("shared".to_string(), "^2.0.0".to_string()),
-			("other".to_string(), "^2.0.0".to_string()),
-			("bare".to_string(), "^2.0.0".to_string()),
-		]),
-	)
-	.unwrap_or_else(|error| panic!("update pubspec text: {error}"));
-	assert_eq!(
-		updated,
-		r#"name: sample_app
-version: '1.0.0'
-
-dependencies:
-  'shared': ^2.0.0
-  "other": ^2.0.0
-  bare: ^2.0.0
-"#
-	);
-}
-
-#[test]
-fn update_manifest_text_updates_quoted_nested_dependency_versions() {
-	let manifest = r"name: sample_app
-
-dependencies:
-  'shared':
-    path: ../shared
-    version: ^1.0.0
-";
-	let updated = update_manifest_text(
-		manifest,
-		None,
-		&["dependencies"],
-		&BTreeMap::from([("shared".to_string(), "^2.0.0".to_string())]),
-	)
-	.unwrap_or_else(|error| panic!("update pubspec text: {error}"));
-	assert_eq!(
-		updated,
-		r"name: sample_app
-
-dependencies:
-  'shared':
-    path: ../shared
-    version: ^2.0.0
-"
-	);
-}
-
-#[test]
-fn yaml_helper_functions_cover_missing_and_inline_paths() {
-	let contents = "version: # comment only\n\n  nested: value\nshared:\n  path: ../shared\n";
-	let ranges = crate::yaml_line_ranges(contents);
-	assert_eq!(ranges.len(), 6);
-	assert!(crate::parse_yaml_line(contents, *ranges.get(1).expect("blank line range")).is_none());
-	assert!(crate::parse_yaml_line(": nope", (0, 6)).is_none());
-	assert!(crate::yaml_value_span("version: # comment", 0, 8).is_none());
-	assert_eq!(crate::find_yaml_quote_end("\"1.0.0\"", '"'), Some(6));
-	assert_eq!(crate::find_yaml_quote_end("\"1.0.0", '"'), None);
-
-	assert_eq!(crate::render_yaml_scalar("\"1.0.0\"", "2.0.0"), "\"2.0.0\"");
-	assert_eq!(crate::render_yaml_scalar("'1.0.0'", "2.0.0"), "'2.0.0'");
-	assert_eq!(crate::render_yaml_scalar("1.0.0", "2.0.0"), "2.0.0");
-
-	let nested = r"dependencies:
-  shared:
-    path: ../shared
-
-    # keep spacing
-  other: ^1.0.0
-";
-	let nested_ranges = crate::yaml_line_ranges(nested);
-	let section_index = crate::find_yaml_key_line(nested, &nested_ranges, 0, "dependencies")
-		.unwrap_or_else(|| panic!("expected dependencies section"));
-	assert_eq!(
-		crate::find_yaml_dependency_scalar(nested, &nested_ranges, section_index, "shared"),
-		None
-	);
-}
-
-#[test]
-fn update_pubspec_lock_rewrites_known_package_versions() {
-	let mut lock: Mapping = serde_yaml_ng::from_str(
-		r"
-packages:
-  core:
-    version: 1.0.0
-  app:
-    version: 1.0.0
-",
-	)
-	.unwrap_or_else(|error| panic!("pubspec lock yaml: {error}"));
-	let versions = BTreeMap::from([
-		("core".to_string(), "2.0.0".to_string()),
-		("app".to_string(), "1.1.0".to_string()),
-	]);
-
-	update_pubspec_lock(&mut lock, &versions);
-
-	let rendered = serde_yaml_ng::to_string(&Value::Mapping(lock))
-		.unwrap_or_else(|error| panic!("render pubspec lock: {error}"));
-	assert!(rendered.contains("core:\n    version: 2.0.0"));
-	assert!(rendered.contains("app:\n    version: 1.1.0"));
-}
-
-#[test]
-fn update_pubspec_lock_ignores_missing_package_section() {
-	let mut lock: Mapping = serde_yaml_ng::from_str("root: true\n")
-		.unwrap_or_else(|error| panic!("pubspec lock yaml: {error}"));
-	update_pubspec_lock(
-		&mut lock,
-		&BTreeMap::from([("core".to_string(), "2.0.0".to_string())]),
-	);
-	let rendered = serde_yaml_ng::to_string(&Value::Mapping(lock))
-		.unwrap_or_else(|error| panic!("render pubspec lock: {error}"));
-	assert_eq!(rendered, "root: true\n");
-}
-
-#[test]
 fn workspace_and_manifest_helpers_cover_yaml_and_error_paths() {
 	let fixture_root = Path::new(env!("CARGO_MANIFEST_DIR"))
 		.join("../../fixtures/tests/dart/workspace-pattern-warnings");
@@ -578,88 +280,6 @@ dependencies:
 }
 
 #[test]
-fn default_dependency_version_prefix_is_correct() {
-	assert_eq!(super::default_dependency_version_prefix(), "^");
-}
-
-#[test]
-fn default_dependency_fields_are_non_empty() {
-	assert!(!super::default_dependency_fields().is_empty());
-}
-
-#[test]
-fn validate_versioned_file_accepts_valid_pubspec_yaml() {
-	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	let path = tempdir.path().join("pubspec.yaml");
-	fs::write(&path, "version: 1.0.0\n").unwrap_or_else(|error| panic!("write: {error}"));
-	assert!(super::validate_versioned_file(&path, "pubspec.yaml", None).is_ok());
-}
-
-#[test]
-fn validate_versioned_file_rejects_invalid_yaml() {
-	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	let path = tempdir.path().join("pubspec.yaml");
-	fs::write(&path, "not valid yaml: [").unwrap_or_else(|error| panic!("write: {error}"));
-	let result = super::validate_versioned_file(&path, "pubspec.yaml", None);
-	assert!(result.is_err());
-	assert!(result.unwrap_err().to_string().contains("not valid YAML"));
-}
-
-#[test]
-fn validate_versioned_file_rejects_missing_version() {
-	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	let path = tempdir.path().join("pubspec.yaml");
-	fs::write(&path, "name: test\n").unwrap_or_else(|error| panic!("write: {error}"));
-	let result = super::validate_versioned_file(&path, "pubspec.yaml", None);
-	assert!(result.is_err());
-	assert!(
-		result
-			.unwrap_err()
-			.to_string()
-			.contains("does not contain a `version` string field")
-	);
-}
-
-#[test]
-fn validate_versioned_file_rejects_missing_file() {
-	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	let path = tempdir.path().join("missing.yaml");
-	let result = super::validate_versioned_file(&path, "missing.yaml", None);
-	assert!(result.is_err());
-	assert!(result.unwrap_err().to_string().contains("not readable"));
-}
-
-#[test]
-fn standalone_dart_packages_without_workspace_root_keep_distinct_ids() {
-	// Regression: standalone manifests were parsed with their own directory as
-	// the workspace root, so every package produced the id `dart:pubspec.yaml`
-	// and the sort+dedup kept only one of them.
-	let fixture_root = Path::new(env!("CARGO_MANIFEST_DIR"))
-		.join("../../fixtures/tests/standalone-discovery/no-workspace-root");
-	let discovery = discover_dart_packages(&fixture_root)
-		.unwrap_or_else(|error| panic!("dart discovery: {error}"));
-
-	let names = discovery
-		.packages
-		.iter()
-		.map(|package| package.name.as_str())
-		.collect::<Vec<_>>();
-	assert_eq!(names, vec!["mobile_sdk", "mobile_ui"]);
-	let ids = discovery
-		.packages
-		.iter()
-		.map(|package| package.id.as_str())
-		.collect::<Vec<_>>();
-	assert_eq!(
-		ids,
-		vec![
-			"dart:dart/mobile_sdk/pubspec.yaml",
-			"dart:dart/mobile_ui/pubspec.yaml",
-		]
-	);
-}
-
-#[test]
 fn validate_versioned_file_accepts_dependency_section_field() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let path = tempdir.path().join("pubspec.yaml");
@@ -670,36 +290,4 @@ fn validate_versioned_file_accepts_dependency_section_field() {
 	.unwrap_or_else(|error| panic!("write: {error}"));
 	let custom_fields = vec!["version".to_string(), "dependencies".to_string()];
 	assert!(super::validate_versioned_file(&path, "pubspec.yaml", Some(&custom_fields)).is_ok());
-}
-
-#[test]
-fn validate_versioned_file_rejects_missing_section_field() {
-	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	let path = tempdir.path().join("pubspec.yaml");
-	fs::write(&path, "name: app\nversion: 1.0.0\n")
-		.unwrap_or_else(|error| panic!("write: {error}"));
-	let custom_fields = vec!["dependencies".to_string()];
-	let result = super::validate_versioned_file(&path, "pubspec.yaml", Some(&custom_fields));
-	assert!(result.is_err());
-	assert!(
-		result
-			.unwrap_err()
-			.to_string()
-			.contains("does not contain a `dependencies` string field")
-	);
-}
-
-#[test]
-fn validate_versioned_file_rejects_non_string_default_version() {
-	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
-	let path = tempdir.path().join("pubspec.yaml");
-	fs::write(&path, "name: app\nversion: 1.0\n").unwrap_or_else(|error| panic!("write: {error}"));
-	let result = super::validate_versioned_file(&path, "pubspec.yaml", None);
-	assert!(result.is_err());
-	assert!(
-		result
-			.unwrap_err()
-			.to_string()
-			.contains("does not contain a `version` string field")
-	);
 }

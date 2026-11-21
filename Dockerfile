@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
-# ── Builder stage ──────────────────────────────────────────────────────────
-FROM rust:1-slim-bookworm AS builder
+# ── Toolchain stage ────────────────────────────────────────────────────────
+FROM rust:1-slim-bookworm AS toolchain
 
 # The app workspace builds on nightly (edition 2024).
 ARG NIGHTLY_TOOLCHAIN=nightly-2026-05-08
@@ -31,13 +31,25 @@ RUN rustup toolchain install ${NIGHTLY_TOOLCHAIN} \
 
 WORKDIR /app
 
-# The root manifests come first so the CLI pin read has its source of truth:
-# root `cargo metadata` parses every workspace member, so the crates and the
-# docs manifest must exist before it runs.
+# ── CLI pin stage ──────────────────────────────────────────────────────────
+# Resolve the leptoskit CLI pin from [workspace.metadata.bin] on its own. Root
+# `cargo metadata` parses every workspace member, so the crates and the docs
+# manifest must exist before it runs. The builder copies only the resolved
+# pin, so BuildKit reuses the cached CLI install below until the pin itself
+# changes instead of rebuilding the CLI whenever any workspace crate changes.
+FROM toolchain AS cli-pin
+
 COPY Cargo.toml Cargo.lock ./
 COPY crates/ crates/
 COPY docs/Cargo.toml docs/Cargo.toml
 COPY docs/src/ docs/src/
+RUN cargo metadata --no-deps --format-version 1 \
+        | jq -ce '.metadata.bin.leptoskit_cli' >/leptoskit-cli-pin.json
+
+# ── Builder stage ──────────────────────────────────────────────────────────
+FROM toolchain AS builder
+
+COPY --from=cli-pin /leptoskit-cli-pin.json /leptoskit-cli-pin.json
 
 # Build the provenance-verified leptoskit CLI from the SAME Git revision the
 # workspaces pin in [workspace.metadata.bin] — never the stale crates.io
@@ -54,7 +66,7 @@ COPY docs/src/ docs/src/
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/tmp/leptoskit-install \
     set -eu \
-    && pin="$(cargo metadata --no-deps --format-version 1 | jq -c '.metadata.bin.leptoskit_cli')" \
+    && pin="$(cat /leptoskit-cli-pin.json)" \
     && cli_git="$(printf '%s' "${pin}" | jq -r '.git')" \
     && cli_rev="$(printf '%s' "${pin}" | jq -r '.rev')" \
     && cli_version="$(printf '%s' "${pin}" | jq -r '.version')" \
@@ -111,11 +123,15 @@ RUN arch="$(dpkg --print-architecture)" \
     && rm -rf /tmp/esbuild.tgz /tmp/package \
     && esbuild --version
 
-# Copy the remaining workspace files. The leptoskit tooling plugin (on PATH
+# Copy the workspace. The leptoskit tooling plugin (on PATH
 # as `leptoskit-plugin-monochange-web-assets`) prepares the site CSS,
 # split-loader minification, and WASM optimization inside each build's own
 # scratch output; publish-web-site.ts stages, validates, and promotes the
 # assembled site after both builds.
+COPY Cargo.toml Cargo.lock ./
+COPY crates/ crates/
+COPY docs/Cargo.toml docs/Cargo.toml
+COPY docs/src/ docs/src/
 COPY app/ app/
 COPY scripts/leptoskit-plugin/ scripts/leptoskit-plugin/
 COPY scripts/minify-split-loader.ts scripts/minify-split-loader.ts

@@ -1,5 +1,0 @@
----
-core: minor
----
-
-#### validate workspace

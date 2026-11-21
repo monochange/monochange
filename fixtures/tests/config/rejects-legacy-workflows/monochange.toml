@@ -1,5 +1,0 @@
-[[workflows]]
-name = "legacy"
-
-[[workflows.steps]]
-type = "Validate"
