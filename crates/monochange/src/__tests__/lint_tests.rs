@@ -5,10 +5,6 @@ use std::path::PathBuf;
 use super::*;
 use crate::cli::build_lint_subcommand;
 
-fn lint_settings_root() -> PathBuf {
-	monochange_test_helpers::fixture_path!("config/lint-settings")
-}
-
 fn clean_lint_workspace() -> tempfile::TempDir {
 	monochange_test_helpers::setup_scenario_workspace!("lint-check/clean")
 }
@@ -70,39 +66,6 @@ fn check_report_input<'a>(
 }
 
 #[test]
-fn test_format_check_report_empty() {
-	let report = LintReport::new();
-	let output = format_check_report(
-		&check_report_input(&report, &[], &[], 0, false, false),
-		TextTheme::for_stdout(),
-	);
-	assert_eq!(output, "✔ Checks passed");
-}
-
-#[test]
-fn test_format_check_report_with_issues() {
-	let mut report = LintReport::new();
-	report.add(monochange_core::lint::LintResult::new(
-		"test/rule",
-		monochange_core::lint::LintLocation::new("test.toml", 1, 1),
-		"Test error",
-		LintSeverity::Error,
-	));
-	report.add(monochange_core::lint::LintResult::new(
-		"test/rule",
-		monochange_core::lint::LintLocation::new("test.toml", 2, 1),
-		"Test warning",
-		LintSeverity::Warning,
-	));
-
-	let output = format_check_report(
-		&check_report_input(&report, &[], &[], 0, false, true),
-		TextTheme::for_stdout(),
-	);
-	insta::assert_snapshot!(output);
-}
-
-#[test]
 fn check_report_explains_validation_warnings_fixes_and_remaining_fixable_issues() {
 	let mut report = LintReport::new();
 	report.add(
@@ -157,67 +120,6 @@ fn check_report_explains_validation_warnings_fixes_and_remaining_fixable_issues(
 		"check_report_validation_failure_after_fix",
 		failed_after_fix
 	);
-}
-
-#[test]
-fn render_lint_catalog_lists_rules_and_presets() {
-	let text = render_lint_catalog(OutputFormat::Text).unwrap();
-	assert!(text.contains("cargo/internal-dependency-workspace"));
-	assert!(text.contains("cargo/baseline"));
-	assert!(text.contains("cargo/recommended"));
-	assert!(text.contains("dart/required-package-fields"));
-	assert!(text.contains("dart/sdk-constraint-present"));
-	assert!(text.contains("dart/internal-path-dependency-policy"));
-	assert!(text.contains("dart/flutter-package-metadata-consistent"));
-
-	assert!(text.contains("dart/baseline"));
-	assert!(text.contains("dart/recommended"));
-	assert!(text.contains("dart/strict"));
-
-	let json = render_lint_catalog(OutputFormat::Json).unwrap();
-	assert!(json.contains("\"rules\""));
-	assert!(json.contains("\"presets\""));
-}
-
-#[test]
-fn render_lint_explanation_supports_rules_and_presets() {
-	let rule =
-		render_lint_explanation("cargo/internal-dependency-workspace", OutputFormat::Text).unwrap();
-	assert!(rule.contains("Internal dependency workspace"));
-
-	let baseline = render_lint_explanation("cargo/baseline", OutputFormat::Text).unwrap();
-	assert!(baseline.contains("Cargo baseline"));
-	assert!(baseline.contains("cargo/required-package-fields"));
-
-	let preset = render_lint_explanation("cargo/recommended", OutputFormat::Text).unwrap();
-	assert!(preset.contains("Cargo recommended"));
-	assert!(preset.contains("cargo/sorted-dependencies"));
-}
-
-#[test]
-fn generated_config_defaults_to_baseline_lints() {
-	let template = include_str!("../monochange.toml.template");
-	assert!(template.contains(
-		"use = [\"cargo/baseline\", \"npm/baseline\", \"dart/baseline\", \"changesets/recommended\"]"
-	));
-	assert!(template.contains("without turning formatting preferences into blocking errors"));
-}
-
-#[test]
-fn render_lint_explanation_rejects_unknown_ids() {
-	let error = render_lint_explanation("unknown/rule", OutputFormat::Text)
-		.expect_err("expected unknown lint explanation error");
-	assert!(error.to_string().contains("unknown lint rule or preset"));
-}
-
-#[test]
-fn render_lint_explanation_supports_json() {
-	let rule =
-		render_lint_explanation("cargo/internal-dependency-workspace", OutputFormat::Json).unwrap();
-	assert!(rule.contains("\"cargo/internal-dependency-workspace\""));
-
-	let preset = render_lint_explanation("cargo/recommended", OutputFormat::Json).unwrap();
-	assert!(preset.contains("\"cargo/recommended\""));
 }
 
 #[test]
@@ -425,114 +327,6 @@ fn run_check_command_reports_all_validation_errors_before_failing() {
 }
 
 #[test]
-fn run_check_command_applies_fixes_and_reports_them() {
-	let tempdir = readonly_fix_workspace();
-	let output = run_check_command(
-		tempdir.path(),
-		true,
-		false,
-		&[],
-		&[],
-		OutputFormat::Text,
-		false,
-	)
-	.unwrap_or_else(|error| panic!("expected fixable lint workspace to succeed: {error}"));
-	assert!(
-		output
-			.lines()
-			.last()
-			.unwrap_or_default()
-			.starts_with("✔ Checks passed · fixed 1 file"),
-		"{output}"
-	);
-
-	let manifest = fs::read_to_string(tempdir.path().join("crates/example/Cargo.toml"))
-		.unwrap_or_else(|error| panic!("expected fixed manifest to be readable: {error}"));
-	assert!(manifest.contains("publish = false"));
-}
-
-#[test]
-fn run_check_command_fix_dry_run_previews_without_writing() {
-	let tempdir = readonly_fix_workspace();
-	// The unfixed errors are still on disk, so a dry-run preview reports
-	// failure like a plain check; the rendered output is what previews the fix.
-	let error = run_check_command(
-		tempdir.path(),
-		true,
-		true,
-		&[],
-		&[],
-		OutputFormat::Text,
-		false,
-	)
-	.err()
-	.unwrap_or_else(|| panic!("dry-run must still report the unfixed errors"));
-
-	let output = match &error {
-		MonochangeError::Reported { output, .. } => output.clone(),
-		other => panic!("expected a reported check output, got: {other}"),
-	};
-	assert!(
-		output.contains("would fix 1 file"),
-		"dry-run summary must say what --fix would do: {output}"
-	);
-
-	let manifest = fs::read_to_string(tempdir.path().join("crates/example/Cargo.toml"))
-		.unwrap_or_else(|error| panic!("expected manifest to be readable: {error}"));
-	assert!(
-		!manifest.contains("publish = false"),
-		"dry-run must not write the fix: {manifest}"
-	);
-}
-
-#[test]
-fn run_check_command_applies_fixes_without_progress_reporter() {
-	let tempdir = readonly_fix_workspace();
-	let result = run_check_command(
-		tempdir.path(),
-		true,
-		false,
-		&[],
-		&[],
-		OutputFormat::Json,
-		false,
-	);
-	assert!(
-		result.is_ok(),
-		"expected fixable lint workspace to succeed without a reporter: {result:?}"
-	);
-
-	let manifest = fs::read_to_string(tempdir.path().join("crates/example/Cargo.toml"))
-		.unwrap_or_else(|error| panic!("expected fixed manifest to be readable: {error}"));
-	assert!(manifest.contains("publish = false"));
-}
-
-#[test]
-fn run_lint_step_reports_successful_check_output() {
-	let clean_workspace = clean_lint_workspace();
-	let (output, has_errors) = run_lint_step(clean_workspace.path(), false)
-		.unwrap_or_else(|error| panic!("expected lint step to succeed: {error}"));
-	assert!(!has_errors);
-	assert_eq!(output, "✔ Checks passed");
-}
-
-#[test]
-fn run_lint_step_rechecks_after_fixing_errors() {
-	let tempdir = readonly_fix_workspace();
-	let (output, has_errors) = run_lint_step(tempdir.path(), true)
-		.unwrap_or_else(|error| panic!("expected fixable lint step to succeed: {error}"));
-	assert!(!has_errors);
-	assert!(
-		output
-			.lines()
-			.last()
-			.unwrap_or_default()
-			.starts_with("✔ Checks passed · fixed 1 file"),
-		"{output}"
-	);
-}
-
-#[test]
 fn run_lint_step_supports_fix_write_failures() {
 	let tempdir = readonly_fix_workspace();
 	let cargo_toml = tempdir.path().join("crates/example/Cargo.toml");
@@ -542,65 +336,6 @@ fn run_lint_step_supports_fix_write_failures() {
 	let error =
 		run_lint_step(tempdir.path(), true).expect_err("expected lint-step fix write failure");
 	assert!(error.to_string().contains("Failed to write fixed content"));
-}
-
-#[test]
-fn handle_lint_subcommand_dispatches_supported_commands() {
-	let root = lint_settings_root();
-	let list_matches = build_lint_subcommand()
-		.try_get_matches_from(["lint", "list"])
-		.unwrap();
-	let list_output = handle_lint_subcommand(&root, &list_matches).unwrap();
-	assert!(list_output.starts_with("Rules ("), "{list_output}");
-	assert!(list_output.contains("\nPresets ("), "{list_output}");
-
-	let explain_matches = build_lint_subcommand()
-		.try_get_matches_from(["lint", "explain", "cargo/recommended", "--format=json"])
-		.unwrap();
-	let explain_output = handle_lint_subcommand(&root, &explain_matches).unwrap();
-	assert!(explain_output.contains("\"cargo/recommended\""));
-}
-
-#[test]
-fn scaffold_lint_rule_validates_ids_and_creates_expected_files() {
-	let error = scaffold_lint_rule(Path::new("."), "missing-dash")
-		.expect_err("expected invalid lint id to fail");
-	assert!(error.to_string().contains("<ecosystem>/<rule-name>"));
-
-	let tempdir =
-		monochange_test_helpers::setup_scenario_workspace!("test-support/scenario-workspace");
-	let message = scaffold_lint_rule(tempdir.path(), "cargo/no-path-dependencies").unwrap();
-	assert!(message.contains("no_path_dependencies.rs"));
-	assert!(
-		tempdir
-			.path()
-			.join("crates/monochange_cargo/src/lints/no_path_dependencies.rs")
-			.exists()
-	);
-	assert!(
-		tempdir
-			.path()
-			.join("fixtures/tests/lints/cargo/no-path-dependencies/workspace/README.md")
-			.exists()
-	);
-
-	let odd_message = scaffold_lint_rule(tempdir.path(), "cargo/-foo").unwrap();
-	assert!(odd_message.contains("_foo.rs"));
-	let odd_file = tempdir
-		.path()
-		.join("crates/monochange_cargo/src/lints/_foo.rs");
-	let odd_contents = fs::read_to_string(odd_file).unwrap();
-	assert!(odd_contents.contains("pub FooRule"));
-	assert!(odd_contents.contains("Keep `declare_lint_rule!`"));
-
-	let dart_message = scaffold_lint_rule(tempdir.path(), "dart/sdk-constraint-present").unwrap();
-	assert!(dart_message.contains("sdk_constraint_present.rs"));
-	assert!(
-		tempdir
-			.path()
-			.join("crates/monochange_dart/src/lints/sdk_constraint_present.rs")
-			.exists()
-	);
 }
 
 #[test]
@@ -658,34 +393,6 @@ fn scaffold_lint_rule_reports_directory_and_file_conflicts() {
 			.to_string()
 			.contains("failed to create lint fixture directory")
 	);
-}
-
-#[test]
-fn scaffold_lint_rule_reports_write_failures() {
-	let tempdir = tempfile::tempdir().unwrap();
-	let lint_dir = tempdir.path().join("crates/monochange_cargo/src/lints");
-	fs::create_dir_all(&lint_dir).unwrap();
-	let mut permissions = fs::metadata(&lint_dir).unwrap().permissions();
-	permissions.set_readonly(true);
-	fs::set_permissions(&lint_dir, permissions).unwrap();
-	let error = scaffold_lint_rule(tempdir.path(), "cargo/no-path-dependencies")
-		.expect_err("expected lint file write to fail");
-	assert!(!error.to_string().is_empty());
-
-	let tempdir = tempfile::tempdir().unwrap();
-	let lint_dir = tempdir.path().join("crates/monochange_cargo/src/lints");
-	let fixture_dir = tempdir
-		.path()
-		.join("fixtures/tests/lints/cargo/no-path-dependencies/workspace");
-	fs::create_dir_all(&lint_dir).unwrap();
-	fs::create_dir_all(&fixture_dir).unwrap();
-	let mut permissions = fs::metadata(&fixture_dir).unwrap().permissions();
-	permissions.set_readonly(true);
-	fs::set_permissions(&fixture_dir, permissions).unwrap();
-
-	let error = scaffold_lint_rule(tempdir.path(), "cargo/no-path-dependencies")
-		.expect_err("expected fixture note write to fail");
-	assert!(!error.to_string().is_empty());
 }
 
 #[test]

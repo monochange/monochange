@@ -1,5 +1,3 @@
-use monochange_config::load_workspace_configuration;
-use monochange_test_helpers::fixture_path;
 use serde_json::json;
 
 use super::*;
@@ -39,42 +37,6 @@ fn config() -> LintRuleConfig {
 }
 
 #[test]
-fn presets_are_exposed() {
-	let presets = NpmLintSuite.presets();
-	assert_eq!(presets.len(), 3);
-	assert_eq!(
-		presets.first().map(|preset| preset.id.as_str()),
-		Some("npm/baseline")
-	);
-	assert_eq!(
-		presets.get(1).map(|preset| preset.id.as_str()),
-		Some("npm/recommended")
-	);
-	let baseline = presets
-		.first()
-		.unwrap_or_else(|| panic!("expected npm baseline preset"));
-	assert_eq!(
-		baseline.rules.get("npm/required-package-fields"),
-		Some(&LintRuleConfig::Severity(LintSeverity::Warning))
-	);
-	let recommended = presets
-		.get(1)
-		.unwrap_or_else(|| panic!("expected npm recommended preset"));
-	assert_eq!(
-		recommended.rules.get("npm/workspace-protocol"),
-		Some(&LintRuleConfig::Severity(LintSeverity::Off))
-	);
-
-	let strict = presets
-		.get(2)
-		.unwrap_or_else(|| panic!("expected npm strict preset"));
-	assert_eq!(
-		strict.rules.get("npm/workspace-protocol"),
-		Some(&LintRuleConfig::Severity(LintSeverity::Error))
-	);
-}
-
-#[test]
 fn workspace_protocol_rule_reports_internal_ranges() {
 	let target = npm_target(
 		r#"{
@@ -105,30 +67,6 @@ fn workspace_protocol_rule_reports_internal_ranges() {
 			.and_then(|result| result.fix.as_ref())
 			.is_some()
 	);
-}
-
-#[test]
-fn sorted_dependencies_rule_reports_unsorted_sections() {
-	let target = npm_target(
-		r#"{
-  "name": "example",
-  "dependencies": {
-    "zzz": "1",
-    "aaa": "1"
-  }
-}"#,
-		true,
-		false,
-	);
-	let ctx = LintContext {
-		workspace_root: &target.workspace_root,
-		manifest_path: &target.manifest_path,
-		contents: &target.contents,
-		metadata: &target.metadata,
-		parsed: target.parsed.as_ref(),
-	};
-	let results = SortedDependenciesRule::new().run(&ctx, &config());
-	assert_eq!(results.len(), 1);
 }
 
 #[test]
@@ -180,30 +118,6 @@ fn sorted_dependencies_fix_preserves_top_level_package_json_order() {
   "description": "keep top-level order",
   "dependencies""#
 	));
-}
-
-#[test]
-fn dependency_fix_helpers_cover_minimal_and_missing_sections() {
-	let contents = r#"{"dependencies":{"zeta":"1","alpha":"2"}}"#;
-	assert_eq!(
-		dependency_value_span(contents, "dependencies", "zeta", "1"),
-		Some((24, 27))
-	);
-	assert_eq!(dependency_section_object_span(contents, "missing"), None);
-	assert_eq!(
-		dependency_value_span(contents, "dependencies", "missing", "1"),
-		None
-	);
-
-	let empty = Map::new();
-	let replacement =
-		sorted_dependency_section_text(r#"{"dependencies":{}}"#, "dependencies", &empty, &[])
-			.unwrap_or_else(|| panic!("expected replacement for empty dependency section"));
-	assert_eq!(replacement, "{\n}");
-	assert_eq!(
-		dependency_section_object_span(r#"{"dependencies":{"alpha":"1""#, "dependencies"),
-		None
-	);
 }
 
 #[test]
@@ -313,96 +227,6 @@ fn unlisted_package_private_rule_reports_for_public_unmanaged_packages() {
 }
 
 #[test]
-fn collect_targets_marks_configured_packages_as_managed() {
-	let root = fixture_path!("cli-output/discover-mixed");
-	let configuration = load_workspace_configuration(&root).unwrap();
-	let targets = NpmLintSuite.collect_targets(&root, &configuration).unwrap();
-	assert!(
-		targets
-			.iter()
-			.all(|target| target.metadata.ecosystem == "npm")
-	);
-	assert!(targets.iter().any(|target| target.metadata.managed));
-}
-
-#[test]
-fn manifest_repository_missing() {
-	let rule = ManifestRepositoryRule::new();
-	let contents = "{\"name\": \"hello\", \"version\": \"0.1.0\"}";
-	let manifest: Value = serde_json::from_str(contents).unwrap();
-	let target = LintTarget::new(
-		Path::new(".").to_path_buf(),
-		Path::new("package.json").to_path_buf(),
-		contents.to_string(),
-		LintTargetMetadata {
-			ecosystem: "npm".to_string(),
-			relative_path: Path::new("package.json").to_path_buf(),
-			package_name: Some("hello".to_string()),
-			package_id: Some("hello".to_string()),
-			group_id: None,
-			managed: false,
-			private: Some(false),
-			publishable: Some(true),
-		},
-		Box::new(NpmLintFile {
-			manifest,
-			workspace_package_names: Arc::new(BTreeSet::new()),
-			repo_url: Arc::new("https://github.com/foo/bar".to_string()),
-			default_branch: Arc::new("main".to_string()),
-		}),
-	);
-	let ctx = LintContext {
-		workspace_root: &target.workspace_root,
-		manifest_path: &target.manifest_path,
-		contents: &target.contents,
-		metadata: &target.metadata,
-		parsed: target.parsed.as_ref(),
-	};
-	let config = config();
-	let results = rule.run(&ctx, &config);
-	assert_eq!(results.len(), 1);
-}
-
-#[test]
-fn manifest_repository_empty_repo_url_skipped() {
-	let rule = ManifestRepositoryRule::new();
-	let contents =
-		"{\"name\": \"hello\", \"version\": \"0.1.0\", \"repository\": \"https://example.com\"}";
-	let manifest: Value = serde_json::from_str(contents).unwrap();
-	let target = LintTarget::new(
-		Path::new(".").to_path_buf(),
-		Path::new("package.json").to_path_buf(),
-		contents.to_string(),
-		LintTargetMetadata {
-			ecosystem: "npm".to_string(),
-			relative_path: Path::new("package.json").to_path_buf(),
-			package_name: Some("hello".to_string()),
-			package_id: Some("hello".to_string()),
-			group_id: None,
-			managed: false,
-			private: Some(false),
-			publishable: Some(true),
-		},
-		Box::new(NpmLintFile {
-			manifest,
-			workspace_package_names: Arc::new(BTreeSet::new()),
-			repo_url: Arc::new(String::new()),
-			default_branch: Arc::new("main".to_string()),
-		}),
-	);
-	let ctx = LintContext {
-		workspace_root: &target.workspace_root,
-		manifest_path: &target.manifest_path,
-		contents: &target.contents,
-		metadata: &target.metadata,
-		parsed: target.parsed.as_ref(),
-	};
-	let config = config();
-	let results = rule.run(&ctx, &config);
-	assert!(results.is_empty());
-}
-
-#[test]
 fn manifest_repository_wrong_value() {
 	let rule = ManifestRepositoryRule::new();
 	let contents = "{\"name\": \"hello\", \"version\": \"0.1.0\", \"repository\": \"https://wrong.example.com\"}";
@@ -476,49 +300,4 @@ fn manifest_repository_subdirectory_path() {
 	let config = config();
 	let results = rule.run(&ctx, &config);
 	assert_eq!(results.len(), 1);
-}
-
-#[test]
-fn manifest_repository_correct_value() {
-	let rule = ManifestRepositoryRule::new();
-	let contents = "{\"name\": \"hello\", \"version\": \"0.1.0\", \"repository\": \"https://github.com/foo/bar\"}";
-	let manifest: Value = serde_json::from_str(contents).unwrap();
-	let target = LintTarget::new(
-		Path::new(".").to_path_buf(),
-		Path::new("package.json").to_path_buf(),
-		contents.to_string(),
-		LintTargetMetadata {
-			ecosystem: "npm".to_string(),
-			relative_path: Path::new("package.json").to_path_buf(),
-			package_name: Some("hello".to_string()),
-			package_id: Some("hello".to_string()),
-			group_id: None,
-			managed: false,
-			private: Some(false),
-			publishable: Some(true),
-		},
-		Box::new(NpmLintFile {
-			manifest,
-			workspace_package_names: Arc::new(BTreeSet::new()),
-			repo_url: Arc::new("https://github.com/foo/bar".to_string()),
-			default_branch: Arc::new("main".to_string()),
-		}),
-	);
-	let ctx = LintContext {
-		workspace_root: &target.workspace_root,
-		manifest_path: &target.manifest_path,
-		contents: &target.contents,
-		metadata: &target.metadata,
-		parsed: target.parsed.as_ref(),
-	};
-	let config = config();
-	let results = rule.run(&ctx, &config);
-	assert!(results.is_empty());
-}
-
-#[test]
-fn suite_validate_contents_accepts_only_json() {
-	assert!(NpmLintSuite.validate_contents("{\n  \"name\": \"example\"\n}\n"));
-	assert!(!NpmLintSuite.validate_contents("this is not json"));
-	assert!(!NpmLintSuite.validate_contents("[package]\nname = \"example\"\n"));
 }

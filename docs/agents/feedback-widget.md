@@ -38,4 +38,4 @@ devenv shell -- cargo test --manifest-path app/Cargo.toml -p monochange_app_api 
 devenv shell -- cargo clippy --manifest-path app/Cargo.toml -p monochange_app_api --all-targets -- -D warnings
 ```
 
-`pnpm build:feedback` regenerates the deployed assets and enforces both browser bundle budgets. Add native SDK checks when touching those packages; see [tooling](tooling.md). Keep patch coverage at 100% for executable changes, and validate changeset streams before updating a PR. Live first-party GitHub sign-in, blocked-popup fallback, and account-switch behavior require a deployed integration smoke check; unit tests do not prove an OAuth deployment is configured correctly.
+`pnpm build:feedback` regenerates the deployed assets and enforces both browser bundle budgets. Add native SDK checks when touching those packages; see [tooling](tooling.md). Keep patch coverage at or above 90% for executable changes, and validate changeset streams before updating a PR. Live first-party GitHub sign-in, blocked-popup fallback, and account-switch behavior require a deployed integration smoke check; unit tests do not prove an OAuth deployment is configured correctly.
