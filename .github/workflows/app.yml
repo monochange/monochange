@@ -162,6 +162,13 @@ jobs:
           RELEASE_COMMIT: ${{ github.sha }}
         run: docker build --progress=plain -t "monochange-app:$RELEASE_COMMIT" .
 
+      # verify-image.sh checks the shipped WASM modules with a dependency-free
+      # TypeScript script, which needs Node's type stripping.
+      - name: setup node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+
       - name: verify the release image
         env:
           RELEASE_COMMIT: ${{ github.sha }}

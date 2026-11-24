@@ -5,13 +5,16 @@
 set -euo pipefail
 image="${1:?image required}"
 version="${2:-}"
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 token="$(mktemp)"
+modules="$(mktemp -d)"
 name="monochange-release-smoke"
 base="http://127.0.0.1:3000"
 cleanup() {
 	docker logs "$name" 2>/dev/null || true
 	docker rm -f "$name" >/dev/null 2>&1 || true
 	rm -f "$token"
+	rm -rf "$modules"
 }
 trap cleanup EXIT
 printf '%s' ci-service-account-test-token >"$token"
@@ -54,6 +57,14 @@ for namespace in site projects; do
 		curl --fail --silent --show-error "${base}/pkg/${namespace}/${chunk}.wasm" -o /dev/null
 	done <<<"$chunks"
 done
+
+# Serving the main modules is not enough: before hydration, wasm-bindgen's
+# glue grows the module's `__wbindgen_externrefs` table by 4. If a build step
+# maps that export to the fixed-size function table, every page still returns
+# 200 but no browser can hydrate it. Check the exact modules the image ships.
+docker cp "$name:/app/site/pkg/site/monochange_app_bg.wasm" "$modules/site.wasm"
+docker cp "$name:/app/site/pkg/projects/monochange_projects_web_bg.wasm" "$modules/projects.wasm"
+node "$root/scripts/check-wasm-externref-table.ts" "$modules/site.wasm" "$modules/projects.wasm"
 
 # The publisher precompressed every compressible asset; the file handler must
 # offer the twins to compression-capable clients instead of raw bytes, and it

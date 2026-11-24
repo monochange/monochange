@@ -12,6 +12,7 @@ on:
       - "leptoskit.workspace.toml"
       - "fixtures/tests/digitalocean-rollout/**"
       - "scripts/leptoskit-plugin/**"
+      - "scripts/check-wasm-externref-table.ts"
       - "scripts/minify-split-loader.ts"
       - "scripts/npm/tests/digitalocean-rollout.test.ts"
       - "package.json"
@@ -25,6 +26,7 @@ on:
       - "leptoskit.workspace.toml"
       - "fixtures/tests/digitalocean-rollout/**"
       - "scripts/leptoskit-plugin/**"
+      - "scripts/check-wasm-externref-table.ts"
       - "scripts/minify-split-loader.ts"
       - "scripts/npm/tests/digitalocean-rollout.test.ts"
       - "package.json"
@@ -172,6 +174,13 @@ jobs:
           tags: monochange-app:smoke
           cache-from: type=gha,scope=app-image
           cache-to: type=gha,scope=app-image,mode=max
+
+      # verify-image.sh checks the shipped WASM modules with a dependency-free
+      # TypeScript script, which needs Node's type stripping.
+      - name: setup node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
 
       - name: verify deployment image
         run: app/deploy/verify-image.sh monochange-app:smoke
