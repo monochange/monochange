@@ -63,7 +63,7 @@ pub enum GitHubAppError {
 	#[error("branch `{0}` must be a release branch distinct from the base and default branches")]
 	InvalidReleaseBranch(String),
 	#[error(
-		"pull request is not a verified monochange release request for this head, base, and repository"
+		"pull request is not a verified monochange release request for this head, base, and repository: it was not created by this monochange deployment's verified flow (for example, it predates release-PR verification, was opened by a user or another bot, or the deployment's signing secret changed). Close the existing pull request once and re-run the release workflow so monochange opens a verified one."
 	)]
 	UnboundPullRequest,
 	#[error(
