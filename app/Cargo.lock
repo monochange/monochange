@@ -1638,7 +1638,7 @@ checksum = "6ebaa1a2bf1290ab3bfe5a7b771d050ebffab2711c19a81691c683a5144a25de"
 dependencies = [
  "curve25519-dalek 5.0.0",
  "ed25519 3.0.0",
- "sha2 0.11.1",
+ "sha2 0.11.2",
  "subtle",
  "zeroize",
 ]
@@ -3992,7 +3992,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_app"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "ammonia",
  "any_spawner",
@@ -4054,7 +4054,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_app_api"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "aes-gcm",
  "axum",
@@ -4095,7 +4095,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_app_automation"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "async-trait",
  "chrono",
@@ -4111,7 +4111,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_app_db"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "chrono",
  "hex",
@@ -4131,7 +4131,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_app_feedback"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "schemars",
  "serde",
@@ -4141,7 +4141,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_backend"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "axum",
  "monochange_app_api",
@@ -4299,7 +4299,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_shared"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "base64 0.22.1",
  "rstest",
@@ -4339,7 +4339,7 @@ dependencies = [
  "secrecy",
  "serde",
  "serde_json",
- "sha2 0.11.1",
+ "sha2 0.11.2",
  "signal-hook",
  "smallvec",
  "ssh-key",
@@ -4672,7 +4672,7 @@ dependencies = [
  "elliptic-curve 0.14.3",
  "primefield",
  "primeorder 0.14.0",
- "sha2 0.11.1",
+ "sha2 0.11.2",
 ]
 
 [[package]]
@@ -6207,9 +6207,9 @@ dependencies = [
 
 [[package]]
 name = "sha2"
-version = "0.11.1"
+version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "47d7069beb7d6ac7b9acd1039986e73443f24234f41074da099d6f994ac9ad19"
+checksum = "5b0e5c7d67bc53f435386b2130fdc900488c5703770f6d8a4633060e34288a27"
 dependencies = [
  "cfg-if",
  "cpufeatures 0.3.1",
