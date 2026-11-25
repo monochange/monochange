@@ -30,7 +30,9 @@ use monochange_publish::RegistryEndpoints;
 use monochange_publish::TrustedPublishingIdentity;
 use monochange_publish::detect_trusted_publishing_identity;
 use monochange_publish::manual_setup_url;
+use monochange_publish::missing_release_tag_message;
 use monochange_publish::provider_registry_trust_capability;
+use monochange_publish::publish_is_tag_bound;
 use monochange_publish::registry_client;
 use monochange_publish::registry_package_exists_with_transport;
 use monochange_publish::trusted_publishing_capability_message;
@@ -66,6 +68,15 @@ pub(crate) async fn check_trusted_publishing_readiness(
 			status: TrustedPublishingReadinessStatus::Disabled,
 			message: "trusted publishing is disabled; publishing will use registry tokens"
 				.to_string(),
+		};
+	}
+
+	// The registry only accepts the package from a run on its release tag,
+	// so without a tag no publish run can succeed.
+	if publish_is_tag_bound(request, env_map) && request.release_tag.is_none() {
+		return TrustedPublishingReadiness {
+			status: TrustedPublishingReadinessStatus::Blocked,
+			message: missing_release_tag_message(&request.package_id, None),
 		};
 	}
 

@@ -406,6 +406,7 @@ fn sample_package_publish_outcome(
 		stdout: None,
 		stderr: None,
 		rate_limit: None,
+		deferred_to: None,
 	}
 }
 
@@ -864,6 +865,99 @@ fn render_package_publish_reports_cover_empty_and_detailed_variants() {
 	let markdown = render_package_publish_report_markdown(&problem_report, false).join("\n");
 	assert!(markdown.contains("**Failed**\n- **`@scope/pkg`** `1.2.3` via `npm`"));
 	assert!(markdown.contains("**Blocked**\n- **`@scope/pkg`** `1.2.3` via `npm`"));
+}
+
+/// A primary-tag run: one package planned, one pub.dev package deferred to
+/// its release tag, and one package left to another tag's run.
+fn tag_scoped_publish_report() -> package_publish::PackagePublishReport {
+	let planned = sample_package_publish_outcome(
+		package_publish::PackagePublishStatus::Planned,
+		package_publish::TrustedPublishingStatus::Disabled,
+	);
+	let mut deferred = sample_package_publish_outcome(
+		package_publish::PackagePublishStatus::DeferredToTag,
+		package_publish::TrustedPublishingStatus::Disabled,
+	);
+	deferred.package = "dart_pkg".to_string();
+	deferred.ecosystem = Ecosystem::Dart;
+	deferred.registry = "pub_dev".to_string();
+	deferred.version = "0.2.1".to_string();
+	deferred.message = "pub.dev only accepts dart_pkg 0.2.1 from a run on `refs/tags/dart_pkg/v0.2.1`, and this run is on `refs/tags/v1.2.3`; publish it with `gh workflow run publish.yml --repo owner/repo --ref dart_pkg/v0.2.1`".to_string();
+	deferred.trusted_publishing = monochange_publish::TrustedPublishingOutcome {
+		status: package_publish::TrustedPublishingStatus::ManualActionRequired,
+		repository: Some("owner/repo".to_string()),
+		workflow: Some("publish.yml".to_string()),
+		environment: None,
+		setup_url: Some("https://pub.dev/packages/dart_pkg/admin".to_string()),
+		message: "configure trusted publishing manually for `dart_pkg`".to_string(),
+	};
+	deferred.deferred_to = Some(monochange_publish::PublishTagRun {
+		tag: "dart_pkg/v0.2.1".to_string(),
+		git_ref: "refs/tags/dart_pkg/v0.2.1".to_string(),
+		command: "gh workflow run publish.yml --repo owner/repo --ref dart_pkg/v0.2.1".to_string(),
+	});
+	let mut out_of_scope = sample_package_publish_outcome(
+		package_publish::PackagePublishStatus::SkippedOutOfScope,
+		package_publish::TrustedPublishingStatus::Disabled,
+	);
+	out_of_scope.package = "other_dart".to_string();
+	out_of_scope.message = "not published in this run".to_string();
+
+	package_publish::PackagePublishReport {
+		mode: package_publish::PackagePublishRunMode::Release,
+		dry_run: true,
+		packages: vec![planned, deferred, out_of_scope],
+	}
+}
+
+#[test]
+fn render_package_publish_reports_list_deferred_packages_with_their_tag_runs() {
+	let report = tag_scoped_publish_report();
+
+	insta::assert_snapshot!(
+		"publish_deferred_to_tag_text",
+		render_publish_text(&report, false)
+	);
+	insta::assert_snapshot!(
+		"publish_deferred_to_tag_markdown",
+		render_package_publish_report_markdown(&report, false).join("\n")
+	);
+
+	let details = render_publish_text(&report, true);
+	assert!(details.contains("dart_pkg 0.2.1 via pub_dev — deferred to its release tag"));
+	assert!(details.contains("release tag: dart_pkg/v0.2.1 (refs/tags/dart_pkg/v0.2.1)"));
+	assert!(details.contains(
+		"publish from tag: gh workflow run publish.yml --repo owner/repo --ref dart_pkg/v0.2.1"
+	));
+	assert!(details.contains("other_dart 1.2.3 via npm — out of scope for this ref"));
+
+	let markdown_details = render_package_publish_report_markdown(&report, true).join("\n");
+	assert!(markdown_details.contains("- **Release tag:** `dart_pkg/v0.2.1`"));
+	assert!(markdown_details.contains(
+		"- **Publish from tag:** `gh workflow run publish.yml --repo owner/repo --ref dart_pkg/v0.2.1`"
+	));
+}
+
+#[test]
+fn render_publish_command_json_exposes_deferred_tag_runs() {
+	let report = tag_scoped_publish_report();
+	let rendered =
+		render_publish_command_json(OutputFormat::Json, Some(&report), None).expect("json");
+	let value: serde_json::Value = serde_json::from_str(&rendered).expect("parse json");
+	let package_publish = &value["package_publish"];
+
+	assert_eq!(package_publish["summary"]["planned"], 1);
+	assert_eq!(package_publish["summary"]["deferred"], 1);
+	assert_eq!(package_publish["summary"]["out_of_scope"], 1);
+	insta::assert_json_snapshot!(
+		"publish_deferred_to_tag_json_package",
+		package_publish["packages"][1]
+	);
+	assert_eq!(
+		package_publish["packages"][2]["status"],
+		"skipped_out_of_scope"
+	);
+	assert!(package_publish["packages"][2].get("deferred_to").is_none());
 }
 
 #[test]

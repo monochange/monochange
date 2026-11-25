@@ -1,0 +1,4 @@
+#!/bin/sh
+# Stand-in for npm: the dry run only needs `npm publish --dry-run` to succeed
+# without touching the npm registry.
+echo "+ web@1.1.0"

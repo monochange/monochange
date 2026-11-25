@@ -14,6 +14,7 @@ For each package with a planned release version, the step:
 - validates publish-relevant dependency cycles before registry mutation
 - publishes dependencies before dependents within the selected publish set
 - checks whether the version already exists (skipping if it does)
+- defers a trusted pub.dev package to its own release tag when the run is on another ref (see [Packages that publish from their own tag](#packages-that-publish-from-their-own-tag))
 - plans against registry rate limits before attempting any mutation
 - runs the ecosystem-specific publish command (`cargo publish`, `npm publish`, `dart pub publish`, `flutter pub publish`, `deno publish`, and so on)
 - produces a structured report of what was published, skipped, or planned
@@ -53,6 +54,43 @@ app
 If multiple packages are independent at the same depth, their order is deterministic by package id, registry, and version.
 
 A package with no selected dependencies is eligible first. A package is not published until all of its selected publish-relevant dependencies have been ordered before it. Dependencies outside the selected publish set do not block ordering. Development-only cycles are ignored. Runtime, build, peer, workspace, and unknown dependency cycles fail before publishing anything, with a cycle diagnostic.
+
+## Packages that publish from their own tag
+
+pub.dev trusted publishing only accepts an upload from a GitHub Actions run whose ref is exactly `refs/tags/<package tag>`. Before uploading a Dart or Flutter package to pub.dev with trusted publishing (no `PUB_TOKEN`), the step compares the run's `GITHUB_REF` with that ref:
+
+- **Equal**: the package publishes.
+- **Different**: the package is not uploaded and gets the status `deferred_to_tag`. The run does not fail and the packages after it still publish. The report lists the package under **Deferred to release tags** with the tag and the command that publishes it; in `--format json` the package row carries `deferred_to` with `tag`, `ref`, and `command`, and `summary.deferred` counts these packages.
+- **The run is on a tag that only such packages are released under**: only those packages publish. Every other package gets `skipped_out_of_scope`, is not looked up on its registry, and is counted in `summary.out_of_scope`. A `--resume` on that tag treats these rows as complete.
+
+For example, on the primary tag:
+
+```text
+Would publish (1)
+  web  1.1.0  npm
+
+Deferred to release tags (1)
+  app_dart  0.2.1  pub_dev  app_dart/v0.2.1
+
+The registry only accepts these packages from a run on their release tag. Publish each one from its tag:
+  gh workflow run publish.yml --repo owner/repo --ref app_dart/v0.2.1
+```
+
+```json
+{
+	"package": "app_dart",
+	"registry": "pub_dev",
+	"version": "0.2.1",
+	"status": "deferred_to_tag",
+	"deferred_to": {
+		"tag": "app_dart/v0.2.1",
+		"ref": "refs/tags/app_dart/v0.2.1",
+		"command": "gh workflow run publish.yml --repo owner/repo --ref app_dart/v0.2.1"
+	}
+}
+```
+
+A real run refuses to start when a trusted pub.dev package has no release tag; set `tag = true` on the package or its group. Outside GitHub Actions the run's ref is unknown, so the rule does not apply. [How monochange publishes to pub.dev](../../guide/07-trusted-publishing.md#how-monochange-publishes-to-pubdev) covers the pub.dev settings and the workflow that dispatches deferred tags.
 
 ## Why use it
 

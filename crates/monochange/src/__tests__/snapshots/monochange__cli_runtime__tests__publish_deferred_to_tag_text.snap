@@ -1,0 +1,14 @@
+---
+source: crates/monochange/src/__tests__/cli_runtime_tests.rs
+expression: "render_publish_text(&report, false)"
+---
+Would publish (1)
+  @scope/pkg  1.2.3  npm
+
+Deferred to release tags (1)
+  dart_pkg  0.2.1  pub_dev  dart_pkg/v0.2.1
+
+The registry only accepts these packages from a run on their release tag. Publish each one from its tag:
+  gh workflow run publish.yml --repo owner/repo --ref dart_pkg/v0.2.1
+
+• Would publish 1 package · 1 deferred to release tags · 1 out of scope for this ref · dry-run, no changes were made

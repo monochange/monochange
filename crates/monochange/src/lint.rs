@@ -68,6 +68,12 @@ pub(crate) fn collect_workspace_validation_issues(
 		errors.push(error.render());
 	}
 
+	// A package bound to its release tag by the registry (pub.dev trusted
+	// publishing) can never publish when no release creates that tag.
+	errors.extend(monochange_publish::missing_release_tag_errors(
+		configuration,
+	));
+
 	let ecosystems = crate::workspace_ops::build_ecosystem_registry();
 	match monochange_config::validate_versioned_files_content_with_config(
 		root,

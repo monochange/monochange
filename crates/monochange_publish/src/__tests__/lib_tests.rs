@@ -145,6 +145,7 @@ fn sample_publish_request_for_registry(registry: RegistryKind) -> PublishRequest
 		timeout: PublishTimeoutSettings::default(),
 		fail_on_duplicate: false,
 		placeholder_readme: "placeholder".to_string(),
+		release_tag: None,
 	}
 }
 
@@ -330,6 +331,8 @@ fn assert_complete_failed_publish_run(
 			blocked: requests.len() - 1,
 			failed: 1,
 			not_attempted: 0,
+			deferred: 0,
+			out_of_scope: 0,
 		}
 	);
 
@@ -524,6 +527,8 @@ async fn release_run_fails_duplicate_versions_when_fail_on_duplicate_is_enabled(
 			blocked: 1,
 			failed: 1,
 			not_attempted: 0,
+			deferred: 0,
+			out_of_scope: 0,
 		}
 	);
 	assert!(
@@ -578,6 +583,7 @@ fn blocked_packages_are_pending_when_resuming() {
 				stdout: None,
 				stderr: None,
 				rate_limit: None,
+				deferred_to: None,
 			},
 			PackagePublishOutcome {
 				package: "tail".to_string(),
@@ -592,6 +598,7 @@ fn blocked_packages_are_pending_when_resuming() {
 				stdout: None,
 				stderr: None,
 				rate_limit: None,
+				deferred_to: None,
 			},
 		],
 	};
@@ -628,6 +635,7 @@ fn ensure_publish_report_succeeded_explains_registry_rate_limits() {
 			stdout: None,
 			stderr: None,
 			rate_limit,
+			deferred_to: None,
 		}
 	};
 	let hit = PublishRateLimitHit {
@@ -870,6 +878,7 @@ fn publish_order_request_for_package(package: &PackageRecord) -> PublishRequest 
 		timeout: PublishTimeoutSettings::default(),
 		fail_on_duplicate: false,
 		placeholder_readme: String::new(),
+		release_tag: None,
 	}
 }
 
@@ -953,51 +962,286 @@ fn process_command_executor_kills_command_exceeding_timeout() {
 	assert!(error.to_string().contains("timed out after"));
 }
 
-#[tokio::test(flavor = "multi_thread")]
-async fn pub_dev_trusted_publishing_ref_error_fails_the_run_before_minting() {
-	let request = pub_dev_publish_request("pkg");
-	let listener = std::net::TcpListener::bind("127.0.0.1:0")
-		.unwrap_or_else(|error| panic!("bind test registry: {error}"));
-	let registry_address = listener
-		.local_addr()
-		.unwrap_or_else(|error| panic!("registry address: {error}"));
-	let registry_thread = std::thread::spawn(move || {
-		let Ok((mut stream, _)) = listener.accept() else {
-			return;
-		};
-		let mut request = [0_u8; 2048];
-		let _ = std::io::Read::read(&mut stream, &mut request);
-		let _ = std::io::Write::write_all(
-			&mut stream,
-			b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
-		);
+/// A pub.dev trusted-publishing request released under `tag`.
+fn tag_bound_request(package: &str, tag: Option<(&str, bool)>) -> PublishRequest {
+	let mut request = pub_dev_publish_request(package);
+	request.release_tag = tag.map(|(name, dedicated)| {
+		PublishReleaseTag {
+			name: name.to_string(),
+			dedicated,
+		}
 	});
-	let env_map = BTreeMap::from([
-		("GITHUB_ACTIONS".to_string(), "true".to_string()),
-		(
-			"GITHUB_EVENT_NAME".to_string(),
-			"workflow_dispatch".to_string(),
-		),
-		("GITHUB_REF".to_string(), "refs/heads/main".to_string()),
-	]);
-	let mut executor = SequencedCommandExecutor::new([Ok(CommandOutput {
-		success: true,
-		stdout: "published pkg".to_string(),
-		stderr: String::new(),
-	})]);
-	let mut endpoints = RegistryEndpoints::from_env();
-	endpoints.pub_dev_api = format!("http://{registry_address}");
+	request
+}
 
-	let failure = try_execute_publish_requests_with_progress(
+/// An npm request released under `tag`, which any run ref can publish.
+fn ref_free_request(package: &str, tag: Option<&str>) -> PublishRequest {
+	let mut request = publish_request(package);
+	request.release_tag = tag.map(|name| {
+		PublishReleaseTag {
+			name: name.to_string(),
+			dedicated: false,
+		}
+	});
+	request
+}
+
+fn github_actions_env(git_ref: &str) -> BTreeMap<String, String> {
+	BTreeMap::from([
+		("GITHUB_ACTIONS".to_string(), "true".to_string()),
+		("GITHUB_REF".to_string(), git_ref.to_string()),
+		("GITHUB_REPOSITORY".to_string(), "owner/repo".to_string()),
+		(
+			"GITHUB_WORKFLOW_REF".to_string(),
+			format!("owner/repo/.github/workflows/publish.yml@{git_ref}"),
+		),
+	])
+}
+
+fn deferred_scope(tag: &str) -> PublishRunScope {
+	PublishRunScope::DeferredToTag(PublishTagRun {
+		tag: tag.to_string(),
+		git_ref: format!("refs/tags/{tag}"),
+		command: format!("gh workflow run publish.yml --repo owner/repo --ref {tag}"),
+	})
+}
+
+#[test]
+fn plan_publish_run_scopes_publishes_everything_outside_github_actions() {
+	let requests = [
+		tag_bound_request("dart_pkg", Some(("dart_pkg/v1.0.0", true))),
+		tag_bound_request("untagged_dart", None),
+		ref_free_request("web", Some("v2.0.0")),
+	];
+	let env_map = BTreeMap::from([("GITHUB_REF".to_string(), "refs/tags/v2.0.0".to_string())]);
+
+	assert_eq!(
+		plan_publish_run_scopes(&requests, &env_map),
+		vec![PublishRunScope::Publish; 3]
+	);
+	assert_eq!(github_actions_run_ref(&env_map), None);
+}
+
+#[test]
+fn plan_publish_run_scopes_defers_tag_bound_package_on_the_primary_tag() {
+	let requests = [
+		ref_free_request("web", Some("v2.0.0")),
+		tag_bound_request("dart_pkg", Some(("dart_pkg/v1.0.0", true))),
+		ref_free_request("untagged_web", None),
+	];
+
+	assert_eq!(
+		plan_publish_run_scopes(&requests, &github_actions_env("refs/tags/v2.0.0")),
+		vec![
+			PublishRunScope::Publish,
+			deferred_scope("dart_pkg/v1.0.0"),
+			PublishRunScope::Publish,
+		]
+	);
+}
+
+#[test]
+fn plan_publish_run_scopes_publishes_only_the_dedicated_tag_packages_on_their_tag() {
+	let requests = [
+		ref_free_request("web", Some("v2.0.0")),
+		tag_bound_request("dart_pkg", Some(("dart_pkg/v1.0.0", true))),
+		tag_bound_request("other_dart", Some(("other_dart/v3.0.0", true))),
+		tag_bound_request("untagged_dart", None),
+	];
+
+	assert_eq!(
+		plan_publish_run_scopes(&requests, &github_actions_env("refs/tags/dart_pkg/v1.0.0")),
+		vec![
+			PublishRunScope::OutOfScope,
+			PublishRunScope::Publish,
+			PublishRunScope::OutOfScope,
+			PublishRunScope::OutOfScope,
+		]
+	);
+}
+
+#[test]
+fn plan_publish_run_scopes_defers_on_unrelated_tags_and_branches() {
+	let requests = [
+		ref_free_request("web", Some("v2.0.0")),
+		tag_bound_request("dart_pkg", Some(("dart_pkg/v1.0.0", true))),
+	];
+	let expected = vec![PublishRunScope::Publish, deferred_scope("dart_pkg/v1.0.0")];
+
+	assert_eq!(
+		plan_publish_run_scopes(&requests, &github_actions_env("refs/tags/unrelated/v9.9.9")),
+		expected
+	);
+	assert_eq!(
+		plan_publish_run_scopes(&requests, &github_actions_env("refs/heads/main")),
+		expected
+	);
+}
+
+#[test]
+fn plan_publish_run_scopes_publishes_every_member_of_a_shared_release_tag() {
+	let requests = [
+		ref_free_request("web", Some("v2.0.0")),
+		tag_bound_request("dart_pkg", Some(("v2.0.0", false))),
+		ref_free_request("schema", Some("schema/v0.4.0")),
+	];
+
+	assert_eq!(
+		plan_publish_run_scopes(&requests, &github_actions_env("refs/tags/v2.0.0")),
+		vec![PublishRunScope::Publish; 3]
+	);
+}
+
+#[test]
+fn plan_publish_run_scopes_ignores_tokens_external_and_untrusted_pub_dev_publishes() {
+	let external = {
+		let mut request = tag_bound_request("external_dart", None);
+		request.mode = PublishMode::External;
+		request
+	};
+	let untrusted = {
+		let mut request = tag_bound_request("untrusted_dart", None);
+		request.trusted_publishing.enabled = false;
+		request
+	};
+	let tagged = tag_bound_request("dart_pkg", Some(("dart_pkg/v1.0.0", true)));
+	let env_map = github_actions_env("refs/tags/v2.0.0");
+
+	assert_eq!(
+		plan_publish_run_scopes(&[external, untrusted], &env_map),
+		vec![PublishRunScope::Publish; 2]
+	);
+
+	let mut token_env = env_map;
+	token_env.insert(PUB_TOKEN_ENV_VAR.to_string(), "token".to_string());
+	assert!(!publish_is_tag_bound(&tagged, &token_env));
+	assert_eq!(
+		plan_publish_run_scopes(&[tagged], &token_env),
+		vec![PublishRunScope::Publish]
+	);
+}
+
+#[test]
+fn plan_publish_run_scopes_reports_tag_bound_packages_without_a_release_tag() {
+	let requests = [tag_bound_request("untagged_dart", None)];
+
+	assert_eq!(
+		plan_publish_run_scopes(&requests, &github_actions_env("refs/tags/v2.0.0")),
+		vec![PublishRunScope::MissingReleaseTag]
+	);
+}
+
+#[test]
+fn deferred_publish_command_falls_back_when_the_workflow_is_unknown() {
+	let requests = [tag_bound_request(
+		"dart_pkg",
+		Some(("dart_pkg/v1.0.0", true)),
+	)];
+	let mut env_map = BTreeMap::from([
+		("GITHUB_ACTIONS".to_string(), "true".to_string()),
+		("GITHUB_REF".to_string(), "refs/tags/v2.0.0".to_string()),
+	]);
+
+	let PublishRunScope::DeferredToTag(tag_run) = &plan_publish_run_scopes(&requests, &env_map)[0]
+	else {
+		panic!("expected a deferred package");
+	};
+	assert_eq!(
+		tag_run.command,
+		"gh workflow run <workflow> --ref dart_pkg/v1.0.0"
+	);
+
+	env_map.insert("GITHUB_WORKFLOW".to_string(), "publish".to_string());
+	let PublishRunScope::DeferredToTag(tag_run) = &plan_publish_run_scopes(&requests, &env_map)[0]
+	else {
+		panic!("expected a deferred package");
+	};
+	assert_eq!(
+		tag_run.command,
+		"gh workflow run publish --ref dart_pkg/v1.0.0"
+	);
+}
+
+#[test]
+fn missing_release_tag_message_names_the_owner_section() {
+	assert!(
+		missing_release_tag_message("dart_pkg", Some("[group.sdk]"))
+			.contains("Set `tag = true` on `[group.sdk]`")
+	);
+	assert!(
+		missing_release_tag_message("dart_pkg", None)
+			.contains("Set `tag = true` on `[package.dart_pkg]` (or on its group)")
+	);
+}
+
+#[test]
+fn summary_counts_deferred_and_out_of_scope_packages_and_resume_keeps_out_of_scope() {
+	let report = PackagePublishReport {
+		mode: PackagePublishRunMode::Release,
+		dry_run: false,
+		packages: vec![
+			not_attempted_outcome(
+				&tag_bound_request("dart_pkg", None),
+				PackagePublishStatus::DeferredToTag,
+				"deferred".to_string(),
+				disabled_trust_outcome(),
+				None,
+			),
+			not_attempted_outcome(
+				&publish_request("web"),
+				PackagePublishStatus::SkippedOutOfScope,
+				"out of scope".to_string(),
+				disabled_trust_outcome(),
+				None,
+			),
+		],
+	};
+	let summary = report.summary();
+
+	assert_eq!(summary.deferred, 1);
+	assert_eq!(summary.out_of_scope, 1);
+	assert_eq!(summary.total(), 2);
+	assert!(ensure_publish_report_succeeded(&report).is_ok());
+	assert!(package_publish_status_is_resumable_complete(
+		PackagePublishStatus::SkippedOutOfScope
+	));
+	assert!(!package_publish_status_is_resumable_complete(
+		PackagePublishStatus::DeferredToTag
+	));
+}
+
+fn registry_endpoints(server: &httpmock::MockServer) -> RegistryEndpoints {
+	let mut endpoints = RegistryEndpoints::from_env();
+	endpoints.npm_registry = server.base_url();
+	endpoints.pub_dev_api = server.base_url();
+	endpoints
+}
+
+fn successful_command_output(stdout: &str) -> CommandOutput {
+	CommandOutput {
+		success: true,
+		stdout: stdout.to_string(),
+		stderr: String::new(),
+	}
+}
+
+async fn execute_with_env(
+	requests: &[PublishRequest],
+	dry_run: bool,
+	endpoints: &RegistryEndpoints,
+	env_map: &BTreeMap<String, String>,
+	executor: &mut SequencedCommandExecutor,
+) -> PackagePublishExecutionResult {
+	try_execute_publish_requests_with_progress(
 		Path::new("."),
 		None,
 		PackagePublishRunMode::Release,
-		false,
-		std::slice::from_ref(&request),
+		dry_run,
+		requests,
 		&registry_client().unwrap(),
-		&endpoints,
-		&env_map,
-		&mut executor,
+		endpoints,
+		env_map,
+		executor,
 		&build_publish_command_builder(),
 		&PlaceholderManifestWriterRegistry::new(),
 		&PublishReadinessRegistry::new(),
@@ -1005,18 +1249,202 @@ async fn pub_dev_trusted_publishing_ref_error_fails_the_run_before_minting() {
 		&NoopPublishProgressReporter,
 	)
 	.await
-	.expect_err("a branch-ref trusted publish must fail the run");
-	registry_thread
-		.join()
-		.unwrap_or_else(|_| panic!("test registry thread panicked"));
-	let report = failure.into_report();
-	assert_eq!(report.packages.len(), 1);
-	assert_eq!(report.packages[0].status, PackagePublishStatus::Failed);
-	assert!(report.packages[0].message.contains("not a tag"));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn deferred_pub_dev_package_does_not_stop_later_packages() {
+	let server = httpmock::MockServer::start();
+	let dart_lookup = server.mock(|when, then| {
+		when.method(httpmock::Method::GET)
+			.path("/packages/dart_pkg");
+		then.status(404);
+	});
+	let npm_lookup = server.mock(|when, then| {
+		when.method(httpmock::Method::GET).path("/web");
+		then.status(404);
+	});
+	let requests = [
+		tag_bound_request("dart_pkg", Some(("dart_pkg/v1.0.0", true))),
+		ref_free_request("web", Some("v2.0.0")),
+	];
+	let mut executor =
+		SequencedCommandExecutor::new([Ok(successful_command_output("published web"))]);
+
+	let report = execute_with_env(
+		&requests,
+		false,
+		&registry_endpoints(&server),
+		&github_actions_env("refs/tags/v2.0.0"),
+		&mut executor,
+	)
+	.await
+	.unwrap_or_else(|failure| panic!("a deferred package must not fail the run: {failure}"));
+
+	dart_lookup.assert();
+	npm_lookup.assert();
+	assert_eq!(
+		report.packages[0].status,
+		PackagePublishStatus::DeferredToTag
+	);
+	assert_eq!(
+		report.packages[0].deferred_to,
+		Some(PublishTagRun {
+			tag: "dart_pkg/v1.0.0".to_string(),
+			git_ref: "refs/tags/dart_pkg/v1.0.0".to_string(),
+			command: "gh workflow run publish.yml --repo owner/repo --ref dart_pkg/v1.0.0"
+				.to_string(),
+		})
+	);
 	assert!(
-		executor.commands.is_empty(),
-		"no dart command may run once the run ref is known to be rejected, got: {:#?}",
-		executor.commands
+		report.packages[0]
+			.message
+			.starts_with("pub.dev only accepts dart_pkg 1.0.0 from a run on `refs/tags/dart_pkg/v1.0.0`, and this run is on `refs/tags/v2.0.0`"),
+		"{}",
+		report.packages[0].message
+	);
+	assert_eq!(report.packages[1].status, PackagePublishStatus::Published);
+	assert_eq!(executor.commands.len(), 1, "only the npm package publishes");
+	assert_eq!(executor.commands[0].program, "npm");
+	assert!(ensure_publish_report_succeeded(&report).is_ok());
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn dedicated_tag_run_publishes_its_package_without_touching_other_registries() {
+	let server = httpmock::MockServer::start();
+	let dart_lookup = server.mock(|when, then| {
+		when.method(httpmock::Method::GET)
+			.path("/packages/dart_pkg");
+		then.status(404);
+	});
+	let npm_lookup = server.mock(|when, then| {
+		when.method(httpmock::Method::GET).path("/web");
+		then.status(404);
+	});
+	let requests = [
+		ref_free_request("web", Some("v2.0.0")),
+		tag_bound_request("dart_pkg", Some(("dart_pkg/v1.0.0", true))),
+	];
+	let mut executor =
+		SequencedCommandExecutor::new([Ok(successful_command_output("published dart_pkg"))]);
+
+	let report = execute_with_env(
+		&requests,
+		false,
+		&registry_endpoints(&server),
+		&github_actions_env("refs/tags/dart_pkg/v1.0.0"),
+		&mut executor,
+	)
+	.await
+	.unwrap_or_else(|failure| panic!("dedicated tag run: {failure}"));
+
+	npm_lookup.assert_calls(0);
+	dart_lookup.assert();
+	assert_eq!(
+		report.packages[0].status,
+		PackagePublishStatus::SkippedOutOfScope
+	);
+	assert!(
+		report.packages[0]
+			.message
+			.contains("`refs/tags/dart_pkg/v1.0.0` is another package's release tag")
+	);
+	assert_eq!(report.packages[1].status, PackagePublishStatus::Published);
+	assert_eq!(
+		executor.commands.len(),
+		1,
+		"only the dart package publishes"
+	);
+	assert_eq!(executor.commands[0].program, "dart");
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn missing_release_tag_aborts_the_release_before_any_registry_request() {
+	let server = httpmock::MockServer::start();
+	let lookups = server.mock(|when, then| {
+		when.method(httpmock::Method::GET);
+		then.status(404);
+	});
+	let requests = [
+		ref_free_request("web", Some("v2.0.0")),
+		tag_bound_request("untagged_dart", None),
+	];
+	let mut executor = SequencedCommandExecutor::new([]);
+
+	let failure = execute_with_env(
+		&requests,
+		false,
+		&registry_endpoints(&server),
+		&github_actions_env("refs/tags/v2.0.0"),
+		&mut executor,
+	)
+	.await
+	.expect_err("an unpublishable package must abort before anything publishes");
+
+	lookups.assert_calls(0);
+	assert!(executor.commands.is_empty());
+	assert!(failure.report().packages.is_empty());
+	assert!(
+		failure
+			.render()
+			.contains("`untagged_dart` publishes to pub.dev with trusted publishing")
+	);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn dry_run_marks_missing_release_tag_blocked_and_keeps_planning() {
+	let server = httpmock::MockServer::start();
+	server.mock(|when, then| {
+		when.method(httpmock::Method::GET);
+		then.status(404);
+	});
+	let requests = [
+		tag_bound_request("untagged_dart", None),
+		ref_free_request("web", Some("v2.0.0")),
+	];
+	let mut executor =
+		SequencedCommandExecutor::new([Ok(successful_command_output("npm dry run"))]);
+
+	let report = execute_with_env(
+		&requests,
+		true,
+		&registry_endpoints(&server),
+		&github_actions_env("refs/tags/v2.0.0"),
+		&mut executor,
+	)
+	.await
+	.unwrap_or_else(|failure| panic!("dry run: {failure}"));
+
+	assert_eq!(report.packages[0].status, PackagePublishStatus::Blocked);
+	assert!(report.packages[0].message.contains("Set `tag = true`"));
+	assert_eq!(report.packages[1].status, PackagePublishStatus::Planned);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn deferred_package_with_an_existing_version_skips_duplicate_rejection() {
+	let server = httpmock::MockServer::start();
+	server.mock(|when, then| {
+		when.method(httpmock::Method::GET)
+			.path("/packages/dart_pkg");
+		then.status(200)
+			.json_body(serde_json::json!({ "versions": [{ "version": "1.0.0" }] }));
+	});
+	let mut request = tag_bound_request("dart_pkg", Some(("dart_pkg/v1.0.0", true)));
+	request.fail_on_duplicate = true;
+	let mut executor = SequencedCommandExecutor::new([]);
+
+	let report = execute_with_env(
+		&[request],
+		false,
+		&registry_endpoints(&server),
+		&github_actions_env("refs/tags/v2.0.0"),
+		&mut executor,
+	)
+	.await
+	.unwrap_or_else(|failure| panic!("existing deferred version: {failure}"));
+
+	assert_eq!(
+		report.packages[0].status,
+		PackagePublishStatus::SkippedExisting
 	);
 }
 

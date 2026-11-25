@@ -1,0 +1,4 @@
+#!/bin/sh
+# Stand-in for the Dart SDK: the dry run only needs `dart pub publish --dry-run`
+# to succeed without touching pub.dev.
+echo "Package has 0 warnings."

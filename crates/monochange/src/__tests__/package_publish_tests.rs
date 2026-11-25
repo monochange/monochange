@@ -209,6 +209,7 @@ fn sample_request(registry: RegistryKind) -> PublishRequest {
 		timeout: PublishTimeoutSettings::default(),
 		placeholder_readme: "placeholder".to_string(),
 		fail_on_duplicate: false,
+		release_tag: None,
 	}
 }
 
@@ -226,6 +227,7 @@ fn sample_publish_outcome(package: &str, status: PackagePublishStatus) -> Packag
 		stdout: None,
 		stderr: None,
 		rate_limit: None,
+		deferred_to: None,
 	}
 }
 
@@ -2423,4 +2425,140 @@ async fn try_run_publish_packages_with_publications_maps_invalid_resume_report_e
 	let report = error.into_report();
 	assert_eq!(report.mode, PackagePublishRunMode::Release);
 	assert!(report.packages.is_empty());
+}
+
+/// A workspace whose pub.dev packages cover every release-tag shape: a
+/// group tag shared with npm, a package's own tag, a group without tags,
+/// no tag at all, and two packages that never use pub.dev trusted
+/// publishing.
+fn pub_dev_release_tag_workspace() -> TempDir {
+	let root = tempfile::tempdir().expect("tempdir:");
+	fs::write(
+		root.path().join("monochange.toml"),
+		r#"[group.main]
+packages = ["web", "shared_dart"]
+tag = true
+version_format = "primary"
+
+[group.sdk]
+packages = ["sdk_dart"]
+
+[package.web]
+path = "packages/web"
+type = "npm"
+
+[package.shared_dart]
+path = "packages/shared_dart"
+type = "dart"
+
+[package.app_dart]
+path = "packages/app_dart"
+type = "dart"
+tag = true
+
+[package.sdk_dart]
+path = "packages/sdk_dart"
+type = "dart"
+
+[package.untagged_dart]
+path = "packages/untagged_dart"
+type = "dart"
+
+[package.external_dart]
+path = "packages/external_dart"
+type = "dart"
+publish = { mode = "external" }
+
+[package.token_dart]
+path = "packages/token_dart"
+type = "dart"
+publish = { trusted_publishing = false }
+"#,
+	)
+	.expect("config:");
+	fs::create_dir_all(root.path().join("packages/web")).expect("mkdir:");
+	fs::write(
+		root.path().join("packages/web/package.json"),
+		r#"{ "name": "web", "version": "1.0.0" }"#,
+	)
+	.expect("manifest:");
+
+	for (name, version) in [
+		("shared_dart", "1.0.0"),
+		("app_dart", "2.0.0"),
+		("sdk_dart", "3.0.0"),
+		("untagged_dart", "4.0.0"),
+		("external_dart", "5.0.0"),
+		("token_dart", "6.0.0"),
+	] {
+		let package_root = root.path().join("packages").join(name);
+		fs::create_dir_all(&package_root).expect("mkdir:");
+		fs::write(
+			package_root.join("pubspec.yaml"),
+			format!("name: {name}\nversion: {version}\n"),
+		)
+		.expect("pubspec:");
+	}
+
+	root
+}
+
+#[test]
+fn build_release_requests_resolves_each_package_release_tag() {
+	let root = pub_dev_release_tag_workspace();
+	let configuration = crate::load_workspace_configuration(root.path()).expect("configuration:");
+	let discovery =
+		crate::discover_release_workspace(root.path(), &configuration).expect("discovery:");
+	let publications = monochange_publish::configured_package_publication_targets(
+		&configuration,
+		&discovery.packages,
+	);
+	let requests = build_release_requests(
+		&configuration,
+		&discovery.packages,
+		&publications,
+		&BTreeSet::new(),
+	)
+	.expect("requests:");
+	let release_tags = requests
+		.iter()
+		.map(|request| {
+			(
+				request.package_id.as_str(),
+				request
+					.release_tag
+					.as_ref()
+					.map(|tag| (tag.name.as_str(), tag.dedicated)),
+			)
+		})
+		.collect::<BTreeMap<_, _>>();
+
+	assert_eq!(
+		release_tags,
+		BTreeMap::from([
+			("app_dart", Some(("app_dart/v2.0.0", true))),
+			("external_dart", None),
+			("sdk_dart", None),
+			("shared_dart", Some(("v1.0.0", false))),
+			("token_dart", None),
+			("untagged_dart", None),
+			("web", Some(("v1.0.0", false))),
+		])
+	);
+}
+
+#[test]
+fn missing_release_tag_errors_name_the_section_that_owns_the_tag() {
+	let root = pub_dev_release_tag_workspace();
+	let configuration = crate::load_workspace_configuration(root.path()).expect("configuration:");
+	let errors = monochange_publish::missing_release_tag_errors(&configuration);
+
+	assert_eq!(errors.len(), 2, "unexpected errors: {errors:#?}");
+	assert!(errors[0].starts_with("`sdk_dart` publishes to pub.dev with trusted publishing"));
+	assert!(errors[0].contains("Set `tag = true` on `[group.sdk]`"));
+	assert!(errors[1].starts_with("`untagged_dart` publishes to pub.dev"));
+	assert!(errors[1].contains("Set `tag = true` on `[package.untagged_dart]`"));
+	assert!(
+		errors[1].contains("set `publish.trusted_publishing = false` on `[package.untagged_dart]`")
+	);
 }

@@ -10,8 +10,11 @@ use monochange_core::RateLimitOperation;
 use monochange_core::RegistryKind;
 use monochange_core::WorkspaceConfiguration;
 use monochange_core::materialize_dependency_edges;
+use monochange_publish::PublishRunScope;
 use monochange_publish::configured_package_publication_targets;
+use monochange_publish::current_env_map;
 use monochange_publish::filter_pending_publish_requests;
+use monochange_publish::plan_publish_run_scopes;
 use monochange_publish::plan_rate_limit_batches;
 use monochange_publish::plan_rate_limit_window;
 use monochange_publish::policies_for_rate_limit_operation;
@@ -117,6 +120,16 @@ async fn build_release_plan_requests(
 		&publications,
 		selected_packages,
 	)?;
+	// A run on another package's dedicated release tag leaves these packages
+	// to their own run, so they need no registry probe and must not count
+	// against this run's rate limits.
+	let scopes = plan_publish_run_scopes(&requests, &current_env_map());
+	let requests = requests
+		.into_iter()
+		.zip(scopes)
+		.filter(|(_, scope)| *scope != PublishRunScope::OutOfScope)
+		.map(|(request, _)| request)
+		.collect::<Vec<_>>();
 	filter_pending_publish_requests(&requests).await
 }
 

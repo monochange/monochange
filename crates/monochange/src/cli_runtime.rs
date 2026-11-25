@@ -3632,6 +3632,8 @@ fn render_package_publish_report(
 		render_publish_status_section(text, report, status, title);
 	}
 
+	render_deferred_publish_section(text, report);
+
 	if summary.staged > 0 {
 		text.paragraph(
 			"Approve staged packages with `npm stage list`, then `npm stage approve <stage-id>`.",
@@ -3662,6 +3664,15 @@ fn package_publish_detail_item(package: &package_publish::PackagePublishOutcome)
 		format!("placeholder: {}", yes_no(package.placeholder)),
 		format!("publish: {}", package.message),
 	];
+
+	if let Some(tag_run) = &package.deferred_to {
+		lines.push(format!(
+			"release tag: {} ({})",
+			tag_run.tag, tag_run.git_ref
+		));
+		lines.push(format!("publish from tag: {}", tag_run.command));
+	}
+
 	append_package_publish_command_output_lines(&mut lines, package, "");
 	lines.push(format!(
 		"trusted publishing: {}",
@@ -3733,6 +3744,60 @@ fn render_publish_status_section(
 	text.table(&rows);
 }
 
+/// Packages left for a run on their own release tag, with the tag each one
+/// publishes from and the command that starts that run.
+fn render_deferred_publish_section(
+	text: &mut TextReport,
+	report: &package_publish::PackagePublishReport,
+) {
+	let deferred = deferred_publish_runs(report);
+
+	if deferred.is_empty() {
+		return;
+	}
+
+	text.section("Deferred to release tags", Some(deferred.len()));
+	let rows = deferred
+		.iter()
+		.map(|(package, tag_run)| {
+			vec![
+				TableCell::new(&package.package, Tone::Heading),
+				TableCell::new(&package.version, Tone::Value),
+				TableCell::new(&package.registry, Tone::Muted),
+				TableCell::new(&tag_run.tag, Tone::Value),
+			]
+		})
+		.collect::<Vec<_>>();
+	text.table(&rows);
+	text.paragraph(
+		"The registry only accepts these packages from a run on their release tag. Publish each one from its tag:",
+		Tone::Plain,
+	);
+	text.list(
+		deferred.iter().map(|(_, tag_run)| tag_run.command.clone()),
+		usize::MAX,
+	);
+}
+
+fn deferred_publish_runs(
+	report: &package_publish::PackagePublishReport,
+) -> Vec<(
+	&package_publish::PackagePublishOutcome,
+	&monochange_publish::PublishTagRun,
+)> {
+	report
+		.packages
+		.iter()
+		.filter(|package| package.status == package_publish::PackagePublishStatus::DeferredToTag)
+		.filter_map(|package| {
+			package
+				.deferred_to
+				.as_ref()
+				.map(|tag_run| (package, tag_run))
+		})
+		.collect()
+}
+
 /// Counts the summary line adds after its outcome, such as `16 already
 /// published`.
 fn package_publish_summary_details(
@@ -3755,6 +3820,17 @@ fn package_publish_summary_details(
 
 	if summary.not_attempted > 0 {
 		details.push(format!("{} not attempted", summary.not_attempted));
+	}
+
+	if summary.deferred > 0 {
+		details.push(format!("{} deferred to release tags", summary.deferred));
+	}
+
+	if summary.out_of_scope > 0 {
+		details.push(format!(
+			"{} out of scope for this ref",
+			summary.out_of_scope
+		));
 	}
 
 	if report.dry_run {
@@ -3899,6 +3975,17 @@ fn package_publish_counts(
 		parts.push(format!("{} not attempted", summary.not_attempted));
 	}
 
+	if summary.deferred > 0 {
+		parts.push(format!("{} deferred to release tags", summary.deferred));
+	}
+
+	if summary.out_of_scope > 0 {
+		parts.push(format!(
+			"{} out of scope for this ref",
+			summary.out_of_scope
+		));
+	}
+
 	if report.dry_run {
 		parts.push("No changes were made".to_string());
 	} else if summary.failed == 0 {
@@ -3998,6 +4085,7 @@ fn render_package_publish_report_markdown(
 		package_publish::PackagePublishStatus::Blocked,
 		"Blocked",
 	);
+	append_deferred_publish_rows_markdown(&mut lines, report);
 	lines.push(String::new());
 	lines.push(package_publish_counts(report, summary));
 
@@ -4022,6 +4110,12 @@ fn render_package_publish_report_markdown(
 			yes_no(package.placeholder)
 		));
 		lines.push(format!("- **Publish:** {}", package.message));
+
+		if let Some(tag_run) = &package.deferred_to {
+			lines.push(format!("- **Release tag:** `{}`", tag_run.tag));
+			lines.push(format!("- **Publish from tag:** `{}`", tag_run.command));
+		}
+
 		append_package_publish_command_output_markdown_lines(&mut lines, package);
 		lines.push(format!(
 			"- **Trusted publishing:** {}",
@@ -4086,6 +4180,26 @@ fn append_publish_problem_rows_markdown(
 	}));
 }
 
+fn append_deferred_publish_rows_markdown(
+	lines: &mut Vec<String>,
+	report: &package_publish::PackagePublishReport,
+) {
+	let deferred = deferred_publish_runs(report);
+
+	if deferred.is_empty() {
+		return;
+	}
+
+	lines.push(String::new());
+	lines.push("**Deferred to release tags**".to_string());
+	lines.extend(deferred.into_iter().map(|(package, tag_run)| {
+		format!(
+			"- **`{}`** `{}` via `{}` — publish from `{}` with `{}`",
+			package.package, package.version, package.registry, tag_run.tag, tag_run.command
+		)
+	}));
+}
+
 fn package_publish_status_label(status: package_publish::PackagePublishStatus) -> &'static str {
 	match status {
 		package_publish::PackagePublishStatus::Planned => "planned",
@@ -4093,6 +4207,8 @@ fn package_publish_status_label(status: package_publish::PackagePublishStatus) -
 		package_publish::PackagePublishStatus::Staged => "staged (awaiting approval)",
 		package_publish::PackagePublishStatus::SkippedExisting => "already exists",
 		package_publish::PackagePublishStatus::SkippedExternal => "not attempted",
+		package_publish::PackagePublishStatus::DeferredToTag => "deferred to its release tag",
+		package_publish::PackagePublishStatus::SkippedOutOfScope => "out of scope for this ref",
 		package_publish::PackagePublishStatus::Blocked => "blocked",
 		package_publish::PackagePublishStatus::Failed => "failed",
 	}

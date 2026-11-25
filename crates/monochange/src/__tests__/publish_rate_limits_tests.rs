@@ -46,6 +46,7 @@ async fn enforce_publish_rate_limits_blocks_multi_batch_runs_when_enabled() {
 				timeout: PublishTimeoutSettings::default(),
 				placeholder_readme: String::new(),
 				fail_on_duplicate: false,
+				release_tag: None,
 			}
 		})
 		.collect::<Vec<_>>();

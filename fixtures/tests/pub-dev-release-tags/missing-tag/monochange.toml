@@ -1,0 +1,12 @@
+[defaults]
+parent_bump = "patch"
+changelog = false
+
+# pub.dev trusted publishing needs a run on the package's release tag, but
+# this package creates no tag.
+[package.app_dart]
+path = "packages/app_dart"
+type = "dart"
+
+[ecosystems.dart]
+enabled = true

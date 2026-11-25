@@ -30,6 +30,7 @@
 # Migration guides
 
 - [About migration guides](guide/migrations/index.md)
+- [Upgrading to 0.23](guide/migrations/0.23.md)
 - [Upgrading to 0.22](guide/migrations/0.22.md)
 - [Upgrading to 0.21](guide/migrations/0.21.md)
 - [Upgrading to 0.20](guide/migrations/0.20.md)

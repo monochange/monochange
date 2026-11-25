@@ -399,6 +399,7 @@ fn npm_trust_command_wraps_npm_with_pnpm_for_pnpm_managed_packages() {
 		timeout: PublishTimeoutSettings::default(),
 		fail_on_duplicate: false,
 		placeholder_readme: "placeholder".to_string(),
+		release_tag: None,
 	};
 	let context = GitHubTrustContext {
 		repository: "owner/repo".to_string(),

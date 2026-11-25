@@ -76,6 +76,8 @@ This is the best fit when:
 - multiple packages share the same built-in post-merge flow
 - you do not need package-specific tag triggers to satisfy the registry
 
+A post-merge run on `main` cannot publish a trusted `pub.dev` package, because pub.dev only accepts a run on the package's own tag. monochange marks such a package `deferred_to_tag` instead of failing the run; publish it with the tag-driven shape in [Built-in pub.dev publishing from package tags](#built-in-pubdev-publishing-from-package-tags).
+
 ### Built-in publish order
 
 When one `monochange publish packages` invocation contains multiple package publications, monochange publishes packages with no selected dependencies first, then publishes packages that depend on those packages, walking up the dependency tree until packages that depend on the most selected packages are published last.
@@ -109,6 +111,22 @@ app
 If multiple packages are independent at the same depth, their order is deterministic by package id, registry, and version.
 
 A package with no selected dependencies is eligible first. A package is not published until all of its selected publish-relevant dependencies have been ordered before it. Dependencies outside the selected publish set do not block ordering. Development-only cycles are ignored. Runtime, build, peer, workspace, and unknown dependency cycles fail before publishing anything, with a cycle diagnostic.
+
+### Built-in pub.dev publishing from package tags
+
+pub.dev trusted publishing accepts an upload only from a GitHub Actions run whose ref is exactly `refs/tags/<package tag>`. Built-in publishing follows that rule, so one workflow can publish every registry:
+
+1. Give each trusted pub.dev package a release tag: `tag = true` on the package, or on its group when it shares the group's tag. `monochange step validate` fails for a trusted pub.dev package whose releases create no tag.
+2. On pub.dev, set the package's tag pattern to its release tag with `{{version}}` (for example `dart_client/v{{version}}`) and enable publishing from `workflow_dispatch` events. If the package requires a GitHub Actions environment, run the publish job in that environment.
+3. Run `monochange publish packages --output <path>` on the release's primary tag. Packages whose tag is the primary tag publish; every other trusted pub.dev package is marked `deferred_to_tag`, and its `deferred_to` object names the `tag`, the `ref`, and the `command` that publishes it.
+4. Dispatch the publish workflow once per deferred tag. On a package's own tag, monochange publishes only the packages released under that tag and marks the rest `skipped_out_of_scope`, without looking them up on their registries.
+
+| Status                 | Meaning                                                                                     | Fails the run? |
+| ---------------------- | ------------------------------------------------------------------------------------------- | -------------- |
+| `deferred_to_tag`      | the registry only accepts this package from a run on its own tag; dispatch a run on the tag | no             |
+| `skipped_out_of_scope` | this run is on another package's tag; the package belongs to the run on its own tag         | no             |
+
+[CI, package publishing, and release PR flows](./13-ci-and-publishing.md#github--dart--flutter-pubdev-trusted-publishing) has a complete workflow that dispatches the deferred tags.
 
 ## Pattern 2: Package-specific external workflows publish from tags
 
@@ -214,7 +232,7 @@ This pattern is especially useful when multiple packages live in the same ecosys
 | npm       | one post-merge `monochange publish readiness` + `monochange publish packages` job when possible                        | monochange can automate npm trusted-publishing setup on GitHub        |
 | crates.io | one job per crate when using external OIDC auth                                                                        | trusted publishing is enrolled per crate and workflow context matters |
 | jsr       | built-in `monochange publish readiness` + `monochange publish packages` is often fine, but keep setup package-specific | registry linking is still manual                                      |
-| pub.dev   | package-specific tags and often one workflow per package                                                               | automated publishing is tag-driven and package-specific               |
+| pub.dev   | package-specific tags: built-in publishing dispatched per deferred tag, or one external workflow per package           | automated publishing is tag-driven and package-specific               |
 
 ## Keep config, tags, and workflows aligned
 
@@ -273,7 +291,7 @@ Avoid these failure modes:
 - reusing one trusted-publishing record across packages that actually publish from different workflows
 - changing a workflow filename after registry enrollment without updating the registry record
 - keeping `mode = "builtin"` for packages that really need registry-native external publish steps
-- forgetting that `pub.dev` automated publishing is tag-triggered
+- forgetting that `pub.dev` automated publishing only accepts a run on the package's own tag; dispatch the publish workflow for each `deferred_to_tag` package
 
 ## Related guides
 
