@@ -486,10 +486,18 @@ publish = { enabled = false }
 changelog = false
 ignore_ecosystem_versioned_files = true
 
+# pub.dev trusted publishing only accepts a run whose ref is
+# `refs/tags/<tag-pattern>` with `{{version}}` matching the version being
+# published, and publish.yml runs on the primary `v*` tag while this package
+# is versioned separately. The upload is rejected and aborts the rest of the
+# release, so keep the version bump and changelog but let another process own
+# the registry upload. Re-enable built-in publishing once a publish job runs
+# from this package's own `monochange_feedback/v{{version}}` tag.
 [package.monochange_feedback]
 path = "packages/monochange__feedback_flutter"
 type = "dart"
 version_format = "namespaced"
+publish = { mode = "external" }
 
 [package.monochange_forgejo]
 path = "crates/monochange_forgejo"
