@@ -1,0 +1,42 @@
+{
+	"title": "0.5.2",
+	"summary": [],
+	"sections": [
+		{
+			"title": "Improved",
+			"collapsed": false,
+			"entries": [
+				{
+					"summary": "Explain how to recover rejected release pull request updates",
+					"details_markdown": "When a hosted release workflow fails to refresh an existing release pull request with HTTP 422 because the pull request was not created by this deployment's verified flow, monochange.dev now tells you why it was rejected and to close that pull request once and re-run the release workflow so monochange opens a verified one.",
+					"change_type": "website_fix",
+					"bump": "patch",
+					"stream": "website",
+					"style": "compact",
+					"provenance": {
+						"source_path": ".changeset/website-actionable-release-pr-recovery.md",
+						"changeset_path": ".changeset/website-actionable-release-pr-recovery.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #915",
+							"url": "https://github.com/monochange/monochange/pull/915"
+						},
+						"introduced_commit": {
+							"label": "0ee7cc5",
+							"url": "https://github.com/monochange/monochange/commit/0ee7cc59fa21bed063bc177a3c74771c7a570b2f"
+						},
+						"related_issues": [
+							{
+								"label": "#138",
+								"url": "https://github.com/monochange/monochange/issues/138"
+							}
+						]
+					}
+				}
+			]
+		}
+	]
+}
