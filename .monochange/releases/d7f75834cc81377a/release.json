@@ -1,0 +1,336 @@
+{
+	"schema_version": "0.10",
+	"kind": "monochange.releaseRecord",
+	"created_at": "2026-11-25T09:39:17Z",
+	"command": "release",
+	"version": "0.5.1",
+	"versions": {
+		"monochange_app": "0.5.1"
+	},
+	"release_targets": [
+		{
+			"id": "monochange_app",
+			"kind": "package",
+			"version": "0.5.1",
+			"version_format": "namespaced",
+			"tag": true,
+			"release": true,
+			"tag_name": "monochange_app/v0.5.1",
+			"rendered_title": "monochange.dev 0.5.1",
+			"rendered_changelog_title": "0.5.1",
+			"members": [
+				"monochange_app"
+			]
+		}
+	],
+	"released_packages": [
+		"monochange_app"
+	],
+	"changed_files": [
+		"Cargo.lock",
+		"app/Cargo.lock",
+		"app/Cargo.toml",
+		"app/changelog.md",
+		"app/crates/monochange_app/Cargo.toml",
+		"app/developer-changelog.md",
+		"app/leptoskit.toml",
+		"app/projects/leptoskit.toml",
+		"app/public/releases/0.5.1.json"
+	],
+	"package_publications": [],
+	"updated_changelogs": [
+		"app/changelog.md",
+		"app/developer-changelog.md",
+		"app/public/releases/0.5.1.json"
+	],
+	"deleted_changesets": [
+		".changeset/app-verify-changelog-pipe.md",
+		".changeset/website-maintenance-0-5-1.md"
+	],
+	"changesets": [
+		{
+			"path": ".changeset/app-verify-changelog-pipe.md",
+			"summary": "Stop the release image check failing on a large changelog",
+			"details": "`app/deploy/verify-image.sh` matched the served changelog by piping `printf` into `grep -q`. Once that page grew past the 64 KB Linux pipe buffer, grep could exit on its first match while the writer still had bytes to send; the resulting `EPIPE` failed the script under `pipefail` even though the version was present. The match now reads a here-string, so no pipe can break, and the comment states the rule instead of the previous partial fix.\n\n`app-ci` now passes the workspace version from `app/Cargo.toml` to the script. Pull requests and merge-queue runs therefore exercise the release identity and changelog checks that previously ran only during a real release deploy, so a regression here fails before the release instead of during it.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "924957cb29d7acb5d0d66ce761f8e0f27c3fa3f2",
+						"short_sha": "924957c",
+						"url": "https://github.com/monochange/monochange/commit/924957cb29d7acb5d0d66ce761f8e0f27c3fa3f2",
+						"authored_at": "2026-11-25T07:35:20Z",
+						"committed_at": "2026-11-25T07:35:20Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#909",
+						"title": "fix(app): stop the image smoke check breaking on a large changelog",
+						"url": "https://github.com/monochange/monochange/pull/909",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "924957cb29d7acb5d0d66ce761f8e0f27c3fa3f2",
+						"short_sha": "924957c",
+						"url": "https://github.com/monochange/monochange/commit/924957cb29d7acb5d0d66ce761f8e0f27c3fa3f2",
+						"authored_at": "2026-11-25T07:35:20Z",
+						"committed_at": "2026-11-25T07:35:20Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#909",
+						"title": "fix(app): stop the image smoke check breaking on a large changelog",
+						"url": "https://github.com/monochange/monochange/pull/909",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/website-maintenance-0-5-1.md",
+			"summary": "Maintenance release",
+			"details": "This release has no visible changes. It carries fixes to how monochange.dev is built and checked before each release.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "website_fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "82a0410ed5bb5ed1d7f4ae874d02fba30d6d9bee",
+						"short_sha": "82a0410",
+						"url": "https://github.com/monochange/monochange/commit/82a0410ed5bb5ed1d7f4ae874d02fba30d6d9bee",
+						"authored_at": "2026-11-25T09:21:25Z",
+						"committed_at": "2026-11-25T09:21:25Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#912",
+						"title": "chore(changeset): add the website release note for 0.5.1",
+						"url": "https://github.com/monochange/monochange/pull/912",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "82a0410ed5bb5ed1d7f4ae874d02fba30d6d9bee",
+						"short_sha": "82a0410",
+						"url": "https://github.com/monochange/monochange/commit/82a0410ed5bb5ed1d7f4ae874d02fba30d6d9bee",
+						"authored_at": "2026-11-25T09:21:25Z",
+						"committed_at": "2026-11-25T09:21:25Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#912",
+						"title": "chore(changeset): add the website release note for 0.5.1",
+						"url": "https://github.com/monochange/monochange/pull/912",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		}
+	],
+	"changelogs": [
+		{
+			"owner_id": "monochange_app",
+			"owner_kind": "package",
+			"output": "website",
+			"stream": "website",
+			"path": "app/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "0.5.1",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Improved",
+						"collapsed": false,
+						"entries": [
+							"- **Maintenance release.** This release has no visible changes. It carries fixes to how monochange.dev is built and checked before each release.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #912](https://github.com/monochange/monochange/pull/912)"
+						]
+					}
+				]
+			},
+			"rendered": "## 0.5.1\n\n### Improved\n\n- **Maintenance release.** This release has no visible changes. It carries fixes to how monochange.dev is built and checked before each release.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #912](https://github.com/monochange/monochange/pull/912)"
+		},
+		{
+			"owner_id": "monochange_app",
+			"owner_kind": "package",
+			"output": "website_developer",
+			"stream": "default",
+			"path": "app/developer-changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "0.5.1",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Stop the release image check failing on a large changelog\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #909](https://github.com/monochange/monochange/pull/909)\n\n`app/deploy/verify-image.sh` matched the served changelog by piping `printf` into `grep -q`. Once that page grew past the 64 KB Linux pipe buffer, grep could exit on its first match while the writer still had bytes to send; the resulting `EPIPE` failed the script under `pipefail` even though the version was present. The match now reads a here-string, so no pipe can break, and the comment states the rule instead of the previous partial fix.\n\n`app-ci` now passes the workspace version from `app/Cargo.toml` to the script. Pull requests and merge-queue runs therefore exercise the release identity and changelog checks that previously ran only during a real release deploy, so a regression here fails before the release instead of during it."
+						]
+					}
+				]
+			},
+			"rendered": "## 0.5.1\n\n### 🐛 Fixed\n\n#### Stop the release image check failing on a large changelog\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #909](https://github.com/monochange/monochange/pull/909)\n\n`app/deploy/verify-image.sh` matched the served changelog by piping `printf` into `grep -q`. Once that page grew past the 64 KB Linux pipe buffer, grep could exit on its first match while the writer still had bytes to send; the resulting `EPIPE` failed the script under `pipefail` even though the version was present. The match now reads a here-string, so no pipe can break, and the comment states the rule instead of the previous partial fix.\n\n`app-ci` now passes the workspace version from `app/Cargo.toml` to the script. Pull requests and merge-queue runs therefore exercise the release identity and changelog checks that previously ran only during a real release deploy, so a regression here fails before the release instead of during it."
+		},
+		{
+			"owner_id": "monochange_app",
+			"owner_kind": "package",
+			"output": "website_json",
+			"stream": "website",
+			"path": "app/public/releases/0.5.1.json",
+			"format": "json",
+			"notes": {
+				"title": "0.5.1",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Improved",
+						"collapsed": false,
+						"entries": [
+							"- **Maintenance release.** This release has no visible changes. It carries fixes to how monochange.dev is built and checked before each release.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #912](https://github.com/monochange/monochange/pull/912)"
+						]
+					}
+				]
+			},
+			"rendered": "{\n  \"title\": \"0.5.1\",\n  \"summary\": [],\n  \"sections\": [\n    {\n      \"title\": \"Improved\",\n      \"collapsed\": false,\n      \"entries\": [\n        {\n          \"summary\": \"Maintenance release\",\n          \"details_markdown\": \"This release has no visible changes. It carries fixes to how monochange.dev is built and checked before each release.\",\n          \"change_type\": \"website_fix\",\n          \"bump\": \"patch\",\n          \"stream\": \"website\",\n          \"style\": \"compact\",\n          \"provenance\": {\n            \"source_path\": \".changeset/website-maintenance-0-5-1.md\",\n            \"changeset_path\": \".changeset/website-maintenance-0-5-1.md\",\n            \"change_owner\": {\n              \"label\": \"@ifiokjr\",\n              \"url\": \"https://github.com/ifiokjr\"\n            },\n            \"review_request\": {\n              \"label\": \"PR #912\",\n              \"url\": \"https://github.com/monochange/monochange/pull/912\"\n            },\n            \"introduced_commit\": {\n              \"label\": \"82a0410\",\n              \"url\": \"https://github.com/monochange/monochange/commit/82a0410ed5bb5ed1d7f4ae874d02fba30d6d9bee\"\n            }\n          }\n        }\n      ]\n    }\n  ]\n}"
+		}
+	],
+	"provider": {
+		"kind": "github",
+		"owner": "monochange",
+		"repo": "monochange",
+		"host": null
+	}
+}

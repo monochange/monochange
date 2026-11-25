@@ -1,0 +1,36 @@
+{
+	"title": "0.5.1",
+	"summary": [],
+	"sections": [
+		{
+			"title": "Improved",
+			"collapsed": false,
+			"entries": [
+				{
+					"summary": "Maintenance release",
+					"details_markdown": "This release has no visible changes. It carries fixes to how monochange.dev is built and checked before each release.",
+					"change_type": "website_fix",
+					"bump": "patch",
+					"stream": "website",
+					"style": "compact",
+					"provenance": {
+						"source_path": ".changeset/website-maintenance-0-5-1.md",
+						"changeset_path": ".changeset/website-maintenance-0-5-1.md",
+						"change_owner": {
+							"label": "@ifiokjr",
+							"url": "https://github.com/ifiokjr"
+						},
+						"review_request": {
+							"label": "PR #912",
+							"url": "https://github.com/monochange/monochange/pull/912"
+						},
+						"introduced_commit": {
+							"label": "82a0410",
+							"url": "https://github.com/monochange/monochange/commit/82a0410ed5bb5ed1d7f4ae874d02fba30d6d9bee"
+						}
+					}
+				}
+			]
+		}
+	]
+}
