@@ -54,6 +54,7 @@ fn sample_publish_request(root: &Path) -> PublishRequest {
 		fail_on_duplicate: false,
 		placeholder_readme: String::new(),
 		release_tag: None,
+		run_scope: monochange_publish::PublishRunScope::Publish,
 	}
 }
 

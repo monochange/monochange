@@ -1,6 +1,7 @@
 ---
 source: crates/monochange_integration_tests/tests/pub_dev_release_tags.rs
-expression: "value[\"package_publish\"]"
+assertion_line: 408
+expression: json
 ---
 {
   "dry_run": true,
@@ -9,6 +10,7 @@ expression: "value[\"package_publish\"]"
     {
       "deferred_to": {
         "command": "gh workflow run publish.yml --repo example/pub-dev-release-tags --ref app_dart/v0.2.1",
+        "reason": "wrong_ref",
         "ref": "refs/tags/app_dart/v0.2.1",
         "tag": "app_dart/v0.2.1"
       },
@@ -54,7 +56,6 @@ expression: "value[\"package_publish\"]"
     "deferred": 1,
     "failed": 0,
     "not_attempted": 0,
-    "out_of_scope": 0,
     "planned": 1,
     "published": 0,
     "staged": 0

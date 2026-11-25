@@ -464,6 +464,7 @@ fn trust_request_for(
 		fail_on_duplicate: false,
 		placeholder_readme: "placeholder".to_string(),
 		release_tag: None,
+		run_scope: monochange_publish::PublishRunScope::Publish,
 	};
 
 	if registry != "crates_io" {

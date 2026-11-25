@@ -210,6 +210,7 @@ fn sample_request(registry: RegistryKind) -> PublishRequest {
 		placeholder_readme: "placeholder".to_string(),
 		fail_on_duplicate: false,
 		release_tag: None,
+		run_scope: monochange_publish::PublishRunScope::Publish,
 	}
 }
 
@@ -2429,8 +2430,8 @@ async fn try_run_publish_packages_with_publications_maps_invalid_resume_report_e
 
 /// A workspace whose pub.dev packages cover every release-tag shape: a
 /// group tag shared with npm, a package's own tag, a group without tags,
-/// no tag at all, and two packages that never use pub.dev trusted
-/// publishing.
+/// no tag at all, two packages that never use pub.dev trusted publishing,
+/// and a private package that never publishes.
 fn pub_dev_release_tag_workspace() -> TempDir {
 	let root = tempfile::tempdir().expect("tempdir:");
 	fs::write(
@@ -2473,6 +2474,10 @@ publish = { mode = "external" }
 path = "packages/token_dart"
 type = "dart"
 publish = { trusted_publishing = false }
+
+[package.private_dart]
+path = "packages/private_dart"
+type = "dart"
 "#,
 	)
 	.expect("config:");
@@ -2500,6 +2505,14 @@ publish = { trusted_publishing = false }
 		.expect("pubspec:");
 	}
 
+	let private_root = root.path().join("packages/private_dart");
+	fs::create_dir_all(&private_root).expect("mkdir:");
+	fs::write(
+		private_root.join("pubspec.yaml"),
+		"name: private_dart\nversion: 7.0.0\npublish_to: none\n",
+	)
+	.expect("pubspec:");
+
 	root
 }
 
@@ -2525,10 +2538,7 @@ fn build_release_requests_resolves_each_package_release_tag() {
 		.map(|request| {
 			(
 				request.package_id.as_str(),
-				request
-					.release_tag
-					.as_ref()
-					.map(|tag| (tag.name.as_str(), tag.dedicated)),
+				request.release_tag.as_ref().map(|tag| tag.name.as_str()),
 			)
 		})
 		.collect::<BTreeMap<_, _>>();
@@ -2536,14 +2546,26 @@ fn build_release_requests_resolves_each_package_release_tag() {
 	assert_eq!(
 		release_tags,
 		BTreeMap::from([
-			("app_dart", Some(("app_dart/v2.0.0", true))),
+			("app_dart", Some("app_dart/v2.0.0")),
 			("external_dart", None),
 			("sdk_dart", None),
-			("shared_dart", Some(("v1.0.0", false))),
+			("shared_dart", Some("v1.0.0")),
 			("token_dart", None),
 			("untagged_dart", None),
-			("web", Some(("v1.0.0", false))),
+			("web", Some("v1.0.0")),
 		])
+	);
+	assert!(
+		requests
+			.iter()
+			.all(|request| request.run_scope == monochange_publish::PublishRunScope::Publish)
+	);
+	assert_eq!(
+		monochange_publish::configured_release_tags(&configuration, &requests),
+		monochange_publish::PublishReleaseTags {
+			primary: Some("v1.0.0".to_string()),
+			tags: BTreeSet::from(["app_dart/v2.0.0".to_string(), "v1.0.0".to_string()]),
+		}
 	);
 }
 
@@ -2551,8 +2573,13 @@ fn build_release_requests_resolves_each_package_release_tag() {
 fn missing_release_tag_errors_name_the_section_that_owns_the_tag() {
 	let root = pub_dev_release_tag_workspace();
 	let configuration = crate::load_workspace_configuration(root.path()).expect("configuration:");
-	let errors = monochange_publish::missing_release_tag_errors(&configuration);
+	let errors = monochange_publish::missing_release_tag_errors(&configuration, || {
+		crate::discover_release_workspace(root.path(), &configuration)
+			.map(|discovery| discovery.packages)
+	})
+	.expect("errors:");
 
+	// `private_dart` (`publish_to: none`) never publishes, so it needs no tag.
 	assert_eq!(errors.len(), 2, "unexpected errors: {errors:#?}");
 	assert!(errors[0].starts_with("`sdk_dart` publishes to pub.dev with trusted publishing"));
 	assert!(errors[0].contains("Set `tag = true` on `[group.sdk]`"));
@@ -2560,5 +2587,104 @@ fn missing_release_tag_errors_name_the_section_that_owns_the_tag() {
 	assert!(errors[1].contains("Set `tag = true` on `[package.untagged_dart]`"));
 	assert!(
 		errors[1].contains("set `publish.trusted_publishing = false` on `[package.untagged_dart]`")
+	);
+}
+
+#[test]
+fn resumed_progress_counts_out_of_scope_and_deferred_packages_as_skipped() {
+	let resumed = PackagePublishSummary {
+		planned: 0,
+		published: 1,
+		staged: 0,
+		already_exists: 0,
+		blocked: 0,
+		failed: 0,
+		not_attempted: 0,
+		deferred: 1,
+		out_of_scope: 2,
+	};
+
+	let event = offset_publish_progress_event(
+		PublishProgressEvent::RunFinished {
+			mode: PackagePublishRunMode::Release,
+			total: 1,
+			published: 1,
+			staged: 0,
+			skipped: 0,
+			failed: 0,
+		},
+		resumed,
+		&BTreeSet::new(),
+	);
+
+	assert_eq!(
+		event,
+		PublishProgressEvent::RunFinished {
+			mode: PackagePublishRunMode::Release,
+			total: 5,
+			published: 2,
+			staged: 0,
+			skipped: 3,
+			failed: 0,
+		}
+	);
+}
+
+#[test]
+fn missing_release_tag_errors_skip_discovery_without_candidates() {
+	let root = tempfile::tempdir().expect("tempdir:");
+	fs::write(
+		root.path().join("monochange.toml"),
+		"[package.web]\npath = \"packages/web\"\ntype = \"npm\"\n",
+	)
+	.expect("config:");
+	fs::create_dir_all(root.path().join("packages/web")).expect("mkdir:");
+	fs::write(
+		root.path().join("packages/web/package.json"),
+		r#"{ "name": "web", "version": "1.0.0" }"#,
+	)
+	.expect("manifest:");
+	let configuration = crate::load_workspace_configuration(root.path()).expect("configuration:");
+
+	let errors = monochange_publish::missing_release_tag_errors(&configuration, || {
+		panic!("no package can be bound to a tag, so discovery must not run")
+	})
+	.expect("errors:");
+
+	assert!(errors.is_empty());
+}
+
+#[test]
+fn missing_release_tag_errors_report_discovery_failures() {
+	let root = pub_dev_release_tag_workspace();
+	let configuration = crate::load_workspace_configuration(root.path()).expect("configuration:");
+
+	let error = monochange_publish::missing_release_tag_errors(&configuration, || {
+		Err(MonochangeError::Discovery("discovery failed".to_string()))
+	})
+	.expect_err("discovery error");
+
+	assert_eq!(error.to_string(), "discovery error: discovery failed");
+}
+
+#[test]
+fn release_tags_come_from_the_targets_that_create_tags() {
+	let primary = monochange_core::VersionFormat::Primary;
+	let namespaced = monochange_core::VersionFormat::Namespaced;
+	let release_tags = release_tags_from_targets([
+		(true, &primary, "v2.0.0"),
+		(true, &namespaced, "app_dart/v0.2.1"),
+		(false, &namespaced, "untagged/v1.0.0"),
+	]);
+
+	assert_eq!(release_tags.primary.as_deref(), Some("v2.0.0"));
+	assert_eq!(
+		release_tags.tags,
+		BTreeSet::from(["app_dart/v0.2.1".to_string(), "v2.0.0".to_string()])
+	);
+	assert_eq!(
+		release_tags_from_targets([(false, &primary, "v2.0.0")]),
+		monochange_publish::PublishReleaseTags::default(),
+		"a primary owner with `tag = false` creates no primary tag"
 	);
 }

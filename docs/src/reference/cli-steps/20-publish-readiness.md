@@ -50,7 +50,7 @@ Findings are recorded per package as `disabled`, `verified`, `manual_verificatio
 
 ## Packages published from another tag
 
-In GitHub Actions, readiness applies the same ref rule as `monochange publish packages`. A trusted pub.dev package that this run's ref cannot publish is `ready`, and its message names the tag and the command that publish it (the package is `deferred_to_tag` when packages are published). On a package's own tag, packages released under other tags are `ready` and out of scope for the run. See [How monochange publishes to pub.dev](../../guide/07-trusted-publishing.md#how-monochange-publishes-to-pubdev).
+Readiness checks every package in the release, whichever ref the run is on. A trusted pub.dev package that the current run could not upload is still checked, so a readiness artifact from the primary tag covers the packages that publish later from their own tags. `monochange publish packages` decides which packages each run publishes; see [How monochange publishes to pub.dev](../../guide/07-trusted-publishing.md#how-monochange-publishes-to-pubdev).
 
 ## Publication order checks
 

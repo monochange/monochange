@@ -57,11 +57,13 @@ A package with no selected dependencies is eligible first. A package is not publ
 
 ## Packages that publish from their own tag
 
-pub.dev trusted publishing only accepts an upload from a GitHub Actions run whose ref is exactly `refs/tags/<package tag>`. Before uploading a Dart or Flutter package to pub.dev with trusted publishing (no `PUB_TOKEN`), the step compares the run's `GITHUB_REF` with that ref:
+pub.dev trusted publishing only accepts an upload from a GitHub Actions run that a `push` or `workflow_dispatch` event started on exactly `refs/tags/<package tag>`. Such a package is tag-bound: it uses the built-in publisher, trusted publishing, and no non-empty `PUB_TOKEN`. Before uploading a tag-bound package, the step compares the run's `GITHUB_REF`, `GITHUB_REF_TYPE`, and `GITHUB_EVENT_NAME` with that rule:
 
-- **Equal**: the package publishes.
-- **Different**: the package is not uploaded and gets the status `deferred_to_tag`. The run does not fail and the packages after it still publish. The report lists the package under **Deferred to release tags** with the tag and the command that publishes it; in `--format json` the package row carries `deferred_to` with `tag`, `ref`, and `command`, and `summary.deferred` counts these packages.
-- **The run is on a tag that only such packages are released under**: only those packages publish. Every other package gets `skipped_out_of_scope`, is not looked up on its registry, and is counted in `summary.out_of_scope`. A `--resume` on that tag treats these rows as complete.
+- **The run matches**: the package publishes.
+- **The run does not match**: the package is not uploaded and gets the status `deferred_to_tag`. The run does not fail and the packages after it still publish. The report lists the package under **Deferred to release tags** with the tag and the command that publishes it; in `--format json` the package row carries `deferred_to` with `reason`, `tag`, `ref`, and `command`, and `summary.deferred` counts these packages. `reason` is `wrong_ref`, `wrong_ref_type`, `wrong_event`, or `unknown_ref`; for every reason but `wrong_ref`, the package's message says what to change in the workflow.
+- **The run is on a tag-bound package's own tag, and the release has another tag**: only the tag-bound packages released under that tag publish. Every other package gets `skipped_out_of_scope`, is not looked up on its registry, and is counted in `summary.out_of_scope`. Its message names the run that publishes it. A `--resume` plans these packages again instead of treating them as complete.
+
+The release's primary tag is never scoped this way: a run on it publishes every package that is not tag-bound, as do runs on branches and on any other tag. When every tag of a release belongs to a tag-bound package, the run on that tag publishes every package.
 
 For example, on the primary tag:
 
@@ -72,7 +74,7 @@ Would publish (1)
 Deferred to release tags (1)
   app_dart  0.2.1  pub_dev  app_dart/v0.2.1
 
-The registry only accepts these packages from a run on their release tag. Publish each one from its tag:
+The registry only accepts these packages from a `push` or `workflow_dispatch` run on their release tag. Publish each one from its tag:
   gh workflow run publish.yml --repo owner/repo --ref app_dart/v0.2.1
 ```
 
@@ -83,6 +85,7 @@ The registry only accepts these packages from a run on their release tag. Publis
 	"version": "0.2.1",
 	"status": "deferred_to_tag",
 	"deferred_to": {
+		"reason": "wrong_ref",
 		"tag": "app_dart/v0.2.1",
 		"ref": "refs/tags/app_dart/v0.2.1",
 		"command": "gh workflow run publish.yml --repo owner/repo --ref app_dart/v0.2.1"

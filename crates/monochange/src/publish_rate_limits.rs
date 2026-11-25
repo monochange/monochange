@@ -11,10 +11,7 @@ use monochange_core::RegistryKind;
 use monochange_core::WorkspaceConfiguration;
 use monochange_core::materialize_dependency_edges;
 use monochange_publish::PublishRunScope;
-use monochange_publish::configured_package_publication_targets;
-use monochange_publish::current_env_map;
 use monochange_publish::filter_pending_publish_requests;
-use monochange_publish::plan_publish_run_scopes;
 use monochange_publish::plan_rate_limit_batches;
 use monochange_publish::plan_rate_limit_window;
 use monochange_publish::policies_for_rate_limit_operation;
@@ -104,31 +101,30 @@ async fn build_release_plan_requests(
 	selected_packages: &BTreeSet<String>,
 	publish_all_configured_packages: bool,
 ) -> MonochangeResult<Vec<package_publish::PublishRequest>> {
-	let publications = if publish_all_configured_packages {
-		configured_package_publication_targets(configuration, packages)
-	} else {
-		package_publish::release_record_package_publications_from_prepared_or_head(
-			root,
-			prepared_release,
-		)
-		.await?
-	};
+	let release = package_publish::release_publications(
+		root,
+		configuration,
+		prepared_release,
+		publish_all_configured_packages,
+	)
+	.await?;
 
-	let requests = package_publish::build_release_requests(
+	let mut requests = package_publish::build_release_requests(
 		configuration,
 		packages,
-		&publications,
+		&release.publications,
 		selected_packages,
 	)?;
-	// A run on another package's dedicated release tag leaves these packages
-	// to their own run, so they need no registry probe and must not count
-	// against this run's rate limits.
-	let scopes = plan_publish_run_scopes(&requests, &current_env_map());
+	// Packages this run leaves to other runs (deferred or out of scope) need
+	// no registry probe and must not count against this run's rate limits.
+	package_publish::scope_requests_to_run_ref(
+		configuration,
+		&mut requests,
+		release.release_tags.as_ref(),
+	);
 	let requests = requests
 		.into_iter()
-		.zip(scopes)
-		.filter(|(_, scope)| *scope != PublishRunScope::OutOfScope)
-		.map(|(request, _)| request)
+		.filter(|request| request.run_scope == PublishRunScope::Publish)
 		.collect::<Vec<_>>();
 	filter_pending_publish_requests(&requests).await
 }

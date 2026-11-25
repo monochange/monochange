@@ -1,0 +1,16 @@
+---
+source: crates/monochange_integration_tests/tests/pub_dev_release_tags.rs
+assertion_line: 404
+expression: stdout_of(&text)
+---
+Would publish (2)
+  cli  1.0.1  crates_io
+  web  1.1.0  npm
+
+Deferred to release tags (1)
+  app_dart  0.2.1  pub_dev  v0.2.1
+
+The registry only accepts these packages from a `push` or `workflow_dispatch` run on their release tag. Publish each one from its tag:
+  gh workflow run publish.yml --repo example/pub-dev-release-tags --ref v0.2.1
+
+• Would publish 2 packages · 1 deferred to release tags · dry-run, no changes were made

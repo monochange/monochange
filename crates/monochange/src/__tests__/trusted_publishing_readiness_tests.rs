@@ -34,6 +34,7 @@ fn sample_request(registry: RegistryKind, root: &TempDir) -> PublishRequest {
 		fail_on_duplicate: false,
 		placeholder_readme: "placeholder".to_string(),
 		release_tag: None,
+		run_scope: monochange_publish::PublishRunScope::Publish,
 	}
 }
 

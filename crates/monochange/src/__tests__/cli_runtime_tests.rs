@@ -891,7 +891,8 @@ fn tag_scoped_publish_report() -> package_publish::PackagePublishReport {
 		setup_url: Some("https://pub.dev/packages/dart_pkg/admin".to_string()),
 		message: "configure trusted publishing manually for `dart_pkg`".to_string(),
 	};
-	deferred.deferred_to = Some(monochange_publish::PublishTagRun {
+	deferred.deferred_to = Some(monochange_publish::PublishDeferral {
+		reason: monochange_publish::PublishDeferralReason::WrongRef,
 		tag: "dart_pkg/v0.2.1".to_string(),
 		git_ref: "refs/tags/dart_pkg/v0.2.1".to_string(),
 		command: "gh workflow run publish.yml --repo owner/repo --ref dart_pkg/v0.2.1".to_string(),
@@ -908,6 +909,57 @@ fn tag_scoped_publish_report() -> package_publish::PackagePublishReport {
 		dry_run: true,
 		packages: vec![planned, deferred, out_of_scope],
 	}
+}
+
+/// A run on a pub.dev package's own tag that a `release` event started.
+fn wrong_event_publish_report() -> package_publish::PackagePublishReport {
+	let mut deferred = sample_package_publish_outcome(
+		package_publish::PackagePublishStatus::DeferredToTag,
+		package_publish::TrustedPublishingStatus::Disabled,
+	);
+	deferred.package = "dart_pkg".to_string();
+	deferred.ecosystem = Ecosystem::Dart;
+	deferred.registry = "pub_dev".to_string();
+	deferred.version = "0.2.1".to_string();
+	deferred.message = "pub.dev only accepts dart_pkg 0.2.1 from a run that a `push` or `workflow_dispatch` event starts, and a `release` event started this run on `refs/tags/dart_pkg/v0.2.1`; start the publish workflow from tag pushes (`on: push`) instead of `on: release`, or publish it with `gh workflow run publish.yml --repo owner/repo --ref dart_pkg/v0.2.1`".to_string();
+	deferred.deferred_to = Some(monochange_publish::PublishDeferral {
+		reason: monochange_publish::PublishDeferralReason::WrongEvent,
+		tag: "dart_pkg/v0.2.1".to_string(),
+		git_ref: "refs/tags/dart_pkg/v0.2.1".to_string(),
+		command: "gh workflow run publish.yml --repo owner/repo --ref dart_pkg/v0.2.1".to_string(),
+	});
+
+	package_publish::PackagePublishReport {
+		mode: package_publish::PackagePublishRunMode::Release,
+		dry_run: true,
+		packages: vec![deferred],
+	}
+}
+
+#[test]
+fn render_package_publish_reports_say_what_to_change_for_a_wrong_event() {
+	let report = wrong_event_publish_report();
+	let text = render_publish_text(&report, false);
+	assert!(
+		text.contains("instead of `on: release`"),
+		"text report:\n{text}"
+	);
+	assert!(text.contains("gh workflow run publish.yml --repo owner/repo --ref dart_pkg/v0.2.1"));
+
+	let markdown = render_package_publish_report_markdown(&report, false).join("\n");
+	assert!(
+		markdown.contains("- **`dart_pkg`** `0.2.1` via `pub_dev` — pub.dev only accepts dart_pkg 0.2.1 from a run that a `push` or `workflow_dispatch` event starts"),
+		"markdown report:\n{markdown}"
+	);
+	assert!(markdown.contains("instead of `on: release`"));
+
+	let rendered =
+		render_publish_command_json(OutputFormat::Json, Some(&report), None).expect("json");
+	let value: serde_json::Value = serde_json::from_str(&rendered).expect("parse json");
+	assert_eq!(
+		value["package_publish"]["packages"][0]["deferred_to"]["reason"],
+		"wrong_event"
+	);
 }
 
 #[test]

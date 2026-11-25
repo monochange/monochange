@@ -490,15 +490,27 @@ So a run on one tag can only publish the pub.dev packages whose tag pattern rend
 
 ### How monochange publishes to pub.dev
 
-monochange applies the pub.dev rule before it uploads anything. When a run publishes a Dart or Flutter package to pub.dev with trusted publishing (the default, without a `PUB_TOKEN`), monochange compares the run's `GITHUB_REF` with `refs/tags/<package release tag>`:
+monochange applies the pub.dev rule before it uploads anything. A Dart or Flutter package is **tag-bound** when monochange publishes it to pub.dev with trusted publishing: the built-in publisher, `publish.trusted_publishing` on (the default), and no `PUB_TOKEN` in the environment. An empty `PUB_TOKEN`, which GitHub Actions passes for an unset secret, does not count. For every GitHub Actions run, monochange decides which packages the run publishes:
 
-- **The refs match**: monochange publishes the package.
-- **The run is on another ref**: monochange does not upload the package and marks it `deferred_to_tag`. The run does not fail, and the packages after it still publish. The report lists the tag the package needs and the command that publishes it, such as `gh workflow run publish.yml --repo owner/repo --ref my_package/v0.2.1`. With `--format json`, the package row carries a `deferred_to` object with the `tag`, `ref`, and `command`.
-- **The run is on the package's own tag**: monochange publishes only the packages released under that tag. Every other package is marked `skipped_out_of_scope`: it is not a failure, it is not looked up on its registry, and a rerun on that tag never republishes it.
+- **A run on a tag-bound package's own tag**, when that tag is not the release's primary tag (for example `v1.4.0`), publishes only the tag-bound packages released under that tag. Every other package is marked `skipped_out_of_scope`. That is not a failure, monochange does not look the package up on its registry, and the package's report line names the run that publishes it.
+- **Every other run** (on the primary tag, on a branch, or on a tag that is no tag-bound package's tag) publishes every package that is not tag-bound, as monochange always has. A tag-bound package whose tag is the run's tag publishes too, so a pub.dev package that owns the primary tag publishes beside every other package. Any other tag-bound package is marked `deferred_to_tag`.
 
-A package can only publish from its own tag when monochange creates one. `monochange step validate` and `monochange publish readiness` report an error for a trusted pub.dev package whose releases create no tag, and name the section to fix: set `tag = true` on the package, or on its group when the package belongs to one. Packages that publish with a `PUB_TOKEN`, set `publish.trusted_publishing = false`, or use `publish.mode = "external"` are not bound to a tag.
+A deferred package is not uploaded. The run does not fail, and the packages after it still publish. The report lists the tag the package needs and the command that publishes it, such as `gh workflow run publish.yml --repo owner/repo --ref my_package/v0.2.1`. The command dispatches the workflow set in `publish.trusted_publishing.workflow`, or the current workflow when the package sets none. With `--format json`, the package row carries a `deferred_to` object with the `tag`, `ref`, `command`, and a `reason`:
 
-Outside GitHub Actions, monochange cannot read the run's ref, so it does not apply this rule.
+| `reason`         | The run                                                                                         | What to change                                                                                           |
+| ---------------- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `wrong_ref`      | is on another tag                                                                               | run the command, which dispatches the workflow on the package's tag                                      |
+| `wrong_ref_type` | is on a branch or a pull request ref                                                            | run the command, which dispatches the workflow on the package's tag                                      |
+| `wrong_event`    | is on the package's tag, but an event pub.dev rejects started it, such as `release` or `create` | start the workflow from a tag push (`on: push`) or with `workflow_dispatch`; the command does the latter |
+| `unknown_ref`    | has no `GITHUB_REF`, so monochange cannot tell its ref                                          | keep GitHub's `GITHUB_REF` in the publish step's environment, or run the command                         |
+
+When a release creates no tag besides tag-bound packages' tags, the run on such a tag is the only tag run the release gets, so it publishes every package, as before.
+
+A package can only publish from its own tag when monochange creates one. `monochange step validate` and `monochange publish readiness` report an error for a trusted pub.dev package whose releases create no tag, and name the section to fix: set `tag = true` on the package, or on its group when the package belongs to one. `monochange step validate` reads only the configuration, so a package that publishes with a `PUB_TOKEN` needs `publish.trusted_publishing = false` to pass it. Packages that set `publish.trusted_publishing = false` or `publish.mode = "external"`, and private packages (`publish_to: none`), are not checked.
+
+`monochange publish readiness` checks every package of the release, whatever ref the run that checks it is on.
+
+Outside GitHub Actions, monochange cannot read the run's ref, so it does not apply this rule. monochange treats a run as GitHub Actions when `GITHUB_ACTIONS=true` or `GITHUB_WORKFLOW_REF` is set, the same check it uses to detect the trusted-publishing identity.
 
 ### Recommended reusable workflow
 

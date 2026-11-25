@@ -223,7 +223,8 @@ async fn build_publish_readiness_report_for_publish(
 				root,
 				Some(prepared_release),
 			)
-			.await?;
+			.await?
+			.publications;
 		let publish_report = package_publish::run_publish_packages(
 			root,
 			configuration,

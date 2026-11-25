@@ -118,13 +118,15 @@ pub.dev trusted publishing accepts an upload only from a GitHub Actions run whos
 
 1. Give each trusted pub.dev package a release tag: `tag = true` on the package, or on its group when it shares the group's tag. `monochange step validate` fails for a trusted pub.dev package whose releases create no tag.
 2. On pub.dev, set the package's tag pattern to its release tag with `{{version}}` (for example `dart_client/v{{version}}`) and enable publishing from `workflow_dispatch` events. If the package requires a GitHub Actions environment, run the publish job in that environment.
-3. Run `monochange publish packages --output <path>` on the release's primary tag. Packages whose tag is the primary tag publish; every other trusted pub.dev package is marked `deferred_to_tag`, and its `deferred_to` object names the `tag`, the `ref`, and the `command` that publishes it.
-4. Dispatch the publish workflow once per deferred tag. On a package's own tag, monochange publishes only the packages released under that tag and marks the rest `skipped_out_of_scope`, without looking them up on their registries.
+3. Run `monochange publish packages --output <path>` on the release's primary tag. Every package that pub.dev does not bind to a tag publishes, and so does a pub.dev package that owns the primary tag. Every other trusted pub.dev package is marked `deferred_to_tag`, and its `deferred_to` object names the `reason`, the `tag`, the `ref`, and the `command` that publishes it.
+4. Dispatch the publish workflow once per deferred tag. On a pub.dev package's own tag, monochange publishes only the trusted pub.dev packages released under that tag. It marks the rest `skipped_out_of_scope`, names the run that publishes each one, and does not look them up on their registries.
 
-| Status                 | Meaning                                                                                     | Fails the run? |
-| ---------------------- | ------------------------------------------------------------------------------------------- | -------------- |
-| `deferred_to_tag`      | the registry only accepts this package from a run on its own tag; dispatch a run on the tag | no             |
-| `skipped_out_of_scope` | this run is on another package's tag; the package belongs to the run on its own tag         | no             |
+A run that is not on a pub.dev package's own tag publishes as it would without pub.dev: on a branch, on the primary tag, or on any other tag, only trusted pub.dev packages are deferred. When every tag a release creates belongs to a trusted pub.dev package, for example a group with no primary tag, the run on that tag publishes every package.
+
+| Status                 | Meaning                                                                                                              | Fails the run? |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------- | -------------- |
+| `deferred_to_tag`      | pub.dev accepts this package only from a `push` or `workflow_dispatch` run on its own tag; dispatch a run on the tag | no             |
+| `skipped_out_of_scope` | this run is on a pub.dev package's own tag; the message names the run that publishes this package                    | no             |
 
 [CI, package publishing, and release PR flows](./13-ci-and-publishing.md#github--dart--flutter-pubdev-trusted-publishing) has a complete workflow that dispatches the deferred tags.
 

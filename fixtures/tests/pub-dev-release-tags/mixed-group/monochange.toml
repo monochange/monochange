@@ -1,0 +1,47 @@
+[defaults]
+parent_bump = "patch"
+changelog = false
+
+[source]
+provider = "github"
+owner = "example"
+repo = "pub-dev-release-tags"
+
+# The cargo package owns the primary release tag, `v{{ version }}`.
+[package.cli]
+path = "crates/cli"
+type = "cargo"
+tag = true
+version_format = "primary"
+
+# A non-primary group releases an npm package and a trusted pub.dev package
+# under one tag, `sdk/v{{ version }}`.
+[group.sdk]
+packages = ["web", "app_dart"]
+tag = true
+
+[package.web]
+path = "packages/web"
+type = "npm"
+
+[package.app_dart]
+path = "packages/app_dart"
+type = "dart"
+
+[ecosystems.npm]
+enabled = true
+
+[ecosystems.dart]
+enabled = true
+
+[ecosystems.cargo]
+enabled = true
+
+[cli.commit-release]
+
+[[cli.commit-release.steps]]
+type = "PrepareRelease"
+
+[[cli.commit-release.steps]]
+type = "CommitRelease"
+update_release_json = true

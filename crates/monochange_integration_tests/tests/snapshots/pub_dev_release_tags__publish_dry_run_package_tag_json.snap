@@ -1,6 +1,7 @@
 ---
 source: crates/monochange_integration_tests/tests/pub_dev_release_tags.rs
-expression: "value[\"package_publish\"]"
+assertion_line: 405
+expression: "publish_dry_run_json(root, registries, run)"
 ---
 {
   "dry_run": true,
@@ -27,7 +28,7 @@ expression: "value[\"package_publish\"]"
     },
     {
       "ecosystem": "npm",
-      "message": "not published in this run: `refs/tags/app_dart/v0.2.1` is another package's release tag, so this run only publishes the packages released under it",
+      "message": "not published in this run: `refs/tags/app_dart/v0.2.1` is the release tag of trusted pub.dev package `app_dart`, so this run publishes only what pub.dev accepts from that tag; web 1.1.0 publishes in the run on `refs/tags/v1.1.0`",
       "package": "web",
       "placeholder": false,
       "registry": "npm",
@@ -46,7 +47,6 @@ expression: "value[\"package_publish\"]"
   "summary": {
     "already_exists": 0,
     "blocked": 0,
-    "deferred": 0,
     "failed": 0,
     "not_attempted": 0,
     "out_of_scope": 1,

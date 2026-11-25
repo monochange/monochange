@@ -2,10 +2,11 @@
 //! release tag.
 //!
 //! pub.dev trusted publishing only accepts an upload from a GitHub Actions run
-//! whose ref is the package's release tag. The fixture releases an npm package
-//! under the primary `v{{ version }}` tag and a Dart package under its own
-//! `app_dart/v{{ version }}` tag, then runs the publish dry run as if GitHub
-//! Actions had started it on different refs.
+//! whose event is `push` or `workflow_dispatch` and whose ref is the
+//! package's release tag. Each fixture releases a different mix of packages
+//! and tags; the tests run the real binary with the `GITHUB_*` variables
+//! GitHub Actions sets, against registry mocks, and check which packages each
+//! run publishes.
 
 #![allow(clippy::disallowed_methods)]
 
@@ -17,6 +18,7 @@ use std::process::Command;
 use std::process::Output;
 
 use httpmock::Method::GET;
+use httpmock::Mock;
 use httpmock::MockServer;
 use insta::assert_json_snapshot;
 use insta::assert_snapshot;
@@ -28,6 +30,7 @@ use serde_json::Value;
 use tempfile::TempDir;
 
 const FIXTURE_ROOT: &str = "../../fixtures/tests/pub-dev-release-tags";
+const REPOSITORY: &str = "example/pub-dev-release-tags";
 
 fn fixture_path(relative: &str) -> PathBuf {
 	Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -43,6 +46,29 @@ fn monochange_command(root: &Path) -> Command {
 		.env("MONOCHANGE_NO_PROGRESS", "1")
 		.env("MONOCHANGE_RELEASE_DATE", "2026-11-25")
 		.env_remove("RUST_LOG");
+
+	// The test process may itself run inside GitHub Actions; every run below
+	// sets the variables it needs.
+	for name in [
+		"CI",
+		"GITHUB_ACTIONS",
+		"GITHUB_EVENT_NAME",
+		"GITHUB_REF",
+		"GITHUB_REF_NAME",
+		"GITHUB_REF_TYPE",
+		"GITHUB_REPOSITORY",
+		"GITHUB_WORKFLOW",
+		"GITHUB_WORKFLOW_REF",
+		"GITHUB_ENVIRONMENT",
+		"GITLAB_CI",
+		"CIRCLECI",
+		"PUB_TOKEN",
+		"ACTIONS_ID_TOKEN_REQUEST_URL",
+		"ACTIONS_ID_TOKEN_REQUEST_TOKEN",
+	] {
+		command.env_remove(name);
+	}
+
 	command
 }
 
@@ -56,12 +82,21 @@ fn stderr_of(output: &Output) -> String {
 		.unwrap_or_else(|error| panic!("stderr was not UTF-8: {error}"))
 }
 
-/// Copy the workspace fixture and create its release commit, so the publish
-/// step finds `app_dart` 0.2.1 and `web` 1.1.0 in the release record at `HEAD`.
-fn setup_released_workspace() -> TempDir {
+fn assert_success(output: &Output, what: &str) {
+	assert!(
+		output.status.success(),
+		"{what} failed\nstdout:\n{}\nstderr:\n{}",
+		stdout_of(output),
+		stderr_of(output)
+	);
+}
+
+/// Copy a workspace fixture and create its release commit, so the publish
+/// step finds the release record at `HEAD`.
+fn setup_released_workspace(fixture: &str) -> TempDir {
 	let tempdir = TempDir::new().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let root = tempdir.path();
-	copy_directory(&fixture_path("workspace"), root);
+	copy_directory(&fixture_path(fixture), root);
 	git(root, &["init"]);
 	git(root, &["config", "user.name", "test"]);
 	git(root, &["config", "user.email", "test@example.com"]);
@@ -73,45 +108,323 @@ fn setup_released_workspace() -> TempDir {
 		.arg("commit-release")
 		.output()
 		.unwrap_or_else(|error| panic!("run commit-release: {error}"));
-	assert!(
-		output.status.success(),
-		"commit-release failed\nstdout:\n{}\nstderr:\n{}",
-		stdout_of(&output),
-		stderr_of(&output)
-	);
+	assert_success(&output, "commit-release");
 
 	tempdir
 }
 
-/// `PATH` with the fixture's `dart` and `npm` stand-ins first, so planned
-/// packages run a dry-run publish command without the real toolchains.
+/// `PATH` with the fixture's `cargo`, `dart` and `npm` stand-ins first, so
+/// planned packages run a dry-run publish command without the real
+/// toolchains.
 fn path_with_tool_stubs() -> OsString {
 	let mut paths = vec![fixture_path("tools")];
 	paths.extend(env::split_paths(&env::var_os("PATH").unwrap_or_default()));
 	env::join_paths(paths).unwrap_or_else(|error| panic!("join PATH: {error}"))
 }
 
-/// Run the publish dry run as a GitHub Actions run of `publish.yml` on
-/// `git_ref`, against registry mocks.
-fn publish_dry_run(root: &Path, server: &MockServer, git_ref: &str, format: &str) -> Output {
-	monochange_command(root)
-		.env("PATH", path_with_tool_stubs())
-		.env("GITHUB_ACTIONS", "true")
-		.env("GITHUB_EVENT_NAME", "workflow_dispatch")
-		.env("GITHUB_REF", git_ref)
-		.env("GITHUB_REPOSITORY", "example/pub-dev-release-tags")
-		.env(
-			"GITHUB_WORKFLOW_REF",
-			format!("example/pub-dev-release-tags/.github/workflows/publish.yml@{git_ref}"),
+/// The environment GitHub Actions gives one publish run.
+#[derive(Debug, Clone, Copy)]
+struct GitHubRun<'a> {
+	/// `GITHUB_REF`; `None` leaves it unset.
+	git_ref: Option<&'a str>,
+	/// `GITHUB_REF_TYPE`; `None` derives it from the ref, as GitHub does.
+	ref_type: Option<&'a str>,
+	event: &'a str,
+	repository: &'a str,
+	/// `false` sets `GITHUB_WORKFLOW_REF` without `GITHUB_ACTIONS=true`.
+	github_actions: bool,
+	pub_token: Option<&'a str>,
+}
+
+impl<'a> GitHubRun<'a> {
+	fn on(git_ref: &'a str) -> Self {
+		Self {
+			git_ref: Some(git_ref),
+			ref_type: None,
+			event: "workflow_dispatch",
+			repository: REPOSITORY,
+			github_actions: true,
+			pub_token: None,
+		}
+	}
+
+	fn event(self, event: &'a str) -> Self {
+		Self { event, ..self }
+	}
+
+	fn ref_type(self, ref_type: &'a str) -> Self {
+		Self {
+			ref_type: Some(ref_type),
+			..self
+		}
+	}
+
+	fn without_ref(self) -> Self {
+		Self {
+			git_ref: None,
+			..self
+		}
+	}
+
+	fn repository(self, repository: &'a str) -> Self {
+		Self { repository, ..self }
+	}
+
+	fn without_github_actions_flag(self) -> Self {
+		Self {
+			github_actions: false,
+			..self
+		}
+	}
+
+	fn pub_token(self, token: &'a str) -> Self {
+		Self {
+			pub_token: Some(token),
+			..self
+		}
+	}
+
+	fn apply(&self, command: &mut Command) {
+		let workflow_ref_suffix = self.git_ref.unwrap_or("refs/heads/main");
+		command
+			.env("CI", "true")
+			.env("GITHUB_EVENT_NAME", self.event)
+			.env("GITHUB_REPOSITORY", self.repository)
+			.env("GITHUB_WORKFLOW", "publish")
+			.env(
+				"GITHUB_WORKFLOW_REF",
+				format!("{REPOSITORY}/.github/workflows/publish.yml@{workflow_ref_suffix}"),
+			);
+
+		if self.github_actions {
+			command.env("GITHUB_ACTIONS", "true");
+		}
+
+		if let Some(git_ref) = self.git_ref {
+			let (derived_type, name) = git_ref.strip_prefix("refs/tags/").map_or_else(
+				|| {
+					(
+						"branch",
+						git_ref.strip_prefix("refs/heads/").unwrap_or(git_ref),
+					)
+				},
+				|tag| ("tag", tag),
+			);
+			command
+				.env("GITHUB_REF", git_ref)
+				.env("GITHUB_REF_NAME", name)
+				.env("GITHUB_REF_TYPE", self.ref_type.unwrap_or(derived_type));
+		}
+
+		if let Some(token) = self.pub_token {
+			command.env("PUB_TOKEN", token);
+		}
+	}
+}
+
+/// Registry mocks for every package the fixtures release.
+struct Registries {
+	server: MockServer,
+}
+
+impl Registries {
+	/// Every package is unpublished.
+	fn unpublished() -> Self {
+		Self {
+			server: MockServer::start(),
+		}
+	}
+
+	/// Mock one registry lookup, returning `status` and `body`.
+	fn lookup(&self, path: &str, status: u16, body: &Value) -> Mock<'_> {
+		let body = body.clone();
+		self.server.mock(|when, then| {
+			when.method(GET).path(path);
+			then.status(status).json_body(body);
+		})
+	}
+
+	fn npm(&self, package: &str) -> Mock<'_> {
+		self.lookup(
+			&format!("/npm/{package}"),
+			404,
+			&serde_json::json!({ "error": "Not found" }),
 		)
-		.env("MONOCHANGE_NPM_REGISTRY_URL", server.url("/npm"))
-		.env("MONOCHANGE_PUB_DEV_API_URL", server.url("/pub"))
-		.env_remove("PUB_TOKEN")
-		.env_remove("ACTIONS_ID_TOKEN_REQUEST_URL")
-		.env_remove("ACTIONS_ID_TOKEN_REQUEST_TOKEN")
-		.args(["publish", "packages", "--dry-run", "--format", format])
+	}
+
+	fn npm_published(&self, package: &str, version: &str) -> Mock<'_> {
+		self.lookup(
+			&format!("/npm/{package}"),
+			200,
+			&serde_json::json!({ "name": package, "versions": { version: {} } }),
+		)
+	}
+
+	fn pub_dev(&self, package: &str) -> Mock<'_> {
+		self.lookup(
+			&format!("/pub/packages/{package}"),
+			404,
+			&serde_json::json!({ "error": { "code": "NotFound" } }),
+		)
+	}
+
+	fn pub_dev_published(&self, package: &str, version: &str) -> Mock<'_> {
+		self.lookup(
+			&format!("/pub/packages/{package}"),
+			200,
+			&serde_json::json!({ "name": package, "versions": [{ "version": version }] }),
+		)
+	}
+
+	fn crates_io(&self, package: &str) -> Mock<'_> {
+		self.lookup(
+			&format!("/crates-io/crates/{package}"),
+			404,
+			&serde_json::json!({ "errors": [] }),
+		)
+	}
+
+	fn apply(&self, command: &mut Command) {
+		command
+			.env("MONOCHANGE_NPM_REGISTRY_URL", self.server.url("/npm"))
+			.env("MONOCHANGE_PUB_DEV_API_URL", self.server.url("/pub"))
+			.env(
+				"MONOCHANGE_CRATES_IO_API_URL",
+				self.server.url("/crates-io"),
+			)
+			.env(
+				"MONOCHANGE_CRATES_IO_INDEX_URL",
+				self.server.url("/crates-io-index"),
+			);
+	}
+}
+
+/// Run `monochange <args>` as the GitHub Actions run `run`, against
+/// `registries`.
+fn run_monochange(
+	root: &Path,
+	registries: &Registries,
+	run: GitHubRun<'_>,
+	args: &[&str],
+) -> Output {
+	let mut command = monochange_command(root);
+	command.env("PATH", path_with_tool_stubs());
+	registries.apply(&mut command);
+	run.apply(&mut command);
+	command
+		.args(args)
 		.output()
-		.unwrap_or_else(|error| panic!("run publish packages: {error}"))
+		.unwrap_or_else(|error| panic!("run monochange {args:?}: {error}"))
+}
+
+/// Run the publish dry run as the GitHub Actions run `run`.
+fn publish_dry_run(
+	root: &Path,
+	registries: &Registries,
+	run: GitHubRun<'_>,
+	format: &str,
+) -> Output {
+	run_monochange(
+		root,
+		registries,
+		run,
+		&["publish", "packages", "--dry-run", "--format", format],
+	)
+}
+
+/// Run the publish dry run in JSON and return `package_publish`.
+fn publish_dry_run_json(root: &Path, registries: &Registries, run: GitHubRun<'_>) -> Value {
+	let output = publish_dry_run(root, registries, run, "json");
+	assert_success(&output, "publish dry run");
+	let value: Value = serde_json::from_slice(&output.stdout)
+		.unwrap_or_else(|error| panic!("parse publish json: {error}"));
+	value["package_publish"].clone()
+}
+
+/// One line per package: `<package> <status>`, plus the deferral reason and
+/// tag for deferred packages, sorted by package.
+fn package_rows(package_publish: &Value) -> Vec<String> {
+	let mut rows = package_publish["packages"]
+		.as_array()
+		.unwrap_or_else(|| panic!("packages array: {package_publish}"))
+		.iter()
+		.map(|package| {
+			let mut row = format!(
+				"{} {}",
+				package["package"].as_str().unwrap_or_default(),
+				package["status"].as_str().unwrap_or_default()
+			);
+			let deferred_to = &package["deferred_to"];
+
+			if !deferred_to.is_null() {
+				row.push_str(&format!(
+					" {} {}",
+					deferred_to["reason"].as_str().unwrap_or("<no reason>"),
+					deferred_to["tag"].as_str().unwrap_or_default()
+				));
+			}
+
+			row
+		})
+		.collect::<Vec<_>>();
+	rows.sort();
+	rows
+}
+
+/// The message reported for `package`.
+fn package_message<'a>(package_publish: &'a Value, package: &str) -> &'a str {
+	package_publish["packages"]
+		.as_array()
+		.and_then(|packages| {
+			packages
+				.iter()
+				.find(|entry| entry["package"].as_str() == Some(package))
+		})
+		.and_then(|entry| entry["message"].as_str())
+		.unwrap_or_else(|| panic!("no message for {package}: {package_publish}"))
+}
+
+/// The deferral command reported for `package`.
+fn deferral_command<'a>(package_publish: &'a Value, package: &str) -> &'a str {
+	package_publish["packages"]
+		.as_array()
+		.and_then(|packages| {
+			packages
+				.iter()
+				.find(|entry| entry["package"].as_str() == Some(package))
+		})
+		.and_then(|entry| entry["deferred_to"]["command"].as_str())
+		.unwrap_or_else(|| panic!("no deferral command for {package}: {package_publish}"))
+}
+
+/// Snapshot the text and JSON dry runs of `run` under `name`.
+fn snapshot_dry_run(name: &str, root: &Path, registries: &Registries, run: GitHubRun<'_>) {
+	let text = publish_dry_run(root, registries, run, "text");
+	assert_success(&text, "publish dry run");
+	let json = publish_dry_run_json(root, registries, run);
+
+	with_workspace_path_redacted(root, || {
+		assert_snapshot!(format!("{name}_text"), stdout_of(&text));
+		assert_json_snapshot!(format!("{name}_json"), json);
+	});
+}
+
+/// Run `assertions` with the temporary workspace's path shown as
+/// `[workspace]`, so snapshots of publish commands that name a manifest stay
+/// stable.
+fn with_workspace_path_redacted(root: &Path, assertions: impl FnOnce()) {
+	let canonical_root = root
+		.canonicalize()
+		.unwrap_or_else(|error| panic!("canonicalize workspace: {error}"));
+	let mut settings = insta::Settings::clone_current();
+
+	// The canonical path (`/private/var/...` on macOS) contains the plain
+	// one, so it is replaced first.
+	for path in [canonical_root.as_path(), root] {
+		settings.add_filter(&regex::escape(&path.to_string_lossy()), "[workspace]");
+	}
+
+	settings.bind(assertions);
 }
 
 #[rstest]
@@ -123,45 +436,418 @@ fn publish_dry_run_scopes_the_pub_dev_package_to_its_release_tag(
 	#[case] git_ref: &str,
 	#[case] npm_in_scope: bool,
 ) {
-	let workspace = setup_released_workspace();
-	let server = MockServer::start();
-	let npm_lookup = server.mock(|when, then| {
-		when.method(GET).path("/npm/web");
-		then.status(404);
-	});
-	let pub_dev_lookup = server.mock(|when, then| {
-		when.method(GET).path("/pub/packages/app_dart");
-		then.status(200).json_body(
-			serde_json::json!({ "name": "app_dart", "versions": [{ "version": "0.2.0" }] }),
-		);
-	});
+	let workspace = setup_released_workspace("workspace");
+	let registries = Registries::unpublished();
+	let npm_lookup = registries.npm("web");
+	let pub_dev_lookup = registries.pub_dev("app_dart");
 
-	let text = publish_dry_run(workspace.path(), &server, git_ref, "text");
-	assert!(
-		text.status.success(),
-		"publish dry run failed\nstdout:\n{}\nstderr:\n{}",
-		stdout_of(&text),
-		stderr_of(&text)
-	);
-	assert_snapshot!(format!("publish_dry_run_{name}_text"), stdout_of(&text));
-
-	let json = publish_dry_run(workspace.path(), &server, git_ref, "json");
-	assert!(
-		json.status.success(),
-		"publish dry run failed\nstdout:\n{}\nstderr:\n{}",
-		stdout_of(&json),
-		stderr_of(&json)
-	);
-	let value: Value = serde_json::from_slice(&json.stdout)
-		.unwrap_or_else(|error| panic!("parse publish json: {error}"));
-	assert_json_snapshot!(
-		format!("publish_dry_run_{name}_json"),
-		value["package_publish"]
+	snapshot_dry_run(
+		&format!("publish_dry_run_{name}"),
+		workspace.path(),
+		&registries,
+		GitHubRun::on(git_ref),
 	);
 
 	// A package that is out of scope for the run never reaches its registry.
 	assert_eq!(npm_lookup.calls() > 0, npm_in_scope, "npm lookups");
 	assert!(pub_dev_lookup.calls() > 0, "pub.dev lookups");
+}
+
+/// Finding 1 and layout L1: a pub.dev package that owns the primary tag
+/// publishes on it beside the npm and cargo packages.
+#[rstest]
+#[case::primary_tag(
+	"primary_tag",
+	"refs/tags/v0.2.1",
+	&["app_dart planned", "cli planned", "web planned"],
+)]
+#[case::npm_tag(
+	"npm_tag",
+	"refs/tags/web/v1.1.0",
+	&["app_dart deferred_to_tag wrong_ref v0.2.1", "cli planned", "web planned"],
+)]
+#[case::branch(
+	"branch",
+	"refs/heads/main",
+	&["app_dart deferred_to_tag wrong_ref_type v0.2.1", "cli planned", "web planned"],
+)]
+fn primary_pub_dev_package_publishes_beside_every_other_package(
+	#[case] name: &str,
+	#[case] git_ref: &str,
+	#[case] expected: &[&str],
+) {
+	let workspace = setup_released_workspace("dart-primary");
+	let registries = Registries::unpublished();
+	let lookups = [
+		registries.npm("web"),
+		registries.pub_dev("app_dart"),
+		registries.crates_io("cli"),
+	];
+	let run = GitHubRun::on(git_ref);
+
+	assert_eq!(
+		package_rows(&publish_dry_run_json(workspace.path(), &registries, run)),
+		expected
+	);
+	snapshot_dry_run(
+		&format!("dart_primary_{name}"),
+		workspace.path(),
+		&registries,
+		run,
+	);
+	assert!(lookups.iter().all(|lookup| lookup.calls() > 0));
+}
+
+/// Finding 3 and layout L2: a run on a non-primary group's tag publishes only
+/// the group's pub.dev package; the primary tag run publishes the rest.
+#[rstest]
+#[case::group_tag(
+	"group_tag",
+	"refs/tags/sdk/v1.1.0",
+	&["app_dart planned", "cli skipped_out_of_scope", "web skipped_out_of_scope"],
+)]
+#[case::primary_tag(
+	"primary_tag",
+	"refs/tags/v2.0.1",
+	&["app_dart deferred_to_tag wrong_ref sdk/v1.1.0", "cli planned", "web planned"],
+)]
+fn mixed_group_tag_publishes_only_its_pub_dev_member(
+	#[case] name: &str,
+	#[case] git_ref: &str,
+	#[case] expected: &[&str],
+) {
+	let workspace = setup_released_workspace("mixed-group");
+	let registries = Registries::unpublished();
+	let npm_lookup = registries.npm("web");
+	let crates_io_lookup = registries.crates_io("cli");
+	let pub_dev_lookup = registries.pub_dev("app_dart");
+	let run = GitHubRun::on(git_ref);
+	let package_publish = publish_dry_run_json(workspace.path(), &registries, run);
+
+	assert_eq!(package_rows(&package_publish), expected);
+	snapshot_dry_run(
+		&format!("mixed_group_{name}"),
+		workspace.path(),
+		&registries,
+		run,
+	);
+
+	let other_registries_in_scope = name == "primary_tag";
+	assert_eq!(
+		npm_lookup.calls() > 0,
+		other_registries_in_scope,
+		"npm lookups"
+	);
+	assert_eq!(
+		crates_io_lookup.calls() > 0,
+		other_registries_in_scope,
+		"crates.io lookups"
+	);
+	assert!(pub_dev_lookup.calls() > 0, "pub.dev lookups");
+
+	if !other_registries_in_scope {
+		// The out-of-scope line names the run that publishes the package.
+		for package in ["cli", "web"] {
+			assert!(
+				package_message(&package_publish, package).contains("`refs/tags/v2.0.1`"),
+				"{package}: {}",
+				package_message(&package_publish, package)
+			);
+		}
+	}
+}
+
+/// Layout L3: no primary owner; a standalone npm package and a standalone
+/// trusted pub.dev package, each with its own tag.
+#[rstest]
+#[case::npm_tag(
+	"npm_tag",
+	"refs/tags/web/v1.1.0",
+	&["app_dart deferred_to_tag wrong_ref app_dart/v0.2.1", "web planned"],
+)]
+#[case::pub_dev_tag(
+	"pub_dev_tag",
+	"refs/tags/app_dart/v0.2.1",
+	&["app_dart planned", "web skipped_out_of_scope"],
+)]
+#[case::branch(
+	"branch",
+	"refs/heads/main",
+	&["app_dart deferred_to_tag wrong_ref_type app_dart/v0.2.1", "web planned"],
+)]
+fn standalone_packages_without_a_primary_tag(
+	#[case] name: &str,
+	#[case] git_ref: &str,
+	#[case] expected: &[&str],
+) {
+	let workspace = setup_released_workspace("no-primary");
+	let registries = Registries::unpublished();
+	let npm_lookup = registries.npm("web");
+	let _pub_dev_lookup = registries.pub_dev("app_dart");
+	let run = GitHubRun::on(git_ref);
+	let package_publish = publish_dry_run_json(workspace.path(), &registries, run);
+
+	assert_eq!(package_rows(&package_publish), expected);
+	snapshot_dry_run(
+		&format!("no_primary_{name}"),
+		workspace.path(),
+		&registries,
+		run,
+	);
+	assert_eq!(npm_lookup.calls() > 0, name != "pub_dev_tag", "npm lookups");
+
+	if name == "pub_dev_tag" {
+		let message = package_message(&package_publish, "web");
+		assert!(message.contains("`refs/tags/web/v1.1.0`"), "{message}");
+	}
+}
+
+/// When the release creates no tag outside a pub.dev package's tag, the run
+/// on that tag is the release's only tag run, so it publishes every package.
+#[test]
+fn only_release_tag_publishes_every_package() {
+	let workspace = setup_released_workspace("shared-tag-only");
+	let registries = Registries::unpublished();
+	let _lookups = [registries.npm("web"), registries.pub_dev("app_dart")];
+
+	assert_eq!(
+		package_rows(&publish_dry_run_json(
+			workspace.path(),
+			&registries,
+			GitHubRun::on("refs/tags/sdk/v1.1.0"),
+		)),
+		["app_dart planned", "web planned"]
+	);
+}
+
+/// Finding 4: an empty `PUB_TOKEN` (an unset secret) is no credential, so the
+/// package stays bound to its tag.
+#[rstest]
+#[case::primary_tag(
+	"refs/tags/v1.1.0",
+	&["app_dart deferred_to_tag wrong_ref app_dart/v0.2.1", "web planned"],
+)]
+#[case::package_tag(
+	"refs/tags/app_dart/v0.2.1",
+	&["app_dart planned", "web skipped_out_of_scope"],
+)]
+fn empty_pub_token_keeps_the_package_bound_to_its_tag(
+	#[case] git_ref: &str,
+	#[case] expected: &[&str],
+) {
+	let workspace = setup_released_workspace("workspace");
+	let registries = Registries::unpublished();
+	let _lookups = [registries.npm("web"), registries.pub_dev("app_dart")];
+
+	assert_eq!(
+		package_rows(&publish_dry_run_json(
+			workspace.path(),
+			&registries,
+			GitHubRun::on(git_ref).pub_token(""),
+		)),
+		expected
+	);
+}
+
+/// A non-empty `PUB_TOKEN` publishes with the token, so no run is bound to
+/// the package's tag.
+#[test]
+fn pub_token_unbinds_the_package_from_its_tag() {
+	let workspace = setup_released_workspace("workspace");
+	let registries = Registries::unpublished();
+	let _lookups = [registries.npm("web"), registries.pub_dev("app_dart")];
+
+	assert_eq!(
+		package_rows(&publish_dry_run_json(
+			workspace.path(),
+			&registries,
+			GitHubRun::on("refs/tags/v1.1.0").pub_token("pub-token"),
+		)),
+		["app_dart planned", "web planned"]
+	);
+}
+
+/// Finding 5: monochange never plans an upload pub.dev rejects because of the
+/// run's event, its ref type, or a ref it cannot see.
+#[rstest]
+#[case::release_event_on_the_tag(
+	"release_event",
+	GitHubRun::on("refs/tags/app_dart/v0.2.1").event("release"),
+	&["app_dart deferred_to_tag wrong_event app_dart/v0.2.1", "web skipped_out_of_scope"],
+)]
+#[case::create_event_on_the_tag(
+	"create_event",
+	GitHubRun::on("refs/tags/app_dart/v0.2.1").event("create"),
+	&["app_dart deferred_to_tag wrong_event app_dart/v0.2.1", "web skipped_out_of_scope"],
+)]
+#[case::push_event_on_the_tag(
+	"push_event",
+	GitHubRun::on("refs/tags/app_dart/v0.2.1").event("push"),
+	&["app_dart planned", "web skipped_out_of_scope"],
+)]
+#[case::pull_request(
+	"pull_request",
+	GitHubRun::on("refs/pull/7/merge").event("pull_request"),
+	&["app_dart deferred_to_tag wrong_ref_type app_dart/v0.2.1", "web planned"],
+)]
+#[case::tag_ref_with_branch_ref_type(
+	"branch_ref_type",
+	GitHubRun::on("refs/tags/app_dart/v0.2.1").ref_type("branch"),
+	&["app_dart deferred_to_tag wrong_ref_type app_dart/v0.2.1", "web planned"],
+)]
+#[case::missing_ref(
+	"missing_ref",
+	GitHubRun::on("refs/tags/v1.1.0").without_ref(),
+	&["app_dart deferred_to_tag unknown_ref app_dart/v0.2.1", "web planned"],
+)]
+#[case::workflow_ref_without_actions_flag(
+	"workflow_ref_only",
+	GitHubRun::on("refs/tags/v1.1.0").without_github_actions_flag(),
+	&["app_dart deferred_to_tag wrong_ref app_dart/v0.2.1", "web planned"],
+)]
+fn pub_dev_package_defers_when_pub_dev_would_reject_the_run(
+	#[case] name: &str,
+	#[case] run: GitHubRun<'static>,
+	#[case] expected: &[&str],
+) {
+	let workspace = setup_released_workspace("workspace");
+	let registries = Registries::unpublished();
+	let _lookups = [registries.npm("web"), registries.pub_dev("app_dart")];
+	let package_publish = publish_dry_run_json(workspace.path(), &registries, run);
+
+	assert_eq!(package_rows(&package_publish), expected, "{name}");
+
+	if name == "release_event" {
+		// The message names what to change, not just the tag again.
+		let message = package_message(&package_publish, "app_dart");
+		assert!(message.contains("`release`"), "{message}");
+		assert!(message.contains("`workflow_dispatch`"), "{message}");
+		assert_snapshot!("wrong_event_message", message);
+	}
+}
+
+/// Finding 6: the rate-limit plan for a run counts only the packages the run
+/// publishes.
+#[test]
+fn rate_limit_plan_counts_only_packages_this_run_publishes() {
+	let workspace = setup_released_workspace("workspace");
+	let registries = Registries::unpublished();
+	let _lookups = [registries.npm("web"), registries.pub_dev("app_dart")];
+	let output = run_monochange(
+		workspace.path(),
+		&registries,
+		GitHubRun::on("refs/tags/v1.1.0"),
+		&["step", "plan-publish-rate-limits", "--format", "json"],
+	);
+	assert_success(&output, "plan-publish-rate-limits");
+	let value: Value = serde_json::from_slice(&output.stdout)
+		.unwrap_or_else(|error| panic!("parse rate-limit json: {error}"));
+	let planned_registries = value["publish_rate_limits"]["windows"]
+		.as_array()
+		.unwrap_or_else(|| panic!("windows: {value}"))
+		.iter()
+		.filter(|window| window["pending"].as_u64().unwrap_or_default() > 0)
+		.map(|window| window["registry"].as_str().unwrap_or_default().to_string())
+		.collect::<Vec<_>>();
+
+	assert_eq!(planned_registries, ["npm"], "{value}");
+}
+
+/// Finding 7: publish readiness checks every package of the release, whatever
+/// the ref of the run that checks it.
+#[rstest]
+#[case::package_tag("refs/tags/app_dart/v0.2.1")]
+#[case::primary_tag("refs/tags/v1.1.0")]
+fn readiness_checks_every_package_on_any_ref(#[case] git_ref: &str) {
+	let workspace = setup_released_workspace("readiness");
+	let registries = Registries::unpublished();
+	let _lookups = [
+		registries.npm_published("web", "1.1.0"),
+		registries.pub_dev_published("app_dart", "0.2.0"),
+		registries.crates_io("cli"),
+	];
+	let output = run_monochange(
+		workspace.path(),
+		&registries,
+		GitHubRun::on(git_ref),
+		&["publish", "readiness", "--from", "HEAD", "--format", "json"],
+	);
+	assert_success(&output, "publish readiness");
+	let value: Value = serde_json::from_slice(&output.stdout)
+		.unwrap_or_else(|error| panic!("parse readiness json: {error}"));
+	let mut statuses = value["packages"]
+		.as_array()
+		.unwrap_or_else(|| panic!("packages: {value}"))
+		.iter()
+		.map(|package| {
+			format!(
+				"{} {}",
+				package["package"].as_str().unwrap_or_default(),
+				package["status"].as_str().unwrap_or_default()
+			)
+		})
+		.collect::<Vec<_>>();
+	statuses.sort();
+
+	assert_eq!(
+		statuses,
+		["app_dart ready", "cli blocked", "web already_published"],
+		"{value}"
+	);
+}
+
+/// Finding 8: the deferral command dispatches the workflow pub.dev trusts for
+/// the package, and never renders an empty `--repo`.
+#[rstest]
+#[case::configured_workflow(
+	REPOSITORY,
+	"gh workflow run publish-dart.yml --repo example/pub-dev-release-tags --ref app_dart/v0.2.1"
+)]
+#[case::empty_repository("", "gh workflow run publish-dart.yml --ref app_dart/v0.2.1")]
+fn deferral_command_dispatches_the_trusted_workflow(
+	#[case] repository: &str,
+	#[case] expected: &str,
+) {
+	let workspace = setup_released_workspace("dart-workflow");
+	let registries = Registries::unpublished();
+	let _lookups = [registries.npm("web"), registries.pub_dev("app_dart")];
+	let package_publish = publish_dry_run_json(
+		workspace.path(),
+		&registries,
+		GitHubRun::on("refs/tags/v1.1.0").repository(repository),
+	);
+
+	assert_eq!(deferral_command(&package_publish, "app_dart"), expected);
+}
+
+/// Guard: a workspace with no tag-bound package publishes exactly as before
+/// on every ref. The snapshots hold the output of `origin/main` before the
+/// tag-scoped publishing change.
+#[rstest]
+#[case::branch("branch", "refs/heads/main")]
+#[case::primary_tag("primary_tag", "refs/tags/v1.1.0")]
+#[case::unrelated_tag("unrelated_tag", "refs/tags/unrelated/v9.9.9")]
+fn workspace_without_tag_bound_packages_publishes_as_before(
+	#[case] name: &str,
+	#[case] git_ref: &str,
+) {
+	let workspace = setup_released_workspace("no-tag-bound");
+	let registries = Registries::unpublished();
+	let _lookups = [
+		registries.npm("web"),
+		registries.pub_dev("app_dart"),
+		registries.crates_io("cli"),
+	];
+	let run = GitHubRun::on(git_ref);
+	let text = publish_dry_run(workspace.path(), &registries, run, "text");
+	assert_success(&text, "publish dry run");
+	let json = publish_dry_run(workspace.path(), &registries, run, "json");
+	assert_success(&json, "publish dry run");
+
+	with_workspace_path_redacted(workspace.path(), || {
+		assert_snapshot!(format!("no_tag_bound_{name}_text"), stdout_of(&text));
+		assert_snapshot!(format!("no_tag_bound_{name}_json"), stdout_of(&json));
+	});
 }
 
 #[test]
@@ -170,7 +856,6 @@ fn validate_rejects_trusted_pub_dev_package_without_release_tag() {
 	copy_directory(&fixture_path("missing-tag"), tempdir.path());
 
 	let output = monochange_command(tempdir.path())
-		.env_remove("PUB_TOKEN")
 		.args(["step", "validate"])
 		.output()
 		.unwrap_or_else(|error| panic!("run validate: {error}"));
@@ -182,4 +867,46 @@ fn validate_rejects_trusted_pub_dev_package_without_release_tag() {
 		stderr_of(&output)
 	);
 	assert_snapshot!("validate_missing_release_tag", stderr_of(&output));
+}
+
+/// Finding 10: validation reads configuration only, so a `PUB_TOKEN` in the
+/// environment does not exempt a trusted pub.dev package; the package must
+/// set `publish.trusted_publishing = false`.
+#[test]
+fn validate_ignores_pub_token_in_the_environment() {
+	let tempdir = TempDir::new().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	copy_directory(&fixture_path("missing-tag"), tempdir.path());
+
+	let output = monochange_command(tempdir.path())
+		.env("PUB_TOKEN", "pub-token")
+		.args(["step", "validate"])
+		.output()
+		.unwrap_or_else(|error| panic!("run validate: {error}"));
+
+	assert!(
+		!output.status.success(),
+		"validate should fail\nstdout:\n{}\nstderr:\n{}",
+		stdout_of(&output),
+		stderr_of(&output)
+	);
+	assert!(
+		stderr_of(&output).contains("set `publish.trusted_publishing = false`"),
+		"{}",
+		stderr_of(&output)
+	);
+}
+
+/// Finding 2: a private Dart package (`publish_to: none`) never publishes, so
+/// it needs no release tag.
+#[test]
+fn validate_accepts_private_dart_package_without_release_tag() {
+	let tempdir = TempDir::new().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	copy_directory(&fixture_path("private-package"), tempdir.path());
+
+	let output = monochange_command(tempdir.path())
+		.args(["step", "validate"])
+		.output()
+		.unwrap_or_else(|error| panic!("run validate: {error}"));
+
+	assert_success(&output, "validate");
 }

@@ -1,0 +1,11 @@
+---
+source: crates/monochange_integration_tests/tests/pub_dev_release_tags.rs
+assertion_line: 404
+expression: stdout_of(&text)
+---
+Would publish (3)
+  app_dart  0.2.1  pub_dev
+  cli       1.0.1  crates_io
+  web       1.1.0  npm
+
+• Would publish 3 packages · dry-run, no changes were made

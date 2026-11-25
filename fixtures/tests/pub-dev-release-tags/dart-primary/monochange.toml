@@ -1,0 +1,43 @@
+[defaults]
+parent_bump = "patch"
+changelog = false
+
+[source]
+provider = "github"
+owner = "example"
+repo = "pub-dev-release-tags"
+
+# The Dart package owns the primary release tag, `v{{ version }}`, so the
+# run on that tag publishes it beside every other package.
+[package.app_dart]
+path = "packages/app_dart"
+type = "dart"
+tag = true
+version_format = "primary"
+
+[package.web]
+path = "packages/web"
+type = "npm"
+tag = true
+
+[package.cli]
+path = "crates/cli"
+type = "cargo"
+
+[ecosystems.npm]
+enabled = true
+
+[ecosystems.dart]
+enabled = true
+
+[ecosystems.cargo]
+enabled = true
+
+[cli.commit-release]
+
+[[cli.commit-release.steps]]
+type = "PrepareRelease"
+
+[[cli.commit-release.steps]]
+type = "CommitRelease"
+update_release_json = true

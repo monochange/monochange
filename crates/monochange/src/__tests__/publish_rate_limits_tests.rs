@@ -47,6 +47,7 @@ async fn enforce_publish_rate_limits_blocks_multi_batch_runs_when_enabled() {
 				placeholder_readme: String::new(),
 				fail_on_duplicate: false,
 				release_tag: None,
+				run_scope: monochange_publish::PublishRunScope::Publish,
 			}
 		})
 		.collect::<Vec<_>>();

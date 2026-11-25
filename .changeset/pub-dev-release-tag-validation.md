@@ -23,4 +23,4 @@ type = "dart"
 tag = true
 ```
 
-Packages that publish with a `PUB_TOKEN`, set `publish.trusted_publishing = false`, or use `publish.mode = "external"` are unaffected.
+Validation reads only `monochange.toml`, so a package that publishes with a `PUB_TOKEN` must also set `publish.trusted_publishing = false` to pass. Packages that set `publish.trusted_publishing = false`, use `publish.mode = "external"`, or are private (`publish_to: none` in `pubspec.yaml`) are unaffected.

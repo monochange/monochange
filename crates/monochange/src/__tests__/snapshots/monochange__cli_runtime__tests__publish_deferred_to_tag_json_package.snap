@@ -1,10 +1,12 @@
 ---
 source: crates/monochange/src/__tests__/cli_runtime_tests.rs
+assertion_line: 1004
 expression: "package_publish[\"packages\"][1]"
 ---
 {
   "deferred_to": {
     "command": "gh workflow run publish.yml --repo owner/repo --ref dart_pkg/v0.2.1",
+    "reason": "wrong_ref",
     "ref": "refs/tags/dart_pkg/v0.2.1",
     "tag": "dart_pkg/v0.2.1"
   },

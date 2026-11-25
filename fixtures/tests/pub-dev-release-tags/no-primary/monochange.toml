@@ -1,0 +1,34 @@
+[defaults]
+parent_bump = "patch"
+changelog = false
+
+[source]
+provider = "github"
+owner = "example"
+repo = "pub-dev-release-tags"
+
+# No package owns the primary tag. Each package releases under its own tag.
+[package.web]
+path = "packages/web"
+type = "npm"
+tag = true
+
+[package.app_dart]
+path = "packages/app_dart"
+type = "dart"
+tag = true
+
+[ecosystems.npm]
+enabled = true
+
+[ecosystems.dart]
+enabled = true
+
+[cli.commit-release]
+
+[[cli.commit-release.steps]]
+type = "PrepareRelease"
+
+[[cli.commit-release.steps]]
+type = "CommitRelease"
+update_release_json = true

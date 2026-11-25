@@ -146,6 +146,7 @@ fn sample_publish_request_for_registry(registry: RegistryKind) -> PublishRequest
 		fail_on_duplicate: false,
 		placeholder_readme: "placeholder".to_string(),
 		release_tag: None,
+		run_scope: PublishRunScope::Publish,
 	}
 }
 
@@ -879,6 +880,7 @@ fn publish_order_request_for_package(package: &PackageRecord) -> PublishRequest 
 		fail_on_duplicate: false,
 		placeholder_readme: String::new(),
 		release_tag: None,
+		run_scope: PublishRunScope::Publish,
 	}
 }
 
@@ -963,12 +965,11 @@ fn process_command_executor_kills_command_exceeding_timeout() {
 }
 
 /// A pub.dev trusted-publishing request released under `tag`.
-fn tag_bound_request(package: &str, tag: Option<(&str, bool)>) -> PublishRequest {
+fn tag_bound_request(package: &str, tag: Option<&str>) -> PublishRequest {
 	let mut request = pub_dev_publish_request(package);
-	request.release_tag = tag.map(|(name, dedicated)| {
+	request.release_tag = tag.map(|name| {
 		PublishReleaseTag {
 			name: name.to_string(),
-			dedicated,
 		}
 	});
 	request
@@ -980,16 +981,40 @@ fn ref_free_request(package: &str, tag: Option<&str>) -> PublishRequest {
 	request.release_tag = tag.map(|name| {
 		PublishReleaseTag {
 			name: name.to_string(),
-			dedicated: false,
 		}
 	});
 	request
 }
 
+/// The tags a release creates: `primary` and `tags`.
+fn release_tags(primary: Option<&str>, tags: &[&str]) -> PublishReleaseTags {
+	PublishReleaseTags {
+		primary: primary.map(str::to_string),
+		tags: tags
+			.iter()
+			.copied()
+			.chain(primary)
+			.map(str::to_string)
+			.collect(),
+	}
+}
+
+/// The variables GitHub Actions sets for a `workflow_dispatch` run on
+/// `git_ref`.
 fn github_actions_env(git_ref: &str) -> BTreeMap<String, String> {
+	let ref_type = if git_ref.starts_with("refs/tags/") {
+		"tag"
+	} else {
+		"branch"
+	};
 	BTreeMap::from([
 		("GITHUB_ACTIONS".to_string(), "true".to_string()),
+		(
+			"GITHUB_EVENT_NAME".to_string(),
+			"workflow_dispatch".to_string(),
+		),
 		("GITHUB_REF".to_string(), git_ref.to_string()),
+		("GITHUB_REF_TYPE".to_string(), ref_type.to_string()),
 		("GITHUB_REPOSITORY".to_string(), "owner/repo".to_string()),
 		(
 			"GITHUB_WORKFLOW_REF".to_string(),
@@ -998,25 +1023,55 @@ fn github_actions_env(git_ref: &str) -> BTreeMap<String, String> {
 	])
 }
 
-fn deferred_scope(tag: &str) -> PublishRunScope {
-	PublishRunScope::DeferredToTag(PublishTagRun {
-		tag: tag.to_string(),
-		git_ref: format!("refs/tags/{tag}"),
-		command: format!("gh workflow run publish.yml --repo owner/repo --ref {tag}"),
-	})
+/// One word per scope, plus the reason and tag of a deferral.
+fn scope_summary(scope: &PublishRunScope) -> String {
+	match scope {
+		PublishRunScope::Publish => "publish".to_string(),
+		PublishRunScope::DeferredToTag { deferral, .. } => {
+			format!(
+				"deferred {} {}",
+				serde_json::to_value(deferral.reason)
+					.ok()
+					.and_then(|value| value.as_str().map(str::to_string))
+					.unwrap_or_default(),
+				deferral.tag
+			)
+		}
+		PublishRunScope::OutOfScope { .. } => "out_of_scope".to_string(),
+		PublishRunScope::MissingReleaseTag => "missing_release_tag".to_string(),
+	}
+}
+
+fn plan_summary(
+	requests: &[PublishRequest],
+	tags: &PublishReleaseTags,
+	env_map: &BTreeMap<String, String>,
+) -> Vec<String> {
+	plan_publish_run_scopes(requests, tags, env_map)
+		.iter()
+		.map(scope_summary)
+		.collect()
+}
+
+fn scope_message(scope: &PublishRunScope) -> &str {
+	match scope {
+		PublishRunScope::DeferredToTag { message, .. }
+		| PublishRunScope::OutOfScope { message } => message,
+		PublishRunScope::Publish | PublishRunScope::MissingReleaseTag => "",
+	}
 }
 
 #[test]
 fn plan_publish_run_scopes_publishes_everything_outside_github_actions() {
 	let requests = [
-		tag_bound_request("dart_pkg", Some(("dart_pkg/v1.0.0", true))),
+		tag_bound_request("dart_pkg", Some("dart_pkg/v1.0.0")),
 		tag_bound_request("untagged_dart", None),
 		ref_free_request("web", Some("v2.0.0")),
 	];
 	let env_map = BTreeMap::from([("GITHUB_REF".to_string(), "refs/tags/v2.0.0".to_string())]);
 
 	assert_eq!(
-		plan_publish_run_scopes(&requests, &env_map),
+		plan_publish_run_scopes(&requests, &release_tags(Some("v2.0.0"), &[]), &env_map),
 		vec![PublishRunScope::Publish; 3]
 	);
 	assert_eq!(github_actions_run_ref(&env_map), None);
@@ -1026,37 +1081,63 @@ fn plan_publish_run_scopes_publishes_everything_outside_github_actions() {
 fn plan_publish_run_scopes_defers_tag_bound_package_on_the_primary_tag() {
 	let requests = [
 		ref_free_request("web", Some("v2.0.0")),
-		tag_bound_request("dart_pkg", Some(("dart_pkg/v1.0.0", true))),
+		tag_bound_request("dart_pkg", Some("dart_pkg/v1.0.0")),
 		ref_free_request("untagged_web", None),
 	];
+	let scopes = plan_publish_run_scopes(
+		&requests,
+		&release_tags(Some("v2.0.0"), &["dart_pkg/v1.0.0"]),
+		&github_actions_env("refs/tags/v2.0.0"),
+	);
 
 	assert_eq!(
-		plan_publish_run_scopes(&requests, &github_actions_env("refs/tags/v2.0.0")),
-		vec![
-			PublishRunScope::Publish,
-			deferred_scope("dart_pkg/v1.0.0"),
-			PublishRunScope::Publish,
-		]
+		scopes.iter().map(scope_summary).collect::<Vec<_>>(),
+		["publish", "deferred wrong_ref dart_pkg/v1.0.0", "publish"]
+	);
+	assert_eq!(
+		scope_message(&scopes[1]),
+		"pub.dev only accepts dart_pkg 1.0.0 from a run on `refs/tags/dart_pkg/v1.0.0`, and this \
+		 run is on `refs/tags/v2.0.0`; publish it with `gh workflow run publish.yml --repo \
+		 owner/repo --ref dart_pkg/v1.0.0`"
 	);
 }
 
 #[test]
-fn plan_publish_run_scopes_publishes_only_the_dedicated_tag_packages_on_their_tag() {
+fn plan_publish_run_scopes_publishes_only_the_tag_bound_packages_on_their_tag() {
 	let requests = [
 		ref_free_request("web", Some("v2.0.0")),
-		tag_bound_request("dart_pkg", Some(("dart_pkg/v1.0.0", true))),
-		tag_bound_request("other_dart", Some(("other_dart/v3.0.0", true))),
-		tag_bound_request("untagged_dart", None),
+		tag_bound_request("dart_pkg", Some("dart_pkg/v1.0.0")),
+		tag_bound_request("other_dart", Some("other_dart/v3.0.0")),
+		ref_free_request("cli", None),
+		ref_free_request("schema", Some("schema/v0.4.0")),
 	];
+	let scopes = plan_publish_run_scopes(
+		&requests,
+		&release_tags(
+			Some("v2.0.0"),
+			&["dart_pkg/v1.0.0", "other_dart/v3.0.0", "schema/v0.4.0"],
+		),
+		&github_actions_env("refs/tags/dart_pkg/v1.0.0"),
+	);
 
 	assert_eq!(
-		plan_publish_run_scopes(&requests, &github_actions_env("refs/tags/dart_pkg/v1.0.0")),
-		vec![
-			PublishRunScope::OutOfScope,
-			PublishRunScope::Publish,
-			PublishRunScope::OutOfScope,
-			PublishRunScope::OutOfScope,
+		scopes.iter().map(scope_summary).collect::<Vec<_>>(),
+		[
+			"out_of_scope",
+			"publish",
+			"out_of_scope",
+			"out_of_scope",
+			"out_of_scope"
 		]
+	);
+	insta::assert_snapshot!(
+		"out_of_scope_messages_name_the_publishing_run",
+		scopes
+			.iter()
+			.map(scope_message)
+			.filter(|message| !message.is_empty())
+			.collect::<Vec<_>>()
+			.join("\n")
 	);
 }
 
@@ -1064,36 +1145,102 @@ fn plan_publish_run_scopes_publishes_only_the_dedicated_tag_packages_on_their_ta
 fn plan_publish_run_scopes_defers_on_unrelated_tags_and_branches() {
 	let requests = [
 		ref_free_request("web", Some("v2.0.0")),
-		tag_bound_request("dart_pkg", Some(("dart_pkg/v1.0.0", true))),
+		tag_bound_request("dart_pkg", Some("dart_pkg/v1.0.0")),
 	];
-	let expected = vec![PublishRunScope::Publish, deferred_scope("dart_pkg/v1.0.0")];
+	let tags = release_tags(Some("v2.0.0"), &["dart_pkg/v1.0.0"]);
 
 	assert_eq!(
-		plan_publish_run_scopes(&requests, &github_actions_env("refs/tags/unrelated/v9.9.9")),
-		expected
+		plan_summary(
+			&requests,
+			&tags,
+			&github_actions_env("refs/tags/unrelated/v9.9.9")
+		),
+		["publish", "deferred wrong_ref dart_pkg/v1.0.0"]
 	);
+
+	let scopes = plan_publish_run_scopes(&requests, &tags, &github_actions_env("refs/heads/main"));
 	assert_eq!(
-		plan_publish_run_scopes(&requests, &github_actions_env("refs/heads/main")),
-		expected
+		scopes.iter().map(scope_summary).collect::<Vec<_>>(),
+		["publish", "deferred wrong_ref_type dart_pkg/v1.0.0"]
+	);
+	assert!(
+		scope_message(&scopes[1]).contains("this run is on the branch `refs/heads/main`"),
+		"{}",
+		scope_message(&scopes[1])
 	);
 }
 
 #[test]
-fn plan_publish_run_scopes_publishes_every_member_of_a_shared_release_tag() {
+fn plan_publish_run_scopes_publishes_a_pub_dev_package_that_owns_the_primary_tag() {
 	let requests = [
-		ref_free_request("web", Some("v2.0.0")),
-		tag_bound_request("dart_pkg", Some(("v2.0.0", false))),
-		ref_free_request("schema", Some("schema/v0.4.0")),
+		tag_bound_request("dart_pkg", Some("v2.0.0")),
+		ref_free_request("web", Some("web/v1.1.0")),
+		ref_free_request("cli", None),
 	];
+	let tags = release_tags(Some("v2.0.0"), &["web/v1.1.0"]);
 
 	assert_eq!(
-		plan_publish_run_scopes(&requests, &github_actions_env("refs/tags/v2.0.0")),
-		vec![PublishRunScope::Publish; 3]
+		plan_summary(&requests, &tags, &github_actions_env("refs/tags/v2.0.0")),
+		["publish", "publish", "publish"]
+	);
+	assert_eq!(
+		plan_summary(
+			&requests,
+			&tags,
+			&github_actions_env("refs/tags/web/v1.1.0")
+		),
+		["deferred wrong_ref v2.0.0", "publish", "publish"]
 	);
 }
 
 #[test]
-fn plan_publish_run_scopes_ignores_tokens_external_and_untrusted_pub_dev_publishes() {
+fn plan_publish_run_scopes_scopes_a_mixed_group_tag_to_its_pub_dev_members() {
+	let requests = [
+		ref_free_request("cli", Some("v2.0.1")),
+		ref_free_request("web", Some("sdk/v1.1.0")),
+		tag_bound_request("dart_pkg", Some("sdk/v1.1.0")),
+	];
+	let tags = release_tags(Some("v2.0.1"), &["sdk/v1.1.0"]);
+	let scopes = plan_publish_run_scopes(
+		&requests,
+		&tags,
+		&github_actions_env("refs/tags/sdk/v1.1.0"),
+	);
+
+	assert_eq!(
+		scopes.iter().map(scope_summary).collect::<Vec<_>>(),
+		["out_of_scope", "out_of_scope", "publish"]
+	);
+	assert!(
+		scope_message(&scopes[1]).ends_with("web 1.0.0 publishes in the run on `refs/tags/v2.0.1`"),
+		"{}",
+		scope_message(&scopes[1])
+	);
+	assert_eq!(
+		plan_summary(&requests, &tags, &github_actions_env("refs/tags/v2.0.1")),
+		["publish", "publish", "deferred wrong_ref sdk/v1.1.0"]
+	);
+}
+
+#[test]
+fn plan_publish_run_scopes_publishes_everything_on_the_release_only_tag() {
+	let requests = [
+		ref_free_request("web", Some("sdk/v1.1.0")),
+		tag_bound_request("dart_pkg", Some("sdk/v1.1.0")),
+	];
+
+	assert_eq!(
+		plan_summary(
+			&requests,
+			&release_tags(None, &["sdk/v1.1.0"]),
+			&github_actions_env("refs/tags/sdk/v1.1.0")
+		),
+		["publish", "publish"]
+	);
+}
+
+#[test]
+fn plan_publish_run_scopes_binds_pub_dev_packages_without_a_pub_token() {
 	let external = {
 		let mut request = tag_bound_request("external_dart", None);
 		request.mode = PublishMode::External;
@@ -1104,62 +1251,289 @@ fn plan_publish_run_scopes_ignores_tokens_external_and_untrusted_pub_dev_publish
 		request.trusted_publishing.enabled = false;
 		request
 	};
-	let tagged = tag_bound_request("dart_pkg", Some(("dart_pkg/v1.0.0", true)));
+	let tagged = tag_bound_request("dart_pkg", Some("dart_pkg/v1.0.0"));
+	let tags = release_tags(Some("v2.0.0"), &["dart_pkg/v1.0.0"]);
 	let env_map = github_actions_env("refs/tags/v2.0.0");
 
 	assert_eq!(
-		plan_publish_run_scopes(&[external, untrusted], &env_map),
-		vec![PublishRunScope::Publish; 2]
+		plan_summary(&[external, untrusted], &tags, &env_map),
+		["publish", "publish"]
 	);
 
-	let mut token_env = env_map;
+	let mut token_env = env_map.clone();
 	token_env.insert(PUB_TOKEN_ENV_VAR.to_string(), "token".to_string());
 	assert!(!publish_is_tag_bound(&tagged, &token_env));
 	assert_eq!(
-		plan_publish_run_scopes(&[tagged], &token_env),
-		vec![PublishRunScope::Publish]
+		plan_summary(std::slice::from_ref(&tagged), &tags, &token_env),
+		["publish"]
+	);
+
+	// GitHub Actions passes an unset secret as an empty value.
+	let mut empty_token_env = env_map;
+	empty_token_env.insert(PUB_TOKEN_ENV_VAR.to_string(), String::new());
+	assert!(publish_is_tag_bound(&tagged, &empty_token_env));
+	assert_eq!(
+		plan_summary(&[tagged], &tags, &empty_token_env),
+		["deferred wrong_ref dart_pkg/v1.0.0"]
+	);
+}
+
+#[test]
+fn plan_publish_run_scopes_defers_runs_pub_dev_rejects_by_event_or_ref() {
+	let requests = [
+		ref_free_request("web", Some("v2.0.0")),
+		tag_bound_request("dart_pkg", Some("dart_pkg/v1.0.0")),
+	];
+	let tags = release_tags(Some("v2.0.0"), &["dart_pkg/v1.0.0"]);
+	let on_tag = github_actions_env("refs/tags/dart_pkg/v1.0.0");
+	let with = |name: &str, value: Option<&str>| {
+		let mut env_map = on_tag.clone();
+		match value {
+			Some(value) => env_map.insert(name.to_string(), value.to_string()),
+			None => env_map.remove(name),
+		};
+		env_map
+	};
+
+	let release_event = plan_publish_run_scopes(
+		&requests,
+		&tags,
+		&with("GITHUB_EVENT_NAME", Some("release")),
+	);
+	assert_eq!(
+		release_event.iter().map(scope_summary).collect::<Vec<_>>(),
+		["out_of_scope", "deferred wrong_event dart_pkg/v1.0.0"]
+	);
+	insta::assert_snapshot!(
+		"deferral_message_wrong_event",
+		scope_message(&release_event[1])
+	);
+
+	assert_eq!(
+		plan_summary(&requests, &tags, &with("GITHUB_EVENT_NAME", Some("push"))),
+		["out_of_scope", "publish"]
+	);
+	assert_eq!(
+		plan_summary(&requests, &tags, &with("GITHUB_EVENT_NAME", None)),
+		["out_of_scope", "publish"],
+		"an unknown event is not known to be rejected"
+	);
+	assert_eq!(
+		plan_summary(&requests, &tags, &with("GITHUB_REF_TYPE", Some("branch"))),
+		["publish", "deferred wrong_ref_type dart_pkg/v1.0.0"]
+	);
+
+	let unknown_ref = plan_publish_run_scopes(&requests, &tags, &with("GITHUB_REF", None));
+	assert_eq!(
+		unknown_ref.iter().map(scope_summary).collect::<Vec<_>>(),
+		["publish", "deferred unknown_ref dart_pkg/v1.0.0"]
+	);
+	insta::assert_snapshot!(
+		"deferral_message_unknown_ref",
+		scope_message(&unknown_ref[1])
+	);
+
+	let mut workflow_ref_only = github_actions_env("refs/tags/v2.0.0");
+	workflow_ref_only.remove("GITHUB_ACTIONS");
+	assert_eq!(
+		plan_summary(&requests, &tags, &workflow_ref_only),
+		["publish", "deferred wrong_ref dart_pkg/v1.0.0"],
+		"`GITHUB_WORKFLOW_REF` alone identifies a GitHub Actions run"
 	);
 }
 
 #[test]
 fn plan_publish_run_scopes_reports_tag_bound_packages_without_a_release_tag() {
-	let requests = [tag_bound_request("untagged_dart", None)];
+	let requests = [
+		tag_bound_request("untagged_dart", None),
+		tag_bound_request("dart_pkg", Some("dart_pkg/v1.0.0")),
+	];
+	let tags = release_tags(Some("v2.0.0"), &["dart_pkg/v1.0.0"]);
 
-	assert_eq!(
-		plan_publish_run_scopes(&requests, &github_actions_env("refs/tags/v2.0.0")),
-		vec![PublishRunScope::MissingReleaseTag]
-	);
+	for git_ref in ["refs/tags/v2.0.0", "refs/tags/dart_pkg/v1.0.0"] {
+		assert_eq!(
+			plan_publish_run_scopes(&requests, &tags, &github_actions_env(git_ref))[0],
+			PublishRunScope::MissingReleaseTag,
+			"{git_ref}"
+		);
+	}
 }
 
 #[test]
-fn deferred_publish_command_falls_back_when_the_workflow_is_unknown() {
-	let requests = [tag_bound_request(
-		"dart_pkg",
-		Some(("dart_pkg/v1.0.0", true)),
-	)];
+fn plan_publish_run_scopes_never_scopes_a_release_without_tag_bound_packages() {
+	let requests = [
+		ref_free_request("web", Some("v2.0.0")),
+		ref_free_request("cli", Some("cli/v1.0.1")),
+		{
+			let mut request = tag_bound_request("token_dart", Some("token_dart/v0.2.1"));
+			request.trusted_publishing.enabled = false;
+			request
+		},
+	];
+	let tags = release_tags(Some("v2.0.0"), &["cli/v1.0.1", "token_dart/v0.2.1"]);
+
+	for git_ref in [
+		"refs/heads/main",
+		"refs/tags/v2.0.0",
+		"refs/tags/cli/v1.0.1",
+		"refs/tags/token_dart/v0.2.1",
+		"refs/tags/unrelated/v9.9.9",
+	] {
+		assert_eq!(
+			plan_publish_run_scopes(&requests, &tags, &github_actions_env(git_ref)),
+			vec![PublishRunScope::Publish; 3],
+			"{git_ref}"
+		);
+	}
+}
+
+#[test]
+fn deferral_command_dispatches_the_workflow_pub_dev_trusts() {
+	let mut request = tag_bound_request("dart_pkg", Some("dart_pkg/v1.0.0"));
+	let tags = release_tags(Some("v2.0.0"), &["dart_pkg/v1.0.0"]);
+	let command = |request: &PublishRequest, env_map: &BTreeMap<String, String>| {
+		match &plan_publish_run_scopes(std::slice::from_ref(request), &tags, env_map)[0] {
+			PublishRunScope::DeferredToTag { deferral, .. } => deferral.command.clone(),
+			other => panic!("expected a deferral, got {other:?}"),
+		}
+	};
 	let mut env_map = BTreeMap::from([
 		("GITHUB_ACTIONS".to_string(), "true".to_string()),
 		("GITHUB_REF".to_string(), "refs/tags/v2.0.0".to_string()),
 	]);
 
-	let PublishRunScope::DeferredToTag(tag_run) = &plan_publish_run_scopes(&requests, &env_map)[0]
-	else {
-		panic!("expected a deferred package");
-	};
 	assert_eq!(
-		tag_run.command,
+		command(&request, &env_map),
 		"gh workflow run <workflow> --ref dart_pkg/v1.0.0"
 	);
 
 	env_map.insert("GITHUB_WORKFLOW".to_string(), "publish".to_string());
-	let PublishRunScope::DeferredToTag(tag_run) = &plan_publish_run_scopes(&requests, &env_map)[0]
-	else {
-		panic!("expected a deferred package");
-	};
+	env_map.insert("GITHUB_REPOSITORY".to_string(), String::new());
 	assert_eq!(
-		tag_run.command,
-		"gh workflow run publish --ref dart_pkg/v1.0.0"
+		command(&request, &env_map),
+		"gh workflow run publish --ref dart_pkg/v1.0.0",
+		"an empty repository renders no `--repo`"
 	);
+
+	request.trusted_publishing.workflow = Some("publish-dart.yml".to_string());
+	request.trusted_publishing.repository = Some("owner/dart".to_string());
+	assert_eq!(
+		command(&request, &github_actions_env("refs/tags/v2.0.0")),
+		"gh workflow run publish-dart.yml --repo owner/dart --ref dart_pkg/v1.0.0"
+	);
+}
+
+/// Property: whatever packages, tags, and run ref a release has, the run on
+/// the primary tag publishes every package that is not tag-bound, a release
+/// without tag-bound packages is never scoped, and a package that is out of
+/// scope names a run of the release that publishes it.
+#[test]
+fn plan_publish_run_scopes_never_skips_a_package_silently() {
+	const PRIMARY: &str = "v2.0.0";
+	let tag_choices = [None, Some(PRIMARY), Some("a/v1.0.0"), Some("b/v1.0.0")];
+	let package_choices = tag_choices
+		.iter()
+		.flat_map(|tag| [(true, *tag), (false, *tag)])
+		.collect::<Vec<_>>();
+	let run_refs = [
+		"refs/tags/v2.0.0",
+		"refs/tags/a/v1.0.0",
+		"refs/tags/b/v1.0.0",
+		"refs/tags/x/v9.9.9",
+		"refs/heads/main",
+	];
+	let mut checked = 0_usize;
+
+	for first in &package_choices {
+		for second in &package_choices {
+			for third in &package_choices {
+				let requests = [("p1", first), ("p2", second), ("p3", third)]
+					.into_iter()
+					.map(|(name, (bound, tag))| {
+						if *bound {
+							tag_bound_request(name, *tag)
+						} else {
+							ref_free_request(name, *tag)
+						}
+					})
+					.collect::<Vec<_>>();
+
+				for primary in [Some(PRIMARY), None] {
+					let tags = PublishReleaseTags {
+						primary: primary.map(str::to_string),
+						tags: requests
+							.iter()
+							.filter_map(|request| request.release_tag.as_ref())
+							.map(|tag| tag.name.clone())
+							.chain(primary.map(str::to_string))
+							.collect(),
+					};
+
+					for run_ref in run_refs {
+						let env_map = github_actions_env(run_ref);
+						let scopes = plan_publish_run_scopes(&requests, &tags, &env_map);
+						let any_bound = requests
+							.iter()
+							.any(|request| publish_is_tag_bound(request, &env_map));
+
+						for (request, scope) in requests.iter().zip(&scopes) {
+							let bound = publish_is_tag_bound(request, &env_map);
+							let case = format!(
+								"{} (bound {bound}, tag {:?}) on {run_ref}, primary {primary:?}: \
+								 {scope:?}",
+								request.package_id, request.release_tag
+							);
+
+							if primary.is_some() && run_ref == "refs/tags/v2.0.0" && !bound {
+								assert_eq!(*scope, PublishRunScope::Publish, "{case}");
+							}
+
+							if !any_bound {
+								assert_eq!(*scope, PublishRunScope::Publish, "{case}");
+							}
+
+							if let PublishRunScope::OutOfScope { message } = scope {
+								// The message ends with the run that publishes the
+								// package: a dispatch on its own tag, or the run
+								// on another tag of the release.
+								let publishing_tag = message
+									.rsplit_once(" --ref ")
+									.or_else(|| {
+										message.rsplit_once("publishes in the run on `refs/tags/")
+									})
+									.and_then(|(_, rest)| rest.split('`').next())
+									.unwrap_or_else(|| panic!("no publishing run: {case}"));
+								assert!(
+									tags.tags.contains(publishing_tag),
+									"{case}: `{publishing_tag}` is not a tag of the release"
+								);
+								let on_publishing_tag = plan_publish_run_scopes(
+									&requests,
+									&tags,
+									&github_actions_env(&format!("refs/tags/{publishing_tag}")),
+								);
+								let index = requests
+									.iter()
+									.position(|candidate| {
+										candidate.package_id == request.package_id
+									})
+									.unwrap_or_default();
+								assert_eq!(
+									on_publishing_tag[index],
+									PublishRunScope::Publish,
+									"{case}: the run on `{publishing_tag}` does not publish it"
+								);
+							}
+
+							checked += 1;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	assert_eq!(checked, 8 * 8 * 8 * 2 * run_refs.len() * 3);
 }
 
 #[test]
@@ -1175,7 +1549,7 @@ fn missing_release_tag_message_names_the_owner_section() {
 }
 
 #[test]
-fn summary_counts_deferred_and_out_of_scope_packages_and_resume_keeps_out_of_scope() {
+fn summary_counts_deferred_and_out_of_scope_packages_and_resume_retries_them() {
 	let report = PackagePublishReport {
 		mode: PackagePublishRunMode::Release,
 		dry_run: false,
@@ -1201,13 +1575,28 @@ fn summary_counts_deferred_and_out_of_scope_packages_and_resume_keeps_out_of_sco
 	assert_eq!(summary.deferred, 1);
 	assert_eq!(summary.out_of_scope, 1);
 	assert_eq!(summary.total(), 2);
+	assert_eq!(summary.this_run(), 0);
 	assert!(ensure_publish_report_succeeded(&report).is_ok());
-	assert!(package_publish_status_is_resumable_complete(
+	assert!(!package_publish_status_is_resumable_complete(
 		PackagePublishStatus::SkippedOutOfScope
 	));
 	assert!(!package_publish_status_is_resumable_complete(
 		PackagePublishStatus::DeferredToTag
 	));
+}
+
+#[test]
+fn summary_omits_zero_deferred_and_out_of_scope_counts_from_json() {
+	let summary = PackagePublishReport {
+		mode: PackagePublishRunMode::Release,
+		dry_run: true,
+		packages: Vec::new(),
+	}
+	.summary();
+	let json = serde_json::to_value(summary).unwrap_or_else(|error| panic!("summary: {error}"));
+
+	assert_eq!(json.get("deferred"), None);
+	assert_eq!(json.get("out_of_scope"), None);
 }
 
 fn registry_endpoints(server: &httpmock::MockServer) -> RegistryEndpoints {
@@ -1225,6 +1614,8 @@ fn successful_command_output(stdout: &str) -> CommandOutput {
 	}
 }
 
+/// Plan `requests` for the run in `env_map`, as a release whose primary tag
+/// is `v2.0.0`, then execute them.
 async fn execute_with_env(
 	requests: &[PublishRequest],
 	dry_run: bool,
@@ -1232,12 +1623,21 @@ async fn execute_with_env(
 	env_map: &BTreeMap<String, String>,
 	executor: &mut SequencedCommandExecutor,
 ) -> PackagePublishExecutionResult {
+	let mut requests = requests.to_vec();
+	let request_tags = requests
+		.iter()
+		.filter_map(|request| request.release_tag.as_ref())
+		.map(|tag| tag.name.as_str())
+		.collect::<Vec<_>>();
+	let tags = release_tags(Some("v2.0.0"), &request_tags);
+	assign_publish_run_scopes(&mut requests, &tags, env_map);
+
 	try_execute_publish_requests_with_progress(
 		Path::new("."),
 		None,
 		PackagePublishRunMode::Release,
 		dry_run,
-		requests,
+		&requests,
 		&registry_client().unwrap(),
 		endpoints,
 		env_map,
@@ -1264,7 +1664,7 @@ async fn deferred_pub_dev_package_does_not_stop_later_packages() {
 		then.status(404);
 	});
 	let requests = [
-		tag_bound_request("dart_pkg", Some(("dart_pkg/v1.0.0", true))),
+		tag_bound_request("dart_pkg", Some("dart_pkg/v1.0.0")),
 		ref_free_request("web", Some("v2.0.0")),
 	];
 	let mut executor =
@@ -1288,7 +1688,8 @@ async fn deferred_pub_dev_package_does_not_stop_later_packages() {
 	);
 	assert_eq!(
 		report.packages[0].deferred_to,
-		Some(PublishTagRun {
+		Some(PublishDeferral {
+			reason: PublishDeferralReason::WrongRef,
 			tag: "dart_pkg/v1.0.0".to_string(),
 			git_ref: "refs/tags/dart_pkg/v1.0.0".to_string(),
 			command: "gh workflow run publish.yml --repo owner/repo --ref dart_pkg/v1.0.0"
@@ -1309,7 +1710,7 @@ async fn deferred_pub_dev_package_does_not_stop_later_packages() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn dedicated_tag_run_publishes_its_package_without_touching_other_registries() {
+async fn pub_dev_tag_run_publishes_its_package_without_touching_other_registries() {
 	let server = httpmock::MockServer::start();
 	let dart_lookup = server.mock(|when, then| {
 		when.method(httpmock::Method::GET)
@@ -1322,7 +1723,7 @@ async fn dedicated_tag_run_publishes_its_package_without_touching_other_registri
 	});
 	let requests = [
 		ref_free_request("web", Some("v2.0.0")),
-		tag_bound_request("dart_pkg", Some(("dart_pkg/v1.0.0", true))),
+		tag_bound_request("dart_pkg", Some("dart_pkg/v1.0.0")),
 	];
 	let mut executor =
 		SequencedCommandExecutor::new([Ok(successful_command_output("published dart_pkg"))]);
@@ -1335,7 +1736,7 @@ async fn dedicated_tag_run_publishes_its_package_without_touching_other_registri
 		&mut executor,
 	)
 	.await
-	.unwrap_or_else(|failure| panic!("dedicated tag run: {failure}"));
+	.unwrap_or_else(|failure| panic!("pub.dev tag run: {failure}"));
 
 	npm_lookup.assert_calls(0);
 	dart_lookup.assert();
@@ -1344,9 +1745,11 @@ async fn dedicated_tag_run_publishes_its_package_without_touching_other_registri
 		PackagePublishStatus::SkippedOutOfScope
 	);
 	assert!(
-		report.packages[0]
-			.message
-			.contains("`refs/tags/dart_pkg/v1.0.0` is another package's release tag")
+		report.packages[0].message.contains(
+			"`refs/tags/dart_pkg/v1.0.0` is the release tag of trusted pub.dev package `dart_pkg`"
+		),
+		"{}",
+		report.packages[0].message
 	);
 	assert_eq!(report.packages[1].status, PackagePublishStatus::Published);
 	assert_eq!(
@@ -1428,7 +1831,7 @@ async fn deferred_package_with_an_existing_version_skips_duplicate_rejection() {
 		then.status(200)
 			.json_body(serde_json::json!({ "versions": [{ "version": "1.0.0" }] }));
 	});
-	let mut request = tag_bound_request("dart_pkg", Some(("dart_pkg/v1.0.0", true)));
+	let mut request = tag_bound_request("dart_pkg", Some("dart_pkg/v1.0.0"));
 	request.fail_on_duplicate = true;
 	let mut executor = SequencedCommandExecutor::new([]);
 
@@ -1937,4 +2340,141 @@ async fn registry_version_exists_treats_any_published_maven_artifact_as_placehol
 	thread
 		.join()
 		.unwrap_or_else(|_| panic!("maven thread panicked"));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn pub_token_publish_keeps_the_token_and_mints_no_oidc_token() {
+	let server = httpmock::MockServer::start();
+	server.mock(|when, then| {
+		when.method(httpmock::Method::GET).path("/packages/pkg");
+		then.status(404);
+	});
+	let oidc = server.mock(|when, then| {
+		when.path("/token");
+		then.status(200)
+			.json_body(serde_json::json!({ "count": 1, "value": "actions-jwt" }));
+	});
+	let mut env_map = actions_oidc_env_map(&server.base_url(), "runner-secret");
+	env_map.insert(PUB_TOKEN_ENV_VAR.to_string(), "pub-token".to_string());
+	let mut executor =
+		SequencedCommandExecutor::new([Ok(successful_command_output("published pkg"))]);
+
+	let report = execute_with_env(
+		&[trusted_pub_dev_publish_request("pkg")],
+		false,
+		&registry_endpoints(&server),
+		&env_map,
+		&mut executor,
+	)
+	.await
+	.unwrap_or_else(|failure| panic!("token publish: {failure}"));
+
+	oidc.assert_calls(0);
+	assert_eq!(executor.commands.len(), 1, "only `dart pub publish` runs");
+	assert_eq!(executor.commands[0].program, "dart");
+	assert_eq!(executor.commands[0].env.get(PUB_TOKEN_ENV_VAR), None);
+	assert_eq!(report.packages[0].status, PackagePublishStatus::Published);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn dry_run_blocks_missing_release_tag_before_checking_the_registry() {
+	let server = httpmock::MockServer::start();
+	let lookup = server.mock(|when, then| {
+		when.method(httpmock::Method::GET)
+			.path("/packages/untagged_dart");
+		then.status(200)
+			.json_body(serde_json::json!({ "versions": [{ "version": "1.0.0" }] }));
+	});
+	let mut executor = SequencedCommandExecutor::new([]);
+
+	let report = execute_with_env(
+		&[tag_bound_request("untagged_dart", None)],
+		true,
+		&registry_endpoints(&server),
+		&github_actions_env("refs/tags/v2.0.0"),
+		&mut executor,
+	)
+	.await
+	.unwrap_or_else(|failure| panic!("dry run: {failure}"));
+
+	// A real run aborts on the missing tag before any registry request; the
+	// dry run reports the same problem instead of `already exists`.
+	assert_eq!(report.packages[0].status, PackagePublishStatus::Blocked);
+	lookup.assert_calls(0);
+}
+
+fn rate_limit_test_outcome(
+	package: &str,
+	status: PackagePublishStatus,
+	rate_limit: Option<PublishRateLimitHit>,
+) -> PackagePublishOutcome {
+	PackagePublishOutcome {
+		package: package.to_string(),
+		ecosystem: Ecosystem::Dart,
+		registry: RegistryKind::PubDev.to_string(),
+		version: "1.0.0".to_string(),
+		status,
+		message: "outcome".to_string(),
+		placeholder: false,
+		trusted_publishing: disabled_trust_outcome(),
+		command: None,
+		stdout: None,
+		stderr: None,
+		rate_limit,
+		deferred_to: None,
+	}
+}
+
+#[test]
+fn rate_limit_message_counts_only_the_packages_this_run_publishes() {
+	let report = PackagePublishReport {
+		mode: PackagePublishRunMode::Release,
+		dry_run: false,
+		packages: vec![
+			rate_limit_test_outcome("done", PackagePublishStatus::Published, None),
+			rate_limit_test_outcome("web", PackagePublishStatus::SkippedOutOfScope, None),
+			rate_limit_test_outcome("cli", PackagePublishStatus::SkippedOutOfScope, None),
+			rate_limit_test_outcome("other_dart", PackagePublishStatus::DeferredToTag, None),
+			rate_limit_test_outcome(
+				"limited",
+				PackagePublishStatus::Failed,
+				Some(PublishRateLimitHit {
+					reason: None,
+					retry_at: None,
+					docs_url: None,
+				}),
+			),
+		],
+	};
+	let now = chrono::DateTime::parse_from_rfc3339("2026-10-20T10:53:00Z")
+		.unwrap_or_else(|error| panic!("now: {error}"))
+		.with_timezone(&chrono::Utc);
+
+	let error = ensure_publish_report_succeeded_at(&report, now)
+		.expect_err("rate-limited report should fail")
+		.to_string();
+
+	assert!(error.contains("1 of 2 packages published"), "{error}");
+	assert!(error.contains("(1 package left)"), "{error}");
+}
+
+#[test]
+fn failed_run_summary_counts_deferred_and_out_of_scope_packages() {
+	let report = PackagePublishReport {
+		mode: PackagePublishRunMode::Release,
+		dry_run: false,
+		packages: vec![
+			rate_limit_test_outcome("web", PackagePublishStatus::SkippedOutOfScope, None),
+			rate_limit_test_outcome("other_dart", PackagePublishStatus::DeferredToTag, None),
+			rate_limit_test_outcome("broken", PackagePublishStatus::Failed, None),
+		],
+	};
+
+	let error = ensure_publish_report_succeeded(&report)
+		.expect_err("failed report")
+		.to_string();
+
+	assert!(error.contains("3 total"), "{error}");
+	assert!(error.contains("1 deferred to release tags"), "{error}");
+	assert!(error.contains("1 out of scope for this ref"), "{error}");
 }

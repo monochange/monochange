@@ -1,0 +1,4 @@
+#!/bin/sh
+# Stand-in for cargo: the dry run only needs `cargo publish --dry-run` to
+# succeed without touching crates.io.
+echo "   Packaging cli"

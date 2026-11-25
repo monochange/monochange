@@ -432,8 +432,8 @@ registry = "pub.dev"
 
 pub.dev only accepts a package from a run on that package's own release tag (see [How monochange publishes to pub.dev](./07-trusted-publishing.md#how-monochange-publishes-to-pubdev)). Give every trusted pub.dev package its own tag with `tag = true` (or use a group whose tag it shares), and run publishing from tags rather than from `main`:
 
-1. Run the publish workflow on the release's primary tag. monochange publishes every package it can and marks each pub.dev package that needs another tag as `deferred_to_tag`; the run still succeeds.
-2. Dispatch the same workflow once for each deferred tag. On a package's own tag, monochange publishes only the packages released under that tag and marks the rest `skipped_out_of_scope`, so the dispatched run never republishes to other registries.
+1. Run the publish workflow on the release's primary tag. monochange publishes every other package, and a pub.dev package that owns the primary tag. It marks each pub.dev package that needs another tag as `deferred_to_tag`, and the run still succeeds.
+2. Dispatch the same workflow once for each deferred tag. On a pub.dev package's own tag, monochange publishes only the trusted pub.dev packages released under that tag. It marks the rest `skipped_out_of_scope` and names the run that publishes each one, so the dispatched run never republishes to other registries.
 
 The package tags must exist on GitHub before the dispatch; `monochange tag-release` creates every release tag, package tags included. On pub.dev, open each package's admin page and enable publishing from `workflow_dispatch` events, with the package's tag pattern (for example `my_package/v{{version}}`).
 
@@ -480,7 +480,7 @@ jobs:
             done
 ```
 
-The `deferred_to.command` field in the result holds the same `gh workflow run` command for one package, for when you dispatch by hand. If a dispatched run fails, rerun that workflow run: it is already on the package's tag.
+The `deferred_to.command` field in the result holds the `gh workflow run` command for one package, for when you dispatch by hand. It dispatches `publish.trusted_publishing.workflow` when the package sets one, so dispatch that workflow instead of `publish.yml` for such packages. `deferred_to.reason` says why the run could not publish the package: `wrong_ref`, `wrong_ref_type`, `wrong_event`, or `unknown_ref`. If a dispatched run fails, rerun that workflow run: it is already on the package's tag.
 
 More copy-pasteable registry-native example:
 
