@@ -6,13 +6,11 @@ FROM rust:1-slim-bookworm AS toolchain
 # The app workspace builds on nightly (edition 2024).
 ARG NIGHTLY_TOOLCHAIN=nightly-2026-05-08
 
-# Install build dependencies. binaryen supplies `wasm-opt` for the leptoskit
-# release builds (upstream: "sudo apt install binaryen"); jq reads the
-# leptoskit CLI pin from [workspace.metadata.bin] so the image never copies
-# the revision into this file.
+# Install build dependencies. jq reads the leptoskit CLI pin from
+# [workspace.metadata.bin] so the image never copies the revision into this
+# file.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        binaryen \
         brotli \
         jq \
         perl \
@@ -22,8 +20,28 @@ RUN apt-get update \
         curl \
         ca-certificates \
         xz-utils \
-    && rm -rf /var/lib/apt/lists/* \
-    && wasm-opt --version
+    && rm -rf /var/lib/apt/lists/*
+
+# Pinned Binaryen release for the `wasm-opt` the leptoskit release builds and
+# the tooling plugin run, never Debian's package: bookworm ships binaryen 108,
+# whose binary writer encodes every table export as table 0 (fixed upstream in
+# version_110). wasm-bindgen exports its externref table as
+# `__wbindgen_externrefs` beside the function table, so binaryen 108 pointed
+# that export at the fixed-size function table and the glue's first
+# `table.grow` failed in every browser. version_132 is the release devenv
+# provides, so local and image builds optimize with the same Binaryen. Verify
+# the release digest before extracting its statically linked wasm-opt.
+RUN arch="$(dpkg --print-architecture)" \
+    && case "$arch" in \
+        amd64) binaryen_arch=x86_64; binaryen_sha=195ddc94f9bc89f45abdabb0b9eea86023d727ba90eac8b35b80f2544fc30572 ;; \
+        arm64) binaryen_arch=aarch64; binaryen_sha=c58562417836c5d0493d89bdefc434933bdc097db641b483df86bcfa557a107f ;; \
+        *) echo "unsupported architecture: $arch" >&2; exit 1 ;; \
+    esac \
+    && curl -fsSL "https://github.com/WebAssembly/binaryen/releases/download/version_132/binaryen-version_132-${binaryen_arch}-linux.tar.gz" -o /tmp/binaryen.tar.gz \
+    && printf '%s  /tmp/binaryen.tar.gz\n' "$binaryen_sha" | sha256sum -c - \
+    && tar -xzf /tmp/binaryen.tar.gz -C /usr/local --strip-components=1 --no-same-owner binaryen-version_132/bin/wasm-opt \
+    && rm -f /tmp/binaryen.tar.gz \
+    && wasm-opt --version | grep -Fx 'wasm-opt version 132 (version_132)'
 
 RUN rustup toolchain install ${NIGHTLY_TOOLCHAIN} \
     && rustup default ${NIGHTLY_TOOLCHAIN} \
