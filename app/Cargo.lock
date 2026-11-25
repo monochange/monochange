@@ -3992,7 +3992,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_app"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "ammonia",
  "any_spawner",
@@ -4054,7 +4054,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_app_api"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "aes-gcm",
  "axum",
@@ -4095,7 +4095,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_app_automation"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "async-trait",
  "chrono",
@@ -4111,7 +4111,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_app_db"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "chrono",
  "hex",
@@ -4131,7 +4131,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_app_feedback"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "schemars",
  "serde",
@@ -4141,7 +4141,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_backend"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "axum",
  "monochange_app_api",
@@ -4299,7 +4299,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_shared"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "base64 0.22.1",
  "rstest",
