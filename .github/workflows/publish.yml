@@ -365,12 +365,8 @@ jobs:
             --packages-dir packages
         shell: bash -e {0}
 
-      # Pinned to an untagged commit: v0.12.0's root action metadata cannot be
-      # loaded (a literal template expression sat in an input description), and
-      # that fix only exists on main. Move both action pins below to the next
-      # tagged release once one exists.
       - name: check publish readiness
-        uses: monochange/actions@1dcb73d091af7649639bc0d35071f203758c7bc8 # main after v0.12.0 (untagged)
+        uses: monochange/actions@e8e9cb1c5213b777a39993716985fab25b2bb78e # v0.12.1
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.crates-oidc.outputs.token }}
         with:
@@ -396,7 +392,7 @@ jobs:
           cache: false
 
       - name: publish packages
-        uses: monochange/actions@1dcb73d091af7649639bc0d35071f203758c7bc8 # main after v0.12.0 (untagged)
+        uses: monochange/actions@e8e9cb1c5213b777a39993716985fab25b2bb78e # v0.12.1
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.crates-oidc.outputs.token }}
         with:
