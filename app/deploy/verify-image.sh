@@ -81,8 +81,10 @@ done
 if [ -n "$version" ]; then
 	curl --fail --silent --show-error "${base}/releases/$version.json" |
 		jq -e --arg version "$version" '.title == $version'
-	# Buffer the page before matching: `curl | grep -q` lets grep exit on the
-	# first match and SIGPIPE the transfer into a false failure.
+	# Never pipe into `grep -q` under `pipefail`: grep exits on the first match,
+	# the writer fails with EPIPE on the rest of a stream larger than the pipe
+	# buffer, and the pipeline reports that as a false failure. Buffer the page
+	# and match it from a here-string, which needs no pipe at all.
 	changelog="$(curl --fail --silent --show-error "${base}/changelog")"
-	printf '%s\n' "$changelog" | grep -Fq "v$version"
+	grep -Fq "v$version" <<<"$changelog"
 fi

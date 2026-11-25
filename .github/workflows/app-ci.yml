@@ -182,8 +182,17 @@ jobs:
         with:
           node-version: 24
 
+      # verify-image.sh only checks the release identity and the changelog when
+      # it receives the app version, which the release deploy used to be alone
+      # in passing. Read the workspace version so every run covers that block.
       - name: verify deployment image
-        run: app/deploy/verify-image.sh monochange-app:smoke
+        run: |
+          set -euo pipefail
+          version="$(awk -F'"' '/^\[workspace\.package\]$/ { found = 1; next }
+            /^\[/ { found = 0 }
+            found && $1 == "version = " { print $2; exit }' app/Cargo.toml)"
+          test -n "$version"
+          app/deploy/verify-image.sh monochange-app:smoke "$version"
 
       # Only after the smoke check passed, stamp the exact full-SHA tag so
       # `docker load` on the Droplet restores precisely this image.
