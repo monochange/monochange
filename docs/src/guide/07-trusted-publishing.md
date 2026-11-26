@@ -490,13 +490,13 @@ So a run on one tag can only publish the pub.dev packages whose tag pattern rend
 
 ### How monochange publishes to pub.dev
 
-monochange applies the pub.dev rule before it uploads anything. A Dart or Flutter package is **tag-bound** when monochange publishes it to pub.dev with trusted publishing: the built-in publisher, `publish.trusted_publishing` on (the default), and no `PUB_TOKEN` in the environment. An empty `PUB_TOKEN`, which GitHub Actions passes for an unset secret, does not count. For every GitHub Actions run, monochange decides which packages the run publishes:
+monochange applies the pub.dev rule before it uploads anything. A Dart or Flutter package is **tag-bound** when monochange publishes it to pub.dev with trusted publishing: the built-in publisher, `publish.trusted_publishing` on (the default), and no `PUB_TOKEN` in the environment. An empty `PUB_TOKEN`, which GitHub Actions passes for an unset secret, does not count.
 
 When a release has a tag-bound package, monochange gives each package of the release to exactly one of the runs on the release's tags, so a workflow that starts one run for every tag the release creates publishes each package once:
 
 - **A run on a tag-bound package's own tag** publishes the tag-bound packages released under that tag.
 - **The run on the release's primary tag** (for example `v1.4.0`) publishes every package that is not tag-bound. Without a primary tag, such a package publishes on its own tag when no tag-bound package uses that tag; otherwise on the first tag of the release, in name order, that no tag-bound package uses; and when every tag of the release carries a tag-bound package, on its own tag (or the release's first tag when it has none).
-- **The run on the primary tag** (without one, on that first tag) marks each tag-bound package on another tag `deferred_to_tag`.
+- **The run on the primary tag** (without one, on the first tag no tag-bound package uses) marks each tag-bound package on another tag `deferred_to_tag`.
 - **Every other run on a release tag** marks the package `skipped_out_of_scope`. That is not a failure, monochange does not look the package up on its registry, and the package's report line names the run that publishes it.
 
 A run that is not on one of the release's tags (on a branch, or on another tag) publishes every package that is not tag-bound, as monochange always has, and defers every tag-bound package. A release without tag-bound packages publishes every package in every run, as before.

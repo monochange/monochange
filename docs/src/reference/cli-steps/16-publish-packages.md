@@ -67,7 +67,7 @@ When a release has a tag-bound package, the step gives every package of the rele
 
 - A tag-bound package publishes in the run on its own tag.
 - Every other package publishes in the run on the primary tag. Without a primary tag, it publishes on its own tag when no tag-bound package uses that tag, otherwise on the first tag of the release (in name order) that no tag-bound package uses, and otherwise on its own tag (or the release's first tag when it has none).
-- The run on the primary tag (without one, on that first tag) defers the tag-bound packages on other tags; every other tag's run marks them `skipped_out_of_scope`.
+- The run on the primary tag (without one, on the first tag no tag-bound package uses) defers the tag-bound packages on other tags; every other tag's run marks them `skipped_out_of_scope`.
 
 The step decides this over the whole release before it applies `--package`, `--group`, and `--ecosystem`, so a selection never moves a package into another run. Runs on branches and on tags the release does not create publish every package that is not tag-bound and defer the tag-bound ones. A release without tag-bound packages publishes every package on every ref, as before.
 

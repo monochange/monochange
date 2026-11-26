@@ -436,7 +436,7 @@ pub.dev only accepts a package from a run on that package's own release tag (see
 
 - The run on a trusted pub.dev package's tag publishes the trusted pub.dev packages released under that tag.
 - Every other package publishes in the run on the primary tag. Without a primary tag, it publishes on its own tag when no trusted pub.dev package uses that tag, otherwise on the first tag of the release (in name order) that no trusted pub.dev package uses, and on its own tag (a package without one: the release's first tag) when every tag of the release carries a trusted pub.dev package.
-- The run on the primary tag (without one, on that first tag) also marks each pub.dev package on another tag `deferred_to_tag`, and still succeeds.
+- The run on the primary tag (without one, on the first tag no trusted pub.dev package uses) also marks each pub.dev package on another tag `deferred_to_tag`, and still succeeds.
 - Every other run marks the package `skipped_out_of_scope` and names the run that publishes it, so no run republishes a package to its registry.
 
 A tag push starts a run only when it is pushed with a token that starts workflows (tags pushed with the default `GITHUB_TOKEN` start none) and when the push creates at most three tags (GitHub creates no push event for tags beyond that). Otherwise, dispatch the workflow on each tag from the job that creates them: `gh workflow run publish.yml --ref <tag>`. `monochange tag-release` creates every release tag, package tags included; the tags must exist on GitHub before a run on them starts.
