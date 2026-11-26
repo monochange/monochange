@@ -218,9 +218,8 @@ pub enum PackagePublishStatus {
 	/// this run. The outcome's `deferred_to` names the reason, the release tag
 	/// the package publishes from, and the command that starts that run.
 	DeferredToTag,
-	/// Not attempted: this run is on a trusted pub.dev package's release tag,
-	/// so it publishes only the packages pub.dev accepts from that tag. The
-	/// outcome's message names the run that publishes this package.
+	/// Not attempted: another run of the release publishes this package, the
+	/// run on its home tag. The outcome's message names that run.
 	SkippedOutOfScope,
 	Blocked,
 	Failed,
@@ -573,10 +572,37 @@ fn append_skipped_after_failure_outcomes(
 	progress: &dyn PublishProgressReporter,
 ) {
 	for request in requests {
-		let message = format!(
-			"not attempted because publishing {} {} failed earlier in this run",
-			failed_request.package_name, failed_request.version
-		);
+		// A package another run publishes keeps its scope: the failure here
+		// does not stop that run.
+		let (status, message, deferred_to) = match (mode, &request.run_scope) {
+			(PackagePublishRunMode::Release, PublishRunScope::OutOfScope { message }) => {
+				(
+					PackagePublishStatus::SkippedOutOfScope,
+					message.clone(),
+					None,
+				)
+			}
+			(
+				PackagePublishRunMode::Release,
+				PublishRunScope::DeferredToTag { deferral, message },
+			) => {
+				(
+					PackagePublishStatus::DeferredToTag,
+					message.clone(),
+					Some(deferral.clone()),
+				)
+			}
+			_ => {
+				(
+					PackagePublishStatus::Blocked,
+					format!(
+						"not attempted because publishing {} {} failed earlier in this run",
+						failed_request.package_name, failed_request.version
+					),
+					None,
+				)
+			}
+		};
 		progress.report(PublishProgressEvent::PackageSkipped {
 			package: publish_progress_package(request),
 			message: message.clone(),
@@ -586,7 +612,7 @@ fn append_skipped_after_failure_outcomes(
 			ecosystem: request.ecosystem,
 			registry: request.registry.to_string(),
 			version: request.version.clone(),
-			status: PackagePublishStatus::Blocked,
+			status,
 			message,
 			placeholder: mode == PackagePublishRunMode::Placeholder,
 			trusted_publishing: disabled_trust_outcome(),
@@ -594,7 +620,7 @@ fn append_skipped_after_failure_outcomes(
 			stdout: None,
 			stderr: None,
 			rate_limit: None,
-			deferred_to: None,
+			deferred_to,
 		});
 	}
 }
@@ -787,9 +813,10 @@ pub struct PublishReleaseTag {
 
 /// The tags one release creates.
 ///
-/// [`plan_publish_run_scopes`] compares a run's tag with them: the primary
-/// tag's run publishes every package, and a run on a tag-bound package's own
-/// tag leaves the other packages to the release's other tag runs.
+/// [`plan_publish_run_scopes`] compares a run's tag with them: when the
+/// release has tag-bound packages, each package publishes in the run on one
+/// of these tags, and the primary tag's run publishes every package that is
+/// not tag-bound.
 #[derive(Debug, Clone, Default, Eq, PartialEq)]
 pub struct PublishReleaseTags {
 	/// The release's primary tag (for example `v1.2.3`): the tag of the
@@ -2675,52 +2702,79 @@ pub enum PublishRunScope {
 		deferral: PublishDeferral,
 		message: String,
 	},
-	/// This run is on a trusted pub.dev package's release tag, so it
-	/// publishes only the packages pub.dev accepts from that tag. `message`
-	/// names the run that publishes this package.
+	/// Another run of the release publishes the package: the run on its home
+	/// tag (see [`plan_publish_run_scopes`]). `message` names that run.
 	OutOfScope { message: String },
 	/// The registry accepts the package only from a run on its release tag,
 	/// but its release owner creates no tag, so no run can publish it.
 	MissingReleaseTag,
 }
 
-/// Decide, for every request, whether the current run publishes it, and
-/// store the decision in [`PublishRequest::run_scope`].
+/// Decide, for every request of the current run, whether the run publishes
+/// it, and store the decision in [`PublishRequest::run_scope`].
+///
+/// The decision depends on every package of the release, so
+/// `release_requests` holds the whole release, before any `--package`,
+/// `--group`, or `--ecosystem` selection; `requests` are the selected
+/// ones. A request that is not part of the release keeps its scope.
 pub fn assign_publish_run_scopes(
 	requests: &mut [PublishRequest],
+	release_requests: &[PublishRequest],
 	release_tags: &PublishReleaseTags,
 	env_map: &BTreeMap<String, String>,
 ) {
-	let scopes = plan_publish_run_scopes(requests, release_tags, env_map);
+	let mut scopes = release_requests
+		.iter()
+		.map(publish_request_key)
+		.zip(plan_publish_run_scopes(
+			release_requests,
+			release_tags,
+			env_map,
+		))
+		.collect::<BTreeMap<_, _>>();
 
-	for (request, scope) in requests.iter_mut().zip(scopes) {
-		request.run_scope = scope;
+	for request in requests {
+		if let Some(scope) = scopes.remove(&publish_request_key(request)) {
+			request.run_scope = scope;
+		}
 	}
 }
 
-/// Decide, for every request, whether the current run publishes it.
+/// What identifies one publication of a release: the package, its registry,
+/// and its version.
+fn publish_request_key(request: &PublishRequest) -> (String, String, String) {
+	(
+		request.package_id.clone(),
+		request.registry.to_string(),
+		request.version.clone(),
+	)
+}
+
+/// Decide, for every request of a release, whether the current run
+/// publishes it.
 ///
 /// A request is *tag-bound* when [`publish_is_tag_bound`] holds: pub.dev
 /// accepts it only from a `push` or `workflow_dispatch` run on its release
-/// tag. Outside GitHub Actions the run's ref is unknown and every request
-/// publishes. Inside it:
+/// tag. Outside GitHub Actions the run's ref is unknown, and every request
+/// publishes; so does every request of a release without tag-bound
+/// requests. Otherwise every request has one *home*: the release tag whose
+/// run publishes it (see [`ReleaseTagRuns`]).
 ///
-/// - **A run on a tag-bound request's release tag** that is not the
-///   release's primary tag publishes only the tag-bound requests released
-///   under that tag. Every other request is
-///   [`OutOfScope`](PublishRunScope::OutOfScope), and its message names the
-///   run that publishes it. This applies only while another tag of the
-///   release has a run that publishes the other requests; when every tag of
-///   the release is a tag-bound request's tag, the run is an ordinary one.
-/// - **Every other run** (the primary tag, a branch, or any other tag)
-///   publishes every request that is not tag-bound. A tag-bound request
-///   publishes when the run is on its tag, and is otherwise
-///   [`DeferredToTag`](PublishRunScope::DeferredToTag).
+/// - **A run on one of the release's tags** publishes only the requests whose
+///   home is that tag. A tag-bound request with another home is
+///   [`DeferredToTag`](PublishRunScope::DeferredToTag) in the release's
+///   *coordinator* run (the primary tag's run, or without a primary tag the
+///   first ordinary tag's run), so exactly one run dispatches it, and
+///   [`OutOfScope`](PublishRunScope::OutOfScope) in every other run. Every
+///   other request with another home is out of scope, and its message names
+///   its home run.
+/// - **A run on any other ref** (a branch, or a tag the release does not
+///   create) publishes every request that is not tag-bound and defers the
+///   tag-bound ones.
 ///
 /// A tag-bound request on its own tag is still deferred when the run's event
 /// is not `push` or `workflow_dispatch`, and a tag-bound request without a
 /// release tag is [`MissingReleaseTag`](PublishRunScope::MissingReleaseTag).
-/// When no request is tag-bound, every request publishes.
 #[must_use]
 pub fn plan_publish_run_scopes(
 	requests: &[PublishRequest],
@@ -2734,86 +2788,119 @@ pub fn plan_publish_run_scopes(
 		.iter()
 		.map(|request| publish_is_tag_bound(request, env_map))
 		.collect::<Vec<_>>();
-	let primary_tag = release_tags.primary.as_deref();
-	let release_tag_of =
-		|request: &'_ PublishRequest| request.release_tag.as_ref().map(|tag| tag.name.clone());
-	// Tags pub.dev binds a package of this release to. The primary tag is
-	// never one of them: its run publishes every package.
-	let bound_tags = requests
-		.iter()
-		.zip(&tag_bound)
-		.filter(|(_, bound)| **bound)
-		.filter_map(|(request, _)| release_tag_of(request))
-		.filter(|tag| Some(tag.as_str()) != primary_tag)
-		.collect::<BTreeSet<_>>();
-	// Tags of this release whose run publishes every package that is not
-	// tag-bound.
-	let ordinary_tags = release_tags
-		.tags
-		.iter()
-		.cloned()
-		.chain(primary_tag.map(str::to_string))
-		.chain(requests.iter().filter_map(release_tag_of))
-		.filter(|tag| !bound_tags.contains(tag))
-		.collect::<BTreeSet<_>>();
-	let scoped_tag = run
-		.tag()
-		.filter(|tag| bound_tags.contains(*tag) && !ordinary_tags.is_empty());
-	let packages_on_scoped_tag = scoped_tag.map(|scoped_tag| {
-		requests
-			.iter()
-			.zip(&tag_bound)
-			.filter(|(request, bound)| {
-				**bound && release_tag_of(request).as_deref() == Some(scoped_tag)
-			})
-			.map(|(request, _)| format!("`{}`", request.package_id))
-			.collect::<Vec<_>>()
-			.join(", ")
-	});
+
+	if !tag_bound.contains(&true) {
+		return vec![PublishRunScope::Publish; requests.len()];
+	}
+
+	let tag_runs = ReleaseTagRuns::new(requests, &tag_bound, release_tags);
+	let release_tag_run = run.tag().filter(|tag| tag_runs.tags.contains(*tag));
 
 	requests
 		.iter()
 		.zip(&tag_bound)
 		.map(|(request, &bound)| {
-			let release_tag = request.release_tag.as_ref();
-
-			match (scoped_tag, bound, release_tag) {
-				(_, true, None) => PublishRunScope::MissingReleaseTag,
-				(Some(scoped_tag), true, Some(tag)) if tag.name != scoped_tag => {
-					let deferral =
-						publish_deferral(request, tag, PublishDeferralReason::WrongRef, env_map);
-					PublishRunScope::OutOfScope {
-						message: out_of_scope_message(
-							scoped_tag,
-							packages_on_scoped_tag.as_deref().unwrap_or_default(),
-							&format!("publish it with `{}`", deferral.command),
-						),
-					}
-				}
-				(Some(scoped_tag), false, _) => {
-					// Prefer the package's own tag, then the primary tag.
-					let publishing_tag = release_tag
-						.map(|tag| tag.name.as_str())
-						.filter(|tag| ordinary_tags.contains(*tag))
-						.or(primary_tag)
-						.or_else(|| ordinary_tags.first().map(String::as_str))
-						.unwrap_or_default();
-					PublishRunScope::OutOfScope {
-						message: out_of_scope_message(
-							scoped_tag,
-							packages_on_scoped_tag.as_deref().unwrap_or_default(),
-							&format!(
-								"{} {} publishes in the run on `refs/tags/{publishing_tag}`",
-								request.package_name, request.version
+			if !bound {
+				return match (release_tag_run, tag_runs.home_of_untethered(request)) {
+					(Some(run_tag), Some(home)) if run_tag != home => {
+						PublishRunScope::OutOfScope {
+							message: out_of_scope_message(
+								request,
+								home,
+								", because a release with trusted pub.dev packages publishes each package from one of its tags",
 							),
-						),
+						}
+					}
+					_ => PublishRunScope::Publish,
+				};
+			}
+
+			let Some(tag) = request.release_tag.as_ref() else {
+				return PublishRunScope::MissingReleaseTag;
+			};
+
+			match release_tag_run {
+				Some(run_tag)
+					if run_tag != tag.name && Some(run_tag) != tag_runs.coordinator.as_deref() =>
+				{
+					PublishRunScope::OutOfScope {
+						message: tag_bound_out_of_scope_message(request, tag, &tag_runs, env_map),
 					}
 				}
-				(None, false, _) => PublishRunScope::Publish,
-				(_, true, Some(tag)) => tag_bound_run_scope(request, tag, run, env_map),
+				_ => tag_bound_run_scope(request, tag, run, env_map),
 			}
 		})
 		.collect()
+}
+
+/// The release tags whose runs publish a release with tag-bound requests,
+/// and which of them publishes each request.
+///
+/// A tag-bound request's home is its own release tag. Tags of tag-bound
+/// requests other than the primary tag are *bound* tags; every other release
+/// tag is *ordinary*. Every other request's home is the primary tag when the
+/// release has one; otherwise its own tag when that tag is ordinary, then
+/// the first ordinary tag, then its own (bound) tag, then the first bound
+/// tag.
+#[derive(Debug)]
+struct ReleaseTagRuns {
+	/// Every tag of the release.
+	tags: BTreeSet<String>,
+	primary: Option<String>,
+	ordinary: BTreeSet<String>,
+	bound: BTreeSet<String>,
+	/// The run that defers tag-bound requests to their tags: the primary
+	/// tag's run, or the first ordinary tag's run.
+	coordinator: Option<String>,
+}
+
+impl ReleaseTagRuns {
+	fn new(
+		requests: &[PublishRequest],
+		tag_bound: &[bool],
+		release_tags: &PublishReleaseTags,
+	) -> Self {
+		let primary = release_tags.primary.clone();
+		let release_tag_of =
+			|request: &PublishRequest| request.release_tag.as_ref().map(|tag| tag.name.clone());
+		let tags = release_tags
+			.tags
+			.iter()
+			.cloned()
+			.chain(primary.clone())
+			.chain(requests.iter().filter_map(release_tag_of))
+			.collect::<BTreeSet<_>>();
+		let bound = requests
+			.iter()
+			.zip(tag_bound)
+			.filter(|(_, bound)| **bound)
+			.filter_map(|(request, _)| release_tag_of(request))
+			.filter(|tag| Some(tag) != primary.as_ref())
+			.collect::<BTreeSet<_>>();
+		let ordinary = tags.difference(&bound).cloned().collect::<BTreeSet<_>>();
+		let coordinator = primary.clone().or_else(|| ordinary.first().cloned());
+
+		Self {
+			tags,
+			primary,
+			ordinary,
+			bound,
+			coordinator,
+		}
+	}
+
+	/// The home of a request that is not tag-bound, or `None` when the
+	/// release has no tags.
+	fn home_of_untethered<'a>(&'a self, request: &'a PublishRequest) -> Option<&'a str> {
+		let own = request.release_tag.as_ref().map(|tag| tag.name.as_str());
+
+		self.primary
+			.as_deref()
+			.or_else(|| own.filter(|tag| self.ordinary.contains(*tag)))
+			.or(self.coordinator.as_deref())
+			.or(own)
+			.or_else(|| self.bound.first().map(String::as_str))
+	}
 }
 
 /// The scope of a tag-bound request with release tag `tag` in `run`.
@@ -2909,24 +2996,46 @@ fn deferral_message(
 		PublishDeferralReason::WrongEvent => {
 			let event = run.event.unwrap_or_default();
 			format!(
-				"{registry} only accepts {package} from a run that a `push` or `workflow_dispatch` event starts, and a `{event}` event started this run on `{required_ref}`; start the publish workflow from tag pushes (`on: push`) instead of `on: {event}`, or publish it with `{command}`"
+				"{registry} only accepts {package} from a run that a `push` or `workflow_dispatch` event starts, and a `{event}` event started this run on `{required_ref}`. No `{event}` run ever publishes it, so start the publish workflow from tag pushes (`on: push`) instead of `on: {event}`. To publish this version now, run `{command}`"
 			)
 		}
 		PublishDeferralReason::UnknownRef => {
 			format!(
-				"{registry} only accepts {package} from a run on `{required_ref}`, and this GitHub Actions run has no `GITHUB_REF`, so monochange cannot tell which ref it is on; keep `GITHUB_REF` in the publish step's environment, or publish it with `{command}`"
+				"{registry} only accepts {package} from a run on `{required_ref}`, and this GitHub Actions run has no `GITHUB_REF`, so monochange cannot tell which ref it is on. No run publishes it until the publish step's environment keeps `GITHUB_REF`: every run without it defers it again"
 			)
 		}
 	}
 }
 
-fn out_of_scope_message(
-	scoped_tag: &str,
-	packages_on_scoped_tag: &str,
-	publishing_run: &str,
-) -> String {
+/// Explain that `request` publishes in the run on its home tag `home`.
+fn out_of_scope_message(request: &PublishRequest, home: &str, detail: &str) -> String {
 	format!(
-		"not published in this run: `refs/tags/{scoped_tag}` is the release tag of trusted pub.dev package {packages_on_scoped_tag}, so this run publishes only what pub.dev accepts from that tag; {publishing_run}"
+		"not published in this run: {} {} publishes in the run on `refs/tags/{home}`{detail}",
+		request.package_name, request.version
+	)
+}
+
+/// Explain that tag-bound `request` publishes in the run on its tag, and
+/// what starts that run.
+fn tag_bound_out_of_scope_message(
+	request: &PublishRequest,
+	tag: &PublishReleaseTag,
+	tag_runs: &ReleaseTagRuns,
+	env_map: &BTreeMap<String, String>,
+) -> String {
+	let command = publish_deferral(request, tag, PublishDeferralReason::WrongRef, env_map).command;
+	let start = match tag_runs.coordinator.as_deref() {
+		Some(coordinator) if coordinator == tag.name => String::new(),
+		Some(coordinator) => {
+			format!("; the run on `refs/tags/{coordinator}` dispatches it with `{command}`")
+		}
+		None => format!("; start it with `{command}`"),
+	};
+
+	out_of_scope_message(
+		request,
+		&tag.name,
+		&format!(", the only run pub.dev accepts it from{start}"),
 	)
 }
 

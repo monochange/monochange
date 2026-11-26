@@ -3872,6 +3872,39 @@ fn package_publish_outcome_line(
 	report: &package_publish::PackagePublishReport,
 	summary: package_publish::PackagePublishSummary,
 ) -> (Outcome, String) {
+	let (outcome, line) = package_publish_run_outcome_line(report, summary);
+	// A deferral that no run of this workflow can pick up leaves the package
+	// unpublished until someone changes the workflow, so the run warns even
+	// when everything else published.
+	let stranded = report
+		.packages
+		.iter()
+		.filter(|package| {
+			package
+				.deferred_to
+				.as_ref()
+				.is_some_and(deferral_needs_workflow_change)
+		})
+		.count();
+
+	if stranded == 0 || outcome == Outcome::Failure {
+		return (outcome, line);
+	}
+
+	(
+		Outcome::Warning,
+		format!(
+			"{line}; {} left unpublished, and no run publishes {} until the workflow's trigger or `GITHUB_REF` is fixed",
+			publish_package_count(report.mode, stranded),
+			if stranded == 1 { "it" } else { "them" }
+		),
+	)
+}
+
+fn package_publish_run_outcome_line(
+	report: &package_publish::PackagePublishReport,
+	summary: package_publish::PackagePublishSummary,
+) -> (Outcome, String) {
 	let placeholder = report.mode == package_publish::PackagePublishRunMode::Placeholder;
 	let count = |count: usize| publish_package_count(report.mode, count);
 

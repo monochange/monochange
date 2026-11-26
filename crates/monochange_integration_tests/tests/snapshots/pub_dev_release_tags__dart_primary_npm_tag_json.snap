@@ -1,6 +1,5 @@
 ---
 source: crates/monochange_integration_tests/tests/pub_dev_release_tags.rs
-assertion_line: 408
 expression: json
 ---
 {
@@ -8,18 +7,12 @@ expression: json
   "mode": "release",
   "packages": [
     {
-      "deferred_to": {
-        "command": "gh workflow run publish.yml --repo example/pub-dev-release-tags --ref v0.2.1",
-        "reason": "wrong_ref",
-        "ref": "refs/tags/v0.2.1",
-        "tag": "v0.2.1"
-      },
       "ecosystem": "dart",
-      "message": "pub.dev only accepts app_dart 0.2.1 from a run on `refs/tags/v0.2.1`, and this run is on `refs/tags/web/v1.1.0`; publish it with `gh workflow run publish.yml --repo example/pub-dev-release-tags --ref v0.2.1`",
+      "message": "not published in this run: app_dart 0.2.1 publishes in the run on `refs/tags/v0.2.1`, the only run pub.dev accepts it from",
       "package": "app_dart",
       "placeholder": false,
       "registry": "pub_dev",
-      "status": "deferred_to_tag",
+      "status": "skipped_out_of_scope",
       "trusted_publishing": {
         "environment": null,
         "message": "configure trusted publishing manually for `app_dart` before the next built-in release publish; open https://pub.dev/packages/app_dart/admin and register repository `example/pub-dev-release-tags`, workflow `publish.yml` there",
@@ -31,14 +24,12 @@ expression: json
       "version": "0.2.1"
     },
     {
-      "command": "cargo publish --locked --manifest-path [workspace]/crates/cli/Cargo.toml --dry-run",
       "ecosystem": "cargo",
-      "message": "would publish cli 1.0.1 to crates_io",
+      "message": "not published in this run: cli 1.0.1 publishes in the run on `refs/tags/v0.2.1`, because a release with trusted pub.dev packages publishes each package from one of its tags",
       "package": "cli",
       "placeholder": false,
       "registry": "crates_io",
-      "status": "planned",
-      "stdout": "Packaging cli",
+      "status": "skipped_out_of_scope",
       "trusted_publishing": {
         "environment": null,
         "message": "configure trusted publishing manually for `cli` before the next built-in release publish; open https://crates.io/crates/cli and register repository `example/pub-dev-release-tags`, workflow `publish.yml` there",
@@ -50,14 +41,12 @@ expression: json
       "version": "1.0.1"
     },
     {
-      "command": "npm publish --access public --dry-run",
       "ecosystem": "npm",
-      "message": "would publish web 1.1.0 to npm",
+      "message": "not published in this run: web 1.1.0 publishes in the run on `refs/tags/v0.2.1`, because a release with trusted pub.dev packages publishes each package from one of its tags",
       "package": "web",
       "placeholder": false,
       "registry": "npm",
-      "status": "planned",
-      "stdout": "+ web@1.1.0",
+      "status": "skipped_out_of_scope",
       "trusted_publishing": {
         "environment": null,
         "message": "would configure npm trusted publishing with `npm trust github web --file publish.yml --repo example/pub-dev-release-tags --yes`",
@@ -72,10 +61,10 @@ expression: json
   "summary": {
     "already_exists": 0,
     "blocked": 0,
-    "deferred": 1,
     "failed": 0,
     "not_attempted": 0,
-    "planned": 2,
+    "out_of_scope": 3,
+    "planned": 0,
     "published": 0,
     "staged": 0
   }

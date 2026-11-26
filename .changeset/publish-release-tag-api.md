@@ -21,9 +21,10 @@ use monochange_publish::configured_release_tags;
 use monochange_publish::current_env_map;
 
 // before: monochange_publish::pub_dev_trusted_publishing_ref_error(&request, &env)
-// after: plan every request against the release's tags, then read each scope
-let release_tags = configured_release_tags(&configuration, &requests);
-assign_publish_run_scopes(&mut requests, &release_tags, &current_env_map());
+// after: plan the whole release against its tags, then read the scope of
+// each selected request
+let release_tags = configured_release_tags(&configuration, &release_requests);
+assign_publish_run_scopes(&mut requests, &release_requests, &release_tags, &current_env_map());
 for request in &requests {
     match &request.run_scope {
         PublishRunScope::Publish => {}

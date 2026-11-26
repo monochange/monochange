@@ -1,4 +1,7 @@
 #!/bin/sh
-# Stand-in for cargo: the dry run only needs `cargo publish --dry-run` to
-# succeed without touching crates.io.
+# Stand-in for cargo: `cargo publish` succeeds without touching crates.io.
+# With `TOOL_STUB_LOG` set, each call appends its command line to that file.
+if [ -n "$TOOL_STUB_LOG" ]; then
+	echo "cargo $*" >>"$TOOL_STUB_LOG"
+fi
 echo "   Packaging cli"

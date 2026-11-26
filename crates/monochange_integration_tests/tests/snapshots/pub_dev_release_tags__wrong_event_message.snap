@@ -1,6 +1,5 @@
 ---
 source: crates/monochange_integration_tests/tests/pub_dev_release_tags.rs
-assertion_line: 706
 expression: message
 ---
-pub.dev only accepts app_dart 0.2.1 from a run that a `push` or `workflow_dispatch` event starts, and a `release` event started this run on `refs/tags/app_dart/v0.2.1`; start the publish workflow from tag pushes (`on: push`) instead of `on: release`, or publish it with `gh workflow run publish.yml --repo example/pub-dev-release-tags --ref app_dart/v0.2.1`
+pub.dev only accepts app_dart 0.2.1 from a run that a `push` or `workflow_dispatch` event starts, and a `release` event started this run on `refs/tags/app_dart/v0.2.1`. No `release` run ever publishes it, so start the publish workflow from tag pushes (`on: push`) instead of `on: release`. To publish this version now, run `gh workflow run publish.yml --repo example/pub-dev-release-tags --ref app_dart/v0.2.1`

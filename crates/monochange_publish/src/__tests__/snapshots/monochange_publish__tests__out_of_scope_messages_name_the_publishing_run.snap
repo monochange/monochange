@@ -1,9 +1,8 @@
 ---
 source: crates/monochange_publish/src/__tests__/lib_tests.rs
-assertion_line: 1133
 expression: "scopes.iter().map(scope_message).filter(|message|\n!message.is_empty()).collect::<Vec<_>>().join(\"\\n\")"
 ---
-not published in this run: `refs/tags/dart_pkg/v1.0.0` is the release tag of trusted pub.dev package `dart_pkg`, so this run publishes only what pub.dev accepts from that tag; web 1.0.0 publishes in the run on `refs/tags/v2.0.0`
-not published in this run: `refs/tags/dart_pkg/v1.0.0` is the release tag of trusted pub.dev package `dart_pkg`, so this run publishes only what pub.dev accepts from that tag; publish it with `gh workflow run publish.yml --repo owner/repo --ref other_dart/v3.0.0`
-not published in this run: `refs/tags/dart_pkg/v1.0.0` is the release tag of trusted pub.dev package `dart_pkg`, so this run publishes only what pub.dev accepts from that tag; cli 1.0.0 publishes in the run on `refs/tags/v2.0.0`
-not published in this run: `refs/tags/dart_pkg/v1.0.0` is the release tag of trusted pub.dev package `dart_pkg`, so this run publishes only what pub.dev accepts from that tag; schema 1.0.0 publishes in the run on `refs/tags/schema/v0.4.0`
+not published in this run: web 1.0.0 publishes in the run on `refs/tags/v2.0.0`, because a release with trusted pub.dev packages publishes each package from one of its tags
+not published in this run: other_dart 1.0.0 publishes in the run on `refs/tags/other_dart/v3.0.0`, the only run pub.dev accepts it from; the run on `refs/tags/v2.0.0` dispatches it with `gh workflow run publish.yml --repo owner/repo --ref other_dart/v3.0.0`
+not published in this run: cli 1.0.0 publishes in the run on `refs/tags/v2.0.0`, because a release with trusted pub.dev packages publishes each package from one of its tags
+not published in this run: schema 1.0.0 publishes in the run on `refs/tags/v2.0.0`, because a release with trusted pub.dev packages publishes each package from one of its tags

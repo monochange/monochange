@@ -1,6 +1,5 @@
 ---
 source: crates/monochange_integration_tests/tests/pub_dev_release_tags.rs
-assertion_line: 408
 expression: json
 ---
 {
@@ -28,7 +27,7 @@ expression: json
     },
     {
       "ecosystem": "cargo",
-      "message": "not published in this run: `refs/tags/sdk/v1.1.0` is the release tag of trusted pub.dev package `app_dart`, so this run publishes only what pub.dev accepts from that tag; cli 2.0.1 publishes in the run on `refs/tags/v2.0.1`",
+      "message": "not published in this run: cli 2.0.1 publishes in the run on `refs/tags/v2.0.1`, because a release with trusted pub.dev packages publishes each package from one of its tags",
       "package": "cli",
       "placeholder": false,
       "registry": "crates_io",
@@ -45,7 +44,7 @@ expression: json
     },
     {
       "ecosystem": "npm",
-      "message": "not published in this run: `refs/tags/sdk/v1.1.0` is the release tag of trusted pub.dev package `app_dart`, so this run publishes only what pub.dev accepts from that tag; web 1.1.0 publishes in the run on `refs/tags/v2.0.1`",
+      "message": "not published in this run: web 1.1.0 publishes in the run on `refs/tags/v2.0.1`, because a release with trusted pub.dev packages publishes each package from one of its tags",
       "package": "web",
       "placeholder": false,
       "registry": "npm",

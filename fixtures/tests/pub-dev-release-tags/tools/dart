@@ -1,4 +1,8 @@
 #!/bin/sh
-# Stand-in for the Dart SDK: the dry run only needs `dart pub publish --dry-run`
-# to succeed without touching pub.dev.
+# Stand-in for the Dart SDK: `dart pub publish` and `dart pub token add`
+# succeed without touching pub.dev. With `TOOL_STUB_LOG` set, each call
+# appends its command line to that file.
+if [ -n "$TOOL_STUB_LOG" ]; then
+	echo "dart $*" >>"$TOOL_STUB_LOG"
+fi
 echo "Package has 0 warnings."

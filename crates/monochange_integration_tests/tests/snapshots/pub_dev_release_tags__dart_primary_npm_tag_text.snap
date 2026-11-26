@@ -1,16 +1,10 @@
 ---
 source: crates/monochange_integration_tests/tests/pub_dev_release_tags.rs
-assertion_line: 404
 expression: stdout_of(&text)
 ---
-Would publish (2)
-  cli  1.0.1  crates_io
-  web  1.1.0  npm
+Out of scope for this ref (3)
+  app_dart  0.2.1  pub_dev    not published in this run: app_dart 0.2.1 publishes in the run on `refs/tags/v0.2.1`, the only run pub.dev accepts it from
+  cli       1.0.1  crates_io  not published in this run: cli 1.0.1 publishes in the run on `refs/tags/v0.2.1`, because a release with trusted pub.dev packages publishes each package from one of its tags
+  web       1.1.0  npm        not published in this run: web 1.1.0 publishes in the run on `refs/tags/v0.2.1`, because a release with trusted pub.dev packages publishes each package from one of its tags
 
-Deferred to release tags (1)
-  app_dart  0.2.1  pub_dev  v0.2.1
-
-The registry only accepts these packages from a `push` or `workflow_dispatch` run on their release tag. Publish each one from its tag:
-  gh workflow run publish.yml --repo example/pub-dev-release-tags --ref v0.2.1
-
-• Would publish 2 packages · 1 deferred to release tags · dry-run, no changes were made
+• No packages were published · 3 out of scope for this ref · dry-run, no changes were made

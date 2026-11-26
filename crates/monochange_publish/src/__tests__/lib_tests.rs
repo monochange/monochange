@@ -1183,13 +1183,33 @@ fn plan_publish_run_scopes_publishes_a_pub_dev_package_that_owns_the_primary_tag
 		plan_summary(&requests, &tags, &github_actions_env("refs/tags/v2.0.0")),
 		["publish", "publish", "publish"]
 	);
+
+	// The run on `web`'s own tag leaves every package to the primary tag's
+	// run, which publishes them all.
+	let web_tag = plan_publish_run_scopes(
+		&requests,
+		&tags,
+		&github_actions_env("refs/tags/web/v1.1.0"),
+	);
 	assert_eq!(
-		plan_summary(
-			&requests,
-			&tags,
-			&github_actions_env("refs/tags/web/v1.1.0")
-		),
-		["deferred wrong_ref v2.0.0", "publish", "publish"]
+		web_tag.iter().map(scope_summary).collect::<Vec<_>>(),
+		["out_of_scope", "out_of_scope", "out_of_scope"]
+	);
+	assert_eq!(
+		scope_message(&web_tag[0]),
+		"not published in this run: dart_pkg 1.0.0 publishes in the run on `refs/tags/v2.0.0`, \
+		 the only run pub.dev accepts it from"
+	);
+	assert_eq!(
+		scope_message(&web_tag[1]),
+		"not published in this run: web 1.0.0 publishes in the run on `refs/tags/v2.0.0`, because \
+		 a release with trusted pub.dev packages publishes each package from one of its tags"
+	);
+
+	// Branches stay ordinary runs.
+	assert_eq!(
+		plan_summary(&requests, &tags, &github_actions_env("refs/heads/main")),
+		["deferred wrong_ref_type v2.0.0", "publish", "publish"]
 	);
 }
 
@@ -1212,7 +1232,7 @@ fn plan_publish_run_scopes_scopes_a_mixed_group_tag_to_its_pub_dev_members() {
 		["out_of_scope", "out_of_scope", "publish"]
 	);
 	assert!(
-		scope_message(&scopes[1]).ends_with("web 1.0.0 publishes in the run on `refs/tags/v2.0.1`"),
+		scope_message(&scopes[1]).contains("web 1.0.0 publishes in the run on `refs/tags/v2.0.1`"),
 		"{}",
 		scope_message(&scopes[1])
 	);
@@ -1423,25 +1443,159 @@ fn deferral_command_dispatches_the_workflow_pub_dev_trusts() {
 	);
 }
 
-/// Property: whatever packages, tags, and run ref a release has, the run on
-/// the primary tag publishes every package that is not tag-bound, a release
-/// without tag-bound packages is never scoped, and a package that is out of
-/// scope names a run of the release that publishes it.
+/// How often each run of a release plans each package: one entry per
+/// package, listing the release tags whose run plans it `Publish`.
+fn publishing_runs(
+	requests: &[PublishRequest],
+	tags: &PublishReleaseTags,
+) -> Vec<(String, Vec<String>)> {
+	let plans = tags
+		.tags
+		.iter()
+		.map(|tag| {
+			(
+				tag.clone(),
+				plan_publish_run_scopes(
+					requests,
+					tags,
+					&github_actions_env(&format!("refs/tags/{tag}")),
+				),
+			)
+		})
+		.collect::<Vec<_>>();
+
+	requests
+		.iter()
+		.enumerate()
+		.map(|(index, request)| {
+			let runs = plans
+				.iter()
+				.filter(|(_, scopes)| scopes[index] == PublishRunScope::Publish)
+				.map(|(tag, _)| tag.clone())
+				.collect();
+			(request.package_id.clone(), runs)
+		})
+		.collect()
+}
+
+/// The release tags whose run defers each package with a reason another run
+/// picks up (`wrong_ref`), so the publish workflow dispatches it from there.
+fn dispatching_runs(requests: &[PublishRequest], tags: &PublishReleaseTags) -> Vec<Vec<String>> {
+	let mut runs = vec![Vec::new(); requests.len()];
+
+	for tag in &tags.tags {
+		let scopes = plan_publish_run_scopes(
+			requests,
+			tags,
+			&github_actions_env(&format!("refs/tags/{tag}")),
+		);
+
+		for (index, scope) in scopes.iter().enumerate() {
+			if let PublishRunScope::DeferredToTag { deferral, .. } = scope {
+				assert_eq!(deferral.reason, PublishDeferralReason::WrongRef);
+				runs[index].push(tag.clone());
+			}
+		}
+	}
+
+	runs
+}
+
+/// The layouts the publishing design names, as (layout, requests, tags).
+fn named_release_layouts() -> Vec<(&'static str, Vec<PublishRequest>, PublishReleaseTags)> {
+	vec![
+		(
+			"L1: a pub.dev package owns the primary tag beside npm and cargo",
+			vec![
+				tag_bound_request("app_dart", Some("v0.2.1")),
+				ref_free_request("cli", Some("v0.2.1")),
+				ref_free_request("web", Some("web/v1.1.0")),
+			],
+			release_tags(Some("v0.2.1"), &["web/v1.1.0"]),
+		),
+		(
+			"L2: a group tag holds a pub.dev and an npm package; cargo owns the primary tag",
+			vec![
+				ref_free_request("cli", Some("v2.0.1")),
+				tag_bound_request("app_dart", Some("sdk/v1.1.0")),
+				ref_free_request("web", Some("sdk/v1.1.0")),
+			],
+			release_tags(Some("v2.0.1"), &["sdk/v1.1.0"]),
+		),
+		(
+			"L3: no primary tag; a standalone npm package and pub.dev package",
+			vec![
+				ref_free_request("web", Some("web/v1.1.0")),
+				tag_bound_request("app_dart", Some("app_dart/v0.2.1")),
+			],
+			release_tags(None, &["web/v1.1.0", "app_dart/v0.2.1"]),
+		),
+		(
+			"two pub.dev tags, one shared with an npm package, and no other tag",
+			vec![
+				tag_bound_request("app_dart", Some("sdk/v1.1.0")),
+				ref_free_request("web", Some("sdk/v1.1.0")),
+				tag_bound_request("tools_dart", Some("tools_dart/v0.3.0")),
+			],
+			release_tags(None, &["sdk/v1.1.0", "tools_dart/v0.3.0"]),
+		),
+	]
+}
+
+/// Across the runs on every tag of the release, each package of the named
+/// layouts is planned by exactly one run, and at most one run dispatches it.
 #[test]
-fn plan_publish_run_scopes_never_skips_a_package_silently() {
+fn every_named_layout_publishes_each_package_in_exactly_one_tag_run() {
+	let runs = named_release_layouts()
+		.into_iter()
+		.map(|(layout, requests, tags)| {
+			let publishing = publishing_runs(&requests, &tags)
+				.into_iter()
+				.map(|(package, runs)| format!("{package}: {}", runs.join(", ")))
+				.collect::<Vec<_>>()
+				.join("; ");
+			let dispatching = dispatching_runs(&requests, &tags)
+				.into_iter()
+				.zip(&requests)
+				.filter(|(runs, _)| !runs.is_empty())
+				.map(|(runs, request)| format!("{} from {}", request.package_id, runs.join(", ")))
+				.collect::<Vec<_>>()
+				.join("; ");
+			format!("{layout}\n  publishes: {publishing}\n  dispatches: {dispatching}")
+		})
+		.collect::<Vec<_>>();
+
+	assert_eq!(
+		runs,
+		[
+			"L1: a pub.dev package owns the primary tag beside npm and cargo\n  publishes: \
+			 app_dart: v0.2.1; cli: v0.2.1; web: v0.2.1\n  dispatches: ",
+			"L2: a group tag holds a pub.dev and an npm package; cargo owns the primary tag\n  \
+			 publishes: cli: v2.0.1; app_dart: sdk/v1.1.0; web: v2.0.1\n  dispatches: app_dart \
+			 from v2.0.1",
+			"L3: no primary tag; a standalone npm package and pub.dev package\n  publishes: web: \
+			 web/v1.1.0; app_dart: app_dart/v0.2.1\n  dispatches: app_dart from web/v1.1.0",
+			"two pub.dev tags, one shared with an npm package, and no other tag\n  publishes: \
+			 app_dart: sdk/v1.1.0; web: sdk/v1.1.0; tools_dart: tools_dart/v0.3.0\n  dispatches: ",
+		]
+	);
+}
+
+/// Property: whatever packages and tags a release has, across the runs on
+/// every tag of the release each package is planned by exactly one run, at
+/// most one run (never a pub.dev package's own tag run) dispatches it, an
+/// out-of-scope package names the run that plans it, the primary tag's run
+/// publishes every package that is not tag-bound, and a release without
+/// tag-bound packages is never scoped on any ref.
+#[test]
+fn plan_publish_run_scopes_plans_each_package_in_exactly_one_tag_run() {
 	const PRIMARY: &str = "v2.0.0";
 	let tag_choices = [None, Some(PRIMARY), Some("a/v1.0.0"), Some("b/v1.0.0")];
 	let package_choices = tag_choices
 		.iter()
 		.flat_map(|tag| [(true, *tag), (false, *tag)])
 		.collect::<Vec<_>>();
-	let run_refs = [
-		"refs/tags/v2.0.0",
-		"refs/tags/a/v1.0.0",
-		"refs/tags/b/v1.0.0",
-		"refs/tags/x/v9.9.9",
-		"refs/heads/main",
-	];
+	let other_refs = ["refs/tags/x/v9.9.9", "refs/heads/main"];
 	let mut checked = 0_usize;
 
 	for first in &package_choices {
@@ -1468,21 +1622,68 @@ fn plan_publish_run_scopes_never_skips_a_package_silently() {
 							.chain(primary.map(str::to_string))
 							.collect(),
 					};
+					let env_map = github_actions_env("refs/heads/main");
+					let any_bound = requests
+						.iter()
+						.any(|request| publish_is_tag_bound(request, &env_map));
+					let case = |request: &PublishRequest| {
+						format!(
+							"{} (tag {:?}) of [{first:?}, {second:?}, {third:?}], primary \
+							 {primary:?}",
+							request.package_id, request.release_tag
+						)
+					};
+					let dispatching = dispatching_runs(&requests, &tags);
+					// A run on one of these tags is itself dispatched; it never
+					// dispatches again.
+					let bound_tags = requests
+						.iter()
+						.filter(|request| publish_is_tag_bound(request, &env_map))
+						.filter_map(|request| request.release_tag.as_ref())
+						.map(|tag| tag.name.clone())
+						.filter(|tag| Some(tag.as_str()) != primary)
+						.collect::<BTreeSet<_>>();
 
-					for run_ref in run_refs {
-						let env_map = github_actions_env(run_ref);
+					for ((request, (_, runs)), dispatched_from) in requests
+						.iter()
+						.zip(publishing_runs(&requests, &tags))
+						.zip(&dispatching)
+					{
+						let missing_tag = publish_is_tag_bound(request, &env_map)
+							&& request.release_tag.is_none();
+
+						// A release without tag-bound packages publishes everything
+						// on every ref, as before; checked below.
+						if any_bound && !tags.tags.is_empty() && !missing_tag {
+							assert_eq!(runs.len(), 1, "{}: planned by {runs:?}", case(request));
+						}
+
+						assert!(
+							dispatched_from.len() <= 1,
+							"{}: dispatched from {dispatched_from:?}",
+							case(request)
+						);
+						assert!(
+							dispatched_from.iter().all(|tag| !bound_tags.contains(tag)),
+							"{}: dispatched from a pub.dev package's tag run {dispatched_from:?}",
+							case(request)
+						);
+
+						checked += 1;
+					}
+
+					for run_ref in tags
+						.tags
+						.iter()
+						.map(|tag| format!("refs/tags/{tag}"))
+						.chain(other_refs.map(str::to_string))
+					{
+						let env_map = github_actions_env(&run_ref);
 						let scopes = plan_publish_run_scopes(&requests, &tags, &env_map);
-						let any_bound = requests
-							.iter()
-							.any(|request| publish_is_tag_bound(request, &env_map));
 
 						for (request, scope) in requests.iter().zip(&scopes) {
 							let bound = publish_is_tag_bound(request, &env_map);
-							let case = format!(
-								"{} (bound {bound}, tag {:?}) on {run_ref}, primary {primary:?}: \
-								 {scope:?}",
-								request.package_id, request.release_tag
-							);
+							let case = format!("{} on {run_ref}: {scope:?}", case(request));
 
 							if primary.is_some() && run_ref == "refs/tags/v2.0.0" && !bound {
 								assert_eq!(*scope, PublishRunScope::Publish, "{case}");
@@ -1493,24 +1694,14 @@ fn plan_publish_run_scopes_never_skips_a_package_silently() {
 							}
 
 							if let PublishRunScope::OutOfScope { message } = scope {
-								// The message ends with the run that publishes the
-								// package: a dispatch on its own tag, or the run
-								// on another tag of the release.
-								let publishing_tag = message
-									.rsplit_once(" --ref ")
-									.or_else(|| {
-										message.rsplit_once("publishes in the run on `refs/tags/")
-									})
+								let home = message
+									.split_once("publishes in the run on `refs/tags/")
 									.and_then(|(_, rest)| rest.split('`').next())
 									.unwrap_or_else(|| panic!("no publishing run: {case}"));
-								assert!(
-									tags.tags.contains(publishing_tag),
-									"{case}: `{publishing_tag}` is not a tag of the release"
-								);
-								let on_publishing_tag = plan_publish_run_scopes(
+								let on_home = plan_publish_run_scopes(
 									&requests,
 									&tags,
-									&github_actions_env(&format!("refs/tags/{publishing_tag}")),
+									&github_actions_env(&format!("refs/tags/{home}")),
 								);
 								let index = requests
 									.iter()
@@ -1519,13 +1710,11 @@ fn plan_publish_run_scopes_never_skips_a_package_silently() {
 									})
 									.unwrap_or_default();
 								assert_eq!(
-									on_publishing_tag[index],
+									on_home[index],
 									PublishRunScope::Publish,
-									"{case}: the run on `{publishing_tag}` does not publish it"
+									"{case}: the run on `{home}` does not publish it"
 								);
 							}
-
-							checked += 1;
 						}
 					}
 				}
@@ -1533,7 +1722,39 @@ fn plan_publish_run_scopes_never_skips_a_package_silently() {
 		}
 	}
 
-	assert_eq!(checked, 8 * 8 * 8 * 2 * run_refs.len() * 3);
+	assert_eq!(checked, 8 * 8 * 8 * 2 * 3);
+}
+
+/// Which packages a run publishes depends on the whole release, so a
+/// `--package` or `--ecosystem` selection cannot pull a package into the
+/// run on a pub.dev package's tag.
+#[test]
+fn assign_publish_run_scopes_plans_the_whole_release_before_the_selection() {
+	let release = [
+		ref_free_request("cli", Some("v2.0.1")),
+		tag_bound_request("app_dart", Some("sdk/v1.1.0")),
+		ref_free_request("web", Some("sdk/v1.1.0")),
+	];
+	let tags = release_tags(Some("v2.0.1"), &["sdk/v1.1.0"]);
+	let env_map = github_actions_env("refs/tags/sdk/v1.1.0");
+	let mut selected = vec![release[2].clone(), ref_free_request("outside", None)];
+
+	assign_publish_run_scopes(&mut selected, &release, &tags, &env_map);
+
+	assert_eq!(
+		selected
+			.iter()
+			.map(|request| scope_summary(&request.run_scope))
+			.collect::<Vec<_>>(),
+		["out_of_scope", "publish"],
+		"`web` is out of scope even when it is the only package selected; a request outside \
+		 the release keeps its scope"
+	);
+	assert_eq!(
+		plan_summary(&selected[..1], &tags, &env_map),
+		["publish"],
+		"planning the selection alone would publish `web` here"
+	);
 }
 
 #[test]
@@ -1630,7 +1851,8 @@ async fn execute_with_env(
 		.map(|tag| tag.name.as_str())
 		.collect::<Vec<_>>();
 	let tags = release_tags(Some("v2.0.0"), &request_tags);
-	assign_publish_run_scopes(&mut requests, &tags, env_map);
+	let release = requests.clone();
+	assign_publish_run_scopes(&mut requests, &release, &tags, env_map);
 
 	try_execute_publish_requests_with_progress(
 		Path::new("."),
@@ -1745,9 +1967,9 @@ async fn pub_dev_tag_run_publishes_its_package_without_touching_other_registries
 		PackagePublishStatus::SkippedOutOfScope
 	);
 	assert!(
-		report.packages[0].message.contains(
-			"`refs/tags/dart_pkg/v1.0.0` is the release tag of trusted pub.dev package `dart_pkg`"
-		),
+		report.packages[0]
+			.message
+			.contains("web 1.0.0 publishes in the run on `refs/tags/v2.0.0`"),
 		"{}",
 		report.packages[0].message
 	);
@@ -1848,6 +2070,98 @@ async fn deferred_package_with_an_existing_version_skips_duplicate_rejection() {
 	assert_eq!(
 		report.packages[0].status,
 		PackagePublishStatus::SkippedExisting
+	);
+}
+
+/// A failure in a run on a pub.dev package's tag leaves the packages other
+/// runs publish as they were planned, instead of blocking them.
+#[tokio::test(flavor = "multi_thread")]
+async fn failure_keeps_packages_other_runs_publish_out_of_scope_or_deferred() {
+	let server = httpmock::MockServer::start();
+	server.mock(|when, then| {
+		when.method(httpmock::Method::GET);
+		then.status(404);
+	});
+	let failed_upload = || {
+		Ok(CommandOutput {
+			success: false,
+			stdout: String::new(),
+			stderr: "upload rejected".to_string(),
+		})
+	};
+
+	// On the pub.dev package's tag, the packages after the failure are out
+	// of scope.
+	let mut executor = SequencedCommandExecutor::new([failed_upload()]);
+	let report = execute_with_env(
+		&[
+			tag_bound_request("dart_pkg", Some("dart_pkg/v1.0.0")),
+			ref_free_request("web", Some("v2.0.0")),
+			tag_bound_request("other_dart", Some("other_dart/v3.0.0")),
+		],
+		false,
+		&registry_endpoints(&server),
+		&github_actions_env("refs/tags/dart_pkg/v1.0.0"),
+		&mut executor,
+	)
+	.await
+	.unwrap_or_else(|failure| panic!("a failed upload is reported in the run: {failure}"));
+	let statuses = |report: &PackagePublishReport| {
+		report
+			.packages
+			.iter()
+			.map(|outcome| (outcome.package.clone(), outcome.status))
+			.collect::<Vec<_>>()
+	};
+	assert_eq!(
+		statuses(&report),
+		[
+			("dart_pkg".to_string(), PackagePublishStatus::Failed),
+			("web".to_string(), PackagePublishStatus::SkippedOutOfScope),
+			(
+				"other_dart".to_string(),
+				PackagePublishStatus::SkippedOutOfScope
+			),
+		]
+	);
+	assert!(
+		report.packages[1]
+			.message
+			.contains("publishes in the run on `refs/tags/v2.0.0`"),
+		"{}",
+		report.packages[1].message
+	);
+
+	// On the primary tag, a later pub.dev package stays deferred to its tag,
+	// and a later package this run publishes is blocked.
+	let mut executor = SequencedCommandExecutor::new([failed_upload()]);
+	let report = execute_with_env(
+		&[
+			ref_free_request("web", Some("v2.0.0")),
+			tag_bound_request("dart_pkg", Some("dart_pkg/v1.0.0")),
+			ref_free_request("cli", Some("v2.0.0")),
+		],
+		false,
+		&registry_endpoints(&server),
+		&github_actions_env("refs/tags/v2.0.0"),
+		&mut executor,
+	)
+	.await
+	.unwrap_or_else(|failure| panic!("a failed upload is reported in the run: {failure}"));
+	assert_eq!(
+		statuses(&report),
+		[
+			("web".to_string(), PackagePublishStatus::Failed),
+			("dart_pkg".to_string(), PackagePublishStatus::DeferredToTag),
+			("cli".to_string(), PackagePublishStatus::Blocked),
+		]
+	);
+	assert_eq!(
+		report.packages[1]
+			.deferred_to
+			.as_ref()
+			.map(|deferral| deferral.tag.as_str()),
+		Some("dart_pkg/v1.0.0")
 	);
 }
 

@@ -119,9 +119,11 @@ async fn build_release_plan_requests(
 	// no registry probe and must not count against this run's rate limits.
 	package_publish::scope_requests_to_run_ref(
 		configuration,
+		packages,
+		&release.publications,
 		&mut requests,
 		release.release_tags.as_ref(),
-	);
+	)?;
 	let requests = requests
 		.into_iter()
 		.filter(|request| request.run_scope == PublishRunScope::Publish)

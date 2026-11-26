@@ -963,6 +963,53 @@ fn render_package_publish_reports_say_what_to_change_for_a_wrong_event() {
 }
 
 #[test]
+fn deferrals_no_run_picks_up_warn_until_the_workflow_is_fixed() {
+	let report = wrong_event_publish_report();
+	let (outcome, line) = package_publish_outcome_line(&report, report.summary());
+	assert_eq!(outcome, Outcome::Warning);
+	assert!(
+		line.ends_with(
+			"; 1 package left unpublished, and no run publishes it until the workflow's trigger or `GITHUB_REF` is fixed"
+		),
+		"{line}"
+	);
+
+	let mut unknown_ref = wrong_event_publish_report();
+	let mut second = unknown_ref.packages[0].clone();
+	second.package = "tools_dart".to_string();
+	unknown_ref.packages.push(second);
+	for package in &mut unknown_ref.packages {
+		if let Some(deferral) = package.deferred_to.as_mut() {
+			deferral.reason = monochange_publish::PublishDeferralReason::UnknownRef;
+		}
+	}
+	let (outcome, line) = package_publish_outcome_line(&unknown_ref, unknown_ref.summary());
+	assert_eq!(outcome, Outcome::Warning);
+	assert!(
+		line.ends_with(
+			"; 2 packages left unpublished, and no run publishes them until the workflow's trigger or `GITHUB_REF` is fixed"
+		),
+		"{line}"
+	);
+
+	// A deferral to another tag's run is picked up by that run.
+	let tag_scoped = tag_scoped_publish_report();
+	let (outcome, line) = package_publish_outcome_line(&tag_scoped, tag_scoped.summary());
+	assert_ne!(outcome, Outcome::Warning, "{line}");
+	assert!(!line.contains("left unpublished"), "{line}");
+
+	// A failure stays a failure.
+	let mut failed = wrong_event_publish_report();
+	failed.packages.push(sample_package_publish_outcome(
+		package_publish::PackagePublishStatus::Failed,
+		package_publish::TrustedPublishingStatus::Disabled,
+	));
+	let (outcome, line) = package_publish_outcome_line(&failed, failed.summary());
+	assert_eq!(outcome, Outcome::Failure);
+	assert!(!line.contains("left unpublished"), "{line}");
+}
+
+#[test]
 fn render_package_publish_reports_list_deferred_packages_with_their_tag_runs() {
 	let report = tag_scoped_publish_report();
 

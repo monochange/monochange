@@ -9,6 +9,7 @@ use monochange_core::Ecosystem;
 use monochange_core::MonochangeError;
 use monochange_core::MonochangeResult;
 use monochange_core::PackagePublicationTarget;
+use monochange_core::PackageRecord;
 use monochange_core::PublishRegistry;
 use monochange_core::RegistryKind;
 use monochange_core::SourceConfiguration;
@@ -263,13 +264,29 @@ pub(crate) async fn try_run_publish_packages_with_resume_and_progress(
 	try_run_publish_packages_with_publications_and_resume_and_progress(
 		root,
 		configuration,
-		&selected_targets.publication_targets,
-		&selected_targets.selected_packages,
-		release.release_tags.as_ref(),
+		ReleasePublicationSelection {
+			publication_targets: &selected_targets.publication_targets,
+			selected_packages: &selected_targets.selected_packages,
+			release_publications: &release.publications,
+			release_tags: release.release_tags.as_ref(),
+		},
 		options,
 		progress,
 	)
 	.await
+}
+
+/// The publications one run publishes, and the release they belong to.
+struct ReleasePublicationSelection<'a> {
+	/// The release's publications after `--ecosystem` selection.
+	publication_targets: &'a [PackagePublicationTarget],
+	/// The `--package` and `--group` selection; empty selects every package.
+	selected_packages: &'a BTreeSet<String>,
+	/// Every publication of the release: which packages a run publishes
+	/// depends on all of them, whatever the selection.
+	release_publications: &'a [PackagePublicationTarget],
+	/// The release's tags; `None` renders them from configuration.
+	release_tags: Option<&'a PublishReleaseTags>,
 }
 
 pub(crate) async fn run_publish_packages_with_publications(
@@ -331,9 +348,12 @@ async fn try_run_publish_packages_with_publications_and_resume(
 	try_run_publish_packages_with_publications_and_resume_and_progress(
 		root,
 		configuration,
-		publication_targets,
-		selected_packages,
-		None,
+		ReleasePublicationSelection {
+			publication_targets,
+			selected_packages,
+			release_publications: publication_targets,
+			release_tags: None,
+		},
 		options,
 		&progress,
 	)
@@ -343,12 +363,20 @@ async fn try_run_publish_packages_with_publications_and_resume(
 async fn try_run_publish_packages_with_publications_and_resume_and_progress(
 	root: &Path,
 	configuration: &WorkspaceConfiguration,
-	publication_targets: &[PackagePublicationTarget],
-	selected_packages: &BTreeSet<String>,
-	release_tags: Option<&PublishReleaseTags>,
+	selection: ReleasePublicationSelection<'_>,
 	options: PublishPackagesOptions<'_>,
 	progress: &dyn PublishProgressReporter,
 ) -> PackagePublishExecutionResult {
+	let failure = |error| {
+		monochange_publish::PackagePublishFailure::new(
+			error,
+			PackagePublishReport {
+				mode: PackagePublishRunMode::Release,
+				dry_run: options.dry_run,
+				packages: Vec::new(),
+			},
+		)
+	};
 	let discovery = discover_release_workspace(root, configuration).map_err(|error| {
 		monochange_publish::PackagePublishFailure::new(
 			error,
@@ -362,24 +390,23 @@ async fn try_run_publish_packages_with_publications_and_resume_and_progress(
 	let mut requests = build_release_requests(
 		configuration,
 		&discovery.packages,
-		publication_targets,
-		selected_packages,
+		selection.publication_targets,
+		selection.selected_packages,
 	)
-	.map_err(|error| {
-		monochange_publish::PackagePublishFailure::new(
-			error,
-			PackagePublishReport {
-				mode: PackagePublishRunMode::Release,
-				dry_run: options.dry_run,
-				packages: Vec::new(),
-			},
-		)
-	})?;
-	// Plan the run before resuming: whether this run is scoped to a tag
-	// depends on every package of the release, including the ones an earlier
-	// run already published.
+	.map_err(failure)?;
+	// Plan the run before resuming and over the whole release: which
+	// packages this run publishes depends on every package of the release,
+	// including the ones an earlier run already published or the selection
+	// leaves out.
 	if options.ref_scope == PublishRefScope::RunRef {
-		scope_requests_to_run_ref(configuration, &mut requests, release_tags);
+		scope_requests_to_run_ref(
+			configuration,
+			&discovery.packages,
+			selection.release_publications,
+			&mut requests,
+			selection.release_tags,
+		)
+		.map_err(failure)?;
 	}
 	monochange_publish::set_fail_on_duplicate_for_requests(
 		&mut requests,
@@ -645,17 +672,33 @@ fn release_tags_from_targets<'a>(
 }
 
 /// Decide which of `requests` this CI run publishes, from the run's git ref
-/// and the tags the release creates (rendered from configuration when
+/// and the whole release: every publication in `release_publications` and
+/// the tags the release creates (rendered from configuration when
 /// `release_tags` is `None`).
 pub(crate) fn scope_requests_to_run_ref(
 	configuration: &WorkspaceConfiguration,
+	packages: &[PackageRecord],
+	release_publications: &[PackagePublicationTarget],
 	requests: &mut [PublishRequest],
 	release_tags: Option<&PublishReleaseTags>,
-) {
+) -> MonochangeResult<()> {
+	let release_requests = build_release_requests(
+		configuration,
+		packages,
+		release_publications,
+		&BTreeSet::new(),
+	)?;
 	let release_tags = release_tags
 		.cloned()
-		.unwrap_or_else(|| configured_release_tags(configuration, requests));
-	assign_publish_run_scopes(requests, &release_tags, &current_env_map());
+		.unwrap_or_else(|| configured_release_tags(configuration, &release_requests));
+	assign_publish_run_scopes(
+		requests,
+		&release_requests,
+		&release_tags,
+		&current_env_map(),
+	);
+
+	Ok(())
 }
 
 struct CliPublishTrustHandler;
