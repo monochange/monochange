@@ -238,8 +238,10 @@ pub struct PublishDeferral {
 	/// The git ref the registry requires: `refs/tags/<tag>`.
 	#[serde(rename = "ref")]
 	pub git_ref: String,
-	/// Command that dispatches the package's publish workflow on `tag`.
-	pub command: String,
+	/// Command that dispatches the package's publish workflow on `tag`, or
+	/// `None` when monochange cannot determine which workflow to dispatch.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub command: Option<String>,
 }
 
 /// What about a GitHub Actions run makes pub.dev reject a trusted upload.
@@ -572,10 +574,17 @@ fn append_skipped_after_failure_outcomes(
 	progress: &dyn PublishProgressReporter,
 ) {
 	for request in requests {
-		// A package another run publishes keeps its scope: the failure here
-		// does not stop that run.
-		let (status, message, deferred_to) = match (mode, &request.run_scope) {
-			(PackagePublishRunMode::Release, PublishRunScope::OutOfScope { message }) => {
+		// External packages and packages another run publishes keep their own
+		// status: the failure here does not affect them.
+		let (status, message, deferred_to) = match (mode, request.mode, &request.run_scope) {
+			(PackagePublishRunMode::Release, PublishMode::External, _) => {
+				(
+					PackagePublishStatus::SkippedExternal,
+					"package opted out of built-in publishing".to_string(),
+					None,
+				)
+			}
+			(PackagePublishRunMode::Release, _, PublishRunScope::OutOfScope { message }) => {
 				(
 					PackagePublishStatus::SkippedOutOfScope,
 					message.clone(),
@@ -584,6 +593,7 @@ fn append_skipped_after_failure_outcomes(
 			}
 			(
 				PackagePublishRunMode::Release,
+				_,
 				PublishRunScope::DeferredToTag { deferral, message },
 			) => {
 				(
@@ -2150,34 +2160,78 @@ fn package_release_tag(
 	)
 }
 
-/// The tags a release of `requests` creates, rendered from configuration.
+/// The tags a release of every configured package and group creates,
+/// rendered from configuration and discovered package versions.
 ///
 /// Use this when no release record lists the release's tags, for example
-/// when publishing every configured package. The primary tag is the release
-/// tag of a request whose release owner uses `version_format = "primary"`.
-#[must_use]
+/// when publishing every configured package (`--all`). Every configured
+/// group and standalone package with `tag = true` and a discovered current
+/// version contributes its tag—including non-publishable packages and groups
+/// whose members are all non-publishable—so scoping sees every tag the
+/// release creates.
 pub fn configured_release_tags(
 	configuration: &WorkspaceConfiguration,
-	requests: &[PublishRequest],
-) -> PublishReleaseTags {
+	packages: &[PackageRecord],
+) -> MonochangeResult<PublishReleaseTags> {
+	let packages_by_config_id = packages_by_config_id(packages);
 	let mut release_tags = PublishReleaseTags::default();
 
-	for request in requests {
-		let Some(tag) = &request.release_tag else {
+	for group in &configuration.groups {
+		if !group.tag {
+			continue;
+		}
+
+		let Some(version) = group
+			.packages
+			.iter()
+			.filter_map(|member| packages_by_config_id.get(member.as_str()).copied())
+			.filter_map(|package| package.current_version.as_ref())
+			.max()
+		else {
 			continue;
 		};
 
-		if configuration
-			.effective_release_identity(&request.package_id)
-			.is_some_and(|identity| identity.version_format.is_primary())
-		{
-			release_tags.primary = Some(tag.name.clone());
+		let tag_name = group
+			.version_format
+			.render_tag(&group.id, &version.to_string(), "group")?;
+
+		if group.version_format.is_primary() {
+			release_tags.primary = Some(tag_name.clone());
 		}
 
-		release_tags.tags.insert(tag.name.clone());
+		release_tags.tags.insert(tag_name);
 	}
 
-	release_tags
+	for package_definition in &configuration.packages {
+		if !package_definition.tag
+			|| configuration
+				.group_for_package(&package_definition.id)
+				.is_some()
+		{
+			continue;
+		}
+
+		let Some(version) = packages_by_config_id
+			.get(package_definition.id.as_str())
+			.and_then(|package| package.current_version.as_ref())
+		else {
+			continue;
+		};
+
+		let tag_name = package_definition.version_format.render_tag(
+			&package_definition.id,
+			&version.to_string(),
+			package_definition.package_type.as_str(),
+		)?;
+
+		if package_definition.version_format.is_primary() {
+			release_tags.primary = Some(tag_name.clone());
+		}
+
+		release_tags.tags.insert(tag_name);
+	}
+
+	Ok(release_tags)
 }
 
 /// The tag name a release owner renders for `package_id` at `version`,
@@ -2723,7 +2777,7 @@ pub fn assign_publish_run_scopes(
 	release_tags: &PublishReleaseTags,
 	env_map: &BTreeMap<String, String>,
 ) {
-	let mut scopes = release_requests
+	let scopes = release_requests
 		.iter()
 		.map(publish_request_key)
 		.zip(plan_publish_run_scopes(
@@ -2734,8 +2788,8 @@ pub fn assign_publish_run_scopes(
 		.collect::<BTreeMap<_, _>>();
 
 	for request in requests {
-		if let Some(scope) = scopes.remove(&publish_request_key(request)) {
-			request.run_scope = scope;
+		if let Some(scope) = scopes.get(&publish_request_key(request)) {
+			request.run_scope = scope.clone();
 		}
 	}
 }
@@ -2928,12 +2982,27 @@ fn tag_bound_run_scope(
 	PublishRunScope::DeferredToTag { deferral, message }
 }
 
+/// Quote one POSIX shell argument only when it contains characters outside
+/// a safe unquoted set, keeping clean identifiers readable.
+fn shell_quote_arg(value: &str) -> String {
+	if !value.is_empty()
+		&& value.bytes().all(|byte| {
+			byte.is_ascii_alphanumeric()
+				|| matches!(byte, b'_' | b'.' | b'/' | b':' | b'@' | b'+' | b'-')
+		}) {
+		return value.to_string();
+	}
+
+	format!("'{}'", value.replace('\'', "'\\''"))
+}
+
 /// Describe the run that publishes `request` from `tag`: the package's
 /// publish workflow dispatched on the tag.
 ///
 /// The workflow is `publish.trusted_publishing.workflow` when the package
 /// sets one, because pub.dev trusts that workflow; otherwise it is the
-/// current run's workflow.
+/// current run's workflow. When no workflow can be determined, `command`
+/// is `None` rather than emitting an unrunnable placeholder.
 fn publish_deferral(
 	request: &PublishRequest,
 	tag: &PublishReleaseTag,
@@ -2943,29 +3012,38 @@ fn publish_deferral(
 	let workflow = request
 		.trusted_publishing
 		.workflow
-		.clone()
+		.as_deref()
+		.map(str::trim)
 		.filter(|workflow| !workflow.is_empty())
+		.map(str::to_string)
 		.or_else(|| {
 			env_map
 				.get("GITHUB_WORKFLOW_REF")
 				.and_then(|value| parse_github_workflow_ref(value))
 		})
-		.or_else(|| non_empty_env(env_map, "GITHUB_WORKFLOW").map(str::to_string))
-		.unwrap_or_else(|| "<workflow>".to_string());
+		.or_else(|| non_empty_env(env_map, "GITHUB_WORKFLOW").map(str::to_string));
 	let repository = request
 		.trusted_publishing
 		.repository
 		.as_deref()
+		.map(str::trim)
 		.filter(|repository| !repository.is_empty())
 		.or_else(|| non_empty_env(env_map, "GITHUB_REPOSITORY"))
-		.map(|repository| format!(" --repo {repository}"))
+		.map(|repository| format!(" --repo {}", shell_quote_arg(repository)))
 		.unwrap_or_default();
+	let command = workflow.map(|workflow| {
+		format!(
+			"gh workflow run {}{repository} --ref {}",
+			shell_quote_arg(&workflow),
+			shell_quote_arg(&tag.name)
+		)
+	});
 
 	PublishDeferral {
 		reason,
 		tag: tag.name.clone(),
 		git_ref: tag.git_ref(),
-		command: format!("gh workflow run {workflow}{repository} --ref {}", tag.name),
+		command,
 	}
 }
 
@@ -2978,25 +3056,40 @@ fn deferral_message(
 	let registry = registry_display_name(request.registry.as_str());
 	let package = format!("{} {}", request.package_name, request.version);
 	let required_ref = &deferral.git_ref;
-	let command = &deferral.command;
 	let run_ref = run.git_ref.unwrap_or_default();
+	let unknown_workflow_hint = format!(
+		"dispatch its publish workflow on `{}` (set `publish.trusted_publishing.workflow` or keep `GITHUB_WORKFLOW_REF` so monochange can render the dispatch command)",
+		deferral.tag
+	);
 
 	match deferral.reason {
 		PublishDeferralReason::WrongRef => {
+			let action = deferral.command.as_deref().map_or_else(
+				|| unknown_workflow_hint.clone(),
+				|command| format!("publish it with `{command}`"),
+			);
 			format!(
-				"{registry} only accepts {package} from a run on `{required_ref}`, and this run is on `{run_ref}`; publish it with `{command}`"
+				"{registry} only accepts {package} from a run on `{required_ref}`, and this run is on `{run_ref}`; {action}"
 			)
 		}
 		PublishDeferralReason::WrongRefType => {
 			let ref_type = run.ref_type.unwrap_or("ref");
+			let action = deferral.command.as_deref().map_or_else(
+				|| unknown_workflow_hint.clone(),
+				|command| format!("publish it with `{command}`"),
+			);
 			format!(
-				"{registry} only accepts {package} from a run on the tag `{required_ref}`, and this run is on the {ref_type} `{run_ref}`; publish it with `{command}`"
+				"{registry} only accepts {package} from a run on the tag `{required_ref}`, and this run is on the {ref_type} `{run_ref}`; {action}"
 			)
 		}
 		PublishDeferralReason::WrongEvent => {
 			let event = run.event.unwrap_or_default();
+			let now = deferral.command.as_deref().map_or_else(
+				|| format!("To publish this version now, {unknown_workflow_hint}"),
+				|command| format!("To publish this version now, run `{command}`"),
+			);
 			format!(
-				"{registry} only accepts {package} from a run that a `push` or `workflow_dispatch` event starts, and a `{event}` event started this run on `{required_ref}`. No `{event}` run ever publishes it, so start the publish workflow from tag pushes (`on: push`) instead of `on: {event}`. To publish this version now, run `{command}`"
+				"{registry} only accepts {package} from a run that a `push` or `workflow_dispatch` event starts, and a `{event}` event started this run on `{required_ref}`. No `{event}` run ever publishes it, so start the publish workflow from tag pushes (`on: push`) instead of `on: {event}`. {now}"
 			)
 		}
 		PublishDeferralReason::UnknownRef => {
@@ -3024,12 +3117,24 @@ fn tag_bound_out_of_scope_message(
 	env_map: &BTreeMap<String, String>,
 ) -> String {
 	let command = publish_deferral(request, tag, PublishDeferralReason::WrongRef, env_map).command;
-	let start = match tag_runs.coordinator.as_deref() {
-		Some(coordinator) if coordinator == tag.name => String::new(),
-		Some(coordinator) => {
+	let start = match (tag_runs.coordinator.as_deref(), command.as_deref()) {
+		(Some(coordinator), _) if coordinator == tag.name => String::new(),
+		(Some(coordinator), Some(command)) => {
 			format!("; the run on `refs/tags/{coordinator}` dispatches it with `{command}`")
 		}
-		None => format!("; start it with `{command}`"),
+		(Some(coordinator), None) => {
+			format!(
+				"; the run on `refs/tags/{coordinator}` defers it to `{}` (set `publish.trusted_publishing.workflow` or keep `GITHUB_WORKFLOW_REF` so monochange can render the dispatch command)",
+				tag.name
+			)
+		}
+		(None, Some(command)) => format!("; start it with `{command}`"),
+		(None, None) => {
+			format!(
+				"; dispatch its publish workflow on `{}` (set `publish.trusted_publishing.workflow` or keep `GITHUB_WORKFLOW_REF` so monochange can render the dispatch command)",
+				tag.name
+			)
+		}
 	};
 
 	out_of_scope_message(

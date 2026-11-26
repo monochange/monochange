@@ -3677,7 +3677,10 @@ fn package_publish_detail_item(package: &package_publish::PackagePublishOutcome)
 			"release tag: {} ({})",
 			tag_run.tag, tag_run.git_ref
 		));
-		lines.push(format!("publish from tag: {}", tag_run.command));
+
+		if let Some(command) = &tag_run.command {
+			lines.push(format!("publish from tag: {command}"));
+		}
 	}
 
 	append_package_publish_command_output_lines(&mut lines, package, "");
@@ -3780,21 +3783,30 @@ fn render_deferred_publish_section(
 		.collect::<Vec<_>>();
 	text.table(&rows);
 
-	for (package, _) in deferred
+	for (package, tag_run) in deferred
 		.iter()
-		.filter(|(_, tag_run)| deferral_needs_workflow_change(tag_run))
+		.filter(|(_, tag_run)| deferral_needs_workflow_change(tag_run) || tag_run.command.is_none())
 	{
-		text.paragraph(&package.message, Tone::Warning);
+		let tone = if deferral_needs_workflow_change(tag_run) {
+			Tone::Warning
+		} else {
+			Tone::Plain
+		};
+		text.paragraph(&package.message, tone);
 	}
 
-	text.paragraph(
-		"The registry only accepts these packages from a `push` or `workflow_dispatch` run on their release tag. Publish each one from its tag:",
-		Tone::Plain,
-	);
-	text.list(
-		deferred.iter().map(|(_, tag_run)| tag_run.command.clone()),
-		usize::MAX,
-	);
+	let commands = deferred
+		.iter()
+		.filter_map(|(_, tag_run)| tag_run.command.clone())
+		.collect::<Vec<_>>();
+
+	if !commands.is_empty() {
+		text.paragraph(
+			"The registry only accepts these packages from a `push` or `workflow_dispatch` run on their release tag. Publish each one from its tag:",
+			Tone::Plain,
+		);
+		text.list(commands, usize::MAX);
+	}
 }
 
 /// Whether the run that deferred a package can never publish it from its tag
@@ -3876,15 +3888,9 @@ fn package_publish_outcome_line(
 	// A deferral that no run of this workflow can pick up leaves the package
 	// unpublished until someone changes the workflow, so the run warns even
 	// when everything else published.
-	let stranded = report
-		.packages
-		.iter()
-		.filter(|package| {
-			package
-				.deferred_to
-				.as_ref()
-				.is_some_and(deferral_needs_workflow_change)
-		})
+	let stranded = deferred_publish_runs(report)
+		.into_iter()
+		.filter(|(_, tag_run)| deferral_needs_workflow_change(tag_run))
 		.count();
 
 	if stranded == 0 || outcome == Outcome::Failure {
@@ -4180,7 +4186,10 @@ fn render_package_publish_report_markdown(
 
 		if let Some(tag_run) = &package.deferred_to {
 			lines.push(format!("- **Release tag:** `{}`", tag_run.tag));
-			lines.push(format!("- **Publish from tag:** `{}`", tag_run.command));
+
+			if let Some(command) = &tag_run.command {
+				lines.push(format!("- **Publish from tag:** `{command}`"));
+			}
 		}
 
 		append_package_publish_command_output_markdown_lines(&mut lines, package);
@@ -4260,16 +4269,22 @@ fn append_deferred_publish_rows_markdown(
 	lines.push(String::new());
 	lines.push("**Deferred to release tags**".to_string());
 	lines.extend(deferred.into_iter().map(|(package, tag_run)| {
-		if deferral_needs_workflow_change(tag_run) {
-			format!(
-				"- **`{}`** `{}` via `{}` — {}",
-				package.package, package.version, package.registry, package.message
-			)
-		} else {
-			format!(
-				"- **`{}`** `{}` via `{}` — publish from `{}` with `{}`",
-				package.package, package.version, package.registry, tag_run.tag, tag_run.command
-			)
+		match (
+			deferral_needs_workflow_change(tag_run),
+			tag_run.command.as_deref(),
+		) {
+			(false, Some(command)) => {
+				format!(
+					"- **`{}`** `{}` via `{}` — publish from `{}` with `{command}`",
+					package.package, package.version, package.registry, tag_run.tag
+				)
+			}
+			_ => {
+				format!(
+					"- **`{}`** `{}` via `{}` — {}",
+					package.package, package.version, package.registry, package.message
+				)
+			}
 		}
 	}));
 }

@@ -2561,11 +2561,104 @@ fn build_release_requests_resolves_each_package_release_tag() {
 			.all(|request| request.run_scope == monochange_publish::PublishRunScope::Publish)
 	);
 	assert_eq!(
-		monochange_publish::configured_release_tags(&configuration, &requests),
+		monochange_publish::configured_release_tags(&configuration, &discovery.packages)
+			.expect("release tags:"),
 		monochange_publish::PublishReleaseTags {
 			primary: Some("v1.0.0".to_string()),
 			tags: BTreeSet::from(["app_dart/v2.0.0".to_string(), "v1.0.0".to_string()]),
 		}
+	);
+}
+
+#[test]
+fn release_tags_come_from_unpublished_packages_and_groups_when_configured() {
+	let root = tempfile::tempdir().expect("tempdir:");
+	fs::write(
+		root.path().join("monochange.toml"),
+		r#"[group.internal]
+packages = ["internal_a", "internal_b"]
+tag = true
+
+[package.app]
+path = "packages/app"
+type = "npm"
+tag = true
+version_format = "primary"
+publish = { enabled = false }
+
+[package.internal_a]
+path = "packages/internal_a"
+type = "npm"
+publish = { enabled = false }
+
+[package.internal_b]
+path = "packages/internal_b"
+type = "dart"
+
+[package.docs_site]
+path = "packages/docs_site"
+type = "npm"
+tag = true
+publish = { enabled = false }
+
+[package.web]
+path = "packages/web"
+type = "npm"
+
+[package.app_dart]
+path = "packages/app_dart"
+type = "dart"
+tag = true
+"#,
+	)
+	.expect("config:");
+
+	for (name, version) in [
+		("app", "1.0.0"),
+		("internal_a", "0.3.0"),
+		("docs_site", "0.5.0"),
+		("web", "1.1.0"),
+	] {
+		let dir = root.path().join("packages").join(name);
+		fs::create_dir_all(&dir).expect("mkdir:");
+		fs::write(
+			dir.join("package.json"),
+			format!(r#"{{ "name": "{name}", "version": "{version}" }}"#),
+		)
+		.expect("package.json:");
+	}
+
+	let internal_b = root.path().join("packages/internal_b");
+	fs::create_dir_all(&internal_b).expect("mkdir:");
+	fs::write(
+		internal_b.join("pubspec.yaml"),
+		"name: internal_b\nversion: 0.4.0\npublish_to: none\n",
+	)
+	.expect("pubspec:");
+
+	let app_dart = root.path().join("packages/app_dart");
+	fs::create_dir_all(&app_dart).expect("mkdir:");
+	fs::write(
+		app_dart.join("pubspec.yaml"),
+		"name: app_dart\nversion: 0.2.1\n",
+	)
+	.expect("pubspec:");
+
+	let configuration = crate::load_workspace_configuration(root.path()).expect("configuration:");
+	let discovery =
+		crate::discover_release_workspace(root.path(), &configuration).expect("discovery:");
+	let tags = monochange_publish::configured_release_tags(&configuration, &discovery.packages)
+		.expect("configured release tags:");
+
+	assert_eq!(tags.primary.as_deref(), Some("v1.0.0"));
+	assert_eq!(
+		tags.tags,
+		BTreeSet::from([
+			"app_dart/v0.2.1".to_string(),
+			"docs_site/v0.5.0".to_string(),
+			"internal/v0.4.0".to_string(),
+			"v1.0.0".to_string(),
+		])
 	);
 }
 

@@ -608,12 +608,13 @@ pub(crate) async fn release_publications(
 ) -> MonochangeResult<ReleasePublications> {
 	if publish_all_configured_packages {
 		let discovery = discover_release_workspace(root, configuration)?;
+		let release_tags = configured_release_tags(configuration, &discovery.packages)?;
 		return Ok(ReleasePublications {
 			publications: configured_package_publication_targets(
 				configuration,
 				&discovery.packages,
 			),
-			release_tags: None,
+			release_tags: Some(release_tags),
 		});
 	}
 
@@ -682,21 +683,35 @@ pub(crate) fn scope_requests_to_run_ref(
 	requests: &mut [PublishRequest],
 	release_tags: Option<&PublishReleaseTags>,
 ) -> MonochangeResult<()> {
+	scope_requests_to_run_ref_with_env(
+		configuration,
+		packages,
+		release_publications,
+		requests,
+		release_tags,
+		&current_env_map(),
+	)
+}
+
+pub(crate) fn scope_requests_to_run_ref_with_env(
+	configuration: &WorkspaceConfiguration,
+	packages: &[PackageRecord],
+	release_publications: &[PackagePublicationTarget],
+	requests: &mut [PublishRequest],
+	release_tags: Option<&PublishReleaseTags>,
+	env_map: &BTreeMap<String, String>,
+) -> MonochangeResult<()> {
 	let release_requests = build_release_requests(
 		configuration,
 		packages,
 		release_publications,
 		&BTreeSet::new(),
 	)?;
-	let release_tags = release_tags
-		.cloned()
-		.unwrap_or_else(|| configured_release_tags(configuration, &release_requests));
-	assign_publish_run_scopes(
-		requests,
-		&release_requests,
-		&release_tags,
-		&current_env_map(),
-	);
+	let release_tags = match release_tags {
+		Some(release_tags) => release_tags.clone(),
+		None => configured_release_tags(configuration, packages)?,
+	};
+	assign_publish_run_scopes(requests, &release_requests, &release_tags, env_map);
 
 	Ok(())
 }

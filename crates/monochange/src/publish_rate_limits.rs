@@ -101,6 +101,28 @@ async fn build_release_plan_requests(
 	selected_packages: &BTreeSet<String>,
 	publish_all_configured_packages: bool,
 ) -> MonochangeResult<Vec<package_publish::PublishRequest>> {
+	let requests = build_scoped_release_plan_requests(
+		root,
+		configuration,
+		prepared_release,
+		packages,
+		selected_packages,
+		publish_all_configured_packages,
+		&monochange_publish::current_env_map(),
+	)
+	.await?;
+	filter_pending_publish_requests(&requests).await
+}
+
+async fn build_scoped_release_plan_requests(
+	root: &Path,
+	configuration: &WorkspaceConfiguration,
+	prepared_release: Option<&PreparedRelease>,
+	packages: &[monochange_core::PackageRecord],
+	selected_packages: &BTreeSet<String>,
+	publish_all_configured_packages: bool,
+	env_map: &BTreeMap<String, String>,
+) -> MonochangeResult<Vec<package_publish::PublishRequest>> {
 	let release = package_publish::release_publications(
 		root,
 		configuration,
@@ -117,18 +139,18 @@ async fn build_release_plan_requests(
 	)?;
 	// Packages this run leaves to other runs (deferred or out of scope) need
 	// no registry probe and must not count against this run's rate limits.
-	package_publish::scope_requests_to_run_ref(
+	package_publish::scope_requests_to_run_ref_with_env(
 		configuration,
 		packages,
 		&release.publications,
 		&mut requests,
 		release.release_tags.as_ref(),
+		env_map,
 	)?;
-	let requests = requests
+	Ok(requests
 		.into_iter()
 		.filter(|request| request.run_scope == PublishRunScope::Publish)
-		.collect::<Vec<_>>();
-	filter_pending_publish_requests(&requests).await
+		.collect())
 }
 
 pub(super) fn sort_requests_by_dependencies(

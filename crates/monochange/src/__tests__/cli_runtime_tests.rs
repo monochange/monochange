@@ -895,7 +895,9 @@ fn tag_scoped_publish_report() -> package_publish::PackagePublishReport {
 		reason: monochange_publish::PublishDeferralReason::WrongRef,
 		tag: "dart_pkg/v0.2.1".to_string(),
 		git_ref: "refs/tags/dart_pkg/v0.2.1".to_string(),
-		command: "gh workflow run publish.yml --repo owner/repo --ref dart_pkg/v0.2.1".to_string(),
+		command: Some(
+			"gh workflow run publish.yml --repo owner/repo --ref dart_pkg/v0.2.1".to_string(),
+		),
 	});
 	let mut out_of_scope = sample_package_publish_outcome(
 		package_publish::PackagePublishStatus::SkippedOutOfScope,
@@ -926,7 +928,9 @@ fn wrong_event_publish_report() -> package_publish::PackagePublishReport {
 		reason: monochange_publish::PublishDeferralReason::WrongEvent,
 		tag: "dart_pkg/v0.2.1".to_string(),
 		git_ref: "refs/tags/dart_pkg/v0.2.1".to_string(),
-		command: "gh workflow run publish.yml --repo owner/repo --ref dart_pkg/v0.2.1".to_string(),
+		command: Some(
+			"gh workflow run publish.yml --repo owner/repo --ref dart_pkg/v0.2.1".to_string(),
+		),
 	});
 
 	package_publish::PackagePublishReport {
@@ -1007,6 +1011,56 @@ fn deferrals_no_run_picks_up_warn_until_the_workflow_is_fixed() {
 	let (outcome, line) = package_publish_outcome_line(&failed, failed.summary());
 	assert_eq!(outcome, Outcome::Failure);
 	assert!(!line.contains("left unpublished"), "{line}");
+
+	// Only rows with `status == DeferredToTag` count as stranded deferrals.
+	let mut non_deferred_status = wrong_event_publish_report();
+	non_deferred_status.packages[0].status = package_publish::PackagePublishStatus::Published;
+	let (outcome, line) =
+		package_publish_outcome_line(&non_deferred_status, non_deferred_status.summary());
+	assert_eq!(outcome, Outcome::Success);
+	assert!(!line.contains("left unpublished"), "{line}");
+
+	// When the workflow cannot be determined, `deferred_to.command` is omitted
+	// from text, markdown, and JSON, and the report explains why.
+	let mut unknown_workflow = tag_scoped_publish_report();
+	unknown_workflow.packages[1].message = "pub.dev only accepts dart_pkg 0.2.1 from a run on `refs/tags/dart_pkg/v0.2.1`, and this run is on `refs/tags/v1.2.3`; dispatch its publish workflow on `dart_pkg/v0.2.1` (set `publish.trusted_publishing.workflow` or keep `GITHUB_WORKFLOW_REF` so monochange can render the dispatch command)".to_string();
+	if let Some(deferral) = unknown_workflow.packages[1].deferred_to.as_mut() {
+		deferral.command = None;
+	}
+	let text = render_publish_text(&unknown_workflow, false);
+	assert!(
+		text.contains("publish.trusted_publishing.workflow"),
+		"text:\n{text}"
+	);
+	assert!(
+		!text.contains("Publish each one from its tag:"),
+		"text:\n{text}"
+	);
+	let text_details = render_publish_text(&unknown_workflow, true);
+	assert!(
+		!text_details.contains("publish from tag:"),
+		"details:\n{text_details}"
+	);
+	let markdown = render_package_publish_report_markdown(&unknown_workflow, false).join("\n");
+	assert!(
+		markdown.contains("publish.trusted_publishing.workflow"),
+		"markdown:\n{markdown}"
+	);
+	let markdown_details =
+		render_package_publish_report_markdown(&unknown_workflow, true).join("\n");
+	assert!(
+		!markdown_details.contains("Publish from tag:"),
+		"markdown details:\n{markdown_details}"
+	);
+	let rendered = render_publish_command_json(OutputFormat::Json, Some(&unknown_workflow), None)
+		.expect("json");
+	let value: serde_json::Value = serde_json::from_str(&rendered).expect("parse json");
+	assert!(
+		value["package_publish"]["packages"][1]["deferred_to"]
+			.get("command")
+			.is_none(),
+		"deferred_to should omit command when None: {value}"
+	);
 }
 
 #[test]

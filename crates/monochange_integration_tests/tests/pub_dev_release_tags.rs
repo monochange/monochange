@@ -712,6 +712,7 @@ fn two_pub_dev_tags_publish_each_package_from_one_tag(
 #[case::no_primary("no-primary")]
 #[case::two_pub_dev_tags("two-pub-dev-tags")]
 #[case::shared_tag_only("shared-tag-only")]
+#[case::unpublished_primary("unpublished-primary")]
 fn release_tag_runs_plan_each_package_exactly_once(#[case] fixture: &str) {
 	let workspace = setup_released_workspace(fixture);
 	let registries = Registries::unpublished();
@@ -902,6 +903,146 @@ fn publish_all_without_a_release_record_scopes_to_configured_tags(
 	assert_eq!(package_rows(&value["package_publish"]), expected);
 }
 
+/// `--all` without a release record still sees tags owned by non-publishable
+/// packages (such as a private primary-tag owner), so across all release tags
+/// every publishable package is planned in exactly one run and counted in
+/// that run's rate-limit plan alone.
+#[test]
+fn publish_all_with_unpublished_primary_owner_plans_each_package_once() {
+	let workspace = setup_workspace("unpublished-primary");
+	let registries = Registries::unpublished();
+	let _lookups = registries.every_package_unpublished();
+	let mut planned_by = std::collections::BTreeMap::<String, Vec<String>>::new();
+
+	for (tag, expected_rows, expected_registries) in [
+		(
+			"v1.0.0",
+			[
+				"app_dart deferred_to_tag wrong_ref app_dart/v0.2.0",
+				"web planned",
+			]
+			.as_slice(),
+			["npm"].as_slice(),
+		),
+		(
+			"app_dart/v0.2.0",
+			["app_dart planned", "web skipped_out_of_scope"].as_slice(),
+			["pub_dev"].as_slice(),
+		),
+	] {
+		let git_ref = format!("refs/tags/{tag}");
+		let run = GitHubRun::on(&git_ref).event("push");
+		let output = run_monochange(
+			workspace.path(),
+			&registries,
+			run,
+			&[
+				"publish",
+				"packages",
+				"--all",
+				"--dry-run",
+				"--format",
+				"json",
+			],
+		);
+		assert_success(&output, &format!("publish --all on {tag}"));
+		let value: Value = serde_json::from_slice(&output.stdout)
+			.unwrap_or_else(|error| panic!("parse publish json: {error}"));
+		let package_publish = &value["package_publish"];
+
+		assert_eq!(package_rows(package_publish), expected_rows, "{tag}");
+
+		if tag == "app_dart/v0.2.0" {
+			let message = package_message(package_publish, "web");
+			assert!(message.contains("`refs/tags/v1.0.0`"), "{message}");
+		}
+
+		for package in package_publish["packages"]
+			.as_array()
+			.unwrap_or_else(|| panic!("packages array: {package_publish}"))
+		{
+			let name = package["package"].as_str().unwrap_or_default().to_string();
+			let runs = planned_by.entry(name).or_default();
+			if package["status"].as_str() == Some("planned") {
+				runs.push(tag.to_string());
+			}
+		}
+
+		let rate_output = run_monochange(
+			workspace.path(),
+			&registries,
+			run,
+			&[
+				"step",
+				"plan-publish-rate-limits",
+				"--all",
+				"--format",
+				"json",
+			],
+		);
+		assert_success(
+			&rate_output,
+			&format!("plan-publish-rate-limits --all on {tag}"),
+		);
+		let rate_value: Value = serde_json::from_slice(&rate_output.stdout)
+			.unwrap_or_else(|error| panic!("parse rate-limit json: {error}"));
+		let planned_registries = rate_value["publish_rate_limits"]["windows"]
+			.as_array()
+			.unwrap_or_else(|| panic!("windows: {rate_value}"))
+			.iter()
+			.filter(|window| window["pending"].as_u64().unwrap_or_default() > 0)
+			.map(|window| window["registry"].as_str().unwrap_or_default().to_string())
+			.collect::<Vec<_>>();
+		assert_eq!(
+			planned_registries, expected_registries,
+			"{tag}: {rate_value}"
+		);
+	}
+
+	assert_eq!(
+		planned_by,
+		std::collections::BTreeMap::from([
+			("app_dart".to_string(), vec!["app_dart/v0.2.0".to_string()]),
+			("web".to_string(), vec!["v1.0.0".to_string()]),
+		])
+	);
+}
+
+/// The release-record path keeps the primary tag of an unpublished owner in
+/// `release_targets`, so across both release tags each publishable package
+/// is planned once.
+#[test]
+fn release_record_with_unpublished_primary_owner_plans_each_package_once() {
+	let workspace = setup_released_workspace("unpublished-primary");
+	let registries = Registries::unpublished();
+	let _lookups = registries.every_package_unpublished();
+
+	let on_primary = publish_dry_run_json(
+		workspace.path(),
+		&registries,
+		GitHubRun::on("refs/tags/v1.0.1").event("push"),
+	);
+	assert_eq!(
+		package_rows(&on_primary),
+		[
+			"app_dart deferred_to_tag wrong_ref app_dart/v0.2.1",
+			"web planned"
+		]
+	);
+
+	let on_dart_tag = publish_dry_run_json(
+		workspace.path(),
+		&registries,
+		GitHubRun::on("refs/tags/app_dart/v0.2.1").event("push"),
+	);
+	assert_eq!(
+		package_rows(&on_dart_tag),
+		["app_dart planned", "web skipped_out_of_scope"]
+	);
+	let message = package_message(&on_dart_tag, "web");
+	assert!(message.contains("`refs/tags/v1.0.1`"), "{message}");
+}
+
 /// `--resume` keeps what an earlier run published and plans the packages it
 /// left to other runs again for this run's ref: a deferral is not a
 /// completed publish.
@@ -955,6 +1096,74 @@ fn resume_keeps_published_packages_and_defers_the_rest_again() {
 			"app_dart deferred_to_tag wrong_ref app_dart/v0.2.1",
 			"web published"
 		]
+	);
+
+	// Resuming the same artifact on the pub.dev package's own tag plans the
+	// previously deferred `app_dart` while keeping `web` published.
+	let dart_tag_run = GitHubRun::on("refs/tags/app_dart/v0.2.1");
+	let output = run_monochange(
+		workspace.path(),
+		&registries,
+		dart_tag_run,
+		&[
+			"publish",
+			"packages",
+			"--dry-run",
+			"--format",
+			"json",
+			"--resume",
+			"previous-publish.json",
+		],
+	);
+	assert_success(&output, "cross-tag resumed publish on dart tag");
+	let value: Value = serde_json::from_slice(&output.stdout)
+		.unwrap_or_else(|error| panic!("parse publish json: {error}"));
+	assert_eq!(
+		package_rows(&value["package_publish"]),
+		["app_dart planned", "web published"]
+	);
+
+	// Resuming an artifact from the pub.dev tag (where `app_dart` published
+	// and `web` was `skipped_out_of_scope`) on the npm tag plans `web` while
+	// keeping `app_dart` published.
+	let mut dart_previous = publish_dry_run_json(workspace.path(), &registries, dart_tag_run);
+	dart_previous["dry_run"] = Value::Bool(false);
+	for package in dart_previous["packages"]
+		.as_array_mut()
+		.unwrap_or_else(|| panic!("packages array"))
+	{
+		if package["package"] == "app_dart" {
+			package["status"] = Value::String("published".to_string());
+		}
+	}
+	let dart_resume_path = workspace.path().join("previous-dart-publish.json");
+	std::fs::write(
+		&dart_resume_path,
+		serde_json::to_string_pretty(&dart_previous)
+			.unwrap_or_else(|error| panic!("serialize report: {error}")),
+	)
+	.unwrap_or_else(|error| panic!("write report: {error}"));
+
+	let output = run_monochange(
+		workspace.path(),
+		&registries,
+		run,
+		&[
+			"publish",
+			"packages",
+			"--dry-run",
+			"--format",
+			"json",
+			"--resume",
+			"previous-dart-publish.json",
+		],
+	);
+	assert_success(&output, "cross-tag resumed publish on npm tag");
+	let value: Value = serde_json::from_slice(&output.stdout)
+		.unwrap_or_else(|error| panic!("parse publish json: {error}"));
+	assert_eq!(
+		package_rows(&value["package_publish"]),
+		["app_dart published", "web planned"]
 	);
 }
 
@@ -1135,11 +1344,20 @@ fn pub_dev_package_defers_when_pub_dev_would_reject_the_run(
 		let text = publish_dry_run(workspace.path(), &registries, run, "text");
 		assert_success(&text, "publish dry run text");
 		let rendered = stdout_of(&text);
+		let summary_line = rendered
+			.lines()
+			.rev()
+			.find(|line| !line.trim().is_empty())
+			.unwrap_or_default();
 		assert!(
-			rendered.contains(
+			summary_line.starts_with("▲ "),
+			"{name} summary line should carry the warning marker `▲ `:\n{rendered}"
+		);
+		assert!(
+			summary_line.contains(
 				"1 package left unpublished, and no run publishes it until the workflow's trigger or `GITHUB_REF` is fixed"
 			),
-			"{name} text report:\n{rendered}"
+			"{name} summary line:\n{summary_line}"
 		);
 	}
 }

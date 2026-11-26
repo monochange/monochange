@@ -1,0 +1,40 @@
+[defaults]
+parent_bump = "patch"
+changelog = false
+
+[source]
+provider = "github"
+owner = "example"
+repo = "pub-dev-release-tags"
+
+# A non-publishable package owns the primary tag `v{{ version }}`.
+[package.app]
+path = "packages/app"
+type = "npm"
+tag = true
+version_format = "primary"
+publish = { enabled = false }
+
+[package.web]
+path = "packages/web"
+type = "npm"
+
+[package.app_dart]
+path = "packages/app_dart"
+type = "dart"
+tag = true
+
+[ecosystems.npm]
+enabled = true
+
+[ecosystems.dart]
+enabled = true
+
+[cli.commit-release]
+
+[[cli.commit-release.steps]]
+type = "PrepareRelease"
+
+[[cli.commit-release.steps]]
+type = "CommitRelease"
+update_release_json = true
