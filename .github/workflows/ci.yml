@@ -87,6 +87,17 @@ jobs:
           cargo test --locked --all-features -p monochange --test affected --test changeset_policy --test release_apply --test release_record --test pre_stable_versioning --test changelog_formats --test release_notes_and_propagation --test ci_gatekeeper
           cargo test --locked --all-features -p monochange_integration_tests --test bump_propagation --test changelog_streams --test create_change_file --test config_loading_globs --test prerelease_workflow --test publish_plan_order --test release_values --test release_record_artifacts
 
+      # Publishing from release tags: the integration tests run the
+      # `monochange` binary, built first, on each tag of a release; the name
+      # filters select the unit tests for run scopes, deferrals, and their
+      # reports.
+      - name: test release tag publishing
+        run: |
+          set -euo pipefail
+          cargo build --locked --all-features -p monochange --bin monochange
+          cargo test --locked --all-features -p monochange_integration_tests --test pub_dev_release_tags
+          cargo test --locked --all-features --lib -p monochange_publish -p monochange -- publish_run_scopes deferr out_of_scope missing_release_tag each_package_release_tag release_tags_come_from tag_run wrong_event pub_token_publish rate_limit_message_counts_only
+
   build:
     timeout-minutes: 45
     strategy:
