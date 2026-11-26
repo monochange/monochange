@@ -832,6 +832,18 @@ fn release_record_tags(root: &Path) -> Vec<String> {
 	&["--ecosystem", "npm"],
 	&["web skipped_out_of_scope"],
 )]
+#[case::group_on_group_tag(
+	"mixed-group",
+	"refs/tags/sdk/v1.1.0",
+	&["--group", "sdk"],
+	&["app_dart planned", "web skipped_out_of_scope"],
+)]
+#[case::group_on_other_pub_dev_tag(
+	"two-pub-dev-tags",
+	"refs/tags/tools_dart/v0.2.1",
+	&["--group", "sdk"],
+	&["app_dart skipped_out_of_scope", "web skipped_out_of_scope"],
+)]
 fn selection_applies_after_the_release_is_scoped(
 	#[case] fixture: &str,
 	#[case] git_ref: &str,
@@ -1118,19 +1130,37 @@ fn pub_dev_package_defers_when_pub_dev_would_reject_the_run(
 		assert!(message.contains("`workflow_dispatch`"), "{message}");
 		assert_snapshot!("wrong_event_message", message);
 	}
+
+	if matches!(name, "release_event" | "missing_ref") {
+		let text = publish_dry_run(workspace.path(), &registries, run, "text");
+		assert_success(&text, "publish dry run text");
+		let rendered = stdout_of(&text);
+		assert!(
+			rendered.contains(
+				"1 package left unpublished, and no run publishes it until the workflow's trigger or `GITHUB_REF` is fixed"
+			),
+			"{name} text report:\n{rendered}"
+		);
+	}
 }
 
 /// Finding 6: the rate-limit plan for a run counts only the packages the run
 /// publishes.
-#[test]
-fn rate_limit_plan_counts_only_packages_this_run_publishes() {
-	let workspace = setup_released_workspace("workspace");
+#[rstest]
+#[case::primary_tag_skips_deferred_pub_dev("workspace", "refs/tags/v1.1.0", &["npm"])]
+#[case::second_bound_tag_skips_other_tag_npm("two-pub-dev-tags", "refs/tags/tools_dart/v0.2.1", &["pub_dev"])]
+fn rate_limit_plan_counts_only_packages_this_run_publishes(
+	#[case] fixture: &str,
+	#[case] git_ref: &str,
+	#[case] expected_registries: &[&str],
+) {
+	let workspace = setup_released_workspace(fixture);
 	let registries = Registries::unpublished();
-	let _lookups = [registries.npm("web"), registries.pub_dev("app_dart")];
+	let _lookups = registries.every_package_unpublished();
 	let output = run_monochange(
 		workspace.path(),
 		&registries,
-		GitHubRun::on("refs/tags/v1.1.0"),
+		GitHubRun::on(git_ref),
 		&["step", "plan-publish-rate-limits", "--format", "json"],
 	);
 	assert_success(&output, "plan-publish-rate-limits");
@@ -1144,7 +1174,45 @@ fn rate_limit_plan_counts_only_packages_this_run_publishes() {
 		.map(|window| window["registry"].as_str().unwrap_or_default().to_string())
 		.collect::<Vec<_>>();
 
-	assert_eq!(planned_registries, ["npm"], "{value}");
+	assert_eq!(planned_registries, expected_registries, "{value}");
+}
+
+/// On the second pub.dev package's tag in a two-bound-tags release, `web`
+/// (grouped with the first pub.dev tag) is out of scope, so `--fail-on-duplicate`
+/// does not fail even when `web` is already published on npm.
+#[test]
+fn second_bound_tag_does_not_fail_on_duplicate_for_out_of_scope_npm() {
+	let workspace = setup_released_workspace("two-pub-dev-tags");
+	let registries = Registries::unpublished();
+	let npm_lookup = registries.npm_published("web", "1.1.0");
+	let _app_dart_lookup = registries.pub_dev("app_dart");
+	let _tools_dart_lookup = registries.pub_dev("tools_dart");
+	let output = run_monochange(
+		workspace.path(),
+		&registries,
+		GitHubRun::on("refs/tags/tools_dart/v0.2.1"),
+		&[
+			"publish",
+			"packages",
+			"--dry-run",
+			"--fail-on-duplicate",
+			"--format",
+			"json",
+		],
+	);
+	assert_success(&output, "publish dry run with --fail-on-duplicate");
+	let value: Value = serde_json::from_slice(&output.stdout)
+		.unwrap_or_else(|error| panic!("parse publish json: {error}"));
+
+	assert_eq!(
+		package_rows(&value["package_publish"]),
+		[
+			"app_dart skipped_out_of_scope",
+			"tools_dart planned",
+			"web skipped_out_of_scope",
+		]
+	);
+	assert_eq!(npm_lookup.calls(), 0, "out-of-scope npm must not be probed");
 }
 
 /// Finding 7: publish readiness checks every package of the release, whatever
@@ -1263,9 +1331,9 @@ fn validate_rejects_trusted_pub_dev_package_without_release_tag() {
 	assert_snapshot!("validate_missing_release_tag", stderr_of(&output));
 }
 
-/// Finding 10: validation reads configuration only, so a `PUB_TOKEN` in the
-/// environment does not exempt a trusted pub.dev package; the package must
-/// set `publish.trusted_publishing = false`.
+/// Finding 10: validation reads configuration and package manifests, never the
+/// environment, so a `PUB_TOKEN` in the environment does not exempt a trusted
+/// pub.dev package; the package must set `publish.trusted_publishing = false`.
 #[test]
 fn validate_ignores_pub_token_in_the_environment() {
 	let tempdir = TempDir::new().unwrap_or_else(|error| panic!("tempdir: {error}"));

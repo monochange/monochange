@@ -259,7 +259,9 @@ fn plan_publish_rate_limits_for_requests(
 		BTreeMap::<RegistryKind, Vec<&package_publish::PublishRequest>>::new();
 
 	for request in requests {
-		if request.mode == monochange_core::PublishMode::External {
+		if request.mode == monochange_core::PublishMode::External
+			|| request.run_scope != PublishRunScope::Publish
+		{
 			continue;
 		}
 
