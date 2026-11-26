@@ -72,6 +72,8 @@ fn cli_context() -> CliContext {
 		changeset_policy_evaluation: None,
 		changeset_diagnostics: None,
 		retarget_report: None,
+		sync_report: None,
+		cut_context: crate::release_cut::CutExecutionContext::default(),
 		step_outputs: BTreeMap::new(),
 		command_logs: Vec::new(),
 		command_results: Vec::new(),

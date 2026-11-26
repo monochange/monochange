@@ -668,6 +668,8 @@ pub(crate) async fn execute_cli_command_with_options(
 		changeset_policy_evaluation: None,
 		changeset_diagnostics: None,
 		retarget_report: None,
+		sync_report: None,
+		cut_context: release_cut::CutExecutionContext::default(),
 		step_outputs: BTreeMap::new(),
 		command_logs: Vec::new(),
 		command_results: Vec::new(),
@@ -917,6 +919,28 @@ pub(crate) async fn execute_cli_command_with_options(
 					)
 					.await
 				}
+				CliStepDefinition::SyncRelease { .. } => {
+					execute_sync_release_step(&state, &mut context).await
+				}
+				CliStepDefinition::OpenSyncRequest {
+					no_verify,
+					stage_all,
+					backend,
+					hosted_auth,
+					hosted_url,
+					..
+				} => {
+					execute_open_sync_request_step(
+						&state,
+						&mut context,
+						*no_verify,
+						*stage_all,
+						*backend,
+						*hosted_auth,
+						hosted_url.as_deref(),
+					)
+					.await
+				}
 				CliStepDefinition::Command {
 					command,
 					dry_run_command,
@@ -925,24 +949,31 @@ pub(crate) async fn execute_cli_command_with_options(
 					variables,
 					..
 				} => {
-					skipped_for_dry_run = run_cli_command_command(
-						&mut context,
-						step,
-						step_index,
-						progress,
-						show_progress,
-						CommandStepOptions {
-							command,
-							dry_run_command: dry_run_command.as_deref(),
-							shell,
-							step_id: id.as_deref(),
-							variables: variables.as_ref(),
-							step_inputs: &step_inputs,
-						},
-					)? == CommandStepOutcome::SkippedForDryRun;
-					command_step_ran = true;
+					if context.cut_context.sticky_banner_body.is_some() && !step.always_run() {
+						context.command_logs.push(format!(
+							"skipped command `{command}`: sticky cut PR is already open"
+						));
+						Ok(None)
+					} else {
+						skipped_for_dry_run = run_cli_command_command(
+							&mut context,
+							step,
+							step_index,
+							progress,
+							show_progress,
+							CommandStepOptions {
+								command,
+								dry_run_command: dry_run_command.as_deref(),
+								shell,
+								step_id: id.as_deref(),
+								variables: variables.as_ref(),
+								step_inputs: &step_inputs,
+							},
+						)? == CommandStepOutcome::SkippedForDryRun;
+						command_step_ran = true;
 
-					Ok(None)
+						Ok(None)
+					}
 				}
 				_ => {
 					Err(MonochangeError::Config(
@@ -1200,6 +1231,38 @@ async fn execute_prepare_release_step(
 		parse_boolean_step_input(state.step_inputs, "write_empty_release_record")?.unwrap_or(false);
 	let write_release_json =
 		parse_boolean_step_input(state.step_inputs, "release_json")?.unwrap_or(false);
+	let refresh = parse_boolean_step_input(state.step_inputs, "refresh")?.unwrap_or(false);
+	let explicit_from =
+		string_step_input(state.step_inputs, "from").filter(|value| !value.trim().is_empty());
+
+	if let Some(source) = state.configuration.source.as_ref()
+		&& source.pull_requests.strategy.is_cut()
+	{
+		let active_cut_pr = find_active_cut_pull_request_for_source(source)
+			.await
+			.ok()
+			.flatten();
+
+		if source.pull_requests.cut.trigger == monochange_core::CutTrigger::Sticky
+			&& !refresh
+			&& let Some(active_pr) = active_cut_pr
+		{
+			let updated_body = build_sticky_banner_body(state.root, source, &active_pr).await?;
+			context.cut_context.active_cut_pr = Some(active_pr.clone());
+			context.cut_context.sticky_banner_body = Some(updated_body);
+			context.command_logs.push(format!(
+				"sticky cut PR #{} (`{}` -> `{}`) is already open; skipping re-cut and updating status banner only",
+				active_pr.number, active_pr.head_branch, active_pr.base_branch
+			));
+			return Ok(None);
+		}
+
+		context.cut_context.active_cut_pr = active_cut_pr;
+		context.cut_context.cut_base_commit =
+			resolve_cut_base_commit(state.root, source, explicit_from.as_deref(), state.dry_run)
+				.await?;
+	}
+
 	let build_file_diffs = context.show_diff
 		|| state
 			.cli_command
@@ -1265,11 +1328,23 @@ async fn execute_prepare_release_step(
 					.to_string(),
 			);
 		} else {
-			let _record_path = write_release_record_file(
-				state.root,
-				state.configuration.source.as_ref(),
-				&manifest,
-			)?;
+			let _record_path = match context.cut_context.cut_base_commit.as_deref() {
+				Some(cut_base) => {
+					write_release_record_file_with_cut_base(
+						state.root,
+						state.configuration.source.as_ref(),
+						&manifest,
+						Some(cut_base),
+					)?
+				}
+				None => {
+					write_release_record_file(
+						state.root,
+						state.configuration.source.as_ref(),
+						&manifest,
+					)?
+				}
+			};
 		}
 
 		context.release_manifest_path =
@@ -1285,6 +1360,67 @@ async fn execute_prepare_release_step(
 	context.prepared_release = Some(updated_prepared_release);
 
 	Ok(None)
+}
+
+async fn resolve_cut_base_commit(
+	root: &Path,
+	source: &SourceConfiguration,
+	explicit_from: Option<&str>,
+	dry_run: bool,
+) -> MonochangeResult<Option<String>> {
+	if let Some(from_ref) = explicit_from {
+		return Ok(Some(
+			git_support::git_rev_parse_commit(root, from_ref).await?,
+		));
+	}
+
+	if source.pull_requests.cut.source_commit == monochange_core::CutSourceCommit::LatestGreen {
+		match lookup_latest_green_commit_for_source(source, &source.pull_requests.base).await {
+			Ok(Some(sha)) => return Ok(Some(sha)),
+			Ok(None) => {}
+			Err(error) => {
+				// Offline or unauthenticated previews fall back to local HEAD; live
+				// runs where checks exist but none are green fail closed.
+				let message = error.to_string();
+				let missing_auth = message.contains("GITHUB_TOKEN") || message.contains("token");
+				if !dry_run && !missing_auth {
+					return Err(error);
+				}
+			}
+		}
+	}
+
+	Ok(git_head_commit(root).await.ok())
+}
+
+async fn build_sticky_banner_body(
+	root: &Path,
+	source: &SourceConfiguration,
+	active_pr: &monochange_core::ActiveCutPullRequest,
+) -> MonochangeResult<String> {
+	if !source.pull_requests.cut.status_banner {
+		return Ok(active_pr.body.clone());
+	}
+
+	let Some(metadata) = monochange_hosting::cut::parse_cut_metadata_comment(&active_pr.body)
+	else {
+		return Ok(active_pr.body.clone());
+	};
+	let sorted_tags = load_sorted_tags(root).await;
+	let unsynced = release_cut::collect_unsynced_published_releases(root, &sorted_tags).await?;
+	let consumed = release_cut::unsynced_consumed_changeset_paths(root, &unsynced);
+	let banner = release_cut::compute_cut_status_banner(
+		root,
+		&metadata,
+		"HEAD",
+		&source.pull_requests.cut.refresh_command,
+		&consumed,
+	)
+	.await?;
+	Ok(monochange_hosting::cut::upsert_cut_status_banner(
+		&active_pr.body,
+		&banner,
+	))
 }
 
 async fn execute_verify_release_branch_step(
@@ -1349,6 +1485,28 @@ async fn execute_publish_release_step(
 		build_release_results_for_source(context.dry_run, &source, &context.release_requests)
 			.await?;
 	context.release_results = results;
+
+	if !context.dry_run
+		&& source.pull_requests.strategy.is_cut()
+		&& source.pull_requests.cut.retention == monochange_core::CutBranchRetention::Delete
+	{
+		let cut = monochange_hosting::cut::resolve_cut_branches(&source, &manifest);
+		match delete_cut_branch_for_source(&source, &cut.cut_base_branch).await {
+			Ok(true) => {
+				context.command_logs.push(format!(
+					"deleted published cut branch `{}` (`retention = \"delete\"`)",
+					cut.cut_base_branch
+				));
+			}
+			Ok(false) => {}
+			Err(warning) => {
+				context.command_logs.push(format!(
+					"warning: could not delete cut branch `{}` after publish: {warning}",
+					cut.cut_base_branch
+				));
+			}
+		}
+	}
 
 	Ok(None)
 }
@@ -1550,6 +1708,14 @@ async fn execute_commit_release_step(
 	context: &mut CliContext,
 	defaults: &CommitReleaseStepDefaults<'_>,
 ) -> MonochangeResult<Option<String>> {
+	if context.cut_context.sticky_banner_body.is_some() {
+		context.command_logs.push(
+			"skipped CommitRelease: sticky cut PR is already open (updating status banner only)"
+				.to_string(),
+		);
+		return Ok(None);
+	}
+
 	release_branch_policy::verify_release_ref_for_commit(
 		state.root,
 		state.configuration.source.as_ref(),
@@ -1620,6 +1786,7 @@ async fn execute_commit_release_step(
 	Ok(None)
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn execute_open_release_request_step(
 	state: &StepExecutionState<'_>,
 	context: &mut CliContext,
@@ -1629,6 +1796,107 @@ async fn execute_open_release_request_step(
 	hosted_auth_default: monochange_core::HostedCommitAuth,
 	hosted_url: Option<&str>,
 ) -> MonochangeResult<Option<String>> {
+	let source = state.configuration.source.clone().ok_or_else(|| {
+		MonochangeError::Config(
+			"`OpenReleaseRequest` requires `[source]` configuration".to_string(),
+		)
+	})?;
+	let dry_run = context.dry_run;
+	let no_verify =
+		parse_boolean_step_input(state.step_inputs, "no_verify")?.unwrap_or(no_verify_default);
+	let stage_all =
+		parse_boolean_step_input(state.step_inputs, "stage_all")?.unwrap_or(stage_all_default);
+	let refresh = parse_boolean_step_input(state.step_inputs, "refresh")?.unwrap_or(false);
+	let banner_only = parse_boolean_step_input(state.step_inputs, "banner_only")?.unwrap_or(false);
+	let backend = resolve_release_backend(state.step_inputs, "backend", backend_default)?;
+
+	// Sticky banner-only path: update only the status banner on the open cut PR
+	// without mutating branches or triggering CI.
+	if context.cut_context.sticky_banner_body.is_some() || banner_only {
+		let active_pr = if let Some(pr) = context.cut_context.active_cut_pr.clone() {
+			pr
+		} else {
+			let Some(pr) = find_active_cut_pull_request_for_source(&source).await? else {
+				context
+					.command_logs
+					.push("skipped banner update: no open cut pull request was found".to_string());
+				return Ok(None);
+			};
+			pr
+		};
+		let updated_body = match context.cut_context.sticky_banner_body.clone() {
+			Some(body) => body,
+			None => build_sticky_banner_body(state.root, &source, &active_pr).await?,
+		};
+		let banner_request = SourceChangeRequest {
+			provider: source.provider,
+			repository: format!("{}/{}", source.owner, source.repo),
+			owner: source.owner.clone(),
+			repo: source.repo.clone(),
+			base_branch: active_pr.base_branch.clone(),
+			head_branch: active_pr.head_branch.clone(),
+			title: active_pr.title.clone(),
+			body: updated_body.clone(),
+			labels: source.pull_requests.labels.clone(),
+			auto_merge: source.pull_requests.auto_merge,
+			commit_message: CommitMessage {
+				subject: active_pr.title.clone(),
+				body: None,
+			},
+			body_truncation: None,
+		};
+
+		let result = if dry_run {
+			format!(
+				"dry-run banner update {} #{} ({} -> {})",
+				banner_request.repository,
+				active_pr.number,
+				active_pr.head_branch,
+				active_pr.base_branch
+			)
+		} else {
+			match backend {
+				ReleaseBackend::Local => {
+					let outcome = update_cut_pull_request_banner_for_source(
+						&source,
+						&active_pr,
+						&updated_body,
+					)
+					.await?;
+					format!(
+						"{} #{} ({} banner) via {}",
+						outcome.repository,
+						outcome.number,
+						format_change_request_operation(&outcome.operation),
+						outcome.provider
+					)
+				}
+				ReleaseBackend::Hosted => {
+					let options = hosted_commit_options_from_step(
+						state.step_inputs,
+						ConfiguredHostedSettings {
+							auth: hosted_auth_default,
+							url: hosted_url,
+							oidc_audience: None,
+						},
+					)?;
+					Box::pin(hosted_release_request_result_with_options(
+						dry_run,
+						&options,
+						&banner_request,
+						&[],
+						true,
+						None,
+					))
+					.await?
+				}
+			}
+		};
+		context.release_request_result = Some(result);
+		context.release_request = Some(banner_request);
+		return Ok(None);
+	}
+
 	let build_file_diffs = context.show_diff;
 	ensure_prepared_release_for_consumer_step(
 		state.root,
@@ -1644,33 +1912,65 @@ async fn execute_open_release_request_step(
 		.prepared_release
 		.as_ref()
 		.expect("prepared release must be available before opening release request");
-	let source = state.configuration.source.clone().ok_or_else(|| {
-		MonochangeError::Config(
-			"`OpenReleaseRequest` requires `[source]` configuration".to_string(),
-		)
-	})?;
 	let manifest = build_release_manifest(state.cli_command, prepared_release, None);
-	let request = build_source_change_request(&source, &manifest);
+	let cut_base_commit = if source.pull_requests.strategy.is_cut() {
+		if let Some(commit) = context.cut_context.cut_base_commit.clone() {
+			Some(commit)
+		} else {
+			let explicit_from = string_step_input(state.step_inputs, "from");
+			match explicit_from {
+				Some(from_ref) => {
+					Some(git_support::git_rev_parse_commit(state.root, &from_ref).await?)
+				}
+				None => git_head_commit(state.root).await.ok(),
+			}
+		}
+	} else {
+		None
+	};
+	let request = match cut_base_commit.as_deref() {
+		Some(cut_base) => {
+			build_source_change_request_with_cut_base(&source, &manifest, Some(cut_base))
+		}
+		None => build_source_change_request(&source, &manifest),
+	};
 	let tracked_paths = tracked_release_pull_request_paths(context, &manifest);
-	let dry_run = context.dry_run;
-	let no_verify =
-		parse_boolean_step_input(state.step_inputs, "no_verify")?.unwrap_or(no_verify_default);
-	let stage_all =
-		parse_boolean_step_input(state.step_inputs, "stage_all")?.unwrap_or(stage_all_default);
-	let backend = resolve_release_backend(state.step_inputs, "backend", backend_default)?;
+	let supersede_pr_number = if source.pull_requests.strategy.is_cut()
+		&& refresh
+		&& let Some(old_pr) = context.cut_context.active_cut_pr.as_ref()
+		&& old_pr.head_branch != request.head_branch
+	{
+		Some(old_pr.number)
+	} else {
+		None
+	};
 
 	let result = match backend {
 		ReleaseBackend::Local => {
-			build_release_request_result_for_source(
-				dry_run,
-				&source,
-				state.root,
-				&request,
-				&tracked_paths,
-				no_verify,
-				stage_all,
-			)
-			.await?
+			if source.pull_requests.strategy.is_cut() && !dry_run {
+				publish_local_cut_release_request(
+					state.root,
+					&source,
+					&request,
+					&tracked_paths,
+					cut_base_commit.as_deref(),
+					no_verify,
+					stage_all,
+					supersede_pr_number,
+				)
+				.await?
+			} else {
+				build_release_request_result_for_source(
+					dry_run,
+					&source,
+					state.root,
+					&request,
+					&tracked_paths,
+					no_verify,
+					stage_all,
+				)
+				.await?
+			}
 		}
 		ReleaseBackend::Hosted => {
 			// The audience is an input only: a configured field would
@@ -1683,11 +1983,13 @@ async fn execute_open_release_request_step(
 					oidc_audience: None,
 				},
 			)?;
-			Box::pin(hosted_release_request_result(
+			Box::pin(hosted_release_request_result_with_options(
 				dry_run,
 				&options,
 				&request,
 				&tracked_paths,
+				false,
+				supersede_pr_number,
 			))
 			.await?
 		}
@@ -1697,6 +1999,59 @@ async fn execute_open_release_request_step(
 	context.release_request = Some(request);
 
 	Ok(None)
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn publish_local_cut_release_request(
+	root: &Path,
+	source: &SourceConfiguration,
+	request: &SourceChangeRequest,
+	tracked_paths: &[PathBuf],
+	cut_base_commit: Option<&str>,
+	no_verify: bool,
+	stage_all: bool,
+	supersede_pr_number: Option<u64>,
+) -> MonochangeResult<String> {
+	let base_commit = match cut_base_commit {
+		Some(commit) => commit.to_string(),
+		None => git_head_commit(root).await?,
+	};
+	git_support::git_create_or_update_branch(root, &request.base_branch, &base_commit).await?;
+	git_support::git_push_branch_force(root, &request.base_branch, no_verify).await?;
+	git_support::git_checkout_branch_at(root, &request.head_branch, None).await?;
+
+	if !git_support::git_changed_paths(root).await?.is_empty() {
+		if stage_all {
+			git_support::git_stage_all(root).await?;
+		} else {
+			git_stage_paths(root, tracked_paths).await?;
+		}
+		git_commit_paths(root, &request.commit_message, no_verify).await?;
+	}
+
+	let head_commit = git_head_commit(root).await?;
+	git_support::git_push_branch_force(root, &request.head_branch, no_verify).await?;
+	let outcome = publish_pushed_source_change_request(source, request, &head_commit).await?;
+
+	if let Some(old_number) = supersede_pr_number
+		&& old_number != outcome.number
+	{
+		supersede_cut_pull_request_for_source(
+			source,
+			old_number,
+			outcome.number,
+			outcome.url.as_deref().unwrap_or_default(),
+		)
+		.await?;
+	}
+
+	Ok(format!(
+		"{} #{} ({}) via {}",
+		outcome.repository,
+		outcome.number,
+		format_change_request_operation(&outcome.operation),
+		outcome.provider
+	))
 }
 
 async fn execute_comment_released_issues_step(
@@ -1812,6 +2167,17 @@ async fn execute_tag_release_step(
 		.get("push")
 		.and_then(|values| values.first())
 		.is_none_or(|value| value == "true");
+	if let Ok(discovery) = discover_release_record(state.root, from).await
+		&& discovery.distance == 0
+		&& let Some(source_commit) = discovery.record.synced_from_commit.as_deref()
+	{
+		return Err(MonochangeError::Config(format!(
+			"resolved ref `{}` points to synced bookkeeping commit {} (replayed from release commit {}); `tag-release` never tags a synced commit",
+			discovery.input_ref,
+			short_commit_sha(&discovery.record_commit),
+			short_commit_sha(source_commit),
+		)));
+	}
 	release_branch_policy::verify_release_ref_for_tags(
 		state.root,
 		state.configuration.source.as_ref(),
@@ -1957,6 +2323,135 @@ async fn execute_retarget_release_step(
 		plan.is_descendant,
 		&result,
 	));
+
+	Ok(None)
+}
+
+async fn execute_sync_release_step(
+	state: &StepExecutionState<'_>,
+	context: &mut CliContext,
+) -> MonochangeResult<Option<String>> {
+	let from =
+		string_step_input(state.step_inputs, "from").filter(|value| !value.trim().is_empty());
+	let mode_override = match string_step_input(state.step_inputs, "mode")
+		.filter(|value| !value.trim().is_empty())
+	{
+		Some(value) => Some(value.parse::<monochange_core::SyncMode>()?),
+		None => None,
+	};
+	let report = release_cut::execute_sync_release(
+		state.root,
+		state.configuration,
+		from.as_deref(),
+		mode_override,
+		state.dry_run,
+	)
+	.await?;
+	context.sync_report = Some(report);
+	Ok(None)
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn execute_open_sync_request_step(
+	state: &StepExecutionState<'_>,
+	context: &mut CliContext,
+	no_verify_default: bool,
+	stage_all_default: bool,
+	backend_default: ReleaseBackend,
+	hosted_auth_default: monochange_core::HostedCommitAuth,
+	hosted_url: Option<&str>,
+) -> MonochangeResult<Option<String>> {
+	let source = state.configuration.source.clone().ok_or_else(|| {
+		MonochangeError::Config("`OpenSyncRequest` requires `[source]` configuration".to_string())
+	})?;
+
+	if context.sync_report.is_none() {
+		let report = release_cut::execute_sync_release(
+			state.root,
+			state.configuration,
+			None,
+			None,
+			state.dry_run,
+		)
+		.await?;
+		context.sync_report = Some(report);
+	}
+
+	let report = context
+		.sync_report
+		.as_ref()
+		.expect("sync report must exist before opening sync request")
+		.clone();
+
+	if matches!(report.status.as_str(), "skipped" | "up_to_date") {
+		context.command_logs.push(format!(
+			"skipped OpenSyncRequest: sync status is `{}`",
+			report.status
+		));
+		return Ok(None);
+	}
+
+	let request = release_cut::build_sync_change_request(&source, &report);
+	let dry_run = context.dry_run;
+	let no_verify =
+		parse_boolean_step_input(state.step_inputs, "no_verify")?.unwrap_or(no_verify_default);
+	let stage_all =
+		parse_boolean_step_input(state.step_inputs, "stage_all")?.unwrap_or(stage_all_default);
+	let backend = resolve_release_backend(state.step_inputs, "backend", backend_default)?;
+
+	let result = match backend {
+		ReleaseBackend::Local => {
+			if dry_run {
+				build_release_request_result(dry_run, &request, || unreachable!())?
+			} else {
+				git_support::git_checkout_branch_at(state.root, &request.head_branch, None).await?;
+				let head_commit = release_cut::commit_sync_release_local(
+					state.root,
+					&report,
+					&request.commit_message,
+					no_verify,
+					stage_all,
+				)
+				.await?;
+				git_support::git_push_branch_force(state.root, &request.head_branch, no_verify)
+					.await?;
+				let outcome =
+					publish_pushed_source_change_request(&source, &request, &head_commit).await?;
+				format!(
+					"{} #{} ({}) via {}",
+					outcome.repository,
+					outcome.number,
+					format_change_request_operation(&outcome.operation),
+					outcome.provider
+				)
+			}
+		}
+		ReleaseBackend::Hosted => {
+			let options = hosted_commit_options_from_step(
+				state.step_inputs,
+				ConfiguredHostedSettings {
+					auth: hosted_auth_default,
+					url: hosted_url,
+					oidc_audience: None,
+				},
+			)?;
+			let commit_report = Box::pin(hosted_commit_sync_release(
+				state.root, dry_run, &source, &report, &request, stage_all, &options,
+			))
+			.await?;
+			context.release_commit_report = Some(commit_report);
+			Box::pin(hosted_release_request_result(
+				dry_run,
+				&options,
+				&request,
+				&report.changed_files,
+			))
+			.await?
+		}
+	};
+
+	context.release_request_result = Some(result);
+	context.release_request = Some(request);
 
 	Ok(None)
 }
@@ -2940,6 +3435,13 @@ pub(crate) fn build_cli_template_context(
 			"retarget".to_string(),
 			build_retarget_template_value(report),
 		);
+	}
+
+	// Structured sync.* namespace
+	if let Some(report) = &context.sync_report
+		&& let Ok(value) = serde_json::to_value(report)
+	{
+		template_context.insert("sync".to_string(), value);
 	}
 
 	// Structured release_commit.* namespace
@@ -4574,6 +5076,16 @@ pub(crate) fn render_cli_command_result(
 		return render_retarget_release_report(report);
 	}
 
+	if let Some(report) = &context.sync_report {
+		let mut rendered =
+			release_cut::render_sync_release_report(report, OutputFormat::Text).unwrap_or_default();
+		if let Some(request_result) = &context.release_request_result {
+			rendered.push_str("\n- sync request: ");
+			rendered.push_str(request_result);
+		}
+		return rendered;
+	}
+
 	let mut report = TextReport::new(TextTheme::for_stdout());
 	let show_all_publish_details = boolean_step_input(&context.last_step_inputs, "show-all");
 
@@ -5923,6 +6435,37 @@ fn resolve_command_output(
 				format.render_json_value(report, "retarget report")?
 			}
 			OutputFormat::Markdown | OutputFormat::Text => render_retarget_release_report(report),
+		};
+
+		return Ok(rendered);
+	}
+
+	if let Some(report) = &context.sync_report {
+		let format = context.output_format;
+
+		let rendered = match format {
+			OutputFormat::Json | OutputFormat::JsonMin => {
+				if context.release_request.is_some() || context.release_request_result.is_some() {
+					format.render_json_value(
+						&json!({
+							"sync": report,
+							"release_request": context.release_request,
+							"release_request_result": context.release_request_result,
+						}),
+						"sync release report",
+					)?
+				} else {
+					release_cut::render_sync_release_report(report, format)?
+				}
+			}
+			OutputFormat::Markdown | OutputFormat::Text => {
+				let mut text = release_cut::render_sync_release_report(report, format)?;
+				if let Some(request_result) = &context.release_request_result {
+					text.push_str("\n- sync request: ");
+					text.push_str(request_result);
+				}
+				text
+			}
 		};
 
 		return Ok(rendered);

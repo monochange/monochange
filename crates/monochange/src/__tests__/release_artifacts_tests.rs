@@ -1895,6 +1895,8 @@ fn legacy_record(
 		values: BTreeMap::new(),
 		labels: BTreeMap::new(),
 		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		cut_base_commit: None,
+		synced_from_commit: None,
 		provider: None,
 	}
 }
@@ -2493,6 +2495,9 @@ fn hosted_request_fixture() -> HostedCommitRequest {
 		dry_run: false,
 		idempotency_key: Some("monochange/monochange:1:1:CommitRelease".to_string()),
 		tree: None,
+		cut_base_branch: None,
+		additional_parents: Vec::new(),
+		allow_base_ancestor: false,
 	}
 }
 

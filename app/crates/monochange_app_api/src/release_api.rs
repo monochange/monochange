@@ -300,6 +300,24 @@ fn validate_branch_names(branch: &str, base_branch: Option<&str>) -> Result<(), 
 	})
 }
 
+/// Validate optional cut-base branch and extra bridge commit parent object ids.
+fn validate_cut_commit_fields(request: &HostedCommitRequest) -> Result<(), String> {
+	if let Some(cut_base_branch) = request.cut_base_branch.as_deref() {
+		validate_branch_name("cut base branch", cut_base_branch)?;
+	}
+
+	for parent in &request.additional_parents {
+		if !matches!(parent.len(), 40 | 64) || !parent.bytes().all(|byte| byte.is_ascii_hexdigit())
+		{
+			return Err(format!(
+				"`additional_parents` entries must be git object ids, received `{parent}`"
+			));
+		}
+	}
+
+	Ok(())
+}
+
 /// Map a release commit failure to its HTTP status.
 ///
 /// A moved release or base branch is a conflict the caller resolves by
@@ -365,6 +383,7 @@ pub async fn release_commit(
 	}
 
 	validate_branch_names(&request.branch, request.base_branch.as_deref())
+		.and_then(|()| validate_cut_commit_fields(&request))
 		.and_then(|()| validate_commit_contents(&request))
 		.and_then(|()| validate_commit_paths(&request))
 		.map_err(|message| (StatusCode::BAD_REQUEST, Json(ApiError::new(message))))?;
@@ -526,13 +545,17 @@ pub async fn release_request(
 		});
 	}
 
-	let (number, operation, url) = github_app::publish_release_pull_request(
+	let (number, operation, url) = github_app::publish_release_pull_request_with_options(
 		&state.http,
 		&app.api_url,
 		&token,
 		request,
 		&state.jwt_secret,
 		repository.github_repo_id,
+		github_app::PublishPullRequestOptions {
+			banner_only: payload.banner_only,
+			supersede_pr_number: payload.supersede_pr_number,
+		},
 	)
 	.await
 	.map_err(|error| {

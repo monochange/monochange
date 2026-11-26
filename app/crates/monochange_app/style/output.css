@@ -2049,6 +2049,82 @@
   font-size: .9rem;
   overflow-wrap: anywhere;
 }
+.release-cut-suggestion {
+  margin-bottom: 2rem;
+  padding: 1.25rem 1.5rem;
+  border: 1.5px solid var(--accent);
+  border-radius: 16px;
+  background: var(--surface);
+}
+.release-cut-suggestion h2 {
+  font-size: 1.35rem;
+}
+.release-cut-suggestion > p {
+  color: var(--muted);
+  margin-block: .5rem 1rem;
+  max-width: 68ch;
+}
+.release-cut-suggestion-item {
+  padding-block: 1rem;
+  border-top: 1px solid var(--rule);
+}
+.suggestion-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem 1rem;
+  align-items: center;
+  justify-content: space-between;
+}
+.suggestion-meta {
+  min-width: 0;
+}
+.suggestion-meta h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.suggestion-meta p {
+  color: var(--muted);
+  font-size: .9rem;
+  margin-top: .25rem;
+  overflow-wrap: anywhere;
+}
+.suggestion-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  align-items: center;
+}
+.suggestion-status {
+  margin-top: .5rem;
+  font-size: .9rem;
+}
+.suggestion-success {
+  color: var(--ink);
+}
+.suggestion-error {
+  color: var(--accent);
+}
+.agent-prompt-details {
+  margin-top: .75rem;
+}
+.agent-prompt-details summary {
+  cursor: pointer;
+  font-size: .9rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+.agent-prompt-details pre {
+  margin-top: .5rem;
+  padding: .85rem 1rem;
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  background: var(--page);
+  overflow-x: auto;
+  font-size: .82rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
 .workspace-guide {
   padding-top: 2.5rem;
   border-top: 1px solid var(--rule);

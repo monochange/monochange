@@ -847,6 +847,8 @@ fn sample_release_record() -> ReleaseRecord {
 		values: BTreeMap::new(),
 		labels: BTreeMap::new(),
 		label_inputs: crate::versioning::LabelInputs::default(),
+		cut_base_commit: None,
+		synced_from_commit: None,
 		provider: Some(ReleaseRecordProvider {
 			kind: SourceProvider::GitHub,
 			owner: "ifiokjr".to_string(),

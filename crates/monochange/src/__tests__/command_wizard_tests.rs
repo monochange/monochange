@@ -156,7 +156,7 @@ fn command_step_with_default_inputs_adds_and_inherits_expected_inputs() {
 	let step = command_step_with_default_inputs("PrepareRelease", &mut command_inputs)
 		.unwrap_or_else(|error| panic!("step should be created: {error}"));
 
-	assert_eq!(command_inputs.len(), 3);
+	assert_eq!(command_inputs.len(), 5);
 	assert_eq!(command_inputs[0].name, "format");
 	assert_eq!(command_inputs[0].kind, "choice");
 	assert_eq!(command_inputs[0].choices[0], "text");
@@ -164,6 +164,10 @@ fn command_step_with_default_inputs_adds_and_inherits_expected_inputs() {
 	assert_eq!(command_inputs[1].kind, "boolean");
 	assert_eq!(command_inputs[2].name, "release_json");
 	assert_eq!(command_inputs[2].kind, "boolean");
+	assert_eq!(command_inputs[3].name, "from");
+	assert_eq!(command_inputs[3].kind, "string");
+	assert_eq!(command_inputs[4].name, "refresh");
+	assert_eq!(command_inputs[4].kind, "boolean");
 
 	assert_eq!(
 		step.inputs.get("format"),

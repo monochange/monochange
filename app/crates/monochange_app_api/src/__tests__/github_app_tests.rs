@@ -393,6 +393,9 @@ fn release_commit_request(branch: &str, base_branch: Option<&str>) -> HostedComm
 		dry_run: false,
 		idempotency_key: None,
 		tree: None,
+		cut_base_branch: None,
+		additional_parents: Vec::new(),
+		allow_base_ancestor: false,
 	}
 }
 
@@ -1380,4 +1383,135 @@ async fn release_tree_reports_tree_failures() {
 		),
 		"{result:?}"
 	);
+}
+
+#[test]
+fn cut_and_sync_branch_allowlists_accept_only_owned_patterns() {
+	assert!(super::is_release_branch_name("monochange/release"));
+	assert!(super::is_release_branch_name("monochange/release/release"));
+	assert!(super::is_release_branch_name("monochange/release/v0.22.0"));
+	assert!(super::is_release_branch_name("monochange/sync-release"));
+	assert!(!super::is_release_branch_name("main"));
+	assert!(!super::is_release_branch_name("release/v0.22.0"));
+	assert!(!super::is_release_branch_name("feature/work"));
+
+	assert!(super::is_cut_base_branch_name("release/v0.22.0"));
+	assert!(super::is_cut_base_branch_name("releases/v0.22.0"));
+	assert!(super::is_cut_base_branch_name("monochange/release/v0.22.0"));
+	assert!(!super::is_cut_base_branch_name("main"));
+	assert!(!super::is_cut_base_branch_name("release/"));
+	assert!(!super::is_cut_base_branch_name("feature/work"));
+}
+
+#[tokio::test]
+async fn cut_release_commit_allows_base_ancestor_and_creates_cut_base_ref() {
+	let server = MockServer::start();
+	let cut_head = "monochange/release/v0.22.0";
+	let cut_base = "release/v0.22.0";
+	mock_repository(&server, "main");
+	mock_branch(&server, cut_head, None);
+	mock_branch(&server, cut_base, None);
+	mock_branch(&server, "main", Some("newer-main-sha"));
+	let compare = server.mock(|when, then| {
+		when.method(Method::GET).path(format!(
+			"/repos/acme/actions/compare/{BASE_COMMIT}...newer-main-sha"
+		));
+		then.status(200)
+			.json_body(serde_json::json!({ "status": "ahead" }));
+	});
+	mock_commit_writes(&server);
+	let create_cut_base = server.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/git/refs")
+			.json_body(serde_json::json!({
+				"ref": format!("refs/heads/{cut_base}"),
+				"sha": BASE_COMMIT,
+			}));
+		then.status(201).json_body(serde_json::json!({}));
+	});
+	let create_head = server.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/git/refs")
+			.json_body(serde_json::json!({
+				"ref": format!("refs/heads/{cut_head}"),
+				"sha": RELEASE_COMMIT,
+			}));
+		then.status(201).json_body(serde_json::json!({}));
+	});
+
+	let mut request = release_commit_request(cut_head, Some("main"));
+	request.cut_base_branch = Some(cut_base.to_string());
+	request.allow_base_ancestor = true;
+
+	let (sha, verified, _) = create_commit(&server, &request).await.unwrap();
+	assert_eq!(sha, RELEASE_COMMIT);
+	assert!(verified);
+	compare.assert();
+	create_cut_base.assert();
+	create_head.assert();
+}
+
+#[tokio::test]
+async fn sync_merge_pr_commit_passes_additional_parents_to_github() {
+	let server = MockServer::start();
+	let sync_head = "monochange/sync-release";
+	let extra_parent = "1111111111111111111111111111111111111111";
+	mock_repository(&server, "main");
+	mock_branch(&server, sync_head, None);
+	server.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/git/trees");
+		then.status(201)
+			.json_body(serde_json::json!({ "sha": "tree-sha" }));
+	});
+	server.mock(|when, then| {
+		when.method(Method::GET)
+			.path(format!("/repos/acme/actions/git/commits/{BASE_COMMIT}"));
+		then.status(200)
+			.json_body(serde_json::json!({ "tree": { "sha": "base-tree-sha" } }));
+	});
+	server.mock(|when, then| {
+		when.method(Method::GET)
+			.path("/repos/acme/actions/git/trees/base-tree-sha");
+		then.status(200)
+			.json_body(serde_json::json!({ "tree": [], "truncated": false }));
+	});
+	server.mock(|when, then| {
+		when.method(Method::GET)
+			.path("/repos/acme/actions/git/trees/tree-sha");
+		then.status(200)
+			.json_body(serde_json::json!({ "tree": [], "truncated": false }));
+	});
+	let commit = server.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/git/commits")
+			.json_body(serde_json::json!({
+				"message": "chore(release): prepare release",
+				"tree": "tree-sha",
+				"parents": [BASE_COMMIT, extra_parent],
+			}));
+		then.status(201).json_body(serde_json::json!({
+			"sha": RELEASE_COMMIT,
+			"verification": { "verified": true, "reason": "valid" },
+		}));
+	});
+	let create_head = server.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/git/refs")
+			.json_body(serde_json::json!({
+				"ref": format!("refs/heads/{sync_head}"),
+				"sha": RELEASE_COMMIT,
+			}));
+		then.status(201).json_body(serde_json::json!({}));
+	});
+
+	let mut request = release_commit_request(sync_head, Some("main"));
+	request.additional_parents = vec![extra_parent.to_string()];
+	request.allow_base_ancestor = true;
+
+	let (sha, verified, _) = create_commit(&server, &request).await.unwrap();
+	assert_eq!(sha, RELEASE_COMMIT);
+	assert!(verified);
+	commit.assert();
+	create_head.assert();
 }

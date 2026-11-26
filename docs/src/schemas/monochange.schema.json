@@ -1265,6 +1265,100 @@
 				},
 				{
 					"additionalProperties": false,
+					"description": "Replay published release bookkeeping from one or more release tags onto the base branch.",
+					"properties": {
+						"always_run": {
+							"default": false,
+							"type": "boolean"
+						},
+						"inputs": {
+							"$ref": "#/$defs/CliStepInputsSchema",
+							"default": []
+						},
+						"name": {
+							"default": null,
+							"type": [
+								"string",
+								"null"
+							]
+						},
+						"type": {
+							"const": "SyncRelease",
+							"type": "string"
+						},
+						"when": {
+							"default": null,
+							"type": [
+								"string",
+								"null"
+							]
+						}
+					},
+					"required": [
+						"type"
+					],
+					"type": "object"
+				},
+				{
+					"additionalProperties": false,
+					"description": "Open or update the coalesced post-release sync pull request targeting the base branch.",
+					"properties": {
+						"always_run": {
+							"default": false,
+							"type": "boolean"
+						},
+						"backend": {
+							"$ref": "#/$defs/ReleaseBackend",
+							"default": "local"
+						},
+						"hosted_auth": {
+							"$ref": "#/$defs/HostedCommitAuth",
+							"default": "auto"
+						},
+						"hosted_url": {
+							"type": [
+								"string",
+								"null"
+							]
+						},
+						"inputs": {
+							"$ref": "#/$defs/CliStepInputsSchema",
+							"default": []
+						},
+						"name": {
+							"default": null,
+							"type": [
+								"string",
+								"null"
+							]
+						},
+						"no_verify": {
+							"default": false,
+							"type": "boolean"
+						},
+						"stage_all": {
+							"default": false,
+							"type": "boolean"
+						},
+						"type": {
+							"const": "OpenSyncRequest",
+							"type": "string"
+						},
+						"when": {
+							"default": null,
+							"type": [
+								"string",
+								"null"
+							]
+						}
+					},
+					"required": [
+						"type"
+					],
+					"type": "object"
+				},
+				{
+					"additionalProperties": false,
 					"description": "Run an arbitrary command with `monochange` template context.\n\nUse this to bridge built-in `monochange` state into external tooling.",
 					"properties": {
 						"always_run": {
@@ -1400,6 +1494,88 @@
 				"changesets"
 			],
 			"type": "string"
+		},
+		"CutBranchRetention": {
+			"description": "Lifecycle of the frozen cut base branch after publishing finishes.",
+			"oneOf": [
+				{
+					"const": "delete",
+					"description": "Delete the cut branch after publishing finishes; the git tag retains history.",
+					"type": "string"
+				},
+				{
+					"const": "keep",
+					"description": "Retain the cut branch after publishing for backports or patch hotfixes.",
+					"type": "string"
+				}
+			]
+		},
+		"CutPullRequestSettings": {
+			"additionalProperties": false,
+			"description": "Settings under `[source.pull_requests.cut]` for `strategy = \"cut\"`.",
+			"properties": {
+				"branch_template": {
+					"default": "release/{{ cut_id }}",
+					"description": "Branch name template for the frozen base branch created from `base`.",
+					"type": "string"
+				},
+				"refresh_command": {
+					"default": "/refresh",
+					"description": "Pull request comment command that authorizes re-cutting an open cut PR.",
+					"type": "string"
+				},
+				"retention": {
+					"$ref": "#/$defs/CutBranchRetention",
+					"default": "delete",
+					"description": "Whether the cut branch is deleted or retained after publishing completes."
+				},
+				"source_commit": {
+					"$ref": "#/$defs/CutSourceCommit",
+					"default": "latest_green",
+					"description": "Commit selection policy on `base` when `--from` is omitted."
+				},
+				"status_banner": {
+					"default": true,
+					"description": "Maintain an in-body status banner showing commits and changesets behind `base`.",
+					"type": "boolean"
+				},
+				"trigger": {
+					"$ref": "#/$defs/CutTrigger",
+					"default": "sticky",
+					"description": "Whether cuts open automatically on pending changesets (`sticky`) or only manually."
+				}
+			},
+			"type": "object"
+		},
+		"CutSourceCommit": {
+			"description": "Which commit on `base` a release cut branches from when `--from` is omitted.",
+			"oneOf": [
+				{
+					"const": "latest_green",
+					"description": "Pick the newest commit on `base` whose required checks passed.",
+					"type": "string"
+				},
+				{
+					"const": "head",
+					"description": "Cut directly from the current tip of `base`.",
+					"type": "string"
+				}
+			]
+		},
+		"CutTrigger": {
+			"description": "When a frozen cut pull request is opened under `strategy = \"cut\"`.",
+			"oneOf": [
+				{
+					"const": "sticky",
+					"description": "Automatically open a cut PR when pending changesets exist and no cut PR\nis open; stay frozen while open and update only the status banner on\nsubsequent pushes to `base`.",
+					"type": "string"
+				},
+				{
+					"const": "manual",
+					"description": "Open a cut PR only when invoked explicitly (for example via workflow\ndispatch or CLI).",
+					"type": "string"
+				}
+			]
 		},
 		"EcosystemType": {
 			"enum": [
@@ -1686,6 +1862,10 @@
 						"null"
 					]
 				},
+				"cut": {
+					"$ref": "#/$defs/CutPullRequestSettings",
+					"description": "Settings for frozen release cuts under `strategy = \"cut\"`."
+				},
 				"enabled": {
 					"default": true,
 					"type": "boolean"
@@ -1708,6 +1888,14 @@
 						"integer",
 						"null"
 					]
+				},
+				"strategy": {
+					"$ref": "#/$defs/ReleasePullRequestStrategy",
+					"description": "Release pull request strategy: `\"rolling\"` (default) refreshes one PR\nagainst `base`, whereas `\"cut\"` freezes a snapshot of `base` into a cut\nbranch and opens the release PR against that cut branch."
+				},
+				"sync": {
+					"$ref": "#/$defs/SyncPullRequestSettings",
+					"description": "Settings for post-release bookkeeping sync back to `base` under `strategy = \"cut\"`."
 				},
 				"title": {
 					"default": "chore(release): prepare release",
@@ -1977,6 +2165,21 @@
 			},
 			"type": "object"
 		},
+		"ReleasePullRequestStrategy": {
+			"description": "Release pull request strategy configured under `[source.pull_requests]`.",
+			"oneOf": [
+				{
+					"const": "rolling",
+					"description": "Maintain one continuously refreshed release pull request targeting `base`.",
+					"type": "string"
+				},
+				{
+					"const": "cut",
+					"description": "Freeze a commit from `base` into a cut branch and open the release pull\nrequest against that cut branch so `base` never needs to pause.",
+					"type": "string"
+				}
+			]
+		},
 		"ResetPolicy": {
 			"description": "When a stamped counter returns to its starting value.",
 			"oneOf": [
@@ -2083,6 +2286,70 @@
 					"type": "string"
 				}
 			]
+		},
+		"SyncMode": {
+			"description": "How published release bookkeeping flows back to `base` under `strategy = \"cut\"`.",
+			"oneOf": [
+				{
+					"const": "semantic_pr",
+					"description": "Replay consumed changeset deletions, changelogs, release records, manifest\nversions, and freshly regenerated lockfiles onto `base` in one coalesced PR.",
+					"type": "string"
+				},
+				{
+					"const": "bookkeeping_only",
+					"description": "Sync only consumed changeset deletions, changelogs, and release records,\nleaving manifests and lockfiles untouched (pair with `version_source = \"tag\"`).",
+					"type": "string"
+				},
+				{
+					"const": "merge_pr",
+					"description": "Build the clean sync tree as a two-parent bridge commit `(base_head, C_rel)`\nso merging the sync PR puts the release tag into `git log` on `base`.",
+					"type": "string"
+				},
+				{
+					"const": "none",
+					"description": "Do not open a sync pull request; rely on tag-aware planning.",
+					"type": "string"
+				}
+			]
+		},
+		"SyncPullRequestSettings": {
+			"additionalProperties": false,
+			"description": "Settings under `[source.pull_requests.sync]` for post-release bookkeeping sync.",
+			"properties": {
+				"auto_merge": {
+					"default": true,
+					"description": "Whether to enable provider auto-merge on the sync pull request.",
+					"type": "boolean"
+				},
+				"branch": {
+					"default": "monochange/sync-release",
+					"description": "Head branch used for the coalesced sync pull request.",
+					"type": "string"
+				},
+				"labels": {
+					"default": [
+						"release",
+						"automated",
+						"release-sync"
+					],
+					"description": "Labels applied to the sync pull request.",
+					"items": {
+						"type": "string"
+					},
+					"type": "array"
+				},
+				"mode": {
+					"$ref": "#/$defs/SyncMode",
+					"default": "semantic_pr",
+					"description": "How published release bookkeeping is reconciled onto `base`."
+				},
+				"title": {
+					"default": "chore(release): sync {{ cut_id }} to {{ base }}",
+					"description": "Pull request title template for the sync pull request.",
+					"type": "string"
+				}
+			},
+			"type": "object"
 		},
 		"TimestampSource": {
 			"description": "Which timestamp a `timestamp` value source reads.",
@@ -2824,6 +3091,18 @@
 				"strict_version_conflicts": {
 					"default": false,
 					"type": "boolean"
+				},
+				"version_source": {
+					"anyOf": [
+						{
+							"$ref": "#/$defs/VersionSource"
+						},
+						{
+							"type": "null"
+						}
+					],
+					"default": null,
+					"description": "Default version source for packages and groups that do not specify one."
 				},
 				"versioned_files": {
 					"items": {

@@ -640,6 +640,26 @@ struct UpdatePullRequestRequest<'a> {
 }
 
 #[derive(Debug, Serialize)]
+struct UpdatePullRequestBodyRequest<'a> {
+	body: &'a str,
+}
+
+#[derive(Debug, Serialize)]
+struct ClosePullRequestRequest {
+	state: &'static str,
+}
+
+#[derive(Debug, Serialize)]
+struct IssueCommentRequest<'a> {
+	body: &'a str,
+}
+
+#[derive(Debug, Deserialize)]
+struct CompareResponse {
+	status: String,
+}
+
+#[derive(Debug, Serialize)]
 struct LabelRequest {
 	labels: Vec<String>,
 }
@@ -751,13 +771,90 @@ async fn read_default_branch(
 	Ok(repository.default_branch)
 }
 
-/// Whether `branch` has the shape of a monochange release branch,
-/// `<branch_prefix>/release`, as `release_pull_request_branch` builds it for
-/// the default release command and every built-in step command.
+/// Whether `branch` has the shape of a monochange-owned release or sync branch:
+/// - `<branch_prefix>/release` (rolling release PR)
+/// - `<branch_prefix>/release/<cut_id>` (frozen cut release PR)
+/// - `<branch_prefix>/sync-release` (post-release bookkeeping sync PR)
 fn is_release_branch_name(branch: &str) -> bool {
-	branch
-		.rsplit_once('/')
-		.is_some_and(|(prefix, name)| !prefix.is_empty() && name == "release")
+	if let Some((prefix, name)) = branch.rsplit_once('/')
+		&& !prefix.is_empty()
+		&& matches!(name, "release" | "sync-release")
+	{
+		return true;
+	}
+
+	if let Some((prefix, rest)) = branch.split_once("/release/")
+		&& !prefix.is_empty()
+		&& !rest.is_empty()
+		&& !rest.starts_with('/')
+		&& !rest.ends_with('/')
+	{
+		return true;
+	}
+
+	false
+}
+
+/// Whether `branch` has the shape of a monochange frozen cut base branch
+/// (`release/<cut_id>`, `releases/<cut_id>`, or `<prefix>/release/<cut_id>`).
+fn is_cut_base_branch_name(branch: &str) -> bool {
+	if let Some(rest) = branch
+		.strip_prefix("release/")
+		.or_else(|| branch.strip_prefix("releases/"))
+		&& !rest.is_empty()
+		&& !rest.starts_with('/')
+		&& !rest.ends_with('/')
+	{
+		return true;
+	}
+
+	if let Some((prefix, rest)) = branch.split_once("/release/")
+		&& !prefix.is_empty()
+		&& !rest.is_empty()
+		&& !rest.starts_with('/')
+		&& !rest.ends_with('/')
+	{
+		return true;
+	}
+
+	false
+}
+
+/// Verify via GitHub's compare API that `ancestor` is an ancestor of (or identical to) `descendant`.
+async fn is_commit_ancestor(
+	http: &reqwest::Client,
+	api_url: &str,
+	token: &str,
+	owner: &str,
+	repo: &str,
+	ancestor: &str,
+	descendant: &str,
+) -> Result<bool, GitHubAppError> {
+	if ancestor == descendant {
+		return Ok(true);
+	}
+
+	let response = http
+		.get(format!(
+			"{api_url}/repos/{owner}/{repo}/compare/{ancestor}...{descendant}"
+		))
+		.bearer_auth(token)
+		.header("Accept", "application/vnd.github+json")
+		.send()
+		.await?;
+
+	if response.status() == reqwest::StatusCode::NOT_FOUND {
+		return Ok(false);
+	}
+
+	if !response.status().is_success() {
+		let status = response.status();
+		let body = response.text().await.unwrap_or_default();
+		return Err(api_error("compare base commit ancestry", status, body));
+	}
+
+	let compare: CompareResponse = response.json().await?;
+	Ok(matches!(compare.status.as_str(), "ahead" | "identical"))
 }
 
 /// How the release commit moves the release branch.
@@ -778,18 +875,14 @@ enum ReleaseBranchUpdate {
 /// branch on every run. All updates require a release branch distinct from
 /// the named base, when supplied, and the repository's default branch.
 /// Replacing an existing release additionally requires a named base branch
-/// whose head is still `base_commit`.
+/// whose head is still `base_commit`, or—when `request.allow_base_ancestor`
+/// is set for frozen cuts and sync commits—whose history contains `base_commit`.
 ///
 /// A stale run whose base branch moved gets [`GitHubAppError::BaseMoved`] so
 /// the run for the newer commit refreshes the branch. Invalid branch policy
 /// gets [`GitHubAppError::InvalidReleaseBranch`]. Without these checks a
 /// caller could name `main` as the branch and force it onto another branch's
 /// commit.
-///
-/// GitHub's ref update has no compare-and-swap, so a newer run that completes
-/// entirely between the base check and the update could still be replaced.
-/// That window is one API round trip, while a newer run needs a whole
-/// workflow run to get here.
 async fn plan_release_branch_update(
 	http: &reqwest::Client,
 	api_url: &str,
@@ -802,10 +895,20 @@ async fn plan_release_branch_update(
 		return Err(GitHubAppError::InvalidReleaseBranch(request.branch.clone()));
 	}
 
-	if read_default_branch(http, api_url, token, &request.owner, &request.repository).await?
-		== request.branch
-	{
+	let default_branch =
+		read_default_branch(http, api_url, token, &request.owner, &request.repository).await?;
+
+	if default_branch == request.branch {
 		return Err(GitHubAppError::InvalidReleaseBranch(request.branch.clone()));
+	}
+
+	if let Some(cut_base) = request.cut_base_branch.as_deref()
+		&& (!is_cut_base_branch_name(cut_base)
+			|| cut_base == default_branch
+			|| cut_base == request.branch
+			|| request.base_branch.as_deref() == Some(cut_base))
+	{
+		return Err(GitHubAppError::InvalidReleaseBranch(cut_base.to_string()));
 	}
 
 	let release_head = read_branch_head(
@@ -817,6 +920,52 @@ async fn plan_release_branch_update(
 		"read release branch ref",
 	)
 	.await?;
+
+	if request.cut_base_branch.is_some()
+		&& let Some(base_branch) = request.base_branch.as_deref()
+	{
+		let base_head = read_branch_head(
+			http,
+			api_url,
+			token,
+			request,
+			base_branch,
+			"read base branch ref",
+		)
+		.await?
+		.ok_or_else(|| {
+			api_error(
+				"read base branch ref",
+				reqwest::StatusCode::NOT_FOUND,
+				format!("base branch `{base_branch}` does not exist"),
+			)
+		})?;
+		let valid_base = if base_head == request.base_commit {
+			true
+		} else if request.allow_base_ancestor {
+			is_commit_ancestor(
+				http,
+				api_url,
+				token,
+				&request.owner,
+				&request.repository,
+				&request.base_commit,
+				&base_head,
+			)
+			.await?
+		} else {
+			false
+		};
+
+		if !valid_base {
+			return Err(GitHubAppError::BaseMoved(
+				base_branch.to_string(),
+				base_head,
+				request.base_commit.clone(),
+			));
+		}
+	}
+
 	let Some(release_head) = release_head else {
 		return Ok(ReleaseBranchUpdate::Create);
 	};
@@ -851,11 +1000,25 @@ async fn plan_release_branch_update(
 	})?;
 
 	if base_head != request.base_commit {
-		return Err(GitHubAppError::BaseMoved(
-			base_branch.to_string(),
-			base_head,
-			request.base_commit.clone(),
-		));
+		let is_ancestor = request.allow_base_ancestor
+			&& is_commit_ancestor(
+				http,
+				api_url,
+				token,
+				&request.owner,
+				&request.repository,
+				&request.base_commit,
+				&base_head,
+			)
+			.await?;
+
+		if !is_ancestor {
+			return Err(GitHubAppError::BaseMoved(
+				base_branch.to_string(),
+				base_head,
+				request.base_commit.clone(),
+			));
+		}
 	}
 
 	Ok(ReleaseBranchUpdate::Regenerate)
@@ -1091,12 +1254,18 @@ pub async fn create_release_commit(
 
 	ensure_tree_keeps_workflows(http, api_url, installation_token, request, &tree_sha).await?;
 
-	// 4. Commit with the prepared base as its only parent.
+	// 4. Commit with the prepared base as first parent plus any bridge parents.
 	let message = if request.body.is_empty() {
 		request.subject.clone()
 	} else {
 		format!("{}\n\n{}", request.subject, request.body)
 	};
+	let mut parents = Vec::with_capacity(1 + request.additional_parents.len());
+	parents.push(base_commit.as_str());
+
+	for parent in &request.additional_parents {
+		parents.push(parent.as_str());
+	}
 
 	let response = http
 		.post(format!("{api_url}/repos/{owner}/{repo}/git/commits"))
@@ -1105,7 +1274,7 @@ pub async fn create_release_commit(
 		.json(&CommitRequest {
 			message,
 			tree: &tree_sha,
-			parents: vec![base_commit],
+			parents,
 		})
 		.send()
 		.await?;
@@ -1132,6 +1301,57 @@ pub async fn create_release_commit(
 			commit.sha,
 			verification_reason.unwrap_or_else(|| "unknown".to_string()),
 		));
+	}
+
+	// 4b. When cutting a frozen release branch, create or force-update the
+	// cut base branch (`release/<cut_id>`) at `base_commit` before moving the
+	// release head branch.
+	if let Some(cut_base) = request.cut_base_branch.as_deref() {
+		let existing_cut_base = read_branch_head(
+			http,
+			api_url,
+			installation_token,
+			request,
+			cut_base,
+			"read cut base branch ref",
+		)
+		.await?;
+
+		if existing_cut_base.as_deref() != Some(base_commit.as_str()) {
+			let (operation, ref_response) = if existing_cut_base.is_none() {
+				(
+					"create cut base branch ref",
+					http.post(format!("{api_url}/repos/{owner}/{repo}/git/refs"))
+						.json(&CreateRefRequest {
+							reference: format!("refs/heads/{cut_base}"),
+							sha: base_commit,
+						}),
+				)
+			} else {
+				(
+					"update cut base branch ref",
+					http.patch(format!(
+						"{api_url}/repos/{owner}/{repo}/git/refs/heads/{cut_base}"
+					))
+					.json(&UpdateRefRequest {
+						sha: base_commit,
+						force: true,
+					}),
+				)
+			};
+			let response = ref_response
+				.bearer_auth(installation_token)
+				.header("Accept", "application/vnd.github+json")
+				.send()
+				.await?;
+
+			if !response.status().is_success() {
+				let status = response.status();
+				let body = response.text().await.unwrap_or_default();
+
+				return Err(api_error(operation, status, body));
+			}
+		}
 	}
 
 	// 5. Point the release branch at the new commit. By this point the commit
@@ -1176,6 +1396,17 @@ pub async fn create_release_commit(
 	}
 
 	Ok((commit.sha, verified, verification_reason))
+}
+
+/// Extra options controlling hosted cut PR banner updates and PR superseding.
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq)]
+pub struct PublishPullRequestOptions {
+	/// Only update the body of an existing verified release PR without creating
+	/// a new pull request or mutating labels/auto-merge.
+	pub banner_only: bool,
+	/// Optional older release PR number to comment on and close after creating a
+	/// superseding cut PR (verified via HMAC binding before closing).
+	pub supersede_pr_number: Option<u64>,
 }
 
 /// Look up the open pull request for a head branch.
@@ -1228,6 +1459,29 @@ pub async fn publish_release_pull_request(
 	binding_secret: &str,
 	repository_id: i64,
 ) -> Result<(u64, SourceChangeRequestOperation, String), GitHubAppError> {
+	publish_release_pull_request_with_options(
+		http,
+		api_url,
+		installation_token,
+		request,
+		binding_secret,
+		repository_id,
+		PublishPullRequestOptions::default(),
+	)
+	.await
+}
+
+/// Open or update a release, cut, or sync pull request with optional banner-only
+/// and PR-superseding behavior.
+pub async fn publish_release_pull_request_with_options(
+	http: &reqwest::Client,
+	api_url: &str,
+	installation_token: &str,
+	request: &SourceChangeRequest,
+	binding_secret: &str,
+	repository_id: i64,
+	options: PublishPullRequestOptions,
+) -> Result<(u64, SourceChangeRequestOperation, String), GitHubAppError> {
 	let owner = &request.owner;
 	let repo = &request.repo;
 
@@ -1250,6 +1504,50 @@ pub async fn publish_release_pull_request(
 		&request.head_branch,
 	)
 	.await?;
+
+	if options.banner_only {
+		let Some(existing) = existing else {
+			return Err(api_error(
+				"update pull request status banner",
+				reqwest::StatusCode::NOT_FOUND,
+				format!(
+					"no open pull request found for head branch `{}`",
+					request.head_branch
+				),
+			));
+		};
+		existing.verify_identity(request, repository_id)?;
+		existing.verify_binding(binding_secret)?;
+		let body = existing.signed_body(binding_secret, &request.body);
+		let response = http
+			.patch(format!(
+				"{api_url}/repos/{owner}/{repo}/pulls/{}",
+				existing.number
+			))
+			.bearer_auth(installation_token)
+			.header("Accept", "application/vnd.github+json")
+			.json(&UpdatePullRequestBodyRequest { body: &body })
+			.send()
+			.await?;
+
+		if !response.status().is_success() {
+			let status = response.status();
+			return Err(api_error(
+				"update pull request status banner",
+				status,
+				response.text().await.unwrap_or_default(),
+			));
+		}
+
+		let updated: PullRequestResponse = response.json().await?;
+		updated.verify_identity(request, repository_id)?;
+		updated.verify_binding(binding_secret)?;
+		return Ok((
+			existing.number,
+			SourceChangeRequestOperation::Updated,
+			existing.html_url,
+		));
+	}
 
 	let (pull, operation) = if let Some(existing) = existing {
 		existing.verify_identity(request, repository_id)?;
@@ -1350,7 +1648,91 @@ pub async fn publish_release_pull_request(
 			enable_pull_request_auto_merge(http, api_url, installation_token, &pull.node_id).await;
 	}
 
+	if let Some(old_number) = options.supersede_pr_number
+		&& old_number != pull.number
+	{
+		supersede_verified_pull_request(
+			http,
+			api_url,
+			installation_token,
+			owner,
+			repo,
+			old_number,
+			pull.number,
+			&pull.html_url,
+			binding_secret,
+		)
+		.await?;
+	}
+
 	Ok((pull.number, operation, pull.html_url))
+}
+
+/// Comment on and close a superseded release PR after confirming its HMAC binding.
+#[allow(clippy::too_many_arguments)]
+async fn supersede_verified_pull_request(
+	http: &reqwest::Client,
+	api_url: &str,
+	installation_token: &str,
+	owner: &str,
+	repo: &str,
+	old_number: u64,
+	new_number: u64,
+	new_url: &str,
+	binding_secret: &str,
+) -> Result<(), GitHubAppError> {
+	let response = http
+		.get(format!("{api_url}/repos/{owner}/{repo}/pulls/{old_number}"))
+		.bearer_auth(installation_token)
+		.header("Accept", "application/vnd.github+json")
+		.send()
+		.await?;
+
+	if !response.status().is_success() {
+		let status = response.status();
+		let body = response.text().await.unwrap_or_default();
+		return Err(api_error("read superseded pull request", status, body));
+	}
+
+	let old_pull: PullRequestResponse = response.json().await?;
+	old_pull.verify_binding(binding_secret)?;
+
+	let comment = format!("Superseded by #{new_number} ({new_url}) after `/refresh`.");
+	let comment_response = http
+		.post(format!(
+			"{api_url}/repos/{owner}/{repo}/issues/{old_number}/comments"
+		))
+		.bearer_auth(installation_token)
+		.header("Accept", "application/vnd.github+json")
+		.json(&IssueCommentRequest { body: &comment })
+		.send()
+		.await?;
+
+	if !comment_response.status().is_success() {
+		let status = comment_response.status();
+		let body = comment_response.text().await.unwrap_or_default();
+		return Err(api_error(
+			"comment on superseded pull request",
+			status,
+			body,
+		));
+	}
+
+	let close_response = http
+		.patch(format!("{api_url}/repos/{owner}/{repo}/pulls/{old_number}"))
+		.bearer_auth(installation_token)
+		.header("Accept", "application/vnd.github+json")
+		.json(&ClosePullRequestRequest { state: "closed" })
+		.send()
+		.await?;
+
+	if !close_response.status().is_success() {
+		let status = close_response.status();
+		let body = close_response.text().await.unwrap_or_default();
+		return Err(api_error("close superseded pull request", status, body));
+	}
+
+	Ok(())
 }
 
 /// Enable auto-merge on a pull request through the GraphQL API.

@@ -1331,9 +1331,15 @@ async fn seed_versions_from_release_tags(
 	configuration: &monochange_core::WorkspaceConfiguration,
 	discovery: &mut DiscoveryReport,
 ) {
-	let needs_seeding = discovery.packages.iter().any(|package| {
-		package.current_version.is_none() && package_reads_version_from_tags(package, configuration)
-	});
+	let is_cut_strategy = configuration
+		.source
+		.as_ref()
+		.is_some_and(|source| source.pull_requests.strategy.is_cut());
+	let needs_seeding = is_cut_strategy
+		|| discovery
+			.packages
+			.iter()
+			.any(|package| package_reads_version_from_tags(package, configuration));
 
 	if !needs_seeding {
 		return;
@@ -1387,18 +1393,26 @@ fn package_reads_version_from_tags(
 		|| package.ecosystem.versions_from_tags()
 }
 
-/// Seed tag-resolved versions into `discovery` for tag-versioned packages.
+/// Seed tag-resolved versions into `discovery` for tag-versioned packages and
+/// frozen cut-strategy workspaces whose `main` branch has not yet synced a
+/// recently published release tag.
 pub(crate) fn seed_versions_from_tag_list(
 	configuration: &monochange_core::WorkspaceConfiguration,
 	discovery: &mut DiscoveryReport,
 	sorted_tags: &[String],
 ) {
+	let is_cut_strategy = configuration
+		.source
+		.as_ref()
+		.is_some_and(|source| source.pull_requests.strategy.is_cut());
+
 	for package in &mut discovery.packages {
-		if package.current_version.is_some()
-			|| !package_reads_version_from_tags(package, configuration)
-		{
+		let reads_from_tags = package_reads_version_from_tags(package, configuration);
+
+		if !reads_from_tags && !is_cut_strategy {
 			continue;
 		}
+
 		let config_id = package
 			.metadata
 			.get("config_id")
@@ -1414,6 +1428,7 @@ pub(crate) fn seed_versions_from_tag_list(
 		if !identity.tag {
 			continue;
 		}
+
 		let ecosystem = if identity.owner_kind == ReleaseOwnerKind::Group {
 			"group"
 		} else {
@@ -1426,23 +1441,38 @@ pub(crate) fn seed_versions_from_tag_list(
 			ecosystem,
 			&identity.version_format,
 		) else {
+			if !reads_from_tags {
+				continue;
+			}
+
 			if let Some(initial_version) = identity.initial_version.as_ref() {
 				package.current_version = Some(initial_version.clone());
 				continue;
 			}
 
-			let pattern = resolved_release_tag_template(
-				&identity.owner_id,
-				ecosystem,
-				&identity.version_format,
-			)
-			.replace("{{ version }}", "<version>");
-			discovery.warnings.push(format!(
-				"no release tag matching `{pattern}` found for package `{config_id}`; tag an initial release or set `initial_version` so the version baseline can be resolved"
-			));
+			if package.current_version.is_none() {
+				let pattern = resolved_release_tag_template(
+					&identity.owner_id,
+					ecosystem,
+					&identity.version_format,
+				)
+				.replace("{{ version }}", "<version>");
+				discovery.warnings.push(format!(
+					"no release tag matching `{pattern}` found for package `{config_id}`; tag an initial release or set `initial_version` so the version baseline can be resolved"
+				));
+			}
+
 			continue;
 		};
-		package.current_version = Some(version);
+
+		if reads_from_tags
+			|| package
+				.current_version
+				.as_ref()
+				.is_none_or(|current| &version > current)
+		{
+			package.current_version = Some(version);
+		}
 	}
 }
 
@@ -2005,14 +2035,41 @@ pub(crate) async fn prepare_release_execution_with_configuration(
 		} else {
 			discovery.clone()
 		};
+	let is_cut_strategy = configuration
+		.source
+		.as_ref()
+		.is_some_and(|source| source.pull_requests.strategy.is_cut());
+	let unsynced_published_releases = if is_cut_strategy {
+		let sorted_tags = load_sorted_tags(root).await;
+		release_cut::collect_unsynced_published_releases(root, &sorted_tags).await?
+	} else {
+		Vec::new()
+	};
+	let unsynced_consumed =
+		release_cut::unsynced_consumed_changeset_paths(root, &unsynced_published_releases);
 	let prerelease_allows_empty_changesets = configuration.prerelease.enabled;
-	let changeset_paths =
+	let discovered_changeset_paths =
 		measure_prepare_phase(&mut phase_timings, "discover changeset paths", || {
 			discover_changeset_paths(
 				root,
 				allow_empty_changesets || prerelease_allows_empty_changesets,
 			)
 		})?;
+	let (stale_released_changeset_paths, changeset_paths): (Vec<PathBuf>, Vec<PathBuf>) =
+		if unsynced_consumed.is_empty() {
+			(Vec::new(), discovered_changeset_paths)
+		} else {
+			discovered_changeset_paths
+				.into_iter()
+				.partition(|path| unsynced_consumed.contains(&root_relative(root, path)))
+		};
+
+	if changeset_paths.is_empty() && !allow_empty_changesets && !prerelease_allows_empty_changesets
+	{
+		return Err(MonochangeError::Config(
+			"no changeset files were found in `.changeset`".to_string(),
+		));
+	}
 
 	tracing::debug!(count = changeset_paths.len(), "discovered changesets");
 
@@ -2306,7 +2363,7 @@ pub(crate) async fn prepare_release_execution_with_configuration(
 	// written to disk are tracked separately.
 	let write_changelog_files =
 		!configuration.prerelease.enabled || configuration.prerelease.changelog;
-	let changelog_file_updates = if write_changelog_files {
+	let mut changelog_file_updates = if write_changelog_files {
 		changelog_updates
 			.iter()
 			.map(|update| {
@@ -2319,6 +2376,15 @@ pub(crate) async fn prepare_release_execution_with_configuration(
 	} else {
 		Vec::new()
 	};
+
+	if write_changelog_files && !unsynced_published_releases.is_empty() {
+		release_cut::carry_forward_unsynced_changelogs(
+			root,
+			&unsynced_published_releases,
+			&changelog_updates,
+			&mut changelog_file_updates,
+		)?;
+	}
 	let prerelease_prepared_state = if configuration.prerelease.enabled {
 		Some(build_prerelease_state_update(
 			root,
@@ -2427,7 +2493,10 @@ pub(crate) async fn prepare_release_execution_with_configuration(
 				apply_file_updates(&file_updates)?;
 			}
 			if !(configuration.prerelease.enabled && configuration.prerelease.keep_changesets) {
-				for path in &changeset_paths {
+				for path in changeset_paths
+					.iter()
+					.chain(stale_released_changeset_paths.iter())
+				{
 					delete_changeset_file(path)?;
 					deleted_changesets.push(root_relative(root, path));
 				}
@@ -2477,7 +2546,7 @@ pub(crate) async fn prepare_release_execution_with_configuration(
 	})
 }
 
-fn build_dependency_sync_updates(
+pub(crate) fn build_dependency_sync_updates(
 	root: &Path,
 	discovery: &DiscoveryReport,
 	plan: &ReleasePlan,
@@ -2525,7 +2594,7 @@ fn build_dependency_sync_updates(
 		.collect()
 }
 
-fn merge_file_updates(
+pub(crate) fn merge_file_updates(
 	base_updates: Vec<FileUpdate>,
 	additional_updates: Vec<FileUpdate>,
 ) -> Vec<FileUpdate> {
@@ -2720,7 +2789,8 @@ fn values_from_record(record: &ReleaseRecord) -> ResolvedReleaseValues {
 	}
 }
 
-/// Read the label inputs and identity version from the previous release record.
+/// Read the label inputs and identity version from the previous release record,
+/// consulting unsynced published cut release tags when they are newer than `HEAD`.
 async fn previous_release_versioning(
 	root: &Path,
 ) -> (
@@ -2729,22 +2799,31 @@ async fn previous_release_versioning(
 ) {
 	// The previous release record supplies both the ordinal chaining context
 	// and the identity that train-scoped counters compare against.
-	let Ok(discovery) = discover_release_record(root, "HEAD").await else {
-		return (None, None);
-	};
-	let record = discovery.record;
-	let inputs = if record.label_inputs.is_empty() {
-		None
-	} else {
-		Some(record.label_inputs)
-	};
+	let head_record = discover_release_record(root, "HEAD")
+		.await
+		.ok()
+		.map(|discovery| discovery.record);
+	let sorted_tags = load_sorted_tags(root).await;
+	let unsynced = release_cut::latest_unsynced_release_versioning(root, &sorted_tags).await;
 
-	let version = record
-		.release_targets
-		.first()
-		.map(|target| target.version.clone())
-		.or(record.version);
-	(inputs, version)
+	match (head_record, unsynced) {
+		(Some(record), Some((unsynced_inputs, unsynced_version, unsynced_created_at)))
+			if unsynced_created_at > record.created_at =>
+		{
+			(unsynced_inputs, unsynced_version)
+		}
+		(Some(record), _) => {
+			let inputs = (!record.label_inputs.is_empty()).then_some(record.label_inputs);
+			let version = record
+				.release_targets
+				.first()
+				.map(|target| target.version.clone())
+				.or(record.version);
+			(inputs, version)
+		}
+		(None, Some((unsynced_inputs, unsynced_version, _))) => (unsynced_inputs, unsynced_version),
+		(None, None) => (None, None),
+	}
 }
 
 /// Convert a local datetime into the UTC calendar context values use.

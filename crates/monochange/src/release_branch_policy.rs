@@ -53,7 +53,58 @@ pub(crate) async fn verify_release_ref_for_publish(
 	}
 
 	let policy = effective_release_branch_policy(&source.releases, prerelease);
-	verify_release_ref(root, &policy, ref_name).await.map(Some)
+	match verify_release_ref(root, &policy, ref_name).await {
+		Ok(report) => Ok(Some(report)),
+		Err(primary_error)
+			if source.pull_requests.strategy.is_cut()
+				&& matches!(
+					source.pull_requests.cut.retention,
+					monochange_core::CutBranchRetention::Delete
+				) =>
+		{
+			if let Some(report) =
+				verify_deleted_cut_branch_parent(root, source, &policy, ref_name).await?
+			{
+				return Ok(Some(report));
+			}
+
+			Err(primary_error)
+		}
+		Err(error) => Err(error),
+	}
+}
+
+/// When a temporary cut branch (`release/vX.Y.Z`) has already been deleted
+/// after publishing (`retention = "delete"`), a manual publish retry against
+/// the release tag still passes if the commit's first parent (the frozen cut
+/// base commit) is reachable from `[source.pull_requests].base`.
+async fn verify_deleted_cut_branch_parent(
+	root: &Path,
+	source: &SourceConfiguration,
+	policy: &ProviderReleaseSettings,
+	ref_name: &str,
+) -> MonochangeResult<Option<ReleaseBranchVerificationReport>> {
+	let commit = git_support::resolve_git_commit_ref(root, ref_name).await?;
+	let parent_ref = format!("{commit}^1");
+	let Ok(parent_commit) = git_support::resolve_git_commit_ref(root, &parent_ref).await else {
+		return Ok(None);
+	};
+	let base_refs =
+		candidate_release_branch_refs(root, std::slice::from_ref(&source.pull_requests.base))
+			.await?;
+
+	for branch_ref in &base_refs {
+		if git_support::git_is_ancestor(root, &parent_commit, &branch_ref.ref_name).await? {
+			return Ok(Some(ReleaseBranchVerificationReport {
+				ref_name: ref_name.to_string(),
+				commit,
+				allowed_branches: policy.branches.clone(),
+				matched_branch: format!("{} (cut parent)", branch_ref.display_name),
+			}));
+		}
+	}
+
+	Ok(None)
 }
 
 pub(crate) async fn verify_release_ref_for_commit(

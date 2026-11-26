@@ -35,6 +35,7 @@ sqlx = { workspace = true }
 thiserror = { workspace = true }
 time = { workspace = true }
 tokio = { workspace = true }
+toml_edit = "0.25"
 tower = { workspace = true }
 tower-http = { workspace = true }
 tracing = { workspace = true }

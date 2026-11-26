@@ -1516,6 +1516,8 @@ fn humanized_step_kind(kind: &'static str) -> &'static str {
 		"PublishReadiness" => "check publish readiness",
 		"TagRelease" => "tag release",
 		"RetargetRelease" => "retarget release",
+		"SyncRelease" => "sync release",
+		"OpenSyncRequest" => "open sync request",
 		_ => "run command",
 	}
 }

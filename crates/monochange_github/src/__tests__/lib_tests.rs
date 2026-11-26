@@ -1927,6 +1927,7 @@ fn publish_release_pull_request_skips_matching_existing_pull_request() {
 			ref_name: request.base_branch.clone(),
 		},
 		head: GitHubExistingPullRequestHead {
+			ref_name: request.head_branch.clone(),
 			sha: Some("head-sha".to_string()),
 		},
 		labels: request
@@ -1970,6 +1971,7 @@ fn publish_release_pull_request_updates_stale_existing_pull_request_body() {
 			ref_name: request.base_branch.clone(),
 		},
 		head: GitHubExistingPullRequestHead {
+			ref_name: request.head_branch.clone(),
 			sha: Some("head-sha".to_string()),
 		},
 		labels: request
@@ -2048,6 +2050,7 @@ fn publish_release_pull_request_marks_matching_auto_merge_request_as_updated() {
 			ref_name: request.base_branch.clone(),
 		},
 		head: GitHubExistingPullRequestHead {
+			ref_name: request.head_branch.clone(),
 			sha: Some("head-sha".to_string()),
 		},
 		labels: request
@@ -5223,4 +5226,162 @@ fn github_retry_notices_announce_rate_limits_and_server_errors_only() {
 	notices.retry_after_error(&request, http::StatusCode::BAD_GATEWAY, 1);
 	// A `403` octocrab will not retry is not announced as a retry.
 	notices.retry_after_error(&request, http::StatusCode::FORBIDDEN, 0);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn lookup_latest_green_commit_picks_newest_green_and_handles_no_checks_or_all_failing() {
+	let server = MockServer::start();
+	let mut source = monochange_source();
+	source.api_url = Some(server.base_url());
+
+	server.mock(|when, then| {
+		when.method(GET)
+			.path("/repos/ifiokjr/monochange/commits")
+			.query_param("sha", "main");
+		then.status(200).json_body(json!([
+			{ "sha": "tip-pending" },
+			{ "sha": "older-green" }
+		]));
+	});
+	server.mock(|when, then| {
+		when.method(GET)
+			.path("/repos/ifiokjr/monochange/commits/tip-pending/status");
+		then.status(200)
+			.json_body(json!({ "state": "pending", "total_count": 0 }));
+	});
+	server.mock(|when, then| {
+		when.method(GET)
+			.path("/repos/ifiokjr/monochange/commits/tip-pending/check-runs");
+		then.status(200).json_body(json!({
+			"total_count": 1,
+			"check_runs": [{ "status": "in_progress", "conclusion": null }]
+		}));
+	});
+	server.mock(|when, then| {
+		when.method(GET)
+			.path("/repos/ifiokjr/monochange/commits/older-green/status");
+		then.status(200)
+			.json_body(json!({ "state": "success", "total_count": 1 }));
+	});
+	server.mock(|when, then| {
+		when.method(GET)
+			.path("/repos/ifiokjr/monochange/commits/older-green/check-runs");
+		then.status(200).json_body(json!({
+			"total_count": 1,
+			"check_runs": [{ "status": "completed", "conclusion": "success" }]
+		}));
+	});
+
+	let found = temp_env::async_with_vars(
+		[("GITHUB_TOKEN", Some("test-token"))],
+		lookup_latest_green_commit(&source, "main"),
+	)
+	.await
+	.unwrap_or_else(|error| panic!("lookup latest green: {error}"));
+	assert_eq!(found.as_deref(), Some("older-green"));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn cut_pull_request_helpers_discover_patch_supersede_and_delete_branch() {
+	let server = MockServer::start();
+	let mut source = monochange_source();
+	source.api_url = Some(server.base_url());
+
+	let body_with_meta = "<!-- monochange:cut-meta:start {\"cut_id\":\"v1.0.0\",\"base_branch\":\"main\",\"cut_base_branch\":\"release/v1.0.0\",\"head_branch\":\"monochange/release/v1.0.0\",\"cut_base_commit\":\"abc123\",\"targets\":[]} monochange:cut-meta:end -->\nbody";
+	server.mock(|when, then| {
+		when.method(GET)
+			.path("/repos/ifiokjr/monochange/pulls")
+			.query_param("state", "open");
+		then.status(200).json_body(json!([
+			{
+				"number": 11,
+				"html_url": "https://github.com/ifiokjr/monochange/pull/11",
+				"node_id": "PR_11",
+				"title": "chore(release): prepare release v1.0.0",
+				"body": body_with_meta,
+				"base": { "ref": "release/v1.0.0" },
+				"head": { "ref": "monochange/release/v1.0.0", "sha": "head11" },
+				"labels": []
+			}
+		]));
+	});
+	let patch_body = server.mock(|when, then| {
+		when.method(PATCH)
+			.path("/repos/ifiokjr/monochange/pulls/11")
+			.json_body(json!({ "body": "updated banner body" }));
+		then.status(200).json_body(json!({
+			"number": 11,
+			"html_url": "https://github.com/ifiokjr/monochange/pull/11",
+			"node_id": "PR_11"
+		}));
+	});
+	let comment_old = server.mock(|when, then| {
+		when.method(POST)
+			.path("/repos/ifiokjr/monochange/issues/11/comments");
+		then.status(201).json_body(json!({ "id": 1 }));
+	});
+	let close_old = server.mock(|when, then| {
+		when.method(PATCH)
+			.path("/repos/ifiokjr/monochange/pulls/11")
+			.json_body(json!({ "state": "closed" }));
+		then.status(200).json_body(json!({ "number": 11 }));
+	});
+	let delete_ref = server.mock(|when, then| {
+		when.method(httpmock::Method::DELETE)
+			.path("/repos/ifiokjr/monochange/git/refs/heads/release/v1.0.0");
+		then.status(204);
+	});
+	let delete_missing = server.mock(|when, then| {
+		when.method(httpmock::Method::DELETE)
+			.path("/repos/ifiokjr/monochange/git/refs/heads/release/missing");
+		then.status(404)
+			.json_body(json!({ "message": "Not Found" }));
+	});
+
+	temp_env::async_with_vars([("GITHUB_TOKEN", Some("test-token"))], async {
+		let active = find_active_cut_pull_request(&source, "monochange/release")
+			.await
+			.unwrap_or_else(|error| panic!("find active: {error}"))
+			.unwrap_or_else(|| panic!("expected active cut PR"));
+		assert_eq!(active.number, 11);
+		assert_eq!(active.head_branch, "monochange/release/v1.0.0");
+		assert_eq!(active.base_branch, "release/v1.0.0");
+
+		let updated = update_pull_request_body(
+			&source,
+			11,
+			"monochange/release/v1.0.0",
+			"updated banner body",
+		)
+		.await
+		.unwrap_or_else(|error| panic!("update body: {error}"));
+		assert_eq!(updated.operation, GitHubPullRequestOperation::Updated);
+
+		supersede_pull_request(
+			&source,
+			11,
+			12,
+			"https://github.com/ifiokjr/monochange/pull/12",
+		)
+		.await
+		.unwrap_or_else(|error| panic!("supersede: {error}"));
+
+		assert!(
+			delete_branch_ref(&source, "release/v1.0.0")
+				.await
+				.unwrap_or_else(|error| panic!("delete branch: {error}"))
+		);
+		assert!(
+			!delete_branch_ref(&source, "release/missing")
+				.await
+				.unwrap_or_else(|error| panic!("delete missing: {error}"))
+		);
+	})
+	.await;
+
+	patch_body.assert();
+	comment_old.assert();
+	close_old.assert();
+	delete_ref.assert();
+	delete_missing.assert();
 }

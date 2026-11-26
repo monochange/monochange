@@ -19,6 +19,7 @@ pub mod github_app;
 pub mod oauth;
 pub mod oidc;
 pub mod release_api;
+pub mod release_cut_setup;
 pub mod sessions;
 pub mod tasks_api;
 

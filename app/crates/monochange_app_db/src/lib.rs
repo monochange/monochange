@@ -16,6 +16,7 @@ pub mod feedback;
 pub mod models;
 pub mod oauth;
 pub mod projects;
+pub mod velocity;
 
 pub type DbPool = sqlx::SqlitePool;
 pub type DbClient = welds_connections::sqlite::SqliteClient;
@@ -64,6 +65,7 @@ pub async fn run_migrations(pool: &DbPool) -> Result<(), DbError> {
 		create_project_feedback,
 		create_oauth_state_uses,
 		create_client_sessions,
+		create_repository_merged_prs,
 	];
 
 	welds::migrations::up(&client, migrations)
@@ -151,6 +153,17 @@ fn create_client_sessions(
 	))
 }
 
+// The welds migration callback requires this Result signature.
+#[allow(clippy::unnecessary_wraps)]
+fn create_repository_merged_prs(
+	_state: &welds::migrations::TableState,
+) -> Result<welds::migrations::MigrationStep, welds::WeldsError> {
+	Ok(welds::migrations::MigrationStep::new(
+		"008_create_repository_merged_prs",
+		CreateRepositoryMergedPrs,
+	))
+}
+
 pub(crate) struct CreateUsersTable;
 pub(crate) struct CreateReleaseAutomationTables;
 pub(crate) struct AddGitHubUserTokenRefresh;
@@ -158,6 +171,7 @@ pub(crate) struct AddOrganizationsAndProjects;
 pub(crate) struct CreateProjectFeedback;
 pub(crate) struct CreateOAuthStateUses;
 pub(crate) struct CreateClientSessions;
+pub(crate) struct CreateRepositoryMergedPrs;
 
 fn sql_statements(sql: &str) -> Vec<String> {
 	sql.split(';')
@@ -508,6 +522,37 @@ impl welds::migrations::MigrationWriter for CreateClientSessions {
             DROP INDEX IF EXISTS idx_client_grants_user;
             DROP TABLE IF EXISTS client_grants;
             ALTER TABLE users DROP COLUMN session_epoch;
+        ",
+		)
+	}
+}
+
+/// Recent merged pull request timestamps per repository for high-velocity
+/// release cut recommendations.
+impl welds::migrations::MigrationWriter for CreateRepositoryMergedPrs {
+	fn up_sql(&self, _syntax: welds::Syntax) -> Vec<String> {
+		sql_statements(
+			r"
+            CREATE TABLE IF NOT EXISTS repository_merged_prs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                github_repo_id INTEGER NOT NULL,
+                pull_request_number INTEGER NOT NULL,
+                base_branch TEXT NOT NULL,
+                merged_at INTEGER NOT NULL,
+                UNIQUE(github_repo_id, pull_request_number)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_repo_merged_prs_repo_time
+                ON repository_merged_prs(github_repo_id, merged_at DESC);
+        ",
+		)
+	}
+
+	fn down_sql(&self, _syntax: welds::Syntax) -> Vec<String> {
+		sql_statements(
+			r"
+            DROP INDEX IF EXISTS idx_repo_merged_prs_repo_time;
+            DROP TABLE IF EXISTS repository_merged_prs;
         ",
 		)
 	}

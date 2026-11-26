@@ -1,0 +1,29 @@
+---
+source: crates/monochange_integration_tests/tests/release_cut_workflow.rs
+expression: "normalize_commit_hashes(body, &[&base_sha])"
+---
+<!-- monochange:cut-status:start -->
+> **Frozen release cut `v1.1.0`** from `main` (`<sha_0>`) — up to date with `main`.
+> Merge this PR once checks pass to tag and publish immediately without pausing `main`.
+<!-- monochange:cut-status:end -->
+
+## Prepared release
+
+- command: `release`
+- package `core` -> `v1.1.0`
+
+## Release notes
+
+### core 1.1.0
+
+### Features
+
+- **Added first cut feature.**
+  - _Introduced in:_ <commit>
+
+## Changed files
+
+- CHANGELOG.md
+- Cargo.toml
+
+<!-- monochange:cut-meta:start {"cut_id":"v1.1.0","base_branch":"main","cut_base_branch":"release/v1.1.0","head_branch":"monochange/release/v1.1.0","cut_base_commit":"<commit_0>","targets":["core@1.1.0"]} monochange:cut-meta:end -->

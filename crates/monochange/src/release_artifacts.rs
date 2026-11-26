@@ -1177,6 +1177,14 @@ pub(crate) fn build_release_record(
 	source: Option<&SourceConfiguration>,
 	manifest: &ReleaseManifest,
 ) -> ReleaseRecord {
+	build_release_record_with_cut_base(source, manifest, None)
+}
+
+pub(crate) fn build_release_record_with_cut_base(
+	source: Option<&SourceConfiguration>,
+	manifest: &ReleaseManifest,
+	cut_base_commit: Option<&str>,
+) -> ReleaseRecord {
 	ReleaseRecord {
 		schema_version: monochange_core::RELEASE_RECORD_SCHEMA_VERSION.to_string(),
 		kind: monochange_core::RELEASE_RECORD_KIND.to_string(),
@@ -1219,6 +1227,8 @@ pub(crate) fn build_release_record(
 		values: manifest.values.clone(),
 		labels: manifest.labels.clone(),
 		label_inputs: manifest.label_inputs.clone(),
+		cut_base_commit: cut_base_commit.map(ToString::to_string),
+		synced_from_commit: None,
 		provider: source.map(|source| {
 			ReleaseRecordProvider {
 				kind: source.provider,
@@ -1234,11 +1244,25 @@ pub(crate) fn build_release_commit_message(
 	source: Option<&SourceConfiguration>,
 	manifest: &ReleaseManifest,
 ) -> CommitMessage {
+	let raw_subject = source.map_or_else(
+		|| monochange_core::ProviderMergeRequestSettings::default().effective_commit_subject(),
+		|source| source.pull_requests.effective_commit_subject(),
+	);
+	let subject = if let Some(source) = source
+		&& source.pull_requests.strategy.is_cut()
+	{
+		let cut = monochange_hosting::cut::resolve_cut_branches(source, manifest);
+		monochange_hosting::cut::render_cut_or_sync_title(
+			&raw_subject,
+			&cut.cut_id,
+			&source.pull_requests.base,
+			manifest.version.as_deref(),
+		)
+	} else {
+		raw_subject
+	};
 	CommitMessage {
-		subject: source.map_or_else(
-			|| monochange_core::ProviderMergeRequestSettings::default().effective_commit_subject(),
-			|source| source.pull_requests.effective_commit_subject(),
-		),
+		subject,
 		body: Some(render_release_commit_body(source, manifest)),
 	}
 }
@@ -1315,9 +1339,62 @@ pub(crate) fn build_source_change_request(
 	source: &SourceConfiguration,
 	manifest: &ReleaseManifest,
 ) -> SourceChangeRequest {
+	build_source_change_request_with_cut_base(source, manifest, None)
+}
+
+pub(crate) fn build_source_change_request_with_cut_base(
+	source: &SourceConfiguration,
+	manifest: &ReleaseManifest,
+	cut_base_commit: Option<&str>,
+) -> SourceChangeRequest {
 	let mut request = hosted_sources::hosted_source_adapter(source.provider)
 		.build_release_pull_request_request(source, manifest);
 	request.commit_message = build_release_commit_message(Some(source), manifest);
+
+	if source.pull_requests.strategy.is_cut() {
+		let cut = monochange_hosting::cut::resolve_cut_branches(source, manifest);
+		request.base_branch.clone_from(&cut.cut_base_branch);
+		request.head_branch.clone_from(&cut.head_branch);
+		request.title = monochange_hosting::cut::render_cut_or_sync_title(
+			&source.pull_requests.title,
+			&cut.cut_id,
+			&source.pull_requests.base,
+			manifest.version.as_deref(),
+		);
+		let cut_commit = cut_base_commit.unwrap_or("HEAD");
+		let metadata = monochange_hosting::cut::CutMetadata {
+			cut_id: cut.cut_id.clone(),
+			cut_base_branch: cut.cut_base_branch,
+			cut_base_commit: cut_commit.to_string(),
+			head_branch: cut.head_branch,
+			base_branch: source.pull_requests.base.clone(),
+			release_commit: None,
+			targets: manifest
+				.release_targets
+				.iter()
+				.map(|target| format!("{}@{}", target.id, target.version))
+				.collect(),
+		};
+
+		if source.pull_requests.cut.status_banner {
+			let banner = monochange_hosting::cut::render_cut_status_banner(
+				&monochange_hosting::cut::CutStatusBanner {
+					cut_id: cut.cut_id,
+					cut_base_commit: cut_commit.to_string(),
+					base_branch: source.pull_requests.base.clone(),
+					commits_behind: 0,
+					pending_changesets: Vec::new(),
+					refresh_command: source.pull_requests.cut.refresh_command.clone(),
+				},
+			);
+			request.body =
+				monochange_hosting::cut::upsert_cut_status_banner(&request.body, &banner);
+		}
+
+		request.body =
+			monochange_hosting::cut::upsert_cut_metadata_comment(&request.body, &metadata);
+	}
+
 	request
 }
 
@@ -1415,6 +1492,109 @@ pub(crate) async fn publish_source_change_request(
 	}
 }
 
+pub(crate) async fn publish_pushed_source_change_request(
+	source: &SourceConfiguration,
+	request: &SourceChangeRequest,
+	head_commit: &str,
+) -> MonochangeResult<SourceChangeRequestOutcome> {
+	match source.provider {
+		#[cfg(feature = "github")]
+		SourceProvider::GitHub => {
+			github_provider::publish_pushed_pull_request(source, request, head_commit).await
+		}
+		_ => {
+			Err(MonochangeError::Config(format!(
+				"pre-pushed cut/sync pull requests are not yet supported for {}",
+				source.provider
+			)))
+		}
+	}
+}
+
+pub(crate) async fn lookup_latest_green_commit_for_source(
+	source: &SourceConfiguration,
+	base_branch: &str,
+) -> MonochangeResult<Option<String>> {
+	match source.provider {
+		#[cfg(feature = "github")]
+		SourceProvider::GitHub => github_provider::lookup_latest_green_commit(source, base_branch).await,
+		_ => Ok(None),
+	}
+}
+
+pub(crate) async fn find_active_cut_pull_request_for_source(
+	source: &SourceConfiguration,
+) -> MonochangeResult<Option<monochange_core::ActiveCutPullRequest>> {
+	match source.provider {
+		#[cfg(feature = "github")]
+		SourceProvider::GitHub => {
+			github_provider::find_active_cut_pull_request(
+				source,
+				&source.pull_requests.branch_prefix,
+			)
+			.await
+		}
+		_ => Ok(None),
+	}
+}
+
+pub(crate) async fn update_cut_pull_request_banner_for_source(
+	source: &SourceConfiguration,
+	pr: &monochange_core::ActiveCutPullRequest,
+	updated_body: &str,
+) -> MonochangeResult<SourceChangeRequestOutcome> {
+	match source.provider {
+		#[cfg(feature = "github")]
+		SourceProvider::GitHub => {
+			github_provider::update_pull_request_body(
+				source,
+				pr.number,
+				&pr.head_branch,
+				updated_body,
+			)
+			.await
+		}
+		_ => {
+			Err(MonochangeError::Config(format!(
+				"cut status banner updates are not yet supported for {}",
+				source.provider
+			)))
+		}
+	}
+}
+
+pub(crate) async fn supersede_cut_pull_request_for_source(
+	source: &SourceConfiguration,
+	old_pr_number: u64,
+	new_pr_number: u64,
+	new_pr_url: &str,
+) -> MonochangeResult<()> {
+	match source.provider {
+		#[cfg(feature = "github")]
+		SourceProvider::GitHub => {
+			github_provider::supersede_pull_request(
+				source,
+				old_pr_number,
+				new_pr_number,
+				new_pr_url,
+			)
+			.await
+		}
+		_ => Ok(()),
+	}
+}
+
+pub(crate) async fn delete_cut_branch_for_source(
+	source: &SourceConfiguration,
+	branch: &str,
+) -> MonochangeResult<bool> {
+	match source.provider {
+		#[cfg(feature = "github")]
+		SourceProvider::GitHub => github_provider::delete_branch_ref(source, branch).await,
+		_ => Ok(false),
+	}
+}
+
 pub(crate) fn format_source_operation(operation: &SourceReleaseOperation) -> &'static str {
 	match operation {
 		SourceReleaseOperation::Created => "created",
@@ -1505,6 +1685,15 @@ pub(crate) fn write_release_record_file(
 	source: Option<&SourceConfiguration>,
 	manifest: &ReleaseManifest,
 ) -> MonochangeResult<PathBuf> {
+	write_release_record_file_with_cut_base(root, source, manifest, None)
+}
+
+pub(crate) fn write_release_record_file_with_cut_base(
+	root: &Path,
+	source: Option<&SourceConfiguration>,
+	manifest: &ReleaseManifest,
+	cut_base_commit: Option<&str>,
+) -> MonochangeResult<PathBuf> {
 	let paths = ReleasePaths::from_manifest(root, manifest);
 
 	// If the record already exists, return it without overwriting so that
@@ -1516,7 +1705,7 @@ pub(crate) fn write_release_record_file(
 		return Ok(paths.absolute);
 	}
 
-	let record = build_release_record(source, manifest);
+	let record = build_release_record_with_cut_base(source, manifest, cut_base_commit);
 	deduplicate_overlapping_release_records(
 		root,
 		&record.release_targets,
@@ -1575,9 +1764,13 @@ pub(crate) fn validate_release_record_file(
 	if let Some(existing_record) = existing
 		.as_deref()
 		.and_then(|json| serde_json::from_str::<ReleaseRecord>(json).ok())
-		&& chrono::DateTime::parse_from_rfc3339(&existing_record.created_at).is_ok()
 	{
-		record.created_at = existing_record.created_at;
+		if chrono::DateTime::parse_from_rfc3339(&existing_record.created_at).is_ok() {
+			record.created_at = existing_record.created_at;
+		}
+		if existing_record.cut_base_commit.is_some() {
+			record.cut_base_commit = existing_record.cut_base_commit;
+		}
 	}
 	let json = serde_json::to_string_pretty(&record)
 		.map_err(|error| MonochangeError::Io(format!("serialize release record: {error}")))?;
@@ -1850,6 +2043,18 @@ pub(crate) async fn commit_release(
 	let prepared = prepare_release_commit(root, context, source, manifest, update_release_json)?;
 
 	if !context.dry_run {
+		if let Some(source) = source
+			&& source.pull_requests.strategy.is_cut()
+		{
+			let cut_base_commit = match context.cut_context.cut_base_commit.as_deref() {
+				Some(commit) => commit.to_string(),
+				None => git_head_commit(root).await?,
+			};
+			let cut = monochange_hosting::cut::resolve_cut_branches(source, manifest);
+			git_support::git_create_or_update_branch(root, &cut.cut_base_branch, &cut_base_commit)
+				.await?;
+		}
+
 		// patch-coverage:ignore-start -- exercised by end-to-end release PR flows; branch delegates to covered git helpers.
 		if stage_all {
 			git_stage_all(root).await?;
@@ -2034,9 +2239,26 @@ pub(crate) async fn hosted_commit_release(
 		prepare_release_commit(root, context, source, manifest, update_release_json)?;
 	prepared.tracked_paths = hosted_commit_paths(root, &prepared.tracked_paths, stage_all).await?;
 	let body = prepared.message.body.clone().unwrap_or_default();
-	let branches = hosted_commit_branches(source, &manifest.command);
+	let mut branches = hosted_commit_branches(source, &manifest.command);
+	let mut cut_base_branch = None;
+	let mut allow_base_ancestor = false;
+
+	if let Some(source) = source
+		&& source.pull_requests.strategy.is_cut()
+	{
+		let cut = monochange_hosting::cut::resolve_cut_branches(source, manifest);
+		branches.release = cut.head_branch;
+		cut_base_branch = Some(cut.cut_base_branch);
+		allow_base_ancestor = true;
+	}
+
 	let mut request =
 		build_hosted_commit_request(root, &prepared, context.dry_run, &branches).await?;
+	if let Some(cut_commit) = context.cut_context.cut_base_commit.as_deref() {
+		request.base_commit = cut_commit.to_string();
+	}
+	request.cut_base_branch = cut_base_branch;
+	request.allow_base_ancestor = allow_base_ancestor;
 	let response = if context.dry_run {
 		attach_hosted_commit_files(root, &mut request, &prepared.tracked_paths)?;
 		HostedCommitResponse {
@@ -2167,6 +2389,9 @@ async fn build_hosted_commit_request_for_github(
 		dry_run,
 		idempotency_key: hosted_commit_idempotency_key(),
 		tree: None,
+		cut_base_branch: None,
+		additional_parents: Vec::new(),
+		allow_base_ancestor: false,
 	})
 }
 
@@ -2293,6 +2518,67 @@ async fn send_hosted_commit_request(
 	.await
 }
 
+/// Commit synced release bookkeeping through the monochange app, passing
+/// `additional_parents` when `report.mode == SyncMode::MergePr`.
+pub(crate) async fn hosted_commit_sync_release(
+	root: &Path,
+	dry_run: bool,
+	source: &SourceConfiguration,
+	report: &release_cut::SyncReleaseReport,
+	request: &SourceChangeRequest,
+	stage_all: bool,
+	options: &HostedCommitOptions,
+) -> MonochangeResult<CommitReleaseReport> {
+	let tracked_paths = hosted_commit_paths(root, &report.changed_files, stage_all).await?;
+	let prepared = PreparedReleaseCommit {
+		message: request.commit_message.clone(),
+		tracked_paths: tracked_paths.clone(),
+	};
+	let branches = HostedCommitBranches {
+		release: request.head_branch.clone(),
+		base: request.base_branch.clone(),
+	};
+	let repository = format!("{}/{}", source.owner, source.repo);
+	let mut commit_request =
+		build_hosted_commit_request_for_github(root, &prepared, dry_run, &repository, &branches)
+			.await?;
+	commit_request.allow_base_ancestor = true;
+
+	if report.mode == monochange_core::SyncMode::MergePr {
+		commit_request.additional_parents = report.synced_commits.clone();
+	}
+
+	let response = if dry_run {
+		attach_hosted_commit_files(root, &mut commit_request, &tracked_paths)?;
+		HostedCommitResponse {
+			commit: None,
+			verified: false,
+			status: Some("dry_run".to_string()),
+			message: None,
+		}
+	} else {
+		attach_hosted_commit_contents(
+			root,
+			&mut commit_request,
+			&tracked_paths,
+			source.api_url.as_deref(),
+		)
+		.await?;
+		let token = hosted_commit_bearer_token(options).await?;
+		send_hosted_commit_request(&commit_request, options, &token).await?
+	};
+
+	Ok(CommitReleaseReport {
+		subject: request.commit_message.subject.clone(),
+		body: request.commit_message.body.clone().unwrap_or_default(),
+		commit: response.commit,
+		verified: (!dry_run).then_some(response.verified),
+		tracked_paths,
+		dry_run,
+		status: response.status.unwrap_or_else(|| "completed".to_string()),
+	})
+}
+
 /// Ask the monochange app to open or refresh the release pull request through
 /// the monochange GitHub App installation.
 ///
@@ -2304,6 +2590,27 @@ pub(crate) async fn hosted_release_request_result(
 	options: &HostedCommitOptions,
 	request: &SourceChangeRequest,
 	tracked_paths: &[PathBuf],
+) -> MonochangeResult<String> {
+	hosted_release_request_result_with_options(
+		dry_run,
+		options,
+		request,
+		tracked_paths,
+		false,
+		None,
+	)
+	.await
+}
+
+/// Ask the monochange app to open, refresh, update only the status banner of, or
+/// supersede a release pull request through the monochange GitHub App installation.
+pub(crate) async fn hosted_release_request_result_with_options(
+	dry_run: bool,
+	options: &HostedCommitOptions,
+	request: &SourceChangeRequest,
+	tracked_paths: &[PathBuf],
+	banner_only: bool,
+	supersede_pr_number: Option<u64>,
 ) -> MonochangeResult<String> {
 	if dry_run {
 		return build_release_request_result(dry_run, request, || unreachable!());
@@ -2317,6 +2624,8 @@ pub(crate) async fn hosted_release_request_result(
 			.map(|path| path.to_string_lossy().replace('\\', "/"))
 			.collect(),
 		dry_run,
+		banner_only,
+		supersede_pr_number,
 	};
 	let outcome: HostedReleaseResponse = hosted_rpc::call(
 		hosted_rpc::RELEASE_REQUEST,

@@ -66,10 +66,12 @@ use monochange_core::PublishOrderSettings;
 use monochange_core::PublishRegistry;
 use monochange_core::PublishSettings;
 use monochange_core::RegistryKind;
+use monochange_core::ReleasePullRequestStrategy;
 use monochange_core::ShellConfig;
 use monochange_core::SourceCapabilities;
 use monochange_core::SourceConfiguration;
 use monochange_core::SourceProvider;
+use monochange_core::SyncMode;
 use monochange_core::TrustedPublishingMode;
 use monochange_core::TrustedPublishingSettings;
 use monochange_core::VersionFormat;
@@ -232,6 +234,9 @@ pub(crate) struct RawWorkspaceDefaults {
 	strict_version_conflicts: bool,
 	#[serde(default)]
 	package_type: Option<PackageType>,
+	/// Default version source for packages and groups that do not specify one.
+	#[serde(default)]
+	version_source: Option<VersionSource>,
 	#[serde(default)]
 	changelog: Option<RawChangelogConfig>,
 	#[serde(default)]
@@ -254,6 +259,7 @@ impl Default for RawWorkspaceDefaults {
 			warn_on_group_mismatch: default_warn_on_group_mismatch(),
 			strict_version_conflicts: false,
 			package_type: None,
+			version_source: None,
 			changelog: None,
 			versioned_files: Vec::new(),
 			empty_update_message: None,
@@ -1956,6 +1962,7 @@ fn build_package_definitions(
 	contents: &str,
 	packages: BTreeMap<String, RawPackageDefinition>,
 	default_package_type: Option<PackageType>,
+	default_version_source: Option<VersionSource>,
 	default_package_changelog: Option<&RawChangelogConfig>,
 	default_changelog_format: ChangelogFormat,
 	default_versioned_files: &[VersionedFileDefinition],
@@ -1991,7 +1998,11 @@ fn build_package_definitions(
 				)
 			})?;
 			let preset = package_type_preset(package_type);
-			let version_source = package.version_source.unwrap_or(preset.version_source.unwrap_or_default());
+			let version_source = package
+				.version_source
+				.or(preset.version_source)
+				.or(default_version_source)
+				.unwrap_or_default();
 			let initial_version = package.initial_version.or(preset.initial_version.clone());
 			let floating_tags = if package.floating_tags.is_empty() {
 				preset.floating_tags.clone()
@@ -2193,6 +2204,7 @@ fn normalize_group_packages(
 fn build_group_definitions(
 	contents: &str,
 	groups: BTreeMap<String, RawGroupDefinition>,
+	default_version_source: Option<VersionSource>,
 	default_changelog_format: ChangelogFormat,
 	default_changelog_initial_header: Option<&str>,
 ) -> MonochangeResult<Vec<GroupDefinition>> {
@@ -2271,7 +2283,10 @@ fn build_group_definitions(
 				tag: group.tag.unwrap_or(false),
 				release: group.release.unwrap_or(false),
 				version_format: group.version_format,
-				version_source: group.version_source.unwrap_or_default(),
+				version_source: group
+					.version_source
+					.or(default_version_source)
+					.unwrap_or_default(),
 				initial_version: group.initial_version,
 				floating_tags: group.floating_tags,
 				bump_ceiling: group.bump_ceiling,
@@ -2305,6 +2320,7 @@ fn resolve_source_configuration(
 fn discover_auto_packages(
 	root: &Path,
 	default_package_type: Option<PackageType>,
+	default_version_source: Option<VersionSource>,
 	default_changelog: Option<&RawChangelogConfig>,
 	default_changelog_format: ChangelogFormat,
 	default_versioned_files: &[VersionedFileDefinition],
@@ -2382,7 +2398,7 @@ fn discover_auto_packages(
 				tag,
 				release,
 				version_format,
-				version_source: VersionSource::Manifest,
+				version_source: default_version_source.unwrap_or(VersionSource::Manifest),
 				initial_version: None,
 				floating_tags: Vec::new(),
 				bump_ceiling: None,
@@ -2504,6 +2520,7 @@ pub fn load_workspace_configuration(root: &Path) -> MonochangeResult<WorkspaceCo
 		&contents,
 		package,
 		default_package_type,
+		defaults.version_source,
 		default_package_changelog.as_ref(),
 		default_changelog_format,
 		&default_versioned_files,
@@ -2527,6 +2544,7 @@ pub fn load_workspace_configuration(root: &Path) -> MonochangeResult<WorkspaceCo
 	let auto_discovered_packages = discover_auto_packages(
 		root,
 		default_package_type,
+		defaults.version_source,
 		default_package_changelog.as_ref(),
 		default_changelog_format,
 		&default_versioned_files,
@@ -2558,6 +2576,7 @@ pub fn load_workspace_configuration(root: &Path) -> MonochangeResult<WorkspaceCo
 	let groups = build_group_definitions(
 		&contents,
 		group,
+		defaults.version_source,
 		default_changelog_format,
 		default_changelog_initial_header.as_deref(),
 	)?;
@@ -2653,6 +2672,7 @@ pub fn load_workspace_configuration(root: &Path) -> MonochangeResult<WorkspaceCo
 			warn_on_group_mismatch: defaults.warn_on_group_mismatch,
 			strict_version_conflicts: defaults.strict_version_conflicts,
 			package_type: defaults.package_type,
+			version_source: defaults.version_source,
 			changelog: defaults_changelog_policy,
 			changelog_format: default_changelog_format,
 
@@ -6037,6 +6057,56 @@ fn validate_source_configuration(source: Option<&SourceConfiguration>) -> Monoch
 		));
 	}
 
+	if source.pull_requests.strategy == ReleasePullRequestStrategy::Cut {
+		let cut = &source.pull_requests.cut;
+		let sync = &source.pull_requests.sync;
+		let base = source.pull_requests.base.trim();
+
+		if cut.branch_template.trim().is_empty() {
+			return Err(MonochangeError::Config(
+				"[source.pull_requests.cut].branch_template must not be empty".to_string(),
+			));
+		}
+
+		if cut.branch_template.trim() == base {
+			return Err(MonochangeError::Config(format!(
+				"[source.pull_requests.cut].branch_template must not equal [source.pull_requests].base (`{base}`)"
+			)));
+		}
+
+		if cut.refresh_command.trim().is_empty() {
+			return Err(MonochangeError::Config(
+				"[source.pull_requests.cut].refresh_command must not be empty".to_string(),
+			));
+		}
+
+		if sync.mode != SyncMode::None {
+			if sync.branch.trim().is_empty() {
+				return Err(MonochangeError::Config(
+					"[source.pull_requests.sync].branch must not be empty".to_string(),
+				));
+			}
+
+			if sync.branch.trim() == base {
+				return Err(MonochangeError::Config(format!(
+					"[source.pull_requests.sync].branch must not equal [source.pull_requests].base (`{base}`)"
+				)));
+			}
+
+			if sync.title.trim().is_empty() {
+				return Err(MonochangeError::Config(
+					"[source.pull_requests.sync].title must not be empty".to_string(),
+				));
+			}
+
+			if sync.labels.iter().any(|label| label.trim().is_empty()) {
+				return Err(MonochangeError::Config(
+					"[source.pull_requests.sync].labels must not include empty values".to_string(),
+				));
+			}
+		}
+	}
+
 	if let Some(api_url) = &source.api_url {
 		validate_api_url_host(api_url, source.provider)?;
 	}
@@ -6670,6 +6740,26 @@ fn validate_cli_runtime_requirements(
 			if !source.pull_requests.enabled {
 				return Err(MonochangeError::Config(format!(
 					"CLI command `{}` uses `OpenReleaseRequest` but `[source.pull_requests].enabled` is false",
+					cli_command.name
+				)));
+			}
+		}
+
+		if cli_command
+			.steps
+			.iter()
+			.any(|step| matches!(step, CliStepDefinition::OpenSyncRequest { .. }))
+		{
+			let source = source.ok_or_else(|| {
+				MonochangeError::Config(format!(
+					"CLI command `{}` uses `OpenSyncRequest` but `[source]` is not configured",
+					cli_command.name
+				))
+			})?;
+
+			if !source.pull_requests.enabled {
+				return Err(MonochangeError::Config(format!(
+					"CLI command `{}` uses `OpenSyncRequest` but `[source.pull_requests].enabled` is false",
 					cli_command.name
 				)));
 			}

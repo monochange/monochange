@@ -74,6 +74,9 @@ fn request_with_path(path: &str) -> HostedCommitRequest {
 		dry_run: false,
 		idempotency_key: None,
 		tree: None,
+		cut_base_branch: None,
+		additional_parents: Vec::new(),
+		allow_base_ancestor: false,
 	}
 }
 

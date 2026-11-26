@@ -861,6 +861,8 @@ fn sample_release_record() -> ReleaseRecord {
 			host: None,
 		}),
 		label_inputs: monochange_core::versioning::LabelInputs::default(),
+		cut_base_commit: None,
+		synced_from_commit: None,
 		labels: BTreeMap::new(),
 		values: BTreeMap::new(),
 	}

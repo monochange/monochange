@@ -1,0 +1,80 @@
+name: release-cut
+
+on:
+  push:
+    branches:
+      - main
+      - 'release/*'
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      refresh:
+        description: 'Force re-cutting an open sticky cut PR from the latest green commit on main'
+        type: boolean
+        default: false
+      from:
+        description: 'Optional commit SHA or ref on main to cut from'
+        type: string
+        default: ''
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  cut-or-banner:
+    if: >-
+      github.event_name == 'workflow_dispatch'
+      || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+      || (
+        github.event_name == 'issue_comment'
+        && github.event.issue.pull_request
+        && contains(github.event.comment.body, '/refresh')
+      )
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: cut release PR or refresh status banner
+        uses: monochange/actions/release-pr@v0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          refresh: ${{ inputs.refresh || false }}
+          from: ${{ inputs.from || '' }}
+
+  publish-and-sync:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/release/')
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout cut branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: tag and publish from cut branch
+        uses: monochange/actions/post-merge-release@v0
+        with:
+          ref: HEAD
+
+      - name: checkout main for bookkeeping sync
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: sync published cut bookkeeping onto main
+        uses: monochange/actions/sync-release@v0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}

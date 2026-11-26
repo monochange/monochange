@@ -577,6 +577,214 @@ pub(crate) async fn git_head_commit(root: &Path) -> MonochangeResult<String> {
 	.await
 }
 
+/// Return the set of tag names reachable as ancestors of `target_ref`.
+#[must_use = "the merged tag set must be checked"]
+pub(crate) async fn git_merged_tags(
+	root: &Path,
+	target_ref: &str,
+) -> MonochangeResult<std::collections::BTreeSet<String>> {
+	let output = git_command_output(root, &["tag", "--merged", target_ref])
+		.await
+		.map_err(|error| {
+			MonochangeError::Discovery(format!("failed to list merged tags: {error}"))
+		})?;
+
+	if !output.status.success() {
+		return Ok(std::collections::BTreeSet::new());
+	}
+
+	let stdout = String::from_utf8_lossy(&output.stdout);
+	Ok(stdout
+		.lines()
+		.map(str::trim)
+		.filter(|line| !line.is_empty())
+		.map(str::to_string)
+		.collect())
+}
+
+/// Count the number of commits in `from..to`.
+#[must_use = "the commit count result must be checked"]
+pub(crate) async fn git_commit_count_between(
+	root: &Path,
+	from: &str,
+	to: &str,
+) -> MonochangeResult<usize> {
+	let range = format!("{from}..{to}");
+	let raw = run_git_capture(
+		root,
+		&["rev-list", "--count", &range],
+		"failed to count commits between refs",
+	)
+	.await?;
+	raw.trim().parse::<usize>().map_err(|error| {
+		MonochangeError::Discovery(format!(
+			"failed to parse commit count `{raw}` for `{range}`: {error}"
+		))
+	})
+}
+
+/// List `.changeset/*.md` files added or modified in `from..to` that still exist at `to`.
+#[must_use = "the added changesets list must be checked"]
+pub(crate) async fn git_added_changesets_between(
+	root: &Path,
+	from: &str,
+	to: &str,
+) -> MonochangeResult<Vec<String>> {
+	let range = format!("{from}..{to}");
+	let output = run_git_capture(
+		root,
+		&[
+			"diff",
+			"--name-only",
+			"--diff-filter=AM",
+			&range,
+			"--",
+			".changeset",
+		],
+		"failed to list changesets added between refs",
+	)
+	.await?;
+
+	let mut paths = output
+		.lines()
+		.map(str::trim)
+		.filter(|line| {
+			line.starts_with(".changeset/")
+				&& Path::new(line)
+					.extension()
+					.is_some_and(|ext| ext.eq_ignore_ascii_case("md"))
+		})
+		.map(str::to_string)
+		.collect::<Vec<_>>();
+	paths.sort();
+	paths.dedup();
+	Ok(paths)
+}
+
+/// Create or force-point a local git branch at `commit`.
+#[must_use = "the branch update result must be checked"]
+pub(crate) async fn git_create_or_update_branch(
+	root: &Path,
+	branch: &str,
+	commit: &str,
+) -> MonochangeResult<()> {
+	run_git_status(
+		root,
+		&["branch", "-f", branch, commit],
+		&format!("failed to update branch `{branch}` to `{commit}`"),
+	)
+	.await
+}
+
+/// Resolve a git ref or revision to its full commit SHA.
+#[must_use = "the resolved commit result must be checked"]
+pub(crate) async fn git_rev_parse_commit(root: &Path, rev: &str) -> MonochangeResult<String> {
+	run_git_capture(
+		root,
+		&["rev-parse", "--verify", &format!("{rev}^{{commit}}")],
+		&format!("failed to resolve git commit `{rev}`"),
+	)
+	.await
+}
+
+/// Checkout a local branch, creating or resetting it to `start_point` when provided.
+#[must_use = "the checkout result must be checked"]
+pub(crate) async fn git_checkout_branch_at(
+	root: &Path,
+	branch: &str,
+	start_point: Option<&str>,
+) -> MonochangeResult<()> {
+	match start_point {
+		Some(commit) => {
+			run_git_status(
+				root,
+				&["checkout", "-B", branch, commit],
+				&format!("failed to checkout branch `{branch}` at `{commit}`"),
+			)
+			.await
+		}
+		None => {
+			run_git_status(
+				root,
+				&["checkout", "-B", branch],
+				&format!("failed to checkout branch `{branch}`"),
+			)
+			.await
+		}
+	}
+}
+
+/// Force-push a local branch to `origin`.
+#[must_use = "the push result must be checked"]
+pub(crate) async fn git_push_branch_force(
+	root: &Path,
+	branch: &str,
+	no_verify: bool,
+) -> MonochangeResult<()> {
+	let mut args = vec!["push", "--force"];
+	if no_verify {
+		args.push("--no-verify");
+	}
+	args.push("origin");
+	args.push(branch);
+	run_git_status(
+		root,
+		&args,
+		&format!("failed to push branch `{branch}` to origin"),
+	)
+	.await
+}
+
+/// Create a commit from the current Git index with explicit `parents` and move `HEAD` to it.
+///
+/// Used by `sync.mode = "merge_pr"` to construct a conflict-free two-parent bridge
+/// commit `(main_head, C_rel)` whose tree matches the semantically synced workspace
+/// while tying `C_rel` (and its tag) into `main`'s Git ancestry.
+#[must_use = "the bridge commit result must be checked"]
+pub(crate) async fn git_create_bridge_commit(
+	root: &Path,
+	parents: &[&str],
+	message: &CommitMessage,
+) -> MonochangeResult<String> {
+	let tree = run_git_capture(root, &["write-tree"], "failed to write git tree").await?;
+	let mut args = vec!["commit-tree".to_string(), tree];
+
+	for parent in parents {
+		args.push("-p".to_string());
+		args.push((*parent).to_string());
+	}
+
+	args.push("-m".to_string());
+	args.push(message.subject.clone());
+
+	if let Some(body) = message
+		.body
+		.as_deref()
+		.map(str::trim)
+		.filter(|body| !body.is_empty())
+	{
+		args.push("-m".to_string());
+		args.push(body.to_string());
+	}
+
+	let arg_refs = args.iter().map(String::as_str).collect::<Vec<_>>();
+	let commit = run_git_capture(
+		root,
+		&arg_refs,
+		"failed to create multi-parent sync bridge commit",
+	)
+	.await?;
+
+	run_git_status(
+		root,
+		&["update-ref", "HEAD", &commit],
+		"failed to advance HEAD to sync bridge commit",
+	)
+	.await?;
+
+	Ok(commit)
+}
+
 pub(crate) async fn run_git_process(
 	command: ProcessCommand,
 	error_message: &str,
