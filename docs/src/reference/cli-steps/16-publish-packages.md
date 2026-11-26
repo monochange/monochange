@@ -60,10 +60,16 @@ A package with no selected dependencies is eligible first. A package is not publ
 pub.dev trusted publishing only accepts an upload from a GitHub Actions run that a `push` or `workflow_dispatch` event started on exactly `refs/tags/<package tag>`. Such a package is tag-bound: it uses the built-in publisher, trusted publishing, and no non-empty `PUB_TOKEN`. Before uploading a tag-bound package, the step compares the run's `GITHUB_REF`, `GITHUB_REF_TYPE`, and `GITHUB_EVENT_NAME` with that rule:
 
 - **The run matches**: the package publishes.
-- **The run does not match**: the package is not uploaded and gets the status `deferred_to_tag`. The run does not fail and the packages after it still publish. The report lists the package under **Deferred to release tags** with the tag and the command that publishes it; in `--format json` the package row carries `deferred_to` with `reason`, `tag`, `ref`, and `command`, and `summary.deferred` counts these packages. `reason` is `wrong_ref`, `wrong_ref_type`, `wrong_event`, or `unknown_ref`; for every reason but `wrong_ref`, the package's message says what to change in the workflow.
-- **The run is on a tag-bound package's own tag, and the release has another tag**: only the tag-bound packages released under that tag publish. Every other package gets `skipped_out_of_scope`, is not looked up on its registry, and is counted in `summary.out_of_scope`. Its message names the run that publishes it. A `--resume` plans these packages again instead of treating them as complete.
+- **The run does not match**: the package is not uploaded and gets the status `deferred_to_tag`. The run does not fail and the packages after it still publish. The report lists the package under **Deferred to release tags** with the tag and the command that publishes it; in `--format json` the package row carries `deferred_to` with `reason`, `tag`, `ref`, and `command`, and `summary.deferred` counts these packages. `reason` is `wrong_ref`, `wrong_ref_type`, `wrong_event`, or `unknown_ref`; for every reason but `wrong_ref`, the package's message says what to change in the workflow. No run of the workflow publishes a package deferred as `wrong_event` or `unknown_ref`, so the step's outcome is a warning that counts the packages left unpublished until the workflow's trigger or `GITHUB_REF` is fixed.
+- **The run is on another of the release's tags**: the package is published by another tag's run. It gets `skipped_out_of_scope`, is not looked up on its registry, and is counted in `summary.out_of_scope`. Its message names the run that publishes it. A `--resume` plans these packages again instead of treating them as complete.
 
-The release's primary tag is never scoped this way: a run on it publishes every package that is not tag-bound, as do runs on branches and on any other tag. When every tag of a release belongs to a tag-bound package, the run on that tag publishes every package.
+When a release has a tag-bound package, the step gives every package of the release to exactly one run on the release's tags, so a workflow that starts one run for each tag the release creates publishes each package once:
+
+- A tag-bound package publishes in the run on its own tag.
+- Every other package publishes in the run on the primary tag. Without a primary tag, it publishes on its own tag when no tag-bound package uses that tag, otherwise on the first tag of the release (in name order) that no tag-bound package uses, and otherwise on its own tag (or the release's first tag when it has none).
+- The run on the primary tag (without one, on that first tag) defers the tag-bound packages on other tags; every other tag's run marks them `skipped_out_of_scope`.
+
+The step decides this over the whole release before it applies `--package`, `--group`, and `--ecosystem`, so a selection never moves a package into another run. Runs on branches and on tags the release does not create publish every package that is not tag-bound and defer the tag-bound ones. A release without tag-bound packages publishes every package on every ref, as before.
 
 For example, on the primary tag:
 
@@ -93,7 +99,7 @@ The registry only accepts these packages from a `push` or `workflow_dispatch` ru
 }
 ```
 
-A real run refuses to start when a trusted pub.dev package has no release tag; set `tag = true` on the package or its group. Outside GitHub Actions the run's ref is unknown, so the rule does not apply. [How monochange publishes to pub.dev](../../guide/07-trusted-publishing.md#how-monochange-publishes-to-pubdev) covers the pub.dev settings and the workflow that dispatches deferred tags.
+A real run refuses to start when a trusted pub.dev package has no release tag; set `tag = true` on the package or its group. Outside GitHub Actions the run's ref is unknown, so the rule does not apply. [How monochange publishes to pub.dev](../../guide/07-trusted-publishing.md#how-monochange-publishes-to-pubdev) covers the pub.dev settings, and [CI and publishing](../../guide/13-ci-and-publishing.md#github--dart--flutter-pubdev-trusted-publishing) a workflow that starts a run for every release tag and dispatches deferred tags.
 
 ## Why use it
 

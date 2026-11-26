@@ -430,12 +430,18 @@ trusted_publishing = true
 registry = "pub.dev"
 ```
 
-pub.dev only accepts a package from a run on that package's own release tag (see [How monochange publishes to pub.dev](./07-trusted-publishing.md#how-monochange-publishes-to-pubdev)). Give every trusted pub.dev package its own tag with `tag = true` (or use a group whose tag it shares), and run publishing from tags rather than from `main`:
+pub.dev only accepts a package from a run on that package's own release tag (see [How monochange publishes to pub.dev](./07-trusted-publishing.md#how-monochange-publishes-to-pubdev)). Give every trusted pub.dev package its own tag with `tag = true` (or use a group whose tag it shares), and run publishing from tags rather than from `main`.
 
-1. Run the publish workflow on the release's primary tag. monochange publishes every other package, and a pub.dev package that owns the primary tag. It marks each pub.dev package that needs another tag as `deferred_to_tag`, and the run still succeeds.
-2. Dispatch the same workflow once for each deferred tag. On a pub.dev package's own tag, monochange publishes only the trusted pub.dev packages released under that tag. It marks the rest `skipped_out_of_scope` and names the run that publishes each one, so the dispatched run never republishes to other registries.
+**Every tag the release creates must start one run of the publish workflow.** monochange gives each package of the release to exactly one of those runs:
 
-The package tags must exist on GitHub before the dispatch; `monochange tag-release` creates every release tag, package tags included. On pub.dev, open each package's admin page and enable publishing from `workflow_dispatch` events, with the package's tag pattern (for example `my_package/v{{version}}`).
+- The run on a trusted pub.dev package's tag publishes the trusted pub.dev packages released under that tag.
+- Every other package publishes in the run on the primary tag. Without a primary tag, it publishes on its own tag when no trusted pub.dev package uses that tag, otherwise on the first tag of the release (in name order) that no trusted pub.dev package uses, and on its own tag (a package without one: the release's first tag) when every tag of the release carries a trusted pub.dev package.
+- The run on the primary tag (without one, on that first tag) also marks each pub.dev package on another tag `deferred_to_tag`, and still succeeds.
+- Every other run marks the package `skipped_out_of_scope` and names the run that publishes it, so no run republishes a package to its registry.
+
+A tag push starts a run only when it is pushed with a token that starts workflows (tags pushed with the default `GITHUB_TOKEN` start none) and when the push creates at most three tags (GitHub creates no push event for tags beyond that). Otherwise, dispatch the workflow on each tag from the job that creates them: `gh workflow run publish.yml --ref <tag>`. `monochange tag-release` creates every release tag, package tags included; the tags must exist on GitHub before a run on them starts.
+
+The sketch below covers both: tag pushes start runs, and the run that defers a pub.dev package dispatches its tag with the `deferred_to.command` monochange reports. When the tag's own push already started a run, the `concurrency` group queues the second run, which reports the package as already published. On pub.dev, open each package's admin page and enable publishing from `push` and `workflow_dispatch` events, with the package's tag pattern (for example `my_package/v{{version}}`).
 
 monochange-oriented workflow sketch:
 
@@ -444,8 +450,16 @@ name: publish
 
 on:
   push:
-    tags: ["v*"]
+    # Every tag pattern the release creates: the primary tag and package or
+    # group tags.
+    tags: ["v*", "*/v*"]
   workflow_dispatch:
+
+# One run per tag at a time; a second run on the same tag waits and finds
+# its packages already published.
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   publish:
@@ -469,18 +483,25 @@ jobs:
         run: devenv shell -- monochange publish packages --output "$RUNNER_TEMP/publish-result.json"
 
       - name: publish deferred packages from their own tags
-        if: startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          jq -r '.packages[] | select(.status == "deferred_to_tag") | .deferred_to.tag' \
+          jq -r '.packages[]
+            | select(.status == "deferred_to_tag")
+            | select(.deferred_to.reason == "wrong_ref" or .deferred_to.reason == "wrong_ref_type")
+            | .deferred_to.command' \
             "$RUNNER_TEMP/publish-result.json" | sort -u |
-            while read -r tag; do
-              gh workflow run publish.yml --repo "$GITHUB_REPOSITORY" --ref "$tag"
+            while read -r command; do
+              bash -c "$command"
             done
 ```
 
-The `deferred_to.command` field in the result holds the `gh workflow run` command for one package, for when you dispatch by hand. It dispatches `publish.trusted_publishing.workflow` when the package sets one, so dispatch that workflow instead of `publish.yml` for such packages. `deferred_to.reason` says why the run could not publish the package: `wrong_ref`, `wrong_ref_type`, `wrong_event`, or `unknown_ref`. If a dispatched run fails, rerun that workflow run: it is already on the package's tag.
+`deferred_to.command` is the `gh workflow run` command that publishes one deferred package from its tag. It dispatches `publish.trusted_publishing.workflow` when the package sets one, and the workflow of the run that deferred it otherwise, so the sketch runs it rather than naming a workflow. `deferred_to.reason` says why the run could not publish the package:
+
+- `wrong_ref` and `wrong_ref_type`: the run is on another tag or on a branch; a run on the package's tag publishes it.
+- `wrong_event` and `unknown_ref`: the workflow's trigger, or a publish step without `GITHUB_REF`, keeps every run from publishing the package. The run ends with a warning; fix the workflow, then run the command once by hand. The sketch does not dispatch these: a run that cannot see its ref would defer the package again.
+
+If a dispatched run fails, rerun that workflow run: it is already on the package's tag.
 
 More copy-pasteable registry-native example:
 
