@@ -489,14 +489,15 @@ jobs:
           jq -r '.packages[]
             | select(.status == "deferred_to_tag")
             | select(.deferred_to.reason == "wrong_ref" or .deferred_to.reason == "wrong_ref_type")
-            | .deferred_to.command' \
+            | .deferred_to.command // empty' \
             "$RUNNER_TEMP/publish-result.json" | sort -u |
-            while read -r command; do
+            while IFS= read -r command; do
+              [ -n "$command" ] || continue
               bash -c "$command"
             done
 ```
 
-`deferred_to.command` is the `gh workflow run` command that publishes one deferred package from its tag. It dispatches `publish.trusted_publishing.workflow` when the package sets one, and the workflow of the run that deferred it otherwise, so the sketch runs it rather than naming a workflow. `deferred_to.reason` says why the run could not publish the package:
+`deferred_to.command` is the shell-safe `gh workflow run` command that publishes one deferred package from its tag. It dispatches `publish.trusted_publishing.workflow` when the package sets one, and the workflow of the run that deferred it otherwise, so the sketch runs it rather than naming a workflow. When monochange cannot determine the workflow (neither `publish.trusted_publishing.workflow` nor `GITHUB_WORKFLOW_REF`/`GITHUB_WORKFLOW` is set), `deferred_to.command` is omitted and the package's message says why; the `// empty` guard skips those rows. `deferred_to.reason` says why the run could not publish the package:
 
 - `wrong_ref` and `wrong_ref_type`: the run is on another tag or on a branch; a run on the package's tag publishes it.
 - `wrong_event` and `unknown_ref`: the workflow's trigger, or a publish step without `GITHUB_REF`, keeps every run from publishing the package. The run ends with a warning; fix the workflow, then run the command once by hand. The sketch does not dispatch these: a run that cannot see its ref would defer the package again.
