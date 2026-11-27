@@ -1,0 +1,36 @@
+---
+source: crates/monochange_integration_tests/tests/cargo_api_classification.rs
+expression: stable_classification_projection(&classify_json)
+---
+{
+  "packages": [
+    {
+      "action": "keep",
+      "decision": {
+        "compatibility_impact": "unmodeled",
+        "completeness": "partial",
+        "confidence": "low",
+        "enforceable_minimum": "none",
+        "proposed_changeset_bump": "patch",
+        "review_required": true
+      },
+      "findings": [
+        {
+          "bump": "patch",
+          "change": "modified",
+          "completeness": "partial",
+          "confidence": "low",
+          "id": "monochange/unclassified-source/bonding_curve",
+          "impact": "unmodeled",
+          "note": "changed package files produced no modeled compatibility finding",
+          "rule_id": "monochange/unclassified-source",
+          "summary": "package files changed outside the analyzer's modeled public surface",
+          "surface": "source"
+        }
+      ],
+      "package_id": "bonding_curve",
+      "recommendation": "patch"
+    }
+  ],
+  "recommendation": "patch"
+}

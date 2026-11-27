@@ -1,0 +1,9 @@
+[defaults]
+package_type = "cargo"
+
+[changesets.affected]
+enabled = true
+required = true
+
+[package.bonding_curve]
+path = "crates/bonding_curve"
