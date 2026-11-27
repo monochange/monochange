@@ -59,7 +59,7 @@ fn website_routes_from(discovered: &[AxumRouteListing]) -> Vec<AxumRouteListing>
 
 /// The SSR route listings of both browser frontends.
 #[must_use]
-pub fn routes() -> Vec<AxumRouteListing> {
+pub fn routes() -> Vec<leptos_axum::AxumRouteListing> {
 	static ROUTES: std::sync::OnceLock<Vec<AxumRouteListing>> = std::sync::OnceLock::new();
 	ROUTES
 		.get_or_init(|| {
