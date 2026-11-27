@@ -1,0 +1,2013 @@
+{
+	"schema_version": "0.10",
+	"kind": "monochange.releaseRecord",
+	"created_at": "2026-11-27T20:14:26Z",
+	"command": "release",
+	"version": null,
+	"versions": {
+		"main": "0.22.1",
+		"monochange_app": "0.5.3",
+		"monochange_classification": "0.4.11"
+	},
+	"release_targets": [
+		{
+			"id": "main",
+			"kind": "group",
+			"version": "0.22.1",
+			"version_format": "primary",
+			"tag": true,
+			"release": true,
+			"tag_name": "v0.22.1",
+			"rendered_title": "v0.22.1 (2026-11-27)",
+			"rendered_changelog_title": "[0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)",
+			"members": [
+				"@monochange/cli",
+				"@monochange/cli-darwin-arm64",
+				"@monochange/cli-darwin-x64",
+				"@monochange/cli-linux-arm64-gnu",
+				"@monochange/cli-linux-arm64-musl",
+				"@monochange/cli-linux-x64-gnu",
+				"@monochange/cli-linux-x64-musl",
+				"@monochange/cli-win32-arm64-msvc",
+				"@monochange/cli-win32-x64-msvc",
+				"@monochange/skill",
+				"monochange",
+				"monochange_analysis",
+				"monochange_cargo",
+				"monochange_changelog",
+				"monochange_cocoapods",
+				"monochange_config",
+				"monochange_core",
+				"monochange_dart",
+				"monochange_deno",
+				"monochange_ecmascript",
+				"monochange_forgejo",
+				"monochange_gitea",
+				"monochange_github",
+				"monochange_gitlab",
+				"monochange_go",
+				"monochange_gradle",
+				"monochange_graph",
+				"monochange_hosting",
+				"monochange_lint",
+				"monochange_linting",
+				"monochange_npm",
+				"monochange_publish",
+				"monochange_python",
+				"monochange_semver",
+				"monochange_swift",
+				"monochange_telemetry",
+				"monochange_test_helpers"
+			]
+		},
+		{
+			"id": "monochange_app",
+			"kind": "package",
+			"version": "0.5.3",
+			"version_format": "namespaced",
+			"tag": true,
+			"release": true,
+			"tag_name": "monochange_app/v0.5.3",
+			"rendered_title": "monochange.dev 0.5.3",
+			"rendered_changelog_title": "0.5.3",
+			"members": [
+				"monochange_app"
+			]
+		},
+		{
+			"id": "monochange_classification",
+			"kind": "package",
+			"version": "0.4.11",
+			"version_format": "namespaced",
+			"tag": true,
+			"release": false,
+			"tag_name": "monochange_classification/v0.4.11",
+			"rendered_title": "monochange_classification v0.4.11 (2026-11-27)",
+			"rendered_changelog_title": "monochange_classification [0.4.11](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.4.11) (2026-11-27)",
+			"members": [
+				"monochange_classification"
+			]
+		}
+	],
+	"released_packages": [
+		"@monochange/cli",
+		"@monochange/cli-darwin-arm64",
+		"@monochange/cli-darwin-x64",
+		"@monochange/cli-linux-arm64-gnu",
+		"@monochange/cli-linux-arm64-musl",
+		"@monochange/cli-linux-x64-gnu",
+		"@monochange/cli-linux-x64-musl",
+		"@monochange/cli-win32-arm64-msvc",
+		"@monochange/cli-win32-x64-msvc",
+		"@monochange/skill",
+		"monochange",
+		"monochange_analysis",
+		"monochange_app",
+		"monochange_cargo",
+		"monochange_changelog",
+		"monochange_classification",
+		"monochange_cocoapods",
+		"monochange_config",
+		"monochange_core",
+		"monochange_dart",
+		"monochange_deno",
+		"monochange_ecmascript",
+		"monochange_forgejo",
+		"monochange_gitea",
+		"monochange_github",
+		"monochange_gitlab",
+		"monochange_go",
+		"monochange_gradle",
+		"monochange_graph",
+		"monochange_hosting",
+		"monochange_lint",
+		"monochange_linting",
+		"monochange_npm",
+		"monochange_publish",
+		"monochange_python",
+		"monochange_semver",
+		"monochange_swift",
+		"monochange_telemetry",
+		"monochange_test_helpers"
+	],
+	"changed_files": [
+		"Cargo.lock",
+		"Cargo.toml",
+		"app/Cargo.lock",
+		"app/Cargo.toml",
+		"app/crates/monochange_app/Cargo.toml",
+		"app/developer-changelog.md",
+		"app/leptoskit.toml",
+		"app/projects/leptoskit.toml",
+		"changelog.md",
+		"crates/monochange/Cargo.toml",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/Cargo.toml",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/Cargo.toml",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/Cargo.toml",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_classification/Cargo.toml",
+		"crates/monochange_classification/changelog.md",
+		"crates/monochange_cocoapods/Cargo.toml",
+		"crates/monochange_cocoapods/changelog.md",
+		"crates/monochange_config/Cargo.toml",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/Cargo.toml",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/Cargo.toml",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/Cargo.toml",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/Cargo.toml",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/Cargo.toml",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/Cargo.toml",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/Cargo.toml",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/Cargo.toml",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/Cargo.toml",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_gradle/Cargo.toml",
+		"crates/monochange_gradle/changelog.md",
+		"crates/monochange_graph/Cargo.toml",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/Cargo.toml",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/Cargo.toml",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/Cargo.toml",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/Cargo.toml",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/Cargo.toml",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/Cargo.toml",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_semver/Cargo.toml",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_swift/Cargo.toml",
+		"crates/monochange_swift/changelog.md",
+		"crates/monochange_telemetry/Cargo.toml",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/Cargo.toml",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli/package.json",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-arm64/package.json",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-darwin-x64/package.json",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/package.json",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/package.json",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/package.json",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/package.json",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/package.json",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/package.json",
+		"packages/monochange__feedback/package.json",
+		"packages/monochange__feedback-react-native/package.json",
+		"packages/monochange__feedback-worker/package.json",
+		"packages/monochange__skill/changelog.md",
+		"packages/monochange__skill/package.json",
+		"pnpm-lock.yaml"
+	],
+	"package_publications": [
+		{
+			"package": "@monochange/cli",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.22.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-arm64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.22.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-x64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.22.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.22.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.22.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.22.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.22.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-arm64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.22.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-x64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.22.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/skill",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.22.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.22.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_analysis",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.22.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_cargo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.22.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_changelog",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.22.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_classification",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.4.11",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_cocoapods",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.22.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_config",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.22.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_core",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.22.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_dart",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.22.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_deno",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.22.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_ecmascript",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.22.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_forgejo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.22.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitea",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.22.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_github",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.22.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitlab",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.22.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_go",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.22.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gradle",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.22.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_graph",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.22.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_hosting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.22.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_lint",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.22.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_linting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.22.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_npm",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.22.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_publish",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.22.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_python",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.22.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_semver",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.22.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_swift",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.22.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_telemetry",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.22.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_test_helpers",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.22.1",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		}
+	],
+	"updated_changelogs": [
+		"app/developer-changelog.md",
+		"changelog.md",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_classification/changelog.md",
+		"crates/monochange_cocoapods/changelog.md",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_gradle/changelog.md",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_swift/changelog.md",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__skill/changelog.md"
+	],
+	"deleted_changesets": [
+		".changeset/fix-cargo-classifier-inert-attrs-and-trait-defaults.md",
+		".changeset/fix-change-classification-docs-alignment.md",
+		".changeset/fix-release-image-smoke-check.md"
+	],
+	"changesets": [
+		{
+			"path": ".changeset/fix-cargo-classifier-inert-attrs-and-trait-defaults.md",
+			"summary": "Ignore inert Rust attributes and classify defaulted trait additions as additive",
+			"details": "`cargo/public-api` now strips inert lint-level attributes (`allow`, `warn`, `deny`, `forbid`, `expect`), `rustfmt::skip`, `track_caller`, and `doc` attributes (including inside `#[cfg_attr(...)]`) consistently across every Rust item kind and nested fields, variants, and trait items. On items whose outer attributes are already part of the tracked signature (`const`, `static`, `struct`, `enum`, `union`, `trait`, `type`, `mod`, and trait members), attribute-only deltas limited to `#[inline]`, `#[must_use]`, and `#[deprecated]` are modeled as compatible changes (`patch`, with only newly deprecated items proposing `minor`). Standalone `pub fn` and `pub use` items keep their existing attribute-free signature collection so proc-macro and tool attributes such as `#[tracing::instrument]` or `#[clippy::msrv]` do not trigger false breaking findings.\n\nPublic traits now use a structured surface comparison: adding a dyn-compatible defaulted method, adding a defaulted member with `where Self: Sized`, adding a defaulted member to a trait that was already syntactically non-dyn-compatible, or adding a default to an existing required item classifies as `additive` (`minor`, medium confidence, partial coverage). Defaulted additions that break dyn-compatibility on a previously dyn-compatible trait (generic methods, `async fn`, receiverless functions, methods referencing `Self` outside the receiver or `Self::Assoc` projections, associated constants, or nightly associated-type defaults without `where Self: Sized`), required additions, signature changes, removals, and trait header changes remain `breaking` (`major`).\n\n```rust\n// Previously reported as breaking/major; now produces no API finding:\n#[allow(rustdoc::broken_intra_doc_links, clippy::doc_lazy_continuation)]\npub const PINA_BONDING_CURVE_ID: Address = Address(\"Curve1Gq...\");\n\n// Previously reported as breaking/major; now classified as additive/minor:\npub trait ParseAccounts<'a>: Sized {\n\tfn parse_accounts(accounts: &'a [AccountInfo]) -> Result<Self, ProgramError>;\n\n\t#[doc(hidden)]\n\tfn __try_from_account_infos(accounts: &'a [AccountInfo]) -> Result<Self, ProgramError> {\n\t\tSelf::parse_accounts(accounts)\n\t}\n}\n```",
+			"targets": [
+				{
+					"id": "monochange_cargo",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "4827a6715eda98846b5735699ec48e1e1af2b1c8",
+						"short_sha": "4827a67",
+						"url": "https://github.com/monochange/monochange/commit/4827a6715eda98846b5735699ec48e1e1af2b1c8",
+						"authored_at": "2026-11-27T18:10:28Z",
+						"committed_at": "2026-11-27T18:10:28Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#918",
+						"title": "fix(cargo): ignore inert attributes and classify defaulted trait additions as additive",
+						"url": "https://github.com/monochange/monochange/pull/918",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "4827a6715eda98846b5735699ec48e1e1af2b1c8",
+						"short_sha": "4827a67",
+						"url": "https://github.com/monochange/monochange/commit/4827a6715eda98846b5735699ec48e1e1af2b1c8",
+						"authored_at": "2026-11-27T18:10:28Z",
+						"committed_at": "2026-11-27T18:10:28Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#918",
+						"title": "fix(cargo): ignore inert attributes and classify defaulted trait additions as additive",
+						"url": "https://github.com/monochange/monochange/pull/918",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/fix-change-classification-docs-alignment.md",
+			"summary": "Align change classification reference documentation with bump alignment behavior",
+			"details": "Updated `docs/src/reference/change-classification.md` so the changeset-policy bump-alignment section matches the implementation: every attached changeset target that resolves a bump (any scalar type, including types defaulting to `none`, or any table declaring `bump` or `type`, even alongside `version`) is checked against the package's classified recommendation, while only explicit-version targets omitting both `bump` and `type` skip alignment. Also documented the Rust syntax analyzer's inert-attribute stripping, compatible attribute handling, and dyn-compatibility-aware defaulted trait-item classification.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "4827a6715eda98846b5735699ec48e1e1af2b1c8",
+						"short_sha": "4827a67",
+						"url": "https://github.com/monochange/monochange/commit/4827a6715eda98846b5735699ec48e1e1af2b1c8",
+						"authored_at": "2026-11-27T18:10:28Z",
+						"committed_at": "2026-11-27T18:10:28Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#918",
+						"title": "fix(cargo): ignore inert attributes and classify defaulted trait additions as additive",
+						"url": "https://github.com/monochange/monochange/pull/918",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "4827a6715eda98846b5735699ec48e1e1af2b1c8",
+						"short_sha": "4827a67",
+						"url": "https://github.com/monochange/monochange/commit/4827a6715eda98846b5735699ec48e1e1af2b1c8",
+						"authored_at": "2026-11-27T18:10:28Z",
+						"committed_at": "2026-11-27T18:10:28Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#918",
+						"title": "fix(cargo): ignore inert attributes and classify defaulted trait additions as additive",
+						"url": "https://github.com/monochange/monochange/pull/918",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/fix-release-image-smoke-check.md",
+			"summary": "Allow developer-only app releases in image smoke and deployment checks",
+			"details": "`app/deploy/verify-image.sh` and `.github/workflows/app.yml` previously assumed every `monochange_app` version writes a website-stream `app/public/releases/<version>.json` artifact. Releases carrying only `default`-stream (`website_developer`) changesets intentionally write `app/developer-changelog.md` without adding a website-stream release file, which caused the `app-ci` `docker` smoke check and production release verification to fail with HTTP 404.\n\n`scripts/resolve-app-release-notes.ts` now validates `app/public/releases/*.json`, `app/changelog.md` parity, and (during deployment) the release record to determine the expected website release-notes version: website-stream releases still require and verify their exact `<version>.json` and `/changelog` entry, while developer-only releases verify `/health` against the new app version and check the latest published website release JSON and `/changelog` card.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "2b44997123a5e76494e99e3fa650a75fd4ed9132",
+						"short_sha": "2b44997",
+						"url": "https://github.com/monochange/monochange/commit/2b44997123a5e76494e99e3fa650a75fd4ed9132",
+						"authored_at": "2026-11-27T20:03:28Z",
+						"committed_at": "2026-11-27T20:03:28Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#920",
+						"title": "fix(app): resolve website release notes for developer-only app releases",
+						"url": "https://github.com/monochange/monochange/pull/920",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "2b44997123a5e76494e99e3fa650a75fd4ed9132",
+						"short_sha": "2b44997",
+						"url": "https://github.com/monochange/monochange/commit/2b44997123a5e76494e99e3fa650a75fd4ed9132",
+						"authored_at": "2026-11-27T20:03:28Z",
+						"committed_at": "2026-11-27T20:03:28Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#920",
+						"title": "fix(app): resolve website release notes for developer-only app releases",
+						"url": "https://github.com/monochange/monochange/pull/920",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		}
+	],
+	"changelogs": [
+		{
+			"owner_id": "monochange_app",
+			"owner_kind": "package",
+			"output": "website_developer",
+			"stream": "default",
+			"path": "app/developer-changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "0.5.3",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"- **Align change classification reference documentation with bump alignment behavior.** Updated `docs/src/reference/change-classification.md` so the changeset-policy bump-alignment section matches the implementation: every attached changeset target that resolves a bump (any scalar type, including types defaulting to `none`, or any table declaring `bump` or `type`, even alongside `version`) is checked against the package's classified recommendation, while only explicit-version targets omitting both `bump` and `type` skip alignment. Also documented the Rust syntax analyzer's inert-attribute stripping, compatible attribute handling, and dyn-compatibility-aware defaulted trait-item classification.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #918](https://github.com/monochange/monochange/pull/918)",
+							"#### Allow developer-only app releases in image smoke and deployment checks\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #920](https://github.com/monochange/monochange/pull/920)\n\n`app/deploy/verify-image.sh` and `.github/workflows/app.yml` previously assumed every `monochange_app` version writes a website-stream `app/public/releases/<version>.json` artifact. Releases carrying only `default`-stream (`website_developer`) changesets intentionally write `app/developer-changelog.md` without adding a website-stream release file, which caused the `app-ci` `docker` smoke check and production release verification to fail with HTTP 404.\n\n`scripts/resolve-app-release-notes.ts` now validates `app/public/releases/*.json`, `app/changelog.md` parity, and (during deployment) the release record to determine the expected website release-notes version: website-stream releases still require and verify their exact `<version>.json` and `/changelog` entry, while developer-only releases verify `/health` against the new app version and check the latest published website release JSON and `/changelog` card."
+						]
+					}
+				]
+			},
+			"rendered": "## 0.5.3\n\n### 🐛 Fixed\n\n- **Align change classification reference documentation with bump alignment behavior.** Updated `docs/src/reference/change-classification.md` so the changeset-policy bump-alignment section matches the implementation: every attached changeset target that resolves a bump (any scalar type, including types defaulting to `none`, or any table declaring `bump` or `type`, even alongside `version`) is checked against the package's classified recommendation, while only explicit-version targets omitting both `bump` and `type` skip alignment. Also documented the Rust syntax analyzer's inert-attribute stripping, compatible attribute handling, and dyn-compatibility-aware defaulted trait-item classification.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #918](https://github.com/monochange/monochange/pull/918)\n#### Allow developer-only app releases in image smoke and deployment checks\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #920](https://github.com/monochange/monochange/pull/920)\n\n`app/deploy/verify-image.sh` and `.github/workflows/app.yml` previously assumed every `monochange_app` version writes a website-stream `app/public/releases/<version>.json` artifact. Releases carrying only `default`-stream (`website_developer`) changesets intentionally write `app/developer-changelog.md` without adding a website-stream release file, which caused the `app-ci` `docker` smoke check and production release verification to fail with HTTP 404.\n\n`scripts/resolve-app-release-notes.ts` now validates `app/public/releases/*.json`, `app/changelog.md` parity, and (during deployment) the release record to determine the expected website release-notes version: website-stream releases still require and verify their exact `<version>.json` and `/changelog` entry, while developer-only releases verify `/health` against the new app version and check the latest published website release JSON and `/changelog` card."
+		},
+		{
+			"owner_id": "main",
+			"owner_kind": "group",
+			"output": "default",
+			"stream": "default",
+			"path": "changelog.md",
+			"format": "monochange",
+			"notes": {
+				"title": "[0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)",
+				"summary": [
+					"Grouped release for `main`."
+				],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Ignore inert Rust attributes and classify defaulted trait additions as additive\n\n_Packages:_ 🟢 _monochange_cargo_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #918](https://github.com/monochange/monochange/pull/918)\n\n`cargo/public-api` now strips inert lint-level attributes (`allow`, `warn`, `deny`, `forbid`, `expect`), `rustfmt::skip`, `track_caller`, and `doc` attributes (including inside `#[cfg_attr(...)]`) consistently across every Rust item kind and nested fields, variants, and trait items. On items whose outer attributes are already part of the tracked signature (`const`, `static`, `struct`, `enum`, `union`, `trait`, `type`, `mod`, and trait members), attribute-only deltas limited to `#[inline]`, `#[must_use]`, and `#[deprecated]` are modeled as compatible changes (`patch`, with only newly deprecated items proposing `minor`). Standalone `pub fn` and `pub use` items keep their existing attribute-free signature collection so proc-macro and tool attributes such as `#[tracing::instrument]` or `#[clippy::msrv]` do not trigger false breaking findings.\n\nPublic traits now use a structured surface comparison: adding a dyn-compatible defaulted method, adding a defaulted member with `where Self: Sized`, adding a defaulted member to a trait that was already syntactically non-dyn-compatible, or adding a default to an existing required item classifies as `additive` (`minor`, medium confidence, partial coverage). Defaulted additions that break dyn-compatibility on a previously dyn-compatible trait (generic methods, `async fn`, receiverless functions, methods referencing `Self` outside the receiver or `Self::Assoc` projections, associated constants, or nightly associated-type defaults without `where Self: Sized`), required additions, signature changes, removals, and trait header changes remain `breaking` (`major`).\n\n```rust\n// Previously reported as breaking/major; now produces no API finding:\n#[allow(rustdoc::broken_intra_doc_links, clippy::doc_lazy_continuation)]\npub const PINA_BONDING_CURVE_ID: Address = Address(\"Curve1Gq...\");\n\n// Previously reported as breaking/major; now classified as additive/minor:\npub trait ParseAccounts<'a>: Sized {\n\tfn parse_accounts(accounts: &'a [AccountInfo]) -> Result<Self, ProgramError>;\n\n\t#[doc(hidden)]\n\tfn __try_from_account_infos(accounts: &'a [AccountInfo]) -> Result<Self, ProgramError> {\n\t\tSelf::parse_accounts(accounts)\n\t}\n}\n```"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)\n\nGrouped release for `main`.\n\n### 🐛 Fixed\n\n#### Ignore inert Rust attributes and classify defaulted trait additions as additive\n\n_Packages:_ 🟢 _monochange_cargo_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #918](https://github.com/monochange/monochange/pull/918)\n\n`cargo/public-api` now strips inert lint-level attributes (`allow`, `warn`, `deny`, `forbid`, `expect`), `rustfmt::skip`, `track_caller`, and `doc` attributes (including inside `#[cfg_attr(...)]`) consistently across every Rust item kind and nested fields, variants, and trait items. On items whose outer attributes are already part of the tracked signature (`const`, `static`, `struct`, `enum`, `union`, `trait`, `type`, `mod`, and trait members), attribute-only deltas limited to `#[inline]`, `#[must_use]`, and `#[deprecated]` are modeled as compatible changes (`patch`, with only newly deprecated items proposing `minor`). Standalone `pub fn` and `pub use` items keep their existing attribute-free signature collection so proc-macro and tool attributes such as `#[tracing::instrument]` or `#[clippy::msrv]` do not trigger false breaking findings.\n\nPublic traits now use a structured surface comparison: adding a dyn-compatible defaulted method, adding a defaulted member with `where Self: Sized`, adding a defaulted member to a trait that was already syntactically non-dyn-compatible, or adding a default to an existing required item classifies as `additive` (`minor`, medium confidence, partial coverage). Defaulted additions that break dyn-compatibility on a previously dyn-compatible trait (generic methods, `async fn`, receiverless functions, methods referencing `Self` outside the receiver or `Self::Assoc` projections, associated constants, or nightly associated-type defaults without `where Self: Sized`), required additions, signature changes, removals, and trait header changes remain `breaking` (`major`).\n\n```rust\n// Previously reported as breaking/major; now produces no API finding:\n#[allow(rustdoc::broken_intra_doc_links, clippy::doc_lazy_continuation)]\npub const PINA_BONDING_CURVE_ID: Address = Address(\"Curve1Gq...\");\n\n// Previously reported as breaking/major; now classified as additive/minor:\npub trait ParseAccounts<'a>: Sized {\n\tfn parse_accounts(accounts: &'a [AccountInfo]) -> Result<Self, ProgramError>;\n\n\t#[doc(hidden)]\n\tfn __try_from_account_infos(accounts: &'a [AccountInfo]) -> Result<Self, ProgramError> {\n\t\tSelf::parse_accounts(accounts)\n\t}\n}\n```"
+		},
+		{
+			"owner_id": "monochange",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange` was updated to 0.22.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange` was updated to 0.22.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_analysis",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_analysis/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_analysis` was updated to 0.22.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_analysis` was updated to 0.22.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_cargo",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_cargo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Ignore inert Rust attributes and classify defaulted trait additions as additive\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #918](https://github.com/monochange/monochange/pull/918)\n\n`cargo/public-api` now strips inert lint-level attributes (`allow`, `warn`, `deny`, `forbid`, `expect`), `rustfmt::skip`, `track_caller`, and `doc` attributes (including inside `#[cfg_attr(...)]`) consistently across every Rust item kind and nested fields, variants, and trait items. On items whose outer attributes are already part of the tracked signature (`const`, `static`, `struct`, `enum`, `union`, `trait`, `type`, `mod`, and trait members), attribute-only deltas limited to `#[inline]`, `#[must_use]`, and `#[deprecated]` are modeled as compatible changes (`patch`, with only newly deprecated items proposing `minor`). Standalone `pub fn` and `pub use` items keep their existing attribute-free signature collection so proc-macro and tool attributes such as `#[tracing::instrument]` or `#[clippy::msrv]` do not trigger false breaking findings.\n\nPublic traits now use a structured surface comparison: adding a dyn-compatible defaulted method, adding a defaulted member with `where Self: Sized`, adding a defaulted member to a trait that was already syntactically non-dyn-compatible, or adding a default to an existing required item classifies as `additive` (`minor`, medium confidence, partial coverage). Defaulted additions that break dyn-compatibility on a previously dyn-compatible trait (generic methods, `async fn`, receiverless functions, methods referencing `Self` outside the receiver or `Self::Assoc` projections, associated constants, or nightly associated-type defaults without `where Self: Sized`), required additions, signature changes, removals, and trait header changes remain `breaking` (`major`).\n\n```rust\n// Previously reported as breaking/major; now produces no API finding:\n#[allow(rustdoc::broken_intra_doc_links, clippy::doc_lazy_continuation)]\npub const PINA_BONDING_CURVE_ID: Address = Address(\"Curve1Gq...\");\n\n// Previously reported as breaking/major; now classified as additive/minor:\npub trait ParseAccounts<'a>: Sized {\n\tfn parse_accounts(accounts: &'a [AccountInfo]) -> Result<Self, ProgramError>;\n\n\t#[doc(hidden)]\n\tfn __try_from_account_infos(accounts: &'a [AccountInfo]) -> Result<Self, ProgramError> {\n\t\tSelf::parse_accounts(accounts)\n\t}\n}\n```"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)\n\n### 🐛 Fixed\n\n#### Ignore inert Rust attributes and classify defaulted trait additions as additive\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #918](https://github.com/monochange/monochange/pull/918)\n\n`cargo/public-api` now strips inert lint-level attributes (`allow`, `warn`, `deny`, `forbid`, `expect`), `rustfmt::skip`, `track_caller`, and `doc` attributes (including inside `#[cfg_attr(...)]`) consistently across every Rust item kind and nested fields, variants, and trait items. On items whose outer attributes are already part of the tracked signature (`const`, `static`, `struct`, `enum`, `union`, `trait`, `type`, `mod`, and trait members), attribute-only deltas limited to `#[inline]`, `#[must_use]`, and `#[deprecated]` are modeled as compatible changes (`patch`, with only newly deprecated items proposing `minor`). Standalone `pub fn` and `pub use` items keep their existing attribute-free signature collection so proc-macro and tool attributes such as `#[tracing::instrument]` or `#[clippy::msrv]` do not trigger false breaking findings.\n\nPublic traits now use a structured surface comparison: adding a dyn-compatible defaulted method, adding a defaulted member with `where Self: Sized`, adding a defaulted member to a trait that was already syntactically non-dyn-compatible, or adding a default to an existing required item classifies as `additive` (`minor`, medium confidence, partial coverage). Defaulted additions that break dyn-compatibility on a previously dyn-compatible trait (generic methods, `async fn`, receiverless functions, methods referencing `Self` outside the receiver or `Self::Assoc` projections, associated constants, or nightly associated-type defaults without `where Self: Sized`), required additions, signature changes, removals, and trait header changes remain `breaking` (`major`).\n\n```rust\n// Previously reported as breaking/major; now produces no API finding:\n#[allow(rustdoc::broken_intra_doc_links, clippy::doc_lazy_continuation)]\npub const PINA_BONDING_CURVE_ID: Address = Address(\"Curve1Gq...\");\n\n// Previously reported as breaking/major; now classified as additive/minor:\npub trait ParseAccounts<'a>: Sized {\n\tfn parse_accounts(accounts: &'a [AccountInfo]) -> Result<Self, ProgramError>;\n\n\t#[doc(hidden)]\n\tfn __try_from_account_infos(accounts: &'a [AccountInfo]) -> Result<Self, ProgramError> {\n\t\tSelf::parse_accounts(accounts)\n\t}\n}\n```"
+		},
+		{
+			"owner_id": "monochange_changelog",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_changelog/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_changelog` was updated to 0.22.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_changelog` was updated to 0.22.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_classification",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_classification/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "monochange_classification [0.4.11](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.4.11) (2026-11-27)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_classification` was updated to 0.4.11.**"
+						]
+					}
+				]
+			},
+			"rendered": "## monochange_classification [0.4.11](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.4.11) (2026-11-27)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_classification` was updated to 0.4.11.**"
+		},
+		{
+			"owner_id": "monochange_cocoapods",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_cocoapods/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_cocoapods` was updated to 0.22.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_cocoapods` was updated to 0.22.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_config",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_config/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_config` was updated to 0.22.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_config` was updated to 0.22.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_core",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_core/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_core` was updated to 0.22.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_core` was updated to 0.22.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_dart",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_dart/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_dart` was updated to 0.22.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_dart` was updated to 0.22.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_deno",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_deno/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_deno` was updated to 0.22.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_deno` was updated to 0.22.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_ecmascript",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_ecmascript/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_ecmascript` was updated to 0.22.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_ecmascript` was updated to 0.22.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_forgejo",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_forgejo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_forgejo` was updated to 0.22.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_forgejo` was updated to 0.22.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_gitea",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_gitea/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_gitea` was updated to 0.22.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_gitea` was updated to 0.22.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_github",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_github/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_github` was updated to 0.22.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_github` was updated to 0.22.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_gitlab",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_gitlab/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_gitlab` was updated to 0.22.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_gitlab` was updated to 0.22.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_go",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_go/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_go` was updated to 0.22.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_go` was updated to 0.22.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_gradle",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_gradle/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_gradle` was updated to 0.22.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_gradle` was updated to 0.22.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_graph",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_graph/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_graph` was updated to 0.22.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_graph` was updated to 0.22.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_hosting",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_hosting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_hosting` was updated to 0.22.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_hosting` was updated to 0.22.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_lint",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_lint/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_lint` was updated to 0.22.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_lint` was updated to 0.22.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_linting",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_linting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_linting` was updated to 0.22.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_linting` was updated to 0.22.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_npm",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_npm/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_npm` was updated to 0.22.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_npm` was updated to 0.22.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_publish",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_publish/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_publish` was updated to 0.22.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_publish` was updated to 0.22.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_python",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_python/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_python` was updated to 0.22.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_python` was updated to 0.22.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_semver",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_semver/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_semver` was updated to 0.22.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_semver` was updated to 0.22.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_swift",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_swift/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_swift` was updated to 0.22.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_swift` was updated to 0.22.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_telemetry",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_telemetry/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_telemetry` was updated to 0.22.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_telemetry` was updated to 0.22.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "monochange_test_helpers",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_test_helpers/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.22.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.22.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli` was updated to 0.22.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli` was updated to 0.22.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-arm64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-darwin-arm64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.22.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.22.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-x64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-darwin-x64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.22.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.22.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-arm64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.22.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.22.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-arm64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.22.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.22.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-x64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.22.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.22.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-x64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.22.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.22.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-win32-arm64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-win32-arm64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.22.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.22.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/cli-win32-x64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-win32-x64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.22.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.22.1 as part of group `main`.**"
+		},
+		{
+			"owner_id": "@monochange/skill",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__skill/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monochange/skill` was updated to 0.22.1 as part of group `main`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monochange/skill` was updated to 0.22.1 as part of group `main`.**"
+		}
+	],
+	"provider": {
+		"kind": "github",
+		"owner": "monochange",
+		"repo": "monochange",
+		"host": null
+	}
+}
