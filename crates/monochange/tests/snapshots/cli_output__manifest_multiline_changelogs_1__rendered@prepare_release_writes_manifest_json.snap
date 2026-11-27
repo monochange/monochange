@@ -1,9 +1,0 @@
----
-source: crates/monochange/tests/cli_output.rs
-expression: contents
----
-## 1.1.0 ([DATE])
-
-### Features
-
-- **add feature.**

@@ -1,9 +1,0 @@
----
-source: crates/monochange/src/__tests__/mcp_tests.rs
-expression: contents
----
-## 1.1.0 ([DATE])
-
-### Features
-
-- **add release command.**

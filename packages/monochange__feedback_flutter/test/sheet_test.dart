@@ -17,8 +17,8 @@ void main() {
         DateTime.now().add(const Duration(minutes: 10)),
       ),
       client: MockClient((request) async {
-        expect(request.url.path, '/api/v1/feedback/1/conversations');
-        expect(jsonDecode(request.body)['message'], 'CSV export');
+        expect(request.url.path, '/api/feedback_sdk_create_conversation');
+        expect(jsonDecode(request.body)['input']['message'], 'CSV export');
         return http.Response(
           jsonEncode({
             'conversation': {

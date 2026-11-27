@@ -176,12 +176,14 @@ export function startFeedbackSignIn(win: Window, fetcher = win.fetch.bind(win)) 
 			button.disabled = true;
 
 			try {
-				const response = await fetcher("/api/feedback/iframe-session", {
+				const response = await fetcher("/api/feedback_iframe_session", {
 					method: "POST",
 					credentials: "same-origin",
 					redirect: "error",
 					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ organization: links.organization, project: links.project }),
+					body: JSON.stringify({
+						input: { organization: links.organization, project: links.project },
+					}),
 				});
 
 				if (response.status === 401) {

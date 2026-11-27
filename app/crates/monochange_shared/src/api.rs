@@ -1,9 +1,10 @@
 //! Platform-neutral client for the monochange product HTTP surface.
 //!
 //! The website's Leptos server functions use `POST` with a form-encoded body
-//! and a JSON reply; the handoff endpoints use JSON. This client hides both
-//! shapes behind one transport so native guests and the extension do not
-//! duplicate wire knowledge.
+//! and a JSON reply; the sign-in RPC operations take named JSON arguments.
+//! This client hides both shapes behind one transport so native guests and
+//! the extension do not duplicate wire knowledge. Against a site that
+//! predates the sign-in operations it falls back to the REST handoff routes.
 //!
 //! The client owns no credential state: a restored bearer is supplied at
 //! construction, `exchange` returns the new session for the caller to
@@ -28,10 +29,17 @@ pub const ORGANIZATIONS_PATH: &str = "/api/list_organizations";
 pub const PROJECT_PATH: &str = "/api/project_overview";
 /// Server function endpoint for the website release notes.
 pub const WEBSITE_RELEASES_PATH: &str = "/api/get_website_releases";
-/// JSON endpoint that exchanges a one-time code for a client session.
+/// RPC operation that exchanges a one-time code for a client session.
+pub const TOKEN_RPC_PATH: &str = "/api/client_session_token";
+/// RPC operation that revokes the caller's client session.
+pub const REVOKE_RPC_PATH: &str = "/api/client_session_revoke";
+/// REST route for the exchange, used when a site predates the RPC operation.
 pub const TOKEN_PATH: &str = "/api/client-sessions/token";
-/// JSON endpoint that revokes the caller's client session.
+/// REST route for revocation, used when a site predates the RPC operation.
 pub const REVOKE_PATH: &str = "/api/client-sessions/revoke";
+/// The status a site answers for an operation it does not serve. The sign-in
+/// operations never answer it themselves.
+const NOT_FOUND: u16 = 404;
 /// Browser handoff page the client opens.
 pub const CONNECT_PATH: &str = "/connect";
 
@@ -195,12 +203,24 @@ impl<T: Transport> ApiClient<T> {
 	/// client was built with a bearer, so a stale stored credential can
 	/// never ride the exchange.
 	pub async fn exchange(&self, request: ClientTokenRequest) -> Result<ClientSession, ApiError> {
-		let body =
-			serde_json::to_string(&request).map_err(|error| ApiError::Decode(error.to_string()))?;
-		let url = self.join(TOKEN_PATH);
+		let arguments = serde_json::json!({ "request": &request }).to_string();
 		let response = self
 			.transport
-			.post(&url, None, JSON_CONTENT_TYPE, &body)
+			.post(
+				&self.join(TOKEN_RPC_PATH),
+				None,
+				JSON_CONTENT_TYPE,
+				&arguments,
+			)
+			.await?;
+		if response.status != NOT_FOUND {
+			return decode(response);
+		}
+
+		let body = serde_json::json!(&request).to_string();
+		let response = self
+			.transport
+			.post(&self.join(TOKEN_PATH), None, JSON_CONTENT_TYPE, &body)
 			.await?;
 		decode(response)
 	}
@@ -209,11 +229,21 @@ impl<T: Transport> ApiClient<T> {
 	/// harmless server-side; clearing local storage stays with the caller,
 	/// including after a failed revocation.
 	pub async fn revoke(&self, bearer: &str) -> Result<(), ApiError> {
-		let url = self.join(REVOKE_PATH);
-		let response = self
+		let mut response = self
 			.transport
-			.post(&url, Some(bearer), FORM_CONTENT_TYPE, "")
+			.post(
+				&self.join(REVOKE_RPC_PATH),
+				Some(bearer),
+				JSON_CONTENT_TYPE,
+				"{}",
+			)
 			.await?;
+		if response.status == NOT_FOUND {
+			response = self
+				.transport
+				.post(&self.join(REVOKE_PATH), Some(bearer), FORM_CONTENT_TYPE, "")
+				.await?;
+		}
 		if !response.is_success() {
 			return Err(ApiError::Status {
 				status: response.status,

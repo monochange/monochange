@@ -17,7 +17,7 @@ Inferred from the existing toolkit and documentation: developers maintaining sev
 ## Constraints & Commitments
 
 - The name is always lowercase: monochange.
-- Keep the selected flowing three-part mark and custom wordmark, with the Release floor mist/graphite/teal identity (`--mc-*`); the mark may keep its violet lockup.
+- Keep the selected flowing three-part mark and custom wordmark, with the Ultraviolet release floor identity (`--mc-*`): the mark’s violet is the interface accent over lavender and aubergine neutrals.
 - The product is free. Pricing must explicitly say “Hey, this is free” and offer no paid tiers.
 - Docs must lead to the published monochange book at https://monochange.github.io/monochange/.
 - Explain GitHub App installation in the book. The current public GitHub App URL returns 404; do not present it as an available installation until setup is complete.

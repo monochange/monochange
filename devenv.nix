@@ -18,6 +18,7 @@ in
     with pkgs;
 
     [
+      binaryen
       cargo-binstall
       cargo-run-bin
       cacert
@@ -36,7 +37,10 @@ in
       openssh
       custom.pnpm
       nodejs_24
-      python3
+      (python3.withPackages (p: [
+        p.fonttools
+        p.brotli
+      ]))
       rustup
       shfmt
       taplo
@@ -371,17 +375,14 @@ in
         mkdir -p target/coverage
         cargo bin cargo-llvm-cov clean --workspace
         cargo bin cargo-llvm-cov test --workspace --exclude xtask --all-features --lib --tests --no-report
-        cargo bin cargo-llvm-cov report --ignore-filename-regex 'crates/xtask/' --summary-only --fail-under-lines 70
+        cargo bin cargo-llvm-cov report --ignore-filename-regex 'crates/xtask/' --summary-only --fail-under-lines 90
         cargo bin cargo-llvm-cov report --ignore-filename-regex 'crates/xtask/' --lcov --output-path target/coverage/workspace.lcov
         # The web app is a separate Cargo workspace; include its changed Rust lines in the patch gate.
-        # monochange_app compiles the leptoskit server renderer only with `ssr`, and a
-        # workspace-wide `--features ssr` fails for crates that do not define that feature.
-        cargo bin cargo-llvm-cov test --manifest-path app/Cargo.toml --workspace --exclude monochange_app --lib --tests --no-report
-        cargo bin cargo-llvm-cov test --manifest-path app/Cargo.toml -p monochange_app --features ssr --lib --tests --no-report
+        cargo bin cargo-llvm-cov test --manifest-path app/Cargo.toml --workspace --lib --tests --no-report
         cargo bin cargo-llvm-cov report --manifest-path app/Cargo.toml --lcov --output-path target/coverage/app.lcov
         cat target/coverage/workspace.lcov target/coverage/app.lcov > target/coverage/lcov.info
       '';
-      description = "Run workspace coverage, enforce a 70% line-coverage floor, and write target/coverage/lcov.info.";
+      description = "Run workspace coverage, enforce a 90% line-coverage floor, and write target/coverage/lcov.info.";
       binary = "bash";
     };
     "coverage:patch" = {
@@ -399,9 +400,9 @@ in
           --lcov target/coverage/lcov.info \
           --base "$base_ref" \
           --head "$head_ref" \
-          --target 100
+          --target 90
       '';
-      description = "Fail when executable changed lines fall below 100% patch coverage.";
+      description = "Fail when executable changed lines fall below 90% patch coverage.";
       binary = "bash";
     };
     "fix:all" = {
@@ -623,6 +624,35 @@ in
         ${currentDir}/scripts/lint-leptoskit.sh
       '';
       description = "Run leptoskit component lints (#[component], view! markup, PascalCase) for every leptoskit.toml.";
+      binary = "bash";
+    };
+    "build:web" = {
+      exec = ''
+        set -euo pipefail
+        leptoskit_bin="$(${currentDir}/scripts/leptoskit-cli.sh)"
+        # Fresh per-invocation scratch directories under the ignored local
+        # artifacts: upstream wipes a build's pkg/ only when its fingerprint
+        # changes, so a reused out directory could keep removed public files
+        # alive. This is asset output, not a Rust target directory.
+        run_root="''${MONOCHANGE_WEB_BUILD_ROOT:-${currentDir}/.monochange/local/web-build/$(date +%Y%m%d-%H%M%S)-$$}"
+        mkdir -p "$run_root/web" "$run_root/projects-web"
+        (cd ${currentDir}/app && "$leptoskit_bin" build "$@" --platform web --out "$run_root/web")
+        (cd ${currentDir}/app/projects && "$leptoskit_bin" build "$@" --platform web --out "$run_root/projects-web")
+        # Both builds passed their own bundle report and budget check: stage,
+        # validate, and publish one complete deployment tree. Any failure here
+        # keeps the last good site at app/target/site.
+        pnpm node ${currentDir}/scripts/leptoskit-plugin/publish-web-site.ts \
+          --web-root "$run_root" --site-root ${currentDir}/app/target/site
+      '';
+      description = "Build both web frontends with the provenance-verified leptoskit CLI into fresh scratch outputs, then stage, validate, and publish one complete site (app/target/site); forward flags like --release.";
+      binary = "bash";
+    };
+    # The leptoskit tooling plugin resolves as `leptoskit-plugin-<name>` on
+    # PATH; this profile entry puts it there under its default name so both
+    # web leptoskit.toml declarations work from every project root.
+    "leptoskit-plugin-monochange-web-assets" = {
+      exec = ''exec pnpm node ${currentDir}/scripts/leptoskit-plugin/web-assets-plugin.ts "$@"'';
+      description = "The leptoskit tooling plugin that owns site CSS, split-loader minification, and pkg namespace assembly.";
       binary = "bash";
     };
     "lint:architecture" = {

@@ -1,9 +1,0 @@
----
-source: crates/monochange_integration_tests/tests/sync_versions.rs
-expression: value
----
-{
-  "app": "1.0.0",
-  "core": "1.0.0",
-  "sdk": "1.0.0"
-}

@@ -431,6 +431,12 @@ path = "app/crates/monochange_app"
 # Workflow files stay out of the affected paths: CI and deployment changes
 # are repository plumbing and never require a monochange_app changeset.
 additional_paths = ["app/**", "docs/src/**", "Dockerfile"]
+# The application leptoskit configs declare the deployed app version in
+# [app].version; keep them stamped with the responsible crate's release.
+versioned_files = [
+	{ path = "app/leptoskit.toml", format = "toml", fields = ["app.version"] },
+	{ path = "app/projects/leptoskit.toml", format = "toml", fields = ["app.version"] },
+]
 publish = { enabled = false }
 changelog = false
 tag = true
@@ -480,10 +486,18 @@ publish = { enabled = false }
 changelog = false
 ignore_ecosystem_versioned_files = true
 
+# pub.dev trusted publishing only accepts a run whose ref is
+# `refs/tags/<tag-pattern>` with `{{version}}` matching the version being
+# published, and publish.yml runs on the primary `v*` tag while this package
+# is versioned separately. The upload is rejected and aborts the rest of the
+# release, so keep the version bump and changelog but let another process own
+# the registry upload. Re-enable built-in publishing once a publish job runs
+# from this package's own `monochange_feedback/v{{version}}` tag.
 [package.monochange_feedback]
 path = "packages/monochange__feedback_flutter"
 type = "dart"
 version_format = "namespaced"
+publish = { mode = "external" }
 
 [package.monochange_forgejo]
 path = "crates/monochange_forgejo"
@@ -840,6 +854,8 @@ repo = "monochange"
 #   enabled        — enable/disable release creation (default: true)
 #   draft          — create releases as drafts (default: false)
 #   prerelease     — mark releases as pre-releases (default: false)
+#   max_body_chars — optional smaller release body cap; GitHub always enforces
+#                    125000 characters, keeping complete entries and a changelog link
 #   generate_notes — ask the provider to auto-generate release notes (default: false)
 #   source         — release notes source: "monochange" (use monochange-rendered
 #                    notes) or "github_generated" (use provider-generated notes)

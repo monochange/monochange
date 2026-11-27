@@ -14,6 +14,7 @@ use monochange_app_feedback::planning::JobKind;
 use monochange_app_feedback::planning::JobStatus;
 use monochange_app_feedback::planning::PlanningError;
 use serde::Deserialize;
+use serde::Serialize;
 use serde_json::Value;
 use serde_json::json;
 
@@ -143,9 +144,9 @@ pub(super) async fn claim(
 	Ok(Json(json!({"job":job,"lease":job.as_ref().map(|_| lease)})))
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
-pub(super) struct Heartbeat {
+pub struct Heartbeat {
 	lease: String,
 }
 
@@ -180,9 +181,9 @@ pub(super) async fn heartbeat(
 	Ok(Json(json!({"cancel":stop,"lease_until":now()+120})))
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
-pub(super) struct WorkerResult {
+pub struct WorkerResult {
 	lease: String,
 	plan: Option<ImplementationPlan>,
 	changes: Option<Vec<FeedbackFile>>,

@@ -24,7 +24,7 @@ jobs:
           persist-credentials: false
 
       - name: setup rust
-        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
+        uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
 
       - name: install mdbook
         run: cargo install --locked mdbook

@@ -4,6 +4,88 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)
+
+### Changed
+
+- **No package-specific changes were recorded; `monochange_core` was updated to 0.22.1 as part of group `main`.**
+
+## [0.22.0](https://github.com/monochange/monochange/releases/tag/v0.22.0) (2026-11-25)
+
+### 💥 Breaking Change
+
+#### Configure smaller GitHub release bodies
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #880](https://github.com/monochange/monochange/pull/880)
+
+> **Breaking change:** Rust callers constructing every field of `ProviderReleaseSettings` must initialize the new `max_body_chars: Option<usize>` field. See [the 0.22 migration guide](https://monochange.github.io/monochange/guide/migrations/0.22.html).
+
+Hosted releases default to GitHub's 125,000-character cap. Set `[source.releases].max_body_chars` to choose a smaller preview while preserving full changelog files.
+
+Rust callers can add `max_body_chars: None` to existing complete struct literals, or use struct update syntax:
+
+```rust
+use monochange_core::ProviderReleaseSettings;
+
+let settings = ProviderReleaseSettings {
+    max_body_chars: Some(100_000),
+    ..Default::default()
+};
+```
+
+Existing TOML configurations and callers using `Default` need no changes.
+
+#### Serve hosted release operations as leptoskit RPC
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #901](https://github.com/monochange/monochange/pull/901)
+
+The hosted release commit, release pull request, and workflow dispatch that the monochange CLI requests from CI are now leptoskit RPC operations, published with `#[api]` beside the website's other server functions:
+
+| Operation                  | Route                                | Arguments                                    | Result                           |
+| -------------------------- | ------------------------------------ | -------------------------------------------- | -------------------------------- |
+| `hosted_release_commit`    | `POST /api/hosted_release_commit`    | `{"request": HostedCommitRequest}`           | `HostedCommitResponse`           |
+| `hosted_release_request`   | `POST /api/hosted_release_request`   | `{"request": HostedReleaseRequest}`          | `HostedReleaseResponse`          |
+| `hosted_workflow_dispatch` | `POST /api/hosted_workflow_dispatch` | `{"request": HostedWorkflowDispatchRequest}` | `HostedWorkflowDispatchResponse` |
+
+```text
+# before: the REST alias takes the payload as the whole body
+POST /api/release-commits
+{"provider": "github", "owner": "monochange", "repository": "monochange",
+ "branch": "monochange/release/release", "base_commit": "5ec01968",
+ "subject": "chore(release): prepare release",
+ "files": [{"path": "changelog.md", "content": "# Changelog\n\n## 0.22.0\n"}]}
+
+# now: the RPC operation wraps the same payload in `request`
+POST /api/hosted_release_commit
+{"request": {"provider": "github", "owner": "monochange", "repository": "monochange",
+ "branch": "monochange/release/release", "base_commit": "5ec01968",
+ "subject": "chore(release): prepare release",
+ "files": [{"path": "changelog.md", "content": "# Changelog\n\n## 0.22.0\n"}]}}
+```
+
+A new `machine_gate` middleware verifies the workflow's GitHub Actions OIDC token or `MONOCHANGE_TOKEN` before the body is read, so an unauthenticated caller still cannot make the server buffer a release payload, and raises the body limit to each operation's own (8 MiB for release commits). Failures keep the REST statuses (`400`, `401`, `403`, `404`, `409`, `413`, `422`, `502`, `503`) with a `{"status": 409, "message": "..."}` JSON body.
+
+`POST /api/release-commits`, `POST /api/release-requests`, and `POST /api/workflow-dispatches` stay as aliases for CLIs released before the RPC operations, and both transports run the new `monochange_app_api::release_api::release_commit`, `release_request`, and `monochange_app_api::workflow_api::workflow_dispatch` cores. `release_api::Caller` and `release_api::authenticate` are now public for the gate.
+
+With the `schema` feature, `monochange_core` now derives `schemars::JsonSchema` for `HostedReleaseRequest`, `HostedReleaseResponse`, `SourceChangeRequest`, `SourceChangeRequestOperation`, `SourceChangeRequestBodyTruncation`, and `CommitMessage`, so the RPC specification describes every hosted operation's arguments and results. The derives are opt-in and change no serialized shape or default-feature API, but the API classifier treats an attribute change on an existing public type as a modified item, so `monochange_core` takes a major bump, which the pending `github-release-cap-settings` change already requires.
+
+### 🚀 Feature
+
+#### Dispatch GitHub Actions workflows through the monochange app
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #866](https://github.com/monochange/monochange/pull/866)
+
+`monochange gh workflow run` dispatches a workflow in a connected repository without a personal access token. The command mirrors the useful part of `gh workflow run`:
+
+```bash
+monochange gh workflow run release.yml --repo monochange/actions --ref main
+monochange gh workflow run release-pr-merge.yml --repo monochange/actions -f pull_request=103
+```
+
+A GitHub Actions job authenticates with its OIDC token by granting `id-token: write`; local runs use `--hosted-auth token` and a deployment `MONOCHANGE_TOKEN`. The monochange app checks that an OIDC caller and the target repository belong to the same GitHub App installation, so an organisation repository can dispatch a sibling repository's release workflow while other installations remain isolated. `--dry-run` validates the target without starting a run, and `--field KEY=VALUE` passes workflow inputs.
+
+The new `HostedWorkflowDispatchRequest` and `HostedWorkflowDispatchResponse` types expose the same contract to other clients. `publish.yml` now uses the command to refresh the `monochange/actions` release PR after a CLI release, replacing the `MONOCHANGE_ACTIONS_TOKEN` credential.
+
 ## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-11-08)
 
 ### 🚀 Feature

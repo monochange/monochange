@@ -22,10 +22,8 @@ rules:
       - publish.yml
 
   cache-poisoning:
-    # The `devenv` composite action intentionally uses broad `restore-keys`
-    # for Rust and cargo binary caches. This is a known trade-off documented
-    # in the security audit; cache poisoning is mitigated by the fact that
-    # we do not use `pull_request_target` and GitHub scopes PR cache writes
-    # to merge refs only.
+    # Swatinem/rust-cache restores from a shared prefix. Pull request caches
+    # are not written from `pull_request_target`, and GitHub scopes pull
+    # request cache writes to the merge ref.
     ignore:
-      - devenv/action.yml
+      - rust/action.yml

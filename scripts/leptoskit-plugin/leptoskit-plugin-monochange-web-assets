@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Executable shim so the leptoskit CLI finds the monochange web-assets tooling
+# plugin on PATH as `leptoskit-plugin-<name>` (see crates/leptoskit_plugin
+# default_command upstream). The plugin itself is TypeScript
+# (web-assets-plugin.ts) and runs through Node's type stripping; this shim
+# resolves its own location, including through symlinks.
+set -euo pipefail
+self="${BASH_SOURCE[0]}"
+while [ -L "$self" ]; do
+	target="$(readlink "$self")"
+	case "$target" in
+		/*) self="$target" ;;
+		*) self="$(dirname "$self")/$target" ;;
+	esac
+done
+exec node "$(dirname "$self")/web-assets-plugin.ts" "$@"

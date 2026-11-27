@@ -132,8 +132,9 @@ it("signs in first-party, returns only a scoped session, and preserves the popup
 	expect(fetcher.mock.calls[0][1]).toMatchObject({
 		credentials: "same-origin",
 		method: "POST",
-		body: JSON.stringify({ organization: "acme", project: "web" }),
+		body: JSON.stringify({ input: { organization: "acme", project: "web" } }),
 	});
+	expect(fetcher.mock.calls[0][0]).toBe("/api/feedback_iframe_session");
 	fetcher.mockResolvedValueOnce(new Response("", { status: 503 }));
 	button.click();
 	await vi.waitFor(() =>

@@ -14,6 +14,7 @@ pub mod installation;
 pub mod organizations;
 pub mod releases;
 pub mod repos;
+pub mod routing;
 
 #[cfg(feature = "client")]
 pub mod api;

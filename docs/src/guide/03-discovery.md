@@ -39,3 +39,18 @@ Key behaviors:
 - discovery scans all supported ecosystems regardless of `[ecosystems.*]` toggles in `monochange.toml`
 
 <!-- {/discoveryKeyBehaviors} -->
+
+## Configured package IDs
+
+Different ecosystems can publish the same package name. Give each package a distinct ID in `monochange.toml`:
+
+```toml
+[package.shared]
+path = "crates/shared"
+
+[package."dart:shared"]
+path = "packages/shared"
+type = "dart"
+```
+
+An exact configured ID takes precedence over published names. In changesets and version groups, `shared` selects the Cargo package and `dart:shared` selects the Dart package. References that do not match an explicit configured ID still resolve by published name, canonical ID, or manifest/directory path; an ambiguous published name remains an error.

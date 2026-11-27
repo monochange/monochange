@@ -1,5 +1,0 @@
----
-source: crates/monochange_integration_tests/tests/check_lint_output.rs
-expression: "normalize_workspace_paths(fixture.path(), output)"
----
-✔ Checks passed · fixed 2 files

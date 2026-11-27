@@ -1,34 +1,130 @@
 {
 	"files": {
-		"__wasm_split.______________________.js": {
-			"bytes": 609,
-			"gzipBytes": 365
+		"projects/__wasm_split.______________________.js": {
+			"bytes": 2377,
+			"gzipBytes": 680
 		},
-		"__wasm_split_manifest.json": {
-			"bytes": 2,
-			"gzipBytes": 22
+		"projects/__wasm_split_manifest.json": {
+			"bytes": 709,
+			"gzipBytes": 233
 		},
-		"monochange_app.css": {
-			"bytes": 109134,
-			"gzipBytes": 18895
+		"projects/chunk_6.wasm": {
+			"bytes": 13713,
+			"gzipBytes": 6433
 		},
-		"monochange_app.d.ts": {
-			"bytes": 6251,
-			"gzipBytes": 1858
+		"projects/chunk_7.wasm": {
+			"bytes": 30939,
+			"gzipBytes": 15110
 		},
-		"monochange_app.js": {
-			"bytes": 31349,
-			"gzipBytes": 8751
+		"projects/chunk_8.wasm": {
+			"bytes": 57059,
+			"gzipBytes": 23644
 		},
-		"monochange_app.wasm": {
-			"bytes": 2789435,
-			"gzipBytes": 1036900
+		"projects/monochange_projects_web.js": {
+			"bytes": 26742,
+			"gzipBytes": 7605
 		},
-		"monochange_app_bg.wasm.d.ts": {
-			"bytes": 3820,
-			"gzipBytes": 1008
+		"projects/monochange_projects_web_bg.wasm": {
+			"bytes": 960969,
+			"gzipBytes": 364309
+		},
+		"projects/split___feedback_console_route_view_8526866189374603487.wasm": {
+			"bytes": 591150,
+			"gzipBytes": 213286
+		},
+		"projects/split___organization_route_view_13495822508671786041.wasm": {
+			"bytes": 155632,
+			"gzipBytes": 69517
+		},
+		"projects/split___portal_route_view_5891345368219601793.wasm": {
+			"bytes": 359838,
+			"gzipBytes": 148550
+		},
+		"projects/split___project_route_view_10158607162556956734.wasm": {
+			"bytes": 90977,
+			"gzipBytes": 38842
+		},
+		"projects/split___projects_home_route_view_2703567038992046176.wasm": {
+			"bytes": 67717,
+			"gzipBytes": 30004
+		},
+		"site/__wasm_split.______________________.js": {
+			"bytes": 3197,
+			"gzipBytes": 797
+		},
+		"site/__wasm_split_manifest.json": {
+			"bytes": 1124,
+			"gzipBytes": 318
+		},
+		"site/chunk_10.wasm": {
+			"bytes": 8715,
+			"gzipBytes": 3829
+		},
+		"site/chunk_11.wasm": {
+			"bytes": 14104,
+			"gzipBytes": 6414
+		},
+		"site/monochange_app.css": {
+			"bytes": 72775,
+			"gzipBytes": 14976
+		},
+		"site/monochange_app.js": {
+			"bytes": 26422,
+			"gzipBytes": 7462
+		},
+		"site/monochange_app_bg.wasm": {
+			"bytes": 970417,
+			"gzipBytes": 382210
+		},
+		"site/split___account_route_view_15404463439875678756.wasm": {
+			"bytes": 83424,
+			"gzipBytes": 36138
+		},
+		"site/split___auth_callback_route_view_12016627425288013836.wasm": {
+			"bytes": 24119,
+			"gzipBytes": 11071
+		},
+		"site/split___book_route_view_17666993872358248534.wasm": {
+			"bytes": 48551,
+			"gzipBytes": 22446
+		},
+		"site/split___changelog_route_view_18050757885357555981.wasm": {
+			"bytes": 49372,
+			"gzipBytes": 22754
+		},
+		"site/split___connect_route_view_16354542081929312001.wasm": {
+			"bytes": 64299,
+			"gzipBytes": 29613
+		},
+		"site/split___dashboard_route_view_14578883471362314054.wasm": {
+			"bytes": 231733,
+			"gzipBytes": 100014
+		},
+		"site/split___install_route_view_9651537698978891125.wasm": {
+			"bytes": 14538,
+			"gzipBytes": 7444
+		},
+		"site/split___login_route_view_5096727190328531431.wasm": {
+			"bytes": 44598,
+			"gzipBytes": 21052
+		},
+		"site/split___pricing_route_view_14841084612111332454.wasm": {
+			"bytes": 13500,
+			"gzipBytes": 6946
+		},
+		"fonts/bricolage-800.woff2": {
+			"bytes": 25128,
+			"gzipBytes": 25128
+		},
+		"fonts/hanken-400.woff2": {
+			"bytes": 16732,
+			"gzipBytes": 16732
+		},
+		"fonts/hanken-700.woff2": {
+			"bytes": 17152,
+			"gzipBytes": 17152
 		}
 	},
-	"totalBytes": 2940600,
-	"totalGzipBytes": 1067799
+	"totalBytes": 4087722,
+	"totalGzipBytes": 1650709
 }

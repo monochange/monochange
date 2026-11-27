@@ -7,9 +7,13 @@ services:
       MONOSECRET_PROFILE: production
       OP_SERVICE_ACCOUNT_TOKEN_FILE: /run/secrets/onepassword_service_account_token
       DATABASE_URL: sqlite:///data/monochange_app.sqlite3
-      # Leave empty to use deterministic conversation replies without model calls.
-      MONOCHANGE_FEEDBACK_MODEL: ${MONOCHANGE_FEEDBACK_MODEL:-}
-      MONOCHANGE_FEEDBACK_COMPLETIONS_URL: ${MONOCHANGE_FEEDBACK_COMPLETIONS_URL:-https://openrouter.ai/api/v1/chat/completions}
+    # Optional, operator-owned runtime settings that are not secrets, such as
+    # MONOCHANGE_FEEDBACK_MODEL or MONOCHANGE_EXTENSION_REDIRECT_URIS (see
+    # app/DEPLOY.md). Unlike .env, which monochange-deploy rewrites on every
+    # rollout, this file survives deployments. Values above take precedence.
+    env_file:
+      - path: /opt/monochange/app.env
+        required: false
     secrets:
       - onepassword_service_account_token
     volumes:

@@ -10,8 +10,9 @@ it("renders user content as text, offers explicit votes, and resets its draft", 
 		this.open = false;
 	};
 	const fetcher = vi.fn(async (url: string, options: RequestInit) => {
-		if (url.endsWith("/vote")) return Response.json({ id: "fb-1", votes: 2, voted: true });
-		expect(JSON.parse(options.body as string).message).toBe("<script>alert('test')</script>");
+		if (url.includes("/api/feedback_sdk_vote?"))
+			return Response.json({ id: "fb-1", votes: 2, voted: true });
+		expect(JSON.parse(options.body as string).input.message).toBe("<script>alert('test')</script>");
 		return Response.json({
 			conversation: {
 				id: "draft",

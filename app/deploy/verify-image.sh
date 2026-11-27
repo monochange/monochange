@@ -5,17 +5,24 @@
 set -euo pipefail
 image="${1:?image required}"
 version="${2:-}"
+notes_version="${3:-}"
+scripts_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+repo_root="${VERIFY_IMAGE_ROOT:-$scripts_root}"
 token="$(mktemp)"
+modules="$(mktemp -d)"
 name="monochange-release-smoke"
+port="${VERIFY_IMAGE_PORT:-3000}"
+base="http://127.0.0.1:${port}"
 cleanup() {
 	docker logs "$name" 2>/dev/null || true
 	docker rm -f "$name" >/dev/null 2>&1 || true
 	rm -f "$token"
+	rm -rf "$modules"
 }
 trap cleanup EXIT
 printf '%s' ci-service-account-test-token >"$token"
 chmod 600 "$token"
-docker run -d --name "$name" -p 127.0.0.1:3000:3000 \
+docker run -d --name "$name" -p "127.0.0.1:${port}:3000" \
 	--mount "type=bind,source=$token,target=/run/secrets/onepassword_service_account_token,readonly" \
 	-e MONOSECRET_PROFILE=production -e MONOSECRET_PROVIDER=env \
 	-e OP_SERVICE_ACCOUNT_TOKEN_FILE=/run/secrets/onepassword_service_account_token \
@@ -23,20 +30,74 @@ docker run -d --name "$name" -p 127.0.0.1:3000:3000 \
 	-e JWT_SECRET=ci-docker-test-signing-key-not-a-secret \
 	-e TOKEN_ENCRYPTION_KEY=ci-docker-test-token-encryption-key \
 	-e GITHUB_CLIENT_ID=ci-docker-client -e GITHUB_CLIENT_SECRET=ci-docker-client-secret "$image"
-curl --fail --silent --show-error --retry 20 --retry-all-errors --retry-delay 1 \
-	--retry-max-time 60 --max-time 5 http://127.0.0.1:3000/health | jq -e '.status == "ok" and .http == "up"'
+health="$(curl --fail --silent --show-error --retry 20 --retry-all-errors --retry-delay 1 \
+	--retry-max-time 60 --max-time 5 "${base}/health")"
+if [ -n "$version" ]; then
+	jq -e --arg version "$version" '.status == "ok" and .http == "up" and .version == $version' <<<"$health"
+else
+	jq -e '.status == "ok" and .http == "up"' <<<"$health"
+fi
 docker exec "$name" sh -c 'test "$(awk "/^Uid:/{print \$2}" /proc/1/status)" = 1000'
 docker exec "$name" sh -c 'test "$(awk "/^NoNewPrivs:/{print \$2}" /proc/1/status)" = 1'
-for path in / /changelog /book /book/guide/02-setup /book-assets/branding/logo-280.png /icons/github.svg /icons/rust.svg /pkg/monochange_app.js /pkg/monochange_app.wasm /pkg/monochange_app.css /pkg/__wasm_split_manifest.json; do
-	curl --fail --silent --show-error "http://127.0.0.1:3000$path" -o /dev/null
+
+# Both frontend namespaces ship in one deployment tree (pkg/site for the
+# website entry, pkg/projects for the product entry), the shell-referenced
+# public assets, and the deployed WOFF2 fonts.
+for path in / /changelog /book /book/guide/02-setup \
+	/book-assets/branding/logo-280.png /icons/github.svg /icons/rust.svg \
+	/favicon.ico /favicon.svg /site.webmanifest /branding/mark.svg /branding/social.png \
+	/fonts/bricolage-800.woff2 /fonts/hanken-400.woff2 /fonts/hanken-700.woff2 \
+	/pkg/site/monochange_app.js /pkg/site/monochange_app_bg.wasm \
+	/pkg/site/monochange_app.css /pkg/site/__wasm_split_manifest.json \
+	/pkg/projects/monochange_projects_web.js /pkg/projects/monochange_projects_web_bg.wasm \
+	/pkg/projects/__wasm_split_manifest.json; do
+	curl --fail --silent --show-error "${base}${path}" -o /dev/null
 done
-# The image precompresses pkg assets; the file handler must offer them to
-# gzip-capable clients instead of shipping the raw bytes.
-curl --fail --silent --show-error -D - -o /dev/null \
-	-H 'Accept-Encoding: gzip' http://127.0.0.1:3000/pkg/monochange_app.wasm |
-	grep -iE '^content-encoding: gzip'
-if [ -n "$version" ]; then
-	curl --fail --silent --show-error "http://127.0.0.1:3000/releases/$version.json" |
-		jq -e --arg version "$version" '.title == $version'
-	curl --fail --silent --show-error http://127.0.0.1:3000/changelog | grep -Fq "v$version"
+
+# Every split chunk each deployed manifest references must be served: read
+# each namespace's manifest out of the running container and request its
+# chunks over HTTP, so the check exercises the exact files the image carries.
+for namespace in site projects; do
+	chunks="$(docker exec "$name" sh -c "cat /app/site/pkg/$namespace/__wasm_split_manifest.json" |
+		jq -r '[.[] | .[]] | unique | .[]')"
+	test -n "$chunks"
+	while IFS= read -r chunk; do
+		curl --fail --silent --show-error "${base}/pkg/${namespace}/${chunk}.wasm" -o /dev/null
+	done <<<"$chunks"
+done
+
+# Serving the main modules is not enough: before hydration, wasm-bindgen's
+# glue grows the module's `__wbindgen_externrefs` table by 4. If a build step
+# maps that export to the fixed-size function table, every page still returns
+# 200 but no browser can hydrate it. Check the exact modules the image ships.
+docker cp "$name:/app/site/pkg/site/monochange_app_bg.wasm" "$modules/site.wasm"
+docker cp "$name:/app/site/pkg/projects/monochange_projects_web_bg.wasm" "$modules/projects.wasm"
+node "$scripts_root/scripts/check-wasm-externref-table.ts" "$modules/site.wasm" "$modules/projects.wasm"
+
+# The publisher precompressed every compressible asset; the file handler must
+# offer the twins to compression-capable clients instead of raw bytes, and it
+# must serve both deployed encodings.
+for encoding in gzip br; do
+	curl --fail --silent --show-error -D - -o /dev/null \
+		-H "Accept-Encoding: $encoding" "${base}/pkg/site/monochange_app_bg.wasm" |
+		grep -iE "^content-encoding: $encoding"
+	curl --fail --silent --show-error -D - -o /dev/null \
+		-H "Accept-Encoding: $encoding" "${base}/pkg/site/monochange_app.css" |
+		grep -iE "^content-encoding: $encoding"
+done
+
+if [ -n "$version" ] && [ -z "$notes_version" ]; then
+	notes_version="$(node "$scripts_root/scripts/resolve-app-release-notes.ts" --root "$repo_root" --app-version "$version")"
+fi
+
+if [ -n "$notes_version" ]; then
+	release_json="$(curl --fail --silent --show-error "${base}/releases/$notes_version.json")"
+	jq -e --arg version "$notes_version" '.title == $version and all(.sections[].entries[]; .stream == "website")' <<<"$release_json"
+	# Never pipe into `grep -q` under `pipefail`: grep exits on the first match,
+	# the writer fails with EPIPE on the rest of a stream larger than the pipe
+	# buffer, and the pipeline reports that as a false failure. Buffer the page
+	# and match it from a here-string, which needs no pipe at all.
+	changelog="$(curl --fail --silent --show-error "${base}/changelog")"
+	grep -Fq "v$notes_version" <<<"$changelog"
+	grep -Fq "href=\"/releases/$notes_version.json\"" <<<"$changelog"
 fi

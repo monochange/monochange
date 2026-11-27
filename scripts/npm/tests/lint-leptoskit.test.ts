@@ -107,6 +107,8 @@ function createFixtureRoot() {
 
 	mkdirSync(join(root, "scripts"), { recursive: true });
 	cpSync(scriptPath, join(root, "scripts", "lint-leptoskit.sh"));
+	// The lint script delegates CLI resolution to the shared helper.
+	cpSync(join(repoRoot, "scripts", "leptoskit-cli.sh"), join(root, "scripts", "leptoskit-cli.sh"));
 
 	for (const dir of ["app", "app/native", "extension"]) {
 		mkdirSync(join(root, dir), { recursive: true });

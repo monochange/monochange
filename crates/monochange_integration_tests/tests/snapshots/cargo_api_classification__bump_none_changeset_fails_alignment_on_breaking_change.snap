@@ -1,0 +1,12 @@
+---
+source: crates/monochange_integration_tests/tests/cargo_api_classification.rs
+expression: "serde_json::json!({\n    \"status\": affected_json[\"status\"], \"summary\": affected_json[\"summary\"],\n    \"errors\": affected_json[\"errors\"], \"warnings\": affected_json[\"warnings\"],\n})"
+---
+{
+  "errors": [
+    "changeset bump for `core` is insufficient: requested `none`, API classification recommends `major`"
+  ],
+  "status": "failed",
+  "summary": "changeset verification failed: one or more changeset bumps underestimate API impact",
+  "warnings": null
+}

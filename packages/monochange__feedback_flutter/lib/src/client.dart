@@ -33,9 +33,31 @@ class FeedbackException implements Exception {
   String toString() => message;
 }
 
+/// One protocol call: its leptoskit RPC operation and the REST route that
+/// sites released before the operations serve.
+class _Call {
+  final String operation;
+  final Json args;
+  final String legacyPath;
+  final String legacyMethod;
+  final Json? legacyBody;
+  const _Call(
+    this.operation,
+    this.args,
+    this.legacyPath,
+    this.legacyMethod, [
+    this.legacyBody,
+  ]);
+}
+
 /// Host authentication stays in the app. This client never stores a backend key.
 class FeedbackClient {
+  /// The site's RPC operations live under `api/<operation>` of this origin.
+  final Uri origin;
+
+  /// The REST routes of a site released before the RPC operations.
   final Uri base;
+  final int project;
   final Future<ClientToken> Function() getClientToken;
   final Json? Function()? getContext;
   final bool _ownsHttp;
@@ -45,15 +67,19 @@ class FeedbackClient {
   int _generation = 0;
   bool _disposed = false;
   final Map<String, String> _submissionKeys = {};
+  bool _legacy = false;
   static int _sequence = 0;
 
   FeedbackClient({
     required Uri endpoint,
-    required int project,
+    required this.project,
     required this.getClientToken,
     this.getContext,
     http.Client? client,
-  }) : base = Uri.parse(
+  }) : origin = Uri.parse(
+         '${endpoint.toString().replaceFirst(RegExp(r'/$'), '')}/',
+       ),
+       base = Uri.parse(
          '${endpoint.toString().replaceFirst(RegExp(r'/$'), '')}/api/v1/feedback/$project/',
        ),
        _http = client ?? http.Client(),
@@ -113,13 +139,8 @@ class FeedbackClient {
     }
   }
 
-  Future<Json> _request(
-    String path,
-    String method, {
-    Json? body,
-    String? key,
-    bool refresh = true,
-  }) async {
+  Future<Json> _request(_Call call, {String? key, bool refresh = true}) async {
+    final legacy = _legacy;
     final generation = _generation;
     final token = await _session();
 
@@ -130,8 +151,16 @@ class FeedbackClient {
       );
     }
 
-    final request = http.Request(method, base.resolve(path))
-      ..followRedirects = false;
+    final request = legacy
+        ? http.Request(call.legacyMethod, base.resolve(call.legacyPath))
+        : http.Request(
+            'POST',
+            origin
+                .resolve('api/${call.operation}')
+                .replace(queryParameters: {'project': '$project'}),
+          );
+    request.followRedirects = false;
+    final body = legacy ? call.legacyBody : {'project': project, ...call.args};
     request.headers.addAll({
       'Authorization': 'Bearer ${token.token}',
       'Content-Type': 'application/json',
@@ -167,18 +196,25 @@ class FeedbackClient {
     if (response.statusCode == 401 && refresh) {
       if (identical(_token, token)) _token = null;
 
-      return _request(path, method, body: body, key: key, refresh: false);
+      return _request(call, key: key, refresh: false);
     }
 
     Json value;
     try {
       value = jsonDecode(utf8.decode(bytes.takeBytes())) as Json;
     } catch (_) {
+      if (response.statusCode == 404 && !legacy) return _fallBack(call, key);
       throw FeedbackException(
         'Invalid feedback response',
         code: 'invalid_response',
         status: response.statusCode,
       );
+    }
+
+    // Every RPC failure carries a `code`; a 404 without one is a site that
+    // predates the operations, so use its REST routes from now on.
+    if (response.statusCode == 404 && !legacy && value['code'] is! String) {
+      return _fallBack(call, key);
     }
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -193,8 +229,24 @@ class FeedbackClient {
     return value;
   }
 
-  Future<Json> suggest(String text) =>
-      _request('suggestions', 'POST', body: {'text': text});
+  Future<Json> _fallBack(_Call call, String? key) {
+    _legacy = true;
+    return _request(call, key: key);
+  }
+
+  Future<Json> suggest(String text) {
+    final input = {'text': text};
+    return _request(
+      _Call(
+        'feedback_sdk_suggestions',
+        {'input': input},
+        'suggestions',
+        'POST',
+        input,
+      ),
+    );
+  }
+
   Future<Json> startConversation(
     String message, {
     String kind = 'feature_request',
@@ -207,43 +259,84 @@ class FeedbackClient {
           .split(RegExp(r'[?#]'))
           .first;
     }
+    final input = {'message': message, 'kind': kind, 'context': context};
     return _request(
-      'conversations',
-      'POST',
-      body: {'message': message, 'kind': kind, 'context': context},
+      _Call(
+        'feedback_sdk_create_conversation',
+        {'input': input},
+        'conversations',
+        'POST',
+        input,
+      ),
     );
   }
 
-  Future<Json> getConversation(String id) =>
-      _request('conversations/${Uri.encodeComponent(id)}', 'GET');
-  Future<Json> sendMessage(Json conversation, String body) => _request(
-    'conversations/${Uri.encodeComponent(conversation['id'] as String)}/messages',
-    'POST',
-    body: {'body': body, 'version': conversation['version']},
+  Future<Json> getConversation(String id) => _request(
+    _Call(
+      'feedback_sdk_conversation',
+      {'id': id},
+      'conversations/${Uri.encodeComponent(id)}',
+      'GET',
+    ),
   );
+
+  Future<Json> sendMessage(Json conversation, String body) {
+    final id = conversation['id'] as String;
+    final input = {'body': body, 'version': conversation['version']};
+    return _request(
+      _Call(
+        'feedback_sdk_conversation_message',
+        {'id': id, 'input': input},
+        'conversations/${Uri.encodeComponent(id)}/messages',
+        'POST',
+        input,
+      ),
+    );
+  }
+
   Future<Json> submit(String conversation, int version) {
     final scope = '$conversation:$version';
     final key = _submissionKeys.putIfAbsent(
       scope,
       () => 'request-${DateTime.now().microsecondsSinceEpoch}-${_sequence++}',
     );
+    final input = {'conversation': conversation, 'version': version};
     return _request(
-      'items',
-      'POST',
-      body: {'conversation': conversation, 'version': version},
+      _Call('feedback_sdk_submit', {'input': input}, 'items', 'POST', input),
       key: key,
     );
   }
 
-  Future<Json> getItem(String id) =>
-      _request('items/${Uri.encodeComponent(id)}', 'GET');
-  Future<Json> reply(String id, String body) => _request(
-    'items/${Uri.encodeComponent(id)}/messages',
-    'POST',
-    body: {'body': body},
+  Future<Json> getItem(String id) => _request(
+    _Call(
+      'feedback_sdk_item',
+      {'id': id},
+      'items/${Uri.encodeComponent(id)}',
+      'GET',
+    ),
   );
-  Future<Json> vote(String id, {bool on = true}) =>
-      _request('items/${Uri.encodeComponent(id)}/vote', on ? 'PUT' : 'DELETE');
+
+  Future<Json> reply(String id, String body) {
+    final input = {'body': body};
+    return _request(
+      _Call(
+        'feedback_sdk_reply',
+        {'id': id, 'input': input},
+        'items/${Uri.encodeComponent(id)}/messages',
+        'POST',
+        input,
+      ),
+    );
+  }
+
+  Future<Json> vote(String id, {bool on = true}) => _request(
+    _Call(
+      'feedback_sdk_vote',
+      {'id': id, 'voted': on},
+      'items/${Uri.encodeComponent(id)}/vote',
+      on ? 'PUT' : 'DELETE',
+    ),
+  );
 
   /// Clear both identity and pending replies when the host account changes.
   void reset() {

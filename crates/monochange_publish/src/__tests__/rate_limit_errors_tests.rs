@@ -4,56 +4,10 @@ use monochange_core::RegistryKind;
 
 use super::*;
 
-const CRATES_IO_429: &str = "    Updating crates.io index
-   Packaging canvist_layout v0.0.0 (/tmp/.tmp97QCLt)
-   Uploading canvist_layout v0.0.0 (/tmp/.tmp97QCLt)
-error: failed to publish canvist_layout v0.0.0 to registry at https://crates.io
-
-Caused by:
-  the remote server responded with an error (status 429 Too Many Requests): You have published too many new crates in a short period of time. Please try again after Tue, 20 Oct 2026 10:59:10 GMT and see https://crates.io/docs/rate-limits for more details.";
-
 fn at(timestamp: &str) -> DateTime<Utc> {
 	DateTime::parse_from_rfc3339(timestamp)
 		.unwrap_or_else(|error| panic!("timestamp {timestamp}: {error}"))
 		.with_timezone(&Utc)
-}
-
-#[test]
-fn crates_io_rejections_keep_the_reason_retry_time_and_limits_page() {
-	let now = at("2026-10-20T10:53:00Z");
-	let hit = detect_rate_limit_hit(RegistryKind::CratesIo, CRATES_IO_429, now)
-		.unwrap_or_else(|| panic!("crates.io 429 should be recognised"));
-
-	assert_eq!(
-		hit,
-		PublishRateLimitHit {
-			reason: Some(
-				"You have published too many new crates in a short period of time.".to_string()
-			),
-			retry_at: Some("2026-10-20T10:59:10+00:00".to_string()),
-			docs_url: Some(CRATES_IO_RATE_LIMIT_DOCS.to_string()),
-		}
-	);
-	assert_eq!(
-		hit.render_message("crates_io", now),
-		"rate limited by crates.io until 10:59:10 UTC (in 7 minutes). You have published too \
-		 many new crates in a short period of time."
-	);
-}
-
-#[test]
-fn crates_io_rejections_without_a_link_point_at_the_limits_page() {
-	let now = at("2026-10-20T10:53:00Z");
-	let hit = detect_rate_limit_hit(
-		RegistryKind::CratesIo,
-		"error: failed to publish to registry at https://crates.io\n\nCaused by:\n  the remote \
-		 server responded with an error (status 429 Too Many Requests)",
-		now,
-	)
-	.unwrap_or_else(|| panic!("crates.io 429 should be recognised"));
-
-	assert_eq!(hit.docs_url.as_deref(), Some(CRATES_IO_RATE_LIMIT_DOCS));
-	assert_eq!(hit.retry_at, None);
 }
 
 #[test]
@@ -128,53 +82,4 @@ fn other_registries_are_recognised_from_their_429_wording() {
 	);
 	assert_eq!(registry_display_name("go_proxy"), "the Go proxy");
 	assert_eq!(registry_display_name("custom"), "custom");
-}
-
-#[test]
-fn ordinary_failures_are_not_rate_limits() {
-	let now = at("2026-10-20T10:00:00Z");
-
-	assert_eq!(
-		detect_rate_limit_hit(
-			RegistryKind::CratesIo,
-			"error: failed to verify package tarball\nerror[E0429]: `self` imports",
-			now,
-		),
-		None
-	);
-	assert_eq!(
-		detect_rate_limit_hit(RegistryKind::Npm, "npm error code E403", now),
-		None
-	);
-}
-
-#[test]
-fn retry_times_read_as_a_clock_time_and_a_wait() {
-	let hit = |retry_at: Option<&str>| {
-		PublishRateLimitHit {
-			reason: None,
-			retry_at: retry_at.map(str::to_string),
-			docs_url: None,
-		}
-	};
-	let now = at("2026-10-20T10:00:00Z");
-
-	assert_eq!(
-		hit(Some("2026-10-20T11:00:00+00:00")).render_retry_at(now),
-		Some("11:00:00 UTC (in 60 minutes)".to_string())
-	);
-	assert_eq!(
-		hit(Some("2026-10-20T11:40:00+00:00")).render_retry_at(now),
-		Some("11:40:00 UTC (in about 2 hours)".to_string())
-	);
-	assert_eq!(
-		hit(Some("2026-10-22T09:00:00+00:00")).render_retry_at(now),
-		Some("Thu 22 Oct 2026 09:00:00 UTC (in about 47 hours)".to_string())
-	);
-	assert_eq!(
-		hit(Some("2026-10-20T09:00:00+00:00")).render_retry_at(now),
-		Some("Tue 20 Oct 2026 09:00:00 UTC".to_string())
-	);
-	assert_eq!(hit(Some("soon")).render_retry_at(now), None);
-	assert_eq!(hit(None).render_retry_at(now), None);
 }

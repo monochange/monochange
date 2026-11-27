@@ -1792,6 +1792,15 @@
 					"default": false,
 					"type": "boolean"
 				},
+				"max_body_chars": {
+					"description": "Maximum hosted release body size. GitHub defaults to 125,000 characters;\nlarger configured values are clamped to that provider limit.",
+					"format": "uint",
+					"minimum": 1,
+					"type": [
+						"integer",
+						"null"
+					]
+				},
 				"prerelease": {
 					"default": false,
 					"type": "boolean"

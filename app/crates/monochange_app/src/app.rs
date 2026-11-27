@@ -1,13 +1,36 @@
-//! Document shell. The page tree is the leptoskit file router.
+//! Shared document shell, the website browser entry, and GitHub sign-in pages.
+//!
+//! The website browser entry owns landing, auth, the repositories dashboard,
+//! and docs. Product paths belong to the projects entry
+//! (`monochange_projects_web::app::ProjectsApp`), which the server-side
+//! composition ([`SurfaceApp`]) renders for the paths
+//! `monochange_shared::routing::is_projects_path` classifies as product.
 
 use leptos::prelude::*;
+#[cfg(not(target_arch = "wasm32"))]
 use leptos_meta::MetaTags;
 use leptos_meta::Stylesheet;
 use leptos_meta::Title;
 use leptos_meta::provide_meta_context;
+use leptos_router::Lazy;
+use leptos_router::LazyRoute;
+use leptos_router::components::Route;
+use leptos_router::components::Router;
+use leptos_router::components::Routes;
+use leptos_router::lazy_route;
+use leptos_router::path;
+use monochange_projects::components::footer::Footer;
 
-use crate::color_mode::provide_color_mode;
-use crate::navigation::current;
+use crate::components::navbar::NavBar;
+use crate::error::ErrorTemplate;
+use crate::links::BOOK_URL;
+use crate::pages::book::BookRoute;
+use crate::pages::changelog::ChangelogRoute;
+use crate::pages::dashboard::DashboardRoute;
+use crate::pages::home::HomePage;
+use crate::pages::install::InstallRoute;
+use crate::pages::pricing::PricingRoute;
+use crate::server_fns::auth::SessionUser;
 
 // Leptos strips literal comments. The inert template below preserves this
 // contract in server output and occupies the same node during hydration.
@@ -20,21 +43,28 @@ FORM: Product floor → release manifest demo → ecosystems → workflow → cl
 FINISH: Align with docs/landing-design.md; keep auth and dashboard routes intact.
 -->";
 
-/// wasm-bindgen 0.2.130 still emits `import … from "__wbindgen_externref_xform__"`
-/// after cargo-leptos hides the `reference-types` feature on split modules.
-/// The helper has to be mapped before the hydration module script runs.
-const WASM_BINDGEN_EXTERNREF_IMPORT_MAP: &str =
-	r#"{"imports":{"__wbindgen_externref_xform__":"/wbindgen-externref-xform.js"}}"#;
+// A fixed script can be allowed by its SHA-256 CSP hash; it runs before CSS
+// paints so a saved dark preference does not flash the server's light theme.
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) const THEME_INIT: &str = include_str!("theme-init.js");
 
 /// Server-rendered document shell.
+///
+/// The head references the bundle of whichever frontend owns the request
+/// path, and the body renders that frontend's route tree. During
+/// `generate_route_list` the path context is empty, which classifies as the
+/// website entry; listings are generated per frontend before this runs.
+#[cfg(not(target_arch = "wasm32"))]
 pub fn shell(options: LeptosOptions) -> impl IntoView {
+	let frontend = crate::frontend::Frontend::current();
 	view! {
 		<!DOCTYPE html>
 		<html lang="en">
 			<head>
 				<meta charset="utf-8" />
 				<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-				<meta name="theme-color" content="#0F766E" />
+				<script inner_html=THEME_INIT></script>
+				<meta name="theme-color" content="#5433d1" />
 				<meta
 					name="description"
 					content="Free, open-source release planning for monorepos. Coordinate projects, releases, feedback, and org workspaces across six ecosystems."
@@ -49,49 +79,353 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
 				/>
 				<meta name="twitter:card" content="summary_large_image" />
 				<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-				<script type="importmap" inner_html=WASM_BINDGEN_EXTERNREF_IMPORT_MAP></script>
 				<AutoReload options=options.clone() />
-				<HydrationScripts options=options />
+				<crate::frontend::FrontendScripts options=options frontend />
 				<MetaTags />
 			</head>
 			<body>
-				<App />
+				<SurfaceApp />
 			</body>
 		</html>
 	}
 }
 
-/// Root view: one leptoskit navigation, rendered into the document.
+/// Server-side composition root: the frontend that owns the request path.
+///
+/// Two independently built browser entries share one SSR backend. Cross-entry
+/// navigation is a document navigation (cross-surface links carry
+/// `target="_self"`), so exactly one entry mounts per document.
+#[cfg(not(target_arch = "wasm32"))]
+#[component]
+pub fn SurfaceApp() -> impl IntoView {
+	if crate::frontend::Frontend::current() == crate::frontend::Frontend::PROJECTS {
+		view! { <monochange_projects_web::app::ProjectsApp /> }.into_any()
+	} else {
+		view! { <App /> }.into_any()
+	}
+}
+
+/// Root `<App/>` component: the website browser entry.
 #[component]
 pub fn App() -> impl IntoView {
 	provide_meta_context();
-	let _ = provide_color_mode();
-	let navigation = current();
-	let rendered = navigation.clone();
 
 	view! {
 		<template id="website-direction" inner_html=WEBSITE_DIRECTION />
-		<Stylesheet id="leptos" href="/pkg/monochange_app.css" />
+		<Stylesheet id="leptos" href=monochange_shared::routing::WEBSITE_STYLESHEET />
 		<Title text="monochange — Release planning for monorepos" />
-		<main id="main-content">
-			<a href="/projects">"Projects"</a>
-			<Suspense fallback=|| ()>
-				{move || {
-					if let crate::routes::Route::Connect(connect) = rendered.current() {
-						crate::pages::connect::connect_document(
-							connect.client.unwrap_or_default(),
-							connect.redirect_uri.unwrap_or_default(),
-							connect.code_challenge.unwrap_or_default(),
-							connect.state.unwrap_or_default(),
-							connect.code_challenge_method.unwrap_or_default(),
-						)
-						.into_any()
-					} else {
-						leptoskit::web::render(rendered.render()).into_any()
+		<Router>
+			<monochange_projects::components::canonical::Canonical />
+			<NavBar />
+			<main id="main-content" class="min-h-screen">
+				<Routes fallback=|| {
+					view! { <ErrorTemplate status=404 message="Page not found" /> }
+				}>
+					<Route path=path!("/") view=HomePage />
+					<Route path=path!("/dashboard") view={Lazy::<DashboardRoute>::new()} />
+					<Route path=path!("/install") view={Lazy::<InstallRoute>::new()} />
+					<Route path=path!("/connect") view={Lazy::<ConnectRoute>::new()} />
+					<Route path=path!("/account") view={Lazy::<AccountRoute>::new()} />
+					<Route path=path!("/login") view={Lazy::<LoginRoute>::new()} />
+					<Route path=path!("/pricing") view={Lazy::<PricingRoute>::new()} />
+					<Route path=path!("/changelog") view={Lazy::<ChangelogRoute>::new()} />
+					<Route path=path!("/book") view={Lazy::<BookRoute>::new()} />
+					<Route path=path!("/book/*chapter") view={Lazy::<BookRoute>::new()} />
+					<Route path=path!("/auth/callback") view={Lazy::<AuthCallbackRoute>::new()} />
+				</Routes>
+			</main>
+			<Footer website_version=env!("CARGO_PKG_VERSION") />
+		</Router>
+	}
+}
+
+// ── Login Page ──
+#[component]
+fn LoginPage() -> impl IntoView {
+	let query = leptos_router::hooks::use_query_map();
+	let login_url = Resource::new_blocking(
+		move || query.read().get("next"),
+		|next| {
+			async {
+				crate::server_fns::auth::get_login_url(next)
+					.await
+					.unwrap_or_default()
+			}
+		},
+	);
+
+	// Signing in from a feedback portal is about that project, not a workspace.
+	let for_portal = query
+		.read_untracked()
+		.get("next")
+		.is_some_and(|next| next.starts_with("/p/"));
+	let copy = if for_portal {
+		view! {
+			<div class="login-copy">
+				<h1>"Your voice," <br /> "counted once."</h1>
+				<p>
+					"Sign in to share feedback, vote, and follow it until it ships. Your GitHub name isn't shown on the project's page."
+				</p>
+			</div>
+		}
+		.into_any()
+	} else {
+		view! {
+			<div class="login-copy">
+				<h1>"Your workspace," <br /> "all together."</h1>
+				<p>
+					"Sign in to see your connected repositories and manage your monochange workspace."
+				</p>
+				<a href=BOOK_URL class="text-link">"Just looking for the CLI? Read the book."</a>
+			</div>
+		}
+		.into_any()
+	};
+
+	view! {
+		<section class="login-section site-width">
+			{copy}
+			<div class="login-panel">
+				// Logo mark
+				<div class="login-mark">
+					<img src="/branding/mark.svg" alt="monochange" class="size-12" />
+				</div>
+
+				<h2>Sign in to monochange</h2>
+				<p class="login-description">Use your GitHub account to continue.</p>
+
+				<div class="mt-10">
+					<Suspense fallback=|| {
+						view! {
+							<div class="mx-auto h-12 w-64 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" />
+						}
+					}>
+						{move || {
+							login_url.get().map(|url| {
+								if url.is_empty() {
+									view! {
+										<div class="rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950">
+											<p class="text-sm text-red-600 dark:text-red-400">
+												GitHub sign-in is unavailable right now. Please try again later.
+											</p>
+										</div>
+									}
+									.into_any()
+								} else {
+									view! {
+										<a href=url class="button button-brand">
+											<svg
+												class="size-5"
+												fill="currentColor"
+												viewBox="0 0 16 16"
+												aria-hidden="true"
+											>
+												<path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+											</svg>
+											Continue with GitHub
+											<svg
+												class="size-4 transition-transform group-hover:translate-x-0.5"
+												fill="none"
+												viewBox="0 0 24 24"
+												stroke-width="2"
+												stroke="currentColor"
+											>
+												<path
+													stroke-linecap="round"
+													stroke-linejoin="round"
+													d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
+												/>
+											</svg>
+										</a>
+									}
+									.into_any()
+								}
+							})
+						}}
+					</Suspense>
+				</div>
+
+				<p class="login-notice">
+					"GitHub will show the account access requested before you continue."
+				</p>
+			</div>
+		</section>
+	}
+}
+
+// ── Auth Callback Page ──
+/// Login and device-management pages load independently.
+struct LoginRoute;
+
+#[lazy_route]
+impl LazyRoute for LoginRoute {
+	fn data() -> Self {
+		Self
+	}
+
+	fn view(_: Self) -> AnyView {
+		view! { <LoginPage /> }.into_any()
+	}
+}
+
+struct ConnectRoute;
+
+#[lazy_route]
+impl LazyRoute for ConnectRoute {
+	fn data() -> Self {
+		Self
+	}
+
+	fn view(_: Self) -> AnyView {
+		view! { <crate::pages::connect::ConnectPage /> }.into_any()
+	}
+}
+
+struct AccountRoute;
+
+#[lazy_route]
+impl LazyRoute for AccountRoute {
+	fn data() -> Self {
+		Self
+	}
+
+	fn view(_: Self) -> AnyView {
+		view! { <crate::pages::account::AccountPage /> }.into_any()
+	}
+}
+
+struct AuthCallbackRoute {
+	result: Resource<Result<SessionUser, String>>,
+}
+
+#[lazy_route]
+impl LazyRoute for AuthCallbackRoute {
+	fn data() -> Self {
+		let params = leptos_router::hooks::use_query_map();
+
+		// Cookie headers must be complete before SSR starts sending the page.
+		let result = Resource::new_blocking(
+			move || params.get(),
+			|params| {
+				async move {
+					let code = params.get("code").unwrap_or_default();
+					let state = params.get("state").unwrap_or_default();
+					if code.is_empty() {
+						return Err("No authorization code received".to_string());
 					}
-				}}
-			</Suspense>
-		</main>
+
+					crate::server_fns::auth::exchange_code(code, state)
+						.await
+						.map_err(|e| e.to_string())
+				}
+			},
+		);
+		Self { result }
+	}
+
+	fn view(this: Self) -> AnyView {
+		let AuthCallbackRoute { result } = this;
+		view! {
+					<div class="flex min-h-[80vh] items-center justify-center">
+						<Suspense fallback=|| {
+							view! {
+								<div class="text-center">
+									<div class="mx-auto size-12 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600" />
+									<p class="mt-4 text-sm text-gray-500">Completing sign in...</p>
+								</div>
+							}
+						}>
+							{move || {
+								result.get().map(|r| {
+									match r {
+										Ok(user) => {
+											view! {
+												<div class="text-center">
+													<div class="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900">
+														<svg
+															class="size-8 text-green-600 dark:text-green-400"
+															fill="none"
+															viewBox="0 0 24 24"
+															stroke-width="2"
+															stroke="currentColor"
+														>
+															<path
+																stroke-linecap="round"
+																stroke-linejoin="round"
+																d="M4.5 12.75l6 6 9-13.5"
+															/>
+														</svg>
+													</div>
+													<h2 class="text-2xl font-bold text-gray-900 dark:text-white">
+														Signed in!
+													</h2>
+													<p class="mt-2 text-gray-600 dark:text-gray-400">
+														Welcome, {user.github_login}!
+													</p>
+													<a
+														href="/dashboard"
+														class="mt-8 inline-flex items-center gap-x-2 rounded-xl bg-brand-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 transition-colors"
+													>
+														Go to dashboard
+														<svg
+															class="size-4"
+															fill="none"
+															viewBox="0 0 24 24"
+															stroke-width="2"
+															stroke="currentColor"
+														>
+															<path
+																stroke-linecap="round"
+																stroke-linejoin="round"
+																d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
+															/>
+														</svg>
+													</a>
+												</div>
+											}
+											.into_any()
+										}
+										Err(e) => {
+											view! {
+												<div class="text-center">
+													<div class="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900">
+														<svg
+															class="size-8 text-red-600 dark:text-red-400"
+															fill="none"
+															viewBox="0 0 24 24"
+															stroke-width="2"
+															stroke="currentColor"
+														>
+															<path
+																stroke-linecap="round"
+																stroke-linejoin="round"
+																d="M6 18L18 6M6 6l12 12"
+															/>
+														</svg>
+													</div>
+													<h2 class="text-2xl font-bold text-red-600 dark:text-red-400">
+														Sign in failed
+													</h2>
+													<p class="mt-2 text-gray-600 dark:text-gray-400">
+														{e}
+													</p>
+													<a
+														href="/login"
+														class="mt-8 inline-block rounded-xl bg-brand-600 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
+													>
+														Try again
+													</a>
+												</div>
+											}
+											.into_any()
+										}
+									}
+								})
+							}}
+						</Suspense>
+					</div>
+				}
+				.into_any()
 	}
 }
 

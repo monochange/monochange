@@ -43,7 +43,7 @@ fn location(response: &ResponseOptions) -> Option<String> {
 }
 
 fn message(error: &server_fn::ServerFnError) -> String {
-	crate::pages::organization::action_error(error)
+	crate::error::action_error(error)
 }
 
 fn args(project: &str) -> (String, String) {

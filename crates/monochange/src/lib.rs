@@ -254,6 +254,7 @@ mod cli_theme;
 mod command_wizard;
 mod doctor;
 mod git_support;
+mod hosted_rpc;
 mod hosted_sources;
 mod interactive;
 mod jq_filter;

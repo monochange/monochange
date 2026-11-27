@@ -6,14 +6,22 @@
 //!
 //! Wire DTOs that extension/native guests need live in `monochange_shared`
 //! and are re-exported from these modules so existing imports keep working.
-//! Machine webhooks / OIDC / embed SDK routes stay on Axum via
+//! Hosted release operations for CI (`hosted`) are RPC operations too, but
+//! authenticate workflows instead of sessions. GitHub webhooks and the
+//! legacy REST aliases stay on Axum via
 //! `monochange_backend::machine_api_router`.
 
 pub mod ai;
 pub use monochange_projects::server_fns::auth;
 pub mod book;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod client_handoff;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod hosted;
 pub use monochange_projects::server_fns::embedded;
 pub use monochange_projects::server_fns::feedback;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod feedback_sdk;
 pub mod installation;
 pub use monochange_projects::server_fns::organizations;
 pub use monochange_projects::server_fns::portal;

@@ -1,9 +1,0 @@
----
-source: crates/monochange_forgejo/src/__tests__/lib_tests.rs
-expression: body
----
-Release target `sdk`
-
-Members: core, app
-
-- add provider automation

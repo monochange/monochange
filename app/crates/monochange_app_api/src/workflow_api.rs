@@ -221,6 +221,9 @@ fn dispatch_error_status(error: &github_app::GitHubAppError) -> StatusCode {
 }
 
 /// `POST /api/workflow-dispatches` — dispatch a GitHub Actions workflow.
+///
+/// Kept for monochange CLIs released before the `hosted_workflow_dispatch` RPC
+/// operation; both run [`workflow_dispatch`].
 pub async fn dispatch_workflow(
 	State(state): State<AppState>,
 	headers: axum::http::HeaderMap,
@@ -229,12 +232,30 @@ pub async fn dispatch_workflow(
 	let caller = release_api::authenticate(&state, &headers).await?;
 	let request: HostedWorkflowDispatchRequest =
 		release_api::read_json_body(body, WORKFLOW_DISPATCH_BODY_LIMIT).await?;
+	workflow_dispatch(&state, &caller, request).await.map(Json)
+}
 
+/// Dispatch a workflow for an authenticated caller.
+///
+/// The transport-independent core of the REST route and the
+/// `hosted_workflow_dispatch` RPC operation.
+///
+/// # Errors
+///
+/// The status and message the caller receives: `400` for an invalid request,
+/// `403` when the caller may not dispatch in the target repository, `404`
+/// when the repository or workflow is missing, `503` when the GitHub App is
+/// not configured, and `502` for other GitHub failures.
+pub async fn workflow_dispatch(
+	state: &AppState,
+	caller: &Caller,
+	request: HostedWorkflowDispatchRequest,
+) -> Result<HostedWorkflowDispatchResponse, (StatusCode, Json<ApiError>)> {
 	validate_workflow_dispatch_request(&request)
 		.map_err(|message| (StatusCode::BAD_REQUEST, Json(ApiError::new(message))))?;
 
 	let full_name = format!("{}/{}", request.owner, request.repository);
-	let repository = authorize_workflow_dispatch(&state, &caller, &full_name).await?;
+	let repository = authorize_workflow_dispatch(state, caller, &full_name).await?;
 
 	let app = state
 		.github_app
@@ -265,7 +286,7 @@ pub async fn dispatch_workflow(
 	};
 
 	if request.dry_run {
-		return Ok(Json(response));
+		return Ok(response);
 	}
 
 	github_app::dispatch_workflow(
@@ -292,5 +313,5 @@ pub async fn dispatch_workflow(
 		"hosted workflow dispatched"
 	);
 
-	Ok(Json(response))
+	Ok(response)
 }

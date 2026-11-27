@@ -1,9 +1,0 @@
----
-source: crates/monochange/tests/source_providers.rs
-expression: contents
----
-Prepare release.
-
-- release targets: core (1.0.1)
-- released packages: workflow-core
-- updated changelogs: crates/core/CHANGELOG.md

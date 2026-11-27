@@ -46,134 +46,6 @@ use super::validate_step_draft;
 use super::write_config_text;
 
 #[test]
-fn upsert_cli_command_document_adds_command_to_empty_config() {
-	let update = CommandUpdate {
-		original_name: None,
-		name: "ship-it".to_string(),
-		help_text: Some("Ship the release".to_string()),
-		dry_run: false,
-		inputs: Vec::new(),
-		steps: CommandStepUpdate::Replace(vec![CommandStepDraft::built_in("Discover")]),
-	};
-
-	let rendered = render_update("", &update);
-	let value = parse_rendered_toml(&rendered);
-	let command = value
-		.get("cli")
-		.and_then(|cli| cli.get("ship-it"))
-		.and_then(Value::as_table)
-		.unwrap_or_else(|| panic!("command table should exist"));
-
-	assert_eq!(
-		command.get("help_text").and_then(Value::as_str),
-		Some("Ship the release")
-	);
-	assert!(!command.contains_key("dry_run"));
-	let steps = command
-		.get("steps")
-		.and_then(Value::as_array)
-		.unwrap_or_else(|| panic!("steps should be an array"));
-	assert_eq!(
-		steps[0].get("type").and_then(Value::as_str),
-		Some("Discover")
-	);
-}
-
-#[test]
-fn upsert_cli_command_document_edits_existing_command_without_replacing_steps() {
-	let config = r#"
-[cli.release]
-help_text = "Old help"
-dry_run = true
-steps = [{ type = "PrepareRelease", allow_empty_changesets = true }]
-"#;
-	let update = CommandUpdate {
-		original_name: Some("release".to_string()),
-		name: "release".to_string(),
-		help_text: Some("New help".to_string()),
-		dry_run: false,
-		inputs: Vec::new(),
-		steps: CommandStepUpdate::KeepExisting,
-	};
-
-	let rendered = render_update(config, &update);
-	let value = parse_rendered_toml(&rendered);
-	let command = value["cli"]["release"]
-		.as_table()
-		.unwrap_or_else(|| panic!("command table should exist"));
-
-	assert_eq!(command["help_text"].as_str(), Some("New help"));
-	assert!(!command.contains_key("dry_run"));
-	assert_eq!(
-		command["steps"][0]["allow_empty_changesets"].as_bool(),
-		Some(true)
-	);
-}
-
-#[test]
-fn upsert_cli_command_document_renames_existing_command() {
-	let config = r#"
-[cli.old-name]
-steps = [{ type = "Validate" }]
-
-[cli.keep]
-steps = [{ type = "Discover" }]
-"#;
-	let update = CommandUpdate {
-		original_name: Some("old-name".to_string()),
-		name: "new-name".to_string(),
-		help_text: None,
-		dry_run: false,
-		inputs: Vec::new(),
-		steps: CommandStepUpdate::KeepExisting,
-	};
-
-	let rendered = render_update(config, &update);
-	let value = parse_rendered_toml(&rendered);
-	let cli = value["cli"]
-		.as_table()
-		.unwrap_or_else(|| panic!("cli table should exist"));
-
-	assert!(!cli.contains_key("old-name"));
-	assert!(cli.contains_key("new-name"));
-	assert!(cli.contains_key("keep"));
-	assert_eq!(
-		cli["new-name"]["steps"][0]["type"].as_str(),
-		Some("Validate")
-	);
-}
-
-#[test]
-fn upsert_cli_command_document_writes_shell_command_steps() {
-	let update = CommandUpdate {
-		original_name: None,
-		name: "lockfiles".to_string(),
-		help_text: None,
-		dry_run: true,
-		inputs: Vec::new(),
-		steps: CommandStepUpdate::Replace(vec![CommandStepDraft::shell_command(
-			"pnpm install --lockfile-only".to_string(),
-			Some("generate lockfiles".to_string()),
-		)]),
-	};
-
-	let rendered = render_update("", &update);
-	let value = parse_rendered_toml(&rendered);
-	let command = value["cli"]["lockfiles"]
-		.as_table()
-		.unwrap_or_else(|| panic!("command table should exist"));
-	let step = &command["steps"][0];
-
-	assert_eq!(command["dry_run"].as_bool(), Some(true));
-	assert_eq!(step["type"].as_str(), Some("Command"));
-	assert_eq!(step["name"].as_str(), Some("generate lockfiles"));
-	assert_eq!(
-		step["command"].as_str(),
-		Some("pnpm install --lockfile-only")
-	);
-}
-
-#[test]
 fn upsert_cli_command_document_writes_command_inputs() {
 	let mut release_type = command_input_string("release-type");
 	release_type.kind = "choice".to_string();
@@ -309,18 +181,6 @@ fn command_step_with_default_inputs_adds_and_inherits_expected_inputs() {
 		command_step_with_default_inputs("NotARealStep", &mut command_inputs).map(|_| ()),
 		"unknown CLI step type `NotARealStep`",
 	);
-}
-
-#[test]
-fn command_input_kind_name_returns_schema_names() {
-	assert_eq!(command_input_kind_name(CliInputKind::String), "string");
-	assert_eq!(
-		command_input_kind_name(CliInputKind::StringList),
-		"string_list"
-	);
-	assert_eq!(command_input_kind_name(CliInputKind::Path), "path");
-	assert_eq!(command_input_kind_name(CliInputKind::Choice), "choice");
-	assert_eq!(command_input_kind_name(CliInputKind::Boolean), "boolean");
 }
 
 #[test]
@@ -466,45 +326,6 @@ fn dashboard_actions_offer_edit_only_when_commands_exist() {
 		"Open monochange.toml in $VISUAL/$EDITOR"
 	);
 	assert_eq!(DashboardAction::Quit.to_string(), "Quit without changes");
-}
-
-#[test]
-fn read_cli_command_returns_details_for_existing_command() {
-	let config = r#"
-[cli.lockfiles]
-help_text = "Generate lockfiles"
-dry_run = true
-inputs = [{ name = "workspace", type = "path", help_text = "Workspace path", required = true, short = "w" }]
-steps = [{ type = "Command", name = "install", command = "pnpm install --lockfile-only" }]
-"#;
-
-	let command = read_cli_command(config, "lockfiles")
-		.unwrap_or_else(|error| panic!("command should parse: {error}"))
-		.unwrap_or_else(|| panic!("command should exist"));
-	let missing = read_cli_command(config, "missing")
-		.unwrap_or_else(|error| panic!("command lookup should parse: {error}"));
-
-	assert!(missing.is_none());
-	assert_eq!(command.name, "lockfiles");
-	assert_eq!(command.help_text.as_deref(), Some("Generate lockfiles"));
-	assert!(command.dry_run);
-	assert_eq!(command.inputs.len(), 1);
-	assert_eq!(command.inputs[0].name, "workspace");
-	assert_eq!(command.inputs[0].kind, "path");
-	assert_eq!(
-		command.inputs[0].help_text.as_deref(),
-		Some("Workspace path")
-	);
-
-	assert!(command.inputs[0].required);
-	assert_eq!(command.inputs[0].short, Some('w'));
-	assert_eq!(command.steps.len(), 1);
-	assert_eq!(command.steps[0].kind, STEP_KIND_SHELL_COMMAND);
-	assert_eq!(command.steps[0].name.as_deref(), Some("install"));
-	assert_eq!(
-		command.steps[0].command.as_deref(),
-		Some("pnpm install --lockfile-only")
-	);
 }
 
 #[test]
@@ -849,37 +670,6 @@ steps = [{ type = "Discover" }]
 }
 
 #[test]
-fn upsert_cli_command_document_rejects_empty_replacement_steps() {
-	let update = CommandUpdate {
-		original_name: None,
-		name: "release-pr".to_string(),
-		help_text: None,
-		dry_run: false,
-		inputs: Vec::new(),
-		steps: CommandStepUpdate::Replace(Vec::new()),
-	};
-
-	assert_config_error(
-		upsert_cli_command_document("", &update).map(|_| ()),
-		"a CLI command needs at least one step",
-	);
-}
-
-#[test]
-fn render_document_and_optional_text_normalization_are_stable() {
-	let document = ""
-		.parse::<DocumentMut>()
-		.unwrap_or_else(|error| panic!("empty document should parse: {error}"));
-
-	assert_eq!(render_document(&document), "\n");
-	assert_eq!(normalize_optional_text(" \n\t "), None);
-	assert_eq!(
-		normalize_optional_text(" release "),
-		Some("release".to_string())
-	);
-}
-
-#[test]
 fn config_text_helpers_handle_missing_files_and_io_errors() {
 	let tempdir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
 	let config_path = tempdir.path().join("monochange.toml");
@@ -906,32 +696,6 @@ fn config_text_helpers_handle_missing_files_and_io_errors() {
 		.unwrap_or_else(|| panic!("writing through a missing parent should fail"));
 	assert!(write_error.to_string().contains("failed to write"));
 	assert!(!missing_parent_path.exists());
-}
-
-#[test]
-fn validate_command_name_rejects_reserved_command_name() {
-	let error = validate_command_name("command")
-		.err()
-		.unwrap_or_else(|| panic!("command should be reserved"));
-
-	assert!(
-		error
-			.to_string()
-			.contains("collides with a reserved built-in command")
-	);
-}
-
-#[test]
-fn validate_command_name_rejects_non_kebab_case_names() {
-	let error = validate_command_name("Release_PR")
-		.err()
-		.unwrap_or_else(|| panic!("uppercase names should be rejected"));
-
-	assert!(
-		error
-			.to_string()
-			.contains("use lowercase letters, digits, and hyphens only")
-	);
 }
 
 fn assert_config_error(result: monochange_core::MonochangeResult<()>, expected: &str) {

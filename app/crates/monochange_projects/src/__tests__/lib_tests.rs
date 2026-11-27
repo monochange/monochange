@@ -1,3 +1,8 @@
+//! Shared render helpers for the projects crate's page tests.
+
+#![cfg(not(target_arch = "wasm32"))]
+#![allow(clippy::disallowed_methods)]
+
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) fn routes() -> Vec<leptos_axum::AxumRouteListing> {
 	// Route discovery temporarily suppresses resource loads process-wide.
@@ -52,6 +57,27 @@ pub(crate) async fn render_at<V: leptos::prelude::IntoView + 'static>(
 	.await
 }
 
+/// Server-renders `app` for a request carrying `cookie`, with the website's
+/// state in context, as the backend renders a page for a session.
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) async fn render_with_cookie<V: leptos::prelude::IntoView + 'static>(
+	state: std::sync::Arc<monochange_app_api::AppState>,
+	cookie: &str,
+	app: impl Fn() -> V + Clone + Send + Sync + 'static,
+) -> String {
+	routes();
+	let request = axum::http::Request::builder()
+		.header(axum::http::header::COOKIE, cookie)
+		.body(axum::body::Body::empty())
+		.unwrap();
+	let render = leptos_axum::render_app_to_stream_in_order_with_context(
+		move || leptos::prelude::provide_context(state.clone()),
+		app,
+	);
+
+	collect(render(request).await).await
+}
+
 #[cfg(not(target_arch = "wasm32"))]
 async fn render_request<V: leptos::prelude::IntoView + 'static>(
 	request: axum::http::Request<axum::body::Body>,
@@ -59,7 +85,13 @@ async fn render_request<V: leptos::prelude::IntoView + 'static>(
 ) -> String {
 	routes();
 	let render = leptos_axum::render_app_to_stream_in_order(app);
-	let response = render(request).await;
+
+	collect(render(request).await).await
+}
+
+/// The rendered document's body.
+#[cfg(not(target_arch = "wasm32"))]
+async fn collect(response: axum::response::Response) -> String {
 	let body = tokio::time::timeout(
 		std::time::Duration::from_secs(10),
 		axum::body::to_bytes(response.into_body(), 262_144),

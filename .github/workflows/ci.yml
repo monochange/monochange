@@ -33,13 +33,13 @@ jobs:
           persist-credentials: false
 
       - name: run zizmor
-        uses: zizmorcore/zizmor-action@85b2b9fb8e3325e7a23d7d0a9d7ba5ae0f999e3e # v0.7.1
+        uses: zizmorcore/zizmor-action@45d7276c9ca790aabd705e31ca99c6185c3e76dd # v0.8.1
         with:
           inputs: ".github/workflows/ .github/actions/"
           advanced-security: true
 
   lint:
-    timeout-minutes: 60
+    timeout-minutes: 45
     runs-on: ubuntu-latest
     steps:
       - name: checkout repository
@@ -47,65 +47,27 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: setup
-        uses: $/.github/actions/devenv
+      - name: install rust toolchain
+        uses: $/.github/actions/rust
+
+      - name: check rustfmt
+        run: cargo fmt --all -- --check
+
+      - name: check clippy
+        run: cargo clippy --workspace --all-features --locked -- -D warnings
+
+      - name: install cargo-deny
+        uses: taiki-e/install-action@cfdb7ed4ccc7c7dce37759eae89dc5674b469b39 # v2.90.3
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          tool: cargo-deny@0.19.0
 
-      - name: lint clippy
-        run: lint:clippy
-        shell: devenv shell -- bash -e {0}
-
-      - name: lint leptoskit
-        run: lint:leptoskit
-        shell: devenv shell -- bash -e {0}
-
-      - name: lint formatting
-        run: lint:format
-        shell: devenv shell -- bash -e {0}
-
-      - name: check architecture boundaries
-        run: lint:architecture
-        shell: devenv shell -- bash -e {0}
-
-      - name: check documentation sync
-        run: docs:check
-        shell: devenv shell -- bash -e {0}
-
-      - name: lint js
-        run: pnpm oxlint .
-        shell: devenv shell -- bash -e {0}
-
-      - name: typecheck js
-        run: lint:js:types
-        shell: devenv shell -- bash -e {0}
-
-      - name: check devenv environment allowlist
-        run: lint:devenv-env
-        shell: devenv shell -- bash -e {0}
-
-      - name: cargo deny
-        run: deny:check
-        shell: devenv shell -- bash -e {0}
-
-      - name: check monochange formatting
-        run: monochange format --check
-        shell: devenv shell -- bash -e {0}
-
-      - name: manifest lint
-        run: lint:monochange
-        shell: devenv shell -- bash -e {0}
-
-      - name: schema check
-        run: schema:check
-        shell: devenv shell -- bash -e {0}
-
-      - name: check readability and complexity
-        run: lint:monostyle
-        shell: devenv shell -- bash -e {0}
+      - name: check cargo-deny
+        # `.cargo/config.toml` aliases `cargo deny` to `cargo bin`, which is a
+        # local devenv helper. Call the installed binary directly.
+        run: cargo-deny check
 
   test:
-    timeout-minutes: 120
+    timeout-minutes: 45
     runs-on: ubuntu-latest
     steps:
       - name: checkout repository
@@ -113,26 +75,20 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: setup
-        uses: $/.github/actions/devenv
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          free-runner-space: "true"
+      - name: install rust toolchain
+        uses: $/.github/actions/rust
 
-      - name: run cargo tests
-        run: test:cargo:expensive
-        shell: devenv shell -- bash -e {0}
+      - name: test core libraries
+        run: cargo test --locked --all-features --lib -p monochange_semver -p monochange_core -p monochange_config -p monochange_changelog -p monochange_cargo
 
-      - name: run doc tests
-        run: test:docs
-        shell: devenv shell -- bash -e {0}
-
-      - name: run node and evaluation harness tests
-        run: test:node
-        shell: devenv shell -- bash -e {0}
+      - name: test public release planning
+        run: |
+          set -euo pipefail
+          cargo test --locked --all-features -p monochange --test affected --test changeset_policy --test release_apply --test release_record --test pre_stable_versioning --test changelog_formats --test release_notes_and_propagation --test ci_gatekeeper
+          cargo test --locked --all-features -p monochange_integration_tests --test bump_propagation --test cargo_api_classification --test changelog_streams --test create_change_file --test config_loading_globs --test prerelease_workflow --test publish_plan_order --test release_values --test release_record_artifacts
 
   build:
-    timeout-minutes: 60
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -140,616 +96,38 @@ jobs:
           - ubuntu-latest
           - macos-latest
           - windows-latest
-    runs-on: ${{ matrix.os }}
+    # The check name is `build (${{ matrix.os }})`, which the main ruleset
+    # requires for macOS and Windows as well as Linux. Every leg runs on
+    # Linux: hosted macOS runners can sit unacquired until GitHub cancels
+    # the job. publish.yml still builds the macOS and Windows release binaries.
+    runs-on: ubuntu-latest
     steps:
       - name: checkout repository
+        if: matrix.os == 'ubuntu-latest'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0
           persist-credentials: false
 
-      - name: setup devenv
-        if: runner.os != 'Windows'
-        uses: $/.github/actions/devenv
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          free-runner-space: ${{ runner.os == 'Linux' && 'true' || 'false' }}
+      - name: install rust toolchain
+        if: matrix.os == 'ubuntu-latest'
+        uses: $/.github/actions/rust
 
-      - name: setup rust
-        if: runner.os == 'Windows'
-        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
-
-      - name: build on macOS
-        if: runner.os == 'macOS'
-        run: build:all
-        shell: devenv shell -- bash -e {0}
-
-      - name: build dist profile on linux
-        if: runner.os == 'Linux'
-        run: build:dist
-        shell: devenv shell -- bash -e {0}
-
-      - name: build on windows
-        if: runner.os == 'Windows'
+      - name: build workspace
+        if: matrix.os == 'ubuntu-latest'
         run: cargo build --workspace --all-features --locked
 
-      - name: detect current release commit
-        if: runner.os != 'Windows'
-        id: release_record
-        run: |
-          set -euo pipefail
+      - name: release artifacts for this OS are built by publish
+        if: matrix.os != 'ubuntu-latest'
+        run: echo "publish.yml builds release artifacts for this OS."
 
-          release_record_error="$(mktemp)"
-          if is_release_commit="$(cargo run --quiet --package monochange --bin monochange -- step release-record --from HEAD --format json --jq '.resolved_commit == .record_commit' 2>"$release_record_error")"; then
-            echo "is_release_commit=${is_release_commit}" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          subject="$(git log -1 --pretty=%s)"
-          body="$(git log -1 --pretty=%B)"
-          if [[ "$subject" == chore\(release\):* ]] || grep -q '<!-- monochange:release-record:start -->' <<<"$body"; then
-            echo "::error::Release-looking commit could not be read as a release record; failing instead of silently skipping release automation."
-            cat "$release_record_error" >&2
-            exit 1
-          fi
-
-          echo "is_release_commit=false" >> "$GITHUB_OUTPUT"
-        shell: devenv shell -- bash -e {0}
-
-      - name: skip publish build check on release commit
-        if: runner.os != 'Windows' && steps.release_record.outputs.is_release_commit == 'true'
-        run: echo "HEAD is a release commit; skipping publish:check."
-        shell: devenv shell -- bash -e {0}
-
-      - name: build book
-        if: runner.os != 'Windows'
-        run: build:book
-        shell: devenv shell -- bash -e {0}
-
-  packaging:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - name: checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - name: setup
-        uses: $/.github/actions/devenv
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          free-runner-space: "true"
-
-      - name: detect release commit
-        id: release_record
-        run: |
-          # Only HEAD's own subject counts. `git log -1 --grep` walks the
-          # whole history for any matching commit, so after the first release
-          # every commit was treated as a release commit and the packaging
-          # verification never ran again.
-          if git show -s --format=%s HEAD | grep -q '^chore(release):'; then
-            echo "is_release_commit=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "is_release_commit=false" >> "$GITHUB_OUTPUT"
-          fi
-        shell: devenv shell -- bash -e {0}
-
-      - name: verify crate packages
-        if: steps.release_record.outputs.is_release_commit != 'true'
-        run: package:check
-        shell: devenv shell -- bash -e {0}
-
-      - name: skip packaging check on release commit
-        if: steps.release_record.outputs.is_release_commit == 'true'
-        run: echo "HEAD is a release commit; skipping package:check."
-        shell: devenv shell -- bash -e {0}
-
-  publishing:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - name: checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      # monochange publishes the Flutter feedback package with
-      # `flutter pub publish`; `devenv shell` resets PATH, so the publish:check
-      # script resolves this SDK through the FLUTTER_ROOT the action exports.
-      - name: setup flutter for publishing verification
-        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
-        with:
-          flutter-version: "3.47.9"
-          cache: true
-
-      - name: setup
-        uses: $/.github/actions/devenv
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          free-runner-space: "true"
-
-      - name: verify publishing
-        run: publish:check
-        shell: devenv shell -- bash -e {0}
-
+  # The main ruleset still requires a check named coverage. Measurement stays
+  # on the local coverage:all and coverage:patch tasks.
   coverage:
-    timeout-minutes: 120
-    runs-on: ubuntu-latest
-    outputs:
-      codecov-flags: ${{ steps.prepare-codecov-flags.outputs.flags }}
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - name: checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - name: setup
-        uses: $/.github/actions/devenv
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          free-runner-space: "true"
-
-      - name: run coverage
-        run: |
-          CARGO_BUILD_JOBS=1 coverage:all || {
-            rm -rf target/llvm-cov-target
-            CARGO_BUILD_JOBS=1 coverage:all
-          }
-        shell: devenv shell -- bash -e {0}
-
-      - name: verify 100% patch coverage
-        id: verify-patch-coverage
-        if: github.event_name == 'pull_request'
-        continue-on-error: true
-        run: MONOCHANGE_PATCH_COVERAGE_BASE=${{ github.event.pull_request.base.sha }} MONOCHANGE_PATCH_COVERAGE_HEAD=${{ github.event.pull_request.head.sha }} coverage:patch
-        shell: devenv shell -- bash -e {0}
-
-      - name: prepare codecov flag reports
-        id: prepare-codecov-flags
-        if: always()
-        run: |
-          pnpm node scripts/prepare-codecov-flags.ts \
-            --lcov target/coverage/lcov.info \
-            --out-dir target/coverage/flags \
-            --github-output "$GITHUB_OUTPUT"
-        shell: devenv shell -- bash -e {0}
-
-      - name: upload codecov flag reports artifact
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: codecov-flag-reports
-          path: target/coverage/flags/*.lcov
-          if-no-files-found: error
-          retention-days: 7
-
-      - name: upload coverage to codecov
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
-        with:
-          use_oidc: true
-          files: ./target/coverage/lcov.info
-          disable_search: true
-          fail_ci_if_error: true
-          skip_validation: true
-          name: monochange-rust-workspace
-          verbose: true
-
-      - name: fail when patch coverage is below target
-        if: github.event_name == 'pull_request' && steps.verify-patch-coverage.outcome == 'failure'
-        run: exit 1
-        shell: devenv shell -- bash -e {0}
-
-  coverage-flags:
-    timeout-minutes: 30
-    runs-on: ubuntu-latest
-    needs: coverage
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    permissions:
-      contents: read
-      id-token: write
-    strategy:
-      fail-fast: false
-      matrix:
-        flag: ${{ fromJson(needs.coverage.outputs.codecov-flags) }}
-    steps:
-      - name: checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: download codecov flag reports artifact
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: codecov-flag-reports
-          path: target/coverage/flags
-
-      - name: upload crate coverage flag to codecov
-        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
-        with:
-          use_oidc: true
-          files: ./target/coverage/flags/${{ matrix.flag }}.lcov
-          disable_search: true
-          fail_ci_if_error: true
-          skip_validation: true
-          flags: ${{ matrix.flag }}
-          name: ${{ matrix.flag }}
-          verbose: true
-
-  benchmark:
-    timeout-minutes: 30
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    permissions:
-      contents: write
-      pull-requests: write
-    steps:
-      - name: checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: setup
-        uses: $/.github/actions/devenv
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          free-runner-space: "true"
-
-      - name: run criterion benchmarks
-        run: |
-          mkdir -p target
-          cargo bench -p monochange --bench cli_commands -- \
-            --output-format bencher \
-            "config_load|discover|validate|changeset_loading|prepare_release_dry_run|prepare_release_apply" \
-            2>&1 | tee /tmp/bench-output.txt | grep "^test " > target/benchmark-results.txt || true
-          echo "--- raw output (last 10 lines) ---"
-          tail -10 /tmp/bench-output.txt
-          echo "--- filtered results ---"
-          cat target/benchmark-results.txt
-        shell: devenv shell -- bash -e {0}
-
-      - name: upload benchmark results
-        if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: criterion-benchmark-results
-          path: target/benchmark-results.txt
-          retention-days: 90
-
-  benchmark-binary:
-    if: github.event_name == 'pull_request'
-    timeout-minutes: 30
-    runs-on: ubuntu-latest
-    env:
-      MONOCHANGE_ALLOW_BENCHMARK_BUDGET_FAILURES: "false"
-    permissions:
-      pull-requests: write
-    steps:
-      - name: checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - name: setup
-        uses: $/.github/actions/devenv
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          free-runner-space: "true"
-
-      - name: build PR binary
-        run: cargo build --profile dist --bin monochange && cp target/dist/monochange /tmp/monochange-pr
-        shell: devenv shell -- bash -e {0}
-
-      - name: build main binary
-        run: |
-          git stash --include-untracked
-          git checkout origin/main
-          cargo build --profile dist --bin monochange && cp target/dist/monochange /tmp/monochange-main
-          git checkout -
-          git stash pop || true
-        shell: devenv shell -- bash -e {0}
-
-      - name: run CLI benchmarks
-        id: bench
-        run: |
-          pnpm node scripts/benchmark-cli.ts run \
-            --main-bin /tmp/monochange-main \
-            --pr-bin /tmp/monochange-pr \
-            --output /tmp/benchmark-comment.md \
-            --violations-output /tmp/benchmark-violations.txt
-
-          {
-            echo "results<<ENDOFBENCH"
-            cat /tmp/benchmark-comment.md
-            echo "ENDOFBENCH"
-            echo "violations=$(cat /tmp/benchmark-violations.txt)"
-          } >> "$GITHUB_OUTPUT"
-        shell: devenv shell -- bash -e {0}
-
-      - name: comment benchmark results on PR
-        if: always() && steps.bench.outcome == 'success'
-        uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88 # v3.0.5
-        with:
-          header: binary-benchmark
-          message: ${{ steps.bench.outputs.results }}
-
-      - name: fail on phase budget regressions
-        if: always() && steps.bench.outcome == 'success' && env.MONOCHANGE_ALLOW_BENCHMARK_BUDGET_FAILURES != 'true'
-        env:
-          BENCHMARK_VIOLATIONS: ${{ steps.bench.outputs.violations }}
-        run: |
-          if [ "$BENCHMARK_VIOLATIONS" -gt 0 ]; then
-            echo "benchmark phase budget regressions detected: $BENCHMARK_VIOLATIONS"
-            exit 1
-          fi
-        shell: devenv shell -- bash -e {0}
-
-  binary-size:
-    if: github.event_name == 'pull_request'
-    timeout-minutes: 30
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    permissions:
-      pull-requests: write
-    steps:
-      - name: checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - name: setup
-        uses: $/.github/actions/devenv
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          free-runner-space: "true"
-
-      - name: build PR binary
-        run: cargo build --profile dist --bin monochange && cp target/dist/monochange /tmp/monochange-pr
-        shell: devenv shell -- bash -e {0}
-
-      - name: build main binary
-        run: |
-          git stash --include-untracked
-          git checkout origin/main
-          cargo build --profile dist --bin monochange && cp target/dist/monochange /tmp/monochange-main
-          git checkout -
-          git stash pop || true
-        shell: devenv shell -- bash -e {0}
-
-      - name: compare binary sizes
-        id: size
-        run: |
-          pnpm node scripts/binary-size.ts compare \
-            --main-bin /tmp/monochange-main \
-            --pr-bin /tmp/monochange-pr \
-            --output /tmp/size-comment.md
-
-          {
-            echo "results<<ENDOFSIZE"
-            cat /tmp/size-comment.md
-            echo "ENDOFSIZE"
-          } >> "$GITHUB_OUTPUT"
-        shell: devenv shell -- bash -e {0}
-
-      - name: comment binary size on PR
-        if: always() && steps.size.outcome == 'success'
-        uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88 # v3.0.5
-        with:
-          header: binary-size
-          message: ${{ steps.size.outputs.results }}
-
-  release-test:
-    if: github.event_name == 'pull_request' && !startsWith(github.head_ref, 'monochange/release')
-    timeout-minutes: 120
+    timeout-minutes: 5
     runs-on: ubuntu-latest
     steps:
-      - name: checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - name: setup
-        uses: $/.github/actions/devenv
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          free-runner-space: "true"
-
-      - name: create release commit
-        id: release_commit
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          before="$(git rev-parse HEAD)"
-          monochange run release --commit
-          after="$(git rev-parse HEAD)"
-          if [ "$before" != "$after" ]; then
-            echo "created=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "created=false" >> "$GITHUB_OUTPUT"
-          fi
-        shell: devenv shell -- bash -e {0}
-
-      - name: run cargo tests
-        if: steps.release_commit.outputs.created == 'true'
-        run: test:cargo:expensive
-        shell: devenv shell -- bash -e {0}
-
-      - name: run doc tests
-        if: steps.release_commit.outputs.created == 'true'
-        run: test:docs
-        shell: devenv shell -- bash -e {0}
-
-      - name: skip release tests when no release commit is created
-        if: steps.release_commit.outputs.created == 'false'
-        run: echo "No pull-request release commit was created; skipping release test preflight."
-
-  release-records:
-    if: github.event_name == 'pull_request' && !startsWith(github.head_ref, 'monochange/release')
-    timeout-minutes: 60
-    runs-on: ubuntu-latest
-    steps:
-      - name: checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - name: setup
-        uses: $/.github/actions/devenv
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          free-runner-space: "true"
-
-      - name: create release commit
-        id: release_commit
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          before="$(git rev-parse HEAD)"
-          monochange run release --commit
-          after="$(git rev-parse HEAD)"
-          if [ "$before" != "$after" ]; then
-            echo "created=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "created=false" >> "$GITHUB_OUTPUT"
-          fi
-        shell: devenv shell -- bash -e {0}
-
-      - name: validate release record discovery
-        if: steps.release_commit.outputs.created == 'true'
-        run: |
-          schema:release:check
-          cargo test -p monochange_integration_tests release_record_artifact_fixtures_load_through_parser
-          is_release_commit="$(cargo run --quiet --package monochange --bin monochange -- step release-record --from HEAD --format json --jq '.resolved_commit == .record_commit')"
-          if [ "$is_release_commit" != "true" ]; then
-            echo "Generated release commit was not recognized as the resolved release record commit."
-            exit 1
-          fi
-          cargo run --quiet --package monochange --bin monochange -- step release-record --from HEAD --format json | jq .
-        shell: devenv shell -- bash -e {0}
-
-      - name: skip release record validation when no release commit is created
-        if: steps.release_commit.outputs.created == 'false'
-        run: echo "No pull-request release commit was created; skipping release record preflight."
-
-  release-lint:
-    if: github.event_name == 'pull_request' && !startsWith(github.head_ref, 'monochange/release')
-    timeout-minutes: 60
-    runs-on: ubuntu-latest
-    steps:
-      - name: checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - name: setup
-        uses: $/.github/actions/devenv
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          free-runner-space: "true"
-
-      - name: inspect app release-note outputs
-        run: |
-          set -euo pipefail
-          export CARGO_BUILD_JOBS=1 RUST_TEST_THREADS=2 TOKIO_WORKER_THREADS=2
-          evidence="${{ runner.temp }}/app-release-preview"
-          mkdir -p "$evidence"
-          monochange step validate
-          monochange step prepare-release --dry-run --format json > "$evidence/manifest.json"
-          node scripts/check-app-release-preview.ts "$evidence/manifest.json" | tee "$evidence/outputs.tsv"
-          while IFS=$'\t' read -r output _; do
-            extension=md
-            if [ "$output" = website_json ]; then
-              extension=json
-            fi
-            monochange notes --output "$output" --target monochange_app --file "$evidence/$output.$extension"
-          done < "$evidence/outputs.tsv"
-          git diff --exit-code
-        shell: devenv shell -- bash -e {0}
-
-      - name: upload app release-note preview
-        if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: app-release-note-preview
-          path: ${{ runner.temp }}/app-release-preview/
-          if-no-files-found: error
-          retention-days: 7
-
-      - name: create release commit
-        id: release_commit
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          before="$(git rev-parse HEAD)"
-          monochange run release --commit
-          after="$(git rev-parse HEAD)"
-          if [ "$before" != "$after" ]; then
-            echo "created=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "created=false" >> "$GITHUB_OUTPUT"
-          fi
-        shell: devenv shell -- bash -e {0}
-
-      - name: lint clippy
-        if: steps.release_commit.outputs.created == 'true'
-        run: lint:clippy
-        shell: devenv shell -- bash -e {0}
-
-      - name: lint leptoskit
-        if: steps.release_commit.outputs.created == 'true'
-        run: lint:leptoskit
-        shell: devenv shell -- bash -e {0}
-
-      - name: lint formatting
-        if: steps.release_commit.outputs.created == 'true'
-        run: lint:format
-        shell: devenv shell -- bash -e {0}
-
-      - name: check architecture boundaries
-        if: steps.release_commit.outputs.created == 'true'
-        run: lint:architecture
-        shell: devenv shell -- bash -e {0}
-
-      - name: check documentation sync
-        if: steps.release_commit.outputs.created == 'true'
-        run: docs:check
-        shell: devenv shell -- bash -e {0}
-
-      - name: lint js
-        if: steps.release_commit.outputs.created == 'true'
-        run: pnpm oxlint .
-        shell: devenv shell -- bash -e {0}
-
-      - name: cargo deny
-        if: steps.release_commit.outputs.created == 'true'
-        run: deny:check
-        shell: devenv shell -- bash -e {0}
-
-      - name: manifest lint
-        if: steps.release_commit.outputs.created == 'true'
-        run: lint:monochange
-        shell: devenv shell -- bash -e {0}
-
-      - name: schema release check
-        if: steps.release_commit.outputs.created == 'true'
-        run: schema:release:check
-        shell: devenv shell -- bash -e {0}
-
-      - name: skip release lints when no release commit is created
-        if: steps.release_commit.outputs.created == 'false'
-        run: echo "No pull-request release commit was created; skipping release lint preflight."
+      - name: coverage runs outside pull request CI
+        run: echo "Workspace and patch coverage stay on the local coverage tasks."
 
   release-pr:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository_owner == 'monochange'
@@ -770,14 +148,18 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: setup
-        uses: $/.github/actions/devenv
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: install rust toolchain
+        uses: $/.github/actions/rust
+
+      - name: build monochange
+        run: |
+          cargo build --locked --release --bin monochange -p monochange
+          echo "$GITHUB_WORKSPACE/target/release" >> "$GITHUB_PATH"
+        shell: bash -e {0}
 
       - name: refresh tags from origin
         run: git fetch --force --tags origin
-        shell: devenv shell -- bash -e {0}
+        shell: bash -e {0}
 
       - name: detect current release commit
         id: release_record
@@ -785,7 +167,7 @@ jobs:
           set -euo pipefail
 
           release_record_error="$(mktemp)"
-          if is_release_commit="$(cargo run --quiet --package monochange --bin monochange -- step release-record --from HEAD --format json --jq '.resolved_commit == .record_commit' 2>"$release_record_error")"; then
+          if is_release_commit="$(monochange step release-record --from HEAD --format json --jq '.resolved_commit == .record_commit' 2>"$release_record_error")"; then
             echo "is_release_commit=${is_release_commit}" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -799,7 +181,7 @@ jobs:
           fi
 
           echo "is_release_commit=false" >> "$GITHUB_OUTPUT"
-        shell: devenv shell -- bash -e {0}
+        shell: bash -e {0}
 
       - name: detect pending changesets
         id: pending_changesets
@@ -813,6 +195,52 @@ jobs:
           echo "has_changesets=${has_changesets}" >> "$GITHUB_OUTPUT"
         shell: bash
 
+      # The release command generates a pnpm lockfile and runs `dprint fmt`
+      # over the workspace. Both used to come from the devenv shell, so install
+      # the same pinned tools before the release runs with pending changesets.
+      - name: setup node for release
+        if: steps.release_record.outputs.is_release_commit != 'true' && steps.pending_changesets.outputs.has_changesets == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          # The release job needs a runtime, not a dependency cache.
+          package-manager-cache: false
+
+      - name: install pnpm for release
+        if: steps.release_record.outputs.is_release_commit != 'true' && steps.pending_changesets.outputs.has_changesets == 'true'
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          version: 12
+
+      - name: install dprint for release
+        if: steps.release_record.outputs.is_release_commit != 'true' && steps.pending_changesets.outputs.has_changesets == 'true'
+        uses: taiki-e/install-action@cfdb7ed4ccc7c7dce37759eae89dc5674b469b39 # v2.90.3
+        with:
+          # dprint 0.60.1 matches the repo toolchain. `dprint.json` also shells
+          # out to taplo for TOML and shfmt for shell files; rustfmt comes from
+          # the Rust toolchain installed above.
+          tool: dprint@0.60.1, taplo@0.10.0, shfmt@3.14.1
+
+      - name: install nixfmt for release
+        if: steps.release_record.outputs.is_release_commit != 'true' && steps.pending_changesets.outputs.has_changesets == 'true'
+        env:
+          NIXFMT_VERSION: 1.5.0
+          NIXFMT_SHA256: aa029247ab89c897e2f3948463967553f902f86e86e3402fa28cb29c4a44f745
+        # `dprint.json` routes Nix files through nixfmt, so the whole-workspace
+        # `dprint fmt` needs it on PATH. The release is a static Linux binary.
+        run: |
+          set -euo pipefail
+          binary_dir="${RUNNER_TEMP}/bin"
+          binary="${binary_dir}/nixfmt"
+          mkdir -p "$binary_dir"
+          curl --proto '=https' --tlsv1.2 -fsSL \
+            "https://github.com/NixOS/nixfmt/releases/download/v${NIXFMT_VERSION}/nixfmt" \
+            -o "$binary"
+          echo "${NIXFMT_SHA256}  ${binary}" | sha256sum --check --strict
+          chmod +x "$binary"
+          echo "$binary_dir" >> "$GITHUB_PATH"
+        shell: bash -e {0}
+
       - name: refresh release pull request
         if: steps.release_record.outputs.is_release_commit != 'true'
         env:
@@ -823,7 +251,7 @@ jobs:
           # CLI uploads the release tree with GH_TOKEN and sends only its id.
           MONOCHANGE_RELEASE_BACKEND: hosted
         run: monochange run release --commit --create-pr
-        shell: devenv shell -- bash -e {0}
+        shell: bash -e {0}
 
       - name: dispatch publish dry run
         if: steps.release_record.outputs.is_release_commit != 'true' && steps.pending_changesets.outputs.has_changesets == 'true'
@@ -838,7 +266,7 @@ jobs:
           # The release commit was created remotely; fetch it before reading
           # its release record.
           git fetch --no-tags origin "+refs/heads/${release_branch}:refs/heads/${release_branch}"
-          tag="$(cargo run --quiet --package monochange --bin monochange -- step release-record --from "$release_branch" --format json \
+          tag="$(monochange step release-record --from "$release_branch" --format json \
             | jq -r '.record.release_targets[] | select(.tag == true) | .tag_name' \
             | head -1)"
           if [ -z "$tag" ]; then
@@ -851,7 +279,7 @@ jobs:
             -f "tag=$tag" \
             -f "checkout_ref=$release_branch" \
             -f "dry_run=true"
-        shell: devenv shell -- bash -e {0}
+        shell: bash -e {0}
 
       - name: skip refresh on merged release commit
         if: steps.release_record.outputs.is_release_commit == 'true'
@@ -874,21 +302,25 @@ jobs:
           fetch-tags: true
           persist-credentials: false
 
-      - name: setup
-        uses: $/.github/actions/devenv
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: install rust toolchain
+        uses: $/.github/actions/rust
+
+      - name: build monochange
+        run: |
+          cargo build --locked --release --bin monochange -p monochange
+          echo "$GITHUB_WORKSPACE/target/release" >> "$GITHUB_PATH"
+        shell: bash -e {0}
 
       - name: detect release commit and create tags
         id: tag_release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_COMMIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        shell: devenv shell -- bash -e {0}
+        shell: bash -e {0}
         run: |
           set -euo pipefail
 
-          if is_release_commit="$(cargo run --quiet --package monochange --bin monochange -- step release-record --from HEAD --format json --jq '.resolved_commit == .record_commit')"; then
+          if is_release_commit="$(monochange step release-record --from HEAD --format json --jq '.resolved_commit == .record_commit')"; then
             echo "is_release_commit=${is_release_commit}" >> "$GITHUB_OUTPUT"
             if [ "${is_release_commit}" = "true" ]; then
               export GIT_CONFIG_COUNT=1
@@ -900,7 +332,7 @@ jobs:
             subject="$(git log -1 --pretty=%s)"
             if [[ "$subject" == chore\(release\):\ prepare\ release* ]]; then
               echo "Release-looking commit could not be read as a release record; failing instead of silently skipping release automation."
-              cargo run --quiet --package monochange --bin monochange -- step release-record --from HEAD --format json
+              monochange step release-record --from HEAD --format json
               exit 1
             fi
             echo "is_release_commit=false" >> "$GITHUB_OUTPUT"
@@ -911,7 +343,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: monochange step publish-release --from-ref="HEAD" --draft --format json | tee /tmp/publish-release.json
-        shell: devenv shell -- bash -e {0}
+        shell: bash -e {0}
 
       - name: dispatch release publishing
         # Runs before website selection and issue comments so a failure in
@@ -963,4 +395,4 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: monochange step comment-released-issues --from-ref="HEAD" --auto-close-issues
-        shell: devenv shell -- bash -e {0}
+        shell: bash -e {0}

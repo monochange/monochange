@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)
+
+### Changed
+
+- **No package-specific changes were recorded; `monochange_publish` was updated to 0.22.1 as part of group `main`.**
+
+## [0.22.0](https://github.com/monochange/monochange/releases/tag/v0.22.0) (2026-11-25)
+
+### 🐛 Fixed
+
+- **Pass npm one-time passwords to pnpm 12 publishes.** `monochange publish placeholder --otp <CODE>` and OTP-enabled release publishes now set `PNPM_CONFIG_OTP` alongside `NPM_CONFIG_OTP` on the publish command. pnpm 12 ignores `NPM_CONFIG_*` variables, so pnpm workspaces previously failed with `ERR_PNPM_OTP_NON_INTERACTIVE` even when a code was supplied. The OTP recovery hints now name both variables. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #897](https://github.com/monochange/monochange/pull/897)
+
 ## [0.21.1](https://github.com/monochange/monochange/releases/tag/v0.21.1) (2026-11-08)
 
 ### 🐛 Fixed

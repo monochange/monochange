@@ -1,9 +1,0 @@
----
-source: crates/monochange_integration_tests/tests/lint_rules_fix.rs
-expression: "normalize_workspace_paths(fixture.path(), output.clone())"
----
-packages/shared/package.json
-  1:1  ✖ missing required package.json field `description`
-         npm/required-package-fields
-
-✖ Checks failed · 1 error · fixed 1 file

@@ -1,5 +1,0 @@
----
-core: note
----
-
-#### invalid bump

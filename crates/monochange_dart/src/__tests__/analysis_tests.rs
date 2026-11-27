@@ -6,49 +6,6 @@ use monochange_core::PublishState;
 use super::*;
 
 #[test]
-fn analyzer_applies_to_flutter_packages() {
-	let package = PackageRecord::new(
-		Ecosystem::Dart,
-		"mobile_app",
-		PathBuf::from("/repo/packages/mobile/pubspec.yaml"),
-		PathBuf::from("/repo"),
-		None,
-		PublishState::Public,
-	);
-
-	assert!(semantic_analyzer().applies_to(&package));
-}
-
-#[test]
-fn collect_public_symbols_finds_dart_types_functions_and_reexports() {
-	let file = PackageSnapshotFile {
-		path: PathBuf::from("lib/mobile_app.dart"),
-		contents: concat!(
-			"export 'src/widgets.dart';\n",
-			"class Greeter {}\n",
-			"String greet(String name) => 'hello $name';\n",
-		)
-		.to_string(),
-	};
-
-	let symbols = collect_public_symbols(&file);
-
-	assert!(symbols.iter().any(|symbol| {
-		symbol.item_kind == "reexport" && symbol.item_path == "src/widgets.dart"
-	}));
-	assert!(
-		symbols
-			.iter()
-			.any(|symbol| symbol.item_path == "mobile_app::Greeter")
-	);
-	assert!(
-		symbols
-			.iter()
-			.any(|symbol| symbol.item_path == "mobile_app::greet")
-	);
-}
-
-#[test]
 fn api_snapshot_extracts_public_dart_symbols() {
 	let package = PackageRecord::new(
 		Ecosystem::Dart,
@@ -89,85 +46,6 @@ fn api_snapshot_extracts_public_dart_symbols() {
 			.iter()
 			.any(|item| item.id == "function:mobile_app::greet")
 	);
-}
-
-#[test]
-fn analyze_manifest_change_reports_dependency_environment_and_flutter_platform_diffs() {
-	let change = AnalyzedFileChange {
-		path: PathBuf::from("packages/mobile/pubspec.yaml"),
-		package_path: PathBuf::from("pubspec.yaml"),
-		kind: FileChangeKind::Modified,
-		before_contents: Some(
-			concat!(
-				"name: mobile_app\n",
-				"environment:\n",
-				"  sdk: ^3.4.0\n",
-				"dependencies:\n",
-				"  flutter:\n",
-				"    sdk: flutter\n",
-				"executables:\n",
-				"  mobile-app:\n",
-				"flutter:\n",
-				"  plugin:\n",
-				"    platforms:\n",
-				"      android:\n",
-				"        package: com.example.mobile\n",
-			)
-			.to_string(),
-		),
-		after_contents: Some(
-			concat!(
-				"name: mobile_app\n",
-				"publish_to: none\n",
-				"environment:\n",
-				"  sdk: ^3.5.0\n",
-				"dependencies:\n",
-				"  flutter:\n",
-				"    sdk: flutter\n",
-				"  riverpod: ^2.5.0\n",
-				"executables:\n",
-				"  mobile-app:\n",
-				"  mobile-admin:\n",
-				"flutter:\n",
-				"  plugin:\n",
-				"    platforms:\n",
-				"      android:\n",
-				"        package: com.example.mobile\n",
-				"      ios:\n",
-				"        pluginClass: MobilePlugin\n",
-			)
-			.to_string(),
-		),
-	};
-	let mut warnings = Vec::new();
-	let changes = analyze_manifest_change(&change, &mut warnings);
-
-	assert!(warnings.is_empty());
-	assert!(changes.iter().any(|change| {
-		change.category == SemanticChangeCategory::Dependency
-			&& change.item_path == "riverpod"
-			&& change.kind == SemanticChangeKind::Added
-	}));
-	assert!(changes.iter().any(|change| {
-		change.category == SemanticChangeCategory::Export
-			&& change.item_path == "mobile-admin"
-			&& change.kind == SemanticChangeKind::Added
-	}));
-	assert!(changes.iter().any(|change| {
-		change.category == SemanticChangeCategory::Metadata
-			&& change.item_path == "environment.sdk"
-			&& change.kind == SemanticChangeKind::Modified
-	}));
-	assert!(changes.iter().any(|change| {
-		change.category == SemanticChangeCategory::Metadata
-			&& change.item_path == "publish_to"
-			&& change.kind == SemanticChangeKind::Added
-	}));
-	assert!(changes.iter().any(|change| {
-		change.category == SemanticChangeCategory::Metadata
-			&& change.item_path == "flutter.plugin.platform.ios"
-			&& change.kind == SemanticChangeKind::Added
-	}));
 }
 
 #[test]

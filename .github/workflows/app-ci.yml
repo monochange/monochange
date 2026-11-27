@@ -7,32 +7,32 @@ on:
     paths:
       - "app/**"
       - "Dockerfile"
+      - ".dockerignore"
       - ".github/workflows/app-ci.yml"
-      - ".github/workflows/app.yml"
-      - "monochange.toml"
-      - "fixtures/tests/website-releases/**"
-      - "fixtures/tests/website-book/**"
-      - "docs/src/**"
-      - "scripts/benchmark-website.ts"
-      - "scripts/website-size.ts"
-      - "scripts/website-budgets.json"
-      - "scripts/website-size-baseline.json"
+      - "leptoskit.workspace.toml"
+      - "fixtures/tests/digitalocean-rollout/**"
+      - "scripts/leptoskit-plugin/**"
+      - "scripts/check-wasm-externref-table.ts"
+      - "scripts/minify-split-loader.ts"
+      - "scripts/resolve-app-release-notes.ts"
+      - "scripts/npm/tests/digitalocean-rollout.test.ts"
+      - "scripts/npm/tests/resolve-app-release-notes.test.ts"
       - "package.json"
       - "pnpm-lock.yaml"
   pull_request:
     paths:
       - "app/**"
       - "Dockerfile"
+      - ".dockerignore"
       - ".github/workflows/app-ci.yml"
-      - ".github/workflows/app.yml"
-      - "monochange.toml"
-      - "fixtures/tests/website-releases/**"
-      - "fixtures/tests/website-book/**"
-      - "docs/src/**"
-      - "scripts/benchmark-website.ts"
-      - "scripts/website-size.ts"
-      - "scripts/website-budgets.json"
-      - "scripts/website-size-baseline.json"
+      - "leptoskit.workspace.toml"
+      - "fixtures/tests/digitalocean-rollout/**"
+      - "scripts/leptoskit-plugin/**"
+      - "scripts/check-wasm-externref-table.ts"
+      - "scripts/minify-split-loader.ts"
+      - "scripts/resolve-app-release-notes.ts"
+      - "scripts/npm/tests/digitalocean-rollout.test.ts"
+      - "scripts/npm/tests/resolve-app-release-notes.test.ts"
       - "package.json"
       - "pnpm-lock.yaml"
   merge_group:
@@ -48,6 +48,38 @@ permissions:
   contents: read
 
 jobs:
+  deployment-transactions:
+    timeout-minutes: 15
+    runs-on: ubuntu-24.04
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: setup pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          version: 12
+
+      - name: setup node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+
+      - name: install test dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: test app release notes and image smoke checks
+        run: pnpm vitest run scripts/npm/tests/resolve-app-release-notes.test.ts
+
+      - name: test installed deployment helpers in isolated Linux
+        run: |
+          docker run --rm \
+            --mount "type=bind,source=$GITHUB_WORKSPACE,target=/workspace" \
+            --workdir /workspace node:24-bookworm \
+            bash fixtures/tests/digitalocean-rollout/run-linux-tests.sh
+
   check:
     timeout-minutes: 40
     runs-on: ubuntu-latest
@@ -66,26 +98,12 @@ jobs:
           persist-credentials: false
 
       - name: install rust toolchain
-        uses: dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d # stable
+        uses: $/.github/actions/rust
         with:
-          toolchain: nightly
-          components: clippy, rustfmt
-
-      - name: install cargo-binstall
-        uses: taiki-e/install-action@9983c65e42da123ff25d1f78505eb6de315aa172 # v2.87.20
-        with:
-          tool: cargo-binstall
-
-      - name: install cargo-leptos
-        run: cargo binstall cargo-leptos@0.3.6 --locked --no-confirm
+          workspaces: app
 
       - name: add wasm target
         run: rustup target add wasm32-unknown-unknown
-
-      - name: cache cargo build
-        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
-        with:
-          workspaces: app
 
       - name: cargo fmt
         run: cargo fmt --all -- --check
@@ -94,277 +112,122 @@ jobs:
         run: cargo clippy --workspace --all-targets -- -D warnings
 
       - name: cargo test
-        run: cargo test --workspace
+        run: cargo test --workspace --lib
         env:
           DATABASE_URL: "sqlite::memory:"
           JWT_SECRET: "ci-test-jwt-secret-key-123"
           GITHUB_CLIENT_ID: "ci-test-client-id"
           GITHUB_CLIENT_SECRET: "ci-test-client-secret"
 
-      # Preinstall the standalone CLI so cargo-leptos uses PATH instead of its
-      # download cache (which has failed here with spawn ENOENT after install).
-      - name: install tailwindcss
-        run: |
-          set -euo pipefail
-          arch="$(dpkg --print-architecture)"
-          case "$arch" in
-            amd64) tw_arch=x64 ;;
-            arm64) tw_arch=arm64 ;;
-            *) echo "unsupported architecture: $arch" >&2; exit 1 ;;
-          esac
-          curl -fsSLO "https://github.com/tailwindlabs/tailwindcss/releases/download/v4.2.1/tailwindcss-linux-${tw_arch}"
-          chmod +x "tailwindcss-linux-${tw_arch}"
-          sudo mv "tailwindcss-linux-${tw_arch}" /usr/local/bin/tailwindcss
-          tailwindcss --help >/dev/null
-
-      - name: cargo leptos build
-        # Explicit package manifest matches app/README and keeps site paths on
-        # [package.metadata.leptos] (site-root = target/site).
-        run: cargo leptos --manifest-path crates/monochange_app/Cargo.toml build
-
-  app-coverage:
-    timeout-minutes: 60
-    runs-on: ubuntu-latest
-    env:
-      CARGO_BUILD_JOBS: 1
-      # Match devenv coverage: drop test debuginfo so llvm-cov can link ring.
-      CARGO_PROFILE_TEST_DEBUG: "0"
-      COVERAGE_BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before || github.sha }}
-      COVERAGE_HEAD: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
-
-    steps:
-      - name: checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-          ref: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
-
-      - name: install rust toolchain
-        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
-        with:
-          toolchain: nightly-2026-05-08
-          components: llvm-tools-preview
-
-      - name: install coverage tool
-        uses: taiki-e/install-action@9983c65e42da123ff25d1f78505eb6de315aa172 # v2.87.20
-        with:
-          tool: cargo-llvm-cov@0.8.5
-
-      - name: cache cargo build
-        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
-        with:
-          workspaces: app
-          key: app-coverage
-
-      - name: setup node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 24
-
-      - name: measure app workspace coverage
-        working-directory: app
-        run: |
-          mkdir -p target/coverage
-          cargo-llvm-cov llvm-cov --locked --workspace --lcov --output-path target/coverage/lcov.info
-        env:
-          DATABASE_URL: "sqlite::memory:"
-          JWT_SECRET: "ci-test-jwt-secret-key-123"
-          GITHUB_CLIENT_ID: "ci-test-client-id"
-          GITHUB_CLIENT_SECRET: "ci-test-client-secret"
-
-      - name: require app source coverage and 100% patch coverage
-        run: |
-          node --input-type=module <<'NODE'
-          import { execFileSync } from "node:child_process";
-          import { readFileSync } from "node:fs";
-          import { resolve, sep } from "node:path";
-          import { parseChangedLines, parseLcov, verifyPatchCoverage } from "./scripts/check-patch-coverage.ts";
-
-          const repoRoot = process.cwd();
-          const base = process.env.COVERAGE_BASE;
-          const head = process.env.COVERAGE_HEAD;
-          if (!base || !head || execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim() !== head) {
-            throw new Error("coverage must measure the requested head revision");
-          }
-          const diff = (path) => execFileSync("git", ["diff", "--unified=0", "--no-color", "--no-ext-diff", `${base}...${head}`, "--", path], { encoding: "utf8" });
-          const lcovText = readFileSync("app/target/coverage/lcov.info", "utf8");
-          const coverage = parseLcov(lcovText, repoRoot);
-          if (![...coverage].some(([source, lines]) => source.startsWith(`${resolve("app")}${sep}`) && lines.size > 0)) {
-            throw new Error("coverage is missing executable app source maps");
-          }
-          const diffText = diff("app/");
-          const oidcSource = resolve("app/crates/monochange_app_api/src/oidc.rs");
-          if (parseChangedLines(diffText, repoRoot).has(oidcSource) && !coverage.get(oidcSource)?.size) {
-            throw new Error("app coverage is missing the OIDC executable source map");
-          }
-          const result = verifyPatchCoverage({ lcovText, diffText, repoRoot, target: 100 });
-          console.log(result.summary);
-          const oidc = verifyPatchCoverage({ lcovText, diffText: diff("app/crates/monochange_app_api/src/oidc.rs"), repoRoot, target: 100 });
-          console.log(`OIDC_${oidc.summary}`);
-          if (!result.passed || !oidc.passed) process.exitCode = 1;
-          NODE
-
-      - name: upload app coverage
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: app-coverage
-          path: app/target/coverage/lcov.info
-          retention-days: 7
-
+  # Native linux/amd64 production image smoke check. The automated release
+  # PR (monochange/release/release -> main) additionally tags the
+  # smoke-tested image with the exact head commit and exports it as a
+  # short-retention artifact, so the operator can load that precise image
+  # on the amd64 Droplet for an isolated SQLite upgrade. Runs with the
+  # workflow's contents:read permission only: no registry publication,
+  # deployment, production secrets, or privileged permissions.
   docker:
     timeout-minutes: 60
     runs-on: ubuntu-24.04
+    env:
+      RELEASE_PR: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'monochange/release/release' }}
     steps:
       - name: checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          # The release PR smokes the exact head commit, not a synthetic
+          # merge, so the exported image is the tree the release records.
+          # An empty ref keeps the default checkout for every other event.
+          ref: ${{ env.RELEASE_PR == 'true' && github.event.pull_request.head.sha || '' }}
+
+      # Build through a BuildKit builder so layers and cache mounts persist
+      # between runs. Main-branch runs seed the caches every pull request
+      # reads; a pull request only writes caches scoped to its own ref.
+      - name: set up docker buildx
+        id: buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      # The cargo registry and the app target directory live in BuildKit
+      # cache mounts, which the layer cache does not export. Restore them
+      # from the Actions cache and inject them into the builder so a build
+      # only recompiles the crates that changed. Keyed on both lockfiles:
+      # a dependency bump starts from the previous cache and saves a new one.
+      - name: restore cargo cache mounts
+        id: cargo-mounts
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/buildkit-cache-mounts
+          key: app-image-cargo-mounts-${{ hashFiles('Cargo.lock', 'app/Cargo.lock', 'rust-toolchain.toml') }}
+          restore-keys: app-image-cargo-mounts-
+
+      - name: inject cargo cache mounts
+        uses: reproducible-containers/buildkit-cache-dance@5422eac04292c961a382e0f584ea0f03ad9da723 # v3.4.0
+        with:
+          builder: ${{ steps.buildx.outputs.name }}
+          cache-dir: ${{ runner.temp }}/buildkit-cache-mounts
+          dockerfile: Dockerfile
+          skip-extraction: ${{ steps.cargo-mounts.outputs.cache-hit }}
 
       - name: build deployment image
-        run: docker build --progress=plain -t monochange-app:ci .
-
-      - name: verify deployment image
-        run: app/deploy/verify-image.sh monochange-app:ci
-
-  benchmark:
-    timeout-minutes: 50
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
-    env:
-      MONOCHANGE_ALLOW_BENCHMARK_BUDGET_FAILURES: "false"
-    steps:
-      - name: checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
-          persist-credentials: false
+          # Build the checked-out tree (the exact release head on release
+          # PRs), not the action's default Git context.
+          context: .
+          file: Dockerfile
+          load: true
+          push: false
+          tags: monochange-app:smoke
+          cache-from: type=gha,scope=app-image
+          cache-to: type=gha,scope=app-image,mode=max
 
-      - name: install rust toolchain
-        uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
-        with:
-          toolchain: nightly
-
-      - name: install cargo-binstall
-        uses: taiki-e/install-action@9983c65e42da123ff25d1f78505eb6de315aa172 # v2.87.20
-        with:
-          tool: cargo-binstall
-
-      - name: install cargo-leptos
-        run: cargo binstall cargo-leptos@0.3.6 --locked --no-confirm
-
-      - name: add wasm target
-        run: rustup target add wasm32-unknown-unknown
-
-      - name: cache cargo build
-        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
-        with:
-          workspaces: app
-
-      - name: setup pnpm
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-        with:
-          version: 12
-
+      # verify-image.sh checks the shipped WASM modules with a dependency-free
+      # TypeScript script, which needs Node's type stripping.
       - name: setup node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
 
-      - name: install node dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: record website build tools
-        working-directory: app
+      # verify-image.sh only checks the release identity and the changelog when
+      # it receives the app version, which the release deploy used to be alone
+      # in passing. Read the workspace version so every run covers that block.
+      - name: verify deployment image
         run: |
           set -euo pipefail
-          {
-            rustup show active-toolchain
-            rustc -vV
-            cargo -vV
-            cargo binstall -V
-            cargo leptos --version
-            leptos_path="$(command -v cargo-leptos)"
-            leptos_hash="$(sha256sum "$leptos_path" | cut -d ' ' -f 1)"
-            printf 'cargo-leptos SHA256: %s\n' "$leptos_hash"
-            node --print 'JSON.stringify({node: process.versions.node, zlib: process.versions.zlib})'
-            pnpm --version
-          } | tee /tmp/website-build-provenance.txt
+          version="$(awk -F'"' '/^\[workspace\.package\]$/ { found = 1; next }
+            /^\[/ { found = 0 }
+            found && $1 == "version = " { print $2; exit }' app/Cargo.toml)"
+          test -n "$version"
+          app/deploy/verify-image.sh monochange-app:smoke "$version"
 
-      - name: install tailwindcss
+      # Only after the smoke check passed, stamp the exact full-SHA tag so
+      # `docker load` on the Droplet restores precisely this image.
+      - name: tag the smoke-tested image with the release commit
+        if: env.RELEASE_PR == 'true'
+        env:
+          IMAGE_TAG: monochange-app:${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
-          arch="$(dpkg --print-architecture)"
-          case "$arch" in
-            amd64) tw_arch=x64 ;;
-            arm64) tw_arch=arm64 ;;
-            *) echo "unsupported architecture: $arch" >&2; exit 1 ;;
-          esac
-          curl -fsSLO "https://github.com/tailwindlabs/tailwindcss/releases/download/v4.2.1/tailwindcss-linux-${tw_arch}"
-          chmod +x "tailwindcss-linux-${tw_arch}"
-          sudo mv "tailwindcss-linux-${tw_arch}" /usr/local/bin/tailwindcss
-          tailwindcss --help >/dev/null
+          docker tag monochange-app:smoke "$IMAGE_TAG"
+          docker image inspect "$IMAGE_TAG" --format 'smoke-tested image: {{.Id}}'
 
-      - name: build release site
-        working-directory: app
-        run: cargo leptos --manifest-path crates/monochange_app/Cargo.toml build --release --split
-
-      # cargo-leptos `js-minify` covers the main glue only; the wasm-split
-      # loader keeps route comments and full identifiers, which fails the
-      # committed per-file size gate below. Minify it before the gate and the
-      # Lighthouse run so both measure the shipped bytes.
-      - name: minify the wasm-split loader
-        run: pnpm node scripts/minify-split-loader.ts --site-root app/target/site
-
-      - name: check website bundle size
+      - name: export smoke-tested image
+        if: env.RELEASE_PR == 'true'
+        env:
+          IMAGE_TAG: monochange-app:${{ github.event.pull_request.head.sha }}
         run: |
-          pnpm node scripts/website-size.ts check \
-            --site-root app/target/site \
-            --output /tmp/website-size.md
+          set -euo pipefail
+          tarball="$RUNNER_TEMP/monochange-app-amd64.tar.gz"
+          docker save "$IMAGE_TAG" | gzip >"$tarball"
+          sha256sum "$tarball"
+          ls -lh "$tarball"
 
-      - name: run website lighthouse benchmarks
-        id: lighthouse
-        run: |
-          pnpm node scripts/benchmark-website.ts run \
-            --site-root app/target/site \
-            --server-bin app/target/release/monochange_app \
-            --results /tmp/website-results.json \
-            --output /tmp/website-benchmark.md
-
-          {
-            echo "results<<ENDOFWEBSITEBENCH"
-            cat /tmp/website-size.md
-            echo ""
-            cat /tmp/website-benchmark.md
-            echo "ENDOFWEBSITEBENCH"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: comment benchmark results on PR
-        if: github.event_name == 'pull_request' && steps.lighthouse.outcome == 'success'
-        uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88 # v3.0.5
-        with:
-          header: website-benchmark
-          message: |
-            ${{ steps.lighthouse.outputs.results }}
-
-      - name: upload benchmark results
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: website-benchmark-results
-          path: |
-            /tmp/website-results.json
-            /tmp/website-benchmark.md
-            /tmp/website-size.md
-            /tmp/website-build-provenance.txt
-          retention-days: 90
-
-      - name: upload website package
-        if: always()
+      - name: upload smoke-tested image artifact
+        if: env.RELEASE_PR == 'true'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: website-package
-          path: app/target/site/pkg/
-          retention-days: 90
+          name: monochange-app-amd64-${{ github.event.pull_request.head.sha }}
+          path: ${{ runner.temp }}/monochange-app-amd64.tar.gz
+          retention-days: 3
+          if-no-files-found: error

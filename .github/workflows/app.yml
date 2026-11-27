@@ -37,14 +37,18 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: setup release tooling
-        uses: $/.github/actions/devenv
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: install rust toolchain
+        uses: $/.github/actions/rust
+
+      - name: build monochange
+        run: |
+          cargo build --locked --release --bin monochange -p monochange
+          echo "$GITHUB_WORKSPACE/target/release" >> "$GITHUB_PATH"
+        shell: bash -e {0}
 
       - name: select the website release
         id: website_release
-        shell: devenv shell -- bash -e {0}
+        shell: bash -e {0}
         env:
           RELEASE_COMMIT: ${{ github.sha }}
         run: |
@@ -95,10 +99,14 @@ jobs:
           unset DEPLOY_KEY
           ssh-keygen -y -P '' -f "$key" >/dev/null
 
-      - name: setup release tooling
-        uses: $/.github/actions/devenv
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: install rust toolchain
+        uses: $/.github/actions/rust
+
+      - name: build monochange
+        run: |
+          cargo build --locked --release --bin monochange -p monochange
+          echo "$GITHUB_WORKSPACE/target/release" >> "$GITHUB_PATH"
+        shell: bash -e {0}
 
       # release-post-merge in ci.yml runs concurrently and pushes the
       # batch's tags; the deployment only starts once this release's tag
@@ -125,11 +133,19 @@ jobs:
             sleep 15
           done
 
+      # The release-notes resolver and verify-image.sh's WASM table check are
+      # dependency-free TypeScript scripts requiring Node's type stripping.
+      - name: setup node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+
       - name: verify website release identity
+        id: website_identity
         env:
           RELEASE_COMMIT: ${{ github.sha }}
           RELEASE_TAG: ${{ needs.select-website-release.outputs.tag }}
-        shell: devenv shell -- bash -e {0}
+        shell: bash -e {0}
         run: |
           set -euo pipefail
           [[ "$RELEASE_COMMIT" =~ ^[0-9a-f]{40}$ ]]
@@ -140,14 +156,15 @@ jobs:
           monochange step release-record --from HEAD --format json > "$RUNNER_TEMP/website-record.json"
           jq -e --arg commit "$RELEASE_COMMIT" --arg tag "$RELEASE_TAG" '
             .resolved_commit == $commit and .record_commit == $commit and
-            any(.record.release_targets[]; .id == "monochange_app" and .tag_name == $tag and .release == true) and
-            any(.record.changelogs[]; .owner_id == "monochange_app" and .output == "website_json" and .stream == "website")
+            any(.record.release_targets[]; .id == "monochange_app" and .tag_name == $tag and .release == true)
           ' "$RUNNER_TEMP/website-record.json"
-          jq -er '.record.changelogs[] | select(.owner_id == "monochange_app" and .output == "website" and .stream == "website") | .rendered' \
-            "$RUNNER_TEMP/website-record.json" > "$RUNNER_TEMP/website-release-notes.md"
           version="${RELEASE_TAG#monochange_app/v}"
-          test -s "app/public/releases/$version.json"
-          jq -e --arg version "$version" '.title == $version and all(.sections[].entries[]; .stream == "website")' "app/public/releases/$version.json"
+          notes_version="$(node scripts/resolve-app-release-notes.ts \
+            --app-version "$version" \
+            --release-record "$RUNNER_TEMP/website-record.json" \
+            --write-notes "$RUNNER_TEMP/website-release-notes.md")"
+          test -s "$RUNNER_TEMP/website-release-notes.md"
+          echo "notes_version=$notes_version" >> "$GITHUB_OUTPUT"
 
       - name: build the release image
         env:
@@ -158,7 +175,8 @@ jobs:
         env:
           RELEASE_COMMIT: ${{ github.sha }}
           RELEASE_TAG: ${{ needs.select-website-release.outputs.tag }}
-        run: app/deploy/verify-image.sh "monochange-app:$RELEASE_COMMIT" "${RELEASE_TAG#monochange_app/v}"
+          NOTES_VERSION: ${{ steps.website_identity.outputs.notes_version }}
+        run: app/deploy/verify-image.sh "monochange-app:$RELEASE_COMMIT" "${RELEASE_TAG#monochange_app/v}" "$NOTES_VERSION"
 
       - name: transfer and deploy through the restricted key
         env:
@@ -174,6 +192,7 @@ jobs:
       - name: verify public website and publish its release notes
         env:
           RELEASE_TAG: ${{ needs.select-website-release.outputs.tag }}
+          NOTES_VERSION: ${{ steps.website_identity.outputs.notes_version }}
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
@@ -181,9 +200,10 @@ jobs:
           curl --fail --silent --show-error --retry 10 --retry-all-errors --retry-max-time 60 \
             https://monochange.dev/health | jq -e --arg version "$version" '.status == "ok" and .http == "up" and .version == $version'
           curl --fail --silent --show-error https://monochange.dev/changelog -o "$RUNNER_TEMP/changelog.html"
-          grep -Fq "v$version" "$RUNNER_TEMP/changelog.html"
-          curl --fail --silent --show-error "https://monochange.dev/releases/$version.json" | \
-            jq -e --arg version "$version" '.title == $version'
+          grep -Fq "v$NOTES_VERSION" "$RUNNER_TEMP/changelog.html"
+          grep -Fq "href=\"/releases/$NOTES_VERSION.json\"" "$RUNNER_TEMP/changelog.html"
+          curl --fail --silent --show-error "https://monochange.dev/releases/$NOTES_VERSION.json" | \
+            jq -e --arg version "$NOTES_VERSION" '.title == $version and all(.sections[].entries[]; .stream == "website")'
           gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
             --notes-file "$RUNNER_TEMP/website-release-notes.md" --draft=false --latest=false
 

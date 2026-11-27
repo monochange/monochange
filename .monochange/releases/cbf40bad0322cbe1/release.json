@@ -1,0 +1,354 @@
+{
+	"schema_version": "0.10",
+	"kind": "monochange.releaseRecord",
+	"created_at": "2026-11-25T18:51:15Z",
+	"command": "release",
+	"version": "0.5.2",
+	"versions": {
+		"monochange_app": "0.5.2"
+	},
+	"release_targets": [
+		{
+			"id": "monochange_app",
+			"kind": "package",
+			"version": "0.5.2",
+			"version_format": "namespaced",
+			"tag": true,
+			"release": true,
+			"tag_name": "monochange_app/v0.5.2",
+			"rendered_title": "monochange.dev 0.5.2",
+			"rendered_changelog_title": "0.5.2",
+			"members": [
+				"monochange_app"
+			]
+		}
+	],
+	"released_packages": [
+		"monochange_app"
+	],
+	"changed_files": [
+		"Cargo.lock",
+		"app/Cargo.lock",
+		"app/Cargo.toml",
+		"app/changelog.md",
+		"app/crates/monochange_app/Cargo.toml",
+		"app/developer-changelog.md",
+		"app/leptoskit.toml",
+		"app/projects/leptoskit.toml",
+		"app/public/releases/0.5.2.json"
+	],
+	"package_publications": [],
+	"updated_changelogs": [
+		"app/changelog.md",
+		"app/developer-changelog.md",
+		"app/public/releases/0.5.2.json"
+	],
+	"deleted_changesets": [
+		".changeset/actionable-unbound-release-pr-error.md",
+		".changeset/website-actionable-release-pr-recovery.md"
+	],
+	"changesets": [
+		{
+			"path": ".changeset/actionable-unbound-release-pr-error.md",
+			"summary": "Explain how to recover when a hosted release pull request fails verification",
+			"details": "Hosted `OpenReleaseRequest` updates (`POST /api/hosted_release_request` and `POST /api/release-requests`) that reject an open pull request with HTTP 422 (`GitHubAppError::UnboundPullRequest`) now explain why verification failed and how to recover: the pull request was not created by this deployment's verified flow (for example, it predates release-PR verification, was opened by a user or another bot, or the deployment's signing secret changed), and operators recover by closing that pull request once and re-running the release workflow so monochange opens a verified one.\n\nThe verification checks (`verify_identity` and `verify_binding`), HTTP 422 status code, and `GitHubAppError::UnboundPullRequest` variant are unchanged. `app/DEPLOY.md` now documents the one-time close-and-recreate step for open release pull requests in the `monochange_app` 0.5.0 operator release notes and beside `JWT_SECRET`.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "0ee7cc59fa21bed063bc177a3c74771c7a570b2f",
+						"short_sha": "0ee7cc5",
+						"url": "https://github.com/monochange/monochange/commit/0ee7cc59fa21bed063bc177a3c74771c7a570b2f",
+						"authored_at": "2026-11-25T18:44:59Z",
+						"committed_at": "2026-11-25T18:44:59Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#915",
+						"title": "fix(app): explain recovery when a hosted release PR fails verification",
+						"url": "https://github.com/monochange/monochange/pull/915",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "0ee7cc59fa21bed063bc177a3c74771c7a570b2f",
+						"short_sha": "0ee7cc5",
+						"url": "https://github.com/monochange/monochange/commit/0ee7cc59fa21bed063bc177a3c74771c7a570b2f",
+						"authored_at": "2026-11-25T18:44:59Z",
+						"committed_at": "2026-11-25T18:44:59Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#915",
+						"title": "fix(app): explain recovery when a hosted release PR fails verification",
+						"url": "https://github.com/monochange/monochange/pull/915",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": [
+					{
+						"provider": "github",
+						"host": "github.com",
+						"id": "#138",
+						"title": "Delegate ecosystem version validation to ecosystem crates",
+						"url": "https://github.com/monochange/monochange/issues/138",
+						"relationship": "referenced_by_review_request"
+					}
+				]
+			}
+		},
+		{
+			"path": ".changeset/website-actionable-release-pr-recovery.md",
+			"summary": "Explain how to recover rejected release pull request updates",
+			"details": "When a hosted release workflow fails to refresh an existing release pull request with HTTP 422 because the pull request was not created by this deployment's verified flow, monochange.dev now tells you why it was rejected and to close that pull request once and re-run the release workflow so monochange opens a verified one.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "website_fix"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "0ee7cc59fa21bed063bc177a3c74771c7a570b2f",
+						"short_sha": "0ee7cc5",
+						"url": "https://github.com/monochange/monochange/commit/0ee7cc59fa21bed063bc177a3c74771c7a570b2f",
+						"authored_at": "2026-11-25T18:44:59Z",
+						"committed_at": "2026-11-25T18:44:59Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#915",
+						"title": "fix(app): explain recovery when a hosted release PR fails verification",
+						"url": "https://github.com/monochange/monochange/pull/915",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "0ee7cc59fa21bed063bc177a3c74771c7a570b2f",
+						"short_sha": "0ee7cc5",
+						"url": "https://github.com/monochange/monochange/commit/0ee7cc59fa21bed063bc177a3c74771c7a570b2f",
+						"authored_at": "2026-11-25T18:44:59Z",
+						"committed_at": "2026-11-25T18:44:59Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#915",
+						"title": "fix(app): explain recovery when a hosted release PR fails verification",
+						"url": "https://github.com/monochange/monochange/pull/915",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": [
+					{
+						"provider": "github",
+						"host": "github.com",
+						"id": "#138",
+						"title": "Delegate ecosystem version validation to ecosystem crates",
+						"url": "https://github.com/monochange/monochange/issues/138",
+						"relationship": "referenced_by_review_request"
+					}
+				]
+			}
+		}
+	],
+	"changelogs": [
+		{
+			"owner_id": "monochange_app",
+			"owner_kind": "package",
+			"output": "website",
+			"stream": "website",
+			"path": "app/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "0.5.2",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Improved",
+						"collapsed": false,
+						"entries": [
+							"- **Explain how to recover rejected release pull request updates.** When a hosted release workflow fails to refresh an existing release pull request with HTTP 422 because the pull request was not created by this deployment's verified flow, monochange.dev now tells you why it was rejected and to close that pull request once and re-run the release workflow so monochange opens a verified one.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #915](https://github.com/monochange/monochange/pull/915) · _Related issues:_ [#138](https://github.com/monochange/monochange/issues/138)"
+						]
+					}
+				]
+			},
+			"rendered": "## 0.5.2\n\n### Improved\n\n- **Explain how to recover rejected release pull request updates.** When a hosted release workflow fails to refresh an existing release pull request with HTTP 422 because the pull request was not created by this deployment's verified flow, monochange.dev now tells you why it was rejected and to close that pull request once and re-run the release workflow so monochange opens a verified one.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #915](https://github.com/monochange/monochange/pull/915) · _Related issues:_ [#138](https://github.com/monochange/monochange/issues/138)"
+		},
+		{
+			"owner_id": "monochange_app",
+			"owner_kind": "package",
+			"output": "website_developer",
+			"stream": "default",
+			"path": "app/developer-changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "0.5.2",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Explain how to recover when a hosted release pull request fails verification\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #915](https://github.com/monochange/monochange/pull/915) · _Related issues:_ [#138](https://github.com/monochange/monochange/issues/138)\n\nHosted `OpenReleaseRequest` updates (`POST /api/hosted_release_request` and `POST /api/release-requests`) that reject an open pull request with HTTP 422 (`GitHubAppError::UnboundPullRequest`) now explain why verification failed and how to recover: the pull request was not created by this deployment's verified flow (for example, it predates release-PR verification, was opened by a user or another bot, or the deployment's signing secret changed), and operators recover by closing that pull request once and re-running the release workflow so monochange opens a verified one.\n\nThe verification checks (`verify_identity` and `verify_binding`), HTTP 422 status code, and `GitHubAppError::UnboundPullRequest` variant are unchanged. `app/DEPLOY.md` now documents the one-time close-and-recreate step for open release pull requests in the `monochange_app` 0.5.0 operator release notes and beside `JWT_SECRET`."
+						]
+					}
+				]
+			},
+			"rendered": "## 0.5.2\n\n### 🐛 Fixed\n\n#### Explain how to recover when a hosted release pull request fails verification\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #915](https://github.com/monochange/monochange/pull/915) · _Related issues:_ [#138](https://github.com/monochange/monochange/issues/138)\n\nHosted `OpenReleaseRequest` updates (`POST /api/hosted_release_request` and `POST /api/release-requests`) that reject an open pull request with HTTP 422 (`GitHubAppError::UnboundPullRequest`) now explain why verification failed and how to recover: the pull request was not created by this deployment's verified flow (for example, it predates release-PR verification, was opened by a user or another bot, or the deployment's signing secret changed), and operators recover by closing that pull request once and re-running the release workflow so monochange opens a verified one.\n\nThe verification checks (`verify_identity` and `verify_binding`), HTTP 422 status code, and `GitHubAppError::UnboundPullRequest` variant are unchanged. `app/DEPLOY.md` now documents the one-time close-and-recreate step for open release pull requests in the `monochange_app` 0.5.0 operator release notes and beside `JWT_SECRET`."
+		},
+		{
+			"owner_id": "monochange_app",
+			"owner_kind": "package",
+			"output": "website_json",
+			"stream": "website",
+			"path": "app/public/releases/0.5.2.json",
+			"format": "json",
+			"notes": {
+				"title": "0.5.2",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Improved",
+						"collapsed": false,
+						"entries": [
+							"- **Explain how to recover rejected release pull request updates.** When a hosted release workflow fails to refresh an existing release pull request with HTTP 422 because the pull request was not created by this deployment's verified flow, monochange.dev now tells you why it was rejected and to close that pull request once and re-run the release workflow so monochange opens a verified one.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #915](https://github.com/monochange/monochange/pull/915) · _Related issues:_ [#138](https://github.com/monochange/monochange/issues/138)"
+						]
+					}
+				]
+			},
+			"rendered": "{\n  \"title\": \"0.5.2\",\n  \"summary\": [],\n  \"sections\": [\n    {\n      \"title\": \"Improved\",\n      \"collapsed\": false,\n      \"entries\": [\n        {\n          \"summary\": \"Explain how to recover rejected release pull request updates\",\n          \"details_markdown\": \"When a hosted release workflow fails to refresh an existing release pull request with HTTP 422 because the pull request was not created by this deployment's verified flow, monochange.dev now tells you why it was rejected and to close that pull request once and re-run the release workflow so monochange opens a verified one.\",\n          \"change_type\": \"website_fix\",\n          \"bump\": \"patch\",\n          \"stream\": \"website\",\n          \"style\": \"compact\",\n          \"provenance\": {\n            \"source_path\": \".changeset/website-actionable-release-pr-recovery.md\",\n            \"changeset_path\": \".changeset/website-actionable-release-pr-recovery.md\",\n            \"change_owner\": {\n              \"label\": \"@ifiokjr\",\n              \"url\": \"https://github.com/ifiokjr\"\n            },\n            \"review_request\": {\n              \"label\": \"PR #915\",\n              \"url\": \"https://github.com/monochange/monochange/pull/915\"\n            },\n            \"introduced_commit\": {\n              \"label\": \"0ee7cc5\",\n              \"url\": \"https://github.com/monochange/monochange/commit/0ee7cc59fa21bed063bc177a3c74771c7a570b2f\"\n            },\n            \"related_issues\": [\n              {\n                \"label\": \"#138\",\n                \"url\": \"https://github.com/monochange/monochange/issues/138\"\n              }\n            ]\n          }\n        }\n      ]\n    }\n  ]\n}"
+		}
+	],
+	"provider": {
+		"kind": "github",
+		"owner": "monochange",
+		"repo": "monochange",
+		"host": null
+	}
+}

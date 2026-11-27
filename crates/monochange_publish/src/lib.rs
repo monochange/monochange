@@ -709,8 +709,11 @@ pub fn set_fail_on_duplicate_for_requests(
 fn npm_publish_env(request: &PublishRequest) -> BTreeMap<String, String> {
 	let mut env = BTreeMap::new();
 
+	// npm reads `NPM_CONFIG_OTP`; pnpm 12 ignores `NPM_CONFIG_*` and reads
+	// only `PNPM_CONFIG_*`, so set both to reach whichever CLI publishes.
 	if let Some(otp) = request.package_metadata.get(NPM_PUBLISH_OTP_METADATA_KEY) {
 		env.insert("NPM_CONFIG_OTP".to_string(), otp.clone());
+		env.insert("PNPM_CONFIG_OTP".to_string(), otp.clone());
 	}
 
 	env
@@ -2493,10 +2496,10 @@ fn is_npm_otp_error(output: &CommandOutput, request: &PublishRequest) -> bool {
 fn npm_otp_recovery_message(mode: PackagePublishRunMode) -> &'static str {
 	match mode {
 		PackagePublishRunMode::Placeholder => {
-			"npm requires a publish-time one-time password. Get the current OTP code from your npm authenticator, then rerun with `monochange publish placeholder --otp <CODE>`. You can also set `NPM_CONFIG_OTP=<CODE>` for the command."
+			"npm requires a publish-time one-time password. Get the current OTP code from your npm authenticator, then rerun with `monochange publish placeholder --otp <CODE>`. You can also set `NPM_CONFIG_OTP=<CODE>` and `PNPM_CONFIG_OTP=<CODE>` for the command."
 		}
 		PackagePublishRunMode::Release => {
-			"npm requires a publish-time one-time password. Get the current OTP code from your npm authenticator, then rerun the publish command with `NPM_CONFIG_OTP=<CODE>` set in the environment."
+			"npm requires a publish-time one-time password. Get the current OTP code from your npm authenticator, then rerun the publish command with `NPM_CONFIG_OTP=<CODE>` and `PNPM_CONFIG_OTP=<CODE>` set in the environment."
 		}
 	}
 }

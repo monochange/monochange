@@ -3,7 +3,7 @@ members = ["crates/*"]
 resolver = "2"
 
 [workspace.package]
-version = "0.4.0"
+version = "0.5.3"
 authors = ["Ifiok Jr. <ifiokotung@gmail.com>"]
 edition = "2024"
 license = "Unlicense"
@@ -23,10 +23,9 @@ server_fn = { version = "0.9.0-rc1", default-features = false }
 # same immutable rev, so lockfile regeneration cannot advance the source. To
 # upgrade, change this rev and the root [workspace.metadata.bin] leptoskit_cli
 # rev together, then regenerate every leptoskit lockfile in one deliberate change.
-leptoskit = { git = "https://github.com/leptoskit/leptoskit", rev = "a93214edc8e5f6c7999c628285093f15cf188639", default-features = false }
-leptoskit_plugin_web_auth = { git = "https://github.com/leptoskit/leptoskit", rev = "a93214edc8e5f6c7999c628285093f15cf188639", default-features = false }
-leptoskit_router = { git = "https://github.com/leptoskit/leptoskit", rev = "a93214edc8e5f6c7999c628285093f15cf188639", default-features = false }
-leptoskit_rpc = { git = "https://github.com/leptoskit/leptoskit", rev = "a93214edc8e5f6c7999c628285093f15cf188639", default-features = false }
+leptoskit = { git = "https://github.com/leptoskit/leptoskit", rev = "fa3d29f8e8c837b19f92f1e9a95f699803543767", default-features = false }
+leptoskit_rpc = { git = "https://github.com/leptoskit/leptoskit", rev = "fa3d29f8e8c837b19f92f1e9a95f699803543767", default-features = false }
+leptoskit_plugin_web_auth = { git = "https://github.com/leptoskit/leptoskit", rev = "fa3d29f8e8c837b19f92f1e9a95f699803543767", default-features = false }
 schemars = { version = "1.2", features = ["semver1"] }
 
 # Testing
@@ -88,6 +87,7 @@ console_error_panic_hook = "0.1"
 console_log = "1"
 log = "0.4"
 wasm-bindgen = "=0.2.129"
+wasm-bindgen-futures = "0.4"
 web-sys = { version = "0.3", features = ["Window", "Document", "Element", "HtmlElement", "Storage", "MediaQueryList"] }
 
 # monochange app crates
@@ -99,9 +99,9 @@ monochange_backend = { path = "crates/monochange_backend" }
 monochange_shared = { path = "crates/monochange_shared" }
 
 # monochange crates (path deps from parent workspace)
-monochange_core = { path = "../crates/monochange_core", version = "0.21.1" }
-monochange_github = { path = "../crates/monochange_github", version = "0.21.1" }
-monochange_hosting = { path = "../crates/monochange_hosting", version = "0.21.1" }
+monochange_core = { path = "../crates/monochange_core", version = "0.22.1", features = ["schema"] }
+monochange_github = { path = "../crates/monochange_github", version = "0.22.1" }
+monochange_hosting = { path = "../crates/monochange_hosting", version = "0.22.1" }
 
 # cargo-leptos loads [[workspace.metadata.leptos]] arrays only. This object
 # form is intentionally ignored; live config is [package.metadata.leptos] in

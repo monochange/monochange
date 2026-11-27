@@ -107,12 +107,12 @@ The `/changelog` components and stylesheet own the visual layout. Change those f
 
 ## Deploy after release approval
 
-The existing release workflow prepares a release PR. A maintainer approves and merges that PR through the repository's required checks. Post-merge automation creates release tags and draft releases, then runs the `website-deployment` job in `ci.yml` only when the release record contains `monochange_app`.
+The existing release workflow prepares a release PR. A maintainer approves and merges that PR through the repository's required checks. Post-merge automation in `ci.yml` creates release tags and draft releases. The separate `app.yml` workflow runs its `website-deployment` job only when the release record contains `monochange_app`, and waits for that release's tag before it builds.
 
 The deployment job reads its dedicated SSH key directly from the `website-production` environment and validates it before setting up tooling or building an image. It verifies the exact commit, tag, and recorded website artifacts, then builds and smoke-tests a Linux image, transfers it through a pinned SSH connection, backs up SQLite, and restarts the application with its existing runtime credentials. It removes the temporary key even if an earlier step fails. Public HTTPS, health, JSON, and changelog checks must pass before automation publishes the website's GitHub release with the recorded user notes. CLI publication remains separate.
 
 Production deployments are serialized. Failed deployments leave the website release as a draft and report the failure in Actions. Inspect migrations and backups before a rollback, because an older image may not support the new database schema. Re-run the failed deployment job after fixing its cause; do not create another tag or release record.
 
-The workflow needs a dedicated `WEBSITE_DEPLOY_SSH_KEY` secret in the `website-production` Actions environment and the corresponding forced-command key on the server. Restrict that environment to `main`. Keep the key separate from personal SSH access. Production passwords stay in the runtime vault, and the private deployment key belongs in the recovery vault. See `app/deploy/digitalocean/OPERATIONS.md` for the server setup and credential rotation procedure.
+The workflow needs a dedicated `WEBSITE_DEPLOY_SSH_KEY` secret in the `website-production` Actions environment and the corresponding forced-command key on the server. Restrict that environment to `main`. Keep the key separate from personal SSH access. Production passwords stay in the runtime vault, and the private deployment key belongs in the recovery vault. See `app/DEPLOY.md` for the release-day checklist and recovery steps, and `app/deploy/digitalocean/OPERATIONS.md` for the server setup and credential rotation procedure.
 
 <!-- {/websiteReleaseNotes} -->

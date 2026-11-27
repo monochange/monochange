@@ -6,7 +6,7 @@ edition.workspace = true
 license.workspace = true
 publish = false
 repository.workspace = true
-description = "monochange projects workspace and product server functions"
+description = "monochange projects shared product UI and server functions"
 
 [dependencies]
 # Leptos (available on both native and WASM)
@@ -25,6 +25,9 @@ server_fn = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 url = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+web-sys = { workspace = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 leptos_axum = { workspace = true }
@@ -55,7 +58,9 @@ ssr = [
 	"leptoskit/rpc-ssr",
 	"leptoskit_rpc/ssr",
 ]
-# Browser: hydrate + leptoskit_rpc web client.
+# Browser: hydrate the shared components this library contributes to the
+# website client's bundle (the projects entry enables it through
+# monochange_projects_web/hydrate).
 hydrate = ["leptos/hydrate", "leptos/lazy", "leptoskit_rpc/web"]
 
 [dev-dependencies]

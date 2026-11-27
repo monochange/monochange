@@ -23,6 +23,7 @@ welds = { workspace = true }
 welds-connections = { workspace = true }
 [dev-dependencies]
 rstest = { workspace = true }
+tempfile = "3"
 
 [lints]
 workspace = true

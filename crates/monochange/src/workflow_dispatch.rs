@@ -121,39 +121,14 @@ async fn send_workflow_dispatch(
 	options: &HostedCommitOptions,
 	token: &str,
 ) -> MonochangeResult<HostedWorkflowDispatchResponse> {
-	let client = monochange_hosting::build_http_client("monochange app")?;
-	let response = client
-		.post(format!(
-			"{}/api/workflow-dispatches",
-			options.url.trim_end_matches('/')
-		))
-		.timeout(WORKFLOW_DISPATCH_TIMEOUT)
-		.bearer_auth(token)
-		.json(request)
-		.send()
-		.await
-		.map_err(|error| {
-			MonochangeError::Config(format!("hosted workflow dispatch request failed: {error}"))
-		})?;
-	let status = response.status();
-	// patch-coverage:ignore-start -- a mid-body connection drop is needed to fail the text read; httpmock always serves complete bodies.
-	let text = response.text().await.map_err(|error| {
-		MonochangeError::Config(format!(
-			"hosted workflow dispatch response read failed: {error}"
-		))
-	})?;
-	// patch-coverage:ignore-end
-	if !status.is_success() {
-		return Err(MonochangeError::Config(format!(
-			"hosted workflow dispatch failed with HTTP {status}: {text}"
-		)));
-	}
-
-	serde_json::from_str(&text).map_err(|error| {
-		MonochangeError::Config(format!(
-			"hosted workflow dispatch response was invalid JSON: {error}"
-		))
-	})
+	crate::hosted_rpc::call(
+		crate::hosted_rpc::WORKFLOW_DISPATCH,
+		&options.url,
+		token,
+		request,
+		Some(WORKFLOW_DISPATCH_TIMEOUT),
+	)
+	.await
 }
 
 fn render_workflow_dispatch(
