@@ -79,13 +79,13 @@ jobs:
         uses: $/.github/actions/rust
 
       - name: test core libraries
-        run: cargo test --locked --all-features --lib -p monochange_semver -p monochange_core -p monochange_config -p monochange_changelog
+        run: cargo test --locked --all-features --lib -p monochange_semver -p monochange_core -p monochange_config -p monochange_changelog -p monochange_cargo
 
       - name: test public release planning
         run: |
           set -euo pipefail
           cargo test --locked --all-features -p monochange --test affected --test changeset_policy --test release_apply --test release_record --test pre_stable_versioning --test changelog_formats --test release_notes_and_propagation --test ci_gatekeeper
-          cargo test --locked --all-features -p monochange_integration_tests --test bump_propagation --test changelog_streams --test create_change_file --test config_loading_globs --test prerelease_workflow --test publish_plan_order --test release_values --test release_record_artifacts
+          cargo test --locked --all-features -p monochange_integration_tests --test bump_propagation --test cargo_api_classification --test changelog_streams --test create_change_file --test config_loading_globs --test prerelease_workflow --test publish_plan_order --test release_values --test release_record_artifacts
 
   build:
     timeout-minutes: 45

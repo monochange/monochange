@@ -1,0 +1,36 @@
+---
+source: crates/monochange_integration_tests/tests/cargo_api_classification.rs
+expression: stable_classification_projection(&classify_json)
+---
+{
+  "packages": [
+    {
+      "action": "keep",
+      "decision": {
+        "compatibility_impact": "additive",
+        "completeness": "partial",
+        "confidence": "medium",
+        "enforceable_minimum": "none",
+        "proposed_changeset_bump": "minor",
+        "review_required": true
+      },
+      "findings": [
+        {
+          "bump": "minor",
+          "change": "modified",
+          "completeness": "partial",
+          "confidence": "medium",
+          "id": "cargo/public-api/public_api/modified/trait/traits::ParseAccounts",
+          "impact": "additive",
+          "note": "trait `traits::ParseAccounts` only added defaulted items or defaults for existing items; downstream method-name collisions and dyn-compatibility are not checked by syntax analysis",
+          "rule_id": "cargo/public-api/public_api/modified/trait",
+          "summary": "trait `traits::ParseAccounts` modified",
+          "surface": "public_api"
+        }
+      ],
+      "package_id": "pina",
+      "recommendation": "minor"
+    }
+  ],
+  "recommendation": "minor"
+}

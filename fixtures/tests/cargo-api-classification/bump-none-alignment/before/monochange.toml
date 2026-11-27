@@ -1,0 +1,15 @@
+[defaults]
+package_type = "cargo"
+
+[changesets.affected]
+enabled = true
+required = true
+
+[changelog.sections]
+docs = { heading = "Documentation" }
+
+[changelog.types]
+docs = { bump = "none", section = "docs" }
+
+[package.core]
+path = "crates/core"
