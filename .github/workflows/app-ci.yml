@@ -14,7 +14,9 @@ on:
       - "scripts/leptoskit-plugin/**"
       - "scripts/check-wasm-externref-table.ts"
       - "scripts/minify-split-loader.ts"
+      - "scripts/resolve-app-release-notes.ts"
       - "scripts/npm/tests/digitalocean-rollout.test.ts"
+      - "scripts/npm/tests/resolve-app-release-notes.test.ts"
       - "package.json"
       - "pnpm-lock.yaml"
   pull_request:
@@ -28,7 +30,9 @@ on:
       - "scripts/leptoskit-plugin/**"
       - "scripts/check-wasm-externref-table.ts"
       - "scripts/minify-split-loader.ts"
+      - "scripts/resolve-app-release-notes.ts"
       - "scripts/npm/tests/digitalocean-rollout.test.ts"
+      - "scripts/npm/tests/resolve-app-release-notes.test.ts"
       - "package.json"
       - "pnpm-lock.yaml"
   merge_group:
@@ -65,6 +69,9 @@ jobs:
 
       - name: install test dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: test app release notes and image smoke checks
+        run: pnpm vitest run scripts/npm/tests/resolve-app-release-notes.test.ts
 
       - name: test installed deployment helpers in isolated Linux
         run: |
