@@ -206,6 +206,8 @@ struct PublicSymbol {
 struct RetainedAttribute {
 	rendered: String,
 	category: AttributeCategory,
+	/// True only for a top-level `#[deprecated ...]` attribute (not inside `cfg_attr`).
+	unconditional_deprecated: bool,
 }
 
 #[derive(Debug, Clone, Copy, Eq, Ord, PartialEq, PartialOrd)]
@@ -236,6 +238,13 @@ struct TraitMember {
 	/// For defaulted associated constants and types, the default value/type tokens.
 	/// Changing an existing default constant value or default associated type stays breaking.
 	default_value: Option<String>,
+	/// Whether the presence of this member already makes the trait syntactically
+	/// non-dyn-compatible (E0038).
+	breaks_existing_dyn_compatibility: bool,
+	/// Syntactic reason why *adding* this member to an otherwise dyn-compatible
+	/// trait breaks `dyn Trait` users (E0038 or E0191), or `None` if adding it
+	/// preserves dyn-compatibility (including via `where Self: Sized`).
+	added_dyn_incompatibility_reason: Option<&'static str>,
 }
 
 #[derive(Debug, Clone, Eq, Ord, PartialEq, PartialOrd)]
@@ -246,6 +255,10 @@ struct TraitSurface {
 	/// Set when the trait includes opaque macro/verbatim items or duplicate member
 	/// keys (for example cfg-gated overloads) that syntax analysis cannot safely compare.
 	has_opaque_items: bool,
+	/// Whether the trait appears dyn-compatible by syntactic inspection alone
+	/// (no `Sized` supertrait / `where Self: Sized` bound and no existing member
+	/// that violates dyn-compatibility).
+	syntactically_dyn_compatible: bool,
 	members: BTreeMap<(TraitMemberKind, String), TraitMember>,
 }
 
@@ -363,15 +376,15 @@ impl syn::visit_mut::VisitMut for RemoveInertAttributes {
 	}
 }
 
-/// Keep API-significant attributes while stripping inert docs, lint levels, and
-/// formatting directives (including inside `cfg_attr`).
+/// Keep API-significant attributes while stripping inert docs, lint levels,
+/// formatting directives, and `track_caller` (including inside `cfg_attr`).
 fn retain_api_attribute(meta: &mut syn::Meta) -> bool {
-	if is_inert_lint_attribute(meta.path()) || is_rustfmt_skip_attribute(meta.path()) {
+	if meta.path().is_ident("doc")
+		|| meta.path().is_ident("track_caller")
+		|| is_inert_lint_attribute(meta.path())
+		|| is_rustfmt_skip_attribute(meta.path())
+	{
 		return false;
-	}
-
-	if meta.path().is_ident("doc") {
-		return retain_doc_attribute(meta);
 	}
 
 	let syn::Meta::List(list) = meta else {
@@ -425,32 +438,6 @@ fn is_rustfmt_skip_attribute(path: &syn::Path) -> bool {
 	)
 }
 
-/// Strip documentation prose and rustdoc presentation options while keeping
-/// `#[doc(hidden)]`, which marks the documented `SemVer` public API boundary.
-fn retain_doc_attribute(meta: &mut syn::Meta) -> bool {
-	let syn::Meta::List(list) = meta else {
-		return false;
-	};
-
-	let parser = syn::punctuated::Punctuated::<syn::Meta, syn::Token![,]>::parse_terminated;
-	let Ok(arguments) = parser.parse2(list.tokens.clone()) else {
-		// Preserve unrecognized `#[doc(...)]` syntax conservatively.
-		return true;
-	};
-
-	let retained = arguments
-		.into_iter()
-		.filter(|argument| matches!(argument, syn::Meta::Path(path) if path.is_ident("hidden")))
-		.collect::<Vec<_>>();
-
-	if retained.is_empty() {
-		return false;
-	}
-
-	list.tokens = quote::quote!(#(#retained),*);
-	true
-}
-
 fn extract_retained_attributes(attributes: &[syn::Attribute]) -> Vec<RetainedAttribute> {
 	attributes
 		.iter()
@@ -458,6 +445,7 @@ fn extract_retained_attributes(attributes: &[syn::Attribute]) -> Vec<RetainedAtt
 			RetainedAttribute {
 				rendered: render_signature(attribute),
 				category: classify_meta_category(&attribute.meta),
+				unconditional_deprecated: attribute.meta.path().is_ident("deprecated"),
 			}
 		})
 		.collect()
@@ -494,36 +482,6 @@ fn classify_cfg_attr_category(meta: &syn::Meta) -> AttributeCategory {
 	}
 }
 
-fn has_macro_export(attributes: &[syn::Attribute]) -> bool {
-	attributes
-		.iter()
-		.any(|attribute| meta_contains_macro_export(&attribute.meta))
-}
-
-fn meta_contains_macro_export(meta: &syn::Meta) -> bool {
-	if meta.path().is_ident("macro_export") {
-		return true;
-	}
-
-	let syn::Meta::List(list) = meta else {
-		return false;
-	};
-
-	if !list.path.is_ident("cfg_attr") {
-		return false;
-	}
-
-	let parser = syn::punctuated::Punctuated::<syn::Meta, syn::Token![,]>::parse_terminated;
-	let Ok(arguments) = parser.parse2(list.tokens.clone()) else {
-		return false;
-	};
-
-	arguments
-		.into_iter()
-		.skip(1)
-		.any(|argument| meta_contains_macro_export(&argument))
-}
-
 fn render_item_signatures<T: ToTokens>(
 	item: &mut T,
 	attrs_mut: impl Fn(&mut T) -> &mut Vec<syn::Attribute>,
@@ -536,21 +494,10 @@ fn render_item_signatures<T: ToTokens>(
 	(signature, signature_without_attrs, outer_attributes)
 }
 
-fn render_signature_with_attrs(attrs: &[syn::Attribute], value: &impl ToTokens) -> String {
-	if attrs.is_empty() {
-		render_signature(value)
-	} else {
-		quote::quote!(#(#attrs)* #value).to_string()
-	}
-}
-
-fn render_attributes(attrs: &[syn::Attribute]) -> String {
-	quote::quote!(#(#attrs)*).to_string()
-}
-
 fn build_trait_surface(item: &mut syn::ItemTrait) -> TraitSurface {
 	let mut has_opaque_items = false;
 	let mut members = BTreeMap::new();
+	let has_sized_bound = trait_has_sized_bound(item);
 
 	for trait_item in &mut item.items {
 		let Some(member) = extract_trait_member(trait_item) else {
@@ -563,6 +510,11 @@ fn build_trait_surface(item: &mut syn::ItemTrait) -> TraitSurface {
 		}
 	}
 
+	let syntactically_dyn_compatible = !has_sized_bound
+		&& !members
+			.values()
+			.any(|member| member.breaks_existing_dyn_compatibility);
+
 	let saved_attrs = std::mem::take(&mut item.attrs);
 	let saved_items = std::mem::take(&mut item.items);
 	let header_without_attrs = render_signature(item);
@@ -572,6 +524,7 @@ fn build_trait_surface(item: &mut syn::ItemTrait) -> TraitSurface {
 	TraitSurface {
 		header_without_attrs,
 		has_opaque_items,
+		syntactically_dyn_compatible,
 		members,
 	}
 }
@@ -579,6 +532,7 @@ fn build_trait_surface(item: &mut syn::ItemTrait) -> TraitSurface {
 fn extract_trait_member(item: &mut syn::TraitItem) -> Option<TraitMember> {
 	match item {
 		syn::TraitItem::Fn(method) => {
+			let dyn_reason = fn_dyn_incompatibility_reason(method);
 			Some(TraitMember {
 				kind: TraitMemberKind::Fn,
 				name: method.sig.ident.to_string(),
@@ -586,6 +540,8 @@ fn extract_trait_member(item: &mut syn::TraitItem) -> Option<TraitMember> {
 				outer_attributes: extract_retained_attributes(&method.attrs),
 				has_default: method.default.is_some(),
 				default_value: None,
+				breaks_existing_dyn_compatibility: dyn_reason.is_some(),
+				added_dyn_incompatibility_reason: dyn_reason,
 			})
 		}
 
@@ -609,12 +565,25 @@ fn extract_trait_member(item: &mut syn::TraitItem) -> Option<TraitMember> {
 				outer_attributes,
 				has_default,
 				default_value,
+				breaks_existing_dyn_compatibility: true,
+				added_dyn_incompatibility_reason: Some("is an associated constant"),
 			})
 		}
 
 		syn::TraitItem::Type(assoc_type) => {
 			let name = assoc_type.ident.to_string();
 			let outer_attributes = extract_retained_attributes(&assoc_type.attrs);
+			let self_sized = has_where_self_sized(assoc_type.generics.where_clause.as_ref());
+			let has_generics = !assoc_type.generics.params.is_empty();
+			let breaks_existing_dyn_compatibility = has_generics && !self_sized;
+			let added_dyn_incompatibility_reason = if self_sized {
+				None
+			} else if has_generics {
+				Some("is a generic associated type")
+			} else {
+				Some("adds an associated type that `dyn` trait objects must specify")
+			};
+
 			let saved_attrs = std::mem::take(&mut assoc_type.attrs);
 			let saved_default = assoc_type.default.take();
 			let has_default = saved_default.is_some();
@@ -630,10 +599,167 @@ fn extract_trait_member(item: &mut syn::TraitItem) -> Option<TraitMember> {
 				outer_attributes,
 				has_default,
 				default_value,
+				breaks_existing_dyn_compatibility,
+				added_dyn_incompatibility_reason,
 			})
 		}
 
 		_ => None,
+	}
+}
+
+fn trait_has_sized_bound(item: &syn::ItemTrait) -> bool {
+	item.supertraits.iter().any(is_sized_trait_bound)
+		|| has_where_self_sized(item.generics.where_clause.as_ref())
+}
+
+fn has_where_self_sized(where_clause: Option<&syn::WhereClause>) -> bool {
+	where_clause.is_some_and(|clause| {
+		clause.predicates.iter().any(|predicate| {
+			matches!(
+				predicate,
+				syn::WherePredicate::Type(type_predicate)
+					if is_bare_self_type(&type_predicate.bounded_ty)
+						&& type_predicate.bounds.iter().any(is_sized_trait_bound)
+			)
+		})
+	})
+}
+
+fn is_sized_trait_bound(bound: &syn::TypeParamBound) -> bool {
+	let syn::TypeParamBound::Trait(trait_bound) = bound else {
+		return false;
+	};
+
+	if trait_bound.maybe.is_some() {
+		return false;
+	}
+
+	let segments = trait_bound
+		.path
+		.segments
+		.iter()
+		.map(|segment| segment.ident.to_string())
+		.collect::<Vec<_>>();
+	let segment_refs = segments.iter().map(String::as_str).collect::<Vec<_>>();
+
+	matches!(
+		segment_refs.as_slice(),
+		["Sized"] | ["core" | "std", "marker", "Sized"]
+	)
+}
+
+fn is_bare_self_type(ty: &syn::Type) -> bool {
+	let syn::Type::Path(type_path) = ty else {
+		return false;
+	};
+
+	type_path.qself.is_none()
+		&& type_path.path.leading_colon.is_none()
+		&& type_path.path.is_ident("Self")
+}
+
+/// Return the syntactic reason a trait method violates Rust dyn-compatibility
+/// (E0038), or `None` when it is syntactically dyn-compatible or carries
+/// `where Self: Sized`.
+fn fn_dyn_incompatibility_reason(method: &mut syn::TraitItemFn) -> Option<&'static str> {
+	if has_where_self_sized(method.sig.generics.where_clause.as_ref()) {
+		return None;
+	}
+
+	if method.sig.asyncness.is_some() {
+		return Some("is `async`");
+	}
+
+	if method.sig.constness.is_some() {
+		return Some("is `const`");
+	}
+
+	if !matches!(method.sig.inputs.first(), Some(syn::FnArg::Receiver(_))) {
+		return Some("has no `self` receiver");
+	}
+
+	let has_type_or_const_generics = method.sig.generics.params.iter().any(|param| {
+		matches!(
+			param,
+			syn::GenericParam::Type(_) | syn::GenericParam::Const(_)
+		)
+	});
+
+	if has_type_or_const_generics {
+		return Some("has generic type or const parameters");
+	}
+
+	let mut check = SignatureDynCheck::default();
+
+	for input in method.sig.inputs.iter_mut().skip(1) {
+		check.visit_fn_arg_mut(input);
+	}
+
+	check.visit_return_type_mut(&mut method.sig.output);
+
+	if let Some(where_clause) = &mut method.sig.generics.where_clause {
+		check.visit_where_clause_mut(where_clause);
+	}
+
+	if check.has_impl_trait {
+		return Some("uses `impl Trait` in its signature");
+	}
+
+	if check.mentions_self {
+		return Some("references `Self` outside the receiver");
+	}
+
+	None
+}
+
+#[derive(Default)]
+struct SignatureDynCheck {
+	has_impl_trait: bool,
+	mentions_self: bool,
+}
+
+impl syn::visit_mut::VisitMut for SignatureDynCheck {
+	fn visit_type_impl_trait_mut(&mut self, node: &mut syn::TypeImplTrait) {
+		self.has_impl_trait = true;
+		syn::visit_mut::visit_type_impl_trait_mut(self, node);
+	}
+
+	fn visit_type_path_mut(&mut self, node: &mut syn::TypePath) {
+		if let Some(qself) = &mut node.qself {
+			// `<Self as Super>::Assoc` is a dyn-compatible projection when `qself.ty`
+			// is bare `Self` and a trait path precedes the associated item (`position > 0`).
+			if is_bare_self_type(&qself.ty) && qself.position > 0 {
+				for segment in &mut node.path.segments {
+					self.visit_path_arguments_mut(&mut segment.arguments);
+				}
+
+				return;
+			}
+
+			self.visit_qself_mut(qself);
+		} else if node.path.leading_colon.is_none()
+			&& node
+				.path
+				.segments
+				.first()
+				.is_some_and(|segment| segment.ident == "Self")
+		{
+			if node.path.segments.len() == 1 {
+				self.mentions_self = true;
+				return;
+			}
+
+			// `Self::Assoc` projections are dyn-compatible, while generic arguments
+			// inside the projection (for example `Self::Assoc<Self>`) are still checked.
+			for segment in node.path.segments.iter_mut().skip(1) {
+				self.visit_path_arguments_mut(&mut segment.arguments);
+			}
+
+			return;
+		}
+
+		syn::visit_mut::visit_path_mut(self, &mut node.path);
 	}
 }
 
@@ -704,16 +830,14 @@ impl SymbolCollector<'_> {
 			}
 
 			syn::Item::Fn(item) if is_public(&item.vis) => {
-				let signature_without_attrs = render_signature(&item.sig);
-				let signature = render_signature_with_attrs(&item.attrs, &item.sig);
-				let outer_attributes = extract_retained_attributes(&item.attrs);
+				let signature = render_signature(&item.sig);
 				self.push_symbol(
 					"function",
 					item.sig.ident.to_string(),
 					SymbolData {
+						signature_without_attrs: signature.clone(),
 						signature,
-						signature_without_attrs,
-						outer_attributes,
+						outer_attributes: Vec::new(),
 						initializer: None,
 						trait_surface: None,
 					},
@@ -767,14 +891,6 @@ impl SymbolCollector<'_> {
 				self.collect_reexport(item);
 			}
 
-			syn::Item::Macro(item)
-				if item.ident.is_some()
-					&& item.mac.path.is_ident("macro_rules")
-					&& has_macro_export(&item.attrs) =>
-			{
-				self.collect_exported_macro(item);
-			}
-
 			_ => {}
 		}
 	}
@@ -797,41 +913,18 @@ impl SymbolCollector<'_> {
 
 	fn collect_reexport(&mut self, item: &syn::ItemUse) {
 		let use_tree = render_signature(&item.tree);
-		let signature_without_attrs = format!("pub use {use_tree};");
-		let signature = if item.attrs.is_empty() {
-			signature_without_attrs.clone()
-		} else {
-			format!(
-				"{} {signature_without_attrs}",
-				render_attributes(&item.attrs)
-			)
-		};
-
-		let outer_attributes = extract_retained_attributes(&item.attrs);
+		let signature = format!("pub use {use_tree};");
 		self.push_symbol(
 			"reexport",
 			use_tree,
 			SymbolData {
+				signature_without_attrs: signature.clone(),
 				signature,
-				signature_without_attrs,
-				outer_attributes,
+				outer_attributes: Vec::new(),
 				initializer: None,
 				trait_surface: None,
 			},
 		);
-	}
-
-	fn collect_exported_macro(&mut self, item: &mut syn::ItemMacro) {
-		let Some(ident) = item.ident.as_ref().map(ToString::to_string) else {
-			return;
-		};
-
-		let mut root_collector = SymbolCollector {
-			module_prefix: &[],
-			file_path: self.file_path,
-			output: self.output,
-		};
-		root_collector.push_item("macro", ident, item, |item| &mut item.attrs);
 	}
 
 	fn push_symbol(&mut self, item_kind: &str, item_name: String, data: SymbolData) {
@@ -990,9 +1083,7 @@ fn diff_public_symbols(
 					Some(before_symbol.signature.clone()),
 					Some(after_symbol.signature.clone()),
 				);
-				if let Some(assessment) = modified_symbol_assessment(before_symbol, after_symbol) {
-					change.assessment = Some(assessment);
-				}
+				apply_modified_symbol_assessment(&mut change, before_symbol, after_symbol);
 
 				changes.push(change);
 			}
@@ -1044,19 +1135,29 @@ fn build_symbol_change(
 	change
 }
 
-fn modified_symbol_assessment(
+fn apply_modified_symbol_assessment(
+	change: &mut SemanticChange,
 	before_symbol: &PublicSymbol,
 	after_symbol: &PublicSymbol,
-) -> Option<SemanticChangeAssessment> {
+) {
 	if let Some(assessment) = slice_append_assessment(before_symbol, after_symbol) {
-		return Some(assessment);
+		change.assessment = Some(assessment);
+		return;
 	}
 
-	if let Some(assessment) = trait_change_assessment(before_symbol, after_symbol) {
-		return Some(assessment);
+	if let Some((summary_override, assessment)) =
+		trait_change_assessment(before_symbol, after_symbol)
+	{
+		if let Some(summary) = summary_override {
+			change.summary = summary;
+		}
+		change.assessment = Some(assessment);
+		return;
 	}
 
-	attribute_only_assessment(before_symbol, after_symbol)
+	if let Some(assessment) = attribute_only_assessment(before_symbol, after_symbol) {
+		change.assessment = Some(assessment);
+	}
 }
 
 /// Assess a slice literal that only gained elements as additive.
@@ -1108,7 +1209,7 @@ fn slice_append_assessment(
 fn trait_change_assessment(
 	before_symbol: &PublicSymbol,
 	after_symbol: &PublicSymbol,
-) -> Option<SemanticChangeAssessment> {
+) -> Option<(Option<String>, SemanticChangeAssessment)> {
 	let before = before_symbol.trait_surface.as_ref()?;
 	let after = after_symbol.trait_surface.as_ref()?;
 
@@ -1123,7 +1224,34 @@ fn trait_change_assessment(
 	let (existing_gained_default, existing_attr_bump) =
 		assess_existing_trait_members(before, after)?;
 	bump = bump.max(existing_attr_bump);
-	let added_defaulted = assess_added_trait_members(before, after)?;
+
+	let added_defaulted = match assess_added_trait_members(before, after) {
+		AddedTraitMembers::BreakingRequired => return None,
+		AddedTraitMembers::BreakingDynCompatibility(reasons) => {
+			let detail = reasons.join("; ");
+			let summary = format!(
+				"trait `{}` modified: added defaulted member(s) break dyn-compatibility ({detail})",
+				after_symbol.item_path
+			);
+			let assessment = SemanticChangeAssessment::new(
+				SemanticAnalysisOutcome::Breaking,
+				BumpSeverity::Major,
+				ApiConfidence::Medium,
+				SemanticAnalyzerEvidence::new(
+					"cargo/public-api",
+					"monochange",
+					SemanticAnalysisCompleteness::Partial,
+					format!(
+						"trait `{}` appeared dyn-compatible before the change, and adding {detail} breaks `dyn` trait objects unless bounded by `where Self: Sized`",
+						after_symbol.item_path
+					),
+				),
+			);
+			return Some((Some(summary), assessment));
+		}
+		AddedTraitMembers::Defaulted(added) => added,
+	};
+
 	let added_or_defaulted = existing_gained_default || added_defaulted;
 
 	let (outcome, suggested_bump, coverage) = if added_or_defaulted {
@@ -1131,7 +1259,7 @@ fn trait_change_assessment(
 			SemanticAnalysisOutcome::Additive,
 			bump.max(BumpSeverity::Minor),
 			format!(
-				"trait `{}` only added defaulted items or defaults for existing items; downstream method-name collisions and dyn-compatibility are not checked by syntax analysis",
+				"trait `{}` only added dyn-compatible defaulted items or defaults for existing items; downstream method-name collisions and cross-crate trait bounds are not checked by syntax analysis",
 				after_symbol.item_path
 			),
 		)
@@ -1146,17 +1274,26 @@ fn trait_change_assessment(
 		)
 	};
 
-	Some(SemanticChangeAssessment::new(
-		outcome,
-		suggested_bump,
-		ApiConfidence::Medium,
-		SemanticAnalyzerEvidence::new(
-			"cargo/public-api",
-			"monochange",
-			SemanticAnalysisCompleteness::Partial,
-			coverage,
+	Some((
+		None,
+		SemanticChangeAssessment::new(
+			outcome,
+			suggested_bump,
+			ApiConfidence::Medium,
+			SemanticAnalyzerEvidence::new(
+				"cargo/public-api",
+				"monochange",
+				SemanticAnalysisCompleteness::Partial,
+				coverage,
+			),
 		),
 	))
+}
+
+enum AddedTraitMembers {
+	BreakingRequired,
+	BreakingDynCompatibility(Vec<String>),
+	Defaulted(bool),
 }
 
 fn trait_outer_attribute_bump(
@@ -1219,8 +1356,9 @@ fn assess_existing_trait_member(
 	Some((gained_default, attr_bump))
 }
 
-fn assess_added_trait_members(before: &TraitSurface, after: &TraitSurface) -> Option<bool> {
+fn assess_added_trait_members(before: &TraitSurface, after: &TraitSurface) -> AddedTraitMembers {
 	let mut added_defaulted = false;
+	let mut dyn_breaks = Vec::new();
 
 	for (key, after_member) in &after.members {
 		if before.members.contains_key(key) {
@@ -1228,13 +1366,23 @@ fn assess_added_trait_members(before: &TraitSurface, after: &TraitSurface) -> Op
 		}
 
 		if !after_member.has_default {
-			return None;
+			return AddedTraitMembers::BreakingRequired;
+		}
+
+		if before.syntactically_dyn_compatible
+			&& let Some(reason) = after_member.added_dyn_incompatibility_reason
+		{
+			dyn_breaks.push(format!("`{}` ({reason})", after_member.name));
 		}
 
 		added_defaulted = true;
 	}
 
-	Some(added_defaulted)
+	if !dyn_breaks.is_empty() {
+		return AddedTraitMembers::BreakingDynCompatibility(dyn_breaks);
+	}
+
+	AddedTraitMembers::Defaulted(added_defaulted)
 }
 
 /// Assess an item modification where only compatible outer attributes changed
@@ -1277,7 +1425,7 @@ fn compatible_attribute_delta_bump(
 ) -> Option<BumpSeverity> {
 	let before_counts = count_retained_attributes(before);
 	let after_counts = count_retained_attributes(after);
-	let (any_added, added_deprecated) = classify_added_attributes(&before_counts, &after_counts)?;
+	let any_added = classify_added_attributes(&before_counts, &after_counts)?;
 	let any_removed = classify_removed_attributes(&before_counts, &after_counts)?;
 
 	if !any_added && !any_removed {
@@ -1290,7 +1438,18 @@ fn compatible_attribute_delta_bump(
 		return (!has_breaking).then_some(BumpSeverity::Patch);
 	}
 
-	let bump = if added_deprecated {
+	let before_any_deprecated = before
+		.iter()
+		.any(|attr| attr.category == AttributeCategory::Deprecated);
+	let after_any_deprecated = after
+		.iter()
+		.any(|attr| attr.category == AttributeCategory::Deprecated);
+	let before_unconditional_deprecated = before.iter().any(|attr| attr.unconditional_deprecated);
+	let after_unconditional_deprecated = after.iter().any(|attr| attr.unconditional_deprecated);
+	let newly_deprecated = (!before_any_deprecated && after_any_deprecated)
+		|| (!before_unconditional_deprecated && after_unconditional_deprecated);
+
+	let bump = if newly_deprecated {
 		BumpSeverity::Minor
 	} else {
 		BumpSeverity::Patch
@@ -1314,9 +1473,8 @@ fn count_retained_attributes(
 fn classify_added_attributes(
 	before_counts: &BTreeMap<&RetainedAttribute, usize>,
 	after_counts: &BTreeMap<&RetainedAttribute, usize>,
-) -> Option<(bool, bool)> {
+) -> Option<bool> {
 	let mut any_added = false;
-	let mut added_deprecated = false;
 
 	for (attr, after_count) in after_counts {
 		let before_count = before_counts.get(attr).copied().unwrap_or(0);
@@ -1327,14 +1485,12 @@ fn classify_added_attributes(
 
 		any_added = true;
 
-		match attr.category {
-			AttributeCategory::BreakingOrUnknown => return None,
-			AttributeCategory::Deprecated => added_deprecated = true,
-			AttributeCategory::Inline | AttributeCategory::MustUse => {}
+		if attr.category == AttributeCategory::BreakingOrUnknown {
+			return None;
 		}
 	}
 
-	Some((any_added, added_deprecated))
+	Some(any_added)
 }
 
 fn classify_removed_attributes(

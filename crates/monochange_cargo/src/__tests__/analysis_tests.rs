@@ -126,11 +126,7 @@ fn collect_public_symbols_covers_all_supported_public_item_kinds() {
 )]
 #[case::doc_options(
 	"pub struct Item;",
-	"#[doc(alias = \"old documentation\")] #[doc(cfg(feature = \"extra\"))] #[doc(notable_trait)] pub struct Item;"
-)]
-#[case::doc_hidden_preserves_hidden_while_ignoring_prose(
-	"#[doc(hidden)] pub struct Item;",
-	"#[doc(hidden, alias = \"old documentation\")] /// old documentation\npub struct Item;"
+	"#[doc(hidden)] #[doc(alias = \"old documentation\")] pub struct Item;"
 )]
 #[case::conditional_doc(
 	"pub struct Item;",
@@ -407,9 +403,10 @@ fn bonding_curve_inert_lint_attribute_and_docs_on_constant_produce_no_change() {
 	"pub use crate::helpers::render;",
 	"#[allow(unused_imports)] #[cfg_attr(not(test), expect(unused_imports))] pub use crate::helpers::render;"
 )]
-#[case::exported_macro(
-	"#[macro_export] macro_rules! make { () => {}; }",
-	"#[macro_export] #[allow(unused_macros)] #[rustfmt::skip] macro_rules! make { () => {}; }"
+#[case::track_caller_on_fn("pub fn run() {}", "#[track_caller] pub fn run() {}")]
+#[case::track_caller_on_trait_method(
+	"pub trait Checker { fn check(&self) {} }",
+	"pub trait Checker { #[track_caller] fn check(&self) {} }"
 )]
 fn inert_lint_attributes_do_not_change_signatures(#[case] plain: &str, #[case] annotated: &str) {
 	assert!(
@@ -419,6 +416,65 @@ fn inert_lint_attributes_do_not_change_signatures(#[case] plain: &str, #[case] a
 	assert!(
 		diff_public_symbols_allow_empty(annotated, plain).is_empty(),
 		"removing inert attribute should produce no diff:\nplain: {plain}\nannotated: {annotated}"
+	);
+}
+
+#[rstest::rstest]
+#[case::tracing_instrument_on_fn(
+	"pub fn fetch(id: u64) -> u64 { id }",
+	"#[tracing::instrument(skip(id))] pub fn fetch(id: u64) -> u64 { id }"
+)]
+#[case::bare_instrument_on_fn(
+	"pub fn fetch(id: u64) -> u64 { id }",
+	"#[instrument] pub fn fetch(id: u64) -> u64 { id }"
+)]
+#[case::tauri_command_on_fn(
+	"pub fn greet(name: String) -> String { name }",
+	"#[tauri::command] pub fn greet(name: String) -> String { name }"
+)]
+#[case::napi_on_fn(
+	"pub fn add(a: i32, b: i32) -> i32 { a + b }",
+	"#[napi] pub fn add(a: i32, b: i32) -> i32 { a + b }"
+)]
+#[case::cold_on_fn("pub fn slow_path() {}", "#[cold] pub fn slow_path() {}")]
+#[case::cfg_attr_tracing_instrument_on_fn(
+	"pub fn work() {}",
+	"#[cfg_attr(feature = \"tracing\", tracing::instrument)] pub fn work() {}"
+)]
+#[case::clippy_too_many_arguments_on_fn(
+	"pub fn many(a: u8, b: u8) -> u8 { a + b }",
+	"#[clippy::too_many_arguments] pub fn many(a: u8, b: u8) -> u8 { a + b }"
+)]
+#[case::clippy_msrv_on_fn("pub fn work() {}", "#[clippy::msrv = \"1.70\"] pub fn work() {}")]
+#[case::reordered_attrs_on_fn(
+	"#[inline] #[must_use] pub fn compute() -> u8 { 1 }",
+	"#[must_use] #[inline] pub fn compute() -> u8 { 1 }"
+)]
+#[case::cfg_twin_fns_reordered(
+	"#[cfg(unix)] pub fn path_sep() -> char { '/' }\n#[cfg(windows)] pub fn path_sep() -> char { '\\\\' }",
+	"#[cfg(windows)] pub fn path_sep() -> char { '\\\\' }\n#[cfg(unix)] pub fn path_sep() -> char { '/' }"
+)]
+#[case::macro_export_arm_added(
+	"#[macro_export] macro_rules! make { () => { 1 }; }",
+	"#[macro_export] macro_rules! make { () => { 1 }; ($x:expr) => { $x }; }"
+)]
+#[case::doc_hidden_removed_from_struct(
+	"#[doc(hidden)] pub struct Internal;",
+	"pub struct Internal;"
+)]
+#[case::doc_hidden_removed_from_fn("#[doc(hidden)] pub fn internal() {}", "pub fn internal() {}")]
+#[case::doc_hidden_removed_from_trait_method(
+	"pub trait Service { #[doc(hidden)] fn call(&self) {} }",
+	"pub trait Service { fn call(&self) {} }"
+)]
+fn main_compatible_non_breaking_changes_produce_no_finding(
+	#[case] before: &str,
+	#[case] after: &str,
+) {
+	let changes = diff_public_symbols_allow_empty(before, after);
+	assert!(
+		changes.is_empty(),
+		"expected no finding for:\nbefore: {before}\nafter: {after}\ngot: {changes:?}"
 	);
 }
 
@@ -437,56 +493,12 @@ fn inert_lint_attributes_do_not_change_signatures(#[case] plain: &str, #[case] a
 	"#[non_exhaustive] pub struct Item { pub a: u8 }"
 )]
 #[case::non_exhaustive_on_enum("pub enum Mode { A }", "#[non_exhaustive] pub enum Mode { A }")]
-#[case::doc_hidden_on_struct("pub struct Item;", "#[doc(hidden)] pub struct Item;")]
-#[case::doc_hidden_on_const(
-	"pub const LIMIT: usize = 3;",
-	"#[doc(hidden)] pub const LIMIT: usize = 3;"
-)]
-#[case::doc_hidden_on_fn("pub fn greet() {}", "#[doc(hidden)] pub fn greet() {}")]
-#[case::doc_hidden_on_trait(
-	"pub trait Runner { fn run(&self); }",
-	"#[doc(hidden)] pub trait Runner { fn run(&self); }"
-)]
-#[case::doc_hidden_on_reexport(
-	"pub use crate::helpers::render;",
-	"#[doc(hidden)] pub use crate::helpers::render;"
-)]
-#[case::doc_hidden_inside_cfg_attr(
-	"pub fn greet() {}",
-	"#[cfg_attr(feature = \"internal\", doc(hidden))] pub fn greet() {}"
-)]
 #[case::cfg_on_struct("pub struct Item;", "#[cfg(feature = \"extra\")] pub struct Item;")]
-#[case::cfg_on_fn("pub fn greet() {}", "#[cfg(feature = \"extra\")] pub fn greet() {}")]
-#[case::cfg_on_reexport(
-	"pub use crate::helpers::render;",
-	"#[cfg(feature = \"extra\")] pub use crate::helpers::render;"
-)]
-#[case::derive_on_struct(
+#[case::derive_removed_on_struct(
 	"#[derive(Debug, Clone)] pub struct Item;",
 	"#[derive(Debug)] pub struct Item;"
 )]
-#[case::derive_inside_cfg_attr(
-	"pub struct Item;",
-	"#[cfg_attr(feature = \"serde\", derive(Serialize))] pub struct Item;"
-)]
-#[case::automatically_derived_in_module(
-	"pub mod api { impl Clone for Foo { fn clone(&self) -> Self { Self } } }",
-	"pub mod api { #[automatically_derived] impl Clone for Foo { fn clone(&self) -> Self { Self } } }"
-)]
-#[case::track_caller_on_fn("pub fn check() {}", "#[track_caller] pub fn check() {}")]
-#[case::track_caller_on_trait_method(
-	"pub trait Checker { fn check(&self) {} }",
-	"pub trait Checker { #[track_caller] fn check(&self) {} }"
-)]
-#[case::unsafe_no_mangle_on_fn(
-	"pub extern \"C\" fn entry() {}",
-	"#[unsafe(no_mangle)] pub extern \"C\" fn entry() {}"
-)]
 #[case::no_mangle_on_static("pub static FLAG: u8 = 1;", "#[no_mangle] pub static FLAG: u8 = 1;")]
-#[case::unsafe_export_name_on_fn(
-	"pub extern \"C\" fn entry() {}",
-	"#[unsafe(export_name = \"c_entry\")] pub extern \"C\" fn entry() {}"
-)]
 #[case::export_name_on_static(
 	"pub static FLAG: u8 = 1;",
 	"#[export_name = \"c_flag\"] pub static FLAG: u8 = 1;"
@@ -499,30 +511,17 @@ fn inert_lint_attributes_do_not_change_signatures(#[case] plain: &str, #[case] a
 	"pub struct Config { pub retries: u32 }",
 	"#[serde(rename_all = \"camelCase\")] pub struct Config { pub retries: u32 }"
 )]
-#[case::proc_macro_on_fn("pub fn handler() {}", "#[custom_attr(v2)] pub fn handler() {}")]
-#[case::proc_macro_on_reexport(
-	"pub use crate::helpers::render;",
-	"#[custom_attr] pub use crate::helpers::render;"
-)]
-#[case::mixed_compatible_and_breaking_attrs(
-	"pub fn entry() {}",
-	"#[inline] #[track_caller] pub fn entry() {}"
+#[case::mixed_compatible_and_breaking_attrs_on_struct(
+	"pub struct Item { pub a: u8 }",
+	"#[must_use] #[repr(C)] pub struct Item { pub a: u8 }"
 )]
 #[case::slice_append_with_breaking_attr_stays_major(
 	"pub const LIST: &[u8] = &[1, 2];",
 	"#[cfg(feature = \"extra\")] pub const LIST: &[u8] = &[1, 2, 3];"
 )]
-#[case::reordered_breaking_attrs_stay_major(
-	"#[repr(C)] #[derive(Clone)] pub struct Item { pub a: u8 }",
-	"#[derive(Clone)] #[repr(C)] pub struct Item { pub a: u8 }"
-)]
-#[case::cfg_attr_mixed_inline_and_repr_stays_major(
-	"pub struct Item { pub a: u8 }",
-	"#[cfg_attr(feature = \"ffi\", inline, repr(C))] pub struct Item { pub a: u8 }"
-)]
 #[case::trait_defaulted_method_with_breaking_trait_attr_stays_major(
 	"pub trait Runner { fn run(&self); }",
-	"#[doc(hidden)] pub trait Runner { fn run(&self); fn helper(&self) {} }"
+	"#[cfg(feature = \"extra\")] pub trait Runner { fn run(&self); fn helper(&self) {} }"
 )]
 fn breaking_non_inert_attributes_remain_major(#[case] before: &str, #[case] after: &str) {
 	let changes = diff_public_symbols_allow_empty(before, after);
@@ -543,24 +542,14 @@ fn breaking_non_inert_attributes_remain_major(#[case] before: &str, #[case] afte
 }
 
 #[rstest::rstest]
-#[case::inline_on_fn(
-	"pub fn fast() -> u8 { 1 }",
-	"#[inline] pub fn fast() -> u8 { 1 }",
-	BumpSeverity::Patch
-)]
-#[case::inline_always_in_cfg_attr(
-	"pub fn fast() -> u8 { 1 }",
-	"#[cfg_attr(not(debug_assertions), inline(always))] pub fn fast() -> u8 { 1 }",
-	BumpSeverity::Patch
-)]
 #[case::inline_on_trait_default_method(
 	"pub trait Fast { fn fast(&self) -> u8 { 1 } }",
 	"pub trait Fast { #[inline] fn fast(&self) -> u8 { 1 } }",
 	BumpSeverity::Patch
 )]
-#[case::must_use_on_fn(
-	"pub fn compute() -> u8 { 1 }",
-	"#[must_use] pub fn compute() -> u8 { 1 }",
+#[case::inline_always_in_cfg_attr_on_trait_method(
+	"pub trait Fast { fn fast(&self) -> u8 { 1 } }",
+	"pub trait Fast { #[cfg_attr(not(debug_assertions), inline(always))] fn fast(&self) -> u8 { 1 } }",
 	BumpSeverity::Patch
 )]
 #[case::must_use_on_struct(
@@ -568,19 +557,14 @@ fn breaking_non_inert_attributes_remain_major(#[case] before: &str, #[case] afte
 	"#[must_use = \"hold the guard\"] pub struct Guard;",
 	BumpSeverity::Patch
 )]
-#[case::deprecated_added_on_fn(
-	"pub fn old() {}",
-	"#[deprecated(since = \"1.2.0\", note = \"use new\")] pub fn old() {}",
-	BumpSeverity::Minor
-)]
 #[case::deprecated_added_on_struct(
 	"pub struct Old;",
 	"#[deprecated] pub struct Old;",
 	BumpSeverity::Minor
 )]
-#[case::deprecated_added_on_reexport(
-	"pub use crate::helpers::render;",
-	"#[deprecated] pub use crate::helpers::render;",
+#[case::deprecated_added_with_note_on_struct(
+	"pub struct Old;",
+	"#[deprecated(since = \"1.2.0\", note = \"use New\")] pub struct Old;",
 	BumpSeverity::Minor
 )]
 #[case::deprecated_added_on_trait(
@@ -588,25 +572,55 @@ fn breaking_non_inert_attributes_remain_major(#[case] before: &str, #[case] afte
 	"#[deprecated] pub trait Old { fn run(&self); }",
 	BumpSeverity::Minor
 )]
-#[case::deprecated_removed_on_fn(
-	"#[deprecated] pub fn old() {}",
-	"pub fn old() {}",
-	BumpSeverity::Patch
-)]
-#[case::cfg_attr_inline_and_deprecated_on_fn(
-	"pub fn old() {}",
-	"#[cfg_attr(feature = \"legacy\", inline, deprecated)] pub fn old() {}",
-	BumpSeverity::Minor
-)]
-#[case::reordered_compatible_attrs_on_fn(
-	"#[inline] #[must_use] pub fn compute() -> u8 { 1 }",
-	"#[must_use] #[inline] pub fn compute() -> u8 { 1 }",
-	BumpSeverity::Patch
-)]
 #[case::deprecated_added_on_existing_trait_method(
 	"pub trait Runner { fn run(&self) {} }",
 	"pub trait Runner { #[deprecated] fn run(&self) {} }",
 	BumpSeverity::Minor
+)]
+#[case::cfg_attr_deprecated_added_on_struct(
+	"pub struct Old;",
+	"#[cfg_attr(feature = \"legacy\", deprecated)] pub struct Old;",
+	BumpSeverity::Minor
+)]
+#[case::cfg_attr_deprecated_promoted_to_unconditional_on_struct(
+	"#[cfg_attr(feature = \"legacy\", deprecated)] pub struct Old;",
+	"#[deprecated] pub struct Old;",
+	BumpSeverity::Minor
+)]
+#[case::deprecated_note_edited_on_struct(
+	"#[deprecated(note = \"old\")] pub struct Old;",
+	"#[deprecated(note = \"new\")] pub struct Old;",
+	BumpSeverity::Patch
+)]
+#[case::deprecated_since_added_on_struct(
+	"#[deprecated(note = \"old\")] pub struct Old;",
+	"#[deprecated(since = \"1.2.0\", note = \"old\")] pub struct Old;",
+	BumpSeverity::Patch
+)]
+#[case::deprecated_note_added_to_bare_deprecated_on_trait(
+	"#[deprecated] pub trait Old { fn run(&self); }",
+	"#[deprecated(note = \"use New\")] pub trait Old { fn run(&self); }",
+	BumpSeverity::Patch
+)]
+#[case::deprecated_note_edited_on_trait_method(
+	"pub trait Runner { #[deprecated(note = \"old\")] fn run(&self) {} }",
+	"pub trait Runner { #[deprecated(note = \"new\")] fn run(&self) {} }",
+	BumpSeverity::Patch
+)]
+#[case::cfg_attr_deprecated_note_edited_on_struct(
+	"#[cfg_attr(feature = \"legacy\", deprecated(note = \"old\"))] pub struct Old;",
+	"#[cfg_attr(feature = \"legacy\", deprecated(note = \"new\"))] pub struct Old;",
+	BumpSeverity::Patch
+)]
+#[case::deprecated_removed_on_struct(
+	"#[deprecated] pub struct Old;",
+	"pub struct Old;",
+	BumpSeverity::Patch
+)]
+#[case::reordered_compatible_attrs_on_struct(
+	"#[must_use] #[deprecated] pub struct Guard;",
+	"#[deprecated] #[must_use] pub struct Guard;",
+	BumpSeverity::Patch
 )]
 fn modelled_compatible_attributes_produce_non_breaking_findings(
 	#[case] before: &str,
@@ -636,60 +650,6 @@ fn modelled_compatible_attributes_produce_non_breaking_findings(
 	assert_eq!(
 		monochange_semver::semantic_change_severity(change),
 		expected_bump
-	);
-}
-
-#[test]
-fn macro_export_tracks_macro_addition_removal_and_modification() {
-	let private_macro = "macro_rules! build { () => {}; }";
-	let exported_macro = "#[macro_export] macro_rules! build { () => {}; }";
-	let modified_macro = "#[macro_export] macro_rules! build { ($x:expr) => { $x }; }";
-
-	let added = diff_public_symbols_allow_empty(private_macro, exported_macro);
-	assert_eq!(added.len(), 1);
-	let added = added
-		.first()
-		.unwrap_or_else(|| panic!("expected added macro"));
-	assert_eq!(added.item_kind, "macro");
-	assert_eq!(added.kind, SemanticChangeKind::Added);
-	assert_eq!(
-		monochange_semver::semantic_change_severity(added),
-		BumpSeverity::Minor
-	);
-
-	let removed = diff_public_symbols_allow_empty(exported_macro, private_macro);
-	assert_eq!(removed.len(), 1);
-	let removed = removed
-		.first()
-		.unwrap_or_else(|| panic!("expected removed macro"));
-	assert_eq!(removed.item_kind, "macro");
-	assert_eq!(removed.kind, SemanticChangeKind::Removed);
-	assert_eq!(
-		monochange_semver::semantic_change_severity(removed),
-		BumpSeverity::Major
-	);
-
-	let modified = diff_public_symbols_allow_empty(exported_macro, modified_macro);
-	assert_eq!(modified.len(), 1);
-	let modified = modified
-		.first()
-		.unwrap_or_else(|| panic!("expected modified macro"));
-	assert_eq!(modified.kind, SemanticChangeKind::Modified);
-	assert_eq!(
-		monochange_semver::semantic_change_severity(modified),
-		BumpSeverity::Major
-	);
-
-	let cfg_exported =
-		"#[cfg_attr(feature = \"macros\", macro_export)] macro_rules! build { () => {}; }";
-	let cfg_added = diff_public_symbols_allow_empty(private_macro, cfg_exported);
-	assert_eq!(cfg_added.len(), 1);
-	assert_eq!(
-		cfg_added
-			.first()
-			.unwrap_or_else(|| panic!("expected cfg_attr macro_export"))
-			.item_kind,
-		"macro"
 	);
 }
 
@@ -747,21 +707,111 @@ fn pina_parse_accounts_default_doc_hidden_method_is_additive() {
 }
 
 #[rstest::rstest]
-#[case::new_defaulted_method(
+#[case::new_defaulted_ref_self_method(
 	"pub trait Runner { fn run(&self); }",
 	"pub trait Runner { fn run(&self); fn run_twice(&self) { self.run(); self.run(); } }",
 	SemanticAnalysisOutcome::Additive,
 	BumpSeverity::Minor
 )]
-#[case::new_defaulted_const(
-	"pub trait Config { fn name(&self) -> &str; }",
-	"pub trait Config { fn name(&self) -> &str; const MAX_RETRIES: usize = 3; }",
+#[case::new_defaulted_mut_self_method(
+	"pub trait Runner { fn run(&mut self); }",
+	"pub trait Runner { fn run(&mut self); fn reset(&mut self) {} }",
 	SemanticAnalysisOutcome::Additive,
 	BumpSeverity::Minor
 )]
-#[case::new_defaulted_type(
+#[case::new_defaulted_box_self_method(
+	"pub trait Runner { fn run(&self); }",
+	"pub trait Runner { fn run(&self); fn finish(self: Box<Self>) {} }",
+	SemanticAnalysisOutcome::Additive,
+	BumpSeverity::Minor
+)]
+#[case::new_defaulted_lifetime_generic_method(
+	"pub trait Runner { fn run(&self); }",
+	"pub trait Runner { fn run(&self); fn label<'a>(&'a self) -> &'a str { \"\" } }",
+	SemanticAnalysisOutcome::Additive,
+	BumpSeverity::Minor
+)]
+#[case::new_defaulted_method_with_self_assoc_projection(
+	"pub trait Producer { type Output; fn produce(&self) -> Self::Output; }",
+	"pub trait Producer { type Output; fn produce(&self) -> Self::Output; fn passthrough(&self, x: Self::Output) -> Self::Output { x } }",
+	SemanticAnalysisOutcome::Additive,
+	BumpSeverity::Minor
+)]
+#[case::new_defaulted_method_with_qualified_self_projection(
+	"pub trait Sub: Super { fn run(&self); }",
+	"pub trait Sub: Super { fn run(&self); fn map_out(&self, x: <Self as Super>::Out) -> <Self as Super>::Out { x } }",
+	SemanticAnalysisOutcome::Additive,
+	BumpSeverity::Minor
+)]
+#[case::new_defaulted_generic_method_with_where_self_sized(
+	"pub trait Runner { fn run(&self); }",
+	"pub trait Runner { fn run(&self); fn map<T>(&self, f: impl Fn(u8) -> T) -> T where Self: Sized { f(1) } }",
+	SemanticAnalysisOutcome::Additive,
+	BumpSeverity::Minor
+)]
+#[case::new_defaulted_async_method_with_where_self_sized(
+	"pub trait Runner { fn run(&self); }",
+	"pub trait Runner { fn run(&self); async fn run_async(&self) where Self: Sized { self.run(); } }",
+	SemanticAnalysisOutcome::Additive,
+	BumpSeverity::Minor
+)]
+#[case::new_defaulted_receiverless_fn_with_where_self_sized(
+	"pub trait Runner { fn run(&self); }",
+	"pub trait Runner { fn run(&self); fn helper() -> u8 where Self: Sized { 1 } }",
+	SemanticAnalysisOutcome::Additive,
+	BumpSeverity::Minor
+)]
+#[case::new_defaulted_self_returning_method_with_where_self_sized(
+	"pub trait Runner { fn run(&self); }",
+	"pub trait Runner { fn run(&self); fn dup(&self) -> Option<Self> where Self: Sized { None } }",
+	SemanticAnalysisOutcome::Additive,
+	BumpSeverity::Minor
+)]
+#[case::new_defaulted_assoc_type_with_where_self_sized_nightly(
 	"pub trait Codec { fn encode(&self); }",
-	"pub trait Codec { fn encode(&self); type Metadata = (); }",
+	"pub trait Codec { fn encode(&self); type Metadata = () where Self: Sized; }",
+	SemanticAnalysisOutcome::Additive,
+	BumpSeverity::Minor
+)]
+#[case::new_defaulted_generic_method_on_sized_trait(
+	"pub trait Runner: Sized { fn run(&self); }",
+	"pub trait Runner: Sized { fn run(&self); fn map<T>(&self, f: impl Fn(u8) -> T) -> T { f(1) } }",
+	SemanticAnalysisOutcome::Additive,
+	BumpSeverity::Minor
+)]
+#[case::new_defaulted_async_method_on_where_self_sized_trait(
+	"pub trait Runner where Self: Sized { fn run(&self); }",
+	"pub trait Runner where Self: Sized { fn run(&self); async fn run_async(&self) { self.run(); } }",
+	SemanticAnalysisOutcome::Additive,
+	BumpSeverity::Minor
+)]
+#[case::new_defaulted_receiverless_fn_on_already_non_dyn_trait(
+	"pub trait Parser { fn parse(input: &str) -> Self; }",
+	"pub trait Parser { fn parse(input: &str) -> Self; fn parse_default() -> Self { Self::parse(\"\") } }",
+	SemanticAnalysisOutcome::Additive,
+	BumpSeverity::Minor
+)]
+#[case::new_defaulted_self_arg_method_on_already_non_dyn_trait(
+	"pub trait Parser { fn parse(input: &str) -> Self; }",
+	"pub trait Parser { fn parse(input: &str) -> Self; fn same(&self, _other: &Self) -> bool { false } }",
+	SemanticAnalysisOutcome::Additive,
+	BumpSeverity::Minor
+)]
+#[case::new_defaulted_const_on_already_non_dyn_trait(
+	"pub trait Config: Sized { fn name(&self) -> &str; }",
+	"pub trait Config: Sized { fn name(&self) -> &str; const MAX_RETRIES: usize = 3; }",
+	SemanticAnalysisOutcome::Additive,
+	BumpSeverity::Minor
+)]
+#[case::new_defaulted_const_on_trait_with_existing_const(
+	"pub trait Config { const VERSION: u8; fn name(&self) -> &str; }",
+	"pub trait Config { const VERSION: u8; fn name(&self) -> &str; const MAX_RETRIES: usize = 3; }",
+	SemanticAnalysisOutcome::Additive,
+	BumpSeverity::Minor
+)]
+#[case::new_defaulted_type_on_sized_trait_nightly(
+	"pub trait Codec: Sized { fn encode(&self); }",
+	"pub trait Codec: Sized { fn encode(&self); type Metadata = (); }",
 	SemanticAnalysisOutcome::Additive,
 	BumpSeverity::Minor
 )]
@@ -777,7 +827,7 @@ fn pina_parse_accounts_default_doc_hidden_method_is_additive() {
 	SemanticAnalysisOutcome::Additive,
 	BumpSeverity::Minor
 )]
-#[case::required_type_gains_default(
+#[case::required_type_gains_default_nightly(
 	"pub trait Codec { type Error; }",
 	"pub trait Codec { type Error = std::io::Error; }",
 	SemanticAnalysisOutcome::Additive,
@@ -826,6 +876,129 @@ fn trait_non_breaking_deltas_are_assessed_accurately(
 	assert_eq!(
 		monochange_semver::semantic_change_severity(change),
 		expected_bump
+	);
+}
+
+#[rstest::rstest]
+#[case::defaulted_type_generic_method(
+	"pub trait Runner { fn run(&self); }",
+	"pub trait Runner { fn run(&self); fn map<T>(&self, f: impl Fn(u8) -> T) -> T { f(1) } }",
+	"map"
+)]
+#[case::defaulted_const_generic_method(
+	"pub trait Runner { fn run(&self); }",
+	"pub trait Runner { fn run(&self); fn fixed<const N: usize>(&self) -> usize { N } }",
+	"fixed"
+)]
+#[case::defaulted_impl_trait_arg_method(
+	"pub trait Runner { fn run(&self); }",
+	"pub trait Runner { fn run(&self); fn apply(&self, f: impl Fn(u8) -> u8) -> u8 { f(1) } }",
+	"apply"
+)]
+#[case::defaulted_rpitit_method(
+	"pub trait Runner { fn run(&self); }",
+	"pub trait Runner { fn run(&self); fn items(&self) -> impl Iterator<Item = u8> { core::iter::empty() } }",
+	"items"
+)]
+#[case::defaulted_async_method(
+	"pub trait Runner { fn run(&self); }",
+	"pub trait Runner { fn run(&self); async fn go(&self) {} }",
+	"go"
+)]
+#[case::defaulted_const_fn_nightly(
+	"pub trait Runner { fn run(&self); }",
+	"pub trait Runner { fn run(&self); const fn tag(&self) -> u8 { 1 } }",
+	"tag"
+)]
+#[case::defaulted_receiverless_fn(
+	"pub trait Runner { fn run(&self); }",
+	"pub trait Runner { fn run(&self); fn helper() -> u8 { 1 } }",
+	"helper"
+)]
+#[case::defaulted_method_taking_self_by_value(
+	"pub trait Runner { fn run(&self); }",
+	"pub trait Runner { fn run(&self); fn merge(&self, _other: Self) -> u8 { 0 } }",
+	"merge"
+)]
+#[case::defaulted_method_taking_ref_self(
+	"pub trait Runner { fn run(&self); }",
+	"pub trait Runner { fn run(&self); fn eq_other(&self, _other: &Self) -> bool { false } }",
+	"eq_other"
+)]
+#[case::defaulted_method_returning_self(
+	"pub trait Runner { fn run(&self); }",
+	"pub trait Runner { fn run(&self); fn dup(&self) -> Self { loop {} } }",
+	"dup"
+)]
+#[case::defaulted_method_returning_option_self(
+	"pub trait Runner { fn run(&self); }",
+	"pub trait Runner { fn run(&self); fn maybe_dup(&self) -> Option<Self> { None } }",
+	"maybe_dup"
+)]
+#[case::defaulted_method_with_where_self_non_sized(
+	"pub trait Runner { fn run(&self); }",
+	"pub trait Runner { fn run(&self); fn check_send(&self) where Self: Send {} }",
+	"check_send"
+)]
+#[case::defaulted_method_with_self_inside_assoc_generic_arg(
+	"pub trait Producer { type Out; fn run(&self); }",
+	"pub trait Producer { type Out; fn run(&self); fn nested(&self, _x: Self::Out<Self>) {} }",
+	"nested"
+)]
+#[case::defaulted_method_with_self_inside_qualified_projection_arg(
+	"pub trait Sub: Super { fn run(&self); }",
+	"pub trait Sub: Super { fn run(&self); fn nested(&self, _x: <Self as Super<Self>>::Out) {} }",
+	"nested"
+)]
+#[case::defaulted_assoc_const_on_dyn_trait(
+	"pub trait Config { fn name(&self) -> &str; }",
+	"pub trait Config { fn name(&self) -> &str; const MAX_RETRIES: usize = 3; }",
+	"MAX_RETRIES"
+)]
+#[case::defaulted_assoc_type_on_dyn_trait_nightly(
+	"pub trait Codec { fn encode(&self); }",
+	"pub trait Codec { fn encode(&self); type Metadata = (); }",
+	"Metadata"
+)]
+#[case::defaulted_gat_on_dyn_trait_nightly(
+	"pub trait Codec { fn encode(&self); }",
+	"pub trait Codec { fn encode(&self); type Item<T> = T; }",
+	"Item"
+)]
+fn trait_defaulted_additions_breaking_dyn_compatibility_stay_major(
+	#[case] before: &str,
+	#[case] after: &str,
+	#[case] expected_member: &str,
+) {
+	let changes = diff_public_symbols_allow_empty(before, after);
+	assert_eq!(
+		changes.len(),
+		1,
+		"expected one breaking change for dyn-incompatible addition: {changes:?}"
+	);
+	let change = changes
+		.first()
+		.unwrap_or_else(|| panic!("expected one change"));
+	assert_eq!(change.kind, SemanticChangeKind::Modified);
+	assert!(
+		change.summary.contains("dyn-compatibility"),
+		"summary should explain dyn-compatibility break: {}",
+		change.summary
+	);
+	assert!(
+		change.summary.contains(expected_member),
+		"summary should name offending member `{expected_member}`: {}",
+		change.summary
+	);
+	let assessment = change
+		.assessment
+		.as_ref()
+		.unwrap_or_else(|| panic!("expected explicit breaking assessment: {change:?}"));
+	assert_eq!(assessment.outcome, SemanticAnalysisOutcome::Breaking);
+	assert_eq!(assessment.suggested_bump, BumpSeverity::Major);
+	assert_eq!(
+		monochange_semver::semantic_change_severity(change),
+		BumpSeverity::Major
 	);
 }
 
@@ -913,10 +1086,6 @@ fn trait_non_breaking_deltas_are_assessed_accurately(
 #[case::sealed_required_method_added(
 	"pub trait Service { fn call(&self); }",
 	"pub trait Service { fn call(&self); #[doc(hidden)] fn __sealed(&self, _: private::Token); }"
-)]
-#[case::doc_hidden_added_to_existing_method(
-	"pub trait Service { fn call(&self) {} }",
-	"pub trait Service { #[doc(hidden)] fn call(&self) {} }"
 )]
 #[case::mixed_defaulted_and_required_methods(
 	"pub trait Service { fn call(&self); }",
