@@ -412,9 +412,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.11.3"
+version = "1.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "02f0e023adb368345ce0ca6cdfc0f24a06554468d0e8503e14a0841de79bfa69"
+checksum = "95e45cf2980b2d467be49a9ed942c9179b701063a7ca3d037de7ee9bd67f8d66"
 dependencies = [
  "find-msvc-tools",
  "jobserver",
@@ -1154,9 +1154,9 @@ dependencies = [
 
 [[package]]
 name = "find-msvc-tools"
-version = "0.1.15"
+version = "0.1.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1c66915cc5391097de7a2b0b972e8505aa33c0df401fd3a6811dbdb32881ba48"
+checksum = "3e44f110d1777dc6559a51e7d45083945ded4f1bf3305494350f693b6d20b9c8"
 
 [[package]]
 name = "fluent-uri"
@@ -1953,6 +1953,41 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3bd1574e617a9a6c1f8f8181bd7e841e1f20e4277607ef28945765188d6284d4"
 
 [[package]]
+name = "jiff"
+version = "1.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "107f2e89536b6818514025f6787b0d94d819e54fe3b40365275fc753de485b3f"
+dependencies = [
+ "jiff-core",
+ "jiff-static",
+ "log",
+ "portable-atomic",
+ "portable-atomic-util",
+ "serde_core",
+]
+
+[[package]]
+name = "jiff-core"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d44c923edf2bf456a982253f1a9ee1f6e89e421dffd0065d9b9a581da0def58f"
+dependencies = [
+ "log",
+]
+
+[[package]]
+name = "jiff-static"
+version = "1.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4996f71e569e3a3e32b925c28ef8f0027dc30bb1d594b33eeda409eea185f5c8"
+dependencies = [
+ "jiff-core",
+ "proc-macro2",
+ "quote",
+ "syn 3.0.10",
+]
+
+[[package]]
 name = "jni"
 version = "0.22.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2264,7 +2299,7 @@ dependencies = [
 
 [[package]]
 name = "monochange"
-version = "0.22.0"
+version = "0.22.1"
 dependencies = [
  "anstyle",
  "chrono",
@@ -2334,7 +2369,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_analysis"
-version = "0.22.0"
+version = "0.22.1"
 dependencies = [
  "insta",
  "monochange_cargo",
@@ -2357,7 +2392,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_app_feedback"
-version = "0.5.2"
+version = "0.5.3"
 dependencies = [
  "serde",
  "thiserror 2.0.21",
@@ -2365,7 +2400,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_book"
-version = "0.22.0"
+version = "0.22.1"
 dependencies = [
  "clap",
  "doc-comment",
@@ -2400,7 +2435,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_cargo"
-version = "0.22.0"
+version = "0.22.1"
 dependencies = [
  "insta",
  "monochange_config",
@@ -2429,7 +2464,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_changelog"
-version = "0.22.0"
+version = "0.22.1"
 dependencies = [
  "insta",
  "minijinja",
@@ -2444,7 +2479,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_classification"
-version = "0.4.10"
+version = "0.4.11"
 dependencies = [
  "insta",
  "monochange_analysis",
@@ -2463,7 +2498,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_cocoapods"
-version = "0.22.0"
+version = "0.22.1"
 dependencies = [
  "insta",
  "monochange_core",
@@ -2480,7 +2515,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_config"
-version = "0.22.0"
+version = "0.22.1"
 dependencies = [
  "glob",
  "ignore",
@@ -2511,7 +2546,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_core"
-version = "0.22.0"
+version = "0.22.1"
 dependencies = [
  "async-trait",
  "glob",
@@ -2536,7 +2571,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_dart"
-version = "0.22.0"
+version = "0.22.1"
 dependencies = [
  "insta",
  "monochange_config",
@@ -2558,7 +2593,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_deno"
-version = "0.22.0"
+version = "0.22.1"
 dependencies = [
  "insta",
  "monochange_core",
@@ -2578,7 +2613,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_ecmascript"
-version = "0.22.0"
+version = "0.22.1"
 dependencies = [
  "monochange_core",
  "oxc_allocator",
@@ -2589,7 +2624,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_forgejo"
-version = "0.22.0"
+version = "0.22.1"
 dependencies = [
  "async-trait",
  "etest",
@@ -2610,7 +2645,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_gitea"
-version = "0.22.0"
+version = "0.22.1"
 dependencies = [
  "async-trait",
  "etest",
@@ -2631,7 +2666,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_github"
-version = "0.22.0"
+version = "0.22.1"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -2658,7 +2693,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_gitlab"
-version = "0.22.0"
+version = "0.22.1"
 dependencies = [
  "async-trait",
  "etest",
@@ -2679,7 +2714,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_go"
-version = "0.22.0"
+version = "0.22.1"
 dependencies = [
  "insta",
  "monochange_core",
@@ -2696,7 +2731,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_gradle"
-version = "0.22.0"
+version = "0.22.1"
 dependencies = [
  "insta",
  "monochange_core",
@@ -2712,7 +2747,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_graph"
-version = "0.22.0"
+version = "0.22.1"
 dependencies = [
  "insta",
  "monochange_core",
@@ -2726,7 +2761,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_hosting"
-version = "0.22.0"
+version = "0.22.1"
 dependencies = [
  "httpmock",
  "monochange_core",
@@ -2767,7 +2802,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_lint"
-version = "0.22.0"
+version = "0.22.1"
 dependencies = [
  "glob",
  "ignore",
@@ -2780,14 +2815,14 @@ dependencies = [
 
 [[package]]
 name = "monochange_linting"
-version = "0.22.0"
+version = "0.22.1"
 dependencies = [
  "monochange_core",
 ]
 
 [[package]]
 name = "monochange_npm"
-version = "0.22.0"
+version = "0.22.1"
 dependencies = [
  "insta",
  "monochange_config",
@@ -2813,7 +2848,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_publish"
-version = "0.22.0"
+version = "0.22.1"
 dependencies = [
  "chrono",
  "httpmock",
@@ -2832,7 +2867,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_python"
-version = "0.22.0"
+version = "0.22.1"
 dependencies = [
  "insta",
  "monochange_core",
@@ -2861,7 +2896,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_semver"
-version = "0.22.0"
+version = "0.22.1"
 dependencies = [
  "insta",
  "monochange_core",
@@ -2885,7 +2920,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_swift"
-version = "0.22.0"
+version = "0.22.1"
 dependencies = [
  "insta",
  "monochange_core",
@@ -2901,7 +2936,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_telemetry"
-version = "0.22.0"
+version = "0.22.1"
 dependencies = [
  "monochange_core",
  "monochange_test_helpers",
@@ -2915,7 +2950,7 @@ dependencies = [
 
 [[package]]
 name = "monochange_test_helpers"
-version = "0.22.0"
+version = "0.22.1"
 dependencies = [
  "insta",
  "monochange_core",
@@ -3614,6 +3649,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "portable-atomic"
+version = "1.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "05c8b63e8d9609db387f0324918f81d68fe27748f084ef092fb35954d0539a85"
+
+[[package]]
+name = "portable-atomic-util"
+version = "0.2.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "10ab3eb7f3becc3a1cbc4f2c6f20267996cfc1a6467a873763411b136a122715"
+dependencies = [
+ "portable-atomic",
+]
+
+[[package]]
 name = "portable-pty"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4039,14 +4089,15 @@ dependencies = [
 
 [[package]]
 name = "rmcp"
-version = "3.11.0"
+version = "3.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "391f153431ab68664d946513ea0cb3edbca78eaf99c5a983036cacab6220d85b"
+checksum = "fc4fa9a7558c480e1817c0f02e9a73782001ac1f47fb9d26cc073915963282ea"
 dependencies = [
  "base64 0.23.1",
  "chrono",
  "futures",
  "indexmap",
+ "jiff",
  "libc",
  "pastey",
  "percent-encoding",
@@ -4067,9 +4118,9 @@ dependencies = [
 
 [[package]]
 name = "rmcp-macros"
-version = "3.11.0"
+version = "3.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3598e3f36f4af2b5219b133baf7d97a2197039225adc3d4acf3dd8805b5a2aef"
+checksum = "43c1bf063ba32333267a8bc282ec33ae0edf56bf74890118cb0c7bf910a7a1c0"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -5751,7 +5802,7 @@ checksum = "3ad82d2a33cdc9674dc7465672f271e096168fcdbe0f799d9e6db8c5892679dc"
 
 [[package]]
 name = "xtask"
-version = "0.22.0"
+version = "0.22.1"
 dependencies = [
  "clap",
  "monochange_classification",
@@ -5791,18 +5842,18 @@ dependencies = [
 
 [[package]]
 name = "zerocopy"
-version = "0.8.65"
+version = "0.8.66"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "32bc8a75f879cd6fe53a6bedf3c28f0e1b914c77424fc2be9e2ec85d7d25aff5"
+checksum = "cba8a86aee14fc8cc6c208af60854b3d4ab7185a9a369a12c648faa2716ff42a"
 dependencies = [
  "zerocopy-derive",
 ]
 
 [[package]]
 name = "zerocopy-derive"
-version = "0.8.65"
+version = "0.8.66"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8bfd2644ea1681f60cf95029ff18aa8ad1cc3f7b8fe37286f8e473bb29f816b"
+checksum = "f89bca3b96ceb3cfcb4572790402f977442270d252b9a8504ebc258760c55f94"
 dependencies = [
  "proc-macro2",
  "quote",

@@ -2,6 +2,20 @@
 
 Release notes for website developers and operators.
 
+## 0.5.3
+
+### 🐛 Fixed
+
+- **Align change classification reference documentation with bump alignment behavior.** Updated `docs/src/reference/change-classification.md` so the changeset-policy bump-alignment section matches the implementation: every attached changeset target that resolves a bump (any scalar type, including types defaulting to `none`, or any table declaring `bump` or `type`, even alongside `version`) is checked against the package's classified recommendation, while only explicit-version targets omitting both `bump` and `type` skip alignment. Also documented the Rust syntax analyzer's inert-attribute stripping, compatible attribute handling, and dyn-compatibility-aware defaulted trait-item classification. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #918](https://github.com/monochange/monochange/pull/918)
+
+#### Allow developer-only app releases in image smoke and deployment checks
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #920](https://github.com/monochange/monochange/pull/920)
+
+`app/deploy/verify-image.sh` and `.github/workflows/app.yml` previously assumed every `monochange_app` version writes a website-stream `app/public/releases/<version>.json` artifact. Releases carrying only `default`-stream (`website_developer`) changesets intentionally write `app/developer-changelog.md` without adding a website-stream release file, which caused the `app-ci` `docker` smoke check and production release verification to fail with HTTP 404.
+
+`scripts/resolve-app-release-notes.ts` now validates `app/public/releases/*.json`, `app/changelog.md` parity, and (during deployment) the release record to determine the expected website release-notes version: website-stream releases still require and verify their exact `<version>.json` and `/changelog` entry, while developer-only releases verify `/health` against the new app version and check the latest published website release JSON and `/changelog` card.
+
 ## 0.5.2
 
 ### 🐛 Fixed
