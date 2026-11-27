@@ -99,16 +99,8 @@ const HYDRATION_SCRIPT: &str = include_str!("hydration.js");
 ///
 /// The public set comes from the generated file routes, so adding a page
 /// updates the policy with its route instead of with a second URL list.
-#[cfg(not(target_arch = "wasm32"))]
 fn defer_hydration(path: &str, signed_out: bool) -> bool {
 	crate::typed_routes::is_deferred_public_path(path) || (path == "/projects" && signed_out)
-}
-
-/// The browser never renders the policy: the server writes it into the
-/// document. Keep the same signature so the component compiles for wasm.
-#[cfg(target_arch = "wasm32")]
-fn defer_hydration(_path: &str, _signed_out: bool) -> bool {
-	false
 }
 
 /// Parsed split manifests per frontend: `(pkg url prefix, preloads, loader)`.
