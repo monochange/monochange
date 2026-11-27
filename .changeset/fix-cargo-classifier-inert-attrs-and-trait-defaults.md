@@ -2,7 +2,7 @@
 monochange_cargo: fix
 ---
 
-# Ignore inert Rust attributes and classify dyn-compatible defaulted trait additions as additive
+# Ignore inert Rust attributes and classify defaulted trait additions as additive
 
 `cargo/public-api` now strips inert lint-level attributes (`allow`, `warn`, `deny`, `forbid`, `expect`), `rustfmt::skip`, `track_caller`, and `doc` attributes (including inside `#[cfg_attr(...)]`) consistently across every Rust item kind and nested fields, variants, and trait items. On items whose outer attributes are already part of the tracked signature (`const`, `static`, `struct`, `enum`, `union`, `trait`, `type`, `mod`, and trait members), attribute-only deltas limited to `#[inline]`, `#[must_use]`, and `#[deprecated]` are modeled as compatible changes (`patch`, with only newly deprecated items proposing `minor`). Standalone `pub fn` and `pub use` items keep their existing attribute-free signature collection so proc-macro and tool attributes such as `#[tracing::instrument]` or `#[clippy::msrv]` do not trigger false breaking findings.
 
