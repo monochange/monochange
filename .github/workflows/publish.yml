@@ -127,13 +127,13 @@ jobs:
           toolchain: stable
 
       - name: setup cross toolchain
-        uses: taiki-e/setup-cross-toolchain-action@12b7ad4acfa95a1476779d6c06699b96ec1691f8 # v1.42.0
+        uses: taiki-e/setup-cross-toolchain-action@0375eb1d01bea430aa3202965839a7092960a23b # v1.43.1
         with:
           target: ${{ matrix.target }}
         if: startsWith(matrix.os, 'ubuntu') && !contains(matrix.target, '-musl')
 
       - name: install cross
-        uses: taiki-e/install-action@cfdb7ed4ccc7c7dce37759eae89dc5674b469b39 # v2.90.3
+        uses: taiki-e/install-action@073e1fd0bc889c9aee68dbaaa927cde1b5653a83 # v2.90.11
         with:
           tool: cross
         if: contains(matrix.target, '-musl')
@@ -366,7 +366,7 @@ jobs:
         shell: bash -e {0}
 
       - name: check publish readiness
-        uses: monochange/actions@e8e9cb1c5213b777a39993716985fab25b2bb78e # v0.12.1
+        uses: monochange/actions@ccd95cf2e01389dfd19a8d59c8c09edaaf0cc5ef # v0.12.3
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.crates-oidc.outputs.token }}
         with:
@@ -392,7 +392,7 @@ jobs:
           cache: false
 
       - name: publish packages
-        uses: monochange/actions@e8e9cb1c5213b777a39993716985fab25b2bb78e # v0.12.1
+        uses: monochange/actions@ccd95cf2e01389dfd19a8d59c8c09edaaf0cc5ef # v0.12.3
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.crates-oidc.outputs.token }}
         with:

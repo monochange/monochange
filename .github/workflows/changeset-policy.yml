@@ -45,7 +45,7 @@ jobs:
           printf 'labels=%s\n' "$labels" >> "$GITHUB_OUTPUT"
 
       - name: run changeset policy
-        uses: monochange/actions/changeset-policy@104b58f3ff8b6d3a6153a87a553a2bdaaa42a78f # v0.12.0
+        uses: monochange/actions/changeset-policy@ccd95cf2e01389dfd19a8d59c8c09edaaf0cc5ef # v0.12.3
         with:
           setup-monochange: ${{ github.workspace }}/target/debug/monochange
           from: origin/main
