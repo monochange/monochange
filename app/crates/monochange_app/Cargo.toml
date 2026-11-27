@@ -64,6 +64,10 @@ monochange_app_db = { workspace = true }
 monochange_app_automation = { workspace = true }
 monochange_app_api = { workspace = true }
 monochange_backend = { workspace = true }
+# Typed file routes live in the server binary only: the generated renderer
+# links the native element tree, and shipping that runtime to the browser
+# would grow the eager wasm bundle for a URL map the server already owns.
+leptoskit_router = { workspace = true, default-features = false, features = ["ssr"] }
 # The projects route tree, rendered server-side only: the projects browser
 # entry (monochange_projects_web) is a wasm cdylib whose lazy-route split
 # exports must stay out of this crate's client bundle, so the website client

@@ -6,6 +6,7 @@
 //! server-function `/api` routes register exactly once and a path
 //! dispatcher picks the matching SSR route tree per request.
 
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use axum::Router;
@@ -15,24 +16,54 @@ use axum::response::Json;
 use axum::routing::get;
 use leptos::prelude::LeptosOptions;
 use leptos::prelude::provide_context;
+use leptos_axum::AxumRouteListing;
 use leptos_axum::LeptosRoutes;
 use leptos_axum::generate_route_list;
 use monochange_app_api::AppState;
 use serde::Serialize;
 
-/// The SSR route listings of both browser frontends.
+/// The website listings discovered from the Leptos route tree.
 ///
-/// Route discovery suppresses resource loads process-wide while it runs, so
-/// the listings memoize after the first call: production discovers once at
-/// startup, and parallel SSR tests never race the suppression against
-/// another render.
+/// Discovery suppresses resource loads process-wide while it runs, so memoize
+/// it: production discovers once at startup, and parallel SSR tests never race
+/// the suppression against another render.
+fn discovered_website_routes() -> Vec<AxumRouteListing> {
+	static DISCOVERED: std::sync::OnceLock<Vec<AxumRouteListing>> = std::sync::OnceLock::new();
+	DISCOVERED
+		.get_or_init(|| generate_route_list(crate::app::App))
+		.clone()
+}
+
+/// The website listings the generated file routes govern.
+///
+/// The generated `axum_route_list()` owns which website paths register. For
+/// each one, reuse the metadata the Leptos tree discovered (`SsrMode`,
+/// methods, and regeneration), so Suspense streaming and lazy-route preloads
+/// are unchanged. A generated path missing from discovery still registers
+/// with the toolkit's default listing, and the contract test fails.
+fn website_routes_from(discovered: &[AxumRouteListing]) -> Vec<AxumRouteListing> {
+	let by_path = discovered
+		.iter()
+		.map(|listing| (listing.path(), listing))
+		.collect::<HashMap<_, _>>();
+
+	leptoskit_router::ssr::route_listings(crate::typed_routes::http_paths())
+		.into_iter()
+		.map(|listing| {
+			by_path
+				.get(listing.path())
+				.map_or(listing, |discovered| (*discovered).clone())
+		})
+		.collect()
+}
+
+/// The SSR route listings of both browser frontends.
 #[must_use]
-pub fn routes() -> Vec<leptos_axum::AxumRouteListing> {
-	static ROUTES: std::sync::OnceLock<Vec<leptos_axum::AxumRouteListing>> =
-		std::sync::OnceLock::new();
+pub fn routes() -> Vec<AxumRouteListing> {
+	static ROUTES: std::sync::OnceLock<Vec<AxumRouteListing>> = std::sync::OnceLock::new();
 	ROUTES
 		.get_or_init(|| {
-			let mut routes = generate_route_list(crate::app::App);
+			let mut routes = website_routes_from(&discovered_website_routes());
 			routes.extend(generate_route_list(
 				monochange_projects_web::app::ProjectsApp,
 			));

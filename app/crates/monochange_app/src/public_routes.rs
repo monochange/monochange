@@ -9,13 +9,11 @@ use axum::response::Redirect;
 use axum::response::Response;
 use axum::routing::get;
 
-use crate::links::BOOK_URL;
-
 /// Documentation destinations served without authentication or application state.
 pub fn book_redirects() -> Router {
 	Router::new()
-		.route("/docs", get(|| async { Redirect::permanent(BOOK_URL) }))
-		.route("/docs/", get(|| async { Redirect::permanent(BOOK_URL) }))
+		.route("/docs", get(|| async { book_redirect() }))
+		.route("/docs/", get(|| async { book_redirect() }))
 		.route(
 			"/docs/{*chapter}",
 			get(|Path(chapter): Path<String>| {
@@ -26,6 +24,12 @@ pub fn book_redirects() -> Router {
 			"/book-assets/{*asset}",
 			get(|Path(asset): Path<String>| async move { book_asset(&asset) }),
 		)
+}
+
+/// The typed `/book` destination for the legacy documentation paths.
+fn book_redirect() -> Redirect {
+	let book = crate::typed_routes::book_root();
+	Redirect::permanent(&book)
 }
 
 fn book_asset(asset: &str) -> Response {

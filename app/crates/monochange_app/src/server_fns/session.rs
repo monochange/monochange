@@ -294,7 +294,7 @@ fn gate_rejection(
 pub async fn switch_connect_account(next: String) -> Result<(), server_fn::ServerFnError> {
 	require_browser().await?;
 	require_same_origin().await?;
-	if !next.starts_with("/connect?") || next.contains(['\r', '\n']) {
+	if !crate::typed_routes::is_connect_return(&next) {
 		return Err(server_fn::ServerFnError::new("Invalid consent return path"));
 	}
 	super::auth::logout().await?;

@@ -3661,6 +3661,9 @@ name = "leptoskit_router"
 version = "0.3.0"
 source = "git+https://github.com/leptoskit/leptoskit?rev=fa3d29f8e8c837b19f92f1e9a95f699803543767#fa3d29f8e8c837b19f92f1e9a95f699803543767"
 dependencies = [
+ "leptos",
+ "leptos_axum",
+ "leptos_router",
  "leptoskit_native",
  "leptoskit_router_macros",
  "reactive_graph",
@@ -4012,6 +4015,7 @@ dependencies = [
  "leptos_meta",
  "leptos_router",
  "leptoskit",
+ "leptoskit_router",
  "leptoskit_rpc",
  "log",
  "monochange_app_api",

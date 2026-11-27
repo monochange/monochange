@@ -89,9 +89,9 @@ impl Book {
 	/// Resolve only chapters listed in the table of contents.
 	pub fn chapter(&self, slug: &str) -> Option<&BookChapter> {
 		let href = if slug.is_empty() {
-			"/book".to_owned()
+			crate::typed_routes::book_root()
 		} else {
-			format!("/book/{slug}")
+			chapter_href(slug)
 		};
 
 		self.chapters.iter().find(|chapter| chapter.href == href)
@@ -125,10 +125,11 @@ pub(crate) fn chapter_href(source: &str) -> String {
 	let path = std::path::Path::new(source).with_extension("");
 	let slug = path.to_string_lossy();
 
-	if slug == "readme" || slug == "index" {
-		"/book".to_owned()
+	if slug == "readme" || slug == "index" || slug.is_empty() {
+		crate::typed_routes::book_root()
 	} else {
-		format!("/book/{slug}")
+		let chapter = slug.split('/').map(str::to_owned).collect::<Vec<_>>();
+		crate::typed_routes::book(&chapter)
 	}
 }
 
