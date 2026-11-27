@@ -5,11 +5,14 @@
 set -euo pipefail
 image="${1:?image required}"
 version="${2:-}"
-root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+notes_version="${3:-}"
+scripts_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+repo_root="${VERIFY_IMAGE_ROOT:-$scripts_root}"
 token="$(mktemp)"
 modules="$(mktemp -d)"
 name="monochange-release-smoke"
-base="http://127.0.0.1:3000"
+port="${VERIFY_IMAGE_PORT:-3000}"
+base="http://127.0.0.1:${port}"
 cleanup() {
 	docker logs "$name" 2>/dev/null || true
 	docker rm -f "$name" >/dev/null 2>&1 || true
@@ -19,7 +22,7 @@ cleanup() {
 trap cleanup EXIT
 printf '%s' ci-service-account-test-token >"$token"
 chmod 600 "$token"
-docker run -d --name "$name" -p 127.0.0.1:3000:3000 \
+docker run -d --name "$name" -p "127.0.0.1:${port}:3000" \
 	--mount "type=bind,source=$token,target=/run/secrets/onepassword_service_account_token,readonly" \
 	-e MONOSECRET_PROFILE=production -e MONOSECRET_PROVIDER=env \
 	-e OP_SERVICE_ACCOUNT_TOKEN_FILE=/run/secrets/onepassword_service_account_token \
@@ -27,8 +30,13 @@ docker run -d --name "$name" -p 127.0.0.1:3000:3000 \
 	-e JWT_SECRET=ci-docker-test-signing-key-not-a-secret \
 	-e TOKEN_ENCRYPTION_KEY=ci-docker-test-token-encryption-key \
 	-e GITHUB_CLIENT_ID=ci-docker-client -e GITHUB_CLIENT_SECRET=ci-docker-client-secret "$image"
-curl --fail --silent --show-error --retry 20 --retry-all-errors --retry-delay 1 \
-	--retry-max-time 60 --max-time 5 http://127.0.0.1:3000/health | jq -e '.status == "ok" and .http == "up"'
+health="$(curl --fail --silent --show-error --retry 20 --retry-all-errors --retry-delay 1 \
+	--retry-max-time 60 --max-time 5 "${base}/health")"
+if [ -n "$version" ]; then
+	jq -e --arg version "$version" '.status == "ok" and .http == "up" and .version == $version' <<<"$health"
+else
+	jq -e '.status == "ok" and .http == "up"' <<<"$health"
+fi
 docker exec "$name" sh -c 'test "$(awk "/^Uid:/{print \$2}" /proc/1/status)" = 1000'
 docker exec "$name" sh -c 'test "$(awk "/^NoNewPrivs:/{print \$2}" /proc/1/status)" = 1'
 
@@ -64,7 +72,7 @@ done
 # 200 but no browser can hydrate it. Check the exact modules the image ships.
 docker cp "$name:/app/site/pkg/site/monochange_app_bg.wasm" "$modules/site.wasm"
 docker cp "$name:/app/site/pkg/projects/monochange_projects_web_bg.wasm" "$modules/projects.wasm"
-node "$root/scripts/check-wasm-externref-table.ts" "$modules/site.wasm" "$modules/projects.wasm"
+node "$scripts_root/scripts/check-wasm-externref-table.ts" "$modules/site.wasm" "$modules/projects.wasm"
 
 # The publisher precompressed every compressible asset; the file handler must
 # offer the twins to compression-capable clients instead of raw bytes, and it
@@ -78,13 +86,18 @@ for encoding in gzip br; do
 		grep -iE "^content-encoding: $encoding"
 done
 
-if [ -n "$version" ]; then
-	curl --fail --silent --show-error "${base}/releases/$version.json" |
-		jq -e --arg version "$version" '.title == $version'
+if [ -n "$version" ] && [ -z "$notes_version" ]; then
+	notes_version="$(node "$scripts_root/scripts/resolve-app-release-notes.ts" --root "$repo_root" --app-version "$version")"
+fi
+
+if [ -n "$notes_version" ]; then
+	release_json="$(curl --fail --silent --show-error "${base}/releases/$notes_version.json")"
+	jq -e --arg version "$notes_version" '.title == $version and all(.sections[].entries[]; .stream == "website")' <<<"$release_json"
 	# Never pipe into `grep -q` under `pipefail`: grep exits on the first match,
 	# the writer fails with EPIPE on the rest of a stream larger than the pipe
 	# buffer, and the pipeline reports that as a false failure. Buffer the page
 	# and match it from a here-string, which needs no pipe at all.
 	changelog="$(curl --fail --silent --show-error "${base}/changelog")"
-	grep -Fq "v$version" <<<"$changelog"
+	grep -Fq "v$notes_version" <<<"$changelog"
+	grep -Fq "href=\"/releases/$notes_version.json\"" <<<"$changelog"
 fi
