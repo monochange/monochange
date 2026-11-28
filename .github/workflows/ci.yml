@@ -78,8 +78,23 @@ jobs:
       - name: install rust toolchain
         uses: $/.github/actions/rust
 
-      - name: test core libraries
-        run: cargo test --locked --all-features --lib -p monochange_semver -p monochange_core -p monochange_config -p monochange_changelog -p monochange_cargo
+      # monochange_npm's semantic analysis shells out to node with the
+      # TypeScript analyzer, which resolves `typescript` from node_modules.
+      - name: setup pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          version: 12
+
+      - name: setup node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+
+      - name: install node dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: test workspace libraries
+        run: cargo test --locked --workspace --exclude xtask --all-features --lib
 
       - name: test public release planning
         run: |

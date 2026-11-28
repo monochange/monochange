@@ -2425,8 +2425,16 @@ fn hosted_commit_branches_follow_the_release_request_branch(
 
 #[test]
 fn hosted_commit_idempotency_key_needs_run_environment() {
-	// Without GitHub Actions run variables there is no stable retry key.
-	assert!(hosted_commit_idempotency_key().is_none());
+	// GitHub Actions exports these for every runner, so unset them before
+	// asserting that no stable retry key exists outside a workflow run.
+	temp_env::with_vars(
+		[
+			("GITHUB_REPOSITORY", None::<&str>),
+			("GITHUB_RUN_ID", None),
+			("GITHUB_RUN_ATTEMPT", None),
+		],
+		|| assert!(hosted_commit_idempotency_key().is_none()),
+	);
 }
 
 #[test]
