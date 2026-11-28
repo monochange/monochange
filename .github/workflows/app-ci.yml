@@ -15,6 +15,7 @@ on:
       - "scripts/check-wasm-externref-table.ts"
       - "scripts/minify-split-loader.ts"
       - "scripts/resolve-app-release-notes.ts"
+      - "scripts/npm/tests/check-wasm-externref-table.test.ts"
       - "scripts/npm/tests/digitalocean-rollout.test.ts"
       - "scripts/npm/tests/resolve-app-release-notes.test.ts"
       - "package.json"
@@ -31,6 +32,7 @@ on:
       - "scripts/check-wasm-externref-table.ts"
       - "scripts/minify-split-loader.ts"
       - "scripts/resolve-app-release-notes.ts"
+      - "scripts/npm/tests/check-wasm-externref-table.test.ts"
       - "scripts/npm/tests/digitalocean-rollout.test.ts"
       - "scripts/npm/tests/resolve-app-release-notes.test.ts"
       - "package.json"
@@ -71,7 +73,7 @@ jobs:
         run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: test app release notes and image smoke checks
-        run: pnpm vitest run scripts/npm/tests/resolve-app-release-notes.test.ts
+        run: pnpm vitest run scripts/npm/tests/resolve-app-release-notes.test.ts scripts/npm/tests/check-wasm-externref-table.test.ts
 
       - name: test installed deployment helpers in isolated Linux
         run: |

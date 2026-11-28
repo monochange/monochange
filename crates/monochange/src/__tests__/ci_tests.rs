@@ -869,7 +869,7 @@ fn ci_check_reports_every_configuration_problem_class() {
 	fs::create_dir_all(repo.path().join(".github/workflows")).unwrap();
 	fs::write(
 		repo.path().join(".github/workflows/ci.yml"),
-		"jobs:\n  gate:\n    outputs:\n      decisions: ${{ steps.gate.outputs.decisions }}\n  a:\n    needs: gate\n    if: fromJSON(needs.gate.outputs.decisions)['ghost-job']\n  b:\n    needs: gate\n    if: fromJSON(needs.gate.outputs.decisions).another-ghost\n",
+		"jobs:\n  gate:\n    outputs:\n      decisions: ${{ steps.gate.outputs.decisions }}\n      run-all: ${{ steps.gate.outputs.run-all }}\n  a:\n    needs: gate\n    if: needs.gate.result != 'success' || needs.gate.outputs.run-all == 'true' || fromJSON(needs.gate.outputs.decisions)['ghost-job']\n  b:\n    needs: gate\n    if: needs.gate.result != 'success' || needs.gate.outputs.run-all == 'true' || fromJSON(needs.gate.outputs.decisions).another-ghost\n",
 	)
 	.unwrap();
 
@@ -946,6 +946,45 @@ fn ci_check_reports_every_configuration_problem_class() {
 	let report: serde_json::Value = serde_json::from_str(&output).unwrap();
 
 	assert_eq!(report["ok"], serde_json::json!(true));
+}
+
+#[test]
+fn ci_check_reports_decisions_references_missing_fail_safe_guards() {
+	let repo = gatekeeper_fixture();
+
+	support::init_git_repo_with_origin(repo.path(), "https://github.com/acme/check-guards.git");
+	run_git(repo.path(), &["add", "."]);
+
+	fs::create_dir_all(repo.path().join(".github/workflows")).unwrap();
+	fs::write(
+		repo.path().join(".github/workflows/guards.yml"),
+		"jobs:\n  gate:\n    outputs:\n      decisions: ${{ steps.gate.outputs.decisions }}\n      run-all: ${{ steps.gate.outputs.run-all }}\n  safe:\n    needs: gate\n    if: needs.gate.result != 'success' || needs.gate.outputs.run-all == 'true' || fromJSON(needs.gate.outputs.decisions)['test-windows'] || fromJSON(needs.gate.outputs.decisions)['lint']\n  unsafe:\n    needs: gate\n    if: fromJSON(needs.gate.outputs.decisions)['facade-nightly']\n  half-safe:\n    needs: gate\n    if: needs.gate.outputs.run-all == 'true' || fromJSON(needs.gate.outputs.decisions)['docs']\n",
+	)
+	.unwrap();
+
+	let error = run_mc(
+		repo.path(),
+		&["ci", "check", "--workflow", ".github/workflows/guards.yml"],
+	)
+	.unwrap_err();
+	let problems = error.to_string();
+
+	assert!(
+		problems.contains(
+			"workflow `.github/workflows/guards.yml` line 11 references `needs.gate.outputs.decisions` without `needs.gate.outputs.run-all == 'true'` and `needs.gate.result != 'success'`"
+		),
+		"missing both-guards problem: {problems}"
+	);
+	assert!(
+		problems.contains(
+			"workflow `.github/workflows/guards.yml` line 14 references `needs.gate.outputs.decisions` without `needs.gate.result != 'success'`"
+		),
+		"missing single-guard problem: {problems}"
+	);
+	assert!(
+		!problems.contains("guards.yml` line 8 references"),
+		"guarded reference must pass: {problems}"
+	);
 }
 
 #[test]
@@ -1985,6 +2024,69 @@ fn verify_classifies_outcomes_from_prior_decisions_and_reuses_learned_rules() {
 	assert!(
 		text.contains("classification: true_negative"),
 		"unexpected: {text}"
+	);
+}
+
+#[test]
+fn verify_rejects_skipped_or_cancelled_conclusions_without_recording() {
+	let dir = tempdir().unwrap();
+	let root = dir.path();
+
+	init_git_repo_with_origin(root, "https://github.com/acme/verify-no-evidence.git");
+	run_mc(root, &["ci", "auth", "init"]).unwrap();
+	fs::write(
+		root.join("monochange.toml"),
+		"[ci.jobs.docs]\npaths = [\"rare/**\"]\n",
+	)
+	.unwrap();
+
+	for conclusion in ["skipped", "cancelled"] {
+		let error = run_mc(
+			root,
+			&[
+				"ci",
+				"verify",
+				"--job",
+				"docs",
+				"--conclusion",
+				conclusion,
+				"--changed-files",
+				"docs/guide.md",
+			],
+		)
+		.unwrap_err();
+
+		assert!(
+			error
+				.to_string()
+				.contains(&format!("job `docs` concluded `{conclusion}`")),
+			"unexpected error for `{conclusion}`: {error}"
+		);
+	}
+
+	// A refused outcome leaves no verification record behind.
+	let history_output = run_mc(root, &["ci", "history", "--format", "json"]).unwrap();
+	let history: CiHistoryReport = serde_json::from_str(&history_output).unwrap();
+
+	assert!(history.verifications.is_empty());
+
+	// `success` is still the one conclusion that verifies a skip as a true negative.
+	let success = verify_record(
+		root,
+		&[
+			"--job",
+			"docs",
+			"--conclusion",
+			"success",
+			"--changed-files",
+			"docs/guide.md",
+		],
+	);
+
+	assert_eq!(success.prior_decision, "n");
+	assert_eq!(
+		success.classification,
+		CiVerificationClassification::TrueNegative
 	);
 }
 

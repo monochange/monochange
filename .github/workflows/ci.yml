@@ -78,8 +78,8 @@ jobs:
       - name: install rust toolchain
         uses: $/.github/actions/rust
 
-      - name: test core libraries
-        run: cargo test --locked --all-features --lib -p monochange_semver -p monochange_core -p monochange_config -p monochange_changelog -p monochange_cargo
+      - name: test workspace libraries
+        run: cargo test --locked --workspace --exclude xtask --all-features --lib
 
       - name: test public release planning
         run: |

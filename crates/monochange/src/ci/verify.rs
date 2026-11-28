@@ -10,6 +10,7 @@ use std::path::Path;
 use chrono::Utc;
 use clap::ArgMatches;
 use monochange_config::load_ci_settings;
+use monochange_core::MonochangeError;
 use monochange_core::MonochangeResult;
 
 use super::DEFAULT_MAX_DURATION_MINUTES;
@@ -39,6 +40,8 @@ const RUN_DECISION: &str = "y";
 const FAILURE_CONCLUSION: &str = "failure";
 /// Conclusion that indicates the job passed.
 const SUCCESS_CONCLUSION: &str = "success";
+/// Conclusions that prove a job ran and produced verification evidence.
+const VERIFIABLE_CONCLUSIONS: [&str; 2] = [SUCCESS_CONCLUSION, FAILURE_CONCLUSION];
 /// Default branch recorded when `--branch` is omitted.
 const DEFAULT_BRANCH: &str = "main";
 
@@ -73,6 +76,14 @@ pub(super) fn run_ci_verify_subcommand(
 	matches: &ArgMatches,
 ) -> MonochangeResult<String> {
 	let input = parse_verify_input(matches)?;
+
+	if !VERIFIABLE_CONCLUSIONS.contains(&input.conclusion.as_str()) {
+		return Err(MonochangeError::Diagnostic(format!(
+			"job `{}` concluded `{}`; only `success` or `failure` verifies a gate decision, so no verification record was written",
+			input.job, input.conclusion
+		)));
+	}
+
 	let mut memory = auth::load_ci_memory_store(
 		root,
 		args::repo_id_override(matches),

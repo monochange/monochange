@@ -150,7 +150,10 @@ fn workflow_problems(
 		let path = root.join(relative.as_str());
 
 		match std::fs::read_to_string(&path) {
-			Ok(contents) => referenced.extend(referenced_job_ids(&contents)),
+			Ok(contents) => {
+				problems.extend(fail_safe_problems(relative, &contents));
+				referenced.extend(referenced_job_ids(&contents));
+			}
 
 			Err(error) => {
 				problems.push(CiCheckProblem {
@@ -212,6 +215,54 @@ fn referenced_job_ids(workflow_text: &str) -> Vec<String> {
 	);
 
 	ids
+}
+
+/// Require every `decisions` reference to carry the fail-safe guards.
+///
+/// GitHub skips a job whose `needs` gate failed, and a skipped required check
+/// counts as passing. A `decisions` reference is only safe when the same `if`
+/// expression also runs the job on `needs.<gate>.result != 'success'` and
+/// `needs.<gate>.outputs.run-all == 'true'`.
+fn fail_safe_problems(workflow: &str, contents: &str) -> Vec<CiCheckProblem> {
+	let needs_decisions = Regex::new(r"needs\.([A-Za-z0-9_-]+)\.outputs\.decisions")
+		.unwrap_or_else(|error| panic!("decisions needs regex must compile: {error}"));
+
+	contents
+		.lines()
+		.enumerate()
+		.filter_map(|(index, line)| {
+			let gate = needs_decisions.captures(line)?.get(1)?.as_str().to_string();
+			let run_all = format!("needs.{gate}.outputs.run-all == 'true'");
+			let gate_result = format!("needs.{gate}.result != 'success'");
+			let mut missing = Vec::new();
+
+			if !mentions_guard(line, &run_all) {
+				missing.push(format!("`{run_all}`"));
+			}
+
+			if !mentions_guard(line, &gate_result) {
+				missing.push(format!("`{gate_result}`"));
+			}
+
+			if missing.is_empty() {
+				return None;
+			}
+
+			Some(CiCheckProblem {
+				kind: "workflow",
+				message: format!(
+					"workflow `{workflow}` line {} references `needs.{gate}.outputs.decisions` without {}; a failed gate skips the job and a skipped required check counts as passing",
+					index + 1,
+					missing.join(" and ")
+				),
+			})
+		})
+		.collect()
+}
+
+/// Match a guard with either quote style used in workflow expressions.
+fn mentions_guard(line: &str, guard: &str) -> bool {
+	line.contains(guard) || line.contains(&guard.replace('\'', "\""))
 }
 
 /// List files tracked by git, relative to the repository root.
