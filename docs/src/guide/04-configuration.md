@@ -1507,7 +1507,7 @@ affected-packages=["gallery","ws_support"]
 run-all=false
 ```
 
-Gate downstream jobs with `if: needs.<gate>.result != 'success' || needs.<gate>.outputs.run-all == 'true' || fromJSON(needs.<gate>.outputs.decisions)['test-windows']`. The first two terms keep the job running when the gate fails, because GitHub skips a dependent job whose `needs` gate failed and a skipped required check counts as passing. A failure to write `$GITHUB_OUTPUT` fails the command instead of silently dropping the outputs.
+Gate downstream jobs with `if: !cancelled() && (needs.<gate>.result != 'success' || needs.<gate>.outputs.run-all == 'true' || fromJSON(needs.<gate>.outputs.decisions)['test-windows'])`. The `!cancelled()` override is required: GitHub implicitly wraps a job `if:` that has no status-check function in `success() && (...)`, which would make the non-success branches dead code. A failure to write `$GITHUB_OUTPUT` fails the command instead of silently dropping the outputs.
 
 ### Failing safe with `--on-error run-all`
 
@@ -1529,7 +1529,9 @@ jobs:
         run: monochange ci decide --format github-outputs --on-error run-all
   test-windows:
     needs: gate
-    if: needs.gate.result != 'success' || needs.gate.outputs.run-all == 'true' || fromJSON(needs.gate.outputs.decisions)['test-windows']
+    if: >-
+      !cancelled()
+      && (needs.gate.result != 'success' || needs.gate.outputs.run-all == 'true' || fromJSON(needs.gate.outputs.decisions)['test-windows'])
 ```
 
 `--on-error` controls what happens after argument parsing fails:
@@ -1541,7 +1543,7 @@ If even the fallback write fails, the command exits non-zero.
 
 ### `monochange ci check`
 
-`monochange ci check [--workflow <path>]...` validates the configuration and exits non-zero listing every problem: an unknown root package, a package glob matching zero workspace packages, a path glob matching zero tracked files, a job with none of `packages`/`paths`/`always`, and a job id that is not kebab-case. With `--workflow`, the workflow text is scanned for `fromJSON(needs.<id>.outputs.decisions)['<job>']` and `...decisions).<job>` references, reporting ids that are used but not configured and configured ids that are never referenced. Every line with a `needs.<gate>.outputs.decisions` reference must also contain `needs.<gate>.result != 'success'` and `needs.<gate>.outputs.run-all == 'true'`, so a broken gate cannot skip a required check.
+`monochange ci check [--workflow <path>]...` validates the configuration and exits non-zero listing every problem: an unknown root package, a package glob matching zero workspace packages, a path glob matching zero tracked files, a job with none of `packages`/`paths`/`always`, and a job id that is not kebab-case. With `--workflow`, the workflow text is scanned for `fromJSON(needs.<id>.outputs.decisions)['<job>']` and `...decisions).<job>` references, reporting ids that are used but not configured and configured ids that are never referenced. Every `if:` expression with a `needs.<gate>.outputs.decisions` reference must also contain a status-check override (`always()` or `!cancelled()`), `needs.<gate>.result != 'success'`, and `needs.<gate>.outputs.run-all == 'true'`. Comments, `env:` values, and `run:` scripts are not expressions and are ignored, so a broken gate cannot leave a required check skipped.
 
 ## Package references
 

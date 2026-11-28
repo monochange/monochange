@@ -74,7 +74,7 @@ pub(super) fn render_decide_report(
 /// Writes exactly three keys: `decisions` (compact JSON mapping each job id to
 /// its boolean verdict), `affected-packages` (JSON array), and `run-all`
 /// (whether every job runs). Consumers gate jobs with
-/// `if: fromJSON(needs.<job>.outputs.decisions)['<job-id>']`.
+/// `if: !cancelled() && (needs.<gate>.result != 'success' || needs.<gate>.outputs.run-all == 'true' || fromJSON(needs.<gate>.outputs.decisions)['<job-id>'])`.
 fn render_github_outputs(
 	report: &CiDecideReport,
 	github_output: Option<&Path>,

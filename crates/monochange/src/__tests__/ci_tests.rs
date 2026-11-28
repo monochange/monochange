@@ -869,7 +869,7 @@ fn ci_check_reports_every_configuration_problem_class() {
 	fs::create_dir_all(repo.path().join(".github/workflows")).unwrap();
 	fs::write(
 		repo.path().join(".github/workflows/ci.yml"),
-		"jobs:\n  gate:\n    outputs:\n      decisions: ${{ steps.gate.outputs.decisions }}\n      run-all: ${{ steps.gate.outputs.run-all }}\n  a:\n    needs: gate\n    if: needs.gate.result != 'success' || needs.gate.outputs.run-all == 'true' || fromJSON(needs.gate.outputs.decisions)['ghost-job']\n  b:\n    needs: gate\n    if: needs.gate.result != 'success' || needs.gate.outputs.run-all == 'true' || fromJSON(needs.gate.outputs.decisions).another-ghost\n",
+		"jobs:\n  gate:\n    outputs:\n      decisions: ${{ steps.gate.outputs.decisions }}\n      run-all: ${{ steps.gate.outputs.run-all }}\n  a:\n    needs: gate\n    if: !cancelled() && (needs.gate.result != 'success' || needs.gate.outputs.run-all == 'true' || fromJSON(needs.gate.outputs.decisions)['ghost-job'])\n  b:\n    needs: gate\n    if: !cancelled() && (needs.gate.result != 'success' || needs.gate.outputs.run-all == 'true' || fromJSON(needs.gate.outputs.decisions).another-ghost)\n",
 	)
 	.unwrap();
 
@@ -949,7 +949,7 @@ fn ci_check_reports_every_configuration_problem_class() {
 }
 
 #[test]
-fn ci_check_reports_decisions_references_missing_fail_safe_guards() {
+fn ci_check_requires_status_override_and_guards_for_decisions_references() {
 	let repo = gatekeeper_fixture();
 
 	support::init_git_repo_with_origin(repo.path(), "https://github.com/acme/check-guards.git");
@@ -958,7 +958,40 @@ fn ci_check_reports_decisions_references_missing_fail_safe_guards() {
 	fs::create_dir_all(repo.path().join(".github/workflows")).unwrap();
 	fs::write(
 		repo.path().join(".github/workflows/guards.yml"),
-		"jobs:\n  gate:\n    outputs:\n      decisions: ${{ steps.gate.outputs.decisions }}\n      run-all: ${{ steps.gate.outputs.run-all }}\n  safe:\n    needs: gate\n    if: needs.gate.result != 'success' || needs.gate.outputs.run-all == 'true' || fromJSON(needs.gate.outputs.decisions)['test-windows'] || fromJSON(needs.gate.outputs.decisions)['lint']\n  unsafe:\n    needs: gate\n    if: fromJSON(needs.gate.outputs.decisions)['facade-nightly']\n  half-safe:\n    needs: gate\n    if: needs.gate.outputs.run-all == 'true' || fromJSON(needs.gate.outputs.decisions)['docs']\n",
+		r"jobs:
+  gate:
+    outputs:
+      decisions: ${{ steps.gate.outputs.decisions }}
+      run-all: ${{ steps.gate.outputs.run-all }}
+  safe-cancelled:
+    needs: gate
+    if: !cancelled() && (needs.gate.result != 'success' || needs.gate.outputs.run-all == 'true' || fromJSON(needs.gate.outputs.decisions)['test-windows'])
+  safe-always:
+    needs: gate
+    if: always() && (needs.gate.result != 'success' || needs.gate.outputs.run-all == 'true' || fromJSON(needs.gate.outputs.decisions)['lint'])
+  folded-safe:
+    needs: gate
+    if: >-
+      !cancelled() &&
+      (needs.gate.result != 'success' ||
+      needs.gate.outputs.run-all == 'true' ||
+      fromJSON(needs.gate.outputs.decisions)['docs'])
+  missing-status:
+    needs: gate
+    if: needs.gate.result != 'success' || needs.gate.outputs.run-all == 'true' || fromJSON(needs.gate.outputs.decisions)['facade-nightly']
+  folded-missing:
+    needs: gate
+    if: |-
+      needs.gate.outputs.run-all == 'true' ||
+      fromJSON(needs.gate.outputs.decisions)['facade-nightly']
+  commented:
+    needs: gate
+    # if: fromJSON(needs.gate.outputs.decisions)['test-windows']
+    env:
+      DECISIONS: ${{ needs.gate.outputs.decisions }}
+    steps:
+      - run: echo needs.gate.outputs.decisions
+",
 	)
 	.unwrap();
 
@@ -971,19 +1004,22 @@ fn ci_check_reports_decisions_references_missing_fail_safe_guards() {
 
 	assert!(
 		problems.contains(
-			"workflow `.github/workflows/guards.yml` line 11 references `needs.gate.outputs.decisions` without `needs.gate.outputs.run-all == 'true'` and `needs.gate.result != 'success'`"
+			"gates on `needs.gate.outputs.decisions` without a status-check override (`always()` or `!cancelled()`)"
 		),
-		"missing both-guards problem: {problems}"
+		"missing status-override problem: {problems}"
 	);
 	assert!(
 		problems.contains(
-			"workflow `.github/workflows/guards.yml` line 14 references `needs.gate.outputs.decisions` without `needs.gate.result != 'success'`"
+			"without a status-check override (`always()` or `!cancelled()`) and `needs.gate.result != 'success'`"
 		),
-		"missing single-guard problem: {problems}"
+		"folded expression must report both missing guards: {problems}"
 	);
-	assert!(
-		!problems.contains("guards.yml` line 8 references"),
-		"guarded reference must pass: {problems}"
+	assert_eq!(
+		problems
+			.matches("gates on `needs.gate.outputs.decisions`")
+			.count(),
+		2,
+		"only unguarded if expressions should be reported: {problems}"
 	);
 }
 

@@ -219,45 +219,140 @@ fn referenced_job_ids(workflow_text: &str) -> Vec<String> {
 
 /// Require every `decisions` reference to carry the fail-safe guards.
 ///
-/// GitHub skips a job whose `needs` gate failed, and a skipped required check
-/// counts as passing. A `decisions` reference is only safe when the same `if`
-/// expression also runs the job on `needs.<gate>.result != 'success'` and
-/// `needs.<gate>.outputs.run-all == 'true'`.
+/// GitHub wraps a job `if:` without `always()` or `!cancelled()` in an
+/// implicit `success() && (...)`, so a non-success branch never runs when the
+/// gate fails. A `decisions` reference is only safe when the same `if:`
+/// expression has a status-check override, a non-success gate result check,
+/// and the `run-all` fallback.
 fn fail_safe_problems(workflow: &str, contents: &str) -> Vec<CiCheckProblem> {
 	let needs_decisions = Regex::new(r"needs\.([A-Za-z0-9_-]+)\.outputs\.decisions")
 		.unwrap_or_else(|error| panic!("decisions needs regex must compile: {error}"));
 
-	contents
-		.lines()
-		.enumerate()
-		.filter_map(|(index, line)| {
-			let gate = needs_decisions.captures(line)?.get(1)?.as_str().to_string();
-			let run_all = format!("needs.{gate}.outputs.run-all == 'true'");
-			let gate_result = format!("needs.{gate}.result != 'success'");
-			let mut missing = Vec::new();
+	workflow_conditions(contents)
+		.into_iter()
+		.flat_map(|condition| {
+			let mut gates: Vec<String> = needs_decisions
+				.captures_iter(&condition.expression)
+				.filter_map(|captures| captures.get(1).map(|gate| gate.as_str().to_string()))
+				.collect();
 
-			if !mentions_guard(line, &run_all) {
-				missing.push(format!("`{run_all}`"));
-			}
+			gates.sort();
+			gates.dedup();
 
-			if !mentions_guard(line, &gate_result) {
-				missing.push(format!("`{gate_result}`"));
-			}
+			gates
+				.into_iter()
+				.filter_map(|gate| {
+					let run_all = format!("needs.{gate}.outputs.run-all == 'true'");
+					let gate_result = format!("needs.{gate}.result != 'success'");
+					let has_status_override = mentions_guard(&condition.expression, "always()")
+						|| mentions_guard(&condition.expression, "!cancelled()");
+					let mut missing = Vec::new();
 
-			if missing.is_empty() {
-				return None;
-			}
+					if !has_status_override {
+						missing.push("a status-check override (`always()` or `!cancelled()`)".to_string());
+					}
 
-			Some(CiCheckProblem {
-				kind: "workflow",
-				message: format!(
-					"workflow `{workflow}` line {} references `needs.{gate}.outputs.decisions` without {}; a failed gate skips the job and a skipped required check counts as passing",
-					index + 1,
-					missing.join(" and ")
-				),
-			})
+					if !mentions_guard(&condition.expression, &gate_result) {
+						missing.push(format!("`{gate_result}`"));
+					}
+
+					if !mentions_guard(&condition.expression, &run_all) {
+						missing.push(format!("`{run_all}`"));
+					}
+
+					if missing.is_empty() {
+						return None;
+					}
+
+					Some(CiCheckProblem {
+						kind: "workflow",
+						message: format!(
+							"workflow `{workflow}` line {} gates on `needs.{gate}.outputs.decisions` without {}; GitHub applies an implicit `success() && (...)` to a bare job `if:`, so a failed gate skips the job and a skipped required check counts as passing",
+							condition.line,
+							missing.join(" and ")
+						),
+					})
+				})
+				.collect::<Vec<_>>()
 		})
 		.collect()
+}
+
+/// One workflow `if:` expression and the line it starts on.
+struct WorkflowCondition {
+	line: usize,
+	expression: String,
+}
+
+/// Collect `if:` expressions, including folded and literal block scalars.
+///
+/// Comments and non-`if:` lines are skipped: an `env:` value or a `run:`
+/// script that mentions `decisions` is not a gated job and must not trigger a
+/// fail-safe problem.
+fn workflow_conditions(contents: &str) -> Vec<WorkflowCondition> {
+	let if_key = Regex::new(r"^(\s*)(?:-\s+)?if:\s*(.*)$")
+		.unwrap_or_else(|error| panic!("workflow if regex must compile: {error}"));
+	let mut conditions = Vec::new();
+	let mut lines = contents.lines().enumerate().peekable();
+
+	while let Some((index, line)) = lines.next() {
+		let Some(captures) = if_key.captures(line) else {
+			continue;
+		};
+		let indent = captures.get(1).map_or(0, |indent| indent.as_str().len());
+		let value = captures.get(2).map_or("", |value| value.as_str()).trim();
+
+		if value.is_empty() || value.starts_with('#') {
+			continue;
+		}
+
+		if !value.starts_with('>') && !value.starts_with('|') {
+			conditions.push(WorkflowCondition {
+				line: index + 1,
+				expression: value.to_string(),
+			});
+			continue;
+		}
+
+		let mut expression = String::new();
+
+		while let Some((_, next)) = lines.peek().copied() {
+			let next_indent = next.len() - next.trim_start().len();
+
+			if next.trim().is_empty() {
+				lines.next();
+				continue;
+			}
+
+			if next_indent <= indent {
+				break;
+			}
+
+			let Some((_, next)) = lines.next() else {
+				break;
+			};
+			let trimmed = next.trim();
+
+			if trimmed.starts_with('#') {
+				continue;
+			}
+
+			if !expression.is_empty() {
+				expression.push(' ');
+			}
+
+			expression.push_str(trimmed);
+		}
+
+		if !expression.is_empty() {
+			conditions.push(WorkflowCondition {
+				line: index + 1,
+				expression,
+			});
+		}
+	}
+
+	conditions
 }
 
 /// Match a guard with either quote style used in workflow expressions.

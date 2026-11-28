@@ -21,4 +21,12 @@ monochange ci verify --job docs --conclusion skipped
 # job `docs` concluded `skipped`; only `success` or `failure` verifies a gate decision, so no verification record was written
 ```
 
-`monochange ci check --workflow` now also rejects a `needs.<gate>.outputs.decisions` reference that omits `needs.<gate>.result != 'success'` or `needs.<gate>.outputs.run-all == 'true'`. Without both guards, a failed gate skips the dependent job and the skipped required check counts as passing.
+`monochange ci check --workflow` now requires every `needs.<gate>.outputs.decisions` reference in an `if:` expression to include a status-check override plus both fail-safe guards. GitHub implicitly wraps a bare job `if:` in `success() && (...)`, so `needs.<gate>.result != 'success'` alone never runs when the gate fails. The canonical gate is:
+
+```yaml
+if: >-
+  !cancelled()
+  && (needs.gate.result != 'success' || needs.gate.outputs.run-all == 'true' || fromJSON(needs.gate.outputs.decisions)['test-windows'])
+```
+
+`always()` is accepted in place of `!cancelled()`. Comments, `env:` values, and `run:` scripts are not expressions and are ignored.

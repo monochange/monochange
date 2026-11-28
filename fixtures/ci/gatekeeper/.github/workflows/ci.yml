@@ -7,32 +7,33 @@ jobs:
       decisions: ${{ steps.gate.outputs.decisions }}
       run-all: ${{ steps.gate.outputs.run-all }}
     steps:
-      - run: monochange ci decide --format github-outputs
+      - id: gate
+        run: monochange ci decide --format github-outputs
 
   test-windows:
     needs: gate
-    if: needs.gate.result != 'success' || needs.gate.outputs.run-all == 'true' || fromJSON(needs.gate.outputs.decisions)['test-windows']
+    if: !cancelled() && (needs.gate.result != 'success' || needs.gate.outputs.run-all == 'true' || fromJSON(needs.gate.outputs.decisions)['test-windows'])
     runs-on: windows-latest
     steps:
       - run: cargo test
 
   facade-nightly:
     needs: gate
-    if: needs.gate.result != 'success' || needs.gate.outputs.run-all == 'true' || fromJSON(needs.gate.outputs.decisions)['facade-nightly']
+    if: !cancelled() && (needs.gate.result != 'success' || needs.gate.outputs.run-all == 'true' || fromJSON(needs.gate.outputs.decisions)['facade-nightly'])
     runs-on: ubuntu-latest
     steps:
       - run: cargo check -p facade --features nightly
 
   docs:
     needs: gate
-    if: needs.gate.result != 'success' || needs.gate.outputs.run-all == 'true' || fromJSON(needs.gate.outputs.decisions).docs
+    if: !cancelled() && (needs.gate.result != 'success' || needs.gate.outputs.run-all == 'true' || fromJSON(needs.gate.outputs.decisions).docs)
     runs-on: ubuntu-latest
     steps:
       - run: mdbook build
 
   lint:
     needs: gate
-    if: needs.gate.result != 'success' || needs.gate.outputs.run-all == 'true' || fromJSON(needs.gate.outputs.decisions)['lint']
+    if: !cancelled() && (needs.gate.result != 'success' || needs.gate.outputs.run-all == 'true' || fromJSON(needs.gate.outputs.decisions)['lint'])
     runs-on: ubuntu-latest
     steps:
       - run: cargo clippy
