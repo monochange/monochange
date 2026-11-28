@@ -73,6 +73,7 @@ fn sample_publish_outcome(
 		stdout: None,
 		stderr: None,
 		rate_limit: None,
+		deferred_to: None,
 	}
 }
 
@@ -462,6 +463,8 @@ fn trust_request_for(
 		timeout: monochange_core::PublishTimeoutSettings::default(),
 		fail_on_duplicate: false,
 		placeholder_readme: "placeholder".to_string(),
+		release_tag: None,
+		run_scope: monochange_publish::PublishRunScope::Publish,
 	};
 
 	if registry != "crates_io" {

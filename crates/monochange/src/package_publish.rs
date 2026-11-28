@@ -9,10 +9,12 @@ use monochange_core::Ecosystem;
 use monochange_core::MonochangeError;
 use monochange_core::MonochangeResult;
 use monochange_core::PackagePublicationTarget;
+use monochange_core::PackageRecord;
 use monochange_core::PublishRegistry;
 use monochange_core::RegistryKind;
 use monochange_core::SourceConfiguration;
 use monochange_core::TrustedPublishingMode;
+use monochange_core::VersionFormat;
 use monochange_core::WorkspaceConfiguration;
 use monochange_dart::write_dart_placeholder_manifest;
 use monochange_deno::write_jsr_placeholder_manifest;
@@ -32,15 +34,19 @@ use monochange_publish::PlaceholderManifestWriterRegistry;
 use monochange_publish::PublishProgressEvent;
 use monochange_publish::PublishProgressReporter;
 use monochange_publish::PublishReadinessRegistry;
+use monochange_publish::PublishReleaseTags;
 pub(crate) use monochange_publish::PublishRequest;
 use monochange_publish::PublishTrustHandler;
 use monochange_publish::TrustedPublishingIdentity;
 pub(crate) use monochange_publish::TrustedPublishingOutcome;
 pub(crate) use monochange_publish::TrustedPublishingStatus;
+use monochange_publish::assign_publish_run_scopes;
 pub(crate) use monochange_publish::build_placeholder_requests;
 use monochange_publish::build_publish_command_builder;
 pub(crate) use monochange_publish::build_release_requests;
 use monochange_publish::configured_package_publication_targets;
+use monochange_publish::configured_release_tags;
+use monochange_publish::current_env_map;
 use monochange_publish::detect_trusted_publishing_identity;
 use monochange_publish::disabled_trust_outcome;
 use monochange_publish::manual_setup_url;
@@ -118,6 +124,19 @@ pub(crate) struct PublishOutputOptions {
 	pub(crate) quiet: bool,
 }
 
+/// Which packages of the release a publish run considers.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) enum PublishRefScope {
+	/// Consider every package, whatever the CI run's git ref. Readiness
+	/// checks use this.
+	#[default]
+	EveryPackage,
+	/// Decide from the CI run's git ref which packages this run publishes
+	/// (see `monochange_publish::plan_publish_run_scopes`). Publish runs use
+	/// this.
+	RunRef,
+}
+
 #[derive(Clone, Copy, Default)]
 pub(crate) struct PublishPackagesOptions<'a> {
 	pub(crate) publish_all_configured_packages: bool,
@@ -125,6 +144,7 @@ pub(crate) struct PublishPackagesOptions<'a> {
 	pub(crate) resume_path: Option<&'a Path>,
 	pub(crate) fail_on_duplicate: bool,
 	pub(crate) output: PublishOutputOptions,
+	pub(crate) ref_scope: PublishRefScope,
 }
 
 pub(crate) async fn run_publish_packages(
@@ -215,36 +235,27 @@ pub(crate) async fn try_run_publish_packages_with_resume_and_progress(
 	options: PublishPackagesOptions<'_>,
 	progress: &dyn PublishProgressReporter,
 ) -> PackagePublishExecutionResult {
-	let publication_targets = if options.publish_all_configured_packages {
-		let discovery = discover_release_workspace(root, configuration).map_err(|error| {
-			monochange_publish::PackagePublishFailure::new(
-				error,
-				PackagePublishReport {
-					mode: PackagePublishRunMode::Release,
-					dry_run: options.dry_run,
-					packages: Vec::new(),
-				},
-			)
-		})?;
-		configured_package_publication_targets(configuration, &discovery.packages)
-	} else {
-		release_record_package_publications_from_prepared_or_head(root, prepared_release)
-			.await
-			.map_err(|error| {
-				monochange_publish::PackagePublishFailure::new(
-					error,
-					PackagePublishReport {
-						mode: PackagePublishRunMode::Release,
-						dry_run: options.dry_run,
-						packages: Vec::new(),
-					},
-				)
-			})?
-	};
+	let release = release_publications(
+		root,
+		configuration,
+		prepared_release,
+		options.publish_all_configured_packages,
+	)
+	.await
+	.map_err(|error| {
+		monochange_publish::PackagePublishFailure::new(
+			error,
+			PackagePublishReport {
+				mode: PackagePublishRunMode::Release,
+				dry_run: options.dry_run,
+				packages: Vec::new(),
+			},
+		)
+	})?;
 
 	let selected_targets = select_release_publication_targets(
 		&configuration.groups,
-		&publication_targets,
+		&release.publications,
 		selected_packages,
 		selected_groups,
 		selected_ecosystems,
@@ -253,12 +264,29 @@ pub(crate) async fn try_run_publish_packages_with_resume_and_progress(
 	try_run_publish_packages_with_publications_and_resume_and_progress(
 		root,
 		configuration,
-		&selected_targets.publication_targets,
-		&selected_targets.selected_packages,
+		ReleasePublicationSelection {
+			publication_targets: &selected_targets.publication_targets,
+			selected_packages: &selected_targets.selected_packages,
+			release_publications: &release.publications,
+			release_tags: release.release_tags.as_ref(),
+		},
 		options,
 		progress,
 	)
 	.await
+}
+
+/// The publications one run publishes, and the release they belong to.
+struct ReleasePublicationSelection<'a> {
+	/// The release's publications after `--ecosystem` selection.
+	publication_targets: &'a [PackagePublicationTarget],
+	/// The `--package` and `--group` selection; empty selects every package.
+	selected_packages: &'a BTreeSet<String>,
+	/// Every publication of the release: which packages a run publishes
+	/// depends on all of them, whatever the selection.
+	release_publications: &'a [PackagePublicationTarget],
+	/// The release's tags; `None` renders them from configuration.
+	release_tags: Option<&'a PublishReleaseTags>,
 }
 
 pub(crate) async fn run_publish_packages_with_publications(
@@ -320,8 +348,12 @@ async fn try_run_publish_packages_with_publications_and_resume(
 	try_run_publish_packages_with_publications_and_resume_and_progress(
 		root,
 		configuration,
-		publication_targets,
-		selected_packages,
+		ReleasePublicationSelection {
+			publication_targets,
+			selected_packages,
+			release_publications: publication_targets,
+			release_tags: None,
+		},
 		options,
 		&progress,
 	)
@@ -331,11 +363,20 @@ async fn try_run_publish_packages_with_publications_and_resume(
 async fn try_run_publish_packages_with_publications_and_resume_and_progress(
 	root: &Path,
 	configuration: &WorkspaceConfiguration,
-	publication_targets: &[PackagePublicationTarget],
-	selected_packages: &BTreeSet<String>,
+	selection: ReleasePublicationSelection<'_>,
 	options: PublishPackagesOptions<'_>,
 	progress: &dyn PublishProgressReporter,
 ) -> PackagePublishExecutionResult {
+	let failure = |error| {
+		monochange_publish::PackagePublishFailure::new(
+			error,
+			PackagePublishReport {
+				mode: PackagePublishRunMode::Release,
+				dry_run: options.dry_run,
+				packages: Vec::new(),
+			},
+		)
+	};
 	let discovery = discover_release_workspace(root, configuration).map_err(|error| {
 		monochange_publish::PackagePublishFailure::new(
 			error,
@@ -349,19 +390,24 @@ async fn try_run_publish_packages_with_publications_and_resume_and_progress(
 	let mut requests = build_release_requests(
 		configuration,
 		&discovery.packages,
-		publication_targets,
-		selected_packages,
+		selection.publication_targets,
+		selection.selected_packages,
 	)
-	.map_err(|error| {
-		monochange_publish::PackagePublishFailure::new(
-			error,
-			PackagePublishReport {
-				mode: PackagePublishRunMode::Release,
-				dry_run: options.dry_run,
-				packages: Vec::new(),
-			},
+	.map_err(failure)?;
+	// Plan the run before resuming and over the whole release: which
+	// packages this run publishes depends on every package of the release,
+	// including the ones an earlier run already published or the selection
+	// leaves out.
+	if options.ref_scope == PublishRefScope::RunRef {
+		scope_requests_to_run_ref(
+			configuration,
+			&discovery.packages,
+			selection.release_publications,
+			&mut requests,
+			selection.release_tags,
 		)
-	})?;
+		.map_err(failure)?;
+	}
 	monochange_publish::set_fail_on_duplicate_for_requests(
 		&mut requests,
 		options.fail_on_duplicate,
@@ -519,7 +565,9 @@ fn offset_publish_progress_event(
 					+ resumed.planned
 					+ resumed.already_exists
 					+ resumed.blocked
-					+ resumed.not_attempted,
+					+ resumed.not_attempted
+					+ resumed.deferred
+					+ resumed.out_of_scope,
 				failed: failed + resumed.failed,
 			}
 		}
@@ -539,18 +587,133 @@ fn enable_publish_stream_output(requests: &mut [PublishRequest], stream_output: 
 	}
 }
 
+/// The packages a release publishes, and the tags it creates when a release
+/// record lists them.
+#[derive(Debug, Clone, Default, Eq, PartialEq)]
+pub(crate) struct ReleasePublications {
+	pub(crate) publications: Vec<PackagePublicationTarget>,
+	/// `None` when publishing every configured package without a release
+	/// record; the tags are then rendered from configuration.
+	pub(crate) release_tags: Option<PublishReleaseTags>,
+}
+
+/// Read the packages to publish: every configured package with
+/// `publish_all_configured_packages`, otherwise the prepared release or the
+/// release record at `HEAD`.
+pub(crate) async fn release_publications(
+	root: &Path,
+	configuration: &WorkspaceConfiguration,
+	prepared_release: Option<&PreparedRelease>,
+	publish_all_configured_packages: bool,
+) -> MonochangeResult<ReleasePublications> {
+	if publish_all_configured_packages {
+		let discovery = discover_release_workspace(root, configuration)?;
+		let release_tags = configured_release_tags(configuration, &discovery.packages)?;
+		return Ok(ReleasePublications {
+			publications: configured_package_publication_targets(
+				configuration,
+				&discovery.packages,
+			),
+			release_tags: Some(release_tags),
+		});
+	}
+
+	release_record_package_publications_from_prepared_or_head(root, prepared_release).await
+}
+
 pub(crate) async fn release_record_package_publications_from_prepared_or_head(
 	root: &Path,
 	prepared_release: Option<&PreparedRelease>,
-) -> MonochangeResult<Vec<PackagePublicationTarget>> {
+) -> MonochangeResult<ReleasePublications> {
 	if let Some(prepared_release) = prepared_release {
-		return Ok(prepared_release.package_publications.clone());
+		return Ok(ReleasePublications {
+			publications: prepared_release.package_publications.clone(),
+			release_tags: Some(release_tags_from_targets(
+				prepared_release
+					.release_targets
+					.iter()
+					.map(|target| (target.tag, &target.version_format, target.tag_name.as_str())),
+			)),
+		});
 	}
 
-	Ok(discover_release_record(root, "HEAD")
-		.await?
-		.record
-		.package_publications)
+	let record = discover_release_record(root, "HEAD").await?.record;
+
+	Ok(ReleasePublications {
+		release_tags: Some(release_tags_from_targets(
+			record
+				.release_targets
+				.iter()
+				.map(|target| (target.tag, &target.version_format, target.tag_name.as_str())),
+		)),
+		publications: record.package_publications,
+	})
+}
+
+/// The tags a release creates: every target with `tag = true`, and the
+/// primary tag from the target with `version_format = "primary"`.
+fn release_tags_from_targets<'a>(
+	targets: impl IntoIterator<Item = (bool, &'a VersionFormat, &'a str)>,
+) -> PublishReleaseTags {
+	let mut release_tags = PublishReleaseTags::default();
+
+	for (tag, version_format, tag_name) in targets {
+		if !tag {
+			continue;
+		}
+
+		if version_format.is_primary() {
+			release_tags.primary = Some(tag_name.to_string());
+		}
+
+		release_tags.tags.insert(tag_name.to_string());
+	}
+
+	release_tags
+}
+
+/// Decide which of `requests` this CI run publishes, from the run's git ref
+/// and the whole release: every publication in `release_publications` and
+/// the tags the release creates (rendered from configuration when
+/// `release_tags` is `None`).
+pub(crate) fn scope_requests_to_run_ref(
+	configuration: &WorkspaceConfiguration,
+	packages: &[PackageRecord],
+	release_publications: &[PackagePublicationTarget],
+	requests: &mut [PublishRequest],
+	release_tags: Option<&PublishReleaseTags>,
+) -> MonochangeResult<()> {
+	scope_requests_to_run_ref_with_env(
+		configuration,
+		packages,
+		release_publications,
+		requests,
+		release_tags,
+		&current_env_map(),
+	)
+}
+
+pub(crate) fn scope_requests_to_run_ref_with_env(
+	configuration: &WorkspaceConfiguration,
+	packages: &[PackageRecord],
+	release_publications: &[PackagePublicationTarget],
+	requests: &mut [PublishRequest],
+	release_tags: Option<&PublishReleaseTags>,
+	env_map: &BTreeMap<String, String>,
+) -> MonochangeResult<()> {
+	let release_requests = build_release_requests(
+		configuration,
+		packages,
+		release_publications,
+		&BTreeSet::new(),
+	)?;
+	let release_tags = match release_tags {
+		Some(release_tags) => release_tags.clone(),
+		None => configured_release_tags(configuration, packages)?,
+	};
+	assign_publish_run_scopes(requests, &release_requests, &release_tags, env_map);
+
+	Ok(())
 }
 
 struct CliPublishTrustHandler;

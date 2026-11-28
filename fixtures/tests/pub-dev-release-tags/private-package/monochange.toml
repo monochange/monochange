@@ -1,0 +1,12 @@
+[defaults]
+parent_bump = "patch"
+changelog = false
+
+# A private app: pubspec.yaml sets `publish_to: none`, so it never publishes
+# and needs no release tag.
+[package.mobile]
+path = "packages/mobile"
+type = "dart"
+
+[ecosystems.dart]
+enabled = true

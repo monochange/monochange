@@ -1,0 +1,43 @@
+[defaults]
+parent_bump = "patch"
+changelog = false
+
+[source]
+provider = "github"
+owner = "example"
+repo = "pub-dev-release-tags"
+
+# Every tag of the release belongs to a trusted pub.dev package: the group
+# tag `sdk/v{{ version }}` also carries an npm package, and `tools_dart`
+# releases under its own tag. No package owns the primary tag.
+[group.sdk]
+packages = ["web", "app_dart"]
+tag = true
+
+[package.web]
+path = "packages/web"
+type = "npm"
+
+[package.app_dart]
+path = "packages/app_dart"
+type = "dart"
+
+[package.tools_dart]
+path = "packages/tools_dart"
+type = "dart"
+tag = true
+
+[ecosystems.npm]
+enabled = true
+
+[ecosystems.dart]
+enabled = true
+
+[cli.commit-release]
+
+[[cli.commit-release.steps]]
+type = "PrepareRelease"
+
+[[cli.commit-release.steps]]
+type = "CommitRelease"
+update_release_json = true

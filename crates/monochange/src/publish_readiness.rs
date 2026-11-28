@@ -223,7 +223,8 @@ async fn build_publish_readiness_report_for_publish(
 				root,
 				Some(prepared_release),
 			)
-			.await?;
+			.await?
+			.publications;
 		let publish_report = package_publish::run_publish_packages(
 			root,
 			configuration,
@@ -671,9 +672,15 @@ fn readiness_status_from_publish_status(
 	status: package_publish::PackagePublishStatus,
 ) -> PublishReadinessPackageStatus {
 	match status {
+		// A deferred or out-of-scope package publishes from its own release
+		// tag run; the current ref decides only which run publishes it.
 		package_publish::PackagePublishStatus::Planned
 		| package_publish::PackagePublishStatus::Published
-		| package_publish::PackagePublishStatus::Staged => PublishReadinessPackageStatus::Ready,
+		| package_publish::PackagePublishStatus::Staged
+		| package_publish::PackagePublishStatus::DeferredToTag
+		| package_publish::PackagePublishStatus::SkippedOutOfScope => {
+			PublishReadinessPackageStatus::Ready
+		}
 		package_publish::PackagePublishStatus::SkippedExisting => {
 			PublishReadinessPackageStatus::AlreadyPublished
 		}

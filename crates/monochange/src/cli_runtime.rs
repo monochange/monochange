@@ -1478,6 +1478,7 @@ async fn execute_publish_packages_step(
 				stream_output,
 				quiet: context.quiet,
 			},
+			ref_scope: package_publish::PublishRefScope::RunRef,
 		},
 		progress,
 	)
@@ -3632,6 +3633,14 @@ fn render_package_publish_report(
 		render_publish_status_section(text, report, status, title);
 	}
 
+	render_deferred_publish_section(text, report);
+	render_publish_status_section(
+		text,
+		report,
+		package_publish::PackagePublishStatus::SkippedOutOfScope,
+		"Out of scope for this ref",
+	);
+
 	if summary.staged > 0 {
 		text.paragraph(
 			"Approve staged packages with `npm stage list`, then `npm stage approve <stage-id>`.",
@@ -3662,6 +3671,18 @@ fn package_publish_detail_item(package: &package_publish::PackagePublishOutcome)
 		format!("placeholder: {}", yes_no(package.placeholder)),
 		format!("publish: {}", package.message),
 	];
+
+	if let Some(tag_run) = &package.deferred_to {
+		lines.push(format!(
+			"release tag: {} ({})",
+			tag_run.tag, tag_run.git_ref
+		));
+
+		if let Some(command) = &tag_run.command {
+			lines.push(format!("publish from tag: {command}"));
+		}
+	}
+
 	append_package_publish_command_output_lines(&mut lines, package, "");
 	lines.push(format!(
 		"trusted publishing: {}",
@@ -3708,11 +3729,14 @@ fn render_publish_status_section(
 		return;
 	}
 
-	let problem = matches!(
-		status,
+	// Problems and out-of-scope packages need their message: it says what
+	// went wrong, or which run publishes the package.
+	let message_tone = match status {
 		package_publish::PackagePublishStatus::Blocked
-			| package_publish::PackagePublishStatus::Failed
-	);
+		| package_publish::PackagePublishStatus::Failed => Some(Tone::Error),
+		package_publish::PackagePublishStatus::SkippedOutOfScope => Some(Tone::Muted),
+		_ => None,
+	};
 	text.section(title, Some(packages.len()));
 	let rows = packages
 		.iter()
@@ -3723,14 +3747,95 @@ fn render_publish_status_section(
 				TableCell::new(&package.registry, Tone::Muted),
 			];
 
-			if problem {
-				row.push(TableCell::new(&package.message, Tone::Error));
+			if let Some(tone) = message_tone {
+				row.push(TableCell::new(&package.message, tone));
 			}
 
 			row
 		})
 		.collect::<Vec<_>>();
 	text.table(&rows);
+}
+
+/// Packages left for a run on their own release tag, with the tag each one
+/// publishes from and the command that starts that run.
+fn render_deferred_publish_section(
+	text: &mut TextReport,
+	report: &package_publish::PackagePublishReport,
+) {
+	let deferred = deferred_publish_runs(report);
+
+	if deferred.is_empty() {
+		return;
+	}
+
+	text.section("Deferred to release tags", Some(deferred.len()));
+	let rows = deferred
+		.iter()
+		.map(|(package, tag_run)| {
+			vec![
+				TableCell::new(&package.package, Tone::Heading),
+				TableCell::new(&package.version, Tone::Value),
+				TableCell::new(&package.registry, Tone::Muted),
+				TableCell::new(&tag_run.tag, Tone::Value),
+			]
+		})
+		.collect::<Vec<_>>();
+	text.table(&rows);
+
+	for (package, tag_run) in deferred
+		.iter()
+		.filter(|(_, tag_run)| deferral_needs_workflow_change(tag_run) || tag_run.command.is_none())
+	{
+		let tone = if deferral_needs_workflow_change(tag_run) {
+			Tone::Warning
+		} else {
+			Tone::Plain
+		};
+		text.paragraph(&package.message, tone);
+	}
+
+	let commands = deferred
+		.iter()
+		.filter_map(|(_, tag_run)| tag_run.command.clone())
+		.collect::<Vec<_>>();
+
+	if !commands.is_empty() {
+		text.paragraph(
+			"The registry only accepts these packages from a `push` or `workflow_dispatch` run on their release tag. Publish each one from its tag:",
+			Tone::Plain,
+		);
+		text.list(commands, usize::MAX);
+	}
+}
+
+/// Whether the run that deferred a package can never publish it from its tag
+/// until the workflow changes, so the report shows what to change.
+fn deferral_needs_workflow_change(deferral: &monochange_publish::PublishDeferral) -> bool {
+	matches!(
+		deferral.reason,
+		monochange_publish::PublishDeferralReason::WrongEvent
+			| monochange_publish::PublishDeferralReason::UnknownRef
+	)
+}
+
+fn deferred_publish_runs(
+	report: &package_publish::PackagePublishReport,
+) -> Vec<(
+	&package_publish::PackagePublishOutcome,
+	&monochange_publish::PublishDeferral,
+)> {
+	report
+		.packages
+		.iter()
+		.filter(|package| package.status == package_publish::PackagePublishStatus::DeferredToTag)
+		.filter_map(|package| {
+			package
+				.deferred_to
+				.as_ref()
+				.map(|tag_run| (package, tag_run))
+		})
+		.collect()
 }
 
 /// Counts the summary line adds after its outcome, such as `16 already
@@ -3757,6 +3862,17 @@ fn package_publish_summary_details(
 		details.push(format!("{} not attempted", summary.not_attempted));
 	}
 
+	if summary.deferred > 0 {
+		details.push(format!("{} deferred to release tags", summary.deferred));
+	}
+
+	if summary.out_of_scope > 0 {
+		details.push(format!(
+			"{} out of scope for this ref",
+			summary.out_of_scope
+		));
+	}
+
 	if report.dry_run {
 		details.push("dry-run, no changes were made".to_string());
 	}
@@ -3765,6 +3881,33 @@ fn package_publish_summary_details(
 }
 
 fn package_publish_outcome_line(
+	report: &package_publish::PackagePublishReport,
+	summary: package_publish::PackagePublishSummary,
+) -> (Outcome, String) {
+	let (outcome, line) = package_publish_run_outcome_line(report, summary);
+	// A deferral that no run of this workflow can pick up leaves the package
+	// unpublished until someone changes the workflow, so the run warns even
+	// when everything else published.
+	let stranded = deferred_publish_runs(report)
+		.into_iter()
+		.filter(|(_, tag_run)| deferral_needs_workflow_change(tag_run))
+		.count();
+
+	if stranded == 0 || outcome == Outcome::Failure {
+		return (outcome, line);
+	}
+
+	(
+		Outcome::Warning,
+		format!(
+			"{line}; {} left unpublished, and no run publishes {} until the workflow's trigger or `GITHUB_REF` is fixed",
+			publish_package_count(report.mode, stranded),
+			if stranded == 1 { "it" } else { "them" }
+		),
+	)
+}
+
+fn package_publish_run_outcome_line(
 	report: &package_publish::PackagePublishReport,
 	summary: package_publish::PackagePublishSummary,
 ) -> (Outcome, String) {
@@ -3899,6 +4042,17 @@ fn package_publish_counts(
 		parts.push(format!("{} not attempted", summary.not_attempted));
 	}
 
+	if summary.deferred > 0 {
+		parts.push(format!("{} deferred to release tags", summary.deferred));
+	}
+
+	if summary.out_of_scope > 0 {
+		parts.push(format!(
+			"{} out of scope for this ref",
+			summary.out_of_scope
+		));
+	}
+
 	if report.dry_run {
 		parts.push("No changes were made".to_string());
 	} else if summary.failed == 0 {
@@ -3998,6 +4152,13 @@ fn render_package_publish_report_markdown(
 		package_publish::PackagePublishStatus::Blocked,
 		"Blocked",
 	);
+	append_deferred_publish_rows_markdown(&mut lines, report);
+	append_publish_problem_rows_markdown(
+		&mut lines,
+		report,
+		package_publish::PackagePublishStatus::SkippedOutOfScope,
+		"Out of scope for this ref",
+	);
 	lines.push(String::new());
 	lines.push(package_publish_counts(report, summary));
 
@@ -4022,6 +4183,15 @@ fn render_package_publish_report_markdown(
 			yes_no(package.placeholder)
 		));
 		lines.push(format!("- **Publish:** {}", package.message));
+
+		if let Some(tag_run) = &package.deferred_to {
+			lines.push(format!("- **Release tag:** `{}`", tag_run.tag));
+
+			if let Some(command) = &tag_run.command {
+				lines.push(format!("- **Publish from tag:** `{command}`"));
+			}
+		}
+
 		append_package_publish_command_output_markdown_lines(&mut lines, package);
 		lines.push(format!(
 			"- **Trusted publishing:** {}",
@@ -4086,6 +4256,39 @@ fn append_publish_problem_rows_markdown(
 	}));
 }
 
+fn append_deferred_publish_rows_markdown(
+	lines: &mut Vec<String>,
+	report: &package_publish::PackagePublishReport,
+) {
+	let deferred = deferred_publish_runs(report);
+
+	if deferred.is_empty() {
+		return;
+	}
+
+	lines.push(String::new());
+	lines.push("**Deferred to release tags**".to_string());
+	lines.extend(deferred.into_iter().map(|(package, tag_run)| {
+		match (
+			deferral_needs_workflow_change(tag_run),
+			tag_run.command.as_deref(),
+		) {
+			(false, Some(command)) => {
+				format!(
+					"- **`{}`** `{}` via `{}` — publish from `{}` with `{command}`",
+					package.package, package.version, package.registry, tag_run.tag
+				)
+			}
+			_ => {
+				format!(
+					"- **`{}`** `{}` via `{}` — {}",
+					package.package, package.version, package.registry, package.message
+				)
+			}
+		}
+	}));
+}
+
 fn package_publish_status_label(status: package_publish::PackagePublishStatus) -> &'static str {
 	match status {
 		package_publish::PackagePublishStatus::Planned => "planned",
@@ -4093,6 +4296,8 @@ fn package_publish_status_label(status: package_publish::PackagePublishStatus) -
 		package_publish::PackagePublishStatus::Staged => "staged (awaiting approval)",
 		package_publish::PackagePublishStatus::SkippedExisting => "already exists",
 		package_publish::PackagePublishStatus::SkippedExternal => "not attempted",
+		package_publish::PackagePublishStatus::DeferredToTag => "deferred to its release tag",
+		package_publish::PackagePublishStatus::SkippedOutOfScope => "out of scope for this ref",
 		package_publish::PackagePublishStatus::Blocked => "blocked",
 		package_publish::PackagePublishStatus::Failed => "failed",
 	}

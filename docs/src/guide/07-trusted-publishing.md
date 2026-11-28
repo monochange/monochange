@@ -456,14 +456,20 @@ If the package does not exist yet, publish it once first or use `monochange publ
 **Fields to enter**
 
 - **Repository**: `owner/repo`
-- **Tag pattern**: a string containing `{{version}}`
+- **Tag pattern**: the package's monochange release tag with `{{version}}` in place of the version
 
 Examples:
 
-- single-package repo: `v{{version}}`
-- monorepo package-specific tag: `my_package-v{{version}}`
+- package released under the primary tag (`version_format = "primary"`): `v{{version}}`
+- package with its own tag (`tag = true` and the default `namespaced` format): `my_package/v{{version}}`
+- package with a custom `version_format`, such as `"{{ name }}-v{{ version }}"`: `my_package-v{{version}}`
 
-For a monorepo, give each package its own tag pattern so a tag for one package cannot publish another package by accident. The official pub.dev guidance also recommends a separate workflow file per package when one repository publishes multiple Dart packages. For a broader monorepo strategy across registries, see [Multi-package publishing patterns](./14-multi-package-publishing.md).
+For a monorepo, give each package its own tag pattern so a tag for one package cannot publish another package by accident. For a broader monorepo strategy across registries, see [Multi-package publishing patterns](./14-multi-package-publishing.md).
+
+**Workflow dispatch**
+
+- keep **Enable publishing from `push` events** ticked so the run that the package's tag push starts can publish it
+- tick **Enable publishing from `workflow_dispatch` events** so a package can also publish from a run dispatched on its tag, such as the `deferred_to.command` monochange reports (see [How monochange publishes to pub.dev](#how-monochange-publishes-to-pubdev))
 
 **Optional hardening**
 
@@ -473,9 +479,44 @@ For a monorepo, give each package its own tag pattern so a tag for one package c
 
 ### Workflow requirements
 
-pub.dev only accepts GitHub Actions automated publishing when the workflow was triggered by a **tag push**. It rejects branch-triggered and manually dispatched workflows for this publishing flow.
+pub.dev checks the GitHub OIDC token of the run that uploads the package. It accepts the upload only when all of these hold:
 
-That means the GitHub workflow trigger must align exactly with the configured tag pattern.
+- the run's event is `push` or `workflow_dispatch`, and that event is enabled on the package admin page
+- the run's ref is a tag (`ref_type` is `tag`), not a branch
+- the run's ref is exactly `refs/tags/` followed by the tag pattern with `{{version}}` replaced by the version being published; for the pattern `my_package/v{{version}}` and version `0.2.1`, that is `refs/tags/my_package/v0.2.1`
+- the run uses the required GitHub Actions environment, when the package requires one
+
+So a run on one tag can only publish the pub.dev packages whose tag pattern renders to that tag. A run on the primary `v1.4.0` tag can never publish a package versioned `0.2.1` under `my_package/v{{version}}`.
+
+### How monochange publishes to pub.dev
+
+monochange applies the pub.dev rule before it uploads anything. A Dart or Flutter package is **tag-bound** when monochange publishes it to pub.dev with trusted publishing: the built-in publisher, `publish.trusted_publishing` on (the default), and no `PUB_TOKEN` in the environment. An empty `PUB_TOKEN`, which GitHub Actions passes for an unset secret, does not count.
+
+When a release has a tag-bound package, monochange gives each package of the release to exactly one of the runs on the release's tags, so a workflow that starts one run for every tag the release creates publishes each package once:
+
+- **A run on a tag-bound package's own tag** publishes the tag-bound packages released under that tag.
+- **The run on the release's primary tag** (for example `v1.4.0`) publishes every package that is not tag-bound. Without a primary tag, such a package publishes on its own tag when no tag-bound package uses that tag; otherwise on the first tag of the release, in name order, that no tag-bound package uses; and when every tag of the release carries a tag-bound package, on its own tag (or the release's first tag when it has none).
+- **The run on the primary tag** (without one, on the first tag no tag-bound package uses) marks each tag-bound package on another tag `deferred_to_tag`.
+- **Every other run on a release tag** marks the package `skipped_out_of_scope`. That is not a failure, monochange does not look the package up on its registry, and the package's report line names the run that publishes it.
+
+A run that is not on one of the release's tags (on a branch, or on another tag) publishes every package that is not tag-bound, as monochange always has, and defers every tag-bound package. A release without tag-bound packages publishes every package in every run, as before.
+
+A deferred package is not uploaded. The run does not fail, and the packages after it still publish. The report lists the tag the package needs and the command that publishes it, such as `gh workflow run publish.yml --repo owner/repo --ref my_package/v0.2.1`. The command dispatches the workflow set in `publish.trusted_publishing.workflow`, or the current workflow when the package sets none. With `--format json`, the package row carries a `deferred_to` object with the `tag`, `ref`, `command`, and a `reason`:
+
+| `reason`         | The run                                                                                         | What to change                                                                                                    |
+| ---------------- | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `wrong_ref`      | is on another tag                                                                               | nothing when the package's tag starts its own run; otherwise run the command, which dispatches the workflow on it |
+| `wrong_ref_type` | is on a branch or a pull request ref                                                            | run the command, which dispatches the workflow on the package's tag                                               |
+| `wrong_event`    | is on the package's tag, but an event pub.dev rejects started it, such as `release` or `create` | start the workflow from a tag push (`on: push`) or with `workflow_dispatch`, then run the command once            |
+| `unknown_ref`    | has no `GITHUB_REF`, so monochange cannot tell its ref                                          | keep GitHub's `GITHUB_REF` in the publish step's environment, then run the command once                           |
+
+No run of the workflow publishes a package deferred as `wrong_event` or `unknown_ref`: every run defers it again. The run ends with a warning that says how many packages it left unpublished until the workflow's trigger or `GITHUB_REF` is fixed.
+
+A package can only publish from its own tag when monochange creates one. `monochange step validate` and `monochange publish readiness` report an error for a trusted pub.dev package whose releases create no tag, and name the section to fix: set `tag = true` on the package, or on its group when the package belongs to one. `monochange step validate` reads the configuration and the package manifests, never the environment, so a package that publishes with a `PUB_TOKEN` needs `publish.trusted_publishing = false` to pass it. Packages that set `publish.trusted_publishing = false` or `publish.mode = "external"`, and private packages (`publish_to: none`), are not checked.
+
+`monochange publish readiness` checks every package of the release, whatever ref the run that checks it is on.
+
+Outside GitHub Actions, monochange cannot read the run's ref, so it does not apply this rule. monochange treats a run as GitHub Actions when `GITHUB_ACTIONS=true` or `GITHUB_WORKFLOW_REF` is set, the same check it uses to detect the trusted-publishing identity.
 
 ### Recommended reusable workflow
 
@@ -529,7 +570,7 @@ flutter pub publish --force
 
 - monochange does not configure pub.dev automated publishing for you yet.
 - monochange reports the package admin URL so you can finish the setup manually.
-- pub.dev is stricter than the others here because the workflow must be tag-triggered, not just manually dispatched or branch-triggered.
+- pub.dev is stricter than the other registries because the run must be on the package's own tag. monochange defers a package to its tag instead of failing the run; see [How monochange publishes to pub.dev](#how-monochange-publishes-to-pubdev).
 - The reusable workflow from `dart-lang/setup-dart` is the officially recommended path and is worth preferring unless you need custom pre-publish steps.
 - Keep the Git tag, `pubspec.yaml` version, and tag pattern aligned.
 - Protect matching tags, and use GitHub environment protection rules when you need an approval gate before publishing.
@@ -543,13 +584,13 @@ Useful references:
 
 Use this cheat sheet when a registry asks for workflow details.
 
-| Registry field                              | Value to use                                                                                                  |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| repository owner / organization / namespace | GitHub owner from `[source]` or `publish.trusted_publishing.repository`                                       |
-| repository name / project                   | repository part of `owner/repo`                                                                               |
-| workflow filename                           | `publish.trusted_publishing.workflow`, for example `publish.yml`                                              |
-| environment                                 | `publish.trusted_publishing.environment`, for example `publisher`                                             |
-| pub.dev tag pattern                         | choose a tag rule that matches your release workflow, for example `v{{version}}` or `my_package-v{{version}}` |
+| Registry field                              | Value to use                                                                                          |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| repository owner / organization / namespace | GitHub owner from `[source]` or `publish.trusted_publishing.repository`                               |
+| repository name / project                   | repository part of `owner/repo`                                                                       |
+| workflow filename                           | `publish.trusted_publishing.workflow`, for example `publish.yml`                                      |
+| environment                                 | `publish.trusted_publishing.environment`, for example `publisher`                                     |
+| pub.dev tag pattern                         | the package's release tag with `{{version}}`, for example `v{{version}}` or `my_package/v{{version}}` |
 
 If monochange cannot infer the GitHub repository or workflow for a package, set them explicitly in `monochange.toml`.
 

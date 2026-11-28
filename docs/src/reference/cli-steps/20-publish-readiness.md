@@ -44,8 +44,13 @@ For every package with `publish.trusted_publishing = true`, the step verifies th
 - the referenced workflow file exists under `.github/workflows/`
 - the current environment can verify the CI/OIDC identity when a supported CI provider is detected
 - the package exists on npm, crates.io, or pub.dev, because those registries only accept trusted publishing for existing packages; unpublished packages are blocked with guidance to run `monochange publish placeholder` first
+- a pub.dev package that publishes with trusted publishing (no `PUB_TOKEN`) gets a release tag, because pub.dev only accepts the upload from a run on `refs/tags/<package tag>`; a package whose releases create no tag is blocked with guidance to set `tag = true` on the package or its group
 
 Findings are recorded per package as `disabled`, `verified`, `manual_verification_required`, or `blocked`. Registry-side trusted publisher entries cannot be read back without registry credentials, so existing packages surface as `manual_verification_required` with the registry setup URL instead of a hard block. Network lookup failures also stay non-blocking, keeping the step usable offline.
+
+## Packages published from another tag
+
+Readiness checks every package in the release, whichever ref the run is on. A trusted pub.dev package that the current run could not upload is still checked, so a readiness artifact from the primary tag covers the packages that publish later from their own tags. `monochange publish packages` decides which packages each run publishes; see [How monochange publishes to pub.dev](../../guide/07-trusted-publishing.md#how-monochange-publishes-to-pubdev).
 
 ## Publication order checks
 

@@ -1,0 +1,12 @@
+---
+source: crates/monochange_integration_tests/tests/pub_dev_release_tags.rs
+expression: stdout_of(&text)
+---
+Would publish (2)
+  app_dart  1.1.0  pub_dev
+  web       1.1.0  npm
+
+Out of scope for this ref (1)
+  tools_dart  0.2.1  pub_dev  not published in this run: tools_dart 0.2.1 publishes in the run on `refs/tags/tools_dart/v0.2.1`, the only run pub.dev accepts it from; start it with `gh workflow run publish.yml --repo example/pub-dev-release-tags --ref tools_dart/v0.2.1`
+
+• Would publish 2 packages · 1 out of scope for this ref · dry-run, no changes were made

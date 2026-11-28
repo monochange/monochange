@@ -1,0 +1,16 @@
+---
+source: crates/monochange_integration_tests/tests/pub_dev_release_tags.rs
+expression: stdout_of(&text)
+---
+Would publish (1)
+  web  1.1.0  npm
+
+Deferred to release tags (2)
+  app_dart    1.1.0  pub_dev  sdk/v1.1.0
+  tools_dart  0.2.1  pub_dev  tools_dart/v0.2.1
+
+The registry only accepts these packages from a `push` or `workflow_dispatch` run on their release tag. Publish each one from its tag:
+  gh workflow run publish.yml --repo example/pub-dev-release-tags --ref sdk/v1.1.0
+  gh workflow run publish.yml --repo example/pub-dev-release-tags --ref tools_dart/v0.2.1
+
+• Would publish 1 package · 2 deferred to release tags · dry-run, no changes were made

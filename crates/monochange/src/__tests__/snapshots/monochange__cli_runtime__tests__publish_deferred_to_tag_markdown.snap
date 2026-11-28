@@ -1,0 +1,14 @@
+---
+source: crates/monochange/src/__tests__/cli_runtime_tests.rs
+expression: "render_package_publish_report_markdown(&report, false).join(\"\\n\")"
+---
+**Would publish 1 package**
+- **`@scope/pkg`** `1.2.3` via `npm`
+
+**Deferred to release tags**
+- **`dart_pkg`** `0.2.1` via `pub_dev` — publish from `dart_pkg/v0.2.1` with `gh workflow run publish.yml --repo owner/repo --ref dart_pkg/v0.2.1`
+
+**Out of scope for this ref**
+- **`other_dart`** `1.2.3` via `npm` — not published in this run
+
+Checked 3 packages. 1 deferred to release tags. 1 out of scope for this ref. No changes were made.

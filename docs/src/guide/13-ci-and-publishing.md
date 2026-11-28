@@ -430,19 +430,44 @@ trusted_publishing = true
 registry = "pub.dev"
 ```
 
-monochange-oriented post-merge workflow sketch:
+pub.dev only accepts a package from a run on that package's own release tag (see [How monochange publishes to pub.dev](./07-trusted-publishing.md#how-monochange-publishes-to-pubdev)). Give every trusted pub.dev package its own tag with `tag = true` (or use a group whose tag it shares), and run publishing from tags rather than from `main`.
+
+**Every tag the release creates must start one run of the publish workflow.** monochange gives each package of the release to exactly one of those runs:
+
+- The run on a trusted pub.dev package's tag publishes the trusted pub.dev packages released under that tag.
+- Every other package publishes in the run on the primary tag. Without a primary tag, it publishes on its own tag when no trusted pub.dev package uses that tag, otherwise on the first tag of the release (in name order) that no trusted pub.dev package uses, and on its own tag (a package without one: the release's first tag) when every tag of the release carries a trusted pub.dev package.
+- The run on the primary tag (without one, on the first tag no trusted pub.dev package uses) also marks each pub.dev package on another tag `deferred_to_tag`, and still succeeds.
+- Every other run marks the package `skipped_out_of_scope` and names the run that publishes it, so no run republishes a package to its registry.
+
+A tag push starts a run only when it is pushed with a token that starts workflows (tags pushed with the default `GITHUB_TOKEN` start none) and when the push creates at most three tags (GitHub creates no push event for tags beyond that). Otherwise, dispatch the workflow on each tag from the job that creates them: `gh workflow run publish.yml --ref <tag>`. `monochange tag-release` creates every release tag, package tags included; the tags must exist on GitHub before a run on them starts.
+
+The sketch below covers both: tag pushes start runs, and the run that defers a pub.dev package dispatches its tag with the `deferred_to.command` monochange reports. When the tag's own push already started a run, the `concurrency` group queues the second run, which reports the package as already published. On pub.dev, open each package's admin page and enable publishing from `push` and `workflow_dispatch` events, with the package's tag pattern (for example `my_package/v{{version}}`).
+
+monochange-oriented workflow sketch:
 
 ```yaml
-name: publish-pub-dev
+name: publish
 
 on:
   push:
-    branches: [main]
+    # Every tag pattern the release creates: the primary tag and package or
+    # group tags.
+    tags: ["v*", "*/v*"]
+  workflow_dispatch:
+
+# One run per tag at a time; a second run on the same tag waits and finds
+# its packages already published.
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   publish:
     runs-on: ubuntu-latest
+    # Must match "Require GitHub Actions environment" on pub.dev, if set.
+    environment: publisher
     permissions:
+      actions: write # dispatch this workflow on deferred package tags
       contents: read
       id-token: write
     steps:
@@ -454,20 +479,30 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: detect monochange release commit
-        shell: bash
-        run: |
-          set -euo pipefail
-          if ! devenv shell -- monochange step release-record --from HEAD --format json >/tmp/release-record.json 2>/dev/null; then
-            echo "HEAD is not a monochange release commit; skipping publish"
-            exit 0
-          fi
+      - name: publish packages released under this tag
+        run: devenv shell -- monochange publish packages --output "$RUNNER_TEMP/publish-result.json"
 
-      - name: publish pub.dev packages
+      - name: publish deferred packages from their own tags
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          devenv shell -- monochange publish readiness --from HEAD --output .monochange/readiness.json
-          devenv shell -- monochange run publish
+          jq -r '.packages[]
+            | select(.status == "deferred_to_tag")
+            | select(.deferred_to.reason == "wrong_ref" or .deferred_to.reason == "wrong_ref_type")
+            | .deferred_to.command // empty' \
+            "$RUNNER_TEMP/publish-result.json" | sort -u |
+            while IFS= read -r command; do
+              [ -n "$command" ] || continue
+              bash -c "$command"
+            done
 ```
+
+`deferred_to.command` is the shell-safe `gh workflow run` command that publishes one deferred package from its tag. It dispatches `publish.trusted_publishing.workflow` when the package sets one, and the workflow of the run that deferred it otherwise, so the sketch runs it rather than naming a workflow. When monochange cannot determine the workflow (neither `publish.trusted_publishing.workflow` nor `GITHUB_WORKFLOW_REF`/`GITHUB_WORKFLOW` is set), `deferred_to.command` is omitted and the package's message says why; the `// empty` guard skips those rows. `deferred_to.reason` says why the run could not publish the package:
+
+- `wrong_ref` and `wrong_ref_type`: the run is on another tag or on a branch; a run on the package's tag publishes it.
+- `wrong_event` and `unknown_ref`: the workflow's trigger, or a publish step without `GITHUB_REF`, keeps every run from publishing the package. The run ends with a warning; fix the workflow, then run the command once by hand. The sketch does not dispatch these: a run that cannot see its ref would defer the package again.
+
+If a dispatched run fails, rerun that workflow run: it is already on the package's tag.
 
 More copy-pasteable registry-native example:
 
@@ -510,6 +545,8 @@ Current behavior:
 
 - monochange can enforce the configured trust expectation
 - monochange reports the manual setup URL when trust is not configured
+- monochange defers a trusted pub.dev package to its own tag instead of uploading from a run that pub.dev would reject
+- `monochange step validate` and `monochange publish readiness` fail for a trusted pub.dev package whose releases create no tag
 - monochange does **not** auto-configure `pub.dev` trusted publishing
 - if you want the most copy-pasteable pub.dev flow, `mode = "external"` plus the reusable `dart-lang/setup-dart` workflow is the clearest path
 

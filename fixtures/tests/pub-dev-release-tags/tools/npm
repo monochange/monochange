@@ -1,0 +1,7 @@
+#!/bin/sh
+# Stand-in for npm: `npm publish` succeeds without touching the npm registry.
+# With `TOOL_STUB_LOG` set, each call appends its command line to that file.
+if [ -n "$TOOL_STUB_LOG" ]; then
+	echo "npm $*" >>"$TOOL_STUB_LOG"
+fi
+echo "+ web@1.1.0"

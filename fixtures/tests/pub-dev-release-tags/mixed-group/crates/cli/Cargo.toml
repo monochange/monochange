@@ -1,0 +1,6 @@
+[package]
+name = "cli"
+version = "2.0.0"
+edition = "2021"
+description = "Fixture crate for pub.dev release tag tests."
+license = "MIT"

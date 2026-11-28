@@ -1,0 +1,28 @@
+---
+source: crates/monochange/src/__tests__/cli_runtime_tests.rs
+assertion_line: 1004
+expression: "package_publish[\"packages\"][1]"
+---
+{
+  "deferred_to": {
+    "command": "gh workflow run publish.yml --repo owner/repo --ref dart_pkg/v0.2.1",
+    "reason": "wrong_ref",
+    "ref": "refs/tags/dart_pkg/v0.2.1",
+    "tag": "dart_pkg/v0.2.1"
+  },
+  "ecosystem": "dart",
+  "message": "pub.dev only accepts dart_pkg 0.2.1 from a run on `refs/tags/dart_pkg/v0.2.1`, and this run is on `refs/tags/v1.2.3`; publish it with `gh workflow run publish.yml --repo owner/repo --ref dart_pkg/v0.2.1`",
+  "package": "dart_pkg",
+  "placeholder": false,
+  "registry": "pub_dev",
+  "status": "deferred_to_tag",
+  "trusted_publishing": {
+    "environment": null,
+    "message": "configure trusted publishing manually for `dart_pkg`",
+    "repository": "owner/repo",
+    "setup_url": "https://pub.dev/packages/dart_pkg/admin",
+    "status": "manual_action_required",
+    "workflow": "publish.yml"
+  },
+  "version": "0.2.1"
+}

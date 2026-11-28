@@ -10,7 +10,7 @@ use monochange_core::RateLimitOperation;
 use monochange_core::RegistryKind;
 use monochange_core::WorkspaceConfiguration;
 use monochange_core::materialize_dependency_edges;
-use monochange_publish::configured_package_publication_targets;
+use monochange_publish::PublishRunScope;
 use monochange_publish::filter_pending_publish_requests;
 use monochange_publish::plan_rate_limit_batches;
 use monochange_publish::plan_rate_limit_window;
@@ -101,23 +101,56 @@ async fn build_release_plan_requests(
 	selected_packages: &BTreeSet<String>,
 	publish_all_configured_packages: bool,
 ) -> MonochangeResult<Vec<package_publish::PublishRequest>> {
-	let publications = if publish_all_configured_packages {
-		configured_package_publication_targets(configuration, packages)
-	} else {
-		package_publish::release_record_package_publications_from_prepared_or_head(
-			root,
-			prepared_release,
-		)
-		.await?
-	};
+	let requests = build_scoped_release_plan_requests(
+		root,
+		configuration,
+		prepared_release,
+		packages,
+		selected_packages,
+		publish_all_configured_packages,
+		&monochange_publish::current_env_map(),
+	)
+	.await?;
+	filter_pending_publish_requests(&requests).await
+}
 
-	let requests = package_publish::build_release_requests(
+async fn build_scoped_release_plan_requests(
+	root: &Path,
+	configuration: &WorkspaceConfiguration,
+	prepared_release: Option<&PreparedRelease>,
+	packages: &[monochange_core::PackageRecord],
+	selected_packages: &BTreeSet<String>,
+	publish_all_configured_packages: bool,
+	env_map: &BTreeMap<String, String>,
+) -> MonochangeResult<Vec<package_publish::PublishRequest>> {
+	let release = package_publish::release_publications(
+		root,
+		configuration,
+		prepared_release,
+		publish_all_configured_packages,
+	)
+	.await?;
+
+	let mut requests = package_publish::build_release_requests(
 		configuration,
 		packages,
-		&publications,
+		&release.publications,
 		selected_packages,
 	)?;
-	filter_pending_publish_requests(&requests).await
+	// Packages this run leaves to other runs (deferred or out of scope) need
+	// no registry probe and must not count against this run's rate limits.
+	package_publish::scope_requests_to_run_ref_with_env(
+		configuration,
+		packages,
+		&release.publications,
+		&mut requests,
+		release.release_tags.as_ref(),
+		env_map,
+	)?;
+	Ok(requests
+		.into_iter()
+		.filter(|request| request.run_scope == PublishRunScope::Publish)
+		.collect())
 }
 
 pub(super) fn sort_requests_by_dependencies(
@@ -248,7 +281,9 @@ fn plan_publish_rate_limits_for_requests(
 		BTreeMap::<RegistryKind, Vec<&package_publish::PublishRequest>>::new();
 
 	for request in requests {
-		if request.mode == monochange_core::PublishMode::External {
+		if request.mode == monochange_core::PublishMode::External
+			|| request.run_scope != PublishRunScope::Publish
+		{
 			continue;
 		}
 

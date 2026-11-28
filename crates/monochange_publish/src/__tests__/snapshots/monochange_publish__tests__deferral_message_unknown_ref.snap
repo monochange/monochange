@@ -1,0 +1,5 @@
+---
+source: crates/monochange_publish/src/__tests__/lib_tests.rs
+expression: "scope_message(&unknown_ref[1])"
+---
+pub.dev only accepts dart_pkg 1.0.0 from a run on `refs/tags/dart_pkg/v1.0.0`, and this GitHub Actions run has no `GITHUB_REF`, so monochange cannot tell which ref it is on. No run publishes it until the publish step's environment keeps `GITHUB_REF`: every run without it defers it again

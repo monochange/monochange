@@ -76,6 +76,8 @@ This is the best fit when:
 - multiple packages share the same built-in post-merge flow
 - you do not need package-specific tag triggers to satisfy the registry
 
+A post-merge run on `main` cannot publish a trusted `pub.dev` package, because pub.dev only accepts a run on the package's own tag. monochange marks such a package `deferred_to_tag` instead of failing the run; publish it with the tag-driven shape in [Built-in pub.dev publishing from package tags](#built-in-pubdev-publishing-from-package-tags).
+
 ### Built-in publish order
 
 When one `monochange publish packages` invocation contains multiple package publications, monochange publishes packages with no selected dependencies first, then publishes packages that depend on those packages, walking up the dependency tree until packages that depend on the most selected packages are published last.
@@ -109,6 +111,24 @@ app
 If multiple packages are independent at the same depth, their order is deterministic by package id, registry, and version.
 
 A package with no selected dependencies is eligible first. A package is not published until all of its selected publish-relevant dependencies have been ordered before it. Dependencies outside the selected publish set do not block ordering. Development-only cycles are ignored. Runtime, build, peer, workspace, and unknown dependency cycles fail before publishing anything, with a cycle diagnostic.
+
+### Built-in pub.dev publishing from package tags
+
+pub.dev trusted publishing accepts an upload only from a GitHub Actions run whose ref is exactly `refs/tags/<package tag>`. Built-in publishing follows that rule, so one workflow can publish every registry:
+
+1. Give each trusted pub.dev package a release tag: `tag = true` on the package, or on its group when it shares the group's tag. `monochange step validate` fails for a trusted pub.dev package whose releases create no tag.
+2. On pub.dev, set the package's tag pattern to its release tag with `{{version}}` (for example `dart_client/v{{version}}`) and enable publishing from `push` and `workflow_dispatch` events. If the package requires a GitHub Actions environment, run the publish job in that environment.
+3. Start one run of `monochange publish packages --output <path>` for every tag the release creates, from the tag pushes or by dispatching the workflow on each tag. monochange gives each package of the release to exactly one of those runs: a trusted pub.dev package to the run on its own tag, and every other package to the run on the primary tag (without one, to its own tag or the first tag that no trusted pub.dev package uses).
+4. The run on the primary tag (without one, on the first tag no trusted pub.dev package uses) marks each trusted pub.dev package on another tag `deferred_to_tag`; its `deferred_to` object names the `reason`, the `tag`, the `ref`, and the `command` that dispatches the workflow on that tag. Every other run marks the packages it leaves to another tag's run `skipped_out_of_scope`, names that run, and does not look them up on their registries.
+
+A run on a branch, or on a tag the release does not create, publishes as it would without pub.dev: only trusted pub.dev packages are deferred. A run that defers a package for a reason other than the tag (`wrong_event` or `unknown_ref`) ends with a warning, because no run of that workflow can publish the package until its trigger or `GITHUB_REF` is fixed.
+
+| Status                 | Meaning                                                                                                                                                  | Fails the run? |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| `deferred_to_tag`      | pub.dev accepts this package only from a `push` or `workflow_dispatch` run on its own tag; that tag's run publishes it, or dispatch one with the command | no             |
+| `skipped_out_of_scope` | another release tag's run publishes this package; the message names that run                                                                             | no             |
+
+[CI, package publishing, and release PR flows](./13-ci-and-publishing.md#github--dart--flutter-pubdev-trusted-publishing) has a complete workflow that runs on every release tag and dispatches the deferred tags.
 
 ## Pattern 2: Package-specific external workflows publish from tags
 
@@ -214,7 +234,7 @@ This pattern is especially useful when multiple packages live in the same ecosys
 | npm       | one post-merge `monochange publish readiness` + `monochange publish packages` job when possible                        | monochange can automate npm trusted-publishing setup on GitHub        |
 | crates.io | one job per crate when using external OIDC auth                                                                        | trusted publishing is enrolled per crate and workflow context matters |
 | jsr       | built-in `monochange publish readiness` + `monochange publish packages` is often fine, but keep setup package-specific | registry linking is still manual                                      |
-| pub.dev   | package-specific tags and often one workflow per package                                                               | automated publishing is tag-driven and package-specific               |
+| pub.dev   | package-specific tags: built-in publishing dispatched per deferred tag, or one external workflow per package           | automated publishing is tag-driven and package-specific               |
 
 ## Keep config, tags, and workflows aligned
 
@@ -273,7 +293,7 @@ Avoid these failure modes:
 - reusing one trusted-publishing record across packages that actually publish from different workflows
 - changing a workflow filename after registry enrollment without updating the registry record
 - keeping `mode = "builtin"` for packages that really need registry-native external publish steps
-- forgetting that `pub.dev` automated publishing is tag-triggered
+- forgetting that `pub.dev` automated publishing only accepts a run on the package's own tag; start a publish run for every tag the release creates, or dispatch the publish workflow for each `deferred_to_tag` package
 
 ## Related guides
 

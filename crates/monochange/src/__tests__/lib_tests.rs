@@ -1960,6 +1960,7 @@ fn template_context_exposes_publish_namespace() {
 				stdout: None,
 				stderr: None,
 				rate_limit: None,
+				deferred_to: None,
 			}],
 		}),
 		rate_limit_report: Some(monochange_core::PublishRateLimitReport {

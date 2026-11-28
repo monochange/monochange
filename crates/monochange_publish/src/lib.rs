@@ -6,6 +6,7 @@
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::env;
+use std::fmt::Write as _;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
@@ -213,8 +214,49 @@ pub enum PackagePublishStatus {
 	Staged,
 	SkippedExisting,
 	SkippedExternal,
+	/// Not attempted: the registry would reject this package's upload from
+	/// this run. The outcome's `deferred_to` names the reason, the release tag
+	/// the package publishes from, and the command that starts that run.
+	DeferredToTag,
+	/// Not attempted: another run of the release publishes this package, the
+	/// run on its home tag. The outcome's message names that run.
+	SkippedOutOfScope,
 	Blocked,
 	Failed,
+}
+
+/// Why a [`PackagePublishStatus::DeferredToTag`] package was not uploaded,
+/// and the run that publishes it.
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct PublishDeferral {
+	/// What about this run the registry would reject.
+	pub reason: PublishDeferralReason,
+	/// Release tag to run the publish workflow on, for example
+	/// `my_dart_package/v1.2.3`.
+	pub tag: String,
+	/// The git ref the registry requires: `refs/tags/<tag>`.
+	#[serde(rename = "ref")]
+	pub git_ref: String,
+	/// Command that dispatches the package's publish workflow on `tag`, or
+	/// `None` when monochange cannot determine which workflow to dispatch.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub command: Option<String>,
+}
+
+/// What about a GitHub Actions run makes pub.dev reject a trusted upload.
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PublishDeferralReason {
+	/// The run is on another tag.
+	WrongRef,
+	/// The run's ref is not a tag: a branch or a pull request ref.
+	WrongRefType,
+	/// The run is on the package's tag, but an event other than `push` or
+	/// `workflow_dispatch` started it.
+	WrongEvent,
+	/// The run has no `GITHUB_REF`, so its ref is unknown.
+	UnknownRef,
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
@@ -257,6 +299,11 @@ pub struct PackagePublishOutcome {
 	/// Set when the registry refused the upload because of its rate limit.
 	#[serde(default, skip_serializing_if = "Option::is_none")]
 	pub rate_limit: Option<PublishRateLimitHit>,
+	/// Set for [`PackagePublishStatus::DeferredToTag`]: why the package was
+	/// not uploaded, the release tag it publishes from, and the command that
+	/// starts that run.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub deferred_to: Option<PublishDeferral>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -331,9 +378,29 @@ pub struct PackagePublishSummary {
 	pub blocked: usize,
 	pub failed: usize,
 	pub not_attempted: usize,
+	/// Packages left for a run on their own release tag. Omitted from JSON
+	/// when zero, so runs without tag-bound packages report as before.
+	#[serde(default, skip_serializing_if = "is_zero")]
+	pub deferred: usize,
+	/// Packages that belong to a run on another ref. Omitted from JSON when
+	/// zero.
+	#[serde(default, skip_serializing_if = "is_zero")]
+	pub out_of_scope: usize,
+}
+
+#[allow(clippy::trivially_copy_pass_by_ref)]
+const fn is_zero(count: &usize) -> bool {
+	*count == 0
 }
 
 impl PackagePublishSummary {
+	/// Packages this run is responsible for: every package except the ones it
+	/// leaves to another run (deferred or out of scope).
+	#[must_use]
+	pub const fn this_run(self) -> usize {
+		self.total() - self.deferred - self.out_of_scope
+	}
+
 	#[must_use]
 	pub const fn total(self) -> usize {
 		self.planned
@@ -343,6 +410,8 @@ impl PackagePublishSummary {
 			+ self.blocked
 			+ self.failed
 			+ self.not_attempted
+			+ self.deferred
+			+ self.out_of_scope
 	}
 }
 
@@ -357,6 +426,8 @@ impl PackagePublishReport {
 			blocked: 0,
 			failed: 0,
 			not_attempted: 0,
+			deferred: 0,
+			out_of_scope: 0,
 		};
 
 		for outcome in &self.packages {
@@ -366,6 +437,8 @@ impl PackagePublishReport {
 				PackagePublishStatus::Staged => summary.staged += 1,
 				PackagePublishStatus::SkippedExisting => summary.already_exists += 1,
 				PackagePublishStatus::SkippedExternal => summary.not_attempted += 1,
+				PackagePublishStatus::DeferredToTag => summary.deferred += 1,
+				PackagePublishStatus::SkippedOutOfScope => summary.out_of_scope += 1,
 				PackagePublishStatus::Blocked => summary.blocked += 1,
 				PackagePublishStatus::Failed => summary.failed += 1,
 			}
@@ -407,6 +480,36 @@ pub fn failed_publish_outcome(
 		stdout: None,
 		stderr: None,
 		rate_limit: None,
+		deferred_to: None,
+	}
+}
+
+/// Outcome for a release package this run leaves to another run.
+///
+/// `trusted_publishing` is the trust plan for the run that will publish the
+/// package, so the report shows what that run needs instead of claiming
+/// trusted publishing is disabled.
+fn not_attempted_outcome(
+	request: &PublishRequest,
+	status: PackagePublishStatus,
+	message: String,
+	trusted_publishing: TrustedPublishingOutcome,
+	deferred_to: Option<PublishDeferral>,
+) -> PackagePublishOutcome {
+	PackagePublishOutcome {
+		package: request.package_id.clone(),
+		ecosystem: request.ecosystem,
+		registry: request.registry.to_string(),
+		version: request.version.clone(),
+		status,
+		message,
+		placeholder: false,
+		trusted_publishing,
+		command: None,
+		stdout: None,
+		stderr: None,
+		rate_limit: None,
+		deferred_to,
 	}
 }
 
@@ -456,6 +559,7 @@ fn empty_publish_report(
 					stdout: None,
 					stderr: None,
 					rate_limit: None,
+					deferred_to: None,
 				}
 			})
 			.collect(),
@@ -470,10 +574,45 @@ fn append_skipped_after_failure_outcomes(
 	progress: &dyn PublishProgressReporter,
 ) {
 	for request in requests {
-		let message = format!(
-			"not attempted because publishing {} {} failed earlier in this run",
-			failed_request.package_name, failed_request.version
-		);
+		// External packages and packages another run publishes keep their own
+		// status: the failure here does not affect them.
+		let (status, message, deferred_to) = match (mode, request.mode, &request.run_scope) {
+			(PackagePublishRunMode::Release, PublishMode::External, _) => {
+				(
+					PackagePublishStatus::SkippedExternal,
+					"package opted out of built-in publishing".to_string(),
+					None,
+				)
+			}
+			(PackagePublishRunMode::Release, _, PublishRunScope::OutOfScope { message }) => {
+				(
+					PackagePublishStatus::SkippedOutOfScope,
+					message.clone(),
+					None,
+				)
+			}
+			(
+				PackagePublishRunMode::Release,
+				_,
+				PublishRunScope::DeferredToTag { deferral, message },
+			) => {
+				(
+					PackagePublishStatus::DeferredToTag,
+					message.clone(),
+					Some(deferral.clone()),
+				)
+			}
+			_ => {
+				(
+					PackagePublishStatus::Blocked,
+					format!(
+						"not attempted because publishing {} {} failed earlier in this run",
+						failed_request.package_name, failed_request.version
+					),
+					None,
+				)
+			}
+		};
 		progress.report(PublishProgressEvent::PackageSkipped {
 			package: publish_progress_package(request),
 			message: message.clone(),
@@ -483,7 +622,7 @@ fn append_skipped_after_failure_outcomes(
 			ecosystem: request.ecosystem,
 			registry: request.registry.to_string(),
 			version: request.version.clone(),
-			status: PackagePublishStatus::Blocked,
+			status,
 			message,
 			placeholder: mode == PackagePublishRunMode::Placeholder,
 			trusted_publishing: disabled_trust_outcome(),
@@ -491,6 +630,7 @@ fn append_skipped_after_failure_outcomes(
 			stdout: None,
 			stderr: None,
 			rate_limit: None,
+			deferred_to,
 		});
 	}
 }
@@ -662,6 +802,47 @@ pub struct PublishRequest {
 	pub timeout: PublishTimeoutSettings,
 	pub fail_on_duplicate: bool,
 	pub placeholder_readme: String,
+	/// The git tag monochange creates for this package version, or `None`
+	/// when the package's release owner does not create tags.
+	pub release_tag: Option<PublishReleaseTag>,
+	/// Whether the current run publishes this request, set by
+	/// [`assign_publish_run_scopes`]. Requests start as
+	/// [`PublishRunScope::Publish`]; placeholder publishing ignores it.
+	pub run_scope: PublishRunScope,
+}
+
+/// The git tag monochange creates for one package release.
+///
+/// Registries that bind trusted uploads to a git ref (pub.dev) accept the
+/// package only from a publish run on this tag.
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct PublishReleaseTag {
+	/// Tag name, for example `my_dart_package/v1.2.3`.
+	pub name: String,
+}
+
+/// The tags one release creates.
+///
+/// [`plan_publish_run_scopes`] compares a run's tag with them: when the
+/// release has tag-bound packages, each package publishes in the run on one
+/// of these tags, and the primary tag's run publishes every package that is
+/// not tag-bound.
+#[derive(Debug, Clone, Default, Eq, PartialEq)]
+pub struct PublishReleaseTags {
+	/// The release's primary tag (for example `v1.2.3`): the tag of the
+	/// release owner with `version_format = "primary"`, when this release
+	/// creates it.
+	pub primary: Option<String>,
+	/// Every tag the release creates, the primary tag included.
+	pub tags: BTreeSet<String>,
+}
+
+impl PublishReleaseTag {
+	/// The tag's full git ref, `refs/tags/<name>`.
+	#[must_use]
+	pub fn git_ref(&self) -> String {
+		format!("refs/tags/{}", self.name)
+	}
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -1166,11 +1347,42 @@ pub async fn try_execute_publish_requests_with_progress(
 	trust_handler: &dyn PublishTrustHandler,
 	progress: &dyn PublishProgressReporter,
 ) -> PackagePublishExecutionResult {
+	// Each release request carries the scope its caller planned for this
+	// run's git ref (see `assign_publish_run_scopes`), so a registry that
+	// binds uploads to a tag ref never sees an upload it must reject.
+	// Placeholder publishing registers names and is not ref-bound.
+	let run_scopes = requests
+		.iter()
+		.map(|request| {
+			if mode == PackagePublishRunMode::Release {
+				request.run_scope.clone()
+			} else {
+				PublishRunScope::Publish
+			}
+		})
+		.collect::<Vec<_>>();
+
 	// Fail fast before any registry mutation: run every per-package readiness
 	// checker up-front so a package that cannot publish aborts the run before
-	// an earlier package has already been published.
+	// an earlier package has already been published. Packages this run leaves
+	// to another ref are not checked: they publish elsewhere.
 	if mode == PackagePublishRunMode::Release && !dry_run {
-		for request in requests {
+		for (request, scope) in requests.iter().zip(&run_scopes) {
+			if *scope == PublishRunScope::MissingReleaseTag {
+				return Err(PackagePublishFailure::new(
+					MonochangeError::Config(missing_release_tag_message(&request.package_id, None)),
+					PackagePublishReport {
+						mode,
+						dry_run,
+						packages: Vec::new(),
+					},
+				));
+			}
+
+			if *scope != PublishRunScope::Publish {
+				continue;
+			}
+
 			let blocked = readiness
 				.blocked_message_with_env(root, request, env_map)
 				.map_err(|error| {
@@ -1212,7 +1424,7 @@ pub async fn try_execute_publish_requests_with_progress(
 	let mut outcomes = Vec::with_capacity(requests.len());
 	let mut primary_error = None;
 
-	for (request_index, request) in requests.iter().enumerate() {
+	for (request_index, (request, scope)) in requests.iter().zip(&run_scopes).enumerate() {
 		let remaining_requests = requests.get(request_index + 1..).unwrap_or_default();
 
 		// External-mode packages are only skipped during release publishing.
@@ -1243,8 +1455,51 @@ pub async fn try_execute_publish_requests_with_progress(
 				stdout: None,
 				stderr: None,
 				rate_limit: None,
+				deferred_to: None,
 			});
 			continue;
+		}
+
+		match scope {
+			PublishRunScope::OutOfScope { message } => {
+				info!(
+					package_name = request.package_name,
+					version = %request.version,
+					registry = %request.registry,
+					"skipping package another run publishes"
+				);
+				progress.report(PublishProgressEvent::PackageSkipped {
+					package: publish_progress_package(request),
+					message: message.clone(),
+				});
+				outcomes.push(not_attempted_outcome(
+					request,
+					PackagePublishStatus::SkippedOutOfScope,
+					message.clone(),
+					trust_handler.planned_trust_outcome(request, source, root, env_map),
+					None,
+				));
+				continue;
+			}
+			// Real runs abort in the preflight before any registry request; a
+			// dry run reports the package as blocked, also without a registry
+			// request, so the plan shows what to fix.
+			PublishRunScope::MissingReleaseTag => {
+				let message = missing_release_tag_message(&request.package_id, None);
+				progress.report(PublishProgressEvent::PackageSkipped {
+					package: publish_progress_package(request),
+					message: message.clone(),
+				});
+				outcomes.push(not_attempted_outcome(
+					request,
+					PackagePublishStatus::Blocked,
+					message,
+					trust_handler.planned_trust_outcome(request, source, root, env_map),
+					None,
+				));
+				continue;
+			}
+			PublishRunScope::Publish | PublishRunScope::DeferredToTag { .. } => {}
 		}
 
 		info!(
@@ -1289,7 +1544,10 @@ pub async fn try_execute_publish_requests_with_progress(
 				request.package_name, request.version, request.registry
 			);
 
-			if request.fail_on_duplicate && mode == PackagePublishRunMode::Release {
+			if request.fail_on_duplicate
+				&& mode == PackagePublishRunMode::Release
+				&& *scope == PublishRunScope::Publish
+			{
 				info!(
 					package_name = request.package_name,
 					version = %request.version,
@@ -1330,7 +1588,34 @@ pub async fn try_execute_publish_requests_with_progress(
 				stdout: None,
 				stderr: None,
 				rate_limit: None,
+				deferred_to: None,
 			});
+			continue;
+		}
+
+		// Deferral comes after the version check, so a version another run
+		// already published reads `already exists` instead of asking for a
+		// dispatch that has nothing left to do.
+		if let PublishRunScope::DeferredToTag { deferral, message } = scope {
+			info!(
+				package_name = request.package_name,
+				version = %request.version,
+				registry = %request.registry,
+				tag = deferral.tag,
+				reason = ?deferral.reason,
+				"deferring package to its release tag run"
+			);
+			progress.report(PublishProgressEvent::PackageSkipped {
+				package: publish_progress_package(request),
+				message: message.clone(),
+			});
+			outcomes.push(not_attempted_outcome(
+				request,
+				PackagePublishStatus::DeferredToTag,
+				message.clone(),
+				trust_handler.planned_trust_outcome(request, source, root, env_map),
+				Some(deferral.clone()),
+			));
 			continue;
 		}
 
@@ -1379,6 +1664,7 @@ pub async fn try_execute_publish_requests_with_progress(
 					stdout: None,
 					stderr: None,
 					rate_limit: None,
+					deferred_to: None,
 				});
 
 				continue;
@@ -1445,6 +1731,7 @@ pub async fn try_execute_publish_requests_with_progress(
 					stdout: None,
 					stderr: None,
 					rate_limit: None,
+					deferred_to: None,
 				});
 				continue;
 			}
@@ -1485,27 +1772,10 @@ pub async fn try_execute_publish_requests_with_progress(
 				publish_progress_package(request),
 			));
 
-			if let Some(blocker) = pub_dev_trusted_publishing_ref_error(request, env_map) {
-				tracing::error!(
-					package_name = request.package_name,
-					version = %request.version,
-					registry = %request.registry,
-					"{blocker}"
-				);
-				primary_error = Some(MonochangeError::Config(blocker.clone()));
-				append_publish_failure_outcomes(
-					&mut outcomes,
-					remaining_requests,
-					mode,
-					request,
-					blocker,
-					progress,
-				);
-				break;
-			}
-
+			// A non-empty `PUB_TOKEN` publishes with that token; minting an OIDC
+			// token would overwrite it.
 			if request.registry == RegistryKind::PubDev
-				&& request.trusted_publishing.enabled
+				&& publish_is_tag_bound(request, env_map)
 				&& let Err(error) = refresh_pub_dev_trusted_publishing_token(
 					client,
 					env_map,
@@ -1582,6 +1852,7 @@ pub async fn try_execute_publish_requests_with_progress(
 					stdout: non_empty_output(output.stdout),
 					stderr: non_empty_output(output.stderr),
 					rate_limit: None,
+					deferred_to: None,
 				});
 				continue;
 			}
@@ -1659,6 +1930,7 @@ pub async fn try_execute_publish_requests_with_progress(
 			stdout: non_empty_output(output.stdout),
 			stderr: non_empty_output(output.stderr),
 			rate_limit: None,
+			deferred_to: None,
 		});
 	}
 
@@ -1673,7 +1945,12 @@ pub async fn try_execute_publish_requests_with_progress(
 		total: summary.total(),
 		published: summary.published,
 		staged: summary.staged,
-		skipped: summary.planned + summary.already_exists + summary.blocked + summary.not_attempted,
+		skipped: summary.planned
+			+ summary.already_exists
+			+ summary.blocked
+			+ summary.not_attempted
+			+ summary.deferred
+			+ summary.out_of_scope,
 		failed: summary.failed,
 	});
 
@@ -1740,6 +2017,8 @@ pub fn build_placeholder_requests(
 						.as_deref(),
 					&package.name,
 				)?,
+				release_tag: None,
+				run_scope: PublishRunScope::Publish,
 			});
 		}
 	}
@@ -1846,10 +2125,141 @@ pub fn build_release_requests(
 			timeout: publication.timeout.clone(),
 			fail_on_duplicate: publication.fail_on_duplicate,
 			placeholder_readme: default_placeholder_readme(&package.name),
+			release_tag: package_release_tag(
+				configuration,
+				&publication.package,
+				&publication.version,
+			)?,
+			run_scope: PublishRunScope::Publish,
 		});
 	}
 
 	order_release_requests_by_publish_dependencies(configuration, packages, requests)
+}
+
+/// Render the release tag monochange creates for `package_id` at `version`.
+///
+/// The tag belongs to the package's release owner: its group when it has
+/// one, otherwise the package. Returns `None` when that owner sets
+/// `tag = false`.
+fn package_release_tag(
+	configuration: &WorkspaceConfiguration,
+	package_id: &str,
+	version: &str,
+) -> MonochangeResult<Option<PublishReleaseTag>> {
+	if !configuration
+		.effective_release_identity(package_id)
+		.is_some_and(|identity| identity.tag)
+	{
+		return Ok(None);
+	}
+
+	Ok(
+		configured_release_tag_name(configuration, package_id, version)?
+			.map(|name| PublishReleaseTag { name }),
+	)
+}
+
+/// The tags a release of every configured package and group creates,
+/// rendered from configuration and discovered package versions.
+///
+/// Use this when no release record lists the release's tags, for example
+/// when publishing every configured package (`--all`). Every configured
+/// group and standalone package with `tag = true` and a discovered current
+/// version contributes its tag—including non-publishable packages and groups
+/// whose members are all non-publishable—so scoping sees every tag the
+/// release creates.
+pub fn configured_release_tags(
+	configuration: &WorkspaceConfiguration,
+	packages: &[PackageRecord],
+) -> MonochangeResult<PublishReleaseTags> {
+	let packages_by_config_id = packages_by_config_id(packages);
+	let mut release_tags = PublishReleaseTags::default();
+
+	for group in &configuration.groups {
+		if !group.tag {
+			continue;
+		}
+
+		let Some(version) = group
+			.packages
+			.iter()
+			.filter_map(|member| packages_by_config_id.get(member.as_str()).copied())
+			.filter_map(|package| package.current_version.as_ref())
+			.max()
+		else {
+			continue;
+		};
+
+		let tag_name = group
+			.version_format
+			.render_tag(&group.id, &version.to_string(), "group")?;
+
+		if group.version_format.is_primary() {
+			release_tags.primary = Some(tag_name.clone());
+		}
+
+		release_tags.tags.insert(tag_name);
+	}
+
+	for package_definition in &configuration.packages {
+		if !package_definition.tag
+			|| configuration
+				.group_for_package(&package_definition.id)
+				.is_some()
+		{
+			continue;
+		}
+
+		let Some(version) = packages_by_config_id
+			.get(package_definition.id.as_str())
+			.and_then(|package| package.current_version.as_ref())
+		else {
+			continue;
+		};
+
+		let tag_name = package_definition.version_format.render_tag(
+			&package_definition.id,
+			&version.to_string(),
+			package_definition.package_type.as_str(),
+		)?;
+
+		if package_definition.version_format.is_primary() {
+			release_tags.primary = Some(tag_name.clone());
+		}
+
+		release_tags.tags.insert(tag_name);
+	}
+
+	Ok(release_tags)
+}
+
+/// The tag name a release owner renders for `package_id` at `version`,
+/// whether or not the owner creates tags.
+fn configured_release_tag_name(
+	configuration: &WorkspaceConfiguration,
+	package_id: &str,
+	version: &str,
+) -> MonochangeResult<Option<String>> {
+	let Some(package_definition) = configuration.package_by_id(package_id) else {
+		return Ok(None);
+	};
+
+	if let Some(group) = configuration.group_for_package(package_id) {
+		return group
+			.version_format
+			.render_tag(&group.id, version, "group")
+			.map(Some);
+	}
+
+	package_definition
+		.version_format
+		.render_tag(
+			&package_definition.id,
+			version,
+			package_definition.package_type.as_str(),
+		)
+		.map(Some)
 }
 
 pub fn resolve_registry_kind(
@@ -2234,48 +2644,587 @@ pub fn dart_protected_publishing_guidance() -> &'static str {
 	"pub.dev trusted publishing only accepts runs whose OIDC token ref is `refs/tags/<tag-pattern>`, where `<tag-pattern>` is configured in the package's pub.dev admin and contains `{{version}}` matching the published version. The `Enable publishing from workflow_dispatch events` option on pub.dev only allows the event name; the run must still be dispatched on the tag ref (for example `gh workflow run <workflow>.yml --ref <tag>`), or the publish must run from the tag-push event. As a last resort, register a non-OIDC credential with `dart pub token add https://pub.dev --env-var PUB_TOKEN` before publishing."
 }
 
-/// Returns an error message when a Dart package uses trusted publishing from a
-/// GitHub Actions run that is not on a tag ref, which pub.dev rejects before
-/// the upload is attempted.
+/// Whether `registry` accepts a trusted upload only from a CI run on the
+/// package's release tag.
 ///
-/// pub.dev validates the `ref_type` and `ref` OIDC claims for both `push` and
-/// `workflow_dispatch` events: the run ref must be `refs/tags/<tag-pattern>`
-/// with `{{version}}` matching the published version. A `workflow_dispatch`
-/// run dispatched on a branch carries a `refs/heads/*` ref and is always
-/// rejected, so the run fails fast here with the dispatch recipe instead of
-/// surfacing an opaque registry authorization error after minting a token.
+/// pub.dev compares the GitHub Actions OIDC token's `ref` claim with
+/// `refs/tags/<tag-pattern>`, where the package's pub.dev admin page sets the
+/// tag pattern and `{{version}}` becomes the version being published. The
+/// rule applies to `push` and `workflow_dispatch` runs alike, so a run on any
+/// other tag or on a branch is always rejected.
 #[must_use]
-pub fn pub_dev_trusted_publishing_ref_error(
-	request: &PublishRequest,
+pub fn registry_binds_trusted_publish_to_tag(
+	registry: RegistryKind,
+	trusted_publishing: &TrustedPublishingSettings,
+) -> bool {
+	registry == RegistryKind::PubDev && trusted_publishing.enabled
+}
+
+/// Whether publishing `request` in this environment can only succeed from a
+/// run on the package's release tag.
+///
+/// Packages published externally (`publish.mode = "external"`) never upload
+/// through monochange, and a `PUB_TOKEN` credential publishes without
+/// trusted publishing, so the tag rule applies to neither. An empty
+/// `PUB_TOKEN`, which GitHub Actions passes for an unset secret, is no
+/// credential.
+#[must_use]
+pub fn publish_is_tag_bound(request: &PublishRequest, env_map: &BTreeMap<String, String>) -> bool {
+	request.mode == PublishMode::Builtin
+		&& registry_binds_trusted_publish_to_tag(request.registry, &request.trusted_publishing)
+		&& !has_pub_token(env_map)
+}
+
+fn has_pub_token(env_map: &BTreeMap<String, String>) -> bool {
+	env_map
+		.get(PUB_TOKEN_ENV_VAR)
+		.is_some_and(|token| !token.trim().is_empty())
+}
+
+/// Whether the environment is a GitHub Actions run, by the same test
+/// [`detect_trusted_publishing_identity`] uses.
+fn is_github_actions(env_map: &BTreeMap<String, String>) -> bool {
+	env_is_true(env_map, "GITHUB_ACTIONS") || env_map.contains_key("GITHUB_WORKFLOW_REF")
+}
+
+fn non_empty_env<'a>(env_map: &'a BTreeMap<String, String>, name: &str) -> Option<&'a str> {
+	env_map
+		.get(name)
+		.map(String::as_str)
+		.filter(|value| !value.is_empty())
+}
+
+/// The git ref (`GITHUB_REF`) of the current GitHub Actions run, or `None`
+/// outside GitHub Actions or when the run has no ref.
+#[must_use]
+pub fn github_actions_run_ref(env_map: &BTreeMap<String, String>) -> Option<&str> {
+	if !is_github_actions(env_map) {
+		return None;
+	}
+
+	non_empty_env(env_map, "GITHUB_REF")
+}
+
+/// The events pub.dev accepts a trusted upload from.
+const PUB_DEV_TRUSTED_PUBLISH_EVENTS: [&str; 2] = ["push", "workflow_dispatch"];
+
+/// What pub.dev checks about the current GitHub Actions run.
+#[derive(Debug, Clone, Copy)]
+struct GitHubActionsRun<'a> {
+	git_ref: Option<&'a str>,
+	ref_type: Option<&'a str>,
+	event: Option<&'a str>,
+}
+
+impl<'a> GitHubActionsRun<'a> {
+	fn detect(env_map: &'a BTreeMap<String, String>) -> Option<Self> {
+		is_github_actions(env_map).then(|| {
+			Self {
+				git_ref: github_actions_run_ref(env_map),
+				ref_type: non_empty_env(env_map, "GITHUB_REF_TYPE"),
+				event: non_empty_env(env_map, "GITHUB_EVENT_NAME"),
+			}
+		})
+	}
+
+	/// The tag the run is on, when its ref is a tag.
+	fn tag(self) -> Option<&'a str> {
+		if self.ref_type.is_some_and(|ref_type| ref_type != "tag") {
+			return None;
+		}
+
+		self.git_ref?.strip_prefix("refs/tags/")
+	}
+
+	/// The run's event when pub.dev rejects trusted uploads from it. An
+	/// unknown event is not known to be rejected.
+	fn rejected_event(self) -> Option<&'a str> {
+		self.event
+			.filter(|event| !PUB_DEV_TRUSTED_PUBLISH_EVENTS.contains(event))
+	}
+}
+
+/// How the current publish run treats one package.
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum PublishRunScope {
+	/// Publish (or plan) the package in this run.
+	Publish,
+	/// The registry would reject the package's upload from this run.
+	/// `deferral` names why and the run that publishes it; `message`
+	/// explains both.
+	DeferredToTag {
+		deferral: PublishDeferral,
+		message: String,
+	},
+	/// Another run of the release publishes the package: the run on its home
+	/// tag (see [`plan_publish_run_scopes`]). `message` names that run.
+	OutOfScope { message: String },
+	/// The registry accepts the package only from a run on its release tag,
+	/// but its release owner creates no tag, so no run can publish it.
+	MissingReleaseTag,
+}
+
+/// Decide, for every request of the current run, whether the run publishes
+/// it, and store the decision in [`PublishRequest::run_scope`].
+///
+/// The decision depends on every package of the release, so
+/// `release_requests` holds the whole release, before any `--package`,
+/// `--group`, or `--ecosystem` selection; `requests` are the selected
+/// ones. A request that is not part of the release keeps its scope.
+pub fn assign_publish_run_scopes(
+	requests: &mut [PublishRequest],
+	release_requests: &[PublishRequest],
+	release_tags: &PublishReleaseTags,
 	env_map: &BTreeMap<String, String>,
-) -> Option<String> {
-	if request.registry != RegistryKind::PubDev || !request.trusted_publishing.enabled {
-		return None;
+) {
+	let scopes = release_requests
+		.iter()
+		.map(publish_request_key)
+		.zip(plan_publish_run_scopes(
+			release_requests,
+			release_tags,
+			env_map,
+		))
+		.collect::<BTreeMap<_, _>>();
+
+	for request in requests {
+		if let Some(scope) = scopes.get(&publish_request_key(request)) {
+			request.run_scope = scope.clone();
+		}
+	}
+}
+
+/// What identifies one publication of a release: the package, its registry,
+/// and its version.
+fn publish_request_key(request: &PublishRequest) -> (String, String, String) {
+	(
+		request.package_id.clone(),
+		request.registry.to_string(),
+		request.version.clone(),
+	)
+}
+
+/// Decide, for every request of a release, whether the current run
+/// publishes it.
+///
+/// A request is *tag-bound* when [`publish_is_tag_bound`] holds: pub.dev
+/// accepts it only from a `push` or `workflow_dispatch` run on its release
+/// tag. Outside GitHub Actions the run's ref is unknown, and every request
+/// publishes; so does every request of a release without tag-bound
+/// requests. Otherwise every request has one *home*: the release tag whose
+/// run publishes it (see [`ReleaseTagRuns`]).
+///
+/// - **A run on one of the release's tags** publishes only the requests whose
+///   home is that tag. A tag-bound request with another home is
+///   [`DeferredToTag`](PublishRunScope::DeferredToTag) in the release's
+///   *coordinator* run (the primary tag's run, or without a primary tag the
+///   first ordinary tag's run), so exactly one run dispatches it, and
+///   [`OutOfScope`](PublishRunScope::OutOfScope) in every other run. Every
+///   other request with another home is out of scope, and its message names
+///   its home run.
+/// - **A run on any other ref** (a branch, or a tag the release does not
+///   create) publishes every request that is not tag-bound and defers the
+///   tag-bound ones.
+///
+/// A tag-bound request on its own tag is still deferred when the run's event
+/// is not `push` or `workflow_dispatch`, and a tag-bound request without a
+/// release tag is [`MissingReleaseTag`](PublishRunScope::MissingReleaseTag).
+#[must_use]
+pub fn plan_publish_run_scopes(
+	requests: &[PublishRequest],
+	release_tags: &PublishReleaseTags,
+	env_map: &BTreeMap<String, String>,
+) -> Vec<PublishRunScope> {
+	let Some(run) = GitHubActionsRun::detect(env_map) else {
+		return vec![PublishRunScope::Publish; requests.len()];
+	};
+	let tag_bound = requests
+		.iter()
+		.map(|request| publish_is_tag_bound(request, env_map))
+		.collect::<Vec<_>>();
+
+	if !tag_bound.contains(&true) {
+		return vec![PublishRunScope::Publish; requests.len()];
 	}
 
-	if env_map
-		.get("GITHUB_ACTIONS")
-		.is_none_or(|value| value != "true")
-	{
-		return None;
-	}
-	let github_ref = env_map.get("GITHUB_REF").map(String::as_str)?;
+	let tag_runs = ReleaseTagRuns::new(requests, &tag_bound, release_tags);
+	let release_tag_run = run.tag().filter(|tag| tag_runs.tags.contains(*tag));
 
-	if github_ref.starts_with("refs/tags/") {
-		return None;
+	requests
+		.iter()
+		.zip(&tag_bound)
+		.map(|(request, &bound)| {
+			if !bound {
+				return match (release_tag_run, tag_runs.home_of_untethered(request)) {
+					(Some(run_tag), Some(home)) if run_tag != home => {
+						PublishRunScope::OutOfScope {
+							message: out_of_scope_message(
+								request,
+								home,
+								", because a release with trusted pub.dev packages publishes each package from one of its tags",
+							),
+						}
+					}
+					_ => PublishRunScope::Publish,
+				};
+			}
+
+			let Some(tag) = request.release_tag.as_ref() else {
+				return PublishRunScope::MissingReleaseTag;
+			};
+
+			match release_tag_run {
+				Some(run_tag)
+					if run_tag != tag.name && Some(run_tag) != tag_runs.coordinator.as_deref() =>
+				{
+					PublishRunScope::OutOfScope {
+						message: tag_bound_out_of_scope_message(request, tag, &tag_runs, env_map),
+					}
+				}
+				_ => tag_bound_run_scope(request, tag, run, env_map),
+			}
+		})
+		.collect()
+}
+
+/// The release tags whose runs publish a release with tag-bound requests,
+/// and which of them publishes each request.
+///
+/// A tag-bound request's home is its own release tag. Tags of tag-bound
+/// requests other than the primary tag are *bound* tags; every other release
+/// tag is *ordinary*. Every other request's home is the primary tag when the
+/// release has one; otherwise its own tag when that tag is ordinary, then
+/// the first ordinary tag, then its own (bound) tag, then the first bound
+/// tag.
+#[derive(Debug)]
+struct ReleaseTagRuns {
+	/// Every tag of the release.
+	tags: BTreeSet<String>,
+	primary: Option<String>,
+	ordinary: BTreeSet<String>,
+	bound: BTreeSet<String>,
+	/// The run that defers tag-bound requests to their tags: the primary
+	/// tag's run, or the first ordinary tag's run.
+	coordinator: Option<String>,
+}
+
+impl ReleaseTagRuns {
+	fn new(
+		requests: &[PublishRequest],
+		tag_bound: &[bool],
+		release_tags: &PublishReleaseTags,
+	) -> Self {
+		let primary = release_tags.primary.clone();
+		let release_tag_of =
+			|request: &PublishRequest| request.release_tag.as_ref().map(|tag| tag.name.clone());
+		let tags = release_tags
+			.tags
+			.iter()
+			.cloned()
+			.chain(primary.clone())
+			.chain(requests.iter().filter_map(release_tag_of))
+			.collect::<BTreeSet<_>>();
+		let bound = requests
+			.iter()
+			.zip(tag_bound)
+			.filter(|(_, bound)| **bound)
+			.filter_map(|(request, _)| release_tag_of(request))
+			.filter(|tag| Some(tag) != primary.as_ref())
+			.collect::<BTreeSet<_>>();
+		let ordinary = tags.difference(&bound).cloned().collect::<BTreeSet<_>>();
+		let coordinator = primary.clone().or_else(|| ordinary.first().cloned());
+
+		Self {
+			tags,
+			primary,
+			ordinary,
+			bound,
+			coordinator,
+		}
 	}
 
-	if env_map.contains_key(PUB_TOKEN_ENV_VAR) {
-		// A real registry credential bypasses trusted publishing entirely, so
-		// the tag-ref policy does not apply.
-		return None;
+	/// The home of a request that is not tag-bound, or `None` when the
+	/// release has no tags.
+	fn home_of_untethered<'a>(&'a self, request: &'a PublishRequest) -> Option<&'a str> {
+		let own = request.release_tag.as_ref().map(|tag| tag.name.as_str());
+
+		self.primary
+			.as_deref()
+			.or_else(|| own.filter(|tag| self.ordinary.contains(*tag)))
+			.or(self.coordinator.as_deref())
+			.or(own)
+			.or_else(|| self.bound.first().map(String::as_str))
+	}
+}
+
+/// The scope of a tag-bound request with release tag `tag` in `run`.
+fn tag_bound_run_scope(
+	request: &PublishRequest,
+	tag: &PublishReleaseTag,
+	run: GitHubActionsRun<'_>,
+	env_map: &BTreeMap<String, String>,
+) -> PublishRunScope {
+	let reason = match (run.git_ref, run.tag()) {
+		(None, _) => PublishDeferralReason::UnknownRef,
+		(Some(_), None) => PublishDeferralReason::WrongRefType,
+		(Some(_), Some(run_tag)) if run_tag != tag.name => PublishDeferralReason::WrongRef,
+		(Some(_), Some(_)) => {
+			if run.rejected_event().is_none() {
+				return PublishRunScope::Publish;
+			}
+
+			PublishDeferralReason::WrongEvent
+		}
+	};
+	let deferral = publish_deferral(request, tag, reason, env_map);
+	let message = deferral_message(request, &deferral, run);
+
+	PublishRunScope::DeferredToTag { deferral, message }
+}
+
+/// Quote one POSIX shell argument only when it contains characters outside
+/// a safe unquoted set, keeping clean identifiers readable.
+fn shell_quote_arg(value: &str) -> String {
+	if !value.is_empty()
+		&& value.bytes().all(|byte| {
+			byte.is_ascii_alphanumeric()
+				|| matches!(byte, b'_' | b'.' | b'/' | b':' | b'@' | b'+' | b'-')
+		}) {
+		return value.to_string();
 	}
 
-	Some(format!(
-		"`{}` uses pub.dev trusted publishing, but this GitHub Actions run ref is `{github_ref}`, not a tag. {}",
-		request.package_name,
-		dart_protected_publishing_guidance()
-	))
+	format!("'{}'", value.replace('\'', "'\\''"))
+}
+
+/// Describe the run that publishes `request` from `tag`: the package's
+/// publish workflow dispatched on the tag.
+///
+/// The workflow is `publish.trusted_publishing.workflow` when the package
+/// sets one, because pub.dev trusts that workflow; otherwise it is the
+/// current run's workflow. When no workflow can be determined, `command`
+/// is `None` rather than emitting an unrunnable placeholder.
+fn publish_deferral(
+	request: &PublishRequest,
+	tag: &PublishReleaseTag,
+	reason: PublishDeferralReason,
+	env_map: &BTreeMap<String, String>,
+) -> PublishDeferral {
+	let workflow = request
+		.trusted_publishing
+		.workflow
+		.as_deref()
+		.map(str::trim)
+		.filter(|workflow| !workflow.is_empty())
+		.map(str::to_string)
+		.or_else(|| {
+			env_map
+				.get("GITHUB_WORKFLOW_REF")
+				.and_then(|value| parse_github_workflow_ref(value))
+		})
+		.or_else(|| non_empty_env(env_map, "GITHUB_WORKFLOW").map(str::to_string));
+	let repository = request
+		.trusted_publishing
+		.repository
+		.as_deref()
+		.map(str::trim)
+		.filter(|repository| !repository.is_empty())
+		.or_else(|| non_empty_env(env_map, "GITHUB_REPOSITORY"))
+		.map(|repository| format!(" --repo {}", shell_quote_arg(repository)))
+		.unwrap_or_default();
+	let command = workflow.map(|workflow| {
+		format!(
+			"gh workflow run {}{repository} --ref {}",
+			shell_quote_arg(&workflow),
+			shell_quote_arg(&tag.name)
+		)
+	});
+
+	PublishDeferral {
+		reason,
+		tag: tag.name.clone(),
+		git_ref: tag.git_ref(),
+		command,
+	}
+}
+
+/// Explain why `request` is deferred and what publishes it.
+fn deferral_message(
+	request: &PublishRequest,
+	deferral: &PublishDeferral,
+	run: GitHubActionsRun<'_>,
+) -> String {
+	let registry = registry_display_name(request.registry.as_str());
+	let package = format!("{} {}", request.package_name, request.version);
+	let required_ref = &deferral.git_ref;
+	let run_ref = run.git_ref.unwrap_or_default();
+	let unknown_workflow_hint = format!(
+		"dispatch its publish workflow on `{}` (set `publish.trusted_publishing.workflow` or keep `GITHUB_WORKFLOW_REF` so monochange can render the dispatch command)",
+		deferral.tag
+	);
+
+	match deferral.reason {
+		PublishDeferralReason::WrongRef => {
+			let action = deferral.command.as_deref().map_or_else(
+				|| unknown_workflow_hint.clone(),
+				|command| format!("publish it with `{command}`"),
+			);
+			format!(
+				"{registry} only accepts {package} from a run on `{required_ref}`, and this run is on `{run_ref}`; {action}"
+			)
+		}
+		PublishDeferralReason::WrongRefType => {
+			let ref_type = run.ref_type.unwrap_or("ref");
+			let action = deferral.command.as_deref().map_or_else(
+				|| unknown_workflow_hint.clone(),
+				|command| format!("publish it with `{command}`"),
+			);
+			format!(
+				"{registry} only accepts {package} from a run on the tag `{required_ref}`, and this run is on the {ref_type} `{run_ref}`; {action}"
+			)
+		}
+		PublishDeferralReason::WrongEvent => {
+			let event = run.event.unwrap_or_default();
+			let now = deferral.command.as_deref().map_or_else(
+				|| format!("To publish this version now, {unknown_workflow_hint}"),
+				|command| format!("To publish this version now, run `{command}`"),
+			);
+			format!(
+				"{registry} only accepts {package} from a run that a `push` or `workflow_dispatch` event starts, and a `{event}` event started this run on `{required_ref}`. No `{event}` run ever publishes it, so start the publish workflow from tag pushes (`on: push`) instead of `on: {event}`. {now}"
+			)
+		}
+		PublishDeferralReason::UnknownRef => {
+			format!(
+				"{registry} only accepts {package} from a run on `{required_ref}`, and this GitHub Actions run has no `GITHUB_REF`, so monochange cannot tell which ref it is on. No run publishes it until the publish step's environment keeps `GITHUB_REF`: every run without it defers it again"
+			)
+		}
+	}
+}
+
+/// Explain that `request` publishes in the run on its home tag `home`.
+fn out_of_scope_message(request: &PublishRequest, home: &str, detail: &str) -> String {
+	format!(
+		"not published in this run: {} {} publishes in the run on `refs/tags/{home}`{detail}",
+		request.package_name, request.version
+	)
+}
+
+/// Explain that tag-bound `request` publishes in the run on its tag, and
+/// what starts that run.
+fn tag_bound_out_of_scope_message(
+	request: &PublishRequest,
+	tag: &PublishReleaseTag,
+	tag_runs: &ReleaseTagRuns,
+	env_map: &BTreeMap<String, String>,
+) -> String {
+	let command = publish_deferral(request, tag, PublishDeferralReason::WrongRef, env_map).command;
+	let start = match (tag_runs.coordinator.as_deref(), command.as_deref()) {
+		(Some(coordinator), _) if coordinator == tag.name => String::new(),
+		(Some(coordinator), Some(command)) => {
+			format!("; the run on `refs/tags/{coordinator}` dispatches it with `{command}`")
+		}
+		(Some(coordinator), None) => {
+			format!(
+				"; the run on `refs/tags/{coordinator}` defers it to `{}` (set `publish.trusted_publishing.workflow` or keep `GITHUB_WORKFLOW_REF` so monochange can render the dispatch command)",
+				tag.name
+			)
+		}
+		(None, Some(command)) => format!("; start it with `{command}`"),
+		(None, None) => {
+			format!(
+				"; dispatch its publish workflow on `{}` (set `publish.trusted_publishing.workflow` or keep `GITHUB_WORKFLOW_REF` so monochange can render the dispatch command)",
+				tag.name
+			)
+		}
+	};
+
+	out_of_scope_message(
+		request,
+		&tag.name,
+		&format!(", the only run pub.dev accepts it from{start}"),
+	)
+}
+
+/// Message for a tag-bound package whose release owner creates no tag.
+///
+/// `owner_section` names the section that owns the package's release tag
+/// (see [`release_tag_owner_section`]); `None` names the package and its
+/// group generically.
+#[must_use]
+pub fn missing_release_tag_message(package_id: &str, owner_section: Option<&str>) -> String {
+	let owner = owner_section.map_or_else(
+		|| format!("`[package.{package_id}]` (or on its group)"),
+		|section| format!("`{section}`"),
+	);
+	format!(
+		"`{package_id}` publishes to pub.dev with trusted publishing, which only accepts an upload from a run on the package's release tag (`refs/tags/<tag>`), but monochange creates no tag for it. Set `tag = true` on {owner} so every release creates the tag, or set `publish.trusted_publishing = false` on `[package.{package_id}]` to publish with a pub.dev token instead."
+	)
+}
+
+/// The configuration section that owns a package's release tag:
+/// `[group.<id>]` for a group member, otherwise `[package.<id>]`.
+#[must_use]
+pub fn release_tag_owner_section(
+	configuration: &WorkspaceConfiguration,
+	package_id: &str,
+) -> String {
+	configuration.group_for_package(package_id).map_or_else(
+		|| format!("[package.{package_id}]"),
+		|group| format!("[group.{}]", group.id),
+	)
+}
+
+/// Report every package that publishes to a tag-bound registry with the
+/// built-in publisher but gets no release tag, so it can never publish.
+///
+/// Packages that never publish, such as a Dart package with
+/// `publish_to: none` (see [`package_can_be_published`]), need no tag.
+/// `discover_packages` reads the workspace's packages; it runs only when a
+/// configured package could be affected.
+pub fn missing_release_tag_errors(
+	configuration: &WorkspaceConfiguration,
+	discover_packages: impl FnOnce() -> MonochangeResult<Vec<PackageRecord>>,
+) -> MonochangeResult<Vec<String>> {
+	let candidates = configuration
+		.packages
+		.iter()
+		.filter(|package| package.publish.enabled && package.publish.mode == PublishMode::Builtin)
+		.filter(|package| {
+			resolve_registry_kind(
+				package.publish.registry.as_ref(),
+				Ecosystem::from(package.package_type),
+			)
+			.is_ok_and(|registry| {
+				registry_binds_trusted_publish_to_tag(registry, &package.publish.trusted_publishing)
+			})
+		})
+		.filter(|package| {
+			configuration
+				.effective_release_identity(&package.id)
+				.is_some_and(|identity| !identity.tag)
+		})
+		.collect::<Vec<_>>();
+
+	if candidates.is_empty() {
+		return Ok(Vec::new());
+	}
+
+	let packages = discover_packages()?;
+	let packages_by_config_id = packages_by_config_id(&packages);
+
+	Ok(candidates
+		.into_iter()
+		.filter(|package| {
+			packages_by_config_id
+				.get(package.id.as_str())
+				.is_some_and(|record| package_can_be_published(package, record))
+		})
+		.map(|package| {
+			missing_release_tag_message(
+				&package.id,
+				Some(&release_tag_owner_section(configuration, &package.id)),
+			)
+		})
+		.collect())
 }
 
 /// Build the `dart pub token add` command that stores a pub.dev credential
@@ -3359,7 +4308,7 @@ pub struct ProviderRegistryTrustCapability {
 pub fn detect_trusted_publishing_identity(
 	env_map: &BTreeMap<String, String>,
 ) -> TrustedPublishingIdentity {
-	if env_is_true(env_map, "GITHUB_ACTIONS") || env_map.contains_key("GITHUB_WORKFLOW_REF") {
+	if is_github_actions(env_map) {
 		return TrustedPublishingIdentity::GitHubActions {
 			repository: env_map.get("GITHUB_REPOSITORY").cloned(),
 			workflow: env_map
@@ -3761,8 +4710,20 @@ fn ensure_publish_report_succeeded_at(
 		)));
 	}
 
+	// Packages left to other runs are listed only when there are some, so
+	// runs without tag-bound packages report as before.
+	let mut left_to_other_runs = String::new();
+	for (count, label) in [
+		(summary.deferred, "deferred to release tags"),
+		(summary.out_of_scope, "out of scope for this ref"),
+	] {
+		if count > 0 {
+			let _ = write!(left_to_other_runs, ", {count} {label}");
+		}
+	}
+
 	Err(MonochangeError::Discovery(format!(
-		"package publishing did not complete: {} total, {} published, {} failed, {} blocked, {} already existed, {} not attempted, {} planned; failed package {} {}: {}",
+		"package publishing did not complete: {} total, {} published, {} failed, {} blocked, {} already existed, {} not attempted, {} planned{left_to_other_runs}; failed package {} {}: {}",
 		summary.total(),
 		summary.published,
 		summary.failed,
@@ -3787,14 +4748,15 @@ fn rate_limited_publish_message(
 	now: chrono::DateTime<chrono::Utc>,
 ) -> String {
 	let registry = registry_display_name(&failed.registry);
+	// Packages deferred or out of scope belong to other runs, so they are
+	// neither this run's total nor left for its rerun.
+	let total = summary.this_run();
 	let done = summary.published + summary.staged + summary.already_exists;
-	let left = summary.total() - done;
+	let left = total - done;
 	let retry_at = hit.render_retry_at(now);
 	let mut lines = vec![format!(
-		"{registry} rate limit stopped publishing at {} {}: {done} of {} packages published",
-		failed.package,
-		failed.version,
-		summary.total()
+		"{registry} rate limit stopped publishing at {} {}: {done} of {total} packages published",
+		failed.package, failed.version,
 	)];
 	lines.extend(
 		hit.reason
@@ -3903,6 +4865,12 @@ pub fn package_publish_outcome_resume_key(outcome: &PackagePublishOutcome) -> Pu
 	)
 }
 
+/// Whether a resumed run keeps an earlier outcome instead of retrying it.
+///
+/// Packages an earlier run left to other runs (deferred or out of scope) were
+/// never published, so a resumed run plans them again for its own ref: a
+/// resume on the same ref leaves them out again without a registry request,
+/// and a resume on another ref can publish them.
 pub fn package_publish_status_is_resumable_complete(status: PackagePublishStatus) -> bool {
 	matches!(
 		status,

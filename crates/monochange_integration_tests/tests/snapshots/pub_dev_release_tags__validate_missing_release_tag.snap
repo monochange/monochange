@@ -1,0 +1,9 @@
+---
+source: crates/monochange_integration_tests/tests/pub_dev_release_tags.rs
+expression: stderr_of(&output)
+---
+error[config.invalid]: workspace validation failed
+
+    `app_dart` publishes to pub.dev with trusted publishing, which only accepts an upload from a run on the package's release tag (`refs/tags/<tag>`), but monochange creates no tag for it. Set `tag = true` on `[package.app_dart]` so every release creates the tag, or set `publish.trusted_publishing = false` on `[package.app_dart]` to publish with a pub.dev token instead.
+
+  command: monochange step validate

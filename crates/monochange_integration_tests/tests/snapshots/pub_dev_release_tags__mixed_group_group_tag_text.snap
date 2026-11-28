@@ -1,0 +1,12 @@
+---
+source: crates/monochange_integration_tests/tests/pub_dev_release_tags.rs
+expression: stdout_of(&text)
+---
+Would publish (1)
+  app_dart  1.1.0  pub_dev
+
+Out of scope for this ref (2)
+  cli  2.0.1  crates_io  not published in this run: cli 2.0.1 publishes in the run on `refs/tags/v2.0.1`, because a release with trusted pub.dev packages publishes each package from one of its tags
+  web  1.1.0  npm        not published in this run: web 1.1.0 publishes in the run on `refs/tags/v2.0.1`, because a release with trusted pub.dev packages publishes each package from one of its tags
+
+• Would publish 1 package · 2 out of scope for this ref · dry-run, no changes were made
