@@ -44,5 +44,6 @@ Reach for this crate when you are implementing GitHub, Gitea, Forgejo, or GitLab
 - `release_pull_request_branch(prefix, command)` normalizes the change-request branch name
 - `get_json`, `post_json`, `patch_json`, and `put_json` wrap provider API requests
 - `git_checkout_branch`, `git_stage_paths`, `git_commit_paths`, and `git_push_branch` wrap shared git operations
+- `retry::warn_retry(notice)` announces a rate-limit or failure retry, with its wait, as a visible CLI warning
 
 <!-- {/monochangeHostingCrateDocs} -->

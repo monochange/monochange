@@ -5161,3 +5161,66 @@ async fn create_release_tree_reports_other_blob_failures() {
 		"error names the request and GitHub's message: {error}"
 	);
 }
+
+#[tokio::test]
+async fn github_clients_wait_out_rate_limits_and_retry() {
+	let server = MockServer::start_async().await;
+	let limited = server
+		.mock_async(|when, then| {
+			when.method(GET).path("/repos/acme/widgets");
+			then.status(429)
+				.header("retry-after", "0")
+				.json_body(json!({ "message": "You have exceeded a secondary rate limit" }));
+		})
+		.await;
+	let client = build_github_client("test-token", Some(&server.base_url()))
+		.unwrap_or_else(|error| panic!("client: {error}"));
+
+	let result = client
+		.get::<serde_json::Value, _, ()>("/repos/acme/widgets", None)
+		.await;
+
+	assert!(result.is_err(), "a request that stays rate limited fails");
+	limited.assert_calls_async(GITHUB_MAX_RETRIES + 1).await;
+}
+
+#[tokio::test]
+async fn immediate_github_clients_do_not_wait_for_rate_limits() {
+	let server = MockServer::start_async().await;
+	let limited = server
+		.mock_async(|when, then| {
+			when.method(GET).path("/repos/acme/widgets");
+			then.status(403)
+				.header("retry-after", "3600")
+				.json_body(json!({ "message": "You have exceeded a secondary rate limit" }));
+		})
+		.await;
+	let client = build_github_client_with_retries(
+		"test-token",
+		Some(&server.base_url()),
+		GitHubRetries::Immediate,
+	)
+	.unwrap_or_else(|error| panic!("client: {error}"));
+
+	let result = client
+		.get::<serde_json::Value, _, ()>("/repos/acme/widgets", None)
+		.await;
+
+	assert!(result.is_err(), "a rate-limited request fails at once");
+	limited.assert_calls_async(1).await;
+}
+
+#[test]
+fn github_retry_notices_announce_rate_limits_and_server_errors_only() {
+	let request = http::Request::builder()
+		.method("POST")
+		.uri("https://api.github.com/repos/acme/widgets/git/trees")
+		.body(octocrab::OctoBody::empty())
+		.unwrap_or_else(|error| panic!("request: {error}"));
+	let notices = GitHubRetryNotices;
+
+	notices.rate_limited(&request, http::StatusCode::FORBIDDEN, 2, 60);
+	notices.retry_after_error(&request, http::StatusCode::BAD_GATEWAY, 1);
+	// A `403` octocrab will not retry is not announced as a retry.
+	notices.retry_after_error(&request, http::StatusCode::FORBIDDEN, 0);
+}
