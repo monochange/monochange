@@ -4,6 +4,7 @@
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::fs;
+use std::path::Component;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -21,6 +22,7 @@ use monochange_core::SourceConfiguration;
 use monochange_core::SyncMode;
 use monochange_core::WorkspaceConfiguration;
 use monochange_core::parse_release_record_json;
+use monochange_core::relative_to_root;
 use monochange_hosting::cut::CutMetadata;
 use monochange_hosting::cut::CutStatusBanner;
 use monochange_hosting::cut::render_cut_or_sync_title;
@@ -125,15 +127,18 @@ pub(crate) async fn collect_unsynced_published_releases(
 		}
 
 		let record_paths = ReleasePaths::from_record(root, &discovery.record);
+		let record_relative =
+			repository_relative_path(root, &record_paths.relative, "read a release record")?;
 
-		if is_record_already_synced_on_disk(&record_paths.absolute, &discovery.record_commit) {
+		if is_record_already_synced_on_disk(&root.join(&record_relative), &discovery.record_commit)
+		{
 			continue;
 		}
 
 		unsynced.push(PublishedReleaseRecord {
 			tag_name: tag.clone(),
 			commit: discovery.record_commit,
-			record_path: record_paths.relative,
+			record_path: record_relative,
 			record: discovery.record,
 		});
 	}
@@ -169,8 +174,11 @@ pub(crate) fn unsynced_consumed_changeset_paths(
 
 	for published in unsynced {
 		for path in &published.record.deleted_changesets {
-			let relative = path.strip_prefix(root).unwrap_or(path);
-			paths.insert(relative.to_path_buf());
+			if let Ok(relative) =
+				repository_relative_path(root, path, "consume a changeset from a release record")
+			{
+				paths.insert(relative);
+			}
 		}
 	}
 
@@ -199,7 +207,8 @@ pub(crate) fn carry_forward_unsynced_changelogs(
 				continue;
 			}
 
-			let full_path = resolve_repo_path(root, &entry.path);
+			let relative = repository_relative_path(root, &entry.path, "read a synced changelog")?;
+			let full_path = root.join(relative);
 			let version = record_version_for_owner(&published.record, &entry.owner_id);
 			let current = match carried_by_path.get(&full_path) {
 				Some(existing) => existing.clone(),
@@ -225,15 +234,20 @@ pub(crate) fn carry_forward_unsynced_changelogs(
 
 	// Re-apply the current release's newly rendered section on top of the carried
 	// base so the resulting file reads: [new release] -> [unsynced releases] -> [disk].
-	let new_rendered_by_path = changelog_updates
-		.iter()
-		.map(|update| (resolve_repo_path(root, &update.file.path), update))
-		.collect::<BTreeMap<_, _>>();
+	let mut new_rendered_by_path = BTreeMap::new();
+
+	for update in changelog_updates {
+		let relative =
+			repository_relative_path(root, &update.file.path, "carry a changelog forward")?;
+		new_rendered_by_path.insert(root.join(relative), update);
+	}
 
 	let mut updated_paths = BTreeSet::new();
 
 	for file_update in changelog_file_updates.iter_mut() {
-		let full_path = resolve_repo_path(root, &file_update.path);
+		let relative =
+			repository_relative_path(root, &file_update.path, "carry a changelog forward")?;
+		let full_path = root.join(relative);
 
 		if let Some(carried_base) = carried_by_path.get(&full_path)
 			&& let Some(new_update) = new_rendered_by_path.get(&full_path)
@@ -402,17 +416,20 @@ pub(crate) async fn execute_sync_release(
 		});
 	}
 
+	// Plan and validate every record-derived mutation before touching disk, so a
+	// bad path in a later record cannot leave earlier changesets or changelogs
+	// half-applied.
 	let mut deleted_changesets = Vec::new();
 	let mut updated_changelogs = Vec::new();
 	let mut synced_record_paths = Vec::new();
 	let mut updated_manifests = Vec::new();
 	let mut changed_files_set = BTreeSet::new();
 
-	// 1. Delete consumed changesets listed across the published releases.
+	let mut deletion_targets = Vec::new();
 	let mut seen_deletions = BTreeSet::new();
 	for published in &releases {
 		for path in &published.record.deleted_changesets {
-			let relative = path.strip_prefix(root).unwrap_or(path).to_path_buf();
+			let relative = repository_relative_path(root, path, "remove a synced changeset")?;
 
 			if !seen_deletions.insert(relative.clone()) {
 				continue;
@@ -421,22 +438,12 @@ pub(crate) async fn execute_sync_release(
 			let absolute = root.join(&relative);
 
 			if absolute.is_file() {
-				if !dry_run {
-					fs::remove_file(&absolute).map_err(|error| {
-						MonochangeError::Io(format!(
-							"failed to remove synced changeset {}: {error}",
-							absolute.display()
-						))
-					})?;
-				}
-
-				deleted_changesets.push(relative.clone());
-				changed_files_set.insert(relative);
+				deletion_targets.push((relative, absolute));
 			}
 		}
 	}
 
-	// 2. Replay rendered changelog sections in chronological order (oldest -> newest).
+	// Replay rendered changelog sections in chronological order (oldest -> newest).
 	let mut changelog_buffers = BTreeMap::<PathBuf, (String, bool)>::new();
 	for published in &releases {
 		for entry in &published.record.changelogs {
@@ -444,11 +451,7 @@ pub(crate) async fn execute_sync_release(
 				continue;
 			}
 
-			let relative = entry
-				.path
-				.strip_prefix(root)
-				.unwrap_or(&entry.path)
-				.to_path_buf();
+			let relative = repository_relative_path(root, &entry.path, "sync a changelog")?;
 			let absolute = root.join(&relative);
 			let version = record_version_for_owner(&published.record, &entry.owner_id);
 			let (current, dirty) = match changelog_buffers.remove(&relative) {
@@ -469,11 +472,54 @@ pub(crate) async fn execute_sync_release(
 		}
 	}
 
-	for (relative, (content, dirty)) in changelog_buffers {
-		if !dirty {
-			continue;
+	let changelog_writes = changelog_buffers
+		.into_iter()
+		.filter(|(_, (_, dirty))| *dirty)
+		.collect::<BTreeMap<_, _>>();
+
+	let mut synced_record_writes = Vec::with_capacity(releases.len());
+	for published in &releases {
+		let relative = repository_relative_path(
+			root,
+			&published.record_path,
+			"write a synced release record",
+		)?;
+		let mut synced_record = published.record.clone();
+		synced_record.synced_from_commit = Some(published.commit.clone());
+		let serialized = serde_json::to_string_pretty(&synced_record).map_err(|error| {
+			MonochangeError::Io(format!(
+				"failed to serialize synced release record: {error}"
+			))
+		})?;
+		synced_record_writes.push((relative, serialized));
+	}
+
+	let mut manifest_writes = Vec::new();
+	if matches!(mode, SyncMode::SemanticPr | SyncMode::MergePr) {
+		for update in plan_synced_manifest_versions(root, configuration, &releases)? {
+			let relative = repository_relative_path(root, &update.path, "sync a manifest")?;
+			manifest_writes.push((relative, update));
+		}
+	}
+
+	// Every path is now validated. Apply the changesets, changelogs, and
+	// manifests, then write the durable synced record last so a failure during
+	// the manifest updates still retries on the next sync run.
+	for (relative, absolute) in deletion_targets {
+		if !dry_run {
+			fs::remove_file(&absolute).map_err(|error| {
+				MonochangeError::Io(format!(
+					"failed to remove synced changeset {}: {error}",
+					absolute.display()
+				))
+			})?;
 		}
 
+		deleted_changesets.push(relative.clone());
+		changed_files_set.insert(relative);
+	}
+
+	for (relative, (content, _)) in changelog_writes {
 		if !dry_run {
 			let absolute = root.join(&relative);
 
@@ -498,19 +544,36 @@ pub(crate) async fn execute_sync_release(
 		changed_files_set.insert(relative);
 	}
 
-	// 3. Write durable synced ReleaseRecords flagged with `synced_from_commit`
-	// so post-merge release automation on `main` never re-tags a sync commit.
-	for published in &releases {
-		let mut synced_record = published.record.clone();
-		synced_record.synced_from_commit = Some(published.commit.clone());
-		let serialized = serde_json::to_string_pretty(&synced_record).map_err(|error| {
-			MonochangeError::Io(format!(
-				"failed to serialize synced release record: {error}"
-			))
-		})?;
-		let absolute = root.join(&published.record_path);
-
+	for (relative, update) in manifest_writes {
 		if !dry_run {
+			if let Some(parent) = update.path.parent() {
+				fs::create_dir_all(parent).map_err(|error| {
+					MonochangeError::Io(format!(
+						"failed to create parent directory {}: {error}",
+						parent.display()
+					))
+				})?;
+			}
+
+			fs::write(&update.path, &update.content).map_err(|error| {
+				MonochangeError::Io(format!(
+					"failed to write synced manifest {}: {error}",
+					update.path.display()
+				))
+			})?;
+		}
+
+		updated_manifests.push(relative.clone());
+		changed_files_set.insert(relative);
+	}
+
+	// The durable `synced_from_commit` marker is written only after manifest
+	// operations succeed, so an interrupted semantic sync re-collects the same
+	// tag and can finish the remaining manifest work on retry.
+	for (relative, serialized) in synced_record_writes {
+		if !dry_run {
+			let absolute = root.join(&relative);
+
 			if let Some(parent) = absolute.parent() {
 				fs::create_dir_all(parent).map_err(|error| {
 					MonochangeError::Io(format!(
@@ -528,19 +591,8 @@ pub(crate) async fn execute_sync_release(
 			})?;
 		}
 
-		synced_record_paths.push(published.record_path.clone());
-		changed_files_set.insert(published.record_path.clone());
-	}
-
-	// 4. Update manifest & configured versioned files unless `bookkeeping_only`.
-	if matches!(mode, SyncMode::SemanticPr | SyncMode::MergePr) {
-		let manifest_paths =
-			apply_synced_manifest_versions(root, configuration, &releases, dry_run)?;
-		for path in manifest_paths {
-			let relative = path.strip_prefix(root).unwrap_or(&path).to_path_buf();
-			updated_manifests.push(relative.clone());
-			changed_files_set.insert(relative);
-		}
+		synced_record_paths.push(relative.clone());
+		changed_files_set.insert(relative);
 	}
 
 	let synced_tags = releases
@@ -572,14 +624,14 @@ pub(crate) async fn execute_sync_release(
 	})
 }
 
-/// Apply manifest and configured versioned-file updates for any packages whose
-/// released version in `releases` is newer than the current manifest version on disk.
-fn apply_synced_manifest_versions(
+/// Plan manifest and configured versioned-file updates for any packages whose
+/// released version in `releases` is newer than the current manifest version on
+/// disk. Callers validate every returned path before applying any update.
+fn plan_synced_manifest_versions(
 	root: &Path,
 	configuration: &WorkspaceConfiguration,
 	releases: &[PublishedReleaseRecord],
-	dry_run: bool,
-) -> MonochangeResult<Vec<PathBuf>> {
+) -> MonochangeResult<Vec<FileUpdate>> {
 	// Resolve highest released version per target id / package id across coalesced releases.
 	let mut target_versions = BTreeMap::<String, semver::Version>::new();
 	for published in releases {
@@ -685,31 +737,8 @@ fn apply_synced_manifest_versions(
 		&ResolvedReleaseValues::default(),
 	)?;
 	let all_updates = merge_file_updates(manifest_updates, versioned_file_updates);
-	let mut written_paths = Vec::with_capacity(all_updates.len());
 
-	for update in all_updates {
-		if !dry_run {
-			if let Some(parent) = update.path.parent() {
-				fs::create_dir_all(parent).map_err(|error| {
-					MonochangeError::Io(format!(
-						"failed to create parent directory {}: {error}",
-						parent.display()
-					))
-				})?;
-			}
-
-			fs::write(&update.path, &update.content).map_err(|error| {
-				MonochangeError::Io(format!(
-					"failed to write synced manifest {}: {error}",
-					update.path.display()
-				))
-			})?;
-		}
-
-		written_paths.push(update.path);
-	}
-
-	Ok(written_paths)
+	Ok(all_updates)
 }
 
 fn insert_higher_version(
@@ -798,6 +827,10 @@ pub(crate) async fn commit_sync_release_local(
 	no_verify: bool,
 	stage_all: bool,
 ) -> MonochangeResult<String> {
+	for path in &report.changed_files {
+		repository_relative_path(root, path, "stage a synced release path")?;
+	}
+
 	if stage_all {
 		git_stage_all(root).await?;
 	} else {
@@ -880,12 +913,108 @@ fn record_version_for_owner(record: &ReleaseRecord, owner_id: &str) -> Option<St
 		.or_else(|| record.version.clone())
 }
 
-fn resolve_repo_path(root: &Path, path: &Path) -> PathBuf {
-	if path.is_absolute() {
-		path.to_path_buf()
-	} else {
-		root.join(path)
+/// Resolve a record-derived path to a repository-relative path.
+///
+/// Release records written by older monochange versions may store absolute
+/// paths under the workspace root. Both layouts are honored; anything outside
+/// the repository, including paths that escape through `..` or a symbolic
+/// link, is rejected before callers read, remove, write, or stage it.
+fn repository_relative_path(root: &Path, path: &Path, action: &str) -> MonochangeResult<PathBuf> {
+	if path.as_os_str().is_empty() {
+		return Err(outside_repository_error(root, path, action));
 	}
+
+	let relative = if path.is_absolute() {
+		if let Ok(relative) = path.strip_prefix(root) {
+			relative.to_path_buf()
+		} else if let Some(relative) = relative_to_root(root, path) {
+			relative
+		} else {
+			return Err(outside_repository_error(root, path, action));
+		}
+	} else {
+		path.to_path_buf()
+	};
+
+	let has_only_normal_components = relative
+		.components()
+		.all(|component| matches!(component, Component::Normal(_) | Component::CurDir));
+
+	if relative.as_os_str().is_empty() || !has_only_normal_components {
+		return Err(outside_repository_error(root, path, action));
+	}
+
+	ensure_no_symlink_escapes_root(root, &relative, path, action)?;
+	Ok(relative)
+}
+
+fn outside_repository_error(root: &Path, path: &Path, action: &str) -> MonochangeError {
+	MonochangeError::Config(format!(
+		"refusing to {action} `{}` because it is outside repository root `{}`",
+		path.display(),
+		root.display()
+	))
+}
+
+/// Reject a path when any existing component below `root` is a symbolic link
+/// that resolves outside the canonical repository root.
+fn ensure_no_symlink_escapes_root(
+	root: &Path,
+	relative: &Path,
+	original: &Path,
+	action: &str,
+) -> MonochangeResult<()> {
+	let canonical_root = fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
+	let mut current = root.to_path_buf();
+
+	for component in relative.components() {
+		let Component::Normal(name) = component else {
+			continue;
+		};
+
+		current.push(name);
+
+		match fs::symlink_metadata(&current) {
+			Ok(metadata) if metadata.file_type().is_symlink() => {
+				let resolved = fs::canonicalize(&current).map_err(|error| {
+					MonochangeError::Config(format!(
+						"refusing to {action} `{}` because symbolic link `{}` does not resolve inside repository root `{}`: {error}",
+						original.display(),
+						current.display(),
+						root.display()
+					))
+				})?;
+
+				if !resolved.starts_with(&canonical_root) {
+					return Err(MonochangeError::Config(format!(
+						"refusing to {action} `{}` because symbolic link `{}` resolves outside repository root `{}`",
+						original.display(),
+						current.display(),
+						root.display()
+					)));
+				}
+
+				current = resolved;
+			}
+			Ok(_) => {}
+			Err(error)
+				if matches!(
+					error.kind(),
+					std::io::ErrorKind::NotFound | std::io::ErrorKind::NotADirectory
+				) =>
+			{
+				break;
+			}
+			Err(error) => {
+				return Err(MonochangeError::Io(format!(
+					"failed to inspect repository path {}: {error}",
+					current.display()
+				)));
+			}
+		}
+	}
+
+	Ok(())
 }
 
 fn read_file_or_empty(path: &Path) -> MonochangeResult<String> {

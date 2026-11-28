@@ -1,6 +1,7 @@
 #![allow(clippy::disallowed_methods)]
 
 use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 use std::process::Command;
 
 use monochange_core::ChangelogFormat;
@@ -148,6 +149,268 @@ fn carry_forward_unsynced_changelogs_preserves_order_and_deduplicates_versions()
 	);
 }
 
+#[test]
+fn repository_relative_path_accepts_compatible_relative_and_absolute_layouts() {
+	let dir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = dir.path();
+
+	std::fs::create_dir_all(root.join("docs"))
+		.unwrap_or_else(|error| panic!("create docs: {error}"));
+	std::fs::write(root.join("docs/CHANGELOG.md"), "# Changelog\n")
+		.unwrap_or_else(|error| panic!("write changelog: {error}"));
+
+	assert_eq!(
+		repository_relative_path(root, Path::new("docs/CHANGELOG.md"), "read")
+			.unwrap_or_else(|error| panic!("relative path: {error}")),
+		PathBuf::from("docs/CHANGELOG.md")
+	);
+	assert_eq!(
+		repository_relative_path(root, &root.join("docs/CHANGELOG.md"), "read")
+			.unwrap_or_else(|error| panic!("absolute path: {error}")),
+		PathBuf::from("docs/CHANGELOG.md")
+	);
+	assert_eq!(
+		repository_relative_path(root, Path::new("docs/new/CHANGELOG.md"), "write")
+			.unwrap_or_else(|error| panic!("missing path: {error}")),
+		PathBuf::from("docs/new/CHANGELOG.md")
+	);
+}
+
+#[test]
+fn repository_relative_path_rejects_paths_outside_repository() {
+	let dir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let outside = tempdir().unwrap_or_else(|error| panic!("outside: {error}"));
+	let root = dir.path();
+
+	for path in [
+		PathBuf::from("../outside.md"),
+		PathBuf::from("nested/../../outside.md"),
+		outside.path().join("outside.md"),
+		PathBuf::new(),
+	] {
+		let error = repository_relative_path(root, &path, "write")
+			.err()
+			.unwrap_or_else(|| panic!("expected `{}` to be rejected", path.display()));
+		assert!(
+			error.to_string().contains("outside repository root"),
+			"unexpected error for {}: {error}",
+			path.display()
+		);
+	}
+}
+
+#[cfg(unix)]
+#[test]
+fn repository_relative_path_confines_symbolic_links_to_repository() {
+	use std::os::unix::fs::symlink;
+
+	let dir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let outside = tempdir().unwrap_or_else(|error| panic!("outside: {error}"));
+	let root = dir.path();
+	std::fs::create_dir_all(root.join("real"))
+		.unwrap_or_else(|error| panic!("create real: {error}"));
+	std::fs::write(root.join("real/CHANGELOG.md"), "# Changelog\n")
+		.unwrap_or_else(|error| panic!("write changelog: {error}"));
+
+	symlink(root.join("real"), root.join("inside-link"))
+		.unwrap_or_else(|error| panic!("inside symlink: {error}"));
+	symlink(outside.path(), root.join("outside-link"))
+		.unwrap_or_else(|error| panic!("outside symlink: {error}"));
+	symlink(outside.path().join("missing"), root.join("dangling-link"))
+		.unwrap_or_else(|error| panic!("dangling symlink: {error}"));
+
+	assert_eq!(
+		repository_relative_path(root, Path::new("inside-link/CHANGELOG.md"), "write")
+			.unwrap_or_else(|error| panic!("inside symlink should be allowed: {error}")),
+		PathBuf::from("inside-link/CHANGELOG.md")
+	);
+
+	for path in [
+		PathBuf::from("outside-link/CHANGELOG.md"),
+		PathBuf::from("dangling-link/CHANGELOG.md"),
+	] {
+		let error = repository_relative_path(root, &path, "write")
+			.err()
+			.unwrap_or_else(|| panic!("expected `{}` to be rejected", path.display()));
+		assert!(
+			error.to_string().contains("outside repository root")
+				|| error
+					.to_string()
+					.contains("does not resolve inside repository root"),
+			"unexpected error for {}: {error}",
+			path.display()
+		);
+	}
+
+	// A canonical absolute path still resolves when the repository root is
+	// reached through a symbolic link.
+	symlink(root, dir.path().join("root-link"))
+		.unwrap_or_else(|error| panic!("root symlink: {error}"));
+	let canonical_root =
+		std::fs::canonicalize(root).unwrap_or_else(|error| panic!("canonicalize: {error}"));
+	assert_eq!(
+		repository_relative_path(
+			&dir.path().join("root-link"),
+			&canonical_root.join("real/CHANGELOG.md"),
+			"read"
+		)
+		.unwrap_or_else(|error| panic!("canonical root path: {error}")),
+		PathBuf::from("real/CHANGELOG.md")
+	);
+}
+
+#[test]
+fn unsynced_consumed_changeset_paths_ignores_paths_outside_repository() {
+	let dir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let outside = tempdir().unwrap_or_else(|error| panic!("outside: {error}"));
+	let root = dir.path();
+	let record = sample_release_record(
+		"1.1.0",
+		"v1.1.0",
+		"2026-06-01T00:00:00Z",
+		None,
+		None,
+		vec![
+			PathBuf::from(".changeset/inside.md"),
+			outside.path().join(".changeset/outside.md"),
+			PathBuf::from("../escape.md"),
+		],
+		"## 1.1.0\n",
+	);
+	let unsynced = vec![PublishedReleaseRecord {
+		tag_name: "v1.1.0".to_string(),
+		commit: "abc123".to_string(),
+		record_path: PathBuf::from(".monochange/releases/a/release.json"),
+		record,
+	}];
+
+	let consumed = unsynced_consumed_changeset_paths(root, &unsynced);
+	assert_eq!(
+		consumed,
+		BTreeSet::from([PathBuf::from(".changeset/inside.md")])
+	);
+}
+
+#[test]
+fn carry_forward_unsynced_changelogs_rejects_unsafe_record_paths() {
+	let dir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let root = dir.path();
+	let mut record = sample_release_record(
+		"1.1.0",
+		"v1.1.0",
+		"2026-06-01T00:00:00Z",
+		None,
+		None,
+		Vec::new(),
+		"## 1.1.0\n\n- Unsynced release\n",
+	);
+	record.changelogs[0].path = PathBuf::from("../CHANGELOG.md");
+	let unsynced = vec![PublishedReleaseRecord {
+		tag_name: "v1.1.0".to_string(),
+		commit: "abc123".to_string(),
+		record_path: PathBuf::from(".monochange/releases/a/release.json"),
+		record,
+	}];
+	let mut file_updates = Vec::new();
+
+	let error = carry_forward_unsynced_changelogs(root, &unsynced, &[], &mut file_updates)
+		.err()
+		.unwrap_or_else(|| panic!("expected unsafe changelog path to be rejected"));
+	assert!(error.to_string().contains("outside repository root"));
+	assert!(file_updates.is_empty());
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn execute_sync_release_validates_all_record_paths_before_mutating() {
+	let repo = init_git_repo();
+	let root = repo.path();
+	let outside = tempdir().unwrap_or_else(|error| panic!("outside: {error}"));
+	let outside_file = outside.path().join("keep.txt");
+	std::fs::write(&outside_file, "keep").unwrap_or_else(|error| panic!("write outside: {error}"));
+
+	write_and_commit(
+		root,
+		"monochange.toml",
+		sample_monochange_toml(false),
+		"chore: add monochange.toml",
+	);
+	write_and_commit(
+		root,
+		"Cargo.toml",
+		"[package]\nname = \"core\"\nversion = \"1.0.0\"\nedition = \"2021\"\n",
+		"chore: add Cargo.toml",
+	);
+	write_and_commit(
+		root,
+		".changeset/feat-a.md",
+		"---\ncore: minor\n---\nAdded feature A\n",
+		"feat: add changeset",
+	);
+	let cut_base = git_rev(root, "HEAD");
+
+	run_git(root, &["checkout", "-b", "release/v1.1.0"]);
+	let record = sample_release_record(
+		"1.1.0",
+		"v1.1.0",
+		"2026-06-01T00:00:00Z",
+		Some(&cut_base),
+		None,
+		vec![PathBuf::from(".changeset/feat-a.md"), outside_file.clone()],
+		"## 1.1.0\n\n- Added feature A\n",
+	);
+	write_release_record_and_commit(root, &record, "chore(release): v1.1.0");
+	run_git(root, &["tag", "v1.1.0"]);
+	run_git(root, &["checkout", "main"]);
+
+	let config = monochange_config::load_workspace_configuration(root)
+		.unwrap_or_else(|error| panic!("load config: {error}"));
+	let error = execute_sync_release(root, &config, None, Some(SyncMode::BookkeepingOnly), false)
+		.await
+		.err()
+		.unwrap_or_else(|| panic!("expected unsafe record path to be rejected"));
+	assert!(error.to_string().contains("outside repository root"));
+
+	// Validation happens before any removal or record write.
+	assert!(root.join(".changeset/feat-a.md").is_file());
+	assert!(outside_file.is_file());
+	assert!(!ReleasePaths::from_record(root, &record).absolute.exists());
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn commit_sync_release_local_rejects_changed_paths_outside_repository() {
+	let dir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+	let outside = tempdir().unwrap_or_else(|error| panic!("outside: {error}"));
+	let root = dir.path();
+	let report = SyncReleaseReport {
+		mode: SyncMode::BookkeepingOnly,
+		status: "completed".to_string(),
+		dry_run: false,
+		cut_id: Some("v1.1.0".to_string()),
+		synced_tags: vec!["v1.1.0".to_string()],
+		synced_commits: vec!["abc123".to_string()],
+		deleted_changesets: Vec::new(),
+		updated_changelogs: Vec::new(),
+		synced_record_paths: Vec::new(),
+		updated_manifests: Vec::new(),
+		changed_files: vec![outside.path().join("CHANGELOG.md")],
+	};
+
+	let error = commit_sync_release_local(
+		root,
+		&report,
+		&CommitMessage {
+			subject: "chore(release): sync v1.1.0".to_string(),
+			body: None,
+		},
+		false,
+		false,
+	)
+	.await
+	.err()
+	.unwrap_or_else(|| panic!("expected outside changed path to be rejected"));
+	assert!(error.to_string().contains("outside repository root"));
+}
+
 #[tokio::test(flavor = "multi_thread")]
 async fn compute_cut_status_banner_counts_commits_and_filters_consumed_changesets() {
 	let repo = init_git_repo();
@@ -228,17 +491,21 @@ async fn execute_sync_release_supports_none_bookkeeping_semantic_and_merge_pr_br
 	);
 	let cut_base = git_rev(root, "HEAD");
 
-	// Cut release v1.1.0 on a parallel branch and tag it.
+	// Cut release v1.1.0 on a parallel branch and tag it. Records from older
+	// monochange versions may hold absolute paths inside the workspace, so this
+	// ordinary flow stores both the changeset and changelog paths that way.
 	run_git(root, &["checkout", "-b", "release/v1.1.0"]);
-	let record = sample_release_record(
+	let mut record = sample_release_record(
 		"1.1.0",
 		"v1.1.0",
 		"2026-06-01T00:00:00Z",
 		Some(&cut_base),
 		None,
-		vec![PathBuf::from(".changeset/feat-a.md")],
+		vec![root.join(".changeset/feat-a.md")],
 		"## 1.1.0\n\n- Added feature A\n",
 	);
+	record.changelogs[0].path = root.join("CHANGELOG.md");
+	record.updated_changelogs = vec![root.join("CHANGELOG.md")];
 	write_release_record_and_commit(root, &record, "chore(release): v1.1.0");
 	let rel_commit = git_rev(root, "HEAD");
 	run_git(root, &["tag", "v1.1.0"]);
@@ -290,6 +557,17 @@ async fn execute_sync_release_supports_none_bookkeeping_semantic_and_merge_pr_br
 	let changelog = std::fs::read_to_string(root.join("CHANGELOG.md"))
 		.unwrap_or_else(|error| panic!("read CHANGELOG.md: {error}"));
 	assert!(changelog.contains("## 1.1.0"));
+
+	// The durable record lands after the manifest work and marks the release
+	// commit so a retry does not replay this tag.
+	let synced_paths = ReleasePaths::from_record(root, &record);
+	assert_eq!(
+		merged.synced_record_paths,
+		vec![synced_paths.relative.clone()]
+	);
+	let synced_record = std::fs::read_to_string(&synced_paths.absolute)
+		.unwrap_or_else(|error| panic!("read synced record: {error}"));
+	assert!(synced_record.contains(&format!("\"synced_from_commit\": \"{rel_commit}\"")));
 
 	let sync_request = build_sync_change_request(
 		config.source.as_ref().unwrap_or_else(|| panic!("source")),
