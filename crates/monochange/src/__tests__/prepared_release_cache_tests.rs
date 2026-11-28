@@ -114,6 +114,7 @@ async fn load_prepared_release_execution_returns_cached_release_with_message_and
 		&prepared.file_diffs,
 		Some(&artifact_path),
 		"release",
+		None,
 	)
 	.await
 	.unwrap_or_else(|error| panic!("save prepared release artifact: {error}"));

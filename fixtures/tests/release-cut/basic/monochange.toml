@@ -1,0 +1,66 @@
+[source]
+provider = "github"
+owner = "monochange"
+repo = "demo"
+
+[source.releases]
+enabled = true
+branches = ["release/*"]
+enforce_for_tags = true
+enforce_for_publish = true
+
+[source.pull_requests]
+enabled = true
+strategy = "cut"
+base = "main"
+branch_prefix = "monochange/release"
+title = "chore(release): prepare release {{ cut_id }}"
+labels = ["release", "automated"]
+
+[source.pull_requests.cut]
+branch_template = "release/{{ cut_id }}"
+trigger = "sticky"
+source_commit = "head"
+refresh_command = "/refresh"
+status_banner = true
+retention = "delete"
+
+[source.pull_requests.sync]
+mode = "semantic_pr"
+branch = "monochange/sync-release"
+title = "chore(release): sync {{ cut_id }} to {{ base }}"
+labels = ["release", "automated", "release-sync"]
+auto_merge = true
+
+[package.core]
+path = "."
+type = "cargo"
+version_format = "primary"
+tag = true
+release = true
+changelog = "CHANGELOG.md"
+
+[cli.release]
+help_text = "Prepare, commit, and open a cut release pull request"
+inputs = [
+	{ name = "format", type = "choice", choices = ["text", "json", "json-min", "markdown"], default = "text" },
+]
+
+[[cli.release.steps]]
+type = "PrepareRelease"
+inputs = { format = "{{ inputs.format }}" }
+
+[[cli.release.steps]]
+type = "CommitRelease"
+
+[[cli.release.steps]]
+type = "OpenReleaseRequest"
+
+[cli.sync-release]
+help_text = "Replay published cut releases onto main"
+
+[[cli.sync-release.steps]]
+type = "SyncRelease"
+
+[[cli.sync-release.steps]]
+type = "OpenSyncRequest"

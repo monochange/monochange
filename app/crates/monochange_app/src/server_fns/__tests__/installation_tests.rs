@@ -500,3 +500,65 @@ async fn a_client_token_sees_only_its_own_account_surface() {
 		.unwrap();
 	assert!(updates.is_empty());
 }
+
+#[tokio::test]
+async fn release_cut_suggestions_surfaces_high_velocity_repos_and_blocks_unauthorized_setup_pr() {
+	let unconfigured = state(None).await;
+	connect(&unconfigured, 11, "alice", "User").await;
+	let now = chrono::Utc::now().timestamp();
+	// Record 8 merged PRs in 40 minutes for alice/one (inserted by `connect`).
+	let repo_id: i64 = sqlx::query_scalar(
+		"SELECT github_repo_id FROM repositories WHERE github_full_name = 'alice/one'",
+	)
+	.fetch_one(&unconfigured.db)
+	.await
+	.unwrap();
+	for index in 0..8 {
+		monochange_app_db::velocity::record_merged_pull_request(
+			&unconfigured.db,
+			repo_id,
+			index + 1,
+			"main",
+			now - (7 - index) * 300,
+		)
+		.await
+		.unwrap();
+	}
+
+	let cookie = session(&unconfigured, 1);
+	let (owner, _) = context(unconfigured.clone(), Some(cookie));
+	let suggestions = owner
+		.with(|| ScopedFuture::new(super::release_cut_suggestions()))
+		.await
+		.unwrap();
+	assert_eq!(suggestions.len(), 1);
+	assert_eq!(suggestions[0].repository, "alice/one");
+	assert_eq!(suggestions[0].peak_prs_in_hour, 8);
+	assert!(suggestions[0].agent_prompt.contains("alice/one"));
+
+	// Trying to open a setup PR on a repository not connected to this user fails cleanly.
+	let unauthorized = owner
+		.with(|| ScopedFuture::new(super::open_release_cut_setup_pr("other/secret".to_owned())))
+		.await
+		.unwrap_err();
+	assert!(
+		unauthorized.to_string().contains("not accessible"),
+		"{unauthorized}"
+	);
+
+	// Signed-out visitors receive empty suggestions and cannot open setup PRs.
+	let (signed_out_owner, _) = context(unconfigured, None);
+	let signed_out_suggestions = signed_out_owner
+		.with(|| ScopedFuture::new(super::release_cut_suggestions()))
+		.await
+		.unwrap();
+	assert!(signed_out_suggestions.is_empty());
+	let signed_out_err = signed_out_owner
+		.with(|| ScopedFuture::new(super::open_release_cut_setup_pr("alice/one".to_owned())))
+		.await
+		.unwrap_err();
+	assert!(
+		signed_out_err.to_string().contains("sign in"),
+		"{signed_out_err}"
+	);
+}

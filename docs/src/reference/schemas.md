@@ -29,6 +29,7 @@
 - v0.8: <https://monochange.github.io/monochange/schemas/monochange.v0.8.schema.json>
 - v0.9: <https://monochange.github.io/monochange/schemas/monochange.v0.9.schema.json>
 - v0.10: <https://monochange.github.io/monochange/schemas/monochange.v0.10.schema.json>
+- v0.11: <https://monochange.github.io/monochange/schemas/monochange.v0.11.schema.json>
 
 **`release-record.schema.json`**
 
@@ -44,6 +45,7 @@
 - v0.8: <https://monochange.github.io/monochange/schemas/release-record.v0.8.schema.json>
 - v0.9: <https://monochange.github.io/monochange/schemas/release-record.v0.9.schema.json>
 - v0.10: <https://monochange.github.io/monochange/schemas/release-record.v0.10.schema.json>
+- v0.11: <https://monochange.github.io/monochange/schemas/release-record.v0.11.schema.json>
 
 <!-- {/projectSchemaAssetIndex} -->
 

@@ -1,0 +1,111 @@
+name: release-cut
+
+on:
+  push:
+    branches:
+      - main
+      - "release/*"
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      refresh:
+        description: "Force re-cutting an open sticky cut PR from the latest green commit on main"
+        type: boolean
+        default: false
+      from:
+        description: "Optional commit SHA or ref on main to cut from"
+        type: string
+        default: ""
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write
+
+jobs:
+  cut-or-banner:
+    if: >-
+      github.event_name == 'workflow_dispatch'
+      || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+      || (
+        github.event_name == 'issue_comment'
+        && github.event.issue.pull_request != null
+        && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
+        && contains(github.event.comment.body, '/refresh')
+      )
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    steps:
+      # Local git pushes made with GITHUB_TOKEN will not trigger pull_request CI
+      # checks on the Cut PR (including after `/refresh`). Prefer the hosted
+      # monochange GitHub App backend (`id-token: write`), or provide a PAT /
+      # GitHub App token in `secrets.MONOCHANGE_GITHUB_TOKEN`.
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.MONOCHANGE_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: cut release PR or refresh status banner
+        uses: monochange/actions@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.MONOCHANGE_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+        with:
+          name: release-pr
+          token: ${{ secrets.MONOCHANGE_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+          refresh: ${{ github.event_name == 'issue_comment' || inputs.refresh || false }}
+          from: ${{ inputs.from || '' }}
+          minimum-reviewer-permission: write
+
+  publish-and-sync:
+    # Skip initial frozen cut branch creation (`created == true`) and post-publish
+    # branch cleanup (`deleted == true`), then verify HEAD is an actual release
+    # commit before tagging/publishing (so `/refresh` branch updates never publish).
+    if: >-
+      github.event_name == 'push'
+      && startsWith(github.ref, 'refs/heads/release/')
+      && !github.event.created
+      && !github.event.deleted
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout cut branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.MONOCHANGE_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: detect release commit
+        id: release_commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          is_release=false
+          if git rev-parse --verify HEAD^1 >/dev/null 2>&1; then
+            for record in $(git diff-tree --no-commit-id --name-only -r --diff-filter=AM HEAD^1 HEAD -- '.monochange/releases/*/release.json'); do
+              if [ -f "$record" ] && ! grep -q '"synced_from_commit"' "$record"; then
+                is_release=true
+                break
+              fi
+            done
+          fi
+          echo "is_release_commit=$is_release" >> "$GITHUB_OUTPUT"
+
+      - name: tag, publish, and sync back to main
+        if: steps.release_commit.outputs.is_release_commit == 'true'
+        uses: monochange/actions@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.MONOCHANGE_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+        with:
+          name: post-merge-release
+          ref: HEAD
+          token: ${{ secrets.MONOCHANGE_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+          sync-release: true
+          open-next-cut: true

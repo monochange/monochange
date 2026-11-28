@@ -53,6 +53,7 @@ const FNV_PRIME: u64 = 1_099_511_628_211;
 pub(crate) struct LoadedPreparedReleaseExecution {
 	pub(crate) execution: PreparedReleaseExecution,
 	pub(crate) originating_command: Option<String>,
+	pub(crate) cut_base_commit: Option<String>,
 	pub(crate) message: String,
 }
 
@@ -63,6 +64,9 @@ struct PreparedReleaseArtifact {
 	/// Producer identity used when later commands validate the release record.
 	#[serde(default)]
 	originating_command: Option<String>,
+	/// Resolved cut base commit (`M*`) when prepared under `strategy = "cut"`.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	cut_base_commit: Option<String>,
 	configuration_snapshot: String,
 	/// Content fingerprint over every input the plan was computed from.
 	///
@@ -85,6 +89,8 @@ struct PreparedReleaseArtifact {
 struct PreparedReleaseArtifactRef<'a> {
 	schema_version: u32,
 	originating_command: &'a str,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	cut_base_commit: Option<&'a str>,
 	configuration_snapshot: String,
 	input_fingerprint: String,
 	head_commit: String,
@@ -217,6 +223,7 @@ pub(crate) async fn load_prepared_release_execution(
 	Ok(Some(LoadedPreparedReleaseExecution {
 		execution,
 		originating_command: artifact.originating_command,
+		cut_base_commit: artifact.cut_base_commit,
 		message,
 	}))
 }
@@ -256,6 +263,7 @@ pub(crate) async fn save_prepared_release_execution(
 	file_diffs: &[PreparedFileDiff],
 	explicit_path: Option<&Path>,
 	originating_command: &str,
+	cut_base_commit: Option<&str>,
 ) -> MonochangeResult<()> {
 	let artifact_path = resolve_prepared_release_artifact_path(root, explicit_path);
 	ensure_monochange_artifact_ignored(root, &artifact_path).await?;
@@ -272,6 +280,7 @@ pub(crate) async fn save_prepared_release_execution(
 	let artifact = PreparedReleaseArtifactRef {
 		schema_version: PREPARED_RELEASE_ARTIFACT_SCHEMA_VERSION,
 		originating_command,
+		cut_base_commit,
 		configuration_snapshot: configuration_snapshot(configuration)?,
 		input_fingerprint: prepared_release_input_fingerprint(root, configuration)?,
 		head_commit: git_head_commit(root).await?,

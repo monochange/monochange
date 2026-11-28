@@ -698,16 +698,24 @@ async fn release_upgrade_preserves_v033_data_and_records_the_candidate_migration
 	// The upgrade appends exactly the candidate migrations; applied legacy
 	// rows keep their original ids and timestamps.
 	let upgraded_log = migration_log(&pool).await;
-	assert_eq!(upgraded_log.len(), 7);
+	assert_eq!(upgraded_log.len(), 8);
 	assert_eq!(legacy_log, upgraded_log[..5]);
 	assert_eq!(
 		upgraded_log[5..]
 			.iter()
 			.map(|(name, _)| name.as_str())
 			.collect::<Vec<_>>(),
-		["006_create_oauth_state_uses", "007_create_client_sessions"],
+		[
+			"006_create_oauth_state_uses",
+			"007_create_client_sessions",
+			"008_create_repository_merged_prs",
+		],
 	);
-	for name in ["006_create_oauth_state_uses", "007_create_client_sessions"] {
+	for name in [
+		"006_create_oauth_state_uses",
+		"007_create_client_sessions",
+		"008_create_repository_merged_prs",
+	] {
 		let rollback: String =
 			sqlx::query_scalar("SELECT rollback_sql FROM _welds_migrations WHERE name = ?")
 				.bind(name)
@@ -717,13 +725,18 @@ async fn release_upgrade_preserves_v033_data_and_records_the_candidate_migration
 		assert!(!rollback.is_empty(), "{name} recorded its rollback SQL");
 	}
 
-	// New auth schema exists, and every existing user reads the epoch default.
+	// New auth and velocity schemas exist, and every existing user reads the epoch default.
 	let tables: Vec<String> =
 		sqlx::query_scalar("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")
 			.fetch_all(&pool)
 			.await
 			.unwrap_or_else(|error| panic!("list tables: {error}"));
-	for table in ["oauth_state_uses", "client_grants", "client_sessions"] {
+	for table in [
+		"oauth_state_uses",
+		"client_grants",
+		"client_sessions",
+		"repository_merged_prs",
+	] {
 		assert!(
 			tables.contains(&table.to_string()),
 			"missing new table {table}"
@@ -742,6 +755,7 @@ async fn release_upgrade_preserves_v033_data_and_records_the_candidate_migration
 		"idx_client_sessions_user",
 		"idx_client_sessions_expiry",
 		"idx_client_sessions_token",
+		"idx_repo_merged_prs_repo_time",
 	] {
 		assert!(
 			indexes.contains(&index.to_string()),

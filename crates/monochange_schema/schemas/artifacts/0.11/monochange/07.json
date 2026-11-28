@@ -1,0 +1,137 @@
+{
+	"changelog": {
+		"sections": {
+			"bug-fixes": {
+				"description": "Resolved defects",
+				"heading": "🐛 Bug Fixes",
+				"priority": 10
+			},
+			"features": {
+				"description": "New capabilities",
+				"heading": "✨ Features",
+				"priority": 20
+			}
+		},
+		"style": {
+			"collapsed_section_style": "details",
+			"metadata_style": "blockquote",
+			"package_label_style": "badge",
+			"section_separator": "thematic_break"
+		},
+		"types": {
+			"feature": {
+				"bump": "minor",
+				"description": "New features",
+				"section": "features"
+			},
+			"fix": {
+				"bump": "patch",
+				"description": "Bug fixes",
+				"section": "bug-fixes"
+			}
+		}
+	},
+	"changesets": {
+		"affected": {
+			"changed_paths": [
+				"crates/lwphohpf/"
+			],
+			"comment_on_failure": true,
+			"enabled": true,
+			"ignored_paths": [
+				"**/*.md"
+			],
+			"required": true,
+			"skip_labels": [
+				"skip-changeset"
+			]
+		}
+	},
+	"defaults": {
+		"changelog_version_title": "v{{version}} — lwphohpf release",
+		"empty_update_message": "No significant changes for lwphohpf packages.",
+		"include_private": false,
+		"package_type": "npm",
+		"parent_bump": "none",
+		"strict_version_conflicts": false,
+		"warn_on_group_mismatch": false
+	},
+	"ecosystems": {
+		"deno": {
+			"enabled": true,
+			"publish": {
+				"enabled": true
+			},
+			"roots": [
+				"crates/deno"
+			]
+		}
+	},
+	"lints": {
+		"rules": {
+			"no-unnecessary-releases": "error"
+		},
+		"scopes": [
+			"crates/lwphohpf"
+		],
+		"use": [
+			"no-unnecessary-releases"
+		]
+	},
+	"package": {
+		"lwphohpf_0": {
+			"path": "crates/lwphohpf_0",
+			"release": true,
+			"tag": true,
+			"type": "npm",
+			"version_format": "namespaced"
+		},
+		"lwphohpf_1": {
+			"path": "crates/lwphohpf_1",
+			"release": false,
+			"tag": false,
+			"type": "npm",
+			"version_format": "namespaced"
+		},
+		"lwphohpf_2": {
+			"path": "crates/lwphohpf_2",
+			"release": false,
+			"tag": false,
+			"type": "npm",
+			"version_format": "namespaced"
+		},
+		"lwphohpf_3": {
+			"path": "crates/lwphohpf_3",
+			"release": false,
+			"tag": false,
+			"type": "npm",
+			"version_format": "namespaced"
+		},
+		"lwphohpf_4": {
+			"path": "crates/lwphohpf_4",
+			"release": false,
+			"tag": false,
+			"type": "npm",
+			"version_format": "namespaced"
+		}
+	},
+	"source": {
+		"api_url": "api.github.example.com",
+		"host": "github.example.com",
+		"owner": "lwphohpf",
+		"provider": "github",
+		"pull_requests": {
+			"auto_merge": true,
+			"base": "main",
+			"branch_prefix": "lwphohpf/release",
+			"enabled": true,
+			"labels": [
+				"release",
+				"automated"
+			],
+			"title": "chore(release): prepare lwphohpf release",
+			"verified_commits": false
+		},
+		"repo": "buailziz"
+	}
+}

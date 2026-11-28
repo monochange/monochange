@@ -1,0 +1,44 @@
+[defaults]
+version_source = "tag"
+
+[source]
+provider = "github"
+owner = "monochange"
+repo = "demo"
+
+[source.releases]
+enabled = true
+branches = ["release/*"]
+enforce_for_tags = true
+enforce_for_publish = true
+
+[source.pull_requests]
+enabled = true
+strategy = "cut"
+base = "main"
+branch_prefix = "monochange/release"
+title = "chore(release): prepare release {{ cut_id }}"
+labels = ["release", "automated"]
+
+[source.pull_requests.cut]
+branch_template = "release/{{ cut_id }}"
+trigger = "sticky"
+source_commit = "head"
+refresh_command = "/refresh"
+status_banner = true
+retention = "delete"
+
+[source.pull_requests.sync]
+mode = "bookkeeping_only"
+branch = "monochange/sync-release"
+title = "chore(release): sync {{ cut_id }} to {{ base }}"
+labels = ["release", "automated", "release-sync"]
+auto_merge = true
+
+[package.core]
+path = "."
+type = "cargo"
+version_format = "primary"
+tag = true
+release = true
+changelog = "CHANGELOG.md"

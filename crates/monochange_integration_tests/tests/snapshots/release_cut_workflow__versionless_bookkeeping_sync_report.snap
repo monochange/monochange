@@ -1,0 +1,19 @@
+---
+source: crates/monochange_integration_tests/tests/release_cut_workflow.rs
+expression: "json!({\n    \"prepared_version\": prepared[\"version\"], \"sync_mode\": sync_report[\"mode\"],\n    \"sync_status\": sync_report[\"status\"], \"synced_tags\":\n    sync_report[\"synced_tags\"], \"deleted_changesets\":\n    sync_report[\"deleted_changesets\"], \"updated_changelogs\":\n    sync_report[\"updated_changelogs\"], \"updated_manifests\":\n    sync_report[\"updated_manifests\"],\n})"
+---
+{
+  "deleted_changesets": [
+    ".changeset/feat-a.md"
+  ],
+  "prepared_version": "1.1.0",
+  "sync_mode": "bookkeeping_only",
+  "sync_status": "completed",
+  "synced_tags": [
+    "v1.1.0"
+  ],
+  "updated_changelogs": [
+    "CHANGELOG.md"
+  ],
+  "updated_manifests": []
+}

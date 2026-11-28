@@ -1,0 +1,23 @@
+---
+source: crates/monochange_integration_tests/tests/release_cut_workflow.rs
+expression: "json!({\n    \"mode\": sync_report[\"mode\"], \"status\": sync_report[\"status\"], \"cut_id\":\n    sync_report[\"cut_id\"], \"synced_tags\": sync_report[\"synced_tags\"],\n    \"synced_commit_matches_release\": sync_report[\"synced_commits\"] ==\n    json!([rel_commit]), \"deleted_changesets\":\n    sync_report[\"deleted_changesets\"], \"updated_changelogs\":\n    sync_report[\"updated_changelogs\"], \"updated_manifests\":\n    sync_report[\"updated_manifests\"], \"second_sync_status\":\n    second_sync[\"status\"],\n})"
+---
+{
+  "cut_id": "v1.1.0",
+  "deleted_changesets": [
+    ".changeset/feat-a.md"
+  ],
+  "mode": "semantic_pr",
+  "second_sync_status": "up_to_date",
+  "status": "completed",
+  "synced_commit_matches_release": true,
+  "synced_tags": [
+    "v1.1.0"
+  ],
+  "updated_changelogs": [
+    "CHANGELOG.md"
+  ],
+  "updated_manifests": [
+    "Cargo.toml"
+  ]
+}

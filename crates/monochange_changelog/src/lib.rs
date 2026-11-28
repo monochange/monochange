@@ -969,17 +969,32 @@ fn append_changelog_section(
 		String::new()
 	};
 
+	Ok(insert_changelog_section(&current, section, initial_header))
+}
+
+/// Insert a rendered release `section` into existing changelog text `current`.
+///
+/// New sections are inserted above the first release heading so the changelog
+/// stays ordered newest-first. When `current` is empty, `initial_header` is
+/// prepended when provided.
+#[must_use]
+pub fn insert_changelog_section(
+	current: &str,
+	section: &str,
+	initial_header: Option<&str>,
+) -> String {
 	let current = current.trim_end();
+	let section = section.trim();
 
 	if current.is_empty() {
 		let Some(initial_header) = initial_header
 			.map(str::trim)
 			.filter(|header| !header.is_empty())
 		else {
-			return Ok(format!("{section}\n"));
+			return format!("{section}\n");
 		};
 
-		return Ok(format!("{initial_header}\n\n{section}\n"));
+		return format!("{initial_header}\n\n{section}\n");
 	}
 
 	let Some(offset) = current
@@ -991,7 +1006,7 @@ fn append_changelog_section(
 		})
 		.find_map(|(offset, line)| is_release_heading(line).then_some(offset))
 	else {
-		return Ok(format!("{current}\n\n{section}\n"));
+		return format!("{current}\n\n{section}\n");
 	};
 
 	let prefix = current[..offset].trim_end();
@@ -1012,7 +1027,38 @@ fn append_changelog_section(
 		content.push('\n');
 	}
 
-	Ok(content)
+	content
+}
+
+/// Return whether `current` already contains a release heading for `version`.
+#[must_use]
+pub fn changelog_contains_version(current: &str, version: &str) -> bool {
+	let version = version.trim();
+
+	if version.is_empty() {
+		return false;
+	}
+
+	current.lines().any(|line| {
+		let Some(heading) = line.strip_prefix("## ") else {
+			return false;
+		};
+
+		heading
+			.split(|character: char| {
+				!character.is_ascii_alphanumeric()
+					&& character != '.'
+					&& character != '-'
+					&& character != '+'
+			})
+			.any(|candidate| {
+				let candidate = candidate.trim_matches('.');
+				candidate == version
+					|| candidate
+						.strip_prefix('v')
+						.is_some_and(|stripped| stripped == version)
+			})
+	})
 }
 
 /// Returns whether `line` is the heading of an earlier release section.

@@ -1,0 +1,59 @@
+{
+	"defaults": {
+		"include_private": true,
+		"package_type": "dart",
+		"parent_bump": "major",
+		"release_title": "cook release",
+		"strict_version_conflicts": true,
+		"warn_on_group_mismatch": true
+	},
+	"group": {
+		"main": {
+			"packages": [
+				"cook_0",
+				"cook_1"
+			],
+			"release": false,
+			"tag": false,
+			"version_format": "namespaced"
+		}
+	},
+	"lints": {
+		"rules": {
+			"no-unnecessary-releases": "error"
+		},
+		"scopes": [
+			"crates/cook"
+		],
+		"use": [
+			"no-unnecessary-releases"
+		]
+	},
+	"package": {
+		"cook_0": {
+			"path": "crates/cook_0",
+			"release": true,
+			"tag": true,
+			"type": "dart",
+			"version_format": "namespaced"
+		}
+	},
+	"source": {
+		"api_url": "api.gitea.example.com",
+		"owner": "cook",
+		"provider": "gitea",
+		"pull_requests": {
+			"auto_merge": true,
+			"base": "main",
+			"branch_prefix": "cook/release",
+			"enabled": true,
+			"labels": [
+				"release",
+				"automated"
+			],
+			"title": "chore(release): prepare cook release",
+			"verified_commits": true
+		},
+		"repo": "ptynpq"
+	}
+}

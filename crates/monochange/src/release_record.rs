@@ -399,6 +399,15 @@ pub(crate) async fn create_release_tags(
 		)));
 	}
 
+	if let Some(source_commit) = discovery.record.synced_from_commit.as_deref() {
+		return Err(MonochangeError::Config(format!(
+			"resolved ref `{}` points to synced bookkeeping commit {} (replayed from release commit {}); `tag-release` never tags a synced commit",
+			discovery.input_ref,
+			crate::short_commit_sha(&discovery.record_commit),
+			crate::short_commit_sha(source_commit),
+		)));
+	}
+
 	let mut tag_targets = discovery
 		.record
 		.release_targets

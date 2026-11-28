@@ -89,7 +89,7 @@ console_log = "1"
 log = "0.4"
 wasm-bindgen = "=0.2.129"
 wasm-bindgen-futures = "0.4"
-web-sys = { version = "0.3", features = ["Window", "Document", "Element", "HtmlElement", "Storage", "MediaQueryList"] }
+web-sys = { version = "0.3", features = ["Window", "Document", "Element", "HtmlElement", "Storage", "MediaQueryList", "Navigator", "Clipboard"] }
 
 # monochange app crates
 monochange_app_api = { path = "crates/monochange_app_api" }

@@ -1,0 +1,89 @@
+{
+	"changelog": {
+		"sections": {
+			"bug-fixes": {
+				"description": "Resolved defects",
+				"heading": "🐛 Bug Fixes",
+				"priority": 10
+			},
+			"features": {
+				"description": "New capabilities",
+				"heading": "✨ Features",
+				"priority": 20
+			}
+		},
+		"style": {
+			"collapsed_section_style": "details",
+			"metadata_style": "blockquote",
+			"package_label_style": "badge",
+			"section_separator": "thematic_break"
+		},
+		"types": {
+			"feature": {
+				"bump": "minor",
+				"description": "New features",
+				"section": "features"
+			},
+			"fix": {
+				"bump": "patch",
+				"description": "Bug fixes",
+				"section": "bug-fixes"
+			}
+		}
+	},
+	"defaults": {
+		"include_private": false,
+		"package_type": "dart",
+		"parent_bump": "patch",
+		"strict_version_conflicts": false,
+		"warn_on_group_mismatch": true
+	},
+	"ecosystems": {
+		"cargo": {
+			"enabled": true,
+			"publish": {
+				"enabled": true
+			},
+			"roots": [
+				"crates/cargo"
+			]
+		}
+	},
+	"lints": {
+		"rules": {
+			"no-unnecessary-releases": "error"
+		},
+		"scopes": [
+			"crates/cqkgxzo"
+		],
+		"use": [
+			"no-unnecessary-releases"
+		]
+	},
+	"package": {
+		"cqkgxzo_0": {
+			"path": "crates/cqkgxzo_0",
+			"release": true,
+			"tag": true,
+			"type": "dart",
+			"version_format": "namespaced"
+		}
+	},
+	"source": {
+		"owner": "cqkgxzo",
+		"provider": "gitlab",
+		"pull_requests": {
+			"auto_merge": false,
+			"base": "main",
+			"branch_prefix": "cqkgxzo/release",
+			"enabled": true,
+			"labels": [
+				"release",
+				"automated"
+			],
+			"title": "chore(release): prepare cqkgxzo release",
+			"verified_commits": false
+		},
+		"repo": "jrrnozpmptve"
+	}
+}

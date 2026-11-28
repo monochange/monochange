@@ -994,6 +994,8 @@ fn unfiltered_step_choice_rank(kind: &str) -> usize {
 		"CommentReleasedIssues" => 15,
 		"DiagnoseChangesets" => 16,
 		"RetargetRelease" => 17,
+		"SyncRelease" => 18,
+		"OpenSyncRequest" => 19,
 		SAVE_STEPS_LABEL => usize::MAX,
 		_ => 100 + filtered_step_choice_rank(kind),
 	}
@@ -1036,6 +1038,8 @@ fn step_choice_description(kind: &str) -> &'static str {
 		"AffectedPackages" => "Report packages affected by changed files",
 		"DiagnoseChangesets" => "Explain changeset and release-plan decisions",
 		"RetargetRelease" => "Retarget an existing release to another commit",
+		"SyncRelease" => "Replay published release bookkeeping onto the base branch",
+		"OpenSyncRequest" => "Open or update the coalesced post-release sync pull request",
 		STEP_KIND_SHELL_COMMAND => "Run a custom shell command",
 		SAVE_STEPS_LABEL => "Finish the command after adding at least one step",
 		_ => "Add this CLI step",

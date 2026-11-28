@@ -1,0 +1,17 @@
+---
+source: crates/monochange_integration_tests/tests/release_cut_workflow.rs
+expression: "json!({\n    \"version\": output[\"manifest\"][\"version\"], \"head_branch\":\n    request[\"head_branch\"], \"base_branch\": request[\"base_branch\"], \"title\":\n    request[\"title\"], \"labels\": request[\"labels\"], \"has_status_banner\":\n    body.contains(\"<!-- monochange:cut-status:start -->\"), \"has_cut_meta\":\n    body.contains(\"<!-- monochange:cut-meta:start \"), \"commit_subject\":\n    output[\"release_commit\"][\"subject\"],\n})"
+---
+{
+  "base_branch": "release/v1.1.0",
+  "commit_subject": "chore(release): prepare release v1.1.0",
+  "has_cut_meta": true,
+  "has_status_banner": true,
+  "head_branch": "monochange/release/v1.1.0",
+  "labels": [
+    "release",
+    "automated"
+  ],
+  "title": "chore(release): prepare release v1.1.0",
+  "version": "1.1.0"
+}

@@ -72,6 +72,8 @@ fn cli_context() -> CliContext {
 		changeset_policy_evaluation: None,
 		changeset_diagnostics: None,
 		retarget_report: None,
+		sync_report: None,
+		cut_context: crate::release_cut::CutExecutionContext::default(),
 		step_outputs: BTreeMap::new(),
 		command_logs: Vec::new(),
 		command_results: Vec::new(),
@@ -1447,6 +1449,7 @@ async fn execute_cli_command_with_options_reuses_prepared_release_artifact_for_v
 		&[],
 		Some(artifact_path.as_path()),
 		"release",
+		None,
 	)
 	.await
 	.unwrap_or_else(|error| panic!("save prepared release artifact: {error}"));
@@ -1522,6 +1525,7 @@ async fn legacy_preparation_requires_a_trusted_producer_before_follow_up(#[case]
 		&[],
 		Some(&artifact_path),
 		&producer.name,
+		None,
 	)
 	.await
 	.unwrap();
@@ -1889,4 +1893,851 @@ fn command_interpolation_decodes_back_to_single_arguments() {
 			"Cargo.toml",
 		]
 	);
+}
+
+fn run_test_git(root: &Path, args: &[&str]) -> String {
+	let output = std::process::Command::new("git")
+		.current_dir(root)
+		.args(args)
+		.output()
+		.unwrap_or_else(|error| panic!("git {args:?}: {error}"));
+	assert!(
+		output.status.success(),
+		"git {args:?} failed:\nstdout: {}\nstderr: {}",
+		String::from_utf8_lossy(&output.stdout),
+		String::from_utf8_lossy(&output.stderr)
+	);
+	String::from_utf8_lossy(&output.stdout).trim().to_string()
+}
+
+fn init_cut_repo_with_origin(
+	source_commit: &str,
+) -> (tempfile::TempDir, tempfile::TempDir, String, String) {
+	let origin_dir = tempdir().unwrap_or_else(|error| panic!("origin tempdir: {error}"));
+	run_test_git(origin_dir.path(), &["init", "--bare"]);
+
+	let repo_dir = tempdir().unwrap_or_else(|error| panic!("repo tempdir: {error}"));
+	let root = repo_dir.path();
+	run_test_git(root, &["init", "-b", "main"]);
+	run_test_git(root, &["config", "user.name", "monochange tests"]);
+	run_test_git(root, &["config", "user.email", "monochange@example.com"]);
+	run_test_git(root, &["config", "commit.gpgsign", "false"]);
+	run_test_git(
+		root,
+		&[
+			"remote",
+			"add",
+			"origin",
+			&origin_dir.path().to_string_lossy(),
+		],
+	);
+
+	let config_toml = format!(
+		r#"[source]
+provider = "github"
+owner = "acme"
+repo = "widgets"
+
+[source.releases]
+enabled = true
+branches = ["release/*"]
+enforce_for_tags = true
+enforce_for_publish = true
+
+[source.pull_requests]
+enabled = true
+strategy = "cut"
+base = "main"
+branch_prefix = "monochange/release"
+title = "chore(release): prepare release {{{{ cut_id }}}}"
+
+[source.pull_requests.cut]
+branch_template = "release/{{{{ cut_id }}}}"
+trigger = "sticky"
+source_commit = "{source_commit}"
+refresh_command = "/refresh"
+status_banner = true
+retention = "delete"
+
+[source.pull_requests.sync]
+mode = "semantic_pr"
+branch = "monochange/sync-release"
+title = "chore(release): sync {{{{ cut_id }}}} to {{{{ base }}}}"
+auto_merge = false
+
+[package.core]
+path = "."
+type = "cargo"
+version_format = "primary"
+tag = true
+release = true
+changelog = "CHANGELOG.md"
+"#
+	);
+	fs::write(root.join("monochange.toml"), config_toml).unwrap();
+	fs::write(
+		root.join("Cargo.toml"),
+		"[package]\nname = \"core\"\nversion = \"1.0.0\"\nedition = \"2021\"\n",
+	)
+	.unwrap();
+	fs::create_dir_all(root.join("src")).unwrap();
+	fs::write(
+		root.join("src/lib.rs"),
+		"pub fn version_tag() -> &'static str { \"v1\" }\n",
+	)
+	.unwrap();
+	fs::write(
+		root.join("CHANGELOG.md"),
+		"# Changelog\n\n## 1.0.0\n\n- Initial\n",
+	)
+	.unwrap();
+	fs::create_dir_all(root.join(".changeset")).unwrap();
+	fs::write(
+		root.join(".changeset/feat-a.md"),
+		"---\ncore: patch\n---\n\nPatch included in M1.\n",
+	)
+	.unwrap();
+	run_test_git(root, &["add", "."]);
+	run_test_git(root, &["commit", "-m", "feat: green commit M1"]);
+	let m1 = run_test_git(root, &["rev-parse", "HEAD"]);
+
+	fs::write(
+		root.join(".changeset/breaking-b.md"),
+		"---\ncore: major\n---\n\nBreaking change landed on M2.\n",
+	)
+	.unwrap();
+	fs::write(
+		root.join("src/lib.rs"),
+		"pub fn version_tag() -> &'static str { \"v2\" }\n",
+	)
+	.unwrap();
+	run_test_git(root, &["add", "."]);
+	run_test_git(root, &["commit", "-m", "feat!: failing commit M2"]);
+	let m2 = run_test_git(root, &["rev-parse", "HEAD"]);
+	run_test_git(root, &["push", "-u", "origin", "main"]);
+
+	(origin_dir, repo_dir, m1, m2)
+}
+
+fn load_cut_test_config(root: &Path, api_url: &str) -> monochange_core::WorkspaceConfiguration {
+	let mut configuration = load_workspace_configuration(root).unwrap();
+	configuration.source.as_mut().unwrap().api_url = Some(api_url.to_string());
+	configuration
+}
+
+#[test]
+fn cut_prepare_and_standalone_open_release_request_use_latest_green_and_exclude_newer_commits() {
+	let _guard = TEST_ENV_LOCK
+		.lock()
+		.unwrap_or_else(std::sync::PoisonError::into_inner);
+	crate::tests::block_on_in_context(async {
+		let server = httpmock::MockServer::start_async().await;
+		let (origin_dir, repo_dir, m1, m2) = init_cut_repo_with_origin("latest_green");
+		let root = repo_dir.path();
+		let configuration = load_cut_test_config(root, &server.base_url());
+
+		server
+			.mock_async(|when, then| {
+				when.method(httpmock::Method::GET)
+					.path("/repos/acme/widgets/pulls")
+					.query_param("state", "open");
+				then.status(200).json_body(serde_json::json!([]));
+			})
+			.await;
+		server
+			.mock_async(|when, then| {
+				when.method(httpmock::Method::GET)
+					.path("/repos/acme/widgets/commits")
+					.query_param("sha", "main");
+				then.status(200)
+					.json_body(serde_json::json!([{ "sha": m2 }, { "sha": m1 }]));
+			})
+			.await;
+		server
+			.mock_async(|when, then| {
+				when.method(httpmock::Method::GET)
+					.path(format!("/repos/acme/widgets/commits/{m2}/status"));
+				then.status(200)
+					.json_body(serde_json::json!({ "state": "pending", "total_count": 0 }));
+			})
+			.await;
+		server
+			.mock_async(|when, then| {
+				when.method(httpmock::Method::GET)
+					.path(format!("/repos/acme/widgets/commits/{m2}/check-runs"));
+				then.status(200).json_body(serde_json::json!({
+					"total_count": 1,
+					"check_runs": [{ "status": "completed", "conclusion": "failure" }]
+				}));
+			})
+			.await;
+		server
+			.mock_async(|when, then| {
+				when.method(httpmock::Method::GET)
+					.path(format!("/repos/acme/widgets/commits/{m1}/status"));
+				then.status(200)
+					.json_body(serde_json::json!({ "state": "success", "total_count": 1 }));
+			})
+			.await;
+		server
+			.mock_async(|when, then| {
+				when.method(httpmock::Method::GET)
+					.path(format!("/repos/acme/widgets/commits/{m1}/check-runs"));
+				then.status(200).json_body(serde_json::json!({
+					"total_count": 1,
+					"check_runs": [{ "status": "completed", "conclusion": "success" }]
+				}));
+			})
+			.await;
+		let create_pr = server
+			.mock_async(|when, then| {
+				when.method(httpmock::Method::POST)
+					.path("/repos/acme/widgets/pulls");
+				then.status(201).json_body(serde_json::json!({
+					"number": 88,
+					"node_id": "PR_kwDO_test_88",
+					"html_url": "https://github.com/acme/widgets/pull/88"
+				}));
+			})
+			.await;
+		server
+			.mock_async(|when, then| {
+				when.method(httpmock::Method::POST)
+					.path("/repos/acme/widgets/issues/88/labels");
+				then.status(200).json_body(serde_json::json!([]));
+			})
+			.await;
+
+		temp_env::async_with_vars(
+			[
+				("GITHUB_TOKEN", Some("test-token")),
+				("GITHUB_REPOSITORY", Some("acme/widgets")),
+			],
+			async {
+				// 1. Dry-run prepare computes plan from M1 (1.0.1) without mutating HEAD (stays M2),
+				// and follow-up dry-run commit/open with matching `--from M1` reuse the dry-run plan.
+				let prepare_cmd = synthetic_step_command_definition("prepare-release").unwrap();
+				let dry_out = execute_cli_command_with_options(
+					root,
+					&configuration,
+					&prepare_cmd,
+					ExecuteCliCommandOptions {
+						dry_run: true,
+						quiet: true,
+						show_diff: false,
+						inputs: format_input("json"),
+						prepared_release_path: None,
+						progress_format: ProgressFormat::Auto,
+						progress: None,
+					},
+				)
+				.await
+				.unwrap();
+				let dry_json: serde_json::Value = serde_json::from_str(&dry_out).unwrap();
+				assert_eq!(dry_json["version"], serde_json::json!("1.0.1"));
+				let dry_changeset_paths: Vec<&str> = dry_json["changesets"]
+					.as_array()
+					.unwrap()
+					.iter()
+					.filter_map(|entry| entry["path"].as_str())
+					.collect();
+				assert_eq!(dry_changeset_paths, vec![".changeset/feat-a.md"]);
+				assert_eq!(run_test_git(root, &["rev-parse", "HEAD"]), m2);
+
+				let commit_cmd = synthetic_step_command_definition("commit-release").unwrap();
+				let mut dry_commit_inputs = format_input("json");
+				dry_commit_inputs.insert("from".to_string(), vec![m1.clone()]);
+				dry_commit_inputs.insert("refresh".to_string(), vec!["true".to_string()]);
+				dry_commit_inputs.insert("commit_backend".to_string(), vec!["hosted".to_string()]);
+				let dry_commit_out = execute_cli_command_with_options(
+					root,
+					&configuration,
+					&commit_cmd,
+					ExecuteCliCommandOptions {
+						dry_run: true,
+						quiet: true,
+						show_diff: false,
+						inputs: dry_commit_inputs,
+						prepared_release_path: None,
+						progress_format: ProgressFormat::Auto,
+						progress: None,
+					},
+				)
+				.await
+				.unwrap();
+				let dry_commit_json: serde_json::Value =
+					serde_json::from_str(&dry_commit_out).unwrap();
+				assert_eq!(
+					dry_commit_json["release_commit"]["status"],
+					serde_json::json!("dry_run")
+				);
+
+				let mut bad_commit_inputs = format_input("json");
+				bad_commit_inputs.insert("from".to_string(), vec![m2.clone()]);
+				bad_commit_inputs.insert("refresh".to_string(), vec!["true".to_string()]);
+				let bad_commit_err = execute_cli_command_with_options(
+					root,
+					&configuration,
+					&commit_cmd,
+					ExecuteCliCommandOptions {
+						dry_run: true,
+						quiet: true,
+						show_diff: false,
+						inputs: bad_commit_inputs,
+						prepared_release_path: None,
+						progress_format: ProgressFormat::Auto,
+						progress: None,
+					},
+				)
+				.await
+				.unwrap_err();
+				assert!(bad_commit_err.to_string().contains("does not match"));
+
+				// 2. Dirty working tree fails closed before switching to M1.
+				fs::write(root.join("untracked.txt"), "dirty").unwrap();
+				let dirty_err = execute_cli_command_with_options(
+					root,
+					&configuration,
+					&prepare_cmd,
+					ExecuteCliCommandOptions {
+						dry_run: false,
+						quiet: true,
+						show_diff: false,
+						inputs: format_input("json"),
+						prepared_release_path: None,
+						progress_format: ProgressFormat::Auto,
+						progress: None,
+					},
+				)
+				.await
+				.unwrap_err();
+				assert!(dirty_err.to_string().contains("uncommitted changes"));
+				fs::remove_file(root.join("untracked.txt")).unwrap();
+
+				// 3. Live prepare switches checkout to M1 and plans ONLY 1.0.1 from M1.
+				let live_out = execute_cli_command_with_options(
+					root,
+					&configuration,
+					&prepare_cmd,
+					ExecuteCliCommandOptions {
+						dry_run: false,
+						quiet: true,
+						show_diff: false,
+						inputs: format_input("json"),
+						prepared_release_path: None,
+						progress_format: ProgressFormat::Auto,
+						progress: None,
+					},
+				)
+				.await
+				.unwrap();
+				let live_json: serde_json::Value = serde_json::from_str(&live_out).unwrap();
+				assert_eq!(live_json["version"], serde_json::json!("1.0.1"));
+				assert_eq!(run_test_git(root, &["rev-parse", "HEAD"]), m1);
+				assert!(
+					fs::read_to_string(root.join("src/lib.rs"))
+						.unwrap()
+						.contains("\"v1\"")
+				);
+
+				// 4. Mismatched `--from M2` on standalone `open-release-request` fails closed.
+				let open_cmd = synthetic_step_command_definition("open-release-request").unwrap();
+				let mut mismatch_inputs = format_input("json");
+				mismatch_inputs.insert("from".to_string(), vec![m2.clone()]);
+				let mismatch_err = execute_cli_command_with_options(
+					root,
+					&configuration,
+					&open_cmd,
+					ExecuteCliCommandOptions {
+						dry_run: false,
+						quiet: true,
+						show_diff: false,
+						inputs: mismatch_inputs,
+						prepared_release_path: None,
+						progress_format: ProgressFormat::Auto,
+						progress: None,
+					},
+				)
+				.await
+				.unwrap_err();
+				assert!(mismatch_err.to_string().contains("does not match"));
+
+				// 5. Standalone `open-release-request` pushes `release/v1.0.1` at M1 and
+				// `monochange/release/v1.0.1` rooted at M1 with ONLY M1's code & changeset.
+				let open_out = execute_cli_command_with_options(
+					root,
+					&configuration,
+					&open_cmd,
+					ExecuteCliCommandOptions {
+						dry_run: false,
+						quiet: true,
+						show_diff: false,
+						inputs: format_input("json"),
+						prepared_release_path: None,
+						progress_format: ProgressFormat::Auto,
+						progress: None,
+					},
+				)
+				.await
+				.unwrap();
+				let open_json: serde_json::Value = serde_json::from_str(&open_out).unwrap();
+				assert_eq!(
+					open_json["release_request"]["base_branch"],
+					serde_json::json!("release/v1.0.1")
+				);
+				assert_eq!(
+					open_json["release_request"]["head_branch"],
+					serde_json::json!("monochange/release/v1.0.1")
+				);
+			},
+		)
+		.await;
+
+		create_pr.assert_async().await;
+		let origin_cut_base = run_test_git(
+			origin_dir.path(),
+			&["rev-parse", "refs/heads/release/v1.0.1"],
+		);
+		assert_eq!(origin_cut_base, m1);
+		let origin_head_parent = run_test_git(
+			origin_dir.path(),
+			&["rev-parse", "refs/heads/monochange/release/v1.0.1^1"],
+		);
+		assert_eq!(origin_head_parent, m1);
+		let origin_lib = run_test_git(
+			origin_dir.path(),
+			&["show", "refs/heads/monochange/release/v1.0.1:src/lib.rs"],
+		);
+		assert!(
+			origin_lib.contains("\"v1\""),
+			"expected v1 code, got: {origin_lib}"
+		);
+		let origin_cargo = run_test_git(
+			origin_dir.path(),
+			&["show", "refs/heads/monochange/release/v1.0.1:Cargo.toml"],
+		);
+		assert!(origin_cargo.contains("version = \"1.0.1\""));
+	});
+}
+
+#[test]
+fn cut_live_lookup_errors_fail_closed() {
+	let _guard = TEST_ENV_LOCK
+		.lock()
+		.unwrap_or_else(std::sync::PoisonError::into_inner);
+	crate::tests::block_on_in_context(async {
+		let server = httpmock::MockServer::start_async().await;
+		let (_origin_dir, repo_dir, _m1, _m2) = init_cut_repo_with_origin("latest_green");
+		let root = repo_dir.path();
+		let configuration = load_cut_test_config(root, &server.base_url());
+
+		server
+			.mock_async(|when, then| {
+				when.method(httpmock::Method::GET)
+					.path("/repos/acme/widgets/pulls")
+					.query_param("state", "open");
+				then.status(500)
+					.json_body(serde_json::json!({ "message": "upstream failure" }));
+			})
+			.await;
+
+		temp_env::async_with_vars(
+			[
+				("GITHUB_TOKEN", Some("test-token")),
+				("GITHUB_REPOSITORY", Some("acme/widgets")),
+			],
+			async {
+				let open_cmd = synthetic_step_command_definition("open-release-request").unwrap();
+				let open_err = execute_cli_command_with_options(
+					root,
+					&configuration,
+					&open_cmd,
+					ExecuteCliCommandOptions {
+						dry_run: false,
+						quiet: true,
+						show_diff: false,
+						inputs: format_input("json"),
+						prepared_release_path: None,
+						progress_format: ProgressFormat::Auto,
+						progress: None,
+					},
+				)
+				.await
+				.unwrap_err();
+				assert!(
+					open_err.to_string().contains("500")
+						|| open_err.to_string().contains("upstream failure"),
+					"unexpected error: {open_err}"
+				);
+
+				let prepare_cmd = synthetic_step_command_definition("prepare-release").unwrap();
+				let prepare_err = execute_cli_command_with_options(
+					root,
+					&configuration,
+					&prepare_cmd,
+					ExecuteCliCommandOptions {
+						dry_run: false,
+						quiet: true,
+						show_diff: false,
+						inputs: format_input("json"),
+						prepared_release_path: None,
+						progress_format: ProgressFormat::Auto,
+						progress: None,
+					},
+				)
+				.await
+				.unwrap_err();
+				assert!(
+					prepare_err.to_string().contains("500")
+						|| prepare_err.to_string().contains("upstream failure"),
+					"unexpected prepare error: {prepare_err}"
+				);
+			},
+		)
+		.await;
+	});
+}
+
+#[test]
+fn standalone_open_release_request_updates_sticky_banner_without_prepared_artifact() {
+	let _guard = TEST_ENV_LOCK
+		.lock()
+		.unwrap_or_else(std::sync::PoisonError::into_inner);
+	crate::tests::block_on_in_context(async {
+		let server = httpmock::MockServer::start_async().await;
+		let (_origin_dir, repo_dir, m1, _m2) = init_cut_repo_with_origin("latest_green");
+		let root = repo_dir.path();
+		let configuration = load_cut_test_config(root, &server.base_url());
+
+		let existing_meta = monochange_hosting::cut::render_cut_metadata_comment(
+			&monochange_hosting::cut::CutMetadata {
+				cut_id: "v1.0.1".to_string(),
+				base_branch: "main".to_string(),
+				cut_base_branch: "release/v1.0.1".to_string(),
+				head_branch: "monochange/release/v1.0.1".to_string(),
+				cut_base_commit: m1.clone(),
+				release_commit: None,
+				targets: vec!["core@1.0.1".to_string()],
+			},
+		);
+		server
+			.mock_async(|when, then| {
+				when.method(httpmock::Method::GET)
+					.path("/repos/acme/widgets/pulls")
+					.query_param("state", "open");
+				then.status(200).json_body(serde_json::json!([{
+					"number": 77,
+					"node_id": "PR_kwDO_test_77",
+					"title": "chore(release): prepare release v1.0.1",
+					"body": format!("## Prepared release\n\n{existing_meta}"),
+					"html_url": "https://github.com/acme/widgets/pull/77",
+					"head": { "ref": "monochange/release/v1.0.1", "sha": "deadbeef" },
+					"base": { "ref": "release/v1.0.1" }
+				}]));
+			})
+			.await;
+		let patch_pr = server
+			.mock_async(|when, then| {
+				when.method(httpmock::Method::PATCH)
+					.path("/repos/acme/widgets/pulls/77")
+					.body_includes("1 newer commit")
+					.body_includes(".changeset/breaking-b.md");
+				then.status(200).json_body(serde_json::json!({
+					"number": 77,
+					"node_id": "PR_kwDO_test_77",
+					"html_url": "https://github.com/acme/widgets/pull/77"
+				}));
+			})
+			.await;
+
+		temp_env::async_with_vars(
+			[
+				("GITHUB_TOKEN", Some("test-token")),
+				("GITHUB_REPOSITORY", Some("acme/widgets")),
+			],
+			async {
+				// Standalone `commit-release --commit-backend hosted` also skips when sticky PR is open.
+				let commit_cmd = synthetic_step_command_definition("commit-release").unwrap();
+				let mut hosted_commit_inputs = format_input("json");
+				hosted_commit_inputs
+					.insert("commit_backend".to_string(), vec!["hosted".to_string()]);
+				let commit_output = execute_cli_command_with_options(
+					root,
+					&configuration,
+					&commit_cmd,
+					ExecuteCliCommandOptions {
+						dry_run: false,
+						quiet: true,
+						show_diff: false,
+						inputs: hosted_commit_inputs,
+						prepared_release_path: None,
+						progress_format: ProgressFormat::Auto,
+						progress: None,
+					},
+				)
+				.await
+				.unwrap();
+				let commit_json: serde_json::Value = serde_json::from_str(&commit_output).unwrap();
+				assert_eq!(
+					commit_json["active_cut_pr"]["number"],
+					serde_json::json!(77)
+				);
+
+				let open_cmd = synthetic_step_command_definition("open-release-request").unwrap();
+				let output = execute_cli_command_with_options(
+					root,
+					&configuration,
+					&open_cmd,
+					ExecuteCliCommandOptions {
+						dry_run: false,
+						quiet: true,
+						show_diff: false,
+						inputs: format_input("json"),
+						prepared_release_path: None,
+						progress_format: ProgressFormat::Auto,
+						progress: None,
+					},
+				)
+				.await
+				.unwrap();
+				let json: serde_json::Value = serde_json::from_str(&output).unwrap();
+				assert!(
+					json["release_request_result"]
+						.as_str()
+						.is_some_and(|result| result.contains("#77") && result.contains("banner")),
+					"unexpected output: {output}"
+				);
+			},
+		)
+		.await;
+
+		patch_pr.assert_async().await;
+	});
+}
+
+#[test]
+fn open_sync_request_works_both_single_invocation_and_after_separate_sync_release() {
+	let _guard = TEST_ENV_LOCK
+		.lock()
+		.unwrap_or_else(std::sync::PoisonError::into_inner);
+	crate::tests::block_on_in_context(async {
+		let server = httpmock::MockServer::start_async().await;
+		let (origin_dir, repo_dir, _m1, _m2) = init_cut_repo_with_origin("head");
+		let root = repo_dir.path();
+		let configuration = load_cut_test_config(root, &server.base_url());
+
+		// Cut, commit, and tag v2.0.0 on release/v2.0.0.
+		run_test_git(root, &["checkout", "-b", "monochange/release/v2.0.0"]);
+		let prepare_cmd = synthetic_step_command_definition("prepare-release").unwrap();
+		let _ = execute_cli_command_with_options(
+			root,
+			&configuration,
+			&prepare_cmd,
+			ExecuteCliCommandOptions {
+				dry_run: false,
+				quiet: true,
+				show_diff: false,
+				inputs: format_input("json"),
+				prepared_release_path: None,
+				progress_format: ProgressFormat::Auto,
+				progress: None,
+			},
+		)
+		.await
+		.unwrap();
+		let commit_cmd = synthetic_step_command_definition("commit-release").unwrap();
+		let _ = execute_cli_command_with_options(
+			root,
+			&configuration,
+			&commit_cmd,
+			ExecuteCliCommandOptions {
+				dry_run: false,
+				quiet: true,
+				show_diff: false,
+				inputs: format_input("json"),
+				prepared_release_path: None,
+				progress_format: ProgressFormat::Auto,
+				progress: None,
+			},
+		)
+		.await
+		.unwrap();
+		let rel_commit = run_test_git(root, &["rev-parse", "HEAD"]);
+		run_test_git(root, &["checkout", "-B", "release/v2.0.0"]);
+		run_test_git(root, &["tag", "v2.0.0"]);
+		run_test_git(root, &["checkout", "main"]);
+		fs::write(root.join("extra.txt"), "main kept moving\n").unwrap();
+		run_test_git(root, &["add", "extra.txt"]);
+		run_test_git(root, &["commit", "-m", "chore: extra commit on main"]);
+		let main_head = run_test_git(root, &["rev-parse", "HEAD"]);
+		run_test_git(root, &["push", "origin", "main"]);
+
+		server
+			.mock_async(|when, then| {
+				when.method(httpmock::Method::GET)
+					.path("/repos/acme/widgets/pulls")
+					.query_param("state", "open");
+				then.status(200).json_body(serde_json::json!([]));
+			})
+			.await;
+		let create_sync_pr = server
+			.mock_async(|when, then| {
+				when.method(httpmock::Method::POST)
+					.path("/repos/acme/widgets/pulls");
+				then.status(201).json_body(serde_json::json!({
+					"number": 99,
+					"node_id": "PR_kwDO_test_99",
+					"html_url": "https://github.com/acme/widgets/pull/99"
+				}));
+			})
+			.await;
+		server
+			.mock_async(|when, then| {
+				when.method(httpmock::Method::POST)
+					.path("/repos/acme/widgets/issues/99/labels");
+				then.status(200).json_body(serde_json::json!([]));
+			})
+			.await;
+
+		temp_env::async_with_vars(
+			[
+				("GITHUB_TOKEN", Some("test-token")),
+				("GITHUB_REPOSITORY", Some("acme/widgets")),
+			],
+			async {
+				// 1. Two-step sequence: `step sync-release` writes marker on disk, then standalone
+				// `step open-sync-request` STILL opens the sync PR instead of skipping as up_to_date!
+				let sync_cmd = synthetic_step_command_definition("sync-release").unwrap();
+				let mut sync_inputs = format_input("json");
+				sync_inputs.insert("from".to_string(), vec!["v2.0.0".to_string()]);
+				sync_inputs.insert("mode".to_string(), vec!["semantic_pr".to_string()]);
+				let _ = execute_cli_command_with_options(
+					root,
+					&configuration,
+					&sync_cmd,
+					ExecuteCliCommandOptions {
+						dry_run: false,
+						quiet: true,
+						show_diff: false,
+						inputs: sync_inputs,
+						prepared_release_path: None,
+						progress_format: ProgressFormat::Auto,
+						progress: None,
+					},
+				)
+				.await
+				.unwrap();
+
+				let open_sync_cmd = synthetic_step_command_definition("open-sync-request").unwrap();
+				let two_step_out = execute_cli_command_with_options(
+					root,
+					&configuration,
+					&open_sync_cmd,
+					ExecuteCliCommandOptions {
+						dry_run: false,
+						quiet: true,
+						show_diff: false,
+						inputs: format_input("json"),
+						prepared_release_path: None,
+						progress_format: ProgressFormat::Auto,
+						progress: None,
+					},
+				)
+				.await
+				.unwrap();
+				let two_step_json: serde_json::Value = serde_json::from_str(&two_step_out).unwrap();
+				assert_eq!(
+					two_step_json["sync"]["status"],
+					serde_json::json!("completed")
+				);
+				assert!(
+					two_step_json["release_request_result"]
+						.as_str()
+						.is_some_and(|result| result.contains("#99")),
+					"expected sync PR #99 to be opened, got: {two_step_out}"
+				);
+
+				// 2. Reset back to main and test single-invocation `step open-sync-request --from v2.0.0 --mode merge_pr`.
+				run_test_git(root, &["checkout", "main"]);
+				let mut single_inputs = format_input("json");
+				single_inputs.insert("from".to_string(), vec!["v2.0.0".to_string()]);
+				single_inputs.insert("mode".to_string(), vec!["merge_pr".to_string()]);
+				let single_out = execute_cli_command_with_options(
+					root,
+					&configuration,
+					&open_sync_cmd,
+					ExecuteCliCommandOptions {
+						dry_run: false,
+						quiet: true,
+						show_diff: false,
+						inputs: single_inputs,
+						prepared_release_path: None,
+						progress_format: ProgressFormat::Auto,
+						progress: None,
+					},
+				)
+				.await
+				.unwrap();
+				let single_json: serde_json::Value = serde_json::from_str(&single_out).unwrap();
+				assert_eq!(single_json["sync"]["mode"], serde_json::json!("merge_pr"));
+				assert_eq!(
+					single_json["sync"]["synced_tags"],
+					serde_json::json!(["v2.0.0"])
+				);
+				assert!(
+					single_json["release_request_result"]
+						.as_str()
+						.is_some_and(|result| result.contains("#99")),
+					"expected sync PR #99, got: {single_out}"
+				);
+
+				// 3. After syncing on this branch, a follow-up `open-sync-request --format json`
+				// reports `sync.status = "up_to_date"` and `sync.synced_tags = []` in the same JSON envelope.
+				let up_to_date_out = execute_cli_command_with_options(
+					root,
+					&configuration,
+					&open_sync_cmd,
+					ExecuteCliCommandOptions {
+						dry_run: true,
+						quiet: true,
+						show_diff: false,
+						inputs: format_input("json"),
+						prepared_release_path: None,
+						progress_format: ProgressFormat::Auto,
+						progress: None,
+					},
+				)
+				.await
+				.unwrap();
+				let up_to_date_json: serde_json::Value =
+					serde_json::from_str(&up_to_date_out).unwrap();
+				assert_eq!(
+					up_to_date_json["sync"]["status"],
+					serde_json::json!("up_to_date")
+				);
+				assert_eq!(
+					up_to_date_json["sync"]["synced_tags"],
+					serde_json::json!([])
+				);
+				assert!(up_to_date_json["release_request"].is_null());
+			},
+		)
+		.await;
+
+		create_sync_pr.assert_calls_async(2).await;
+		let sync_parents = run_test_git(
+			origin_dir.path(),
+			&[
+				"show",
+				"-s",
+				"--format=%P",
+				"refs/heads/monochange/sync-release",
+			],
+		);
+		assert_eq!(
+			sync_parents,
+			format!("{main_head} {rel_commit}"),
+			"merge_pr sync commit must bridge (main_head, rel_commit)"
+		);
+	});
 }

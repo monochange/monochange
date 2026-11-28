@@ -58,13 +58,22 @@ fn organization(login: &str, personal: bool, names: &[&str]) -> OrganizationSumm
 }
 
 async fn dashboard(uri: &'static str, organizations: Vec<OrganizationSummary>) -> String {
-	dashboard_with_updates(uri, organizations, Vec::new()).await
+	dashboard_with_notices(uri, organizations, Vec::new(), Vec::new()).await
 }
 
 async fn dashboard_with_updates(
 	uri: &'static str,
 	organizations: Vec<OrganizationSummary>,
 	updates: Vec<PermissionUpdate>,
+) -> String {
+	dashboard_with_notices(uri, organizations, updates, Vec::new()).await
+}
+
+async fn dashboard_with_notices(
+	uri: &'static str,
+	organizations: Vec<OrganizationSummary>,
+	updates: Vec<PermissionUpdate>,
+	suggestions: Vec<ReleaseCutSuggestion>,
 ) -> String {
 	crate::tests::render_at(uri, move || {
 		let connection = Resource::new_blocking(
@@ -79,13 +88,21 @@ async fn dashboard_with_updates(
 				async move { Ok(updates) }
 			},
 		);
+		let suggestions = suggestions.clone();
+		let cut_suggestions = Resource::new_blocking(
+			|| (),
+			move |()| {
+				let suggestions = suggestions.clone();
+				async move { Ok(suggestions) }
+			},
+		);
 		let user = SessionUser {
 			github_id: 101,
 			github_login: "alice".to_owned(),
 			github_avatar_url: None,
 			plan_tier: "free".to_owned(),
 		};
-		view! { <DashboardContent user=user organizations=organizations.clone() connection=connection permissions=permissions /> }
+		view! { <DashboardContent user=user organizations=organizations.clone() connection=connection permissions=permissions cut_suggestions=cut_suggestions /> }
 	})
 	.await
 }
@@ -165,6 +182,47 @@ async fn no_permission_notice_when_every_installation_is_current() {
 	let html = dashboard("/dashboard", workspace()).await;
 
 	assert!(!html.contains("permission-update"), "{html}");
+	assert!(!html.contains("release-cut-suggestion"), "{html}");
+}
+
+#[tokio::test]
+async fn high_velocity_repositories_render_frozen_cut_suggestion_with_setup_and_agent_prompt() {
+	let html = dashboard_with_notices(
+		"/dashboard",
+		workspace(),
+		Vec::new(),
+		vec![ReleaseCutSuggestion {
+			repository: "acme/web-app".to_owned(),
+			peak_prs_in_hour: 9,
+			merged_prs_24h: 24,
+			burst_summary: "9 PRs merged in 1 hour (~1 every 6.7 min · 24 in the last 24h)"
+				.to_owned(),
+			guide_url: "/book/guide/16-frozen-release-cuts".to_owned(),
+			agent_prompt: "Switch `acme/web-app` to strategy = \"cut\".".to_owned(),
+		}],
+	)
+	.await;
+
+	assert!(
+		html.contains("Switch high-velocity repositories to frozen release cuts"),
+		"{html}"
+	);
+	assert!(html.contains("acme/web-app"), "{html}");
+	assert!(
+		html.contains("9 PRs merged in 1 hour (~1 every 6.7 min · 24 in the last 24h)"),
+		"{html}"
+	);
+	assert!(html.contains("Open setup PR"), "{html}");
+	assert!(html.contains("Copy prompt for agent"), "{html}");
+	assert!(
+		html.contains("href=\"/book/guide/16-frozen-release-cuts\""),
+		"{html}"
+	);
+	assert!(
+		html.contains("Switch `acme/web-app` to strategy = &quot;cut&quot;.")
+			|| html.contains("Switch `acme/web-app` to strategy = \"cut\"."),
+		"{html}"
+	);
 }
 
 #[tokio::test]

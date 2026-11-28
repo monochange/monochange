@@ -26,6 +26,7 @@
 - [Advanced: CI, package publishing, and release PR flows](guide/13-ci-and-publishing.md)
 - [Advanced: Multi-package publishing patterns](guide/14-multi-package-publishing.md)
 - [Advanced: Publish rate-limit planning](guide/15-publish-rate-limits.md)
+- [Advanced: Frozen release cuts (`strategy = "cut"`)](guide/16-frozen-release-cuts.md)
 
 # Migration guides
 
@@ -68,6 +69,8 @@
   - [PlanPublishRateLimits](reference/cli-steps/09-plan-publish-rate-limits.md)
   - [PublishRelease](reference/cli-steps/10-publish-release.md)
   - [OpenReleaseRequest](reference/cli-steps/11-open-release-request.md)
+  - [SyncRelease](reference/cli-steps/22-sync-release.md)
+  - [OpenSyncRequest](reference/cli-steps/23-open-sync-request.md)
   - [CommentReleasedIssues](reference/cli-steps/12-comment-released-issues.md)
   - [Command](reference/cli-steps/13-command.md)
   - [DisplayVersions](reference/cli-steps/14-display-versions.md)

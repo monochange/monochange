@@ -1,0 +1,15 @@
+---
+source: crates/monochange_integration_tests/tests/release_cut_workflow.rs
+expression: "json!({\n    \"version\": second_prepare[\"version\"], \"deleted_changesets\":\n    second_prepare[\"deleted_changesets\"], \"changed_files\":\n    second_prepare[\"changed_files\"],\n})"
+---
+{
+  "changed_files": [
+    "CHANGELOG.md",
+    "Cargo.toml"
+  ],
+  "deleted_changesets": [
+    ".changeset/feat-b.md",
+    ".changeset/feat-a.md"
+  ],
+  "version": "1.2.0"
+}

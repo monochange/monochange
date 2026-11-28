@@ -16,6 +16,7 @@ use std::sync::OnceLock;
 use std::time::Duration;
 
 use base64::Engine as _;
+use monochange_core::ActiveCutPullRequest;
 use monochange_core::CommitMessage;
 use monochange_core::DiscoveryPathFilter;
 use monochange_core::GITHUB_PULL_REQUEST_BODY_LIMIT;
@@ -378,6 +379,8 @@ struct GitHubExistingPullRequestBase {
 
 #[derive(Debug, Deserialize)]
 struct GitHubExistingPullRequestHead {
+	#[serde(rename = "ref", default)]
+	ref_name: String,
 	sha: Option<String>,
 }
 
@@ -392,6 +395,45 @@ struct GitHubExistingPullRequest {
 	head: GitHubExistingPullRequestHead,
 	#[serde(default)]
 	labels: Vec<GitHubExistingPullRequestLabel>,
+}
+
+#[derive(Debug, Deserialize)]
+struct GitHubBranchCommitItem {
+	sha: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct GitHubCombinedCommitStatus {
+	state: String,
+	total_count: usize,
+}
+
+#[derive(Debug, Deserialize)]
+struct GitHubCheckRunsResponse {
+	total_count: usize,
+	#[serde(default)]
+	check_runs: Vec<GitHubCheckRun>,
+}
+
+#[derive(Debug, Deserialize)]
+struct GitHubCheckRun {
+	status: String,
+	conclusion: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct GitHubPullRequestBodyUpdatePayload<'a> {
+	body: &'a str,
+}
+
+#[derive(Debug, Serialize)]
+struct GitHubPullRequestStatePayload {
+	state: &'static str,
+}
+
+#[derive(Debug, Serialize)]
+struct GitHubIssueCommentBodyPayload<'a> {
+	body: &'a str,
 }
 
 #[derive(Debug, Deserialize)]
@@ -1458,6 +1500,227 @@ pub async fn publish_release_pull_request(
 		&head_commit,
 	)
 	.await
+}
+
+/// Publish or update a pull request whose head branch has already been committed
+/// and pushed locally (used for frozen cut PRs and multi-parent sync PRs).
+#[must_use = "the pull request result must be checked"]
+pub async fn publish_pushed_pull_request(
+	source: &SourceConfiguration,
+	request: &GitHubPullRequestRequest,
+	head_commit: &str,
+) -> MonochangeResult<GitHubPullRequestOutcome> {
+	let client = github_client_from_env(source).await?;
+	let existing = lookup_existing_pull_request_with_client(&client, request).await?;
+	publish_release_pull_request_with_existing_pull_request(
+		&client,
+		request,
+		existing.as_ref(),
+		head_commit,
+	)
+	.await
+}
+
+/// Inspect recent commits on `base_branch` and return the newest commit whose
+/// combined commit statuses and GitHub check runs are all green.
+///
+/// Returns `Ok(None)` when the tip commit has no statuses or check runs configured
+/// so callers can cleanly fall back to `base_branch` HEAD. Returns an error when
+/// checks exist on recent commits but none are green.
+pub async fn lookup_latest_green_commit(
+	source: &SourceConfiguration,
+	base_branch: &str,
+) -> MonochangeResult<Option<String>> {
+	let client = github_client_from_env(source).await?;
+	let commits_path = format!(
+		"/repos/{}/{}/commits?sha={}&per_page=20",
+		source.owner,
+		source.repo,
+		encode(base_branch)
+	);
+	let commits: Vec<GitHubBranchCommitItem> = get_json(&client, &commits_path).await?;
+
+	if commits.is_empty() {
+		return Ok(None);
+	}
+
+	let mut saw_any_checks = false;
+
+	for commit in &commits {
+		let status_path = format!(
+			"/repos/{}/{}/commits/{}/status",
+			source.owner, source.repo, commit.sha
+		);
+		let status: GitHubCombinedCommitStatus = get_json(&client, &status_path).await?;
+		let checks_path = format!(
+			"/repos/{}/{}/commits/{}/check-runs?per_page=100",
+			source.owner, source.repo, commit.sha
+		);
+		let checks: GitHubCheckRunsResponse = get_json(&client, &checks_path).await?;
+
+		let total_signals = status.total_count + checks.total_count;
+
+		if total_signals == 0 {
+			continue;
+		}
+
+		saw_any_checks = true;
+		let status_ok = status.total_count == 0 || status.state == "success";
+		let checks_ok = checks.check_runs.iter().all(|run| {
+			run.status == "completed"
+				&& matches!(
+					run.conclusion.as_deref(),
+					Some("success" | "neutral" | "skipped")
+				)
+		});
+
+		if status_ok && checks_ok {
+			return Ok(Some(commit.sha.clone()));
+		}
+	}
+
+	if !saw_any_checks {
+		return Ok(None);
+	}
+
+	Err(MonochangeError::Config(format!(
+		"no green commit found among the last {} commits on `{base_branch}`; pass `--from <sha>` or set `[source.pull_requests.cut].source_commit = \"head\"` to cut explicitly",
+		commits.len()
+	)))
+}
+
+/// Find an active open cut pull request whose head branch starts with `head_prefix`
+/// and whose body carries monochange's cut metadata marker.
+pub async fn find_active_cut_pull_request(
+	source: &SourceConfiguration,
+	head_prefix: &str,
+) -> MonochangeResult<Option<ActiveCutPullRequest>> {
+	let client = github_client_from_env(source).await?;
+	let path = format!(
+		"/repos/{}/{}/pulls?state=open&per_page=50",
+		source.owner, source.repo
+	);
+	let pulls: Vec<GitHubExistingPullRequest> = get_json(&client, &path).await?;
+	let prefix = head_prefix.trim_end_matches('/');
+
+	for pull in pulls {
+		let matches_head = pull.head.ref_name == prefix
+			|| pull
+				.head
+				.ref_name
+				.strip_prefix(prefix)
+				.is_some_and(|rest| rest.starts_with('/'));
+		let body = pull.body.unwrap_or_default();
+
+		if matches_head && body.contains(monochange_hosting::cut::CUT_META_START) {
+			return Ok(Some(ActiveCutPullRequest {
+				number: pull.number,
+				head_branch: pull.head.ref_name,
+				base_branch: pull.base.ref_name,
+				title: pull.title,
+				body,
+				url: pull.html_url.unwrap_or_default(),
+				head_sha: pull.head.sha,
+			}));
+		}
+	}
+
+	Ok(None)
+}
+
+/// Patch only the body of an open cut pull request (used for sticky status banner
+/// updates without mutating branches or triggering CI).
+pub async fn update_pull_request_body(
+	source: &SourceConfiguration,
+	pr_number: u64,
+	head_branch: &str,
+	body: &str,
+) -> MonochangeResult<GitHubPullRequestOutcome> {
+	let client = github_client_from_env(source).await?;
+	let response: GitHubPullRequestResponse = patch_json(
+		&client,
+		&format!("/repos/{}/{}/pulls/{pr_number}", source.owner, source.repo),
+		&GitHubPullRequestBodyUpdatePayload { body },
+	)
+	.await?;
+
+	Ok(GitHubPullRequestOutcome {
+		provider: SourceProvider::GitHub,
+		repository: format!("{}/{}", source.owner, source.repo),
+		number: response.number,
+		head_branch: head_branch.to_string(),
+		operation: GitHubPullRequestOperation::Updated,
+		url: response.html_url,
+	})
+}
+
+/// Post a pointer comment on a superseded cut PR and close it.
+pub async fn supersede_pull_request(
+	source: &SourceConfiguration,
+	old_pr_number: u64,
+	new_pr_number: u64,
+	new_pr_url: &str,
+) -> MonochangeResult<()> {
+	let client = github_client_from_env(source).await?;
+	let comment = format!("Superseded by #{new_pr_number} ({new_pr_url}) after `/refresh`.");
+	let _: serde_json::Value = post_json(
+		&client,
+		&format!(
+			"/repos/{}/{}/issues/{old_pr_number}/comments",
+			source.owner, source.repo
+		),
+		&GitHubIssueCommentBodyPayload { body: &comment },
+	)
+	.await?;
+	let _: serde_json::Value = patch_json(
+		&client,
+		&format!(
+			"/repos/{}/{}/pulls/{old_pr_number}",
+			source.owner, source.repo
+		),
+		&GitHubPullRequestStatePayload { state: "closed" },
+	)
+	.await?;
+	Ok(())
+}
+
+/// Delete a branch ref on GitHub (used when `retention = "delete"` cleans up a
+/// published cut branch). Returns `Ok(false)` when the ref is already gone.
+pub async fn delete_branch_ref(
+	source: &SourceConfiguration,
+	branch: &str,
+) -> MonochangeResult<bool> {
+	let client = github_client_from_env(source).await?;
+	let path = format!(
+		"/repos/{}/{}/git/refs/heads/{branch}",
+		source.owner, source.repo
+	);
+
+	match client._delete(&path, None::<&()>).await {
+		Ok(response) => {
+			let status = response.status();
+			if status.is_success() {
+				Ok(true)
+			} else if status.as_u16() == 404 || status.as_u16() == 422 {
+				Ok(false)
+			} else {
+				Err(MonochangeError::Config(format!(
+					"DELETE {path} failed with HTTP {}",
+					status.as_u16()
+				)))
+			}
+		}
+		Err(octocrab::Error::GitHub { source, .. })
+			if matches!(source.status_code.as_u16(), 404 | 422) =>
+		{
+			Ok(false)
+		}
+		Err(error) => {
+			Err(MonochangeError::Config(format_github_api_error(
+				"DELETE", &path, &error,
+			)))
+		}
+	}
 }
 
 async fn maybe_replace_release_pull_request_commit_with_verified_github_commit(

@@ -31,6 +31,7 @@ use super::release_commit_error_status;
 use super::validate_branch_names;
 use super::validate_commit_contents;
 use super::validate_commit_paths;
+use super::validate_cut_commit_fields;
 use crate::AppSecrets;
 use crate::AppState;
 use crate::RELEASE_COMMIT_BODY_LIMIT;
@@ -74,6 +75,9 @@ fn request_with_path(path: &str) -> HostedCommitRequest {
 		dry_run: false,
 		idempotency_key: None,
 		tree: None,
+		cut_base_branch: None,
+		additional_parents: Vec::new(),
+		allow_base_ancestor: false,
 	}
 }
 
@@ -108,6 +112,24 @@ fn moved_branches_are_conflicts() {
 	assert_eq!(
 		release_commit_error_status(&GitHubAppError::BaseMoved(branch, actual, expected)),
 		StatusCode::CONFLICT
+	);
+	let (branch, actual, requested) = moved("release/v1.0.0");
+	assert_eq!(
+		release_commit_error_status(&GitHubAppError::CutBaseConflict(branch, actual, requested)),
+		StatusCode::CONFLICT
+	);
+	assert_eq!(
+		release_commit_error_status(&GitHubAppError::CutBaseRequiresBase(
+			"release/v1.0.0".to_string()
+		)),
+		StatusCode::UNPROCESSABLE_ENTITY
+	);
+	assert_eq!(
+		release_commit_error_status(&GitHubAppError::InvalidCutBase(
+			"release/v1.0.0".to_string(),
+			"release/old".to_string(),
+		)),
+		StatusCode::UNPROCESSABLE_ENTITY
 	);
 	assert_eq!(
 		release_commit_error_status(&GitHubAppError::NotConfigured),
@@ -430,6 +452,12 @@ async fn release_commit_endpoint_refreshes_an_existing_release_branch() {
 			.json_body(serde_json::json!({ "default_branch": "main" }));
 	});
 	github.mock(|when, then| {
+		when.method(Method::GET)
+			.path("/repos/acme/actions/compare/previous-release-sha...release-sha");
+		then.status(200)
+			.json_body(serde_json::json!({ "status": "diverged" }));
+	});
+	github.mock(|when, then| {
 		when.method(Method::POST)
 			.path("/repos/acme/actions/git/blobs");
 		then.status(201)
@@ -712,6 +740,42 @@ fn release_commits_need_exactly_one_tree_source(
 	assert_eq!(
 		validate_commit_contents(&request),
 		expected.map_err(String::from)
+	);
+}
+
+#[test]
+fn frozen_cut_commits_require_a_named_base_branch() {
+	let mut request = request_with_path("crates/core/Cargo.toml");
+	request.cut_base_branch = Some("release/v0.22.0".to_string());
+	request.base_branch = None;
+
+	assert_eq!(
+		validate_cut_commit_fields(&request),
+		Err(
+			"cut base branch `release/v0.22.0` requires a named `base_branch` so the cut commit can be ancestry-checked"
+				.to_string()
+		)
+	);
+
+	request.base_branch = Some("main".to_string());
+	assert_eq!(validate_cut_commit_fields(&request), Ok(()));
+}
+
+#[tokio::test]
+async fn release_commit_endpoint_rejects_a_cut_without_its_base_branch() {
+	let github = MockServer::start();
+	let state = release_api_state(&github, API_TOKEN).await;
+	let mut request = request_with_path("crates/core/Cargo.toml");
+	request.branch = "monochange/release/v0.22.0".to_string();
+	request.cut_base_branch = Some("release/v0.22.0".to_string());
+	request.base_branch = None;
+
+	let (status, body) = post_release_commit(&state, API_TOKEN, &request).await;
+
+	assert_eq!(status, StatusCode::BAD_REQUEST, "{body}");
+	assert_eq!(
+		body["message"],
+		"cut base branch `release/v0.22.0` requires a named `base_branch` so the cut commit can be ancestry-checked"
 	);
 }
 

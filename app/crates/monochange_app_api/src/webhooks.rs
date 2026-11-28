@@ -84,6 +84,12 @@ struct DeliveryRepository {
 }
 
 #[derive(Debug, Deserialize)]
+struct PullRequestBranchPayload {
+	#[serde(rename = "ref", default)]
+	ref_name: String,
+}
+
+#[derive(Debug, Deserialize)]
 struct PullRequestPayload {
 	number: u64,
 	html_url: String,
@@ -91,6 +97,12 @@ struct PullRequestPayload {
 	body: Option<String>,
 	#[serde(default)]
 	merged: bool,
+	#[serde(default)]
+	merged_at: Option<String>,
+	#[serde(default)]
+	base: Option<PullRequestBranchPayload>,
+	#[serde(default)]
+	head: Option<PullRequestBranchPayload>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -153,6 +165,55 @@ fn release_version(tag: &str) -> String {
 		.to_owned()
 }
 
+/// Record a merged non-automation pull request for high-velocity cut detection.
+async fn record_merged_pr_for_velocity(state: &AppState, payload: &DeliveryPayload) {
+	if payload.action != "closed" {
+		return;
+	}
+	let Some(pull_request) = payload.pull_request.as_ref() else {
+		return;
+	};
+	if !pull_request.merged {
+		return;
+	}
+
+	let base_branch = pull_request
+		.base
+		.as_ref()
+		.map_or("", |branch| branch.ref_name.as_str());
+	let head_branch = pull_request
+		.head
+		.as_ref()
+		.map_or("", |branch| branch.ref_name.as_str());
+
+	// Ignore monochange's own release/sync branches and frozen cut targets.
+	if head_branch.starts_with("monochange/")
+		|| base_branch.starts_with("release/")
+		|| base_branch.starts_with("releases/")
+	{
+		return;
+	}
+
+	let merged_at_unix = pull_request
+		.merged_at
+		.as_deref()
+		.and_then(|value| chrono::DateTime::parse_from_rfc3339(value).ok())
+		.map_or_else(|| chrono::Utc::now().timestamp(), |dt| dt.timestamp());
+	let pr_number = i64::try_from(pull_request.number).unwrap_or(i64::MAX);
+
+	if let Err(error) = monochange_app_db::velocity::record_merged_pull_request(
+		&state.db,
+		payload.repository.id,
+		pr_number,
+		base_branch,
+		merged_at_unix,
+	)
+	.await
+	{
+		tracing::warn!(%error, github_repo_id = payload.repository.id, "failed to record merged PR for velocity tracking");
+	}
+}
+
 /// Moves feedback along for a `pull_request` or `release` event.
 async fn delivery_event(
 	state: &AppState,
@@ -162,6 +223,9 @@ async fn delivery_event(
 	let payload: DeliveryPayload =
 		serde_json::from_slice(body).map_err(|error| invalid_payload(&error))?;
 	let github_repo_id = payload.repository.id;
+	if event_name == "pull_request" {
+		record_merged_pr_for_velocity(state, &payload).await;
+	}
 	let Some(delivery) = payload.delivery(event_name) else {
 		return Ok(StatusCode::OK);
 	};

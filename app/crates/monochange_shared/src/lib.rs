@@ -54,6 +54,8 @@ pub use client_auth::is_valid_state;
 #[cfg(feature = "client")]
 pub use client_auth::pkce_pair;
 pub use installation::PermissionUpdate;
+pub use installation::ReleaseCutSetupResult;
+pub use installation::ReleaseCutSuggestion;
 pub use installation::RepositoryConnectionStatus;
 pub use organizations::OrganizationSummary;
 pub use organizations::ProjectDetails;

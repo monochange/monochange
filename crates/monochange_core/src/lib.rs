@@ -3352,6 +3352,9 @@ pub struct WorkspaceDefaults {
 	pub warn_on_group_mismatch: bool,
 	pub strict_version_conflicts: bool,
 	pub package_type: Option<PackageType>,
+	/// Default version source for packages and groups that do not specify one.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub version_source: Option<VersionSource>,
 	pub changelog: Option<ChangelogDefinition>,
 	pub changelog_format: ChangelogFormat,
 	pub empty_update_message: Option<String>,
@@ -3368,6 +3371,7 @@ impl Default for WorkspaceDefaults {
 			warn_on_group_mismatch: true,
 			strict_version_conflicts: false,
 			package_type: None,
+			version_source: None,
 			changelog: None,
 			changelog_format: ChangelogFormat::Monochange,
 			empty_update_message: None,
@@ -4170,6 +4174,48 @@ pub enum CliStepDefinition {
 		#[cfg_attr(feature = "schema", schemars(with = "CliStepInputsSchema"))]
 		inputs: BTreeMap<String, CliStepInputValue>,
 	},
+	/// Replay published release bookkeeping from one or more release tags onto the base branch.
+	SyncRelease {
+		#[serde(default)]
+		name: Option<String>,
+		#[serde(default)]
+		when: Option<String>,
+		#[serde(default)]
+		always_run: bool,
+		#[serde(
+			default,
+			deserialize_with = "deserialize_cli_step_inputs",
+			serialize_with = "serialize_cli_step_inputs"
+		)]
+		#[cfg_attr(feature = "schema", schemars(with = "CliStepInputsSchema"))]
+		inputs: BTreeMap<String, CliStepInputValue>,
+	},
+	/// Open or update the coalesced post-release sync pull request targeting the base branch.
+	OpenSyncRequest {
+		#[serde(default)]
+		name: Option<String>,
+		#[serde(default)]
+		when: Option<String>,
+		#[serde(default)]
+		always_run: bool,
+		#[serde(default)]
+		no_verify: bool,
+		#[serde(default)]
+		stage_all: bool,
+		#[serde(default)]
+		backend: ReleaseBackend,
+		#[serde(default)]
+		hosted_auth: HostedCommitAuth,
+		#[serde(default, skip_serializing_if = "Option::is_none")]
+		hosted_url: Option<String>,
+		#[serde(
+			default,
+			deserialize_with = "deserialize_cli_step_inputs",
+			serialize_with = "serialize_cli_step_inputs"
+		)]
+		#[cfg_attr(feature = "schema", schemars(with = "CliStepInputsSchema"))]
+		inputs: BTreeMap<String, CliStepInputValue>,
+	},
 	/// Run an arbitrary command with `monochange` template context.
 	///
 	/// Use this to bridge built-in `monochange` state into external tooling.
@@ -4226,6 +4272,8 @@ impl CliStepDefinition {
 			| Self::PublishReadiness { inputs, .. }
 			| Self::TagRelease { inputs, .. }
 			| Self::RetargetRelease { inputs, .. }
+			| Self::SyncRelease { inputs, .. }
+			| Self::OpenSyncRequest { inputs, .. }
 			| Self::Command { inputs, .. } => inputs,
 		}
 	}
@@ -4261,6 +4309,8 @@ impl CliStepDefinition {
 			| Self::PublishReadiness { inputs, .. }
 			| Self::TagRelease { inputs, .. }
 			| Self::RetargetRelease { inputs, .. }
+			| Self::SyncRelease { inputs, .. }
+			| Self::OpenSyncRequest { inputs, .. }
 			| Self::Command { inputs, .. } => *inputs = inherited,
 		}
 
@@ -4291,6 +4341,8 @@ impl CliStepDefinition {
 			| Self::PublishReadiness { name, .. }
 			| Self::TagRelease { name, .. }
 			| Self::RetargetRelease { name, .. }
+			| Self::SyncRelease { name, .. }
+			| Self::OpenSyncRequest { name, .. }
 			| Self::Command { name, .. } => name.as_deref(),
 		}
 	}
@@ -4325,6 +4377,8 @@ impl CliStepDefinition {
 			| Self::PublishReadiness { when, .. }
 			| Self::TagRelease { when, .. }
 			| Self::RetargetRelease { when, .. }
+			| Self::SyncRelease { when, .. }
+			| Self::OpenSyncRequest { when, .. }
 			| Self::Command { when, .. } => when.as_deref(),
 		}
 	}
@@ -4354,6 +4408,8 @@ impl CliStepDefinition {
 			| Self::PublishReadiness { always_run, .. }
 			| Self::TagRelease { always_run, .. }
 			| Self::RetargetRelease { always_run, .. }
+			| Self::SyncRelease { always_run, .. }
+			| Self::OpenSyncRequest { always_run, .. }
 			| Self::Command { always_run, .. } => *always_run,
 		}
 	}
@@ -4393,6 +4449,8 @@ impl CliStepDefinition {
 			Self::PublishReadiness { .. } => "PublishReadiness",
 			Self::TagRelease { .. } => "TagRelease",
 			Self::RetargetRelease { .. } => "RetargetRelease",
+			Self::SyncRelease { .. } => "SyncRelease",
+			Self::OpenSyncRequest { .. } => "OpenSyncRequest",
 			Self::Command { .. } => "Command",
 		}
 	}
@@ -4416,6 +4474,8 @@ impl CliStepDefinition {
 					"hosted_auth",
 					"hosted_url",
 					"oidc_audience",
+					"from",
+					"refresh",
 				])
 			}
 			Self::VerifyReleaseBranch { .. } => Some(&["from"]),
@@ -4423,7 +4483,13 @@ impl CliStepDefinition {
 				Some(&["format"])
 			}
 			Self::PrepareRelease { .. } => {
-				Some(&["format", "write_empty_release_record", "release_json"])
+				Some(&[
+					"format",
+					"write_empty_release_record",
+					"release_json",
+					"from",
+					"refresh",
+				])
 			}
 			Self::CommentReleasedIssues { .. } => {
 				Some(&["format", "from-ref", "auto-close-issues"])
@@ -4438,6 +4504,9 @@ impl CliStepDefinition {
 					"hosted_auth",
 					"hosted_url",
 					"oidc_audience",
+					"from",
+					"refresh",
+					"banner_only",
 				])
 			}
 			Self::PlaceholderPublish { .. } => Some(&["format", "package", "show-all", "otp"]),
@@ -4478,6 +4547,20 @@ impl CliStepDefinition {
 			Self::PublishReadiness { .. } => Some(&["from", "format", "package", "output"]),
 			Self::TagRelease { .. } => Some(&["from", "format", "push"]),
 			Self::RetargetRelease { .. } => Some(&["from", "target", "force", "sync_provider"]),
+			Self::SyncRelease { .. } => Some(&["format", "from", "mode"]),
+			Self::OpenSyncRequest { .. } => {
+				Some(&[
+					"format",
+					"from",
+					"mode",
+					"no_verify",
+					"stage_all",
+					"backend",
+					"hosted_auth",
+					"hosted_url",
+					"oidc_audience",
+				])
+			}
 			Self::Command { .. } => None,
 		}
 	}
@@ -4501,6 +4584,13 @@ impl CliStepDefinition {
 			| Self::PublishPackages { .. } => {
 				match name {
 					"format" => Some(&["text", "json", "json-min", "md"]),
+					_ => None,
+				}
+			}
+			Self::SyncRelease { .. } => {
+				match name {
+					"format" => Some(&["text", "json", "json-min", "md"]),
+					"mode" => Some(&["semantic_pr", "bookkeeping_only", "merge_pr", "none"]),
 					_ => None,
 				}
 			}
@@ -4534,6 +4624,15 @@ impl CliStepDefinition {
 					_ => None,
 				}
 			}
+			Self::OpenSyncRequest { .. } => {
+				match name {
+					"format" => Some(&["text", "json", "json-min", "md"]),
+					"mode" => Some(&["semantic_pr", "bookkeeping_only", "merge_pr", "none"]),
+					"backend" => Some(&["local", "hosted"]),
+					"hosted_auth" => Some(&["auto", "oidc", "token"]),
+					_ => None,
+				}
+			}
 			_ => None,
 		}
 	}
@@ -4546,11 +4645,11 @@ impl CliStepDefinition {
 		match self {
 			Self::CommitRelease { .. } => {
 				match name {
-					"no_verify" | "update_release_json" | "stage_all" => {
+					"no_verify" | "update_release_json" | "stage_all" | "refresh" => {
 						Some(CliInputKind::Boolean)
 					}
 					"format" | "commit_backend" | "hosted_auth" => Some(CliInputKind::Choice),
-					"hosted_url" | "oidc_audience" => Some(CliInputKind::String),
+					"hosted_url" | "oidc_audience" | "from" => Some(CliInputKind::String),
 					_ => None,
 				}
 			}
@@ -4567,7 +4666,10 @@ impl CliStepDefinition {
 			Self::PrepareRelease { .. } => {
 				match name {
 					"format" => Some(CliInputKind::Choice),
-					"write_empty_release_record" | "release_json" => Some(CliInputKind::Boolean),
+					"write_empty_release_record" | "release_json" | "refresh" => {
+						Some(CliInputKind::Boolean)
+					}
+					"from" => Some(CliInputKind::String),
 					_ => None,
 				}
 			}
@@ -4590,8 +4692,25 @@ impl CliStepDefinition {
 			Self::OpenReleaseRequest { .. } => {
 				match name {
 					"format" | "backend" | "hosted_auth" => Some(CliInputKind::Choice),
+					"no_verify" | "stage_all" | "refresh" | "banner_only" => {
+						Some(CliInputKind::Boolean)
+					}
+					"hosted_url" | "oidc_audience" | "from" => Some(CliInputKind::String),
+					_ => None,
+				}
+			}
+			Self::OpenSyncRequest { .. } => {
+				match name {
+					"format" | "mode" | "backend" | "hosted_auth" => Some(CliInputKind::Choice),
 					"no_verify" | "stage_all" => Some(CliInputKind::Boolean),
-					"hosted_url" | "oidc_audience" => Some(CliInputKind::String),
+					"from" | "hosted_url" | "oidc_audience" => Some(CliInputKind::String),
+					_ => None,
+				}
+			}
+			Self::SyncRelease { .. } => {
+				match name {
+					"format" | "mode" => Some(CliInputKind::Choice),
+					"from" => Some(CliInputKind::String),
 					_ => None,
 				}
 			}
@@ -4804,6 +4923,12 @@ fn step_input_help_text(name: &str) -> &'static str {
 		"target" => "Git ref to retarget releases to",
 		"force" => "Allow the operation when the normal safety check rejects it",
 		"sync_provider" => "Update hosted-provider releases as well as local Git state",
+		"refresh" => {
+			"Explicitly re-cut an already-open frozen release cut from the latest base commit"
+		}
+		"banner_only" => {
+			"Update only the status banner on an already-open cut PR without mutating branches"
+		}
 		_ => "Configure this built-in step input",
 	}
 }
@@ -6329,6 +6454,16 @@ pub struct ReleaseRecord {
 	/// Context values the labels and ordinals were computed from.
 	#[serde(default, skip_serializing_if = "versioning::LabelInputs::is_empty")]
 	pub label_inputs: versioning::LabelInputs,
+	/// Source-branch commit SHA from which a frozen release cut was created.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub cut_base_commit: Option<String>,
+	/// Release commit SHA that this synced bookkeeping record was replayed from.
+	///
+	/// Set only on sync commits written back to `base` (`main`) after a frozen cut
+	/// release was already tagged and published, so release automation never
+	/// re-tags or re-publishes a sync commit.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub synced_from_commit: Option<String>,
 	#[serde(default)]
 	pub provider: Option<ReleaseRecordProvider>,
 }
@@ -6705,6 +6840,14 @@ impl Default for ProviderReleaseSettings {
 pub struct ProviderMergeRequestSettings {
 	#[serde(default = "default_true")]
 	pub enabled: bool,
+	/// Release pull request strategy: `"rolling"` (default) refreshes one PR
+	/// against `base`, whereas `"cut"` freezes a snapshot of `base` into a cut
+	/// branch and opens the release PR against that cut branch.
+	#[serde(
+		default,
+		skip_serializing_if = "ReleasePullRequestStrategy::is_rolling"
+	)]
+	pub strategy: ReleasePullRequestStrategy,
 	#[serde(default = "default_pull_request_branch_prefix")]
 	pub branch_prefix: String,
 	#[serde(default = "default_pull_request_base")]
@@ -6730,6 +6873,230 @@ pub struct ProviderMergeRequestSettings {
 	#[serde(default, skip_serializing_if = "Option::is_none")]
 	#[cfg_attr(feature = "schema", schemars(range(min = 1)))]
 	pub max_body_chars: Option<usize>,
+	/// Settings for frozen release cuts under `strategy = "cut"`.
+	#[serde(default, skip_serializing_if = "CutPullRequestSettings::is_default")]
+	pub cut: CutPullRequestSettings,
+	/// Settings for post-release bookkeeping sync back to `base` under `strategy = "cut"`.
+	#[serde(default, skip_serializing_if = "SyncPullRequestSettings::is_default")]
+	pub sync: SyncPullRequestSettings,
+}
+
+/// Release pull request strategy configured under `[source.pull_requests]`.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+#[non_exhaustive]
+pub enum ReleasePullRequestStrategy {
+	/// Maintain one continuously refreshed release pull request targeting `base`.
+	#[default]
+	Rolling,
+	/// Freeze a commit from `base` into a cut branch and open the release pull
+	/// request against that cut branch so `base` never needs to pause.
+	Cut,
+}
+
+impl ReleasePullRequestStrategy {
+	/// Return whether this strategy is the default rolling strategy.
+	#[must_use]
+	pub const fn is_rolling(&self) -> bool {
+		matches!(self, Self::Rolling)
+	}
+
+	/// Return whether this strategy uses frozen release cut branches.
+	#[must_use]
+	pub const fn is_cut(&self) -> bool {
+		matches!(self, Self::Cut)
+	}
+}
+
+/// When a frozen cut pull request is opened under `strategy = "cut"`.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+#[non_exhaustive]
+pub enum CutTrigger {
+	/// Automatically open a cut PR when pending changesets exist and no cut PR
+	/// is open; stay frozen while open and update only the status banner on
+	/// subsequent pushes to `base`.
+	#[default]
+	Sticky,
+	/// Open a cut PR only when invoked explicitly (for example via workflow
+	/// dispatch or CLI).
+	Manual,
+}
+
+/// Which commit on `base` a release cut branches from when `--from` is omitted.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+#[non_exhaustive]
+pub enum CutSourceCommit {
+	/// Pick the newest commit on `base` whose required checks passed.
+	#[default]
+	LatestGreen,
+	/// Cut directly from the current tip of `base`.
+	Head,
+}
+
+/// Lifecycle of the frozen cut base branch after publishing finishes.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+#[non_exhaustive]
+pub enum CutBranchRetention {
+	/// Delete the cut branch after publishing finishes; the git tag retains history.
+	#[default]
+	Delete,
+	/// Retain the cut branch after publishing for backports or patch hotfixes.
+	Keep,
+}
+
+/// Settings under `[source.pull_requests.cut]` for `strategy = "cut"`.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub struct CutPullRequestSettings {
+	/// Branch name template for the frozen base branch created from `base`.
+	#[serde(default = "default_cut_branch_template")]
+	pub branch_template: String,
+	/// Whether cuts open automatically on pending changesets (`sticky`) or only manually.
+	#[serde(default)]
+	pub trigger: CutTrigger,
+	/// Commit selection policy on `base` when `--from` is omitted.
+	#[serde(default)]
+	pub source_commit: CutSourceCommit,
+	/// Pull request comment command that authorizes re-cutting an open cut PR.
+	#[serde(default = "default_cut_refresh_command")]
+	pub refresh_command: String,
+	/// Maintain an in-body status banner showing commits and changesets behind `base`.
+	#[serde(default = "default_true")]
+	pub status_banner: bool,
+	/// Whether the cut branch is deleted or retained after publishing completes.
+	#[serde(default)]
+	pub retention: CutBranchRetention,
+}
+
+impl CutPullRequestSettings {
+	/// Return whether every cut setting matches its default value.
+	#[must_use]
+	pub fn is_default(&self) -> bool {
+		*self == Self::default()
+	}
+}
+
+impl Default for CutPullRequestSettings {
+	fn default() -> Self {
+		Self {
+			branch_template: default_cut_branch_template(),
+			trigger: CutTrigger::default(),
+			source_commit: CutSourceCommit::default(),
+			refresh_command: default_cut_refresh_command(),
+			status_banner: true,
+			retention: CutBranchRetention::default(),
+		}
+	}
+}
+
+/// How published release bookkeeping flows back to `base` under `strategy = "cut"`.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+#[non_exhaustive]
+pub enum SyncMode {
+	/// Replay consumed changeset deletions, changelogs, release records, manifest
+	/// versions, and freshly regenerated lockfiles onto `base` in one coalesced PR.
+	#[default]
+	SemanticPr,
+	/// Sync only consumed changeset deletions, changelogs, and release records,
+	/// leaving manifests and lockfiles untouched (pair with `version_source = "tag"`).
+	BookkeepingOnly,
+	/// Build the clean sync tree as a two-parent bridge commit `(base_head, C_rel)`
+	/// so merging the sync PR puts the release tag into `git log` on `base`.
+	MergePr,
+	/// Do not open a sync pull request; rely on tag-aware planning.
+	None,
+}
+
+impl std::str::FromStr for SyncMode {
+	type Err = MonochangeError;
+
+	fn from_str(value: &str) -> Result<Self, Self::Err> {
+		match value.trim() {
+			"semantic_pr" => Ok(Self::SemanticPr),
+			"bookkeeping_only" => Ok(Self::BookkeepingOnly),
+			"merge_pr" => Ok(Self::MergePr),
+			"none" => Ok(Self::None),
+			other => {
+				Err(MonochangeError::Config(format!(
+					"invalid sync mode `{other}`; expected one of: semantic_pr, bookkeeping_only, merge_pr, none"
+				)))
+			}
+		}
+	}
+}
+
+/// Settings under `[source.pull_requests.sync]` for post-release bookkeeping sync.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub struct SyncPullRequestSettings {
+	/// How published release bookkeeping is reconciled onto `base`.
+	#[serde(default)]
+	pub mode: SyncMode,
+	/// Head branch used for the coalesced sync pull request.
+	#[serde(default = "default_sync_branch")]
+	pub branch: String,
+	/// Pull request title template for the sync pull request.
+	#[serde(default = "default_sync_title")]
+	pub title: String,
+	/// Labels applied to the sync pull request.
+	#[serde(default = "default_sync_labels")]
+	pub labels: Vec<String>,
+	/// Whether to enable provider auto-merge on the sync pull request.
+	#[serde(default = "default_true")]
+	pub auto_merge: bool,
+}
+
+impl SyncPullRequestSettings {
+	/// Return whether every sync setting matches its default value.
+	#[must_use]
+	pub fn is_default(&self) -> bool {
+		*self == Self::default()
+	}
+}
+
+impl Default for SyncPullRequestSettings {
+	fn default() -> Self {
+		Self {
+			mode: SyncMode::default(),
+			branch: default_sync_branch(),
+			title: default_sync_title(),
+			labels: default_sync_labels(),
+			auto_merge: true,
+		}
+	}
+}
+
+fn default_cut_branch_template() -> String {
+	"release/{{ cut_id }}".to_string()
+}
+
+fn default_cut_refresh_command() -> String {
+	"/refresh".to_string()
+}
+
+fn default_sync_branch() -> String {
+	"monochange/sync-release".to_string()
+}
+
+fn default_sync_title() -> String {
+	"chore(release): sync {{ cut_id }} to {{ base }}".to_string()
+}
+
+fn default_sync_labels() -> Vec<String> {
+	vec![
+		"release".to_string(),
+		"automated".to_string(),
+		"release-sync".to_string(),
+	]
 }
 
 /// How much of the release notes a provider release request body carries.
@@ -6770,6 +7137,7 @@ impl Default for ProviderMergeRequestSettings {
 	fn default() -> Self {
 		Self {
 			enabled: true,
+			strategy: ReleasePullRequestStrategy::default(),
 			branch_prefix: default_pull_request_branch_prefix(),
 			base: default_pull_request_base(),
 			title: default_pull_request_title(),
@@ -6779,6 +7147,8 @@ impl Default for ProviderMergeRequestSettings {
 			verified_commits: false,
 			body_style: ProviderPullRequestBodyStyle::default(),
 			max_body_chars: None,
+			cut: CutPullRequestSettings::default(),
+			sync: SyncPullRequestSettings::default(),
 		}
 	}
 }
@@ -7084,6 +7454,19 @@ pub struct HostedIssueCommentOutcome {
 	pub issue_id: String,
 	pub operation: HostedIssueCommentOperation,
 	pub url: Option<String>,
+}
+
+/// Summary of an active open cut pull request discovered on the source host.
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct ActiveCutPullRequest {
+	pub number: u64,
+	pub head_branch: String,
+	pub base_branch: String,
+	pub title: String,
+	pub body: String,
+	pub url: String,
+	pub head_sha: Option<String>,
 }
 
 #[async_trait::async_trait]
@@ -7441,6 +7824,23 @@ pub struct HostedCommitRequest {
 	/// Idempotency key for safe retries, e.g. `owner/repo:run-id:attempt:command`.
 	#[serde(default, skip_serializing_if = "Option::is_none")]
 	pub idempotency_key: Option<String>,
+	/// Frozen cut base branch created or updated at `base_commit` before moving
+	/// `branch` to the new release commit (used under `strategy = "cut"`).
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub cut_base_branch: Option<String>,
+	/// Additional parent commit SHAs beyond `base_commit` (used for two-parent
+	/// semantic merge-back bridge commits under `sync.mode = "merge_pr"`).
+	#[serde(default, skip_serializing_if = "Vec::is_empty")]
+	pub additional_parents: Vec<String>,
+	/// Allow `base_commit` to be any ancestor of `base_branch` rather than its
+	/// exact current tip (used for frozen release cuts while `main` keeps moving).
+	#[serde(default, skip_serializing_if = "bool_is_false")]
+	pub allow_base_ancestor: bool,
+}
+
+#[allow(clippy::trivially_copy_pass_by_ref)]
+const fn bool_is_false(value: &bool) -> bool {
+	!*value
 }
 
 /// One release-managed file inside a [`HostedCommitRequest`].
@@ -7492,6 +7892,15 @@ pub struct HostedReleaseRequest {
 	/// Whether this request is a dry run.
 	#[serde(default)]
 	pub dry_run: bool,
+	/// Patch only the status banner of an existing open pull request without
+	/// creating a new pull request or changing branch refs.
+	#[serde(default, skip_serializing_if = "bool_is_false")]
+	pub banner_only: bool,
+	/// Optional pull request number to close as superseded after opening or
+	/// updating the replacement cut pull request (for example when `/refresh`
+	/// changes the versioned cut branch name).
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub supersede_pr_number: Option<u64>,
 }
 
 /// The monochange app's response to a [`HostedReleaseRequest`].
@@ -7931,6 +8340,23 @@ pub fn all_step_variants() -> Vec<CliStepDefinition> {
 			name: None,
 			when: None,
 			always_run: false,
+			inputs: BTreeMap::new(),
+		},
+		CliStepDefinition::SyncRelease {
+			name: None,
+			when: None,
+			always_run: false,
+			inputs: BTreeMap::new(),
+		},
+		CliStepDefinition::OpenSyncRequest {
+			name: None,
+			when: None,
+			always_run: false,
+			no_verify: false,
+			stage_all: false,
+			backend: ReleaseBackend::default(),
+			hosted_auth: HostedCommitAuth::default(),
+			hosted_url: None,
 			inputs: BTreeMap::new(),
 		},
 	]

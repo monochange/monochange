@@ -300,6 +300,30 @@ fn validate_branch_names(branch: &str, base_branch: Option<&str>) -> Result<(), 
 	})
 }
 
+/// Validate optional cut-base branch and extra bridge commit parent object ids.
+fn validate_cut_commit_fields(request: &HostedCommitRequest) -> Result<(), String> {
+	if let Some(cut_base_branch) = request.cut_base_branch.as_deref() {
+		validate_branch_name("cut base branch", cut_base_branch)?;
+
+		if request.base_branch.is_none() {
+			return Err(format!(
+				"cut base branch `{cut_base_branch}` requires a named `base_branch` so the cut commit can be ancestry-checked"
+			));
+		}
+	}
+
+	for parent in &request.additional_parents {
+		if !matches!(parent.len(), 40 | 64) || !parent.bytes().all(|byte| byte.is_ascii_hexdigit())
+		{
+			return Err(format!(
+				"`additional_parents` entries must be git object ids, received `{parent}`"
+			));
+		}
+	}
+
+	Ok(())
+}
+
 /// Map a release commit failure to its HTTP status.
 ///
 /// A moved release or base branch is a conflict the caller resolves by
@@ -307,12 +331,14 @@ fn validate_branch_names(branch: &str, base_branch: Option<&str>) -> Result<(), 
 /// rejected request; everything else is a GitHub failure.
 fn release_commit_error_status(error: &github_app::GitHubAppError) -> StatusCode {
 	match error {
-		github_app::GitHubAppError::BranchMoved(..) | github_app::GitHubAppError::BaseMoved(..) => {
-			StatusCode::CONFLICT
-		}
+		github_app::GitHubAppError::BranchMoved(..)
+		| github_app::GitHubAppError::BaseMoved(..)
+		| github_app::GitHubAppError::CutBaseConflict(..) => StatusCode::CONFLICT,
 		github_app::GitHubAppError::NotConfigured => StatusCode::SERVICE_UNAVAILABLE,
 		github_app::GitHubAppError::WorkflowsChanged
 		| github_app::GitHubAppError::InvalidReleaseBranch(_)
+		| github_app::GitHubAppError::CutBaseRequiresBase(_)
+		| github_app::GitHubAppError::InvalidCutBase(..)
 		| github_app::GitHubAppError::UnboundPullRequest => StatusCode::UNPROCESSABLE_ENTITY,
 		_ => StatusCode::BAD_GATEWAY,
 	}
@@ -365,6 +391,7 @@ pub async fn release_commit(
 	}
 
 	validate_branch_names(&request.branch, request.base_branch.as_deref())
+		.and_then(|()| validate_cut_commit_fields(&request))
 		.and_then(|()| validate_commit_contents(&request))
 		.and_then(|()| validate_commit_paths(&request))
 		.map_err(|message| (StatusCode::BAD_REQUEST, Json(ApiError::new(message))))?;
@@ -526,13 +553,17 @@ pub async fn release_request(
 		});
 	}
 
-	let (number, operation, url) = github_app::publish_release_pull_request(
+	let (number, operation, url) = github_app::publish_release_pull_request_with_options(
 		&state.http,
 		&app.api_url,
 		&token,
 		request,
 		&state.jwt_secret,
 		repository.github_repo_id,
+		github_app::PublishPullRequestOptions {
+			banner_only: payload.banner_only,
+			supersede_pr_number: payload.supersede_pr_number,
+		},
 	)
 	.await
 	.map_err(|error| {

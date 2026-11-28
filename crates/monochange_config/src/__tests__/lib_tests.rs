@@ -3970,3 +3970,106 @@ fn configured_id_precedence_keeps_name_fallbacks_and_ambiguity_checks() {
 	assert!(resolve_package_reference("shared", root, &packages).is_err());
 	assert!(crate::resolve_package_reference_with_context("shared", &context).is_err());
 }
+
+#[test]
+fn load_workspace_configuration_parses_cut_strategy_and_default_version_source() {
+	let root = fixture_path("release-cut/versionless");
+	let config = load_workspace_configuration(&root)
+		.unwrap_or_else(|error| panic!("configuration: {error}"));
+	assert_eq!(config.defaults.version_source, Some(VersionSource::Tag));
+	assert_eq!(config.packages[0].version_source, VersionSource::Tag);
+	let source = config
+		.source
+		.as_ref()
+		.unwrap_or_else(|| panic!("expected source configuration"));
+	assert_eq!(
+		source.pull_requests.strategy,
+		monochange_core::ReleasePullRequestStrategy::Cut
+	);
+	assert_eq!(
+		source.pull_requests.cut.branch_template,
+		"release/{{ cut_id }}"
+	);
+	assert_eq!(
+		source.pull_requests.cut.trigger,
+		monochange_core::CutTrigger::Sticky
+	);
+	assert_eq!(
+		source.pull_requests.cut.source_commit,
+		monochange_core::CutSourceCommit::Head
+	);
+	assert_eq!(
+		source.pull_requests.sync.mode,
+		monochange_core::SyncMode::BookkeepingOnly
+	);
+	assert_eq!(source.pull_requests.sync.branch, "monochange/sync-release");
+}
+
+#[test]
+fn load_workspace_configuration_rejects_invalid_cut_and_sync_settings() {
+	let cases = [
+		(
+			r#"[source]
+provider = "github"
+owner = "acme"
+repo = "demo"
+
+[source.pull_requests]
+strategy = "cut"
+
+[source.pull_requests.cut]
+branch_template = "   "
+"#,
+			"branch_template",
+		),
+		(
+			r#"[source]
+provider = "github"
+owner = "acme"
+repo = "demo"
+
+[source.pull_requests]
+strategy = "cut"
+
+[source.pull_requests.cut]
+refresh_command = ""
+"#,
+			"refresh_command",
+		),
+		(
+			r#"[source]
+provider = "github"
+owner = "acme"
+repo = "demo"
+
+[source.pull_requests]
+strategy = "cut"
+base = "main"
+
+[source.pull_requests.sync]
+mode = "semantic_pr"
+branch = "main"
+"#,
+			"must not equal",
+		),
+		(
+			r#"[cli.sync]
+steps = [{ type = "OpenSyncRequest" }]
+"#,
+			"OpenSyncRequest",
+		),
+	];
+
+	for (toml, expected_fragment) in cases {
+		let dir = tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
+		fs::write(dir.path().join("monochange.toml"), toml)
+			.unwrap_or_else(|error| panic!("write monochange.toml: {error}"));
+		let error = load_workspace_configuration(dir.path())
+			.err()
+			.unwrap_or_else(|| panic!("expected config validation error for:\n{toml}"));
+		assert!(
+			error.to_string().contains(expected_fragment),
+			"expected `{expected_fragment}` in error: {error}"
+		);
+	}
+}

@@ -270,6 +270,7 @@ mod publish_rate_limits;
 mod publish_readiness;
 mod release_artifacts;
 mod release_branch_policy;
+mod release_cut;
 mod release_record;
 mod skill;
 mod subagents;
@@ -595,6 +596,8 @@ struct CliContext {
 	changeset_policy_evaluation: Option<ChangesetPolicyEvaluation>,
 	changeset_diagnostics: Option<ChangesetDiagnosticsReport>,
 	retarget_report: Option<RetargetReleaseReport>,
+	sync_report: Option<release_cut::SyncReleaseReport>,
+	cut_context: release_cut::CutExecutionContext,
 	step_outputs: BTreeMap<String, CommandStepOutput>,
 	command_logs: Vec<String>,
 	command_results: Vec<CommandStepResult>,
