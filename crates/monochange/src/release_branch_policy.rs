@@ -6,10 +6,15 @@ use monochange_core::MonochangeError;
 use monochange_core::MonochangeResult;
 use monochange_core::PrereleaseConfiguration;
 use monochange_core::ProviderReleaseSettings;
+use monochange_core::ReleaseRecord;
 use monochange_core::SourceConfiguration;
+use monochange_core::release_record_tag_names;
+use monochange_hosting::cut::resolve_cut_branches;
 use serde::Serialize;
 
 use crate::git_support;
+use crate::release_artifacts::build_release_manifest_from_record;
+use crate::release_record::discover_release_record;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -76,8 +81,17 @@ pub(crate) async fn verify_release_ref_for_publish(
 
 /// When a temporary cut branch (`release/vX.Y.Z`) has already been deleted
 /// after publishing (`retention = "delete"`), a manual publish retry against
-/// the release tag still passes if the commit's first parent (the frozen cut
-/// base commit) is reachable from `[source.pull_requests].base`.
+/// the release tag still passes only when the commit's own release metadata
+/// proves it was the published cut:
+///
+/// - a release record exists at exactly this commit and declares a release tag
+///   that points at this same commit;
+/// - the recorded `cut_base_commit` is a strict ancestor of the release commit
+///   and is reachable from `[source.pull_requests].base`;
+/// - the cut branch derived from the configured `cut.branch_template` matches
+///   one of the configured `[source.releases].branches` patterns.
+///
+/// Anything else fails closed so the primary branch-policy rejection stands.
 async fn verify_deleted_cut_branch_parent(
 	root: &Path,
 	source: &SourceConfiguration,
@@ -85,26 +99,81 @@ async fn verify_deleted_cut_branch_parent(
 	ref_name: &str,
 ) -> MonochangeResult<Option<ReleaseBranchVerificationReport>> {
 	let commit = git_support::resolve_git_commit_ref(root, ref_name).await?;
-	let parent_ref = format!("{commit}^1");
-	let Ok(parent_commit) = git_support::resolve_git_commit_ref(root, &parent_ref).await else {
+	let Ok(discovery) = discover_release_record(root, &commit).await else {
 		return Ok(None);
 	};
+
+	if discovery.distance != 0 || discovery.record.synced_from_commit.is_some() {
+		return Ok(None);
+	}
+
+	if !release_record_is_published_at(root, &discovery.record, &commit).await? {
+		return Ok(None);
+	}
+
+	let Some(recorded_cut_base) = discovery.record.cut_base_commit.as_deref() else {
+		return Ok(None);
+	};
+	let Ok(cut_base_commit) = git_support::resolve_git_commit_ref(root, recorded_cut_base).await
+	else {
+		return Ok(None);
+	};
+
+	if cut_base_commit == commit
+		|| !git_support::git_is_ancestor(root, &cut_base_commit, &commit).await?
+	{
+		return Ok(None);
+	}
+
+	let cut_manifest = build_release_manifest_from_record(&discovery.record);
+	let cut = resolve_cut_branches(source, &cut_manifest);
+	let patterns = compile_release_branch_patterns(&policy.branches)?;
+
+	if cut.cut_base_branch.is_empty()
+		|| !branch_matches(&patterns, &cut.cut_base_branch, &cut.cut_base_branch)
+	{
+		return Ok(None);
+	}
+
 	let base_refs =
 		candidate_release_branch_refs(root, std::slice::from_ref(&source.pull_requests.base))
 			.await?;
 
 	for branch_ref in &base_refs {
-		if git_support::git_is_ancestor(root, &parent_commit, &branch_ref.ref_name).await? {
+		if git_support::git_is_ancestor(root, &cut_base_commit, &branch_ref.ref_name).await? {
 			return Ok(Some(ReleaseBranchVerificationReport {
 				ref_name: ref_name.to_string(),
 				commit,
 				allowed_branches: policy.branches.clone(),
-				matched_branch: format!("{} (cut parent)", branch_ref.display_name),
+				matched_branch: format!("{} (deleted cut branch)", cut.cut_base_branch),
 			}));
 		}
 	}
 
 	Ok(None)
+}
+
+/// Whether a release tag declared by `record` resolves to exactly `commit`.
+async fn release_record_is_published_at(
+	root: &Path,
+	record: &ReleaseRecord,
+	commit: &str,
+) -> MonochangeResult<bool> {
+	let mut published = false;
+
+	for tag_name in release_record_tag_names(record) {
+		let Ok(tag_commit) = git_support::resolve_git_tag_commit(root, &tag_name).await else {
+			continue;
+		};
+
+		if tag_commit != commit {
+			return Ok(false);
+		}
+
+		published = true;
+	}
+
+	Ok(published)
 }
 
 pub(crate) async fn verify_release_ref_for_commit(
@@ -216,16 +285,7 @@ async fn candidate_release_branch_refs(
 	root: &Path,
 	patterns: &[String],
 ) -> MonochangeResult<Vec<BranchRef>> {
-	let compiled = patterns
-		.iter()
-		.map(|pattern| {
-			Pattern::new(pattern).map_err(|error| {
-				MonochangeError::Config(format!(
-					"invalid [source.releases].branches pattern `{pattern}`: {error}"
-				))
-			})
-		})
-		.collect::<MonochangeResult<Vec<_>>>()?;
+	let compiled = compile_release_branch_patterns(patterns)?;
 
 	let output = git_support::run_git_capture(
 		root,
@@ -256,6 +316,19 @@ async fn candidate_release_branch_refs(
 	}
 
 	Ok(branches)
+}
+
+fn compile_release_branch_patterns(patterns: &[String]) -> MonochangeResult<Vec<Pattern>> {
+	patterns
+		.iter()
+		.map(|pattern| {
+			Pattern::new(pattern).map_err(|error| {
+				MonochangeError::Config(format!(
+					"invalid [source.releases].branches pattern `{pattern}`: {error}"
+				))
+			})
+		})
+		.collect()
 }
 
 fn display_branch_name(ref_name: &str) -> Option<String> {
