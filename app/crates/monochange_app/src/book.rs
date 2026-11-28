@@ -88,11 +88,7 @@ impl Book {
 
 	/// Resolve only chapters listed in the table of contents.
 	pub fn chapter(&self, slug: &str) -> Option<&BookChapter> {
-		let href = if slug.is_empty() {
-			"/book".to_owned()
-		} else {
-			format!("/book/{slug}")
-		};
+		let href = chapter_slug_href(slug);
 
 		self.chapters.iter().find(|chapter| chapter.href == href)
 	}
@@ -126,10 +122,19 @@ pub(crate) fn chapter_href(source: &str) -> String {
 	let slug = path.to_string_lossy();
 
 	if slug == "readme" || slug == "index" {
-		"/book".to_owned()
+		crate::typed_routes::book_root()
 	} else {
-		format!("/book/{slug}")
+		chapter_slug_href(&slug)
 	}
+}
+
+fn chapter_slug_href(slug: &str) -> String {
+	if slug.is_empty() {
+		return crate::typed_routes::book_root();
+	}
+
+	let chapter = slug.split('/').map(str::to_owned).collect::<Vec<_>>();
+	crate::typed_routes::book(&chapter)
 }
 
 fn plain_text<'a>(events: impl Iterator<Item = Event<'a>>) -> String {

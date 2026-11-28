@@ -36,6 +36,9 @@ fn compiled_book_renders_safe_chapters_with_working_navigation() {
 	assert!(introduction.html.contains("href=\"/book/guide/next\""));
 	assert!(!introduction.html.contains("//[invalid"));
 	assert!(book.chapter("missing").is_none());
+	assert!(book.chapter("readme").is_none());
+	assert!(book.chapter("index").is_none());
+	assert!(book.chapter("guide/first.md").is_none());
 }
 
 #[test]

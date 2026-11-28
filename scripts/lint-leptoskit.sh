@@ -45,6 +45,18 @@ for config in "${configs[@]}"; do
 	); then
 		status=1
 	fi
+
+	# A committed file-router module must match its route files. This is the
+	# same generator the build runs, so a stale `routes.rs` fails before it can
+	# ship a URL map that no longer matches the source tree.
+	if grep -q 'name = "router"' "$config"; then
+		if ! (
+			cd "$project_dir"
+			"$leptoskit_bin" plugin:router routes --check
+		); then
+			status=1
+		fi
+	fi
 done
 
 exit "$status"

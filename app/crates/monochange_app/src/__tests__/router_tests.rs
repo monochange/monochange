@@ -230,6 +230,67 @@ async fn unmatched_product_paths_render_the_projects_error_page() {
 }
 
 #[tokio::test]
+async fn generated_file_routes_govern_website_registration() {
+	// Route discovery spawns through any_spawner, which needs the Tokio runtime
+	// the test macro provides; yield once so the executor exists before discovery.
+	tokio::task::yield_now().await;
+
+	let discovered = super::discovered_website_routes();
+	let mut discovered_paths = discovered
+		.iter()
+		.map(|listing| listing.path().to_owned())
+		.collect::<Vec<_>>();
+	discovered_paths.sort();
+
+	let generated = crate::typed_routes::http_paths();
+	let mut generated_paths = generated.clone();
+	generated_paths.sort();
+
+	assert_eq!(generated_paths, discovered_paths);
+
+	let registered = super::website_routes_from(&discovered);
+	assert_eq!(
+		registered
+			.iter()
+			.map(|listing| listing.path().to_owned())
+			.collect::<Vec<_>>(),
+		generated
+	);
+
+	for listing in &registered {
+		let source = discovered
+			.iter()
+			.find(|candidate| candidate.path() == listing.path())
+			.unwrap_or_else(|| panic!("{} is not in renderer discovery", listing.path()));
+		assert_eq!(listing.mode(), source.mode(), "{}", listing.path());
+		assert_eq!(
+			listing.methods().collect::<Vec<_>>(),
+			source.methods().collect::<Vec<_>>(),
+			"{}",
+			listing.path()
+		);
+	}
+}
+
+#[tokio::test]
+async fn malformed_aliases_and_package_assets_do_not_enter_generated_routes() {
+	let app = production_router(&state().await);
+
+	for path in ["/%6cogin", "/./login", "/pkg/site/missing.js"] {
+		let (status, body) = get(&app, path).await;
+		assert_eq!(status, StatusCode::NOT_FOUND, "{path}");
+		assert!(
+			body.contains("status-page"),
+			"{path} must render the error page: {body}"
+		);
+		assert!(
+			!body.contains("Chapter not found"),
+			"{path} must not reach the generated book catch-all: {body}"
+		);
+	}
+}
+
+#[tokio::test]
 async fn the_health_endpoint_reports_the_release_status() {
 	let app = production_router(&state().await);
 	let (status, health) = get(&app, "/health").await;

@@ -96,12 +96,11 @@ impl Frontend {
 const HYDRATION_SCRIPT: &str = include_str!("hydration.js");
 
 /// Only these documents have links and buttons, with no editable form state.
+///
+/// The public set comes from the generated file routes, so adding a page
+/// updates the policy with its route instead of with a second URL list.
 fn defer_hydration(path: &str, signed_out: bool) -> bool {
-	matches!(
-		path,
-		"/" | "/install" | "/pricing" | "/changelog" | "/login" | "/book"
-	) || path.starts_with("/book/")
-		|| (path == "/projects" && signed_out)
+	crate::typed_routes::is_deferred_public_path(path) || (path == "/projects" && signed_out)
 }
 
 /// Parsed split manifests per frontend: `(pkg url prefix, preloads, loader)`.

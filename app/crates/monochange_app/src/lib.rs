@@ -24,7 +24,14 @@ pub mod public_routes;
 pub mod rate_limit;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod router;
+// The typed file-route module and its runtime helpers stay in the server
+// binary: the browser entry hydrates the Leptos tree and must not link the
+// native renderer the generated module carries.
+#[cfg(not(target_arch = "wasm32"))]
+pub mod routes;
 pub mod server_fns;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod typed_routes;
 
 pub use app::App;
 

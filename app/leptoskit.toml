@@ -60,6 +60,20 @@ name = "monochange-web-assets"
 tailwind_input = "crates/monochange_app/style/input.css"
 font_source = "public/fonts"
 
+# The website URL map is the file tree under `src/routes/`; the plugin writes
+# the committed `src/routes.rs` the server binary uses for typed recognition,
+# hrefs, and website HTTP route registration. The generated paths register the
+# pages through the toolkit's SSR listing helper, reusing the Leptos tree's
+# discovered render metadata; the Leptos route tree still renders the screens,
+# because the generated native renderer cannot carry SSR resources, named
+# forms, or per-route wasm chunks. See `crates/monochange_app/src/routes/_view.rs`.
+[[plugins]]
+name = "router"
+
+[plugins.options]
+dir = "crates/monochange_app/src/routes"
+output = "crates/monochange_app/src/routes.rs"
+
 [lint]
 # Prefer view! markup over builder trees for human-authored UI.
 markup = "view"
