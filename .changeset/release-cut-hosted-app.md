@@ -2,7 +2,7 @@
 monochange_app: minor
 ---
 
-# Support frozen release cuts, multi-parent sync commits, and banner updates in the hosted app
+# Support frozen release cuts, sync bridge commits, and banner updates in the hosted app
 
 The monochange GitHub App now accepts cut release branches (`<prefix>/release/<cut_id>`), sync branches (`<prefix>/sync-release`), and frozen cut base branches (`release/<cut_id>`), validates base commit ancestry via GitHub's compare API when `allow_base_ancestor` is set, supports multi-parent bridge commits (`additional_parents`) for `sync.mode = "merge_pr"`, patches sticky Cut PR status banners without mutating branches (`banner_only`), and comments on and closes HMAC-verified superseded Cut PRs (`supersede_pr_number`).
 
