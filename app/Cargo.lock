@@ -4179,6 +4179,7 @@ version = "0.22.1"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
+ "http",
  "monochange_core",
  "monochange_hosting",
  "monochange_publish",
@@ -4204,6 +4205,7 @@ dependencies = [
  "semver",
  "serde",
  "serde_json",
+ "tracing",
 ]
 
 [[package]]
