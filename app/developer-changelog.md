@@ -2,6 +2,58 @@
 
 Release notes for website developers and operators.
 
+## 0.5.4
+
+### 🚀 Feature
+
+#### Register the website from the pinned file routes
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #890](https://github.com/monochange/monochange/pull/890)
+
+`monochange_app` now enables the pinned leptoskit `router` plugin for the website. `src/routes/` is the source of truth and the committed `src/routes.rs` supplies the typed `Route` enum, hrefs, recognition, and the website HTTP paths the server registers. Registration goes through the toolkit's SSR listing helper, while each generated path reuses the render metadata discovered from the Leptos tree so Suspense streaming and lazy-route preloads are unchanged. Projects listings and the single server-function registration stay as they were.
+
+The pinned generator writes a trailing catch-all as `/{*name}` without its static prefix, so the book route expands narrowly to `/book` and `/book/{*chapter}`; the raw `/{*chapter}` would swallow `/pkg` and the malformed router aliases. The Leptos route tree still renders every screen, because the generated native renderer cannot carry SSR resources, named forms, or per-route wasm chunks.
+
+After adding a website route file, run `leptoskit plugin:router routes` from `app/` and commit the regenerated module. The route contract test checks that the website renderer can handle every registered path.
+
+### 🐛 Fixed
+
+#### Explain how trusted pub.dev packages publish from their own tag
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #911](https://github.com/monochange/monochange/pull/911)
+
+The trusted-publishing, CI, and multi-package publishing guides now describe pub.dev's ref and event rule, the `deferred_to_tag` and `skipped_out_of_scope` statuses with each deferral reason, the pub.dev admin settings (repository, tag pattern, `push` and `workflow_dispatch` events, optional environment), which run publishes each package, and a workflow that starts a run for every release tag and dispatches each deferred tag. The `PublishPackages` and `PublishReadiness` references cover the same behaviour, the trusted-publishing agent skill matches it, and the 0.23 migration guide lists the configuration, JSON, and Rust updates.
+
+#### Reject skipped jobs as verification evidence
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #922](https://github.com/monochange/monochange/pull/922)
+
+`monochange ci verify` no longer records `true_negative` for a job that never ran. A `skipped` or `cancelled` conclusion proves nothing about the gate decision, so the command now exits non-zero and writes no verification record; `success` remains the only conclusion that verifies a skip. This keeps the recorded skip rate and analytics honest instead of counting non-runs as successful gates.
+
+**Before:**
+
+```bash
+monochange ci verify --job docs --conclusion skipped
+# classification: true_negative
+```
+
+**After:**
+
+```bash
+monochange ci verify --job docs --conclusion skipped
+# job `docs` concluded `skipped`; only `success` or `failure` verifies a gate decision, so no verification record was written
+```
+
+`monochange ci check --workflow` now requires every `needs.<gate>.outputs.decisions` reference in an `if:` expression to include a status-check override plus both fail-safe guards. GitHub implicitly wraps a bare job `if:` in `success() && (...)`, so `needs.<gate>.result != 'success'` alone never runs when the gate fails. The canonical gate is:
+
+```yaml
+if: >-
+  !cancelled()
+  && (needs.gate.result != 'success' || needs.gate.outputs.run-all == 'true' || fromJSON(needs.gate.outputs.decisions)['test-windows'])
+```
+
+`always()` is accepted in place of `!cancelled()`. Comments, `env:` values, and `run:` scripts are not expressions and are ignored.
+
 ## 0.5.3
 
 ### 🐛 Fixed

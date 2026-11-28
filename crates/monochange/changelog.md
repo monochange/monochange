@@ -4,6 +4,136 @@ All notable changes to this project will be documented in this file.
 
 This changelog is managed by [monochange](https://github.com/monochange/monochange).
 
+## [0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)
+
+### 💥 Breaking Change
+
+#### Require a release tag for trusted pub.dev packages
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #911](https://github.com/monochange/monochange/pull/911)
+
+> **Breaking change:** `monochange step validate` and `monochange publish readiness` now fail for a pub.dev package that publishes with trusted publishing but whose releases create no tag, and `monochange publish packages` refuses to start a real run for it. See [the 0.23 migration guide](https://monochange.github.io/monochange/guide/migrations/0.23.html).
+
+pub.dev only accepts a trusted upload from a run on the package's own release tag, so a package without one could never publish. The error names the section to change:
+
+```text
+error[config.invalid]: workspace validation failed
+
+    `app_dart` publishes to pub.dev with trusted publishing, which only accepts an upload from a run on the package's release tag (`refs/tags/<tag>`), but monochange creates no tag for it. Set `tag = true` on `[package.app_dart]` so every release creates the tag, or set `publish.trusted_publishing = false` on `[package.app_dart]` to publish with a pub.dev token instead.
+```
+
+Set `tag = true` on the package, or on its group when the package belongs to one:
+
+```toml
+[package.app_dart]
+path = "packages/app_dart"
+type = "dart"
+tag = true
+```
+
+Validation reads `monochange.toml` and the package manifests, never the environment, so a package that publishes with a `PUB_TOKEN` must also set `publish.trusted_publishing = false` to pass. Packages that set `publish.trusted_publishing = false`, use `publish.mode = "external"`, or are private (`publish_to: none` in `pubspec.yaml`) are unaffected.
+
+### 🚀 Feature
+
+#### Publish trusted pub.dev packages from their own release tag
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #911](https://github.com/monochange/monochange/pull/911)
+
+A release that ships a trusted pub.dev package alongside packages for other registries now publishes cleanly. pub.dev only accepts an upload from a GitHub Actions run that a `push` or `workflow_dispatch` event started on the package's own tag (`refs/tags/<package tag>`). `monochange publish packages` checks the run's `GITHUB_REF`, `GITHUB_REF_TYPE`, and `GITHUB_EVENT_NAME` against that rule before uploading a pub.dev package that publishes with trusted publishing and no `PUB_TOKEN`:
+
+- **When the run does not match**, the package is not uploaded and is marked `deferred_to_tag`. The run does not fail, and the packages after it still publish. Earlier versions attempted the upload, pub.dev rejected it, and every later package was skipped.
+- **On the release's tags**, each package of the release publishes in exactly one run. A trusted pub.dev package publishes in the run on its own tag; every other package in the run on the primary tag, or without one, on its own tag or the first tag that no trusted pub.dev package uses. The runs on the release's other tags mark the package `skipped_out_of_scope`: it is not looked up on its registry and does not count against the run's rate limits, and its message names the run that publishes it. A run on a non-primary package tag, such as `web/v1.1.0`, therefore no longer publishes the release's other packages. `--package`, `--group`, and `--ecosystem` select from that plan and never move a package into another run.
+- **On a branch or on a tag the release does not create**, every package but the trusted pub.dev packages publishes as before. A workspace without trusted pub.dev packages publishes exactly as before on every ref.
+
+An empty `PUB_TOKEN` counts as no token, so the package still waits for its tag. The report lists each deferred package with its tag and the command that publishes it:
+
+```text
+Would publish (1)
+  web  1.1.0  npm
+
+Deferred to release tags (1)
+  app_dart  0.2.1  pub_dev  app_dart/v0.2.1
+
+The registry only accepts these packages from a `push` or `workflow_dispatch` run on their release tag. Publish each one from its tag:
+  gh workflow run publish.yml --repo owner/repo --ref app_dart/v0.2.1
+```
+
+When the run is on the right tag but a `release` or `create` event started it, or the run has no `GITHUB_REF`, the package is still deferred and its message says what to change in the workflow. No run of that workflow can publish it, so the run ends with a warning that counts the packages left unpublished until the workflow's trigger or `GITHUB_REF` is fixed. With `--format json`, the package row carries the reason and the same details, and `summary.deferred` and `summary.out_of_scope` count the new statuses:
+
+```json
+{
+	"package": "app_dart",
+	"status": "deferred_to_tag",
+	"deferred_to": {
+		"reason": "wrong_ref",
+		"tag": "app_dart/v0.2.1",
+		"ref": "refs/tags/app_dart/v0.2.1",
+		"command": "gh workflow run publish.yml --repo owner/repo --ref app_dart/v0.2.1"
+	}
+}
+```
+
+`reason` is `wrong_ref`, `wrong_ref_type`, `wrong_event`, or `unknown_ref`. The command dispatches the package's `publish.trusted_publishing.workflow` when it sets one, and is omitted when monochange cannot determine the workflow. `monochange publish readiness` checks every package in the release whichever ref it runs on. To publish every package, start one run of the publish workflow for each tag the release creates, from tag pushes or by dispatching it on each tag, and let the run on the primary tag (or, without one, on the first tag no trusted pub.dev package uses) dispatch each `deferred_to.command` it reports. Enable publishing from `push` and `workflow_dispatch` events on the package's pub.dev admin page.
+
+### 🐛 Fixed
+
+#### Reject skipped jobs as verification evidence
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #922](https://github.com/monochange/monochange/pull/922)
+
+`monochange ci verify` no longer records `true_negative` for a job that never ran. A `skipped` or `cancelled` conclusion proves nothing about the gate decision, so the command now exits non-zero and writes no verification record; `success` remains the only conclusion that verifies a skip. This keeps the recorded skip rate and analytics honest instead of counting non-runs as successful gates.
+
+**Before:**
+
+```bash
+monochange ci verify --job docs --conclusion skipped
+# classification: true_negative
+```
+
+**After:**
+
+```bash
+monochange ci verify --job docs --conclusion skipped
+# job `docs` concluded `skipped`; only `success` or `failure` verifies a gate decision, so no verification record was written
+```
+
+`monochange ci check --workflow` now requires every `needs.<gate>.outputs.decisions` reference in an `if:` expression to include a status-check override plus both fail-safe guards. GitHub implicitly wraps a bare job `if:` in `success() && (...)`, so `needs.<gate>.result != 'success'` alone never runs when the gate fails. The canonical gate is:
+
+```yaml
+if: >-
+  !cancelled()
+  && (needs.gate.result != 'success' || needs.gate.outputs.run-all == 'true' || fromJSON(needs.gate.outputs.decisions)['test-windows'])
+```
+
+`always()` is accepted in place of `!cancelled()`. Comments, `env:` values, and `run:` scripts are not expressions and are ignored.
+
+#### Show rate-limit retries instead of waiting silently
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #923](https://github.com/monochange/monochange/pull/923)
+
+A command that hit a rate limit used to sit without output while it waited to retry, so a release job looked hung for minutes. Every retry wait is now announced as a warning just before monochange waits, with what is retried, how long the wait is, and which retry it is:
+
+```text
+warning: GitHub rate limit hit, retrying GET /repos/acme/widgets/releases/tags/v1.2.0 in 1m (retry 1 of 3)
+warning: monochange app rate limit hit, retrying hosted CommitRelease in 30s (retry 1 of 3)
+```
+
+In GitHub Actions each line is a `::warning` annotation, and with `--progress-format json` it is a `warning` event. `--quiet` hides them like any other warning.
+
+**GitHub API (`monochange_github`).** Clients now use octocrab's `RetryConfig::HandleRateLimits`. A `429`, or a `403` that carries `retry-after` or `x-ratelimit-remaining: 0`, waits as long as GitHub asks (at least a minute for a `429` with no hint) and is retried up to three times. Before, a `429` was retried immediately three times, which GitHub's guidance warns can get an integration banned, and a primary rate limit failed at once. A `5xx` is still retried immediately and is now announced. Release tree writes keep their own capped backoff from the previous release, and changeset enrichment still skips rather than waits. GitHub clients also gain a 10 second connect timeout and a 60 second read timeout, so a stalled connection fails instead of hanging the command.
+
+**Hosted operations (`monochange`).** When the monochange app answers `CommitRelease`, `OpenReleaseRequest`, or `monochange gh workflow run` with `429`, the CLI waits for the app's `Retry-After` (30 seconds without one) and sends the request again, up to three times, over RPC and over the REST fallback. A `Retry-After` longer than five minutes fails at once. Either way the error says what happened:
+
+```text
+hosted CommitRelease failed with HTTP 429 Too Many Requests: rate_limited. The monochange app kept rate limiting this request after 3 retries; rerun the job in a few minutes
+```
+
+The GitHub Actions OIDC token request now also retries a `429`, and its existing retries after a `5xx` or a dropped connection are announced.
+
+**Forgejo (`monochange_forgejo`).** Release and pull request calls now use the shared provider client with its 10 second connect and 30 second request timeouts, like GitLab and Gitea. Before, they had no timeout and could wait forever on an unresponsive server.
+
+**`monochange_hosting`.** The new `retry` module holds the shared pieces: `warn_retry(&RetryNotice { .. })` emits the warning, `retry_after(&headers)` reads a `Retry-After` in seconds, and `format_wait` renders a wait such as `2m 30s`.
+
 ## [0.22.1](https://github.com/monochange/monochange/releases/tag/v0.22.1) (2026-11-27)
 
 ### Changed

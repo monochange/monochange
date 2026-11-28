@@ -1,0 +1,2614 @@
+{
+	"schema_version": "0.10",
+	"kind": "monochange.releaseRecord",
+	"created_at": "2026-11-28T05:52:46Z",
+	"command": "release",
+	"version": null,
+	"versions": {
+		"main": "0.23.0",
+		"monochange_app": "0.5.4",
+		"monochange_classification": "0.4.12"
+	},
+	"release_targets": [
+		{
+			"id": "main",
+			"kind": "group",
+			"version": "0.23.0",
+			"version_format": "primary",
+			"tag": true,
+			"release": true,
+			"tag_name": "v0.23.0",
+			"rendered_title": "v0.23.0 (2026-11-28)",
+			"rendered_changelog_title": "[0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)",
+			"members": [
+				"@monochange/cli",
+				"@monochange/cli-darwin-arm64",
+				"@monochange/cli-darwin-x64",
+				"@monochange/cli-linux-arm64-gnu",
+				"@monochange/cli-linux-arm64-musl",
+				"@monochange/cli-linux-x64-gnu",
+				"@monochange/cli-linux-x64-musl",
+				"@monochange/cli-win32-arm64-msvc",
+				"@monochange/cli-win32-x64-msvc",
+				"@monochange/skill",
+				"monochange",
+				"monochange_analysis",
+				"monochange_cargo",
+				"monochange_changelog",
+				"monochange_cocoapods",
+				"monochange_config",
+				"monochange_core",
+				"monochange_dart",
+				"monochange_deno",
+				"monochange_ecmascript",
+				"monochange_forgejo",
+				"monochange_gitea",
+				"monochange_github",
+				"monochange_gitlab",
+				"monochange_go",
+				"monochange_gradle",
+				"monochange_graph",
+				"monochange_hosting",
+				"monochange_lint",
+				"monochange_linting",
+				"monochange_npm",
+				"monochange_publish",
+				"monochange_python",
+				"monochange_semver",
+				"monochange_swift",
+				"monochange_telemetry",
+				"monochange_test_helpers"
+			]
+		},
+		{
+			"id": "monochange_app",
+			"kind": "package",
+			"version": "0.5.4",
+			"version_format": "namespaced",
+			"tag": true,
+			"release": true,
+			"tag_name": "monochange_app/v0.5.4",
+			"rendered_title": "monochange.dev 0.5.4",
+			"rendered_changelog_title": "0.5.4",
+			"members": [
+				"monochange_app"
+			]
+		},
+		{
+			"id": "monochange_classification",
+			"kind": "package",
+			"version": "0.4.12",
+			"version_format": "namespaced",
+			"tag": true,
+			"release": false,
+			"tag_name": "monochange_classification/v0.4.12",
+			"rendered_title": "monochange_classification v0.4.12 (2026-11-28)",
+			"rendered_changelog_title": "monochange_classification [0.4.12](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.4.12) (2026-11-28)",
+			"members": [
+				"monochange_classification"
+			]
+		}
+	],
+	"released_packages": [
+		"@monochange/cli",
+		"@monochange/cli-darwin-arm64",
+		"@monochange/cli-darwin-x64",
+		"@monochange/cli-linux-arm64-gnu",
+		"@monochange/cli-linux-arm64-musl",
+		"@monochange/cli-linux-x64-gnu",
+		"@monochange/cli-linux-x64-musl",
+		"@monochange/cli-win32-arm64-msvc",
+		"@monochange/cli-win32-x64-msvc",
+		"@monochange/skill",
+		"monochange",
+		"monochange_analysis",
+		"monochange_app",
+		"monochange_cargo",
+		"monochange_changelog",
+		"monochange_classification",
+		"monochange_cocoapods",
+		"monochange_config",
+		"monochange_core",
+		"monochange_dart",
+		"monochange_deno",
+		"monochange_ecmascript",
+		"monochange_forgejo",
+		"monochange_gitea",
+		"monochange_github",
+		"monochange_gitlab",
+		"monochange_go",
+		"monochange_gradle",
+		"monochange_graph",
+		"monochange_hosting",
+		"monochange_lint",
+		"monochange_linting",
+		"monochange_npm",
+		"monochange_publish",
+		"monochange_python",
+		"monochange_semver",
+		"monochange_swift",
+		"monochange_telemetry",
+		"monochange_test_helpers"
+	],
+	"changed_files": [
+		"Cargo.lock",
+		"Cargo.toml",
+		"app/Cargo.lock",
+		"app/Cargo.toml",
+		"app/crates/monochange_app/Cargo.toml",
+		"app/developer-changelog.md",
+		"app/leptoskit.toml",
+		"app/projects/leptoskit.toml",
+		"changelog.md",
+		"crates/monochange/Cargo.toml",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/Cargo.toml",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/Cargo.toml",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/Cargo.toml",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_classification/Cargo.toml",
+		"crates/monochange_classification/changelog.md",
+		"crates/monochange_cocoapods/Cargo.toml",
+		"crates/monochange_cocoapods/changelog.md",
+		"crates/monochange_config/Cargo.toml",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/Cargo.toml",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/Cargo.toml",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/Cargo.toml",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/Cargo.toml",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/Cargo.toml",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/Cargo.toml",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/Cargo.toml",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/Cargo.toml",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/Cargo.toml",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_gradle/Cargo.toml",
+		"crates/monochange_gradle/changelog.md",
+		"crates/monochange_graph/Cargo.toml",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/Cargo.toml",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/Cargo.toml",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/Cargo.toml",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/Cargo.toml",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/Cargo.toml",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/Cargo.toml",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_semver/Cargo.toml",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_swift/Cargo.toml",
+		"crates/monochange_swift/changelog.md",
+		"crates/monochange_telemetry/Cargo.toml",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/Cargo.toml",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli/package.json",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-arm64/package.json",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-darwin-x64/package.json",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/package.json",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/package.json",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/package.json",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/package.json",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/package.json",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/package.json",
+		"packages/monochange__feedback/package.json",
+		"packages/monochange__feedback-react-native/package.json",
+		"packages/monochange__feedback-worker/package.json",
+		"packages/monochange__skill/changelog.md",
+		"packages/monochange__skill/package.json",
+		"pnpm-lock.yaml"
+	],
+	"package_publications": [
+		{
+			"package": "@monochange/cli",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.23.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-arm64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.23.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-darwin-x64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.23.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.23.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-arm64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.23.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.23.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-linux-x64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.23.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-arm64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.23.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/cli-win32-x64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.23.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "@monochange/skill",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.23.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.23.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_analysis",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.23.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_cargo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.23.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_changelog",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.23.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_classification",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.4.12",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_cocoapods",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.23.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_config",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.23.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_core",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.23.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_dart",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.23.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_deno",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.23.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_ecmascript",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.23.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_forgejo",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.23.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitea",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.23.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_github",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.23.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gitlab",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.23.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_go",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.23.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_gradle",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.23.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_graph",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.23.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_hosting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.23.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_lint",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.23.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_linting",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.23.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_npm",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.23.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_publish",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.23.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_python",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.23.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_semver",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.23.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_swift",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.23.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_telemetry",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.23.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		},
+		{
+			"package": "monochange_test_helpers",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.23.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "required",
+				"repository": null,
+				"workflow": null,
+				"environment": null
+			}
+		}
+	],
+	"updated_changelogs": [
+		"app/developer-changelog.md",
+		"changelog.md",
+		"crates/monochange/changelog.md",
+		"crates/monochange_analysis/changelog.md",
+		"crates/monochange_cargo/changelog.md",
+		"crates/monochange_changelog/changelog.md",
+		"crates/monochange_classification/changelog.md",
+		"crates/monochange_cocoapods/changelog.md",
+		"crates/monochange_config/changelog.md",
+		"crates/monochange_core/changelog.md",
+		"crates/monochange_dart/changelog.md",
+		"crates/monochange_deno/changelog.md",
+		"crates/monochange_ecmascript/changelog.md",
+		"crates/monochange_forgejo/changelog.md",
+		"crates/monochange_gitea/changelog.md",
+		"crates/monochange_github/changelog.md",
+		"crates/monochange_gitlab/changelog.md",
+		"crates/monochange_go/changelog.md",
+		"crates/monochange_gradle/changelog.md",
+		"crates/monochange_graph/changelog.md",
+		"crates/monochange_hosting/changelog.md",
+		"crates/monochange_lint/changelog.md",
+		"crates/monochange_linting/changelog.md",
+		"crates/monochange_npm/changelog.md",
+		"crates/monochange_publish/changelog.md",
+		"crates/monochange_python/changelog.md",
+		"crates/monochange_semver/changelog.md",
+		"crates/monochange_swift/changelog.md",
+		"crates/monochange_telemetry/changelog.md",
+		"crates/monochange_test_helpers/changelog.md",
+		"packages/monochange__cli/changelog.md",
+		"packages/monochange__cli-darwin-arm64/changelog.md",
+		"packages/monochange__cli-darwin-x64/changelog.md",
+		"packages/monochange__cli-linux-arm64-gnu/changelog.md",
+		"packages/monochange__cli-linux-arm64-musl/changelog.md",
+		"packages/monochange__cli-linux-x64-gnu/changelog.md",
+		"packages/monochange__cli-linux-x64-musl/changelog.md",
+		"packages/monochange__cli-win32-arm64-msvc/changelog.md",
+		"packages/monochange__cli-win32-x64-msvc/changelog.md",
+		"packages/monochange__skill/changelog.md"
+	],
+	"deleted_changesets": [
+		".changeset/pub-dev-release-tag-docs.md",
+		".changeset/pub-dev-release-tag-publishing.md",
+		".changeset/pub-dev-release-tag-skill.md",
+		".changeset/pub-dev-release-tag-validation.md",
+		".changeset/publish-release-tag-api.md",
+		".changeset/verify-skipped-jobs.md",
+		".changeset/visible-rate-limit-retries.md",
+		".changeset/website-file-routes.md"
+	],
+	"changesets": [
+		{
+			"path": ".changeset/pub-dev-release-tag-docs.md",
+			"summary": "Explain how trusted pub.dev packages publish from their own tag",
+			"details": "The trusted-publishing, CI, and multi-package publishing guides now describe pub.dev's ref and event rule, the `deferred_to_tag` and `skipped_out_of_scope` statuses with each deferral reason, the pub.dev admin settings (repository, tag pattern, `push` and `workflow_dispatch` events, optional environment), which run publishes each package, and a workflow that starts a run for every release tag and dispatches each deferred tag. The `PublishPackages` and `PublishReadiness` references cover the same behaviour, the trusted-publishing agent skill matches it, and the 0.23 migration guide lists the configuration, JSON, and Rust updates.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "5aeff7b65ce1a0abcbb5f080c9d1ad39b34829b0",
+						"short_sha": "5aeff7b",
+						"url": "https://github.com/monochange/monochange/commit/5aeff7b65ce1a0abcbb5f080c9d1ad39b34829b0",
+						"authored_at": "2026-11-28T02:20:42Z",
+						"committed_at": "2026-11-28T02:20:42Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#911",
+						"title": "feat(publish)!: publish trusted pub.dev packages from their own release tag",
+						"url": "https://github.com/monochange/monochange/pull/911",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "5aeff7b65ce1a0abcbb5f080c9d1ad39b34829b0",
+						"short_sha": "5aeff7b",
+						"url": "https://github.com/monochange/monochange/commit/5aeff7b65ce1a0abcbb5f080c9d1ad39b34829b0",
+						"authored_at": "2026-11-28T02:20:42Z",
+						"committed_at": "2026-11-28T02:20:42Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#911",
+						"title": "feat(publish)!: publish trusted pub.dev packages from their own release tag",
+						"url": "https://github.com/monochange/monochange/pull/911",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/pub-dev-release-tag-publishing.md",
+			"summary": "Publish trusted pub.dev packages from their own release tag",
+			"details": "A release that ships a trusted pub.dev package alongside packages for other registries now publishes cleanly. pub.dev only accepts an upload from a GitHub Actions run that a `push` or `workflow_dispatch` event started on the package's own tag (`refs/tags/<package tag>`). `monochange publish packages` checks the run's `GITHUB_REF`, `GITHUB_REF_TYPE`, and `GITHUB_EVENT_NAME` against that rule before uploading a pub.dev package that publishes with trusted publishing and no `PUB_TOKEN`:\n\n- **When the run does not match**, the package is not uploaded and is marked `deferred_to_tag`. The run does not fail, and the packages after it still publish. Earlier versions attempted the upload, pub.dev rejected it, and every later package was skipped.\n- **On the release's tags**, each package of the release publishes in exactly one run. A trusted pub.dev package publishes in the run on its own tag; every other package in the run on the primary tag, or without one, on its own tag or the first tag that no trusted pub.dev package uses. The runs on the release's other tags mark the package `skipped_out_of_scope`: it is not looked up on its registry and does not count against the run's rate limits, and its message names the run that publishes it. A run on a non-primary package tag, such as `web/v1.1.0`, therefore no longer publishes the release's other packages. `--package`, `--group`, and `--ecosystem` select from that plan and never move a package into another run.\n- **On a branch or on a tag the release does not create**, every package but the trusted pub.dev packages publishes as before. A workspace without trusted pub.dev packages publishes exactly as before on every ref.\n\nAn empty `PUB_TOKEN` counts as no token, so the package still waits for its tag. The report lists each deferred package with its tag and the command that publishes it:\n\n```text\nWould publish (1)\n  web  1.1.0  npm\n\nDeferred to release tags (1)\n  app_dart  0.2.1  pub_dev  app_dart/v0.2.1\n\nThe registry only accepts these packages from a `push` or `workflow_dispatch` run on their release tag. Publish each one from its tag:\n  gh workflow run publish.yml --repo owner/repo --ref app_dart/v0.2.1\n```\n\nWhen the run is on the right tag but a `release` or `create` event started it, or the run has no `GITHUB_REF`, the package is still deferred and its message says what to change in the workflow. No run of that workflow can publish it, so the run ends with a warning that counts the packages left unpublished until the workflow's trigger or `GITHUB_REF` is fixed. With `--format json`, the package row carries the reason and the same details, and `summary.deferred` and `summary.out_of_scope` count the new statuses:\n\n```json\n{\n\t\"package\": \"app_dart\",\n\t\"status\": \"deferred_to_tag\",\n\t\"deferred_to\": {\n\t\t\"reason\": \"wrong_ref\",\n\t\t\"tag\": \"app_dart/v0.2.1\",\n\t\t\"ref\": \"refs/tags/app_dart/v0.2.1\",\n\t\t\"command\": \"gh workflow run publish.yml --repo owner/repo --ref app_dart/v0.2.1\"\n\t}\n}\n```\n\n`reason` is `wrong_ref`, `wrong_ref_type`, `wrong_event`, or `unknown_ref`. The command dispatches the package's `publish.trusted_publishing.workflow` when it sets one, and is omitted when monochange cannot determine the workflow. `monochange publish readiness` checks every package in the release whichever ref it runs on. To publish every package, start one run of the publish workflow for each tag the release creates, from tag pushes or by dispatching it on each tag, and let the run on the primary tag (or, without one, on the first tag no trusted pub.dev package uses) dispatch each `deferred_to.command` it reports. Enable publishing from `push` and `workflow_dispatch` events on the package's pub.dev admin page.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "5aeff7b65ce1a0abcbb5f080c9d1ad39b34829b0",
+						"short_sha": "5aeff7b",
+						"url": "https://github.com/monochange/monochange/commit/5aeff7b65ce1a0abcbb5f080c9d1ad39b34829b0",
+						"authored_at": "2026-11-28T02:20:42Z",
+						"committed_at": "2026-11-28T02:20:42Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#911",
+						"title": "feat(publish)!: publish trusted pub.dev packages from their own release tag",
+						"url": "https://github.com/monochange/monochange/pull/911",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "5aeff7b65ce1a0abcbb5f080c9d1ad39b34829b0",
+						"short_sha": "5aeff7b",
+						"url": "https://github.com/monochange/monochange/commit/5aeff7b65ce1a0abcbb5f080c9d1ad39b34829b0",
+						"authored_at": "2026-11-28T02:20:42Z",
+						"committed_at": "2026-11-28T02:20:42Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#911",
+						"title": "feat(publish)!: publish trusted pub.dev packages from their own release tag",
+						"url": "https://github.com/monochange/monochange/pull/911",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/pub-dev-release-tag-skill.md",
+			"summary": "Describe how trusted pub.dev packages publish from their own tag",
+			"details": "The trusted-publishing guide in the skill no longer says that `monochange publish packages` fails a run whose ref is not a tag. It now tells agents that a trusted pub.dev package the run cannot upload is marked `deferred_to_tag` with a `reason` and a `gh workflow run` command. It also explains that each package of a release publishes in exactly one run on the release's tags, so the publish workflow must start a run for every release tag, and that a package publishing with a `PUB_TOKEN` needs `publish.trusted_publishing = false` to pass `monochange step validate`.",
+			"targets": [
+				{
+					"id": "@monochange/skill",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "5aeff7b65ce1a0abcbb5f080c9d1ad39b34829b0",
+						"short_sha": "5aeff7b",
+						"url": "https://github.com/monochange/monochange/commit/5aeff7b65ce1a0abcbb5f080c9d1ad39b34829b0",
+						"authored_at": "2026-11-28T02:20:42Z",
+						"committed_at": "2026-11-28T02:20:42Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#911",
+						"title": "feat(publish)!: publish trusted pub.dev packages from their own release tag",
+						"url": "https://github.com/monochange/monochange/pull/911",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "5aeff7b65ce1a0abcbb5f080c9d1ad39b34829b0",
+						"short_sha": "5aeff7b",
+						"url": "https://github.com/monochange/monochange/commit/5aeff7b65ce1a0abcbb5f080c9d1ad39b34829b0",
+						"authored_at": "2026-11-28T02:20:42Z",
+						"committed_at": "2026-11-28T02:20:42Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#911",
+						"title": "feat(publish)!: publish trusted pub.dev packages from their own release tag",
+						"url": "https://github.com/monochange/monochange/pull/911",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/pub-dev-release-tag-validation.md",
+			"summary": "Require a release tag for trusted pub.dev packages",
+			"details": "> **Breaking change:** `monochange step validate` and `monochange publish readiness` now fail for a pub.dev package that publishes with trusted publishing but whose releases create no tag, and `monochange publish packages` refuses to start a real run for it. See [the 0.23 migration guide](https://monochange.github.io/monochange/guide/migrations/0.23.html).\n\npub.dev only accepts a trusted upload from a run on the package's own release tag, so a package without one could never publish. The error names the section to change:\n\n```text\nerror[config.invalid]: workspace validation failed\n\n    `app_dart` publishes to pub.dev with trusted publishing, which only accepts an upload from a run on the package's release tag (`refs/tags/<tag>`), but monochange creates no tag for it. Set `tag = true` on `[package.app_dart]` so every release creates the tag, or set `publish.trusted_publishing = false` on `[package.app_dart]` to publish with a pub.dev token instead.\n```\n\nSet `tag = true` on the package, or on its group when the package belongs to one:\n\n```toml\n[package.app_dart]\npath = \"packages/app_dart\"\ntype = \"dart\"\ntag = true\n```\n\nValidation reads `monochange.toml` and the package manifests, never the environment, so a package that publishes with a `PUB_TOKEN` must also set `publish.trusted_publishing = false` to pass. Packages that set `publish.trusted_publishing = false`, use `publish.mode = \"external\"`, or are private (`publish_to: none` in `pubspec.yaml`) are unaffected.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "major",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "major"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "5aeff7b65ce1a0abcbb5f080c9d1ad39b34829b0",
+						"short_sha": "5aeff7b",
+						"url": "https://github.com/monochange/monochange/commit/5aeff7b65ce1a0abcbb5f080c9d1ad39b34829b0",
+						"authored_at": "2026-11-28T02:20:42Z",
+						"committed_at": "2026-11-28T02:20:42Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#911",
+						"title": "feat(publish)!: publish trusted pub.dev packages from their own release tag",
+						"url": "https://github.com/monochange/monochange/pull/911",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "5aeff7b65ce1a0abcbb5f080c9d1ad39b34829b0",
+						"short_sha": "5aeff7b",
+						"url": "https://github.com/monochange/monochange/commit/5aeff7b65ce1a0abcbb5f080c9d1ad39b34829b0",
+						"authored_at": "2026-11-28T02:20:42Z",
+						"committed_at": "2026-11-28T02:20:42Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#911",
+						"title": "feat(publish)!: publish trusted pub.dev packages from their own release tag",
+						"url": "https://github.com/monochange/monochange/pull/911",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/publish-release-tag-api.md",
+			"summary": "Plan which packages a publish run may upload from its git ref",
+			"details": "> **Breaking change:** `PublishRequest`, `PackagePublishOutcome`, and `PackagePublishSummary` gained fields, `PackagePublishStatus` gained two variants, and `pub_dev_trusted_publishing_ref_error` is removed. See [the 0.23 migration guide](https://monochange.github.io/monochange/guide/migrations/0.23.html).\n\nThe executor now defers a trusted pub.dev package to its own release tag instead of failing the run, and a run on such a package's own tag skips packages that publish in another run. Callers building these types with every field, or matching `PackagePublishStatus` exhaustively, must handle:\n\n- `PublishRequest::release_tag: Option<PublishReleaseTag>`, the tag the package's release creates. `build_release_requests` fills it in; `None` means no tag.\n- `PublishRequest::run_scope: PublishRunScope`, which the executor reads in release mode. `build_release_requests` sets `PublishRunScope::Publish`.\n- `PackagePublishOutcome::deferred_to: Option<PublishDeferral>`, with the `reason` (`PublishDeferralReason`), `tag`, `ref`, and optional `command` of the run that publishes a deferred package.\n- `PackagePublishSummary::deferred` and `PackagePublishSummary::out_of_scope`, omitted from JSON when zero, and `PackagePublishSummary::this_run`.\n- `PackagePublishStatus::DeferredToTag` and `PackagePublishStatus::SkippedOutOfScope`. Neither fails the run, and `--resume` plans both again.\n\n```rust\nuse monochange_publish::PublishRunScope;\nuse monochange_publish::assign_publish_run_scopes;\nuse monochange_publish::configured_release_tags;\nuse monochange_publish::current_env_map;\n\n// before: monochange_publish::pub_dev_trusted_publishing_ref_error(&request, &env)\n// after: plan the whole release against its tags, then read the scope of\n// each selected request\nlet release_tags = configured_release_tags(&configuration, &packages)?;\nassign_publish_run_scopes(&mut requests, &release_requests, &release_tags, &current_env_map());\nfor request in &requests {\n    match &request.run_scope {\n        PublishRunScope::Publish => {}\n        PublishRunScope::DeferredToTag { deferral, .. } => {\n            if let Some(command) = &deferral.command {\n                println!(\"{}: {command}\", request.package_id);\n            }\n        }\n        PublishRunScope::OutOfScope { message } => println!(\"{message}\"),\n        PublishRunScope::MissingReleaseTag => {}\n    }\n}\n```\n\n`missing_release_tag_errors(&configuration, discover_packages)` lists the trusted pub.dev packages that need `tag = true`, and calls `discover_packages` only when the configuration has a candidate. `publish_is_tag_bound(&request, &env)` reports whether a request can only publish from its tag.",
+			"targets": [
+				{
+					"id": "monochange_publish",
+					"kind": "package",
+					"bump": "major",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "major"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "5aeff7b65ce1a0abcbb5f080c9d1ad39b34829b0",
+						"short_sha": "5aeff7b",
+						"url": "https://github.com/monochange/monochange/commit/5aeff7b65ce1a0abcbb5f080c9d1ad39b34829b0",
+						"authored_at": "2026-11-28T02:20:42Z",
+						"committed_at": "2026-11-28T02:20:42Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#911",
+						"title": "feat(publish)!: publish trusted pub.dev packages from their own release tag",
+						"url": "https://github.com/monochange/monochange/pull/911",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "5aeff7b65ce1a0abcbb5f080c9d1ad39b34829b0",
+						"short_sha": "5aeff7b",
+						"url": "https://github.com/monochange/monochange/commit/5aeff7b65ce1a0abcbb5f080c9d1ad39b34829b0",
+						"authored_at": "2026-11-28T02:20:42Z",
+						"committed_at": "2026-11-28T02:20:42Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#911",
+						"title": "feat(publish)!: publish trusted pub.dev packages from their own release tag",
+						"url": "https://github.com/monochange/monochange/pull/911",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/verify-skipped-jobs.md",
+			"summary": "Reject skipped jobs as verification evidence",
+			"details": "`monochange ci verify` no longer records `true_negative` for a job that never ran. A `skipped` or `cancelled` conclusion proves nothing about the gate decision, so the command now exits non-zero and writes no verification record; `success` remains the only conclusion that verifies a skip. This keeps the recorded skip rate and analytics honest instead of counting non-runs as successful gates.\n\n**Before:**\n\n```bash\nmonochange ci verify --job docs --conclusion skipped\n# classification: true_negative\n```\n\n**After:**\n\n```bash\nmonochange ci verify --job docs --conclusion skipped\n# job `docs` concluded `skipped`; only `success` or `failure` verifies a gate decision, so no verification record was written\n```\n\n`monochange ci check --workflow` now requires every `needs.<gate>.outputs.decisions` reference in an `if:` expression to include a status-check override plus both fail-safe guards. GitHub implicitly wraps a bare job `if:` in `success() && (...)`, so `needs.<gate>.result != 'success'` alone never runs when the gate fails. The canonical gate is:\n\n```yaml\nif: >-\n  !cancelled()\n  && (needs.gate.result != 'success' || needs.gate.outputs.run-all == 'true' || fromJSON(needs.gate.outputs.decisions)['test-windows'])\n```\n\n`always()` is accepted in place of `!cancelled()`. Comments, `env:` values, and `run:` scripts are not expressions and are ignored.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				},
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "2108efd166db1ea8b5404a069c6c05bb114869f0",
+						"short_sha": "2108efd",
+						"url": "https://github.com/monochange/monochange/commit/2108efd166db1ea8b5404a069c6c05bb114869f0",
+						"authored_at": "2026-11-28T04:05:36Z",
+						"committed_at": "2026-11-28T04:05:36Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#922",
+						"title": "fix(ci): run workspace tests and harden gate checks",
+						"url": "https://github.com/monochange/monochange/pull/922",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "2108efd166db1ea8b5404a069c6c05bb114869f0",
+						"short_sha": "2108efd",
+						"url": "https://github.com/monochange/monochange/commit/2108efd166db1ea8b5404a069c6c05bb114869f0",
+						"authored_at": "2026-11-28T04:05:36Z",
+						"committed_at": "2026-11-28T04:05:36Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#922",
+						"title": "fix(ci): run workspace tests and harden gate checks",
+						"url": "https://github.com/monochange/monochange/pull/922",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/visible-rate-limit-retries.md",
+			"summary": "Show rate-limit retries instead of waiting silently",
+			"details": "A command that hit a rate limit used to sit without output while it waited to retry, so a release job looked hung for minutes. Every retry wait is now announced as a warning just before monochange waits, with what is retried, how long the wait is, and which retry it is:\n\n```text\nwarning: GitHub rate limit hit, retrying GET /repos/acme/widgets/releases/tags/v1.2.0 in 1m (retry 1 of 3)\nwarning: monochange app rate limit hit, retrying hosted CommitRelease in 30s (retry 1 of 3)\n```\n\nIn GitHub Actions each line is a `::warning` annotation, and with `--progress-format json` it is a `warning` event. `--quiet` hides them like any other warning.\n\n**GitHub API (`monochange_github`).** Clients now use octocrab's `RetryConfig::HandleRateLimits`. A `429`, or a `403` that carries `retry-after` or `x-ratelimit-remaining: 0`, waits as long as GitHub asks (at least a minute for a `429` with no hint) and is retried up to three times. Before, a `429` was retried immediately three times, which GitHub's guidance warns can get an integration banned, and a primary rate limit failed at once. A `5xx` is still retried immediately and is now announced. Release tree writes keep their own capped backoff from the previous release, and changeset enrichment still skips rather than waits. GitHub clients also gain a 10 second connect timeout and a 60 second read timeout, so a stalled connection fails instead of hanging the command.\n\n**Hosted operations (`monochange`).** When the monochange app answers `CommitRelease`, `OpenReleaseRequest`, or `monochange gh workflow run` with `429`, the CLI waits for the app's `Retry-After` (30 seconds without one) and sends the request again, up to three times, over RPC and over the REST fallback. A `Retry-After` longer than five minutes fails at once. Either way the error says what happened:\n\n```text\nhosted CommitRelease failed with HTTP 429 Too Many Requests: rate_limited. The monochange app kept rate limiting this request after 3 retries; rerun the job in a few minutes\n```\n\nThe GitHub Actions OIDC token request now also retries a `429`, and its existing retries after a `5xx` or a dropped connection are announced.\n\n**Forgejo (`monochange_forgejo`).** Release and pull request calls now use the shared provider client with its 10 second connect and 30 second request timeouts, like GitLab and Gitea. Before, they had no timeout and could wait forever on an unresponsive server.\n\n**`monochange_hosting`.** The new `retry` module holds the shared pieces: `warn_retry(&RetryNotice { .. })` emits the warning, `retry_after(&headers)` reads a `Retry-After` in seconds, and `format_wait` renders a wait such as `2m 30s`.",
+			"targets": [
+				{
+					"id": "monochange",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				},
+				{
+					"id": "monochange_github",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				},
+				{
+					"id": "monochange_forgejo",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "fix"
+				},
+				{
+					"id": "monochange_hosting",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "feat"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "15667f3a17cda8d6dbdfeae9c3c4599e549496df",
+						"short_sha": "15667f3",
+						"url": "https://github.com/monochange/monochange/commit/15667f3a17cda8d6dbdfeae9c3c4599e549496df",
+						"authored_at": "2026-11-28T05:33:20Z",
+						"committed_at": "2026-11-28T05:33:20Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#923",
+						"title": "fix: show rate-limit retries in the cli instead of waiting silently",
+						"url": "https://github.com/monochange/monochange/pull/923",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "15667f3a17cda8d6dbdfeae9c3c4599e549496df",
+						"short_sha": "15667f3",
+						"url": "https://github.com/monochange/monochange/commit/15667f3a17cda8d6dbdfeae9c3c4599e549496df",
+						"authored_at": "2026-11-28T05:33:20Z",
+						"committed_at": "2026-11-28T05:33:20Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#923",
+						"title": "fix: show rate-limit retries in the cli instead of waiting silently",
+						"url": "https://github.com/monochange/monochange/pull/923",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/website-file-routes.md",
+			"summary": "Register the website from the pinned file routes",
+			"details": "`monochange_app` now enables the pinned leptoskit `router` plugin for the website. `src/routes/` is the source of truth and the committed `src/routes.rs` supplies the typed `Route` enum, hrefs, recognition, and the website HTTP paths the server registers. Registration goes through the toolkit's SSR listing helper, while each generated path reuses the render metadata discovered from the Leptos tree so Suspense streaming and lazy-route preloads are unchanged. Projects listings and the single server-function registration stay as they were.\n\nThe pinned generator writes a trailing catch-all as `/{*name}` without its static prefix, so the book route expands narrowly to `/book` and `/book/{*chapter}`; the raw `/{*chapter}` would swallow `/pkg` and the malformed router aliases. The Leptos route tree still renders every screen, because the generated native renderer cannot carry SSR resources, named forms, or per-route wasm chunks.\n\nAfter adding a website route file, run `leptoskit plugin:router routes` from `app/` and commit the regenerated module. The route contract test checks that the website renderer can handle every registered path.",
+			"targets": [
+				{
+					"id": "monochange_app",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "feat"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "1a7cc7240c1118691f8631ee31f819ad3e126e6f",
+						"short_sha": "1a7cc72",
+						"url": "https://github.com/monochange/monochange/commit/1a7cc7240c1118691f8631ee31f819ad3e126e6f",
+						"authored_at": "2026-11-28T00:16:19Z",
+						"committed_at": "2026-11-28T00:16:19Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#890",
+						"title": "feat(app): register website pages from leptoskit file routes",
+						"url": "https://github.com/monochange/monochange/pull/890",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "1a7cc7240c1118691f8631ee31f819ad3e126e6f",
+						"short_sha": "1a7cc72",
+						"url": "https://github.com/monochange/monochange/commit/1a7cc7240c1118691f8631ee31f819ad3e126e6f",
+						"authored_at": "2026-11-28T00:16:19Z",
+						"committed_at": "2026-11-28T00:16:19Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#890",
+						"title": "feat(app): register website pages from leptoskit file routes",
+						"url": "https://github.com/monochange/monochange/pull/890",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		}
+	],
+	"changelogs": [
+		{
+			"owner_id": "monochange_app",
+			"owner_kind": "package",
+			"output": "website_developer",
+			"stream": "default",
+			"path": "app/developer-changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "0.5.4",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Register the website from the pinned file routes\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #890](https://github.com/monochange/monochange/pull/890)\n\n`monochange_app` now enables the pinned leptoskit `router` plugin for the website. `src/routes/` is the source of truth and the committed `src/routes.rs` supplies the typed `Route` enum, hrefs, recognition, and the website HTTP paths the server registers. Registration goes through the toolkit's SSR listing helper, while each generated path reuses the render metadata discovered from the Leptos tree so Suspense streaming and lazy-route preloads are unchanged. Projects listings and the single server-function registration stay as they were.\n\nThe pinned generator writes a trailing catch-all as `/{*name}` without its static prefix, so the book route expands narrowly to `/book` and `/book/{*chapter}`; the raw `/{*chapter}` would swallow `/pkg` and the malformed router aliases. The Leptos route tree still renders every screen, because the generated native renderer cannot carry SSR resources, named forms, or per-route wasm chunks.\n\nAfter adding a website route file, run `leptoskit plugin:router routes` from `app/` and commit the regenerated module. The route contract test checks that the website renderer can handle every registered path."
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Explain how trusted pub.dev packages publish from their own tag\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #911](https://github.com/monochange/monochange/pull/911)\n\nThe trusted-publishing, CI, and multi-package publishing guides now describe pub.dev's ref and event rule, the `deferred_to_tag` and `skipped_out_of_scope` statuses with each deferral reason, the pub.dev admin settings (repository, tag pattern, `push` and `workflow_dispatch` events, optional environment), which run publishes each package, and a workflow that starts a run for every release tag and dispatches each deferred tag. The `PublishPackages` and `PublishReadiness` references cover the same behaviour, the trusted-publishing agent skill matches it, and the 0.23 migration guide lists the configuration, JSON, and Rust updates.",
+							"#### Reject skipped jobs as verification evidence\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #922](https://github.com/monochange/monochange/pull/922)\n\n`monochange ci verify` no longer records `true_negative` for a job that never ran. A `skipped` or `cancelled` conclusion proves nothing about the gate decision, so the command now exits non-zero and writes no verification record; `success` remains the only conclusion that verifies a skip. This keeps the recorded skip rate and analytics honest instead of counting non-runs as successful gates.\n\n**Before:**\n\n```bash\nmonochange ci verify --job docs --conclusion skipped\n# classification: true_negative\n```\n\n**After:**\n\n```bash\nmonochange ci verify --job docs --conclusion skipped\n# job `docs` concluded `skipped`; only `success` or `failure` verifies a gate decision, so no verification record was written\n```\n\n`monochange ci check --workflow` now requires every `needs.<gate>.outputs.decisions` reference in an `if:` expression to include a status-check override plus both fail-safe guards. GitHub implicitly wraps a bare job `if:` in `success() && (...)`, so `needs.<gate>.result != 'success'` alone never runs when the gate fails. The canonical gate is:\n\n```yaml\nif: >-\n  !cancelled()\n  && (needs.gate.result != 'success' || needs.gate.outputs.run-all == 'true' || fromJSON(needs.gate.outputs.decisions)['test-windows'])\n```\n\n`always()` is accepted in place of `!cancelled()`. Comments, `env:` values, and `run:` scripts are not expressions and are ignored."
+						]
+					}
+				]
+			},
+			"rendered": "## 0.5.4\n\n### 🚀 Feature\n\n#### Register the website from the pinned file routes\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #890](https://github.com/monochange/monochange/pull/890)\n\n`monochange_app` now enables the pinned leptoskit `router` plugin for the website. `src/routes/` is the source of truth and the committed `src/routes.rs` supplies the typed `Route` enum, hrefs, recognition, and the website HTTP paths the server registers. Registration goes through the toolkit's SSR listing helper, while each generated path reuses the render metadata discovered from the Leptos tree so Suspense streaming and lazy-route preloads are unchanged. Projects listings and the single server-function registration stay as they were.\n\nThe pinned generator writes a trailing catch-all as `/{*name}` without its static prefix, so the book route expands narrowly to `/book` and `/book/{*chapter}`; the raw `/{*chapter}` would swallow `/pkg` and the malformed router aliases. The Leptos route tree still renders every screen, because the generated native renderer cannot carry SSR resources, named forms, or per-route wasm chunks.\n\nAfter adding a website route file, run `leptoskit plugin:router routes` from `app/` and commit the regenerated module. The route contract test checks that the website renderer can handle every registered path.\n\n### 🐛 Fixed\n\n#### Explain how trusted pub.dev packages publish from their own tag\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #911](https://github.com/monochange/monochange/pull/911)\n\nThe trusted-publishing, CI, and multi-package publishing guides now describe pub.dev's ref and event rule, the `deferred_to_tag` and `skipped_out_of_scope` statuses with each deferral reason, the pub.dev admin settings (repository, tag pattern, `push` and `workflow_dispatch` events, optional environment), which run publishes each package, and a workflow that starts a run for every release tag and dispatches each deferred tag. The `PublishPackages` and `PublishReadiness` references cover the same behaviour, the trusted-publishing agent skill matches it, and the 0.23 migration guide lists the configuration, JSON, and Rust updates.\n\n#### Reject skipped jobs as verification evidence\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #922](https://github.com/monochange/monochange/pull/922)\n\n`monochange ci verify` no longer records `true_negative` for a job that never ran. A `skipped` or `cancelled` conclusion proves nothing about the gate decision, so the command now exits non-zero and writes no verification record; `success` remains the only conclusion that verifies a skip. This keeps the recorded skip rate and analytics honest instead of counting non-runs as successful gates.\n\n**Before:**\n\n```bash\nmonochange ci verify --job docs --conclusion skipped\n# classification: true_negative\n```\n\n**After:**\n\n```bash\nmonochange ci verify --job docs --conclusion skipped\n# job `docs` concluded `skipped`; only `success` or `failure` verifies a gate decision, so no verification record was written\n```\n\n`monochange ci check --workflow` now requires every `needs.<gate>.outputs.decisions` reference in an `if:` expression to include a status-check override plus both fail-safe guards. GitHub implicitly wraps a bare job `if:` in `success() && (...)`, so `needs.<gate>.result != 'success'` alone never runs when the gate fails. The canonical gate is:\n\n```yaml\nif: >-\n  !cancelled()\n  && (needs.gate.result != 'success' || needs.gate.outputs.run-all == 'true' || fromJSON(needs.gate.outputs.decisions)['test-windows'])\n```\n\n`always()` is accepted in place of `!cancelled()`. Comments, `env:` values, and `run:` scripts are not expressions and are ignored."
+		},
+		{
+			"owner_id": "main",
+			"owner_kind": "group",
+			"output": "default",
+			"stream": "default",
+			"path": "changelog.md",
+			"format": "monochange",
+			"notes": {
+				"title": "[0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)",
+				"summary": [
+					"Grouped release for `main`."
+				],
+				"sections": [
+					{
+						"title": "💥 Breaking Change",
+						"collapsed": false,
+						"entries": [
+							"#### Require a release tag for trusted pub.dev packages\n\n_Packages:_ 🔴 _monochange_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #911](https://github.com/monochange/monochange/pull/911)\n\n> **Breaking change:** `monochange step validate` and `monochange publish readiness` now fail for a pub.dev package that publishes with trusted publishing but whose releases create no tag, and `monochange publish packages` refuses to start a real run for it. See [the 0.23 migration guide](https://monochange.github.io/monochange/guide/migrations/0.23.html).\n\npub.dev only accepts a trusted upload from a run on the package's own release tag, so a package without one could never publish. The error names the section to change:\n\n```text\nerror[config.invalid]: workspace validation failed\n\n    `app_dart` publishes to pub.dev with trusted publishing, which only accepts an upload from a run on the package's release tag (`refs/tags/<tag>`), but monochange creates no tag for it. Set `tag = true` on `[package.app_dart]` so every release creates the tag, or set `publish.trusted_publishing = false` on `[package.app_dart]` to publish with a pub.dev token instead.\n```\n\nSet `tag = true` on the package, or on its group when the package belongs to one:\n\n```toml\n[package.app_dart]\npath = \"packages/app_dart\"\ntype = \"dart\"\ntag = true\n```\n\nValidation reads `monochange.toml` and the package manifests, never the environment, so a package that publishes with a `PUB_TOKEN` must also set `publish.trusted_publishing = false` to pass. Packages that set `publish.trusted_publishing = false`, use `publish.mode = \"external\"`, or are private (`publish_to: none` in `pubspec.yaml`) are unaffected.",
+							"#### Plan which packages a publish run may upload from its git ref\n\n_Packages:_ 🔴 _monochange_publish_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #911](https://github.com/monochange/monochange/pull/911)\n\n> **Breaking change:** `PublishRequest`, `PackagePublishOutcome`, and `PackagePublishSummary` gained fields, `PackagePublishStatus` gained two variants, and `pub_dev_trusted_publishing_ref_error` is removed. See [the 0.23 migration guide](https://monochange.github.io/monochange/guide/migrations/0.23.html).\n\nThe executor now defers a trusted pub.dev package to its own release tag instead of failing the run, and a run on such a package's own tag skips packages that publish in another run. Callers building these types with every field, or matching `PackagePublishStatus` exhaustively, must handle:\n\n- `PublishRequest::release_tag: Option<PublishReleaseTag>`, the tag the package's release creates. `build_release_requests` fills it in; `None` means no tag.\n- `PublishRequest::run_scope: PublishRunScope`, which the executor reads in release mode. `build_release_requests` sets `PublishRunScope::Publish`.\n- `PackagePublishOutcome::deferred_to: Option<PublishDeferral>`, with the `reason` (`PublishDeferralReason`), `tag`, `ref`, and optional `command` of the run that publishes a deferred package.\n- `PackagePublishSummary::deferred` and `PackagePublishSummary::out_of_scope`, omitted from JSON when zero, and `PackagePublishSummary::this_run`.\n- `PackagePublishStatus::DeferredToTag` and `PackagePublishStatus::SkippedOutOfScope`. Neither fails the run, and `--resume` plans both again.\n\n```rust\nuse monochange_publish::PublishRunScope;\nuse monochange_publish::assign_publish_run_scopes;\nuse monochange_publish::configured_release_tags;\nuse monochange_publish::current_env_map;\n\n// before: monochange_publish::pub_dev_trusted_publishing_ref_error(&request, &env)\n// after: plan the whole release against its tags, then read the scope of\n// each selected request\nlet release_tags = configured_release_tags(&configuration, &packages)?;\nassign_publish_run_scopes(&mut requests, &release_requests, &release_tags, &current_env_map());\nfor request in &requests {\n    match &request.run_scope {\n        PublishRunScope::Publish => {}\n        PublishRunScope::DeferredToTag { deferral, .. } => {\n            if let Some(command) = &deferral.command {\n                println!(\"{}: {command}\", request.package_id);\n            }\n        }\n        PublishRunScope::OutOfScope { message } => println!(\"{message}\"),\n        PublishRunScope::MissingReleaseTag => {}\n    }\n}\n```\n\n`missing_release_tag_errors(&configuration, discover_packages)` lists the trusted pub.dev packages that need `tag = true`, and calls `discover_packages` only when the configuration has a candidate. `publish_is_tag_bound(&request, &env)` reports whether a request can only publish from its tag."
+						]
+					},
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Publish trusted pub.dev packages from their own release tag\n\n_Packages:_ 🟠 _monochange_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #911](https://github.com/monochange/monochange/pull/911)\n\nA release that ships a trusted pub.dev package alongside packages for other registries now publishes cleanly. pub.dev only accepts an upload from a GitHub Actions run that a `push` or `workflow_dispatch` event started on the package's own tag (`refs/tags/<package tag>`). `monochange publish packages` checks the run's `GITHUB_REF`, `GITHUB_REF_TYPE`, and `GITHUB_EVENT_NAME` against that rule before uploading a pub.dev package that publishes with trusted publishing and no `PUB_TOKEN`:\n\n- **When the run does not match**, the package is not uploaded and is marked `deferred_to_tag`. The run does not fail, and the packages after it still publish. Earlier versions attempted the upload, pub.dev rejected it, and every later package was skipped.\n- **On the release's tags**, each package of the release publishes in exactly one run. A trusted pub.dev package publishes in the run on its own tag; every other package in the run on the primary tag, or without one, on its own tag or the first tag that no trusted pub.dev package uses. The runs on the release's other tags mark the package `skipped_out_of_scope`: it is not looked up on its registry and does not count against the run's rate limits, and its message names the run that publishes it. A run on a non-primary package tag, such as `web/v1.1.0`, therefore no longer publishes the release's other packages. `--package`, `--group`, and `--ecosystem` select from that plan and never move a package into another run.\n- **On a branch or on a tag the release does not create**, every package but the trusted pub.dev packages publishes as before. A workspace without trusted pub.dev packages publishes exactly as before on every ref.\n\nAn empty `PUB_TOKEN` counts as no token, so the package still waits for its tag. The report lists each deferred package with its tag and the command that publishes it:\n\n```text\nWould publish (1)\n  web  1.1.0  npm\n\nDeferred to release tags (1)\n  app_dart  0.2.1  pub_dev  app_dart/v0.2.1\n\nThe registry only accepts these packages from a `push` or `workflow_dispatch` run on their release tag. Publish each one from its tag:\n  gh workflow run publish.yml --repo owner/repo --ref app_dart/v0.2.1\n```\n\nWhen the run is on the right tag but a `release` or `create` event started it, or the run has no `GITHUB_REF`, the package is still deferred and its message says what to change in the workflow. No run of that workflow can publish it, so the run ends with a warning that counts the packages left unpublished until the workflow's trigger or `GITHUB_REF` is fixed. With `--format json`, the package row carries the reason and the same details, and `summary.deferred` and `summary.out_of_scope` count the new statuses:\n\n```json\n{\n\t\"package\": \"app_dart\",\n\t\"status\": \"deferred_to_tag\",\n\t\"deferred_to\": {\n\t\t\"reason\": \"wrong_ref\",\n\t\t\"tag\": \"app_dart/v0.2.1\",\n\t\t\"ref\": \"refs/tags/app_dart/v0.2.1\",\n\t\t\"command\": \"gh workflow run publish.yml --repo owner/repo --ref app_dart/v0.2.1\"\n\t}\n}\n```\n\n`reason` is `wrong_ref`, `wrong_ref_type`, `wrong_event`, or `unknown_ref`. The command dispatches the package's `publish.trusted_publishing.workflow` when it sets one, and is omitted when monochange cannot determine the workflow. `monochange publish readiness` checks every package in the release whichever ref it runs on. To publish every package, start one run of the publish workflow for each tag the release creates, from tag pushes or by dispatching it on each tag, and let the run on the primary tag (or, without one, on the first tag no trusted pub.dev package uses) dispatch each `deferred_to.command` it reports. Enable publishing from `push` and `workflow_dispatch` events on the package's pub.dev admin page.",
+							"#### Show rate-limit retries instead of waiting silently\n\n_Packages:_ 🟢 _monochange_, 🟢 _monochange_forgejo_, 🟢 _monochange_github_, 🟠 _monochange_hosting_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #923](https://github.com/monochange/monochange/pull/923)\n\nA command that hit a rate limit used to sit without output while it waited to retry, so a release job looked hung for minutes. Every retry wait is now announced as a warning just before monochange waits, with what is retried, how long the wait is, and which retry it is:\n\n```text\nwarning: GitHub rate limit hit, retrying GET /repos/acme/widgets/releases/tags/v1.2.0 in 1m (retry 1 of 3)\nwarning: monochange app rate limit hit, retrying hosted CommitRelease in 30s (retry 1 of 3)\n```\n\nIn GitHub Actions each line is a `::warning` annotation, and with `--progress-format json` it is a `warning` event. `--quiet` hides them like any other warning.\n\n**GitHub API (`monochange_github`).** Clients now use octocrab's `RetryConfig::HandleRateLimits`. A `429`, or a `403` that carries `retry-after` or `x-ratelimit-remaining: 0`, waits as long as GitHub asks (at least a minute for a `429` with no hint) and is retried up to three times. Before, a `429` was retried immediately three times, which GitHub's guidance warns can get an integration banned, and a primary rate limit failed at once. A `5xx` is still retried immediately and is now announced. Release tree writes keep their own capped backoff from the previous release, and changeset enrichment still skips rather than waits. GitHub clients also gain a 10 second connect timeout and a 60 second read timeout, so a stalled connection fails instead of hanging the command.\n\n**Hosted operations (`monochange`).** When the monochange app answers `CommitRelease`, `OpenReleaseRequest`, or `monochange gh workflow run` with `429`, the CLI waits for the app's `Retry-After` (30 seconds without one) and sends the request again, up to three times, over RPC and over the REST fallback. A `Retry-After` longer than five minutes fails at once. Either way the error says what happened:\n\n```text\nhosted CommitRelease failed with HTTP 429 Too Many Requests: rate_limited. The monochange app kept rate limiting this request after 3 retries; rerun the job in a few minutes\n```\n\nThe GitHub Actions OIDC token request now also retries a `429`, and its existing retries after a `5xx` or a dropped connection are announced.\n\n**Forgejo (`monochange_forgejo`).** Release and pull request calls now use the shared provider client with its 10 second connect and 30 second request timeouts, like GitLab and Gitea. Before, they had no timeout and could wait forever on an unresponsive server.\n\n**`monochange_hosting`.** The new `retry` module holds the shared pieces: `warn_retry(&RetryNotice { .. })` emits the warning, `retry_after(&headers)` reads a `Retry-After` in seconds, and `format_wait` renders a wait such as `2m 30s`."
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"- **Describe how trusted pub.dev packages publish from their own tag.** The trusted-publishing guide in the skill no longer says that `monochange publish packages` fails a run whose ref is not a tag. It now tells agents that a trusted pub.dev package the run cannot upload is marked `deferred_to_tag` with a `reason` and a `gh workflow run` command. It also explains that each package of a release publishes in exactly one run on the release's tags, so the publish workflow must start a run for every release tag, and that a package publishing with a `PUB_TOKEN` needs `publish.trusted_publishing = false` to pass `monochange step validate`.\n  _Packages:_ 🟢 _@monochange/skill_\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #911](https://github.com/monochange/monochange/pull/911)",
+							"#### Reject skipped jobs as verification evidence\n\n_Packages:_ 🟢 _monochange_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #922](https://github.com/monochange/monochange/pull/922)\n\n`monochange ci verify` no longer records `true_negative` for a job that never ran. A `skipped` or `cancelled` conclusion proves nothing about the gate decision, so the command now exits non-zero and writes no verification record; `success` remains the only conclusion that verifies a skip. This keeps the recorded skip rate and analytics honest instead of counting non-runs as successful gates.\n\n**Before:**\n\n```bash\nmonochange ci verify --job docs --conclusion skipped\n# classification: true_negative\n```\n\n**After:**\n\n```bash\nmonochange ci verify --job docs --conclusion skipped\n# job `docs` concluded `skipped`; only `success` or `failure` verifies a gate decision, so no verification record was written\n```\n\n`monochange ci check --workflow` now requires every `needs.<gate>.outputs.decisions` reference in an `if:` expression to include a status-check override plus both fail-safe guards. GitHub implicitly wraps a bare job `if:` in `success() && (...)`, so `needs.<gate>.result != 'success'` alone never runs when the gate fails. The canonical gate is:\n\n```yaml\nif: >-\n  !cancelled()\n  && (needs.gate.result != 'success' || needs.gate.outputs.run-all == 'true' || fromJSON(needs.gate.outputs.decisions)['test-windows'])\n```\n\n`always()` is accepted in place of `!cancelled()`. Comments, `env:` values, and `run:` scripts are not expressions and are ignored."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)\n\nGrouped release for `main`.\n\n### 💥 Breaking Change\n\n#### Require a release tag for trusted pub.dev packages\n\n_Packages:_ 🔴 _monochange_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #911](https://github.com/monochange/monochange/pull/911)\n\n> **Breaking change:** `monochange step validate` and `monochange publish readiness` now fail for a pub.dev package that publishes with trusted publishing but whose releases create no tag, and `monochange publish packages` refuses to start a real run for it. See [the 0.23 migration guide](https://monochange.github.io/monochange/guide/migrations/0.23.html).\n\npub.dev only accepts a trusted upload from a run on the package's own release tag, so a package without one could never publish. The error names the section to change:\n\n```text\nerror[config.invalid]: workspace validation failed\n\n    `app_dart` publishes to pub.dev with trusted publishing, which only accepts an upload from a run on the package's release tag (`refs/tags/<tag>`), but monochange creates no tag for it. Set `tag = true` on `[package.app_dart]` so every release creates the tag, or set `publish.trusted_publishing = false` on `[package.app_dart]` to publish with a pub.dev token instead.\n```\n\nSet `tag = true` on the package, or on its group when the package belongs to one:\n\n```toml\n[package.app_dart]\npath = \"packages/app_dart\"\ntype = \"dart\"\ntag = true\n```\n\nValidation reads `monochange.toml` and the package manifests, never the environment, so a package that publishes with a `PUB_TOKEN` must also set `publish.trusted_publishing = false` to pass. Packages that set `publish.trusted_publishing = false`, use `publish.mode = \"external\"`, or are private (`publish_to: none` in `pubspec.yaml`) are unaffected.\n\n#### Plan which packages a publish run may upload from its git ref\n\n_Packages:_ 🔴 _monochange_publish_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #911](https://github.com/monochange/monochange/pull/911)\n\n> **Breaking change:** `PublishRequest`, `PackagePublishOutcome`, and `PackagePublishSummary` gained fields, `PackagePublishStatus` gained two variants, and `pub_dev_trusted_publishing_ref_error` is removed. See [the 0.23 migration guide](https://monochange.github.io/monochange/guide/migrations/0.23.html).\n\nThe executor now defers a trusted pub.dev package to its own release tag instead of failing the run, and a run on such a package's own tag skips packages that publish in another run. Callers building these types with every field, or matching `PackagePublishStatus` exhaustively, must handle:\n\n- `PublishRequest::release_tag: Option<PublishReleaseTag>`, the tag the package's release creates. `build_release_requests` fills it in; `None` means no tag.\n- `PublishRequest::run_scope: PublishRunScope`, which the executor reads in release mode. `build_release_requests` sets `PublishRunScope::Publish`.\n- `PackagePublishOutcome::deferred_to: Option<PublishDeferral>`, with the `reason` (`PublishDeferralReason`), `tag`, `ref`, and optional `command` of the run that publishes a deferred package.\n- `PackagePublishSummary::deferred` and `PackagePublishSummary::out_of_scope`, omitted from JSON when zero, and `PackagePublishSummary::this_run`.\n- `PackagePublishStatus::DeferredToTag` and `PackagePublishStatus::SkippedOutOfScope`. Neither fails the run, and `--resume` plans both again.\n\n```rust\nuse monochange_publish::PublishRunScope;\nuse monochange_publish::assign_publish_run_scopes;\nuse monochange_publish::configured_release_tags;\nuse monochange_publish::current_env_map;\n\n// before: monochange_publish::pub_dev_trusted_publishing_ref_error(&request, &env)\n// after: plan the whole release against its tags, then read the scope of\n// each selected request\nlet release_tags = configured_release_tags(&configuration, &packages)?;\nassign_publish_run_scopes(&mut requests, &release_requests, &release_tags, &current_env_map());\nfor request in &requests {\n    match &request.run_scope {\n        PublishRunScope::Publish => {}\n        PublishRunScope::DeferredToTag { deferral, .. } => {\n            if let Some(command) = &deferral.command {\n                println!(\"{}: {command}\", request.package_id);\n            }\n        }\n        PublishRunScope::OutOfScope { message } => println!(\"{message}\"),\n        PublishRunScope::MissingReleaseTag => {}\n    }\n}\n```\n\n`missing_release_tag_errors(&configuration, discover_packages)` lists the trusted pub.dev packages that need `tag = true`, and calls `discover_packages` only when the configuration has a candidate. `publish_is_tag_bound(&request, &env)` reports whether a request can only publish from its tag.\n\n### 🚀 Feature\n\n#### Publish trusted pub.dev packages from their own release tag\n\n_Packages:_ 🟠 _monochange_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #911](https://github.com/monochange/monochange/pull/911)\n\nA release that ships a trusted pub.dev package alongside packages for other registries now publishes cleanly. pub.dev only accepts an upload from a GitHub Actions run that a `push` or `workflow_dispatch` event started on the package's own tag (`refs/tags/<package tag>`). `monochange publish packages` checks the run's `GITHUB_REF`, `GITHUB_REF_TYPE`, and `GITHUB_EVENT_NAME` against that rule before uploading a pub.dev package that publishes with trusted publishing and no `PUB_TOKEN`:\n\n- **When the run does not match**, the package is not uploaded and is marked `deferred_to_tag`. The run does not fail, and the packages after it still publish. Earlier versions attempted the upload, pub.dev rejected it, and every later package was skipped.\n- **On the release's tags**, each package of the release publishes in exactly one run. A trusted pub.dev package publishes in the run on its own tag; every other package in the run on the primary tag, or without one, on its own tag or the first tag that no trusted pub.dev package uses. The runs on the release's other tags mark the package `skipped_out_of_scope`: it is not looked up on its registry and does not count against the run's rate limits, and its message names the run that publishes it. A run on a non-primary package tag, such as `web/v1.1.0`, therefore no longer publishes the release's other packages. `--package`, `--group`, and `--ecosystem` select from that plan and never move a package into another run.\n- **On a branch or on a tag the release does not create**, every package but the trusted pub.dev packages publishes as before. A workspace without trusted pub.dev packages publishes exactly as before on every ref.\n\nAn empty `PUB_TOKEN` counts as no token, so the package still waits for its tag. The report lists each deferred package with its tag and the command that publishes it:\n\n```text\nWould publish (1)\n  web  1.1.0  npm\n\nDeferred to release tags (1)\n  app_dart  0.2.1  pub_dev  app_dart/v0.2.1\n\nThe registry only accepts these packages from a `push` or `workflow_dispatch` run on their release tag. Publish each one from its tag:\n  gh workflow run publish.yml --repo owner/repo --ref app_dart/v0.2.1\n```\n\nWhen the run is on the right tag but a `release` or `create` event started it, or the run has no `GITHUB_REF`, the package is still deferred and its message says what to change in the workflow. No run of that workflow can publish it, so the run ends with a warning that counts the packages left unpublished until the workflow's trigger or `GITHUB_REF` is fixed. With `--format json`, the package row carries the reason and the same details, and `summary.deferred` and `summary.out_of_scope` count the new statuses:\n\n```json\n{\n\t\"package\": \"app_dart\",\n\t\"status\": \"deferred_to_tag\",\n\t\"deferred_to\": {\n\t\t\"reason\": \"wrong_ref\",\n\t\t\"tag\": \"app_dart/v0.2.1\",\n\t\t\"ref\": \"refs/tags/app_dart/v0.2.1\",\n\t\t\"command\": \"gh workflow run publish.yml --repo owner/repo --ref app_dart/v0.2.1\"\n\t}\n}\n```\n\n`reason` is `wrong_ref`, `wrong_ref_type`, `wrong_event`, or `unknown_ref`. The command dispatches the package's `publish.trusted_publishing.workflow` when it sets one, and is omitted when monochange cannot determine the workflow. `monochange publish readiness` checks every package in the release whichever ref it runs on. To publish every package, start one run of the publish workflow for each tag the release creates, from tag pushes or by dispatching it on each tag, and let the run on the primary tag (or, without one, on the first tag no trusted pub.dev package uses) dispatch each `deferred_to.command` it reports. Enable publishing from `push` and `workflow_dispatch` events on the package's pub.dev admin page.\n\n#### Show rate-limit retries instead of waiting silently\n\n_Packages:_ 🟢 _monochange_, 🟢 _monochange_forgejo_, 🟢 _monochange_github_, 🟠 _monochange_hosting_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #923](https://github.com/monochange/monochange/pull/923)\n\nA command that hit a rate limit used to sit without output while it waited to retry, so a release job looked hung for minutes. Every retry wait is now announced as a warning just before monochange waits, with what is retried, how long the wait is, and which retry it is:\n\n```text\nwarning: GitHub rate limit hit, retrying GET /repos/acme/widgets/releases/tags/v1.2.0 in 1m (retry 1 of 3)\nwarning: monochange app rate limit hit, retrying hosted CommitRelease in 30s (retry 1 of 3)\n```\n\nIn GitHub Actions each line is a `::warning` annotation, and with `--progress-format json` it is a `warning` event. `--quiet` hides them like any other warning.\n\n**GitHub API (`monochange_github`).** Clients now use octocrab's `RetryConfig::HandleRateLimits`. A `429`, or a `403` that carries `retry-after` or `x-ratelimit-remaining: 0`, waits as long as GitHub asks (at least a minute for a `429` with no hint) and is retried up to three times. Before, a `429` was retried immediately three times, which GitHub's guidance warns can get an integration banned, and a primary rate limit failed at once. A `5xx` is still retried immediately and is now announced. Release tree writes keep their own capped backoff from the previous release, and changeset enrichment still skips rather than waits. GitHub clients also gain a 10 second connect timeout and a 60 second read timeout, so a stalled connection fails instead of hanging the command.\n\n**Hosted operations (`monochange`).** When the monochange app answers `CommitRelease`, `OpenReleaseRequest`, or `monochange gh workflow run` with `429`, the CLI waits for the app's `Retry-After` (30 seconds without one) and sends the request again, up to three times, over RPC and over the REST fallback. A `Retry-After` longer than five minutes fails at once. Either way the error says what happened:\n\n```text\nhosted CommitRelease failed with HTTP 429 Too Many Requests: rate_limited. The monochange app kept rate limiting this request after 3 retries; rerun the job in a few minutes\n```\n\nThe GitHub Actions OIDC token request now also retries a `429`, and its existing retries after a `5xx` or a dropped connection are announced.\n\n**Forgejo (`monochange_forgejo`).** Release and pull request calls now use the shared provider client with its 10 second connect and 30 second request timeouts, like GitLab and Gitea. Before, they had no timeout and could wait forever on an unresponsive server.\n\n**`monochange_hosting`.** The new `retry` module holds the shared pieces: `warn_retry(&RetryNotice { .. })` emits the warning, `retry_after(&headers)` reads a `Retry-After` in seconds, and `format_wait` renders a wait such as `2m 30s`.\n\n### 🐛 Fixed\n\n- **Describe how trusted pub.dev packages publish from their own tag.** The trusted-publishing guide in the skill no longer says that `monochange publish packages` fails a run whose ref is not a tag. It now tells agents that a trusted pub.dev package the run cannot upload is marked `deferred_to_tag` with a `reason` and a `gh workflow run` command. It also explains that each package of a release publishes in exactly one run on the release's tags, so the publish workflow must start a run for every release tag, and that a package publishing with a `PUB_TOKEN` needs `publish.trusted_publishing = false` to pass `monochange step validate`.\n  _Packages:_ 🟢 _@monochange/skill_\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #911](https://github.com/monochange/monochange/pull/911)\n#### Reject skipped jobs as verification evidence\n\n_Packages:_ 🟢 _monochange_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #922](https://github.com/monochange/monochange/pull/922)\n\n`monochange ci verify` no longer records `true_negative` for a job that never ran. A `skipped` or `cancelled` conclusion proves nothing about the gate decision, so the command now exits non-zero and writes no verification record; `success` remains the only conclusion that verifies a skip. This keeps the recorded skip rate and analytics honest instead of counting non-runs as successful gates.\n\n**Before:**\n\n```bash\nmonochange ci verify --job docs --conclusion skipped\n# classification: true_negative\n```\n\n**After:**\n\n```bash\nmonochange ci verify --job docs --conclusion skipped\n# job `docs` concluded `skipped`; only `success` or `failure` verifies a gate decision, so no verification record was written\n```\n\n`monochange ci check --workflow` now requires every `needs.<gate>.outputs.decisions` reference in an `if:` expression to include a status-check override plus both fail-safe guards. GitHub implicitly wraps a bare job `if:` in `success() && (...)`, so `needs.<gate>.result != 'success'` alone never runs when the gate fails. The canonical gate is:\n\n```yaml\nif: >-\n  !cancelled()\n  && (needs.gate.result != 'success' || needs.gate.outputs.run-all == 'true' || fromJSON(needs.gate.outputs.decisions)['test-windows'])\n```\n\n`always()` is accepted in place of `!cancelled()`. Comments, `env:` values, and `run:` scripts are not expressions and are ignored."
+		},
+		{
+			"owner_id": "monochange",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "💥 Breaking Change",
+						"collapsed": false,
+						"entries": [
+							"#### Require a release tag for trusted pub.dev packages\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #911](https://github.com/monochange/monochange/pull/911)\n\n> **Breaking change:** `monochange step validate` and `monochange publish readiness` now fail for a pub.dev package that publishes with trusted publishing but whose releases create no tag, and `monochange publish packages` refuses to start a real run for it. See [the 0.23 migration guide](https://monochange.github.io/monochange/guide/migrations/0.23.html).\n\npub.dev only accepts a trusted upload from a run on the package's own release tag, so a package without one could never publish. The error names the section to change:\n\n```text\nerror[config.invalid]: workspace validation failed\n\n    `app_dart` publishes to pub.dev with trusted publishing, which only accepts an upload from a run on the package's release tag (`refs/tags/<tag>`), but monochange creates no tag for it. Set `tag = true` on `[package.app_dart]` so every release creates the tag, or set `publish.trusted_publishing = false` on `[package.app_dart]` to publish with a pub.dev token instead.\n```\n\nSet `tag = true` on the package, or on its group when the package belongs to one:\n\n```toml\n[package.app_dart]\npath = \"packages/app_dart\"\ntype = \"dart\"\ntag = true\n```\n\nValidation reads `monochange.toml` and the package manifests, never the environment, so a package that publishes with a `PUB_TOKEN` must also set `publish.trusted_publishing = false` to pass. Packages that set `publish.trusted_publishing = false`, use `publish.mode = \"external\"`, or are private (`publish_to: none` in `pubspec.yaml`) are unaffected."
+						]
+					},
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Publish trusted pub.dev packages from their own release tag\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #911](https://github.com/monochange/monochange/pull/911)\n\nA release that ships a trusted pub.dev package alongside packages for other registries now publishes cleanly. pub.dev only accepts an upload from a GitHub Actions run that a `push` or `workflow_dispatch` event started on the package's own tag (`refs/tags/<package tag>`). `monochange publish packages` checks the run's `GITHUB_REF`, `GITHUB_REF_TYPE`, and `GITHUB_EVENT_NAME` against that rule before uploading a pub.dev package that publishes with trusted publishing and no `PUB_TOKEN`:\n\n- **When the run does not match**, the package is not uploaded and is marked `deferred_to_tag`. The run does not fail, and the packages after it still publish. Earlier versions attempted the upload, pub.dev rejected it, and every later package was skipped.\n- **On the release's tags**, each package of the release publishes in exactly one run. A trusted pub.dev package publishes in the run on its own tag; every other package in the run on the primary tag, or without one, on its own tag or the first tag that no trusted pub.dev package uses. The runs on the release's other tags mark the package `skipped_out_of_scope`: it is not looked up on its registry and does not count against the run's rate limits, and its message names the run that publishes it. A run on a non-primary package tag, such as `web/v1.1.0`, therefore no longer publishes the release's other packages. `--package`, `--group`, and `--ecosystem` select from that plan and never move a package into another run.\n- **On a branch or on a tag the release does not create**, every package but the trusted pub.dev packages publishes as before. A workspace without trusted pub.dev packages publishes exactly as before on every ref.\n\nAn empty `PUB_TOKEN` counts as no token, so the package still waits for its tag. The report lists each deferred package with its tag and the command that publishes it:\n\n```text\nWould publish (1)\n  web  1.1.0  npm\n\nDeferred to release tags (1)\n  app_dart  0.2.1  pub_dev  app_dart/v0.2.1\n\nThe registry only accepts these packages from a `push` or `workflow_dispatch` run on their release tag. Publish each one from its tag:\n  gh workflow run publish.yml --repo owner/repo --ref app_dart/v0.2.1\n```\n\nWhen the run is on the right tag but a `release` or `create` event started it, or the run has no `GITHUB_REF`, the package is still deferred and its message says what to change in the workflow. No run of that workflow can publish it, so the run ends with a warning that counts the packages left unpublished until the workflow's trigger or `GITHUB_REF` is fixed. With `--format json`, the package row carries the reason and the same details, and `summary.deferred` and `summary.out_of_scope` count the new statuses:\n\n```json\n{\n\t\"package\": \"app_dart\",\n\t\"status\": \"deferred_to_tag\",\n\t\"deferred_to\": {\n\t\t\"reason\": \"wrong_ref\",\n\t\t\"tag\": \"app_dart/v0.2.1\",\n\t\t\"ref\": \"refs/tags/app_dart/v0.2.1\",\n\t\t\"command\": \"gh workflow run publish.yml --repo owner/repo --ref app_dart/v0.2.1\"\n\t}\n}\n```\n\n`reason` is `wrong_ref`, `wrong_ref_type`, `wrong_event`, or `unknown_ref`. The command dispatches the package's `publish.trusted_publishing.workflow` when it sets one, and is omitted when monochange cannot determine the workflow. `monochange publish readiness` checks every package in the release whichever ref it runs on. To publish every package, start one run of the publish workflow for each tag the release creates, from tag pushes or by dispatching it on each tag, and let the run on the primary tag (or, without one, on the first tag no trusted pub.dev package uses) dispatch each `deferred_to.command` it reports. Enable publishing from `push` and `workflow_dispatch` events on the package's pub.dev admin page."
+						]
+					},
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Reject skipped jobs as verification evidence\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #922](https://github.com/monochange/monochange/pull/922)\n\n`monochange ci verify` no longer records `true_negative` for a job that never ran. A `skipped` or `cancelled` conclusion proves nothing about the gate decision, so the command now exits non-zero and writes no verification record; `success` remains the only conclusion that verifies a skip. This keeps the recorded skip rate and analytics honest instead of counting non-runs as successful gates.\n\n**Before:**\n\n```bash\nmonochange ci verify --job docs --conclusion skipped\n# classification: true_negative\n```\n\n**After:**\n\n```bash\nmonochange ci verify --job docs --conclusion skipped\n# job `docs` concluded `skipped`; only `success` or `failure` verifies a gate decision, so no verification record was written\n```\n\n`monochange ci check --workflow` now requires every `needs.<gate>.outputs.decisions` reference in an `if:` expression to include a status-check override plus both fail-safe guards. GitHub implicitly wraps a bare job `if:` in `success() && (...)`, so `needs.<gate>.result != 'success'` alone never runs when the gate fails. The canonical gate is:\n\n```yaml\nif: >-\n  !cancelled()\n  && (needs.gate.result != 'success' || needs.gate.outputs.run-all == 'true' || fromJSON(needs.gate.outputs.decisions)['test-windows'])\n```\n\n`always()` is accepted in place of `!cancelled()`. Comments, `env:` values, and `run:` scripts are not expressions and are ignored.",
+							"#### Show rate-limit retries instead of waiting silently\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #923](https://github.com/monochange/monochange/pull/923)\n\nA command that hit a rate limit used to sit without output while it waited to retry, so a release job looked hung for minutes. Every retry wait is now announced as a warning just before monochange waits, with what is retried, how long the wait is, and which retry it is:\n\n```text\nwarning: GitHub rate limit hit, retrying GET /repos/acme/widgets/releases/tags/v1.2.0 in 1m (retry 1 of 3)\nwarning: monochange app rate limit hit, retrying hosted CommitRelease in 30s (retry 1 of 3)\n```\n\nIn GitHub Actions each line is a `::warning` annotation, and with `--progress-format json` it is a `warning` event. `--quiet` hides them like any other warning.\n\n**GitHub API (`monochange_github`).** Clients now use octocrab's `RetryConfig::HandleRateLimits`. A `429`, or a `403` that carries `retry-after` or `x-ratelimit-remaining: 0`, waits as long as GitHub asks (at least a minute for a `429` with no hint) and is retried up to three times. Before, a `429` was retried immediately three times, which GitHub's guidance warns can get an integration banned, and a primary rate limit failed at once. A `5xx` is still retried immediately and is now announced. Release tree writes keep their own capped backoff from the previous release, and changeset enrichment still skips rather than waits. GitHub clients also gain a 10 second connect timeout and a 60 second read timeout, so a stalled connection fails instead of hanging the command.\n\n**Hosted operations (`monochange`).** When the monochange app answers `CommitRelease`, `OpenReleaseRequest`, or `monochange gh workflow run` with `429`, the CLI waits for the app's `Retry-After` (30 seconds without one) and sends the request again, up to three times, over RPC and over the REST fallback. A `Retry-After` longer than five minutes fails at once. Either way the error says what happened:\n\n```text\nhosted CommitRelease failed with HTTP 429 Too Many Requests: rate_limited. The monochange app kept rate limiting this request after 3 retries; rerun the job in a few minutes\n```\n\nThe GitHub Actions OIDC token request now also retries a `429`, and its existing retries after a `5xx` or a dropped connection are announced.\n\n**Forgejo (`monochange_forgejo`).** Release and pull request calls now use the shared provider client with its 10 second connect and 30 second request timeouts, like GitLab and Gitea. Before, they had no timeout and could wait forever on an unresponsive server.\n\n**`monochange_hosting`.** The new `retry` module holds the shared pieces: `warn_retry(&RetryNotice { .. })` emits the warning, `retry_after(&headers)` reads a `Retry-After` in seconds, and `format_wait` renders a wait such as `2m 30s`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)\n\n### 💥 Breaking Change\n\n#### Require a release tag for trusted pub.dev packages\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #911](https://github.com/monochange/monochange/pull/911)\n\n> **Breaking change:** `monochange step validate` and `monochange publish readiness` now fail for a pub.dev package that publishes with trusted publishing but whose releases create no tag, and `monochange publish packages` refuses to start a real run for it. See [the 0.23 migration guide](https://monochange.github.io/monochange/guide/migrations/0.23.html).\n\npub.dev only accepts a trusted upload from a run on the package's own release tag, so a package without one could never publish. The error names the section to change:\n\n```text\nerror[config.invalid]: workspace validation failed\n\n    `app_dart` publishes to pub.dev with trusted publishing, which only accepts an upload from a run on the package's release tag (`refs/tags/<tag>`), but monochange creates no tag for it. Set `tag = true` on `[package.app_dart]` so every release creates the tag, or set `publish.trusted_publishing = false` on `[package.app_dart]` to publish with a pub.dev token instead.\n```\n\nSet `tag = true` on the package, or on its group when the package belongs to one:\n\n```toml\n[package.app_dart]\npath = \"packages/app_dart\"\ntype = \"dart\"\ntag = true\n```\n\nValidation reads `monochange.toml` and the package manifests, never the environment, so a package that publishes with a `PUB_TOKEN` must also set `publish.trusted_publishing = false` to pass. Packages that set `publish.trusted_publishing = false`, use `publish.mode = \"external\"`, or are private (`publish_to: none` in `pubspec.yaml`) are unaffected.\n\n### 🚀 Feature\n\n#### Publish trusted pub.dev packages from their own release tag\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #911](https://github.com/monochange/monochange/pull/911)\n\nA release that ships a trusted pub.dev package alongside packages for other registries now publishes cleanly. pub.dev only accepts an upload from a GitHub Actions run that a `push` or `workflow_dispatch` event started on the package's own tag (`refs/tags/<package tag>`). `monochange publish packages` checks the run's `GITHUB_REF`, `GITHUB_REF_TYPE`, and `GITHUB_EVENT_NAME` against that rule before uploading a pub.dev package that publishes with trusted publishing and no `PUB_TOKEN`:\n\n- **When the run does not match**, the package is not uploaded and is marked `deferred_to_tag`. The run does not fail, and the packages after it still publish. Earlier versions attempted the upload, pub.dev rejected it, and every later package was skipped.\n- **On the release's tags**, each package of the release publishes in exactly one run. A trusted pub.dev package publishes in the run on its own tag; every other package in the run on the primary tag, or without one, on its own tag or the first tag that no trusted pub.dev package uses. The runs on the release's other tags mark the package `skipped_out_of_scope`: it is not looked up on its registry and does not count against the run's rate limits, and its message names the run that publishes it. A run on a non-primary package tag, such as `web/v1.1.0`, therefore no longer publishes the release's other packages. `--package`, `--group`, and `--ecosystem` select from that plan and never move a package into another run.\n- **On a branch or on a tag the release does not create**, every package but the trusted pub.dev packages publishes as before. A workspace without trusted pub.dev packages publishes exactly as before on every ref.\n\nAn empty `PUB_TOKEN` counts as no token, so the package still waits for its tag. The report lists each deferred package with its tag and the command that publishes it:\n\n```text\nWould publish (1)\n  web  1.1.0  npm\n\nDeferred to release tags (1)\n  app_dart  0.2.1  pub_dev  app_dart/v0.2.1\n\nThe registry only accepts these packages from a `push` or `workflow_dispatch` run on their release tag. Publish each one from its tag:\n  gh workflow run publish.yml --repo owner/repo --ref app_dart/v0.2.1\n```\n\nWhen the run is on the right tag but a `release` or `create` event started it, or the run has no `GITHUB_REF`, the package is still deferred and its message says what to change in the workflow. No run of that workflow can publish it, so the run ends with a warning that counts the packages left unpublished until the workflow's trigger or `GITHUB_REF` is fixed. With `--format json`, the package row carries the reason and the same details, and `summary.deferred` and `summary.out_of_scope` count the new statuses:\n\n```json\n{\n\t\"package\": \"app_dart\",\n\t\"status\": \"deferred_to_tag\",\n\t\"deferred_to\": {\n\t\t\"reason\": \"wrong_ref\",\n\t\t\"tag\": \"app_dart/v0.2.1\",\n\t\t\"ref\": \"refs/tags/app_dart/v0.2.1\",\n\t\t\"command\": \"gh workflow run publish.yml --repo owner/repo --ref app_dart/v0.2.1\"\n\t}\n}\n```\n\n`reason` is `wrong_ref`, `wrong_ref_type`, `wrong_event`, or `unknown_ref`. The command dispatches the package's `publish.trusted_publishing.workflow` when it sets one, and is omitted when monochange cannot determine the workflow. `monochange publish readiness` checks every package in the release whichever ref it runs on. To publish every package, start one run of the publish workflow for each tag the release creates, from tag pushes or by dispatching it on each tag, and let the run on the primary tag (or, without one, on the first tag no trusted pub.dev package uses) dispatch each `deferred_to.command` it reports. Enable publishing from `push` and `workflow_dispatch` events on the package's pub.dev admin page.\n\n### 🐛 Fixed\n\n#### Reject skipped jobs as verification evidence\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #922](https://github.com/monochange/monochange/pull/922)\n\n`monochange ci verify` no longer records `true_negative` for a job that never ran. A `skipped` or `cancelled` conclusion proves nothing about the gate decision, so the command now exits non-zero and writes no verification record; `success` remains the only conclusion that verifies a skip. This keeps the recorded skip rate and analytics honest instead of counting non-runs as successful gates.\n\n**Before:**\n\n```bash\nmonochange ci verify --job docs --conclusion skipped\n# classification: true_negative\n```\n\n**After:**\n\n```bash\nmonochange ci verify --job docs --conclusion skipped\n# job `docs` concluded `skipped`; only `success` or `failure` verifies a gate decision, so no verification record was written\n```\n\n`monochange ci check --workflow` now requires every `needs.<gate>.outputs.decisions` reference in an `if:` expression to include a status-check override plus both fail-safe guards. GitHub implicitly wraps a bare job `if:` in `success() && (...)`, so `needs.<gate>.result != 'success'` alone never runs when the gate fails. The canonical gate is:\n\n```yaml\nif: >-\n  !cancelled()\n  && (needs.gate.result != 'success' || needs.gate.outputs.run-all == 'true' || fromJSON(needs.gate.outputs.decisions)['test-windows'])\n```\n\n`always()` is accepted in place of `!cancelled()`. Comments, `env:` values, and `run:` scripts are not expressions and are ignored.\n\n#### Show rate-limit retries instead of waiting silently\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #923](https://github.com/monochange/monochange/pull/923)\n\nA command that hit a rate limit used to sit without output while it waited to retry, so a release job looked hung for minutes. Every retry wait is now announced as a warning just before monochange waits, with what is retried, how long the wait is, and which retry it is:\n\n```text\nwarning: GitHub rate limit hit, retrying GET /repos/acme/widgets/releases/tags/v1.2.0 in 1m (retry 1 of 3)\nwarning: monochange app rate limit hit, retrying hosted CommitRelease in 30s (retry 1 of 3)\n```\n\nIn GitHub Actions each line is a `::warning` annotation, and with `--progress-format json` it is a `warning` event. `--quiet` hides them like any other warning.\n\n**GitHub API (`monochange_github`).** Clients now use octocrab's `RetryConfig::HandleRateLimits`. A `429`, or a `403` that carries `retry-after` or `x-ratelimit-remaining: 0`, waits as long as GitHub asks (at least a minute for a `429` with no hint) and is retried up to three times. Before, a `429` was retried immediately three times, which GitHub's guidance warns can get an integration banned, and a primary rate limit failed at once. A `5xx` is still retried immediately and is now announced. Release tree writes keep their own capped backoff from the previous release, and changeset enrichment still skips rather than waits. GitHub clients also gain a 10 second connect timeout and a 60 second read timeout, so a stalled connection fails instead of hanging the command.\n\n**Hosted operations (`monochange`).** When the monochange app answers `CommitRelease`, `OpenReleaseRequest`, or `monochange gh workflow run` with `429`, the CLI waits for the app's `Retry-After` (30 seconds without one) and sends the request again, up to three times, over RPC and over the REST fallback. A `Retry-After` longer than five minutes fails at once. Either way the error says what happened:\n\n```text\nhosted CommitRelease failed with HTTP 429 Too Many Requests: rate_limited. The monochange app kept rate limiting this request after 3 retries; rerun the job in a few minutes\n```\n\nThe GitHub Actions OIDC token request now also retries a `429`, and its existing retries after a `5xx` or a dropped connection are announced.\n\n**Forgejo (`monochange_forgejo`).** Release and pull request calls now use the shared provider client with its 10 second connect and 30 second request timeouts, like GitLab and Gitea. Before, they had no timeout and could wait forever on an unresponsive server.\n\n**`monochange_hosting`.** The new `retry` module holds the shared pieces: `warn_retry(&RetryNotice { .. })` emits the warning, `retry_after(&headers)` reads a `Retry-After` in seconds, and `format_wait` renders a wait such as `2m 30s`."
+		},
+		{
+			"owner_id": "monochange_analysis",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_analysis/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_analysis` was updated to 0.23.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_analysis` was updated to 0.23.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_cargo",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_cargo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_cargo` was updated to 0.23.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_cargo` was updated to 0.23.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_changelog",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_changelog/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_changelog` was updated to 0.23.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_changelog` was updated to 0.23.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_classification",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_classification/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "monochange_classification [0.4.12](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.4.12) (2026-11-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monochange_classification` was updated to 0.4.12.**"
+						]
+					}
+				]
+			},
+			"rendered": "## monochange_classification [0.4.12](https://github.com/monochange/monochange/releases/tag/monochange_classification/v0.4.12) (2026-11-28)\n\n### Changed\n\n- **No package-specific changes were recorded; `monochange_classification` was updated to 0.4.12.**"
+		},
+		{
+			"owner_id": "monochange_cocoapods",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_cocoapods/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_cocoapods` was updated to 0.23.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_cocoapods` was updated to 0.23.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_config",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_config/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_config` was updated to 0.23.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_config` was updated to 0.23.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_core",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_core/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_core` was updated to 0.23.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_core` was updated to 0.23.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_dart",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_dart/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_dart` was updated to 0.23.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_dart` was updated to 0.23.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_deno",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_deno/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_deno` was updated to 0.23.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_deno` was updated to 0.23.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_ecmascript",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_ecmascript/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_ecmascript` was updated to 0.23.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_ecmascript` was updated to 0.23.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_forgejo",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_forgejo/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Show rate-limit retries instead of waiting silently\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #923](https://github.com/monochange/monochange/pull/923)\n\nA command that hit a rate limit used to sit without output while it waited to retry, so a release job looked hung for minutes. Every retry wait is now announced as a warning just before monochange waits, with what is retried, how long the wait is, and which retry it is:\n\n```text\nwarning: GitHub rate limit hit, retrying GET /repos/acme/widgets/releases/tags/v1.2.0 in 1m (retry 1 of 3)\nwarning: monochange app rate limit hit, retrying hosted CommitRelease in 30s (retry 1 of 3)\n```\n\nIn GitHub Actions each line is a `::warning` annotation, and with `--progress-format json` it is a `warning` event. `--quiet` hides them like any other warning.\n\n**GitHub API (`monochange_github`).** Clients now use octocrab's `RetryConfig::HandleRateLimits`. A `429`, or a `403` that carries `retry-after` or `x-ratelimit-remaining: 0`, waits as long as GitHub asks (at least a minute for a `429` with no hint) and is retried up to three times. Before, a `429` was retried immediately three times, which GitHub's guidance warns can get an integration banned, and a primary rate limit failed at once. A `5xx` is still retried immediately and is now announced. Release tree writes keep their own capped backoff from the previous release, and changeset enrichment still skips rather than waits. GitHub clients also gain a 10 second connect timeout and a 60 second read timeout, so a stalled connection fails instead of hanging the command.\n\n**Hosted operations (`monochange`).** When the monochange app answers `CommitRelease`, `OpenReleaseRequest`, or `monochange gh workflow run` with `429`, the CLI waits for the app's `Retry-After` (30 seconds without one) and sends the request again, up to three times, over RPC and over the REST fallback. A `Retry-After` longer than five minutes fails at once. Either way the error says what happened:\n\n```text\nhosted CommitRelease failed with HTTP 429 Too Many Requests: rate_limited. The monochange app kept rate limiting this request after 3 retries; rerun the job in a few minutes\n```\n\nThe GitHub Actions OIDC token request now also retries a `429`, and its existing retries after a `5xx` or a dropped connection are announced.\n\n**Forgejo (`monochange_forgejo`).** Release and pull request calls now use the shared provider client with its 10 second connect and 30 second request timeouts, like GitLab and Gitea. Before, they had no timeout and could wait forever on an unresponsive server.\n\n**`monochange_hosting`.** The new `retry` module holds the shared pieces: `warn_retry(&RetryNotice { .. })` emits the warning, `retry_after(&headers)` reads a `Retry-After` in seconds, and `format_wait` renders a wait such as `2m 30s`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)\n\n### 🐛 Fixed\n\n#### Show rate-limit retries instead of waiting silently\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #923](https://github.com/monochange/monochange/pull/923)\n\nA command that hit a rate limit used to sit without output while it waited to retry, so a release job looked hung for minutes. Every retry wait is now announced as a warning just before monochange waits, with what is retried, how long the wait is, and which retry it is:\n\n```text\nwarning: GitHub rate limit hit, retrying GET /repos/acme/widgets/releases/tags/v1.2.0 in 1m (retry 1 of 3)\nwarning: monochange app rate limit hit, retrying hosted CommitRelease in 30s (retry 1 of 3)\n```\n\nIn GitHub Actions each line is a `::warning` annotation, and with `--progress-format json` it is a `warning` event. `--quiet` hides them like any other warning.\n\n**GitHub API (`monochange_github`).** Clients now use octocrab's `RetryConfig::HandleRateLimits`. A `429`, or a `403` that carries `retry-after` or `x-ratelimit-remaining: 0`, waits as long as GitHub asks (at least a minute for a `429` with no hint) and is retried up to three times. Before, a `429` was retried immediately three times, which GitHub's guidance warns can get an integration banned, and a primary rate limit failed at once. A `5xx` is still retried immediately and is now announced. Release tree writes keep their own capped backoff from the previous release, and changeset enrichment still skips rather than waits. GitHub clients also gain a 10 second connect timeout and a 60 second read timeout, so a stalled connection fails instead of hanging the command.\n\n**Hosted operations (`monochange`).** When the monochange app answers `CommitRelease`, `OpenReleaseRequest`, or `monochange gh workflow run` with `429`, the CLI waits for the app's `Retry-After` (30 seconds without one) and sends the request again, up to three times, over RPC and over the REST fallback. A `Retry-After` longer than five minutes fails at once. Either way the error says what happened:\n\n```text\nhosted CommitRelease failed with HTTP 429 Too Many Requests: rate_limited. The monochange app kept rate limiting this request after 3 retries; rerun the job in a few minutes\n```\n\nThe GitHub Actions OIDC token request now also retries a `429`, and its existing retries after a `5xx` or a dropped connection are announced.\n\n**Forgejo (`monochange_forgejo`).** Release and pull request calls now use the shared provider client with its 10 second connect and 30 second request timeouts, like GitLab and Gitea. Before, they had no timeout and could wait forever on an unresponsive server.\n\n**`monochange_hosting`.** The new `retry` module holds the shared pieces: `warn_retry(&RetryNotice { .. })` emits the warning, `retry_after(&headers)` reads a `Retry-After` in seconds, and `format_wait` renders a wait such as `2m 30s`."
+		},
+		{
+			"owner_id": "monochange_gitea",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_gitea/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_gitea` was updated to 0.23.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_gitea` was updated to 0.23.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_github",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_github/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"#### Show rate-limit retries instead of waiting silently\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #923](https://github.com/monochange/monochange/pull/923)\n\nA command that hit a rate limit used to sit without output while it waited to retry, so a release job looked hung for minutes. Every retry wait is now announced as a warning just before monochange waits, with what is retried, how long the wait is, and which retry it is:\n\n```text\nwarning: GitHub rate limit hit, retrying GET /repos/acme/widgets/releases/tags/v1.2.0 in 1m (retry 1 of 3)\nwarning: monochange app rate limit hit, retrying hosted CommitRelease in 30s (retry 1 of 3)\n```\n\nIn GitHub Actions each line is a `::warning` annotation, and with `--progress-format json` it is a `warning` event. `--quiet` hides them like any other warning.\n\n**GitHub API (`monochange_github`).** Clients now use octocrab's `RetryConfig::HandleRateLimits`. A `429`, or a `403` that carries `retry-after` or `x-ratelimit-remaining: 0`, waits as long as GitHub asks (at least a minute for a `429` with no hint) and is retried up to three times. Before, a `429` was retried immediately three times, which GitHub's guidance warns can get an integration banned, and a primary rate limit failed at once. A `5xx` is still retried immediately and is now announced. Release tree writes keep their own capped backoff from the previous release, and changeset enrichment still skips rather than waits. GitHub clients also gain a 10 second connect timeout and a 60 second read timeout, so a stalled connection fails instead of hanging the command.\n\n**Hosted operations (`monochange`).** When the monochange app answers `CommitRelease`, `OpenReleaseRequest`, or `monochange gh workflow run` with `429`, the CLI waits for the app's `Retry-After` (30 seconds without one) and sends the request again, up to three times, over RPC and over the REST fallback. A `Retry-After` longer than five minutes fails at once. Either way the error says what happened:\n\n```text\nhosted CommitRelease failed with HTTP 429 Too Many Requests: rate_limited. The monochange app kept rate limiting this request after 3 retries; rerun the job in a few minutes\n```\n\nThe GitHub Actions OIDC token request now also retries a `429`, and its existing retries after a `5xx` or a dropped connection are announced.\n\n**Forgejo (`monochange_forgejo`).** Release and pull request calls now use the shared provider client with its 10 second connect and 30 second request timeouts, like GitLab and Gitea. Before, they had no timeout and could wait forever on an unresponsive server.\n\n**`monochange_hosting`.** The new `retry` module holds the shared pieces: `warn_retry(&RetryNotice { .. })` emits the warning, `retry_after(&headers)` reads a `Retry-After` in seconds, and `format_wait` renders a wait such as `2m 30s`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)\n\n### 🐛 Fixed\n\n#### Show rate-limit retries instead of waiting silently\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #923](https://github.com/monochange/monochange/pull/923)\n\nA command that hit a rate limit used to sit without output while it waited to retry, so a release job looked hung for minutes. Every retry wait is now announced as a warning just before monochange waits, with what is retried, how long the wait is, and which retry it is:\n\n```text\nwarning: GitHub rate limit hit, retrying GET /repos/acme/widgets/releases/tags/v1.2.0 in 1m (retry 1 of 3)\nwarning: monochange app rate limit hit, retrying hosted CommitRelease in 30s (retry 1 of 3)\n```\n\nIn GitHub Actions each line is a `::warning` annotation, and with `--progress-format json` it is a `warning` event. `--quiet` hides them like any other warning.\n\n**GitHub API (`monochange_github`).** Clients now use octocrab's `RetryConfig::HandleRateLimits`. A `429`, or a `403` that carries `retry-after` or `x-ratelimit-remaining: 0`, waits as long as GitHub asks (at least a minute for a `429` with no hint) and is retried up to three times. Before, a `429` was retried immediately three times, which GitHub's guidance warns can get an integration banned, and a primary rate limit failed at once. A `5xx` is still retried immediately and is now announced. Release tree writes keep their own capped backoff from the previous release, and changeset enrichment still skips rather than waits. GitHub clients also gain a 10 second connect timeout and a 60 second read timeout, so a stalled connection fails instead of hanging the command.\n\n**Hosted operations (`monochange`).** When the monochange app answers `CommitRelease`, `OpenReleaseRequest`, or `monochange gh workflow run` with `429`, the CLI waits for the app's `Retry-After` (30 seconds without one) and sends the request again, up to three times, over RPC and over the REST fallback. A `Retry-After` longer than five minutes fails at once. Either way the error says what happened:\n\n```text\nhosted CommitRelease failed with HTTP 429 Too Many Requests: rate_limited. The monochange app kept rate limiting this request after 3 retries; rerun the job in a few minutes\n```\n\nThe GitHub Actions OIDC token request now also retries a `429`, and its existing retries after a `5xx` or a dropped connection are announced.\n\n**Forgejo (`monochange_forgejo`).** Release and pull request calls now use the shared provider client with its 10 second connect and 30 second request timeouts, like GitLab and Gitea. Before, they had no timeout and could wait forever on an unresponsive server.\n\n**`monochange_hosting`.** The new `retry` module holds the shared pieces: `warn_retry(&RetryNotice { .. })` emits the warning, `retry_after(&headers)` reads a `Retry-After` in seconds, and `format_wait` renders a wait such as `2m 30s`."
+		},
+		{
+			"owner_id": "monochange_gitlab",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_gitlab/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_gitlab` was updated to 0.23.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_gitlab` was updated to 0.23.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_go",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_go/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_go` was updated to 0.23.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_go` was updated to 0.23.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_gradle",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_gradle/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_gradle` was updated to 0.23.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_gradle` was updated to 0.23.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_graph",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_graph/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_graph` was updated to 0.23.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_graph` was updated to 0.23.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_hosting",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_hosting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🚀 Feature",
+						"collapsed": false,
+						"entries": [
+							"#### Show rate-limit retries instead of waiting silently\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #923](https://github.com/monochange/monochange/pull/923)\n\nA command that hit a rate limit used to sit without output while it waited to retry, so a release job looked hung for minutes. Every retry wait is now announced as a warning just before monochange waits, with what is retried, how long the wait is, and which retry it is:\n\n```text\nwarning: GitHub rate limit hit, retrying GET /repos/acme/widgets/releases/tags/v1.2.0 in 1m (retry 1 of 3)\nwarning: monochange app rate limit hit, retrying hosted CommitRelease in 30s (retry 1 of 3)\n```\n\nIn GitHub Actions each line is a `::warning` annotation, and with `--progress-format json` it is a `warning` event. `--quiet` hides them like any other warning.\n\n**GitHub API (`monochange_github`).** Clients now use octocrab's `RetryConfig::HandleRateLimits`. A `429`, or a `403` that carries `retry-after` or `x-ratelimit-remaining: 0`, waits as long as GitHub asks (at least a minute for a `429` with no hint) and is retried up to three times. Before, a `429` was retried immediately three times, which GitHub's guidance warns can get an integration banned, and a primary rate limit failed at once. A `5xx` is still retried immediately and is now announced. Release tree writes keep their own capped backoff from the previous release, and changeset enrichment still skips rather than waits. GitHub clients also gain a 10 second connect timeout and a 60 second read timeout, so a stalled connection fails instead of hanging the command.\n\n**Hosted operations (`monochange`).** When the monochange app answers `CommitRelease`, `OpenReleaseRequest`, or `monochange gh workflow run` with `429`, the CLI waits for the app's `Retry-After` (30 seconds without one) and sends the request again, up to three times, over RPC and over the REST fallback. A `Retry-After` longer than five minutes fails at once. Either way the error says what happened:\n\n```text\nhosted CommitRelease failed with HTTP 429 Too Many Requests: rate_limited. The monochange app kept rate limiting this request after 3 retries; rerun the job in a few minutes\n```\n\nThe GitHub Actions OIDC token request now also retries a `429`, and its existing retries after a `5xx` or a dropped connection are announced.\n\n**Forgejo (`monochange_forgejo`).** Release and pull request calls now use the shared provider client with its 10 second connect and 30 second request timeouts, like GitLab and Gitea. Before, they had no timeout and could wait forever on an unresponsive server.\n\n**`monochange_hosting`.** The new `retry` module holds the shared pieces: `warn_retry(&RetryNotice { .. })` emits the warning, `retry_after(&headers)` reads a `Retry-After` in seconds, and `format_wait` renders a wait such as `2m 30s`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)\n\n### 🚀 Feature\n\n#### Show rate-limit retries instead of waiting silently\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #923](https://github.com/monochange/monochange/pull/923)\n\nA command that hit a rate limit used to sit without output while it waited to retry, so a release job looked hung for minutes. Every retry wait is now announced as a warning just before monochange waits, with what is retried, how long the wait is, and which retry it is:\n\n```text\nwarning: GitHub rate limit hit, retrying GET /repos/acme/widgets/releases/tags/v1.2.0 in 1m (retry 1 of 3)\nwarning: monochange app rate limit hit, retrying hosted CommitRelease in 30s (retry 1 of 3)\n```\n\nIn GitHub Actions each line is a `::warning` annotation, and with `--progress-format json` it is a `warning` event. `--quiet` hides them like any other warning.\n\n**GitHub API (`monochange_github`).** Clients now use octocrab's `RetryConfig::HandleRateLimits`. A `429`, or a `403` that carries `retry-after` or `x-ratelimit-remaining: 0`, waits as long as GitHub asks (at least a minute for a `429` with no hint) and is retried up to three times. Before, a `429` was retried immediately three times, which GitHub's guidance warns can get an integration banned, and a primary rate limit failed at once. A `5xx` is still retried immediately and is now announced. Release tree writes keep their own capped backoff from the previous release, and changeset enrichment still skips rather than waits. GitHub clients also gain a 10 second connect timeout and a 60 second read timeout, so a stalled connection fails instead of hanging the command.\n\n**Hosted operations (`monochange`).** When the monochange app answers `CommitRelease`, `OpenReleaseRequest`, or `monochange gh workflow run` with `429`, the CLI waits for the app's `Retry-After` (30 seconds without one) and sends the request again, up to three times, over RPC and over the REST fallback. A `Retry-After` longer than five minutes fails at once. Either way the error says what happened:\n\n```text\nhosted CommitRelease failed with HTTP 429 Too Many Requests: rate_limited. The monochange app kept rate limiting this request after 3 retries; rerun the job in a few minutes\n```\n\nThe GitHub Actions OIDC token request now also retries a `429`, and its existing retries after a `5xx` or a dropped connection are announced.\n\n**Forgejo (`monochange_forgejo`).** Release and pull request calls now use the shared provider client with its 10 second connect and 30 second request timeouts, like GitLab and Gitea. Before, they had no timeout and could wait forever on an unresponsive server.\n\n**`monochange_hosting`.** The new `retry` module holds the shared pieces: `warn_retry(&RetryNotice { .. })` emits the warning, `retry_after(&headers)` reads a `Retry-After` in seconds, and `format_wait` renders a wait such as `2m 30s`."
+		},
+		{
+			"owner_id": "monochange_lint",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_lint/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_lint` was updated to 0.23.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_lint` was updated to 0.23.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_linting",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_linting/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_linting` was updated to 0.23.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_linting` was updated to 0.23.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_npm",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_npm/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_npm` was updated to 0.23.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_npm` was updated to 0.23.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_publish",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_publish/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "💥 Breaking Change",
+						"collapsed": false,
+						"entries": [
+							"#### Plan which packages a publish run may upload from its git ref\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #911](https://github.com/monochange/monochange/pull/911)\n\n> **Breaking change:** `PublishRequest`, `PackagePublishOutcome`, and `PackagePublishSummary` gained fields, `PackagePublishStatus` gained two variants, and `pub_dev_trusted_publishing_ref_error` is removed. See [the 0.23 migration guide](https://monochange.github.io/monochange/guide/migrations/0.23.html).\n\nThe executor now defers a trusted pub.dev package to its own release tag instead of failing the run, and a run on such a package's own tag skips packages that publish in another run. Callers building these types with every field, or matching `PackagePublishStatus` exhaustively, must handle:\n\n- `PublishRequest::release_tag: Option<PublishReleaseTag>`, the tag the package's release creates. `build_release_requests` fills it in; `None` means no tag.\n- `PublishRequest::run_scope: PublishRunScope`, which the executor reads in release mode. `build_release_requests` sets `PublishRunScope::Publish`.\n- `PackagePublishOutcome::deferred_to: Option<PublishDeferral>`, with the `reason` (`PublishDeferralReason`), `tag`, `ref`, and optional `command` of the run that publishes a deferred package.\n- `PackagePublishSummary::deferred` and `PackagePublishSummary::out_of_scope`, omitted from JSON when zero, and `PackagePublishSummary::this_run`.\n- `PackagePublishStatus::DeferredToTag` and `PackagePublishStatus::SkippedOutOfScope`. Neither fails the run, and `--resume` plans both again.\n\n```rust\nuse monochange_publish::PublishRunScope;\nuse monochange_publish::assign_publish_run_scopes;\nuse monochange_publish::configured_release_tags;\nuse monochange_publish::current_env_map;\n\n// before: monochange_publish::pub_dev_trusted_publishing_ref_error(&request, &env)\n// after: plan the whole release against its tags, then read the scope of\n// each selected request\nlet release_tags = configured_release_tags(&configuration, &packages)?;\nassign_publish_run_scopes(&mut requests, &release_requests, &release_tags, &current_env_map());\nfor request in &requests {\n    match &request.run_scope {\n        PublishRunScope::Publish => {}\n        PublishRunScope::DeferredToTag { deferral, .. } => {\n            if let Some(command) = &deferral.command {\n                println!(\"{}: {command}\", request.package_id);\n            }\n        }\n        PublishRunScope::OutOfScope { message } => println!(\"{message}\"),\n        PublishRunScope::MissingReleaseTag => {}\n    }\n}\n```\n\n`missing_release_tag_errors(&configuration, discover_packages)` lists the trusted pub.dev packages that need `tag = true`, and calls `discover_packages` only when the configuration has a candidate. `publish_is_tag_bound(&request, &env)` reports whether a request can only publish from its tag."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)\n\n### 💥 Breaking Change\n\n#### Plan which packages a publish run may upload from its git ref\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #911](https://github.com/monochange/monochange/pull/911)\n\n> **Breaking change:** `PublishRequest`, `PackagePublishOutcome`, and `PackagePublishSummary` gained fields, `PackagePublishStatus` gained two variants, and `pub_dev_trusted_publishing_ref_error` is removed. See [the 0.23 migration guide](https://monochange.github.io/monochange/guide/migrations/0.23.html).\n\nThe executor now defers a trusted pub.dev package to its own release tag instead of failing the run, and a run on such a package's own tag skips packages that publish in another run. Callers building these types with every field, or matching `PackagePublishStatus` exhaustively, must handle:\n\n- `PublishRequest::release_tag: Option<PublishReleaseTag>`, the tag the package's release creates. `build_release_requests` fills it in; `None` means no tag.\n- `PublishRequest::run_scope: PublishRunScope`, which the executor reads in release mode. `build_release_requests` sets `PublishRunScope::Publish`.\n- `PackagePublishOutcome::deferred_to: Option<PublishDeferral>`, with the `reason` (`PublishDeferralReason`), `tag`, `ref`, and optional `command` of the run that publishes a deferred package.\n- `PackagePublishSummary::deferred` and `PackagePublishSummary::out_of_scope`, omitted from JSON when zero, and `PackagePublishSummary::this_run`.\n- `PackagePublishStatus::DeferredToTag` and `PackagePublishStatus::SkippedOutOfScope`. Neither fails the run, and `--resume` plans both again.\n\n```rust\nuse monochange_publish::PublishRunScope;\nuse monochange_publish::assign_publish_run_scopes;\nuse monochange_publish::configured_release_tags;\nuse monochange_publish::current_env_map;\n\n// before: monochange_publish::pub_dev_trusted_publishing_ref_error(&request, &env)\n// after: plan the whole release against its tags, then read the scope of\n// each selected request\nlet release_tags = configured_release_tags(&configuration, &packages)?;\nassign_publish_run_scopes(&mut requests, &release_requests, &release_tags, &current_env_map());\nfor request in &requests {\n    match &request.run_scope {\n        PublishRunScope::Publish => {}\n        PublishRunScope::DeferredToTag { deferral, .. } => {\n            if let Some(command) = &deferral.command {\n                println!(\"{}: {command}\", request.package_id);\n            }\n        }\n        PublishRunScope::OutOfScope { message } => println!(\"{message}\"),\n        PublishRunScope::MissingReleaseTag => {}\n    }\n}\n```\n\n`missing_release_tag_errors(&configuration, discover_packages)` lists the trusted pub.dev packages that need `tag = true`, and calls `discover_packages` only when the configuration has a candidate. `publish_is_tag_bound(&request, &env)` reports whether a request can only publish from its tag."
+		},
+		{
+			"owner_id": "monochange_python",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_python/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_python` was updated to 0.23.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_python` was updated to 0.23.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_semver",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_semver/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_semver` was updated to 0.23.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_semver` was updated to 0.23.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_swift",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_swift/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_swift` was updated to 0.23.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_swift` was updated to 0.23.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_telemetry",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_telemetry/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_telemetry` was updated to 0.23.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_telemetry` was updated to 0.23.0 as part of group `main`."
+		},
+		{
+			"owner_id": "monochange_test_helpers",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monochange_test_helpers/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.23.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)\n\n### Changed\n\n#### No package-specific changes were recorded; `monochange_test_helpers` was updated to 0.23.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli` was updated to 0.23.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli` was updated to 0.23.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-arm64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-darwin-arm64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.23.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-darwin-arm64` was updated to 0.23.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-darwin-x64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-darwin-x64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.23.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-darwin-x64` was updated to 0.23.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-arm64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.23.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-linux-arm64-gnu` was updated to 0.23.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-arm64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-arm64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.23.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-linux-arm64-musl` was updated to 0.23.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-x64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.23.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-linux-x64-gnu` was updated to 0.23.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-linux-x64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-linux-x64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.23.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-linux-x64-musl` was updated to 0.23.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-win32-arm64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-win32-arm64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.23.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-win32-arm64-msvc` was updated to 0.23.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/cli-win32-x64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__cli-win32-x64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.23.0 as part of group `main`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monochange/cli-win32-x64-msvc` was updated to 0.23.0 as part of group `main`."
+		},
+		{
+			"owner_id": "@monochange/skill",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monochange__skill/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "🐛 Fixed",
+						"collapsed": false,
+						"entries": [
+							"- **Describe how trusted pub.dev packages publish from their own tag.** The trusted-publishing guide in the skill no longer says that `monochange publish packages` fails a run whose ref is not a tag. It now tells agents that a trusted pub.dev package the run cannot upload is marked `deferred_to_tag` with a `reason` and a `gh workflow run` command. It also explains that each package of a release publishes in exactly one run on the release's tags, so the publish workflow must start a run for every release tag, and that a package publishing with a `PUB_TOKEN` needs `publish.trusted_publishing = false` to pass `monochange step validate`.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #911](https://github.com/monochange/monochange/pull/911)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.23.0](https://github.com/monochange/monochange/releases/tag/v0.23.0) (2026-11-28)\n\n### 🐛 Fixed\n\n- **Describe how trusted pub.dev packages publish from their own tag.** The trusted-publishing guide in the skill no longer says that `monochange publish packages` fails a run whose ref is not a tag. It now tells agents that a trusted pub.dev package the run cannot upload is marked `deferred_to_tag` with a `reason` and a `gh workflow run` command. It also explains that each package of a release publishes in exactly one run on the release's tags, so the publish workflow must start a run for every release tag, and that a package publishing with a `PUB_TOKEN` needs `publish.trusted_publishing = false` to pass `monochange step validate`.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #911](https://github.com/monochange/monochange/pull/911)"
+		}
+	],
+	"provider": {
+		"kind": "github",
+		"owner": "monochange",
+		"repo": "monochange",
+		"host": null
+	}
+}
