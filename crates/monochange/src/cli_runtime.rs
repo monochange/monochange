@@ -59,7 +59,7 @@ use crate::output::text::display_width;
 use crate::output::text::plural;
 use crate::output::text::summarize_log;
 use crate::release_branch_policy;
-use crate::save_prepared_release_execution_with_cut_base;
+use crate::save_prepared_release_execution;
 use crate::workspace_ops::validate_cargo_workspace_version_groups;
 use crate::*;
 
@@ -1399,17 +1399,16 @@ async fn execute_prepare_release_step(
 	Ok(None)
 }
 
-fn is_missing_github_auth_error(error: &MonochangeError) -> bool {
-	error.to_string().contains("set `GITHUB_TOKEN`")
-}
-
 async fn lookup_active_cut_pull_request(
 	source: &SourceConfiguration,
 	dry_run: bool,
 ) -> MonochangeResult<Option<monochange_core::ActiveCutPullRequest>> {
 	match find_active_cut_pull_request_for_source(source).await {
 		Ok(active_pr) => Ok(active_pr),
-		Err(error) if dry_run && is_missing_github_auth_error(&error) => Ok(None),
+		Err(error) if dry_run => {
+			tracing::debug!(%error, "ignoring active cut PR lookup error during dry-run");
+			Ok(None)
+		}
 		Err(error) => Err(error),
 	}
 }
@@ -1430,7 +1429,9 @@ async fn resolve_cut_base_commit(
 		match lookup_latest_green_commit_for_source(source, &source.pull_requests.base).await {
 			Ok(Some(sha)) => return Ok(Some(sha)),
 			Ok(None) => {}
-			Err(error) if dry_run && is_missing_github_auth_error(&error) => {}
+			Err(error) if dry_run => {
+				tracing::debug!(%error, "ignoring latest_green lookup error during dry-run");
+			}
 			Err(error) => return Err(error),
 		}
 	}
@@ -2644,7 +2645,7 @@ async fn save_sync_release_report(
 		return Ok(());
 	};
 	if let Some(parent) = path.parent() {
-		std::fs::create_dir_all(parent).map_err(|error| {
+		fs::create_dir_all(parent).map_err(|error| {
 			MonochangeError::Io(format!(
 				"failed to create sync report cache dir {}: {error}",
 				parent.display()
@@ -2660,7 +2661,7 @@ async fn save_sync_release_report(
 	let rendered = serde_json::to_string_pretty(&payload).map_err(|error| {
 		MonochangeError::Config(format!("failed to serialize sync release cache: {error}"))
 	})?;
-	std::fs::write(&path, format!("{rendered}\n")).map_err(|error| {
+	fs::write(&path, format!("{rendered}\n")).map_err(|error| {
 		MonochangeError::Io(format!(
 			"failed to write sync report cache {}: {error}",
 			path.display()
@@ -2674,7 +2675,7 @@ async fn maybe_load_sync_release_report(
 	mode_override: Option<monochange_core::SyncMode>,
 ) -> Option<release_cut::SyncReleaseReport> {
 	let path = root.join(DEFAULT_SYNC_RELEASE_CACHE_PATH);
-	let contents = std::fs::read_to_string(&path).ok()?;
+	let contents = fs::read_to_string(&path).ok()?;
 	let persisted: PersistedSyncReleaseReport = serde_json::from_str(&contents).ok()?;
 	let current_head = git_head_commit(root).await.ok()?;
 	if persisted.head_commit != current_head || persisted.report.status != "completed" {
@@ -2716,7 +2717,7 @@ async fn maybe_load_sync_release_report(
 fn clear_sync_release_report(root: &Path) {
 	let path = root.join(DEFAULT_SYNC_RELEASE_CACHE_PATH);
 	if path.is_file() {
-		let _ = std::fs::remove_file(path);
+		let _ = fs::remove_file(path);
 	}
 }
 
@@ -6752,7 +6753,7 @@ async fn save_prepared_release_artifact(
 		return Ok(());
 	};
 
-	let save_result = save_prepared_release_execution_with_cut_base(
+	let save_result = save_prepared_release_execution(
 		root,
 		configuration,
 		prepared_release,

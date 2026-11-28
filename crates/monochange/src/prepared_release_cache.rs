@@ -263,26 +263,6 @@ pub(crate) async fn save_prepared_release_execution(
 	file_diffs: &[PreparedFileDiff],
 	explicit_path: Option<&Path>,
 	originating_command: &str,
-) -> MonochangeResult<()> {
-	save_prepared_release_execution_with_cut_base(
-		root,
-		configuration,
-		prepared_release,
-		file_diffs,
-		explicit_path,
-		originating_command,
-		None,
-	)
-	.await
-}
-
-pub(crate) async fn save_prepared_release_execution_with_cut_base(
-	root: &Path,
-	configuration: &WorkspaceConfiguration,
-	prepared_release: &PreparedRelease,
-	file_diffs: &[PreparedFileDiff],
-	explicit_path: Option<&Path>,
-	originating_command: &str,
 	cut_base_commit: Option<&str>,
 ) -> MonochangeResult<()> {
 	let artifact_path = resolve_prepared_release_artifact_path(root, explicit_path);

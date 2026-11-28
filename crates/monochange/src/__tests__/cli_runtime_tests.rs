@@ -1449,6 +1449,7 @@ async fn execute_cli_command_with_options_reuses_prepared_release_artifact_for_v
 		&[],
 		Some(artifact_path.as_path()),
 		"release",
+		None,
 	)
 	.await
 	.unwrap_or_else(|error| panic!("save prepared release artifact: {error}"));
@@ -1524,6 +1525,7 @@ async fn legacy_preparation_requires_a_trusted_producer_before_follow_up(#[case]
 		&[],
 		Some(&artifact_path),
 		&producer.name,
+		None,
 	)
 	.await
 	.unwrap();
@@ -2093,6 +2095,7 @@ fn cut_prepare_and_standalone_open_release_request_use_latest_green_and_exclude_
 					.path("/repos/acme/widgets/pulls");
 				then.status(201).json_body(serde_json::json!({
 					"number": 88,
+					"node_id": "PR_kwDO_test_88",
 					"html_url": "https://github.com/acme/widgets/pull/88"
 				}));
 			})
@@ -2424,6 +2427,7 @@ fn standalone_open_release_request_updates_sticky_banner_without_prepared_artifa
 					.query_param("state", "open");
 				then.status(200).json_body(serde_json::json!([{
 					"number": 77,
+					"node_id": "PR_kwDO_test_77",
 					"title": "chore(release): prepare release v1.0.1",
 					"body": format!("## Prepared release\n\n{existing_meta}"),
 					"html_url": "https://github.com/acme/widgets/pull/77",
@@ -2440,6 +2444,7 @@ fn standalone_open_release_request_updates_sticky_banner_without_prepared_artifa
 					.body_includes(".changeset/breaking-b.md");
 				then.status(200).json_body(serde_json::json!({
 					"number": 77,
+					"node_id": "PR_kwDO_test_77",
 					"html_url": "https://github.com/acme/widgets/pull/77"
 				}));
 			})
@@ -2581,6 +2586,7 @@ fn open_sync_request_works_both_single_invocation_and_after_separate_sync_releas
 					.path("/repos/acme/widgets/pulls");
 				then.status(201).json_body(serde_json::json!({
 					"number": 99,
+					"node_id": "PR_kwDO_test_99",
 					"html_url": "https://github.com/acme/widgets/pull/99"
 				}));
 			})
