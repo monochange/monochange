@@ -63,6 +63,18 @@ pub enum GitHubAppError {
 	#[error("branch `{0}` must be a release branch distinct from the base and default branches")]
 	InvalidReleaseBranch(String),
 	#[error(
+		"frozen cut `{0}` requires a named `base_branch` so its base commit can be ancestry-checked"
+	)]
+	CutBaseRequiresBase(String),
+	#[error(
+		"frozen cut `{0}` cannot use release branch `{1}` as its source base; name the normal branch the cut was prepared from"
+	)]
+	InvalidCutBase(String, String),
+	#[error(
+		"frozen cut base branch `{0}` is at `{1}` and cannot be replaced from `{2}`; only a fast-forward or a verified same-cut refresh may move it"
+	)]
+	CutBaseConflict(String, String, String),
+	#[error(
 		"pull request is not a verified monochange release request for this head, base, and repository: it was not created by this monochange deployment's verified flow (for example, it predates release-PR verification, was opened by a user or another bot, or the deployment's signing secret changed). Close the existing pull request once and re-run the release workflow so monochange opens a verified one."
 	)]
 	UnboundPullRequest,
@@ -617,6 +629,41 @@ impl PullRequestResponse {
 			.map_err(|_| GitHubAppError::UnboundPullRequest)
 	}
 
+	/// Require a superseded PR to be a cut PR for the same head and base
+	/// series as its replacement, so a refresh cannot close an unrelated
+	/// release request that this deployment also signed.
+	fn verify_supersedable(
+		&self,
+		replacement: &Self,
+		repository_id: i64,
+	) -> Result<(), GitHubAppError> {
+		let same_heads = match (
+			cut_head_series(&self.head.name),
+			cut_head_series(&replacement.head.name),
+		) {
+			(Some((old_prefix, _)), Some((new_prefix, _))) => old_prefix == new_prefix,
+			_ => false,
+		};
+		let same_bases = self.base.name == replacement.base.name
+			|| match (
+				cut_base_series(&self.base.name),
+				cut_base_series(&replacement.base.name),
+			) {
+				(Some((old_prefix, _)), Some((new_prefix, _))) => old_prefix == new_prefix,
+				_ => false,
+			};
+
+		if self.head.repo.id != repository_id
+			|| self.base.repo.id != repository_id
+			|| !same_heads
+			|| !same_bases
+		{
+			return Err(GitHubAppError::UnboundPullRequest);
+		}
+
+		Ok(())
+	}
+
 	/// Preserve service provenance when replacing the caller's release notes.
 	fn signed_body(&self, secret: &str, body: &str) -> String {
 		let signature = hex::encode(self.binding(secret).finalize().into_bytes());
@@ -798,26 +845,38 @@ fn is_release_branch_name(branch: &str) -> bool {
 /// Whether `branch` has the shape of a monochange frozen cut base branch
 /// (`release/<cut_id>`, `releases/<cut_id>`, or `<prefix>/release/<cut_id>`).
 fn is_cut_base_branch_name(branch: &str) -> bool {
-	if let Some(rest) = branch
+	cut_base_series(branch).is_some()
+}
+
+/// Split a frozen cut head (`<prefix>/release/<cut_id>`) into its series
+/// prefix and cut id.
+fn cut_head_series(branch: &str) -> Option<(&str, &str)> {
+	let (prefix, cut_id) = branch.split_once("/release/")?;
+	if prefix.is_empty() || cut_id.is_empty() || cut_id.starts_with('/') || cut_id.ends_with('/') {
+		return None;
+	}
+	Some((prefix, cut_id))
+}
+
+/// Split a frozen cut base (`release/<cut_id>`, `releases/<cut_id>`, or
+/// `<prefix>/release/<cut_id>`) into its series prefix and cut id.
+fn cut_base_series(branch: &str) -> Option<(&str, &str)> {
+	if let Some(cut_id) = branch
 		.strip_prefix("release/")
 		.or_else(|| branch.strip_prefix("releases/"))
-		&& !rest.is_empty()
-		&& !rest.starts_with('/')
-		&& !rest.ends_with('/')
+		&& !cut_id.is_empty()
+		&& !cut_id.starts_with('/')
+		&& !cut_id.ends_with('/')
 	{
-		return true;
+		let (prefix, _) = branch.split_once('/')?;
+		return Some((prefix, cut_id));
 	}
 
-	if let Some((prefix, rest)) = branch.split_once("/release/")
-		&& !prefix.is_empty()
-		&& !rest.is_empty()
-		&& !rest.starts_with('/')
-		&& !rest.ends_with('/')
-	{
-		return true;
+	let (prefix, cut_id) = branch.split_once("/release/")?;
+	if prefix.is_empty() || cut_id.is_empty() || cut_id.starts_with('/') || cut_id.ends_with('/') {
+		return None;
 	}
-
-	false
+	Some((prefix, cut_id))
 }
 
 /// Verify via GitHub's compare API that `ancestor` is an ancestor of (or identical to) `descendant`.
@@ -869,7 +928,152 @@ enum ReleaseBranchUpdate {
 	Regenerate,
 }
 
-/// Decide how the release commit may move the release branch.
+/// How the release commit moves the frozen cut base branch.
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+enum CutBaseUpdate {
+	/// The cut base branch does not exist yet.
+	Create,
+	/// The cut base branch already points at the base commit.
+	Unchanged,
+	/// The cut base branch is an ancestor of the base commit and advances.
+	FastForward,
+	/// The cut base branch belongs to the active cut's history and is
+	/// replaced, for example after the source branch was rebased.
+	Replace,
+}
+
+/// The branch mutations one release commit may perform.
+#[derive(Debug, Clone, Eq, PartialEq)]
+struct ReleaseBranchPlan {
+	/// How the release branch moves.
+	release: ReleaseBranchUpdate,
+	/// The release branch head observed while planning, when it exists.
+	release_head: Option<String>,
+	/// The cut base mutation for a frozen cut request.
+	cut_base: Option<CutBaseUpdate>,
+}
+
+/// Whether `base_commit` is the head of the named base branch, or an
+/// authorized ancestor when the request opted into ancestor checks.
+async fn base_is_authorized(
+	http: &reqwest::Client,
+	api_url: &str,
+	token: &str,
+	request: &HostedCommitRequest,
+	base_head: &str,
+) -> Result<bool, GitHubAppError> {
+	if base_head == request.base_commit {
+		return Ok(true);
+	}
+
+	if !request.allow_base_ancestor {
+		return Ok(false);
+	}
+
+	is_commit_ancestor(
+		http,
+		api_url,
+		token,
+		&request.owner,
+		&request.repository,
+		&request.base_commit,
+		base_head,
+	)
+	.await
+}
+
+/// Plan the frozen cut base ref mutation.
+///
+/// A new cut creates the branch. A cut base that is already at `base_commit`
+/// is unchanged, and one that is an ancestor fast-forwards without `force`, so
+/// GitHub keeps enforcing the fast-forward when the branch moves concurrently.
+/// Any other existing tip is replaced only when it is provably part of the
+/// active release branch's history; an unrelated branch with the cut base name
+/// fails closed instead of being overwritten.
+async fn plan_cut_base_update(
+	http: &reqwest::Client,
+	api_url: &str,
+	token: &str,
+	request: &HostedCommitRequest,
+	cut_base: &str,
+	release_head: Option<&str>,
+) -> Result<CutBaseUpdate, GitHubAppError> {
+	let Some(existing) = read_branch_head(
+		http,
+		api_url,
+		token,
+		request,
+		cut_base,
+		"read cut base branch ref",
+	)
+	.await?
+	else {
+		return Ok(CutBaseUpdate::Create);
+	};
+
+	if existing == request.base_commit {
+		return Ok(CutBaseUpdate::Unchanged);
+	}
+
+	if is_commit_ancestor(
+		http,
+		api_url,
+		token,
+		&request.owner,
+		&request.repository,
+		&existing,
+		&request.base_commit,
+	)
+	.await?
+	{
+		return Ok(CutBaseUpdate::FastForward);
+	}
+
+	let conflict = || {
+		GitHubAppError::CutBaseConflict(
+			cut_base.to_string(),
+			existing.clone(),
+			request.base_commit.clone(),
+		)
+	};
+
+	// A newer cut base must not be rolled back by a stale run.
+	if is_commit_ancestor(
+		http,
+		api_url,
+		token,
+		&request.owner,
+		&request.repository,
+		&request.base_commit,
+		&existing,
+	)
+	.await?
+	{
+		return Err(conflict());
+	}
+
+	let Some(release_head) = release_head else {
+		return Err(conflict());
+	};
+
+	if is_commit_ancestor(
+		http,
+		api_url,
+		token,
+		&request.owner,
+		&request.repository,
+		&existing,
+		release_head,
+	)
+	.await?
+	{
+		Ok(CutBaseUpdate::Replace)
+	} else {
+		Err(conflict())
+	}
+}
+
+/// Decide how the release commit may move the release branch and cut base.
 ///
 /// The release branch belongs to monochange and is rebuilt from the base
 /// branch on every run. All updates require a release branch distinct from
@@ -878,17 +1082,22 @@ enum ReleaseBranchUpdate {
 /// whose head is still `base_commit`, or—when `request.allow_base_ancestor`
 /// is set for frozen cuts and sync commits—whose history contains `base_commit`.
 ///
+/// A frozen cut must name the normal branch it was prepared from, so its
+/// `base_commit` can be checked against that branch's history. Its cut base
+/// branch may only fast-forward, or be replaced when the existing tip is
+/// provably part of the active cut's history (see [`plan_cut_base_update`]).
+///
 /// A stale run whose base branch moved gets [`GitHubAppError::BaseMoved`] so
 /// the run for the newer commit refreshes the branch. Invalid branch policy
-/// gets [`GitHubAppError::InvalidReleaseBranch`]. Without these checks a
-/// caller could name `main` as the branch and force it onto another branch's
-/// commit.
+/// gets [`GitHubAppError::InvalidReleaseBranch`]. An unrelated cut base tip
+/// gets [`GitHubAppError::CutBaseConflict`]. Without these checks a caller
+/// could name `main` as the branch and force it onto another branch's commit.
 async fn plan_release_branch_update(
 	http: &reqwest::Client,
 	api_url: &str,
 	token: &str,
 	request: &HostedCommitRequest,
-) -> Result<ReleaseBranchUpdate, GitHubAppError> {
+) -> Result<ReleaseBranchPlan, GitHubAppError> {
 	if !is_release_branch_name(&request.branch)
 		|| request.base_branch.as_deref() == Some(request.branch.as_str())
 	{
@@ -902,14 +1111,31 @@ async fn plan_release_branch_update(
 		return Err(GitHubAppError::InvalidReleaseBranch(request.branch.clone()));
 	}
 
-	if let Some(cut_base) = request.cut_base_branch.as_deref()
-		&& (!is_cut_base_branch_name(cut_base)
+	let cut_source = if let Some(cut_base) = request.cut_base_branch.as_deref() {
+		if !is_cut_base_branch_name(cut_base)
 			|| cut_base == default_branch
 			|| cut_base == request.branch
-			|| request.base_branch.as_deref() == Some(cut_base))
-	{
-		return Err(GitHubAppError::InvalidReleaseBranch(cut_base.to_string()));
-	}
+			|| request.base_branch.as_deref() == Some(cut_base)
+		{
+			return Err(GitHubAppError::InvalidReleaseBranch(cut_base.to_string()));
+		}
+
+		let base_branch = request
+			.base_branch
+			.as_deref()
+			.ok_or_else(|| GitHubAppError::CutBaseRequiresBase(cut_base.to_string()))?;
+
+		if is_release_branch_name(base_branch) || is_cut_base_branch_name(base_branch) {
+			return Err(GitHubAppError::InvalidCutBase(
+				cut_base.to_string(),
+				base_branch.to_string(),
+			));
+		}
+
+		Some(base_branch)
+	} else {
+		None
+	};
 
 	let release_head = read_branch_head(
 		http,
@@ -921,8 +1147,8 @@ async fn plan_release_branch_update(
 	)
 	.await?;
 
-	if request.cut_base_branch.is_some()
-		&& let Some(base_branch) = request.base_branch.as_deref()
+	let cut_base = if let (Some(cut_base), Some(base_branch)) =
+		(request.cut_base_branch.as_deref(), cut_source)
 	{
 		let base_head = read_branch_head(
 			http,
@@ -940,88 +1166,79 @@ async fn plan_release_branch_update(
 				format!("base branch `{base_branch}` does not exist"),
 			)
 		})?;
-		let valid_base = if base_head == request.base_commit {
-			true
-		} else if request.allow_base_ancestor {
-			is_commit_ancestor(
-				http,
-				api_url,
-				token,
-				&request.owner,
-				&request.repository,
-				&request.base_commit,
-				&base_head,
-			)
-			.await?
-		} else {
-			false
-		};
 
-		if !valid_base {
+		if !base_is_authorized(http, api_url, token, request, &base_head).await? {
 			return Err(GitHubAppError::BaseMoved(
 				base_branch.to_string(),
 				base_head,
 				request.base_commit.clone(),
 			));
 		}
-	}
 
-	let Some(release_head) = release_head else {
-		return Ok(ReleaseBranchUpdate::Create);
+		Some(
+			plan_cut_base_update(
+				http,
+				api_url,
+				token,
+				request,
+				cut_base,
+				release_head.as_deref(),
+			)
+			.await?,
+		)
+	} else {
+		None
 	};
 
-	if release_head == request.base_commit {
-		return Ok(ReleaseBranchUpdate::FastForward);
-	}
+	let release = match release_head.as_deref() {
+		None => ReleaseBranchUpdate::Create,
+		Some(head) if head == request.base_commit => ReleaseBranchUpdate::FastForward,
+		Some(head) => {
+			let base_branch = request.base_branch.as_deref().ok_or_else(|| {
+				GitHubAppError::BranchMoved(
+					request.branch.clone(),
+					head.to_string(),
+					request.base_commit.clone(),
+				)
+			})?;
 
-	let base_branch = request.base_branch.as_deref().ok_or_else(|| {
-		GitHubAppError::BranchMoved(
-			request.branch.clone(),
-			release_head,
-			request.base_commit.clone(),
-		)
-	})?;
+			// A cut already validated the base branch above.
+			if cut_source.is_none() {
+				let base_head = read_branch_head(
+					http,
+					api_url,
+					token,
+					request,
+					base_branch,
+					"read base branch ref",
+				)
+				.await?
+				.ok_or_else(|| {
+					api_error(
+						"read base branch ref",
+						reqwest::StatusCode::NOT_FOUND,
+						format!("base branch `{base_branch}` does not exist"),
+					)
+				})?;
 
-	let base_head = read_branch_head(
-		http,
-		api_url,
-		token,
-		request,
-		base_branch,
-		"read base branch ref",
-	)
-	.await?
-	.ok_or_else(|| {
-		api_error(
-			"read base branch ref",
-			reqwest::StatusCode::NOT_FOUND,
-			format!("base branch `{base_branch}` does not exist"),
-		)
-	})?;
+				if !base_is_authorized(http, api_url, token, request, &base_head).await? {
+					return Err(GitHubAppError::BaseMoved(
+						base_branch.to_string(),
+						base_head,
+						request.base_commit.clone(),
+					));
+				}
+			}
 
-	if base_head != request.base_commit {
-		let is_ancestor = request.allow_base_ancestor
-			&& is_commit_ancestor(
-				http,
-				api_url,
-				token,
-				&request.owner,
-				&request.repository,
-				&request.base_commit,
-				&base_head,
-			)
-			.await?;
-
-		if !is_ancestor {
-			return Err(GitHubAppError::BaseMoved(
-				base_branch.to_string(),
-				base_head,
-				request.base_commit.clone(),
-			));
+			ReleaseBranchUpdate::Regenerate
 		}
-	}
+	};
 
-	Ok(ReleaseBranchUpdate::Regenerate)
+	Ok(ReleaseBranchPlan {
+		release,
+		release_head,
+		cut_base,
+	})
 }
 
 /// Inline file bytes sent in one tree request before the rest of the release
@@ -1218,6 +1435,68 @@ async fn ensure_tree_keeps_workflows(
 	}
 }
 
+/// Apply the planned frozen cut base ref mutation.
+///
+/// Fast-forwards keep GitHub's own non-forced update check; only a verified
+/// same-cut replacement uses `force`.
+async fn apply_cut_base_update(
+	http: &reqwest::Client,
+	api_url: &str,
+	token: &str,
+	request: &HostedCommitRequest,
+	update: Option<CutBaseUpdate>,
+) -> Result<(), GitHubAppError> {
+	let (Some(cut_base), Some(update)) = (request.cut_base_branch.as_deref(), update) else {
+		return Ok(());
+	};
+
+	let response = match update {
+		CutBaseUpdate::Unchanged => return Ok(()),
+		CutBaseUpdate::Create => {
+			http.post(format!(
+				"{api_url}/repos/{}/{}/git/refs",
+				request.owner, request.repository
+			))
+			.bearer_auth(token)
+			.header("Accept", "application/vnd.github+json")
+			.json(&CreateRefRequest {
+				reference: format!("refs/heads/{cut_base}"),
+				sha: &request.base_commit,
+			})
+			.send()
+			.await?
+		}
+		CutBaseUpdate::FastForward | CutBaseUpdate::Replace => {
+			http.patch(format!(
+				"{api_url}/repos/{}/{}/git/refs/heads/{cut_base}",
+				request.owner, request.repository
+			))
+			.bearer_auth(token)
+			.header("Accept", "application/vnd.github+json")
+			.json(&UpdateRefRequest {
+				sha: &request.base_commit,
+				force: update == CutBaseUpdate::Replace,
+			})
+			.send()
+			.await?
+		}
+	};
+
+	if !response.status().is_success() {
+		let status = response.status();
+		let body = response.text().await.unwrap_or_default();
+		let operation = if update == CutBaseUpdate::Create {
+			"create cut base branch ref"
+		} else {
+			"update cut base branch ref"
+		};
+
+		return Err(api_error(operation, status, body));
+	}
+
+	Ok(())
+}
+
 /// Create the release commit through the GitHub Git Database API.
 ///
 /// Commits created by a GitHub App with the Git Database API are signed by
@@ -1233,8 +1512,8 @@ pub async fn create_release_commit(
 	let repo = &request.repository;
 	let base_commit = &request.base_commit;
 
-	// 1. Decide how the release branch moves before writing anything.
-	let update = plan_release_branch_update(http, api_url, installation_token, request).await?;
+	// 1. Decide how the release branch and cut base move before writing anything.
+	let plan = plan_release_branch_update(http, api_url, installation_token, request).await?;
 
 	// 2. The tree: either the one the workflow already built with its own
 	// token, or one created here from the uploaded contents.
@@ -1303,60 +1582,35 @@ pub async fn create_release_commit(
 		));
 	}
 
-	// 4b. When cutting a frozen release branch, create or force-update the
-	// cut base branch (`release/<cut_id>`) at `base_commit` before moving the
-	// release head branch.
-	if let Some(cut_base) = request.cut_base_branch.as_deref() {
-		let existing_cut_base = read_branch_head(
-			http,
-			api_url,
-			installation_token,
-			request,
-			cut_base,
-			"read cut base branch ref",
-		)
-		.await?;
-
-		if existing_cut_base.as_deref() != Some(base_commit.as_str()) {
-			let (operation, ref_response) = if existing_cut_base.is_none() {
-				(
-					"create cut base branch ref",
-					http.post(format!("{api_url}/repos/{owner}/{repo}/git/refs"))
-						.json(&CreateRefRequest {
-							reference: format!("refs/heads/{cut_base}"),
-							sha: base_commit,
-						}),
-				)
-			} else {
-				(
-					"update cut base branch ref",
-					http.patch(format!(
-						"{api_url}/repos/{owner}/{repo}/git/refs/heads/{cut_base}"
-					))
-					.json(&UpdateRefRequest {
-						sha: base_commit,
-						force: true,
-					}),
-				)
-			};
-			let response = ref_response
-				.bearer_auth(installation_token)
-				.header("Accept", "application/vnd.github+json")
-				.send()
-				.await?;
-
-			if !response.status().is_success() {
-				let status = response.status();
-				let body = response.text().await.unwrap_or_default();
-
-				return Err(api_error(operation, status, body));
-			}
+	// 4b. Decide whether the release update must be forced, then move the cut
+	// base branch (`release/<cut_id>`) to `base_commit` before moving the
+	// release head.
+	let update = plan.release;
+	let force = match (update, plan.release_head.as_deref()) {
+		(ReleaseBranchUpdate::Create | ReleaseBranchUpdate::FastForward, _) => false,
+		(ReleaseBranchUpdate::Regenerate, Some(release_head)) => {
+			!is_commit_ancestor(
+				http,
+				api_url,
+				installation_token,
+				owner,
+				repo,
+				release_head,
+				&commit.sha,
+			)
+			.await?
 		}
-	}
+		// Unreachable: a regenerate is only planned when the head exists.
+		(ReleaseBranchUpdate::Regenerate, None) => true,
+	};
+
+	apply_cut_base_update(http, api_url, installation_token, request, plan.cut_base).await?;
 
 	// 5. Point the release branch at the new commit. By this point the commit
 	// is always verified, since an unverified commit returns `UnverifiedCommit`
-	// before the ref is updated here.
+	// before the ref is updated here. A regenerate is forced only when the new
+	// commit does not already contain the current release head; bridge commits
+	// with integrated parents stay protected by GitHub's fast-forward check.
 	let operation = match update {
 		ReleaseBranchUpdate::Create => "create release branch ref",
 		ReleaseBranchUpdate::FastForward | ReleaseBranchUpdate::Regenerate => {
@@ -1379,7 +1633,7 @@ pub async fn create_release_commit(
 			))
 			.json(&UpdateRefRequest {
 				sha: &commit.sha,
-				force: update == ReleaseBranchUpdate::Regenerate,
+				force,
 			})
 		}
 	}
@@ -1405,7 +1659,8 @@ pub struct PublishPullRequestOptions {
 	/// a new pull request or mutating labels/auto-merge.
 	pub banner_only: bool,
 	/// Optional older release PR number to comment on and close after creating a
-	/// superseding cut PR (verified via HMAC binding before closing).
+	/// superseding cut PR in the same head and base series (verified via HMAC
+	/// binding before closing).
 	pub supersede_pr_number: Option<u64>,
 }
 
@@ -1658,9 +1913,9 @@ pub async fn publish_release_pull_request_with_options(
 			owner,
 			repo,
 			old_number,
-			pull.number,
-			&pull.html_url,
+			&pull,
 			binding_secret,
+			repository_id,
 		)
 		.await?;
 	}
@@ -1668,7 +1923,8 @@ pub async fn publish_release_pull_request_with_options(
 	Ok((pull.number, operation, pull.html_url))
 }
 
-/// Comment on and close a superseded release PR after confirming its HMAC binding.
+/// Comment on and close a superseded cut PR after confirming its HMAC binding
+/// and that it belongs to the same cut series as the replacement.
 #[allow(clippy::too_many_arguments)]
 async fn supersede_verified_pull_request(
 	http: &reqwest::Client,
@@ -1677,9 +1933,9 @@ async fn supersede_verified_pull_request(
 	owner: &str,
 	repo: &str,
 	old_number: u64,
-	new_number: u64,
-	new_url: &str,
+	replacement: &PullRequestResponse,
 	binding_secret: &str,
+	repository_id: i64,
 ) -> Result<(), GitHubAppError> {
 	let response = http
 		.get(format!("{api_url}/repos/{owner}/{repo}/pulls/{old_number}"))
@@ -1696,8 +1952,12 @@ async fn supersede_verified_pull_request(
 
 	let old_pull: PullRequestResponse = response.json().await?;
 	old_pull.verify_binding(binding_secret)?;
+	old_pull.verify_supersedable(replacement, repository_id)?;
 
-	let comment = format!("Superseded by #{new_number} ({new_url}) after `/refresh`.");
+	let comment = format!(
+		"Superseded by #{} ({}) after `/refresh`.",
+		replacement.number, replacement.html_url
+	);
 	let comment_response = http
 		.post(format!(
 			"{api_url}/repos/{owner}/{repo}/issues/{old_number}/comments"

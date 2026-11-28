@@ -24,6 +24,7 @@ use super::GitHubAppAuth;
 use super::GitHubAppError;
 use super::PendingPermission;
 use super::PermissionLevels;
+use super::PublishPullRequestOptions;
 use super::RELEASE_TREE_INLINE_BYTES_PER_REQUEST;
 use super::create_release_commit;
 use super::create_release_tree;
@@ -417,6 +418,22 @@ fn mock_branch<'a>(server: &'a MockServer, branch: &str, sha: Option<&str>) -> M
 	})
 }
 
+/// Answer a GitHub compare request with `status` (`ahead`, `behind`,
+/// `diverged`, or `identical`).
+fn mock_compare<'a>(
+	server: &'a MockServer,
+	ancestor: &str,
+	descendant: &str,
+	status: &str,
+) -> Mock<'a> {
+	let path = format!("/repos/acme/actions/compare/{ancestor}...{descendant}");
+	let body = serde_json::json!({ "status": status });
+	server.mock(move |when, then| {
+		when.method(Method::GET).path(path.clone());
+		then.status(200).json_body(body.clone());
+	})
+}
+
 /// Serve the repository metadata with `default_branch`.
 fn mock_repository<'a>(server: &'a MockServer, default_branch: &str) -> Mock<'a> {
 	server.mock(|when, then| {
@@ -611,6 +628,7 @@ async fn existing_release_branch_is_regenerated_from_the_current_base() {
 	let base = mock_branch(&server, "main", Some(BASE_COMMIT));
 	let repository = mock_repository(&server, "main");
 	mock_commit_writes(&server);
+	let diverged = mock_compare(&server, "previous-release-sha", RELEASE_COMMIT, "diverged");
 	let update = mock_branch_update(&server, RELEASE_BRANCH, true);
 
 	let (commit, verified, _) = create_commit(
@@ -624,6 +642,7 @@ async fn existing_release_branch_is_regenerated_from_the_current_base() {
 	assert!(verified);
 	base.assert();
 	repository.assert();
+	diverged.assert();
 	update.assert();
 }
 
@@ -1092,6 +1111,170 @@ async fn ambiguous_release_pull_request_matches_are_not_adopted() {
 	));
 }
 
+fn cut_pull_response(number: u64, head: &str, base: &str) -> serde_json::Value {
+	serde_json::json!({
+		"number": number,
+		"node_id": format!("PR_{number}"),
+		"html_url": format!("https://github.com/acme/actions/pull/{number}"),
+		"body": "Old cut",
+		"user": {"id": 123, "type": "Bot"},
+		"head": {"ref": head, "repo": {"id": 999}},
+		"base": {"ref": base, "repo": {"id": 999}}
+	})
+}
+
+async fn publish_cut_pull(
+	server: &MockServer,
+	request: &monochange_core::SourceChangeRequest,
+	options: PublishPullRequestOptions,
+) -> Result<(u64, monochange_core::SourceChangeRequestOperation, String), GitHubAppError> {
+	super::publish_release_pull_request_with_options(
+		&reqwest::Client::new(),
+		&server.base_url(),
+		"installation-token",
+		request,
+		PR_BINDING_SECRET,
+		999,
+		options,
+	)
+	.await
+}
+
+#[tokio::test]
+async fn refresh_supersedes_a_verified_cut_request_in_the_same_series() {
+	let server = MockServer::start();
+	mock_repository(&server, "main");
+	let mut request = release_pull_request();
+	request.head_branch = "monochange/release/v0.23.0".to_string();
+	request.base_branch = "release/v0.23.0".to_string();
+	request.labels.clear();
+	request.auto_merge = false;
+	let new = cut_pull_response(43, &request.head_branch, &request.base_branch);
+	server.mock(|when, then| {
+		when.method(Method::GET).path("/repos/acme/actions/pulls");
+		then.json_body(serde_json::json!([]));
+	});
+	let create = server.mock(|when, then| {
+		when.method(Method::POST).path("/repos/acme/actions/pulls");
+		then.status(201).json_body(new.clone());
+	});
+	let mut signed_new = new.clone();
+	sign_pull(&mut signed_new, PR_BINDING_SECRET);
+	let stamp = server.mock(|when, then| {
+		when.method(Method::PATCH)
+			.path("/repos/acme/actions/pulls/43");
+		then.json_body(signed_new);
+	});
+	let mut old = cut_pull_response(42, "monochange/release/v0.22.0", "release/v0.22.0");
+	sign_pull(&mut old, PR_BINDING_SECRET);
+	let old_read = server.mock(|when, then| {
+		when.method(Method::GET)
+			.path("/repos/acme/actions/pulls/42");
+		then.json_body(old);
+	});
+	let comment = server.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/issues/42/comments");
+		then.status(201);
+	});
+	let close = server.mock(|when, then| {
+		when.method(Method::PATCH)
+			.path("/repos/acme/actions/pulls/42");
+		then.status(200);
+	});
+
+	let (number, operation, _) = publish_cut_pull(
+		&server,
+		&request,
+		PublishPullRequestOptions {
+			banner_only: false,
+			supersede_pr_number: Some(42),
+		},
+	)
+	.await
+	.unwrap();
+
+	assert_eq!(number, 43);
+	assert_eq!(
+		operation,
+		monochange_core::SourceChangeRequestOperation::Created
+	);
+	create.assert();
+	stamp.assert();
+	old_read.assert();
+	comment.assert();
+	close.assert();
+}
+
+#[rstest]
+#[case::other_head_prefix("other/release/v0.22.0", "release/v0.22.0")]
+#[case::rolling_head("monochange/release", "main")]
+#[case::other_base_series("monochange/release/v0.22.0", "legacy/v0.22.0")]
+#[tokio::test]
+async fn refresh_does_not_close_a_cut_request_from_another_series(
+	#[case] old_head: &str,
+	#[case] old_base: &str,
+) {
+	let server = MockServer::start();
+	mock_repository(&server, "main");
+	let mut request = release_pull_request();
+	request.head_branch = "monochange/release/v0.23.0".to_string();
+	request.base_branch = "release/v0.23.0".to_string();
+	request.labels.clear();
+	request.auto_merge = false;
+	let new = cut_pull_response(43, &request.head_branch, &request.base_branch);
+	server.mock(|when, then| {
+		when.method(Method::GET).path("/repos/acme/actions/pulls");
+		then.json_body(serde_json::json!([]));
+	});
+	server.mock(|when, then| {
+		when.method(Method::POST).path("/repos/acme/actions/pulls");
+		then.status(201).json_body(new.clone());
+	});
+	let mut signed_new = new.clone();
+	sign_pull(&mut signed_new, PR_BINDING_SECRET);
+	server.mock(|when, then| {
+		when.method(Method::PATCH)
+			.path("/repos/acme/actions/pulls/43");
+		then.json_body(signed_new);
+	});
+	let mut old = cut_pull_response(42, old_head, old_base);
+	sign_pull(&mut old, PR_BINDING_SECRET);
+	server.mock(|when, then| {
+		when.method(Method::GET)
+			.path("/repos/acme/actions/pulls/42");
+		then.json_body(old);
+	});
+	let comment = server.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/issues/42/comments");
+		then.status(201);
+	});
+	let close = server.mock(|when, then| {
+		when.method(Method::PATCH)
+			.path("/repos/acme/actions/pulls/42");
+		then.status(200);
+	});
+
+	let error = publish_cut_pull(
+		&server,
+		&request,
+		PublishPullRequestOptions {
+			banner_only: false,
+			supersede_pr_number: Some(42),
+		},
+	)
+	.await
+	.unwrap_err();
+
+	assert!(
+		matches!(error, GitHubAppError::UnboundPullRequest),
+		"{error}"
+	);
+	comment.assert_calls(0);
+	close.assert_calls(0);
+}
+
 #[rstest]
 #[case::feature("feature/work", "main")]
 #[case::same_as_base(RELEASE_BRANCH, RELEASE_BRANCH)]
@@ -1449,6 +1632,267 @@ async fn cut_release_commit_allows_base_ancestor_and_creates_cut_base_ref() {
 	compare.assert();
 	create_cut_base.assert();
 	create_head.assert();
+}
+
+#[tokio::test]
+async fn frozen_cut_requires_a_named_base_branch_before_writing() {
+	let server = MockServer::start();
+	let cut_head = "monochange/release/v0.22.0";
+	let cut_base = "release/v0.22.0";
+	mock_repository(&server, "main");
+	mock_branch(&server, cut_head, None);
+	let writes = mock_commit_writes(&server);
+	let refs = server.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/git/refs");
+		then.status(201);
+	});
+
+	let mut request = release_commit_request(cut_head, None);
+	request.cut_base_branch = Some(cut_base.to_string());
+	request.allow_base_ancestor = true;
+
+	let error = create_commit(&server, &request).await.unwrap_err();
+	assert!(
+		matches!(&error, GitHubAppError::CutBaseRequiresBase(branch) if branch == cut_base),
+		"{error}"
+	);
+	writes.blob.assert_calls(0);
+	writes.tree.assert_calls(0);
+	writes.commit.assert_calls(0);
+	refs.assert_calls(0);
+}
+
+#[tokio::test]
+async fn frozen_cut_rejects_a_release_branch_as_its_source_base() {
+	let server = MockServer::start();
+	let cut_head = "monochange/release/v0.22.0";
+	let cut_base = "release/v0.22.0";
+	mock_repository(&server, "main");
+	mock_branch(&server, cut_head, None);
+	let writes = mock_commit_writes(&server);
+	let refs = server.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/git/refs");
+		then.status(201);
+	});
+
+	let mut request = release_commit_request(cut_head, Some("monochange/release/other"));
+	request.cut_base_branch = Some(cut_base.to_string());
+
+	let error = create_commit(&server, &request).await.unwrap_err();
+	assert!(
+		matches!(
+			&error,
+			GitHubAppError::InvalidCutBase(cut, base)
+				if cut == cut_base && base == "monochange/release/other"
+		),
+		"{error}"
+	);
+	writes.blob.assert_calls(0);
+	writes.tree.assert_calls(0);
+	writes.commit.assert_calls(0);
+	refs.assert_calls(0);
+}
+
+#[rstest]
+#[case::no_active_head(None)]
+#[case::unrelated_active_head(Some("active-release-sha"))]
+#[tokio::test]
+async fn unrelated_cut_base_tip_is_not_replaced(#[case] release_head: Option<&str>) {
+	let server = MockServer::start();
+	let cut_head = "monochange/release/v0.22.0";
+	let cut_base = "release/v0.22.0";
+	mock_repository(&server, "main");
+	mock_branch(&server, cut_head, release_head);
+	mock_branch(&server, cut_base, Some("unrelated-sha"));
+	mock_branch(&server, "main", Some(BASE_COMMIT));
+	let to_base = mock_compare(&server, "unrelated-sha", BASE_COMMIT, "diverged");
+	let from_base = mock_compare(&server, BASE_COMMIT, "unrelated-sha", "diverged");
+	let to_head = release_head.map(|head| mock_compare(&server, "unrelated-sha", head, "diverged"));
+	let writes = mock_commit_writes(&server);
+	let refs = server.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/git/refs");
+		then.status(201);
+	});
+	let update_cut = server.mock(|when, then| {
+		when.method(Method::PATCH)
+			.path(format!("/repos/acme/actions/git/refs/heads/{cut_base}"));
+		then.status(200);
+	});
+
+	let mut request = release_commit_request(cut_head, Some("main"));
+	request.cut_base_branch = Some(cut_base.to_string());
+
+	let error = create_commit(&server, &request).await.unwrap_err();
+	assert!(
+		matches!(
+			&error,
+			GitHubAppError::CutBaseConflict(branch, actual, requested)
+				if branch == cut_base && actual == "unrelated-sha" && requested == BASE_COMMIT
+		),
+		"{error}"
+	);
+	to_base.assert();
+	from_base.assert();
+	if let Some(to_head) = to_head {
+		to_head.assert();
+	}
+	writes.blob.assert_calls(0);
+	writes.tree.assert_calls(0);
+	writes.commit.assert_calls(0);
+	refs.assert_calls(0);
+	update_cut.assert_calls(0);
+}
+
+#[tokio::test]
+async fn verified_same_cut_refresh_replaces_the_cut_base_after_rebase() {
+	let server = MockServer::start();
+	let cut_head = "monochange/release/v0.22.0";
+	let cut_base = "release/v0.22.0";
+	mock_repository(&server, "main");
+	mock_branch(&server, cut_head, Some("old-release-sha"));
+	mock_branch(&server, cut_base, Some("old-cut-base"));
+	mock_branch(&server, "main", Some("rebased-main-sha"));
+	let base_compare = mock_compare(&server, BASE_COMMIT, "rebased-main-sha", "ahead");
+	let cut_to_base = mock_compare(&server, "old-cut-base", BASE_COMMIT, "diverged");
+	let base_to_cut = mock_compare(&server, BASE_COMMIT, "old-cut-base", "diverged");
+	let cut_to_head = mock_compare(&server, "old-cut-base", "old-release-sha", "ahead");
+	mock_commit_writes(&server);
+	let update_cut = server.mock(|when, then| {
+		when.method(Method::PATCH)
+			.path(format!("/repos/acme/actions/git/refs/heads/{cut_base}"))
+			.json_body(serde_json::json!({ "sha": BASE_COMMIT, "force": true }));
+		then.status(200);
+	});
+	let release_compare = mock_compare(&server, "old-release-sha", RELEASE_COMMIT, "diverged");
+	let update_head = mock_branch_update(&server, cut_head, true);
+
+	let mut request = release_commit_request(cut_head, Some("main"));
+	request.cut_base_branch = Some(cut_base.to_string());
+	request.allow_base_ancestor = true;
+
+	let (sha, verified, _) = create_commit(&server, &request).await.unwrap();
+	assert_eq!(sha, RELEASE_COMMIT);
+	assert!(verified);
+	base_compare.assert();
+	cut_to_base.assert();
+	base_to_cut.assert();
+	cut_to_head.assert();
+	release_compare.assert();
+	update_cut.assert();
+	update_head.assert();
+}
+
+#[tokio::test]
+async fn advancing_cut_base_keeps_the_hosted_fast_forward_check() {
+	let server = MockServer::start();
+	let cut_head = "monochange/release/v0.22.0";
+	let cut_base = "release/v0.22.0";
+	mock_repository(&server, "main");
+	mock_branch(&server, cut_head, None);
+	mock_branch(&server, cut_base, Some("old-cut-base"));
+	mock_branch(&server, "main", Some(BASE_COMMIT));
+	let ancestry = mock_compare(&server, "old-cut-base", BASE_COMMIT, "ahead");
+	mock_commit_writes(&server);
+	let update_cut = server.mock(|when, then| {
+		when.method(Method::PATCH)
+			.path(format!("/repos/acme/actions/git/refs/heads/{cut_base}"))
+			.json_body(serde_json::json!({ "sha": BASE_COMMIT, "force": false }));
+		then.status(200);
+	});
+	let create_head = server.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/git/refs")
+			.json_body(serde_json::json!({
+				"ref": format!("refs/heads/{cut_head}"),
+				"sha": RELEASE_COMMIT,
+			}));
+		then.status(201);
+	});
+
+	let mut request = release_commit_request(cut_head, Some("main"));
+	request.cut_base_branch = Some(cut_base.to_string());
+	request.allow_base_ancestor = true;
+
+	create_commit(&server, &request).await.unwrap();
+	ancestry.assert();
+	update_cut.assert();
+	create_head.assert();
+}
+
+#[tokio::test]
+async fn stale_run_cannot_roll_the_cut_base_back() {
+	let server = MockServer::start();
+	let cut_head = "monochange/release/v0.22.0";
+	let cut_base = "release/v0.22.0";
+	mock_repository(&server, "main");
+	mock_branch(&server, cut_head, Some("newer-release-sha"));
+	mock_branch(&server, cut_base, Some("newer-cut-base"));
+	mock_branch(&server, "main", Some(BASE_COMMIT));
+	let to_base = mock_compare(&server, "newer-cut-base", BASE_COMMIT, "behind");
+	let from_base = mock_compare(&server, BASE_COMMIT, "newer-cut-base", "ahead");
+	let writes = mock_commit_writes(&server);
+	let update_cut = server.mock(|when, then| {
+		when.method(Method::PATCH)
+			.path(format!("/repos/acme/actions/git/refs/heads/{cut_base}"));
+		then.status(200);
+	});
+
+	let mut request = release_commit_request(cut_head, Some("main"));
+	request.cut_base_branch = Some(cut_base.to_string());
+
+	let error = create_commit(&server, &request).await.unwrap_err();
+	assert!(
+		matches!(
+			&error,
+			GitHubAppError::CutBaseConflict(branch, actual, requested)
+				if branch == cut_base && actual == "newer-cut-base" && requested == BASE_COMMIT
+		),
+		"{error}"
+	);
+	to_base.assert();
+	from_base.assert();
+	writes.blob.assert_calls(0);
+	writes.tree.assert_calls(0);
+	writes.commit.assert_calls(0);
+	update_cut.assert_calls(0);
+}
+
+#[tokio::test]
+async fn integrated_parent_keeps_the_hosted_fast_forward_check() {
+	let server = MockServer::start();
+	let previous = "previous-release-sha";
+	mock_repository(&server, "main");
+	mock_branch(&server, RELEASE_BRANCH, Some(previous));
+	mock_branch(&server, "main", Some(BASE_COMMIT));
+	server.mock(|when, then| {
+		when.method(Method::POST)
+			.path("/repos/acme/actions/git/commits")
+			.json_body(serde_json::json!({
+				"message": "chore(release): prepare release",
+				"tree": "tree-sha",
+				"parents": [BASE_COMMIT, previous],
+			}));
+		then.status(201).json_body(serde_json::json!({
+			"sha": RELEASE_COMMIT,
+			"verification": { "verified": true, "reason": "valid" },
+		}));
+	});
+	let integrated = mock_compare(&server, previous, RELEASE_COMMIT, "ahead");
+	let update = mock_branch_update(&server, RELEASE_BRANCH, false);
+
+	let mut request = release_commit_request(RELEASE_BRANCH, Some("main"));
+	request.files.clear();
+	request.tree = Some("tree-sha".to_string());
+	request.additional_parents = vec![previous.to_string()];
+
+	let (sha, verified, _) = create_commit(&server, &request).await.unwrap();
+	assert_eq!(sha, RELEASE_COMMIT);
+	assert!(verified);
+	integrated.assert();
+	update.assert();
 }
 
 #[tokio::test]

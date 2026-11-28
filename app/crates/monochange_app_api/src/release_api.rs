@@ -304,6 +304,12 @@ fn validate_branch_names(branch: &str, base_branch: Option<&str>) -> Result<(), 
 fn validate_cut_commit_fields(request: &HostedCommitRequest) -> Result<(), String> {
 	if let Some(cut_base_branch) = request.cut_base_branch.as_deref() {
 		validate_branch_name("cut base branch", cut_base_branch)?;
+
+		if request.base_branch.is_none() {
+			return Err(format!(
+				"cut base branch `{cut_base_branch}` requires a named `base_branch` so the cut commit can be ancestry-checked"
+			));
+		}
 	}
 
 	for parent in &request.additional_parents {
@@ -325,12 +331,14 @@ fn validate_cut_commit_fields(request: &HostedCommitRequest) -> Result<(), Strin
 /// rejected request; everything else is a GitHub failure.
 fn release_commit_error_status(error: &github_app::GitHubAppError) -> StatusCode {
 	match error {
-		github_app::GitHubAppError::BranchMoved(..) | github_app::GitHubAppError::BaseMoved(..) => {
-			StatusCode::CONFLICT
-		}
+		github_app::GitHubAppError::BranchMoved(..)
+		| github_app::GitHubAppError::BaseMoved(..)
+		| github_app::GitHubAppError::CutBaseConflict(..) => StatusCode::CONFLICT,
 		github_app::GitHubAppError::NotConfigured => StatusCode::SERVICE_UNAVAILABLE,
 		github_app::GitHubAppError::WorkflowsChanged
 		| github_app::GitHubAppError::InvalidReleaseBranch(_)
+		| github_app::GitHubAppError::CutBaseRequiresBase(_)
+		| github_app::GitHubAppError::InvalidCutBase(..)
 		| github_app::GitHubAppError::UnboundPullRequest => StatusCode::UNPROCESSABLE_ENTITY,
 		_ => StatusCode::BAD_GATEWAY,
 	}
