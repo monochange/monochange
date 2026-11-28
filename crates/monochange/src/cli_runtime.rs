@@ -823,13 +823,13 @@ pub(crate) async fn execute_cli_command_with_options(
 					allow_empty_changesets,
 					..
 				} => {
-					execute_prepare_release_step(
+					Box::pin(execute_prepare_release_step(
 						&state,
 						&mut context,
 						progress,
 						&mut step_phase_timings,
 						*allow_empty_changesets,
-					)
+					))
 					.await
 				}
 				CliStepDefinition::VerifyReleaseBranch { .. } => {
@@ -857,7 +857,7 @@ pub(crate) async fn execute_cli_command_with_options(
 					oidc_audience,
 					..
 				} => {
-					execute_commit_release_step(
+					Box::pin(execute_commit_release_step(
 						&state,
 						&mut context,
 						&CommitReleaseStepDefaults {
@@ -869,7 +869,7 @@ pub(crate) async fn execute_cli_command_with_options(
 							hosted_url: hosted_url.as_deref(),
 							oidc_audience: oidc_audience.as_deref(),
 						},
-					)
+					))
 					.await
 				}
 				CliStepDefinition::OpenReleaseRequest {
@@ -880,7 +880,7 @@ pub(crate) async fn execute_cli_command_with_options(
 					hosted_url,
 					..
 				} => {
-					execute_open_release_request_step(
+					Box::pin(execute_open_release_request_step(
 						&state,
 						&mut context,
 						*no_verify,
@@ -888,7 +888,7 @@ pub(crate) async fn execute_cli_command_with_options(
 						*backend,
 						*hosted_auth,
 						hosted_url.as_deref(),
-					)
+					))
 					.await
 				}
 				CliStepDefinition::CommentReleasedIssues { .. } => {
@@ -933,7 +933,7 @@ pub(crate) async fn execute_cli_command_with_options(
 					hosted_url,
 					..
 				} => {
-					execute_open_sync_request_step(
+					Box::pin(execute_open_sync_request_step(
 						&state,
 						&mut context,
 						*no_verify,
@@ -941,7 +941,7 @@ pub(crate) async fn execute_cli_command_with_options(
 						*backend,
 						*hosted_auth,
 						hosted_url.as_deref(),
-					)
+					))
 					.await
 				}
 				CliStepDefinition::Command {
@@ -2094,18 +2094,17 @@ async fn execute_open_release_request_step(
 			};
 			pr
 		};
-		let updated_body = match context.cut_context.sticky_banner_body.clone() {
-			Some(body) => body,
-			None => {
-				let body = build_sticky_banner_body(state.root, &source, &active_pr).await?;
-				if sticky_pr_open && !banner_only {
-					context.command_logs.push(format!(
-						"sticky cut PR #{} (`{}` -> `{}`) is already open; skipping re-cut and updating status banner only",
-						active_pr.number, active_pr.head_branch, active_pr.base_branch
-					));
-				}
-				body
+		let updated_body = if let Some(body) = context.cut_context.sticky_banner_body.clone() {
+			body
+		} else {
+			let body = build_sticky_banner_body(state.root, &source, &active_pr).await?;
+			if sticky_pr_open && !banner_only {
+				context.command_logs.push(format!(
+					"sticky cut PR #{} (`{}` -> `{}`) is already open; skipping re-cut and updating status banner only",
+					active_pr.number, active_pr.head_branch, active_pr.base_branch
+				));
 			}
+			body
 		};
 		let banner_request = SourceChangeRequest {
 			provider: source.provider,
@@ -2217,7 +2216,7 @@ async fn execute_open_release_request_step(
 		if !dry_run && let Some(cut_sha) = resolved.as_deref() {
 			verify_cut_workspace_alignment(state.root, cut_sha).await?;
 		}
-		context.cut_context.cut_base_commit = resolved.clone();
+		context.cut_context.cut_base_commit.clone_from(&resolved);
 		resolved
 	} else {
 		None
