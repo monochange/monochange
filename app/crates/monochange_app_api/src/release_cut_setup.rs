@@ -264,34 +264,75 @@ jobs:
     if: >-
       (github.event_name == 'push' && github.ref == 'refs/heads/{default_branch}') ||
       github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'issue_comment' && github.event.issue.pull_request != null)
+      (
+        github.event_name == 'issue_comment' &&
+        github.event.issue.pull_request != null &&
+        contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association) &&
+        contains(github.event.comment.body, '/refresh')
+      )
     runs-on: ubuntu-latest
     concurrency:
       group: monochange-release-cut
       cancel-in-progress: false
     steps:
+      # Local pushes with GITHUB_TOKEN do not trigger pull_request CI checks
+      # (including on `/refresh`). Use the hosted monochange GitHub App backend
+      # via `id-token: write`, or supply a PAT / App token in MONOCHANGE_GITHUB_TOKEN.
       - uses: actions/checkout@v4
         with:
+          ref: {default_branch}
           fetch-depth: 0
+          token: ${{{{ secrets.MONOCHANGE_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}}}
       - name: Cut frozen release PR or update status banner
         uses: monochange/actions@v0
+        env:
+          GITHUB_TOKEN: ${{{{ secrets.MONOCHANGE_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}}}
         with:
           name: release-pr
-          refresh: ${{{{ inputs.refresh || false }}}}
+          token: ${{{{ secrets.MONOCHANGE_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}}}
+          refresh: ${{{{ github.event_name == 'issue_comment' || inputs.refresh || false }}}}
           from: ${{{{ inputs.from || '' }}}}
           minimum-reviewer-permission: write
 
   tag-publish-and-sync:
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/release/')
+    # Ignore initial frozen cut branch creation (`created == true`) and branch
+    # deletion (`deleted == true`), then confirm HEAD is an actual release commit
+    # before publishing (so `/refresh` branch moves never trigger publish).
+    if: >-
+      github.event_name == 'push' &&
+      startsWith(github.ref, 'refs/heads/release/') &&
+      !github.event.created &&
+      !github.event.deleted
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{{{ secrets.MONOCHANGE_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}}}
+      - name: Detect release commit
+        id: release_commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          is_release=false
+          if git rev-parse --verify HEAD^1 >/dev/null 2>&1; then
+            for record in $(git diff-tree --no-commit-id --name-only -r --diff-filter=AM HEAD^1 HEAD -- '.monochange/releases/*/release.json'); do
+              if [ -f "$record" ] && ! grep -q '"synced_from_commit"' "$record"; then
+                is_release=true
+                break
+              fi
+            done
+          fi
+          echo "is_release_commit=$is_release" >> "$GITHUB_OUTPUT"
       - name: Tag, publish, and sync back to {default_branch}
+        if: steps.release_commit.outputs.is_release_commit == 'true'
         uses: monochange/actions@v0
+        env:
+          GITHUB_TOKEN: ${{{{ secrets.MONOCHANGE_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}}}
         with:
           name: post-merge-release
+          ref: HEAD
+          token: ${{{{ secrets.MONOCHANGE_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}}}
           sync-release: true
           open-next-cut: true
 "#

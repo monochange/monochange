@@ -104,6 +104,13 @@ fn agent_prompt_and_workflow_include_repository_and_default_branch() {
 	assert!(workflow.contains("- trunk"));
 	assert!(workflow.contains("refs/heads/trunk"));
 	assert!(workflow.contains("sync-release: true"));
+	assert!(workflow.contains("issues: write"));
+	assert!(workflow.contains("!github.event.created"));
+	assert!(workflow.contains("!github.event.deleted"));
+	assert!(workflow.contains("synced_from_commit"));
+	assert!(workflow.contains("github.event_name == 'issue_comment' || inputs.refresh"));
+	assert!(workflow.contains("secrets.MONOCHANGE_GITHUB_TOKEN || secrets.GITHUB_TOKEN"));
+	assert!(workflow.contains("author_association"));
 }
 
 #[tokio::test]

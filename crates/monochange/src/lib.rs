@@ -286,6 +286,7 @@ mod workspace_ops;
 pub(crate) use prepared_release_cache::ensure_monochange_artifact_ignored;
 pub(crate) use prepared_release_cache::maybe_load_prepared_release_execution;
 pub(crate) use prepared_release_cache::save_prepared_release_execution;
+pub(crate) use prepared_release_cache::save_prepared_release_execution_with_cut_base;
 
 /// Output renderer used by CLI commands and preview helpers.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]

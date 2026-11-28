@@ -25,6 +25,7 @@ use monochange_hosting::cut::CutMetadata;
 use monochange_hosting::cut::CutStatusBanner;
 use monochange_hosting::cut::render_cut_or_sync_title;
 use monochange_hosting::cut::render_cut_status_banner;
+use serde::Deserialize;
 use serde::Serialize;
 
 use crate::FileUpdate;
@@ -57,7 +58,7 @@ pub(crate) struct PublishedReleaseRecord {
 }
 
 /// Structured output returned by `SyncRelease`.
-#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub(crate) struct SyncReleaseReport {
 	pub mode: SyncMode,
@@ -79,6 +80,8 @@ pub(crate) struct SyncReleaseReport {
 pub(crate) struct CutExecutionContext {
 	/// Resolved base commit (`M*`) on `[source.pull_requests].base` for this cut.
 	pub cut_base_commit: Option<String>,
+	/// Whether an active open cut PR lookup has already been attempted in this run.
+	pub active_cut_pr_checked: bool,
 	/// Active open cut PR discovered before preparing, if any.
 	pub active_cut_pr: Option<monochange_core::ActiveCutPullRequest>,
 	/// When sticky mode skips re-cutting, holds the precomputed body update for

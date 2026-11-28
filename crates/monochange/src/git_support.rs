@@ -785,6 +785,89 @@ pub(crate) async fn git_create_bridge_commit(
 	Ok(commit)
 }
 
+/// Detach `HEAD` at `commit` so subsequent release preparation runs on that exact snapshot.
+#[must_use = "the detached checkout result must be checked"]
+pub(crate) async fn git_checkout_detached(root: &Path, commit: &str) -> MonochangeResult<()> {
+	run_git_status(
+		root,
+		&["checkout", "--detach", commit],
+		&format!("failed to checkout commit `{commit}`"),
+	)
+	.await
+}
+
+/// Add a detached temporary git worktree checked out at `commit`.
+#[must_use = "the worktree add result must be checked"]
+pub(crate) async fn git_worktree_add_detached(
+	root: &Path,
+	worktree_path: &Path,
+	commit: &str,
+) -> MonochangeResult<()> {
+	let path_str = worktree_path.to_string_lossy();
+	run_git_status(
+		root,
+		&["worktree", "add", "--detach", &path_str, commit],
+		&format!(
+			"failed to create temporary git worktree at `{}` for commit `{commit}`",
+			worktree_path.display()
+		),
+	)
+	.await
+}
+
+/// Best-effort removal of a temporary git worktree.
+pub(crate) fn git_worktree_remove_force_sync(root: &Path, worktree_path: &Path) {
+	let _ = ProcessCommand::new("git")
+		.current_dir(root)
+		.args(["worktree", "remove", "--force"])
+		.arg(worktree_path)
+		.output();
+}
+
+/// Return `true` when the working tree has staged, unstaged, or untracked changes
+/// outside `.monochange/local/`.
+#[must_use = "the dirty worktree check must be checked"]
+pub(crate) async fn git_has_uncommitted_changes(root: &Path) -> MonochangeResult<bool> {
+	let output = git_command_output(
+		root,
+		&["status", "--short", "--untracked-files=all", "--porcelain"],
+	)
+	.await
+	.map_err(|error| MonochangeError::Discovery(format!("failed to read git status: {error}")))?;
+
+	if !output.status.success() {
+		return Err(MonochangeError::Discovery(format!(
+			"failed to read git status: {}",
+			git_error_detail(&output)
+		)));
+	}
+
+	let stdout = String::from_utf8_lossy(&output.stdout);
+	Ok(stdout.lines().any(|line| {
+		let path = line.get(3..).map(str::trim).unwrap_or_default();
+		!path.is_empty() && !path.starts_with(".monochange/local/") && path != ".monochange/local"
+	}))
+}
+
+/// Resolve the first parent commit of `rev`, returning `Ok(None)` for root commits.
+#[must_use = "the parent commit lookup must be checked"]
+pub(crate) async fn git_first_parent_commit(
+	root: &Path,
+	rev: &str,
+) -> MonochangeResult<Option<String>> {
+	let output = git_command_output(root, &["rev-parse", "--verify", &format!("{rev}^1")])
+		.await
+		.map_err(|error| {
+			MonochangeError::Discovery(format!("failed to inspect parent of `{rev}`: {error}"))
+		})?;
+
+	if output.status.success() {
+		Ok(Some(git_stdout_trimmed(&output)))
+	} else {
+		Ok(None)
+	}
+}
+
 pub(crate) async fn run_git_process(
 	command: ProcessCommand,
 	error_message: &str,

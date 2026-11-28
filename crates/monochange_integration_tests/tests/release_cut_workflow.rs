@@ -337,3 +337,112 @@ fn versionless_main_uses_tag_version_source_and_bookkeeping_only_sync() {
 		})
 	);
 }
+
+#[test]
+fn cut_from_older_commit_excludes_newer_changesets_and_code_in_dry_run_and_live() {
+	let tempdir = setup_fixture("release-cut/basic");
+	let root = tempdir.path();
+	let m1 = git_rev(root, "HEAD");
+
+	// Land a newer commit M2 on main with a major changeset and newer code.
+	std::fs::write(
+		root.join(".changeset/breaking-b.md"),
+		"---\ncore: major\n---\n\nBreaking change landed after M1.\n",
+	)
+	.unwrap_or_else(|error| panic!("write breaking-b.md: {error}"));
+	std::fs::write(root.join("src/lib.rs"), "pub fn newer_m2() {}\n")
+		.unwrap_or_else(|error| panic!("write src/lib.rs: {error}"));
+	git(root, &["add", "."]);
+	git(root, &["commit", "-m", "feat!: newer commit M2"]);
+	let m2 = git_rev(root, "HEAD");
+	assert_ne!(m1, m2);
+
+	// 1. Dry-run cutting from M1 must plan ONLY 1.1.0 from M1 and leave checkout at M2.
+	let dry_plan = run_monochange_json(
+		root,
+		&[
+			"step",
+			"prepare-release",
+			"--from",
+			&m1,
+			"--dry-run",
+			"--format",
+			"json",
+		],
+	);
+	assert_eq!(dry_plan["version"], json!("1.1.0"));
+	let dry_changeset_paths: Vec<&str> = dry_plan["changesets"]
+		.as_array()
+		.unwrap_or_else(|| panic!("expected changesets array"))
+		.iter()
+		.filter_map(|entry| entry["path"].as_str())
+		.collect();
+	assert_eq!(dry_changeset_paths, vec![".changeset/feat-a.md"]);
+	assert_eq!(git_rev(root, "HEAD"), m2);
+	assert!(
+		std::fs::read_to_string(root.join("src/lib.rs"))
+			.unwrap_or_else(|error| panic!("read src/lib.rs: {error}"))
+			.contains("newer_m2")
+	);
+
+	// 2. Live prepare cutting from M1 must check out M1 so M2's code/changesets never enter.
+	let live_plan = run_monochange_json(
+		root,
+		&["step", "prepare-release", "--from", &m1, "--format", "json"],
+	);
+	assert_eq!(live_plan["version"], json!("1.1.0"));
+	assert_eq!(
+		live_plan["deleted_changesets"],
+		json!([".changeset/feat-a.md"])
+	);
+	assert_eq!(git_rev(root, "HEAD"), m1);
+	assert!(
+		!std::fs::read_to_string(root.join("src/lib.rs"))
+			.unwrap_or_else(|error| panic!("read src/lib.rs: {error}"))
+			.contains("newer_m2"),
+		"newer M2 code must not exist in a cut prepared from M1"
+	);
+	assert!(!root.join(".changeset/breaking-b.md").exists());
+}
+
+#[test]
+fn single_invocation_open_sync_request_accepts_from_and_mode() {
+	let tempdir = setup_fixture("release-cut/basic");
+	let root = tempdir.path();
+
+	git(root, &["checkout", "-b", "monochange/release/v1.1.0"]);
+	let _ = run_monochange_json(root, &["step", "prepare-release", "--format", "json"]);
+	let commit = run_monochange_raw(root, &["step", "commit-release"]);
+	assert!(commit.status.success());
+	git(root, &["checkout", "-B", "release/v1.1.0"]);
+	let tag = run_monochange_raw(
+		root,
+		&["step", "tag-release", "--from", "HEAD", "--push=false"],
+	);
+	assert!(tag.status.success());
+
+	git(root, &["checkout", "main"]);
+	let output = run_monochange_json(
+		root,
+		&[
+			"step",
+			"open-sync-request",
+			"--from",
+			"v1.1.0",
+			"--mode",
+			"bookkeeping_only",
+			"--dry-run",
+			"--format",
+			"json",
+		],
+	);
+	assert_eq!(output["sync"]["status"], json!("dry_run"));
+	assert_eq!(output["sync"]["mode"], json!("bookkeeping_only"));
+	assert_eq!(output["sync"]["synced_tags"], json!(["v1.1.0"]));
+	assert_eq!(output["sync"]["updated_manifests"], json!([]));
+	assert_eq!(
+		output["release_request"]["head_branch"],
+		json!("monochange/sync-release")
+	);
+	assert_eq!(output["release_request"]["base_branch"], json!("main"));
+}

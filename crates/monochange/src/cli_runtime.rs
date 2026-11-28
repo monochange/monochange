@@ -59,7 +59,7 @@ use crate::output::text::display_width;
 use crate::output::text::plural;
 use crate::output::text::summarize_log;
 use crate::release_branch_policy;
-use crate::save_prepared_release_execution;
+use crate::save_prepared_release_execution_with_cut_base;
 use crate::workspace_ops::validate_cargo_workspace_version_groups;
 use crate::*;
 
@@ -392,6 +392,9 @@ async fn ensure_prepared_release_for_consumer_step(
 	})?;
 	context.command_logs.push(loaded.message);
 	context.originating_command = Some(originating_command);
+	if context.cut_context.cut_base_commit.is_none() {
+		context.cut_context.cut_base_commit = loaded.cut_base_commit;
+	}
 	context.prepared_file_diffs = loaded.execution.file_diffs;
 	context.prepared_release = Some(loaded.execution.prepared_release);
 	Ok(())
@@ -1238,26 +1241,36 @@ async fn execute_prepare_release_step(
 	if let Some(source) = state.configuration.source.as_ref()
 		&& source.pull_requests.strategy.is_cut()
 	{
-		let active_cut_pr = find_active_cut_pull_request_for_source(source)
-			.await
-			.ok()
-			.flatten();
+		let has_open_release_request_step = state
+			.cli_command
+			.steps
+			.iter()
+			.any(|step| matches!(step, CliStepDefinition::OpenReleaseRequest { .. }));
+		let should_check_active_cut_pr = has_open_release_request_step
+			|| (source.pull_requests.cut.trigger == monochange_core::CutTrigger::Sticky
+				&& !refresh && source.pull_requests.cut.source_commit
+				== monochange_core::CutSourceCommit::LatestGreen);
 
-		if source.pull_requests.cut.trigger == monochange_core::CutTrigger::Sticky
-			&& !refresh
-			&& let Some(active_pr) = active_cut_pr
-		{
-			let updated_body = build_sticky_banner_body(state.root, source, &active_pr).await?;
-			context.cut_context.active_cut_pr = Some(active_pr.clone());
-			context.cut_context.sticky_banner_body = Some(updated_body);
-			context.command_logs.push(format!(
-				"sticky cut PR #{} (`{}` -> `{}`) is already open; skipping re-cut and updating status banner only",
-				active_pr.number, active_pr.head_branch, active_pr.base_branch
-			));
-			return Ok(None);
+		if should_check_active_cut_pr {
+			let active_cut_pr = lookup_active_cut_pull_request(source, state.dry_run).await?;
+			context.cut_context.active_cut_pr_checked = true;
+
+			if source.pull_requests.cut.trigger == monochange_core::CutTrigger::Sticky
+				&& !refresh && let Some(active_pr) = active_cut_pr
+			{
+				let updated_body = build_sticky_banner_body(state.root, source, &active_pr).await?;
+				context.cut_context.active_cut_pr = Some(active_pr.clone());
+				context.cut_context.sticky_banner_body = Some(updated_body);
+				context.command_logs.push(format!(
+					"sticky cut PR #{} (`{}` -> `{}`) is already open; skipping re-cut and updating status banner only",
+					active_pr.number, active_pr.head_branch, active_pr.base_branch
+				));
+				return Ok(None);
+			}
+
+			context.cut_context.active_cut_pr = active_cut_pr;
 		}
 
-		context.cut_context.active_cut_pr = active_cut_pr;
 		context.cut_context.cut_base_commit =
 			resolve_cut_base_commit(state.root, source, explicit_from.as_deref(), state.dry_run)
 				.await?;
@@ -1269,15 +1282,39 @@ async fn execute_prepare_release_step(
 			.steps
 			.get(state.step_index + 1..)
 			.is_some_and(steps_reference_release_file_diffs);
-	let (prepared_execution, originating_command) = if let Some(loaded) =
-		maybe_load_prepared_release_execution(
-			state.root,
-			state.configuration,
-			state.prepared_release_path,
-			state.dry_run,
-			build_file_diffs,
+	let current_head = git_head_commit(state.root).await.ok();
+	let cut_base_differs_from_head = context
+		.cut_context
+		.cut_base_commit
+		.as_deref()
+		.is_some_and(|cut_sha| current_head.as_deref() != Some(cut_sha));
+	let (prepared_execution, originating_command) = if cut_base_differs_from_head {
+		let cut_sha = context
+			.cut_context
+			.cut_base_commit
+			.as_deref()
+			.expect("cut_base_commit is Some when cut_base_differs_from_head is true");
+		(
+			prepare_release_from_cut_base_commit(
+				state.root,
+				state.configuration,
+				cut_sha,
+				state.dry_run,
+				build_file_diffs,
+				allow_empty_changesets,
+			)
+			.await?,
+			state.cli_command.name.clone(),
 		)
-		.await?
+	} else if let Some(loaded) = maybe_load_prepared_release_execution(
+		state.root,
+		state.configuration,
+		state.prepared_release_path,
+		state.dry_run,
+		build_file_diffs,
+	)
+	.await?
+	.filter(|loaded| loaded.cut_base_commit == context.cut_context.cut_base_commit)
 	{
 		context.command_logs.push(loaded.message);
 		(
@@ -1362,6 +1399,21 @@ async fn execute_prepare_release_step(
 	Ok(None)
 }
 
+fn is_missing_github_auth_error(error: &MonochangeError) -> bool {
+	error.to_string().contains("set `GITHUB_TOKEN`")
+}
+
+async fn lookup_active_cut_pull_request(
+	source: &SourceConfiguration,
+	dry_run: bool,
+) -> MonochangeResult<Option<monochange_core::ActiveCutPullRequest>> {
+	match find_active_cut_pull_request_for_source(source).await {
+		Ok(active_pr) => Ok(active_pr),
+		Err(error) if dry_run && is_missing_github_auth_error(&error) => Ok(None),
+		Err(error) => Err(error),
+	}
+}
+
 async fn resolve_cut_base_commit(
 	root: &Path,
 	source: &SourceConfiguration,
@@ -1378,19 +1430,177 @@ async fn resolve_cut_base_commit(
 		match lookup_latest_green_commit_for_source(source, &source.pull_requests.base).await {
 			Ok(Some(sha)) => return Ok(Some(sha)),
 			Ok(None) => {}
-			Err(error) => {
-				// Offline or unauthenticated previews fall back to local HEAD; live
-				// runs where checks exist but none are green fail closed.
-				let message = error.to_string();
-				let missing_auth = message.contains("GITHUB_TOKEN") || message.contains("token");
-				if !dry_run && !missing_auth {
-					return Err(error);
-				}
-			}
+			Err(error) if dry_run && is_missing_github_auth_error(&error) => {}
+			Err(error) => return Err(error),
 		}
 	}
 
-	Ok(git_head_commit(root).await.ok())
+	Ok(Some(git_head_commit(root).await?))
+}
+
+struct TempCutWorktreeGuard {
+	repo_root: PathBuf,
+	worktree_path: PathBuf,
+	_tempdir: tempfile::TempDir,
+}
+
+impl Drop for TempCutWorktreeGuard {
+	fn drop(&mut self) {
+		git_support::git_worktree_remove_force_sync(&self.repo_root, &self.worktree_path);
+	}
+}
+
+fn load_cut_workspace_configuration(
+	snapshot_root: &Path,
+	fallback: &monochange_core::WorkspaceConfiguration,
+) -> MonochangeResult<monochange_core::WorkspaceConfiguration> {
+	let mut configuration = if snapshot_root.join("monochange.toml").is_file() {
+		load_workspace_configuration(snapshot_root)?
+	} else {
+		let mut cloned = fallback.clone();
+		cloned.root_path = snapshot_root.to_path_buf();
+		cloned
+	};
+
+	if let Some(fallback_api_url) = fallback
+		.source
+		.as_ref()
+		.and_then(|source| source.api_url.as_ref())
+		&& let Some(source) = configuration.source.as_mut()
+		&& source.api_url.is_none()
+	{
+		source.api_url = Some(fallback_api_url.clone());
+	}
+
+	Ok(configuration)
+}
+
+fn rebase_cut_path(path: &mut PathBuf, from_root: &Path, to_root: &Path) {
+	if let Ok(relative) = path.strip_prefix(from_root) {
+		*path = to_root.join(relative);
+	}
+}
+
+fn normalize_cut_prepared_execution_paths(
+	execution: &mut PreparedReleaseExecution,
+	from_root: &Path,
+	to_root: &Path,
+) {
+	execution.prepared_release.plan.workspace_root = to_root.to_path_buf();
+	for path in &mut execution.prepared_release.changeset_paths {
+		rebase_cut_path(path, from_root, to_root);
+	}
+	for changeset in &mut execution.prepared_release.changesets {
+		rebase_cut_path(&mut changeset.path, from_root, to_root);
+	}
+	for path in &mut execution.prepared_release.changed_files {
+		rebase_cut_path(path, from_root, to_root);
+	}
+	for changelog in &mut execution.prepared_release.changelogs {
+		rebase_cut_path(&mut changelog.path, from_root, to_root);
+	}
+	for path in &mut execution.prepared_release.updated_changelogs {
+		rebase_cut_path(path, from_root, to_root);
+	}
+	for path in &mut execution.prepared_release.deleted_changesets {
+		rebase_cut_path(path, from_root, to_root);
+	}
+	for diff in &mut execution.file_diffs {
+		rebase_cut_path(&mut diff.path, from_root, to_root);
+	}
+}
+
+async fn prepare_release_from_cut_base_commit(
+	root: &Path,
+	fallback_configuration: &monochange_core::WorkspaceConfiguration,
+	cut_base_commit: &str,
+	dry_run: bool,
+	build_file_diffs: bool,
+	allow_empty_changesets: bool,
+) -> MonochangeResult<PreparedReleaseExecution> {
+	if dry_run {
+		let tempdir = tempfile::TempDir::new().map_err(|error| {
+			MonochangeError::Io(format!(
+				"failed to create temporary directory for cut dry-run: {error}"
+			))
+		})?;
+		let worktree_path = tempdir.path().join("cut-snapshot");
+		git_support::git_worktree_add_detached(root, &worktree_path, cut_base_commit).await?;
+		let _guard = TempCutWorktreeGuard {
+			repo_root: root.to_path_buf(),
+			worktree_path: worktree_path.clone(),
+			_tempdir: tempdir,
+		};
+		let cut_configuration =
+			load_cut_workspace_configuration(&worktree_path, fallback_configuration)?;
+		let mut execution = prepare_release_execution_with_configuration(
+			&worktree_path,
+			&cut_configuration,
+			true,
+			build_file_diffs,
+			allow_empty_changesets,
+		)
+		.await?;
+		normalize_cut_prepared_execution_paths(&mut execution, &worktree_path, root);
+		return Ok(execution);
+	}
+
+	if git_support::git_has_uncommitted_changes(root).await? {
+		return Err(MonochangeError::Config(format!(
+			"cannot cut release from commit {} while the working tree has uncommitted changes; commit or stash local changes first",
+			short_commit_sha(cut_base_commit)
+		)));
+	}
+
+	git_support::git_checkout_detached(root, cut_base_commit).await?;
+	let cut_configuration = load_cut_workspace_configuration(root, fallback_configuration)?;
+	prepare_release_execution_with_configuration(
+		root,
+		&cut_configuration,
+		false,
+		build_file_diffs,
+		allow_empty_changesets,
+	)
+	.await
+}
+
+async fn resolve_cut_banner_base_ref(root: &Path, base_branch: &str) -> String {
+	for candidate in [
+		format!("refs/heads/{base_branch}"),
+		format!("refs/remotes/origin/{base_branch}"),
+	] {
+		if git_support::git_rev_parse_commit(root, &candidate)
+			.await
+			.is_ok()
+		{
+			return candidate;
+		}
+	}
+
+	"HEAD".to_string()
+}
+
+async fn verify_cut_workspace_alignment(
+	root: &Path,
+	cut_base_commit: &str,
+) -> MonochangeResult<()> {
+	let head = git_head_commit(root).await?;
+	if head == cut_base_commit {
+		return Ok(());
+	}
+
+	let dirty = git_support::git_has_uncommitted_changes(root).await?;
+	let first_parent = git_support::git_first_parent_commit(root, "HEAD").await?;
+	if !dirty && first_parent.as_deref() == Some(cut_base_commit) {
+		return Ok(());
+	}
+
+	Err(MonochangeError::Config(format!(
+		"cannot open cut release request from base commit {} while workspace HEAD is {}; prepare the release from `{}` so newer commits cannot enter this cut",
+		short_commit_sha(cut_base_commit),
+		short_commit_sha(&head),
+		short_commit_sha(cut_base_commit),
+	)))
 }
 
 async fn build_sticky_banner_body(
@@ -1409,10 +1619,11 @@ async fn build_sticky_banner_body(
 	let sorted_tags = load_sorted_tags(root).await;
 	let unsynced = release_cut::collect_unsynced_published_releases(root, &sorted_tags).await?;
 	let consumed = release_cut::unsynced_consumed_changeset_paths(root, &unsynced);
+	let base_ref = resolve_cut_banner_base_ref(root, &source.pull_requests.base).await;
 	let banner = release_cut::compute_cut_status_banner(
 		root,
 		&metadata,
-		"HEAD",
+		&base_ref,
 		&source.pull_requests.cut.refresh_command,
 		&consumed,
 	)
@@ -1708,12 +1919,39 @@ async fn execute_commit_release_step(
 	context: &mut CliContext,
 	defaults: &CommitReleaseStepDefaults<'_>,
 ) -> MonochangeResult<Option<String>> {
+	let refresh = parse_boolean_step_input(state.step_inputs, "refresh")?.unwrap_or(false);
+	let commit_backend =
+		resolve_release_backend(state.step_inputs, "commit_backend", defaults.commit_backend)?;
+
 	if context.cut_context.sticky_banner_body.is_some() {
 		context.command_logs.push(
 			"skipped CommitRelease: sticky cut PR is already open (updating status banner only)"
 				.to_string(),
 		);
 		return Ok(None);
+	}
+
+	if let Some(source) = state.configuration.source.as_ref()
+		&& source.pull_requests.strategy.is_cut()
+		&& source.pull_requests.cut.trigger == monochange_core::CutTrigger::Sticky
+		&& !refresh
+		&& !context.cut_context.active_cut_pr_checked
+		&& (commit_backend == ReleaseBackend::Hosted
+			|| source.pull_requests.cut.source_commit
+				== monochange_core::CutSourceCommit::LatestGreen)
+	{
+		let active_cut_pr = lookup_active_cut_pull_request(source, state.dry_run).await?;
+		context.cut_context.active_cut_pr_checked = true;
+		if let Some(active_pr) = active_cut_pr {
+			let updated_body = build_sticky_banner_body(state.root, source, &active_pr).await?;
+			context.cut_context.active_cut_pr = Some(active_pr.clone());
+			context.cut_context.sticky_banner_body = Some(updated_body);
+			context.command_logs.push(format!(
+				"skipped CommitRelease: sticky cut PR #{} (`{}` -> `{}`) is already open (updating status banner only)",
+				active_pr.number, active_pr.head_branch, active_pr.base_branch
+			));
+			return Ok(None);
+		}
 	}
 
 	release_branch_policy::verify_release_ref_for_commit(
@@ -1732,6 +1970,26 @@ async fn execute_commit_release_step(
 		"CommitRelease",
 	)
 	.await?;
+	if let Some(source) = state.configuration.source.as_ref()
+		&& source.pull_requests.strategy.is_cut()
+		&& let Some(from_ref) =
+			string_step_input(state.step_inputs, "from").filter(|value| !value.trim().is_empty())
+	{
+		let requested_commit = git_support::git_rev_parse_commit(state.root, &from_ref).await?;
+		if let Some(prepared_commit) = context.cut_context.cut_base_commit.as_deref()
+			&& prepared_commit != requested_commit
+		{
+			return Err(MonochangeError::Config(format!(
+				"prepared release was cut from commit {}, which does not match `--from {from_ref}` ({}); re-run `PrepareRelease` with `--from {from_ref}`",
+				short_commit_sha(prepared_commit),
+				short_commit_sha(&requested_commit),
+			)));
+		}
+		if !state.dry_run {
+			verify_cut_workspace_alignment(state.root, &requested_commit).await?;
+		}
+		context.cut_context.cut_base_commit = Some(requested_commit);
+	}
 	let prepared_release = context
 		.prepared_release
 		.as_ref()
@@ -1743,8 +2001,6 @@ async fn execute_commit_release_step(
 		.unwrap_or(defaults.update_release_json);
 	let stage_all =
 		parse_boolean_step_input(state.step_inputs, "stage_all")?.unwrap_or(defaults.stage_all);
-	let commit_backend =
-		resolve_release_backend(state.step_inputs, "commit_backend", defaults.commit_backend)?;
 
 	let release_commit_report = match commit_backend {
 		ReleaseBackend::Local => {
@@ -1808,15 +2064,28 @@ async fn execute_open_release_request_step(
 		parse_boolean_step_input(state.step_inputs, "stage_all")?.unwrap_or(stage_all_default);
 	let refresh = parse_boolean_step_input(state.step_inputs, "refresh")?.unwrap_or(false);
 	let banner_only = parse_boolean_step_input(state.step_inputs, "banner_only")?.unwrap_or(false);
+	let explicit_from =
+		string_step_input(state.step_inputs, "from").filter(|value| !value.trim().is_empty());
 	let backend = resolve_release_backend(state.step_inputs, "backend", backend_default)?;
+
+	if source.pull_requests.strategy.is_cut() && !context.cut_context.active_cut_pr_checked {
+		context.cut_context.active_cut_pr =
+			lookup_active_cut_pull_request(&source, dry_run).await?;
+		context.cut_context.active_cut_pr_checked = true;
+	}
+
+	let sticky_pr_open = source.pull_requests.strategy.is_cut()
+		&& source.pull_requests.cut.trigger == monochange_core::CutTrigger::Sticky
+		&& !refresh
+		&& context.cut_context.active_cut_pr.is_some();
 
 	// Sticky banner-only path: update only the status banner on the open cut PR
 	// without mutating branches or triggering CI.
-	if context.cut_context.sticky_banner_body.is_some() || banner_only {
+	if context.cut_context.sticky_banner_body.is_some() || banner_only || sticky_pr_open {
 		let active_pr = if let Some(pr) = context.cut_context.active_cut_pr.clone() {
 			pr
 		} else {
-			let Some(pr) = find_active_cut_pull_request_for_source(&source).await? else {
+			let Some(pr) = lookup_active_cut_pull_request(&source, dry_run).await? else {
 				context
 					.command_logs
 					.push("skipped banner update: no open cut pull request was found".to_string());
@@ -1826,7 +2095,16 @@ async fn execute_open_release_request_step(
 		};
 		let updated_body = match context.cut_context.sticky_banner_body.clone() {
 			Some(body) => body,
-			None => build_sticky_banner_body(state.root, &source, &active_pr).await?,
+			None => {
+				let body = build_sticky_banner_body(state.root, &source, &active_pr).await?;
+				if sticky_pr_open && !banner_only {
+					context.command_logs.push(format!(
+						"sticky cut PR #{} (`{}` -> `{}`) is already open; skipping re-cut and updating status banner only",
+						active_pr.number, active_pr.head_branch, active_pr.base_branch
+					));
+				}
+				body
+			}
 		};
 		let banner_request = SourceChangeRequest {
 			provider: source.provider,
@@ -1914,17 +2192,32 @@ async fn execute_open_release_request_step(
 		.expect("prepared release must be available before opening release request");
 	let manifest = build_release_manifest(state.cli_command, prepared_release, None);
 	let cut_base_commit = if source.pull_requests.strategy.is_cut() {
-		if let Some(commit) = context.cut_context.cut_base_commit.clone() {
-			Some(commit)
-		} else {
-			let explicit_from = string_step_input(state.step_inputs, "from");
-			match explicit_from {
-				Some(from_ref) => {
-					Some(git_support::git_rev_parse_commit(state.root, &from_ref).await?)
+		let resolved = match (
+			context.cut_context.cut_base_commit.clone(),
+			explicit_from.as_deref(),
+		) {
+			(Some(prepared_commit), Some(from_ref)) => {
+				let requested_commit =
+					git_support::git_rev_parse_commit(state.root, from_ref).await?;
+				if requested_commit != prepared_commit {
+					return Err(MonochangeError::Config(format!(
+						"prepared release was cut from commit {}, which does not match `--from {from_ref}` ({}); re-run `PrepareRelease` with `--from {from_ref}`",
+						short_commit_sha(&prepared_commit),
+						short_commit_sha(&requested_commit),
+					)));
 				}
-				None => git_head_commit(state.root).await.ok(),
+				Some(prepared_commit)
 			}
+			(Some(prepared_commit), None) => Some(prepared_commit),
+			(None, explicit) => {
+				resolve_cut_base_commit(state.root, &source, explicit, dry_run).await?
+			}
+		};
+		if !dry_run && let Some(cut_sha) = resolved.as_deref() {
+			verify_cut_workspace_alignment(state.root, cut_sha).await?;
 		}
+		context.cut_context.cut_base_commit = resolved.clone();
+		resolved
 	} else {
 		None
 	};
@@ -2016,6 +2309,7 @@ async fn publish_local_cut_release_request(
 		Some(commit) => commit.to_string(),
 		None => git_head_commit(root).await?,
 	};
+	verify_cut_workspace_alignment(root, &base_commit).await?;
 	git_support::git_create_or_update_branch(root, &request.base_branch, &base_commit).await?;
 	git_support::git_push_branch_force(root, &request.base_branch, no_verify).await?;
 	git_support::git_checkout_branch_at(root, &request.head_branch, None).await?;
@@ -2327,6 +2621,105 @@ async fn execute_retarget_release_step(
 	Ok(None)
 }
 
+const DEFAULT_SYNC_RELEASE_CACHE_PATH: &str = ".monochange/local/sync-release-report.json";
+
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+struct PersistedSyncReleaseReport {
+	head_commit: String,
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	from: Option<String>,
+	mode: monochange_core::SyncMode,
+	report: release_cut::SyncReleaseReport,
+}
+
+async fn save_sync_release_report(
+	root: &Path,
+	from: Option<&str>,
+	report: &release_cut::SyncReleaseReport,
+) -> MonochangeResult<()> {
+	let path = root.join(DEFAULT_SYNC_RELEASE_CACHE_PATH);
+	ensure_monochange_artifact_ignored(root, &path).await?;
+	let Ok(head_commit) = git_head_commit(root).await else {
+		return Ok(());
+	};
+	if let Some(parent) = path.parent() {
+		std::fs::create_dir_all(parent).map_err(|error| {
+			MonochangeError::Io(format!(
+				"failed to create sync report cache dir {}: {error}",
+				parent.display()
+			))
+		})?;
+	}
+	let payload = PersistedSyncReleaseReport {
+		head_commit,
+		from: from.map(ToString::to_string),
+		mode: report.mode,
+		report: report.clone(),
+	};
+	let rendered = serde_json::to_string_pretty(&payload).map_err(|error| {
+		MonochangeError::Config(format!("failed to serialize sync release cache: {error}"))
+	})?;
+	std::fs::write(&path, format!("{rendered}\n")).map_err(|error| {
+		MonochangeError::Io(format!(
+			"failed to write sync report cache {}: {error}",
+			path.display()
+		))
+	})
+}
+
+async fn maybe_load_sync_release_report(
+	root: &Path,
+	from: Option<&str>,
+	mode_override: Option<monochange_core::SyncMode>,
+) -> Option<release_cut::SyncReleaseReport> {
+	let path = root.join(DEFAULT_SYNC_RELEASE_CACHE_PATH);
+	let contents = std::fs::read_to_string(&path).ok()?;
+	let persisted: PersistedSyncReleaseReport = serde_json::from_str(&contents).ok()?;
+	let current_head = git_head_commit(root).await.ok()?;
+	if persisted.head_commit != current_head || persisted.report.status != "completed" {
+		return None;
+	}
+	if let Some(requested_mode) = mode_override
+		&& persisted.mode != requested_mode
+	{
+		return None;
+	}
+	if let Some(requested_from) = from {
+		let matches_from = persisted.from.as_deref() == Some(requested_from)
+			|| persisted
+				.report
+				.synced_tags
+				.iter()
+				.any(|tag| tag == requested_from)
+			|| persisted
+				.report
+				.synced_commits
+				.iter()
+				.any(|commit| commit == requested_from);
+		if !matches_from {
+			return None;
+		}
+	}
+	if persisted.report.synced_record_paths.is_empty()
+		|| !persisted
+			.report
+			.synced_record_paths
+			.iter()
+			.all(|record_path| root.join(record_path).is_file())
+	{
+		return None;
+	}
+	Some(persisted.report)
+}
+
+fn clear_sync_release_report(root: &Path) {
+	let path = root.join(DEFAULT_SYNC_RELEASE_CACHE_PATH);
+	if path.is_file() {
+		let _ = std::fs::remove_file(path);
+	}
+}
+
 async fn execute_sync_release_step(
 	state: &StepExecutionState<'_>,
 	context: &mut CliContext,
@@ -2347,6 +2740,9 @@ async fn execute_sync_release_step(
 		state.dry_run,
 	)
 	.await?;
+	if !state.dry_run && report.status == "completed" {
+		save_sync_release_report(state.root, from.as_deref(), &report).await?;
+	}
 	context.sync_report = Some(report);
 	Ok(None)
 }
@@ -2364,16 +2760,31 @@ async fn execute_open_sync_request_step(
 	let source = state.configuration.source.clone().ok_or_else(|| {
 		MonochangeError::Config("`OpenSyncRequest` requires `[source]` configuration".to_string())
 	})?;
+	let from =
+		string_step_input(state.step_inputs, "from").filter(|value| !value.trim().is_empty());
+	let mode_override = match string_step_input(state.step_inputs, "mode")
+		.filter(|value| !value.trim().is_empty())
+	{
+		Some(value) => Some(value.parse::<monochange_core::SyncMode>()?),
+		None => None,
+	};
 
 	if context.sync_report.is_none() {
-		let report = release_cut::execute_sync_release(
-			state.root,
-			state.configuration,
-			None,
-			None,
-			state.dry_run,
-		)
-		.await?;
+		let report = if !state.dry_run
+			&& let Some(cached) =
+				maybe_load_sync_release_report(state.root, from.as_deref(), mode_override).await
+		{
+			cached
+		} else {
+			release_cut::execute_sync_release(
+				state.root,
+				state.configuration,
+				from.as_deref(),
+				mode_override,
+				state.dry_run,
+			)
+			.await?
+		};
 		context.sync_report = Some(report);
 	}
 
@@ -2450,6 +2861,9 @@ async fn execute_open_sync_request_step(
 		}
 	};
 
+	if !dry_run {
+		clear_sync_release_report(state.root);
+	}
 	context.release_request_result = Some(result);
 	context.release_request = Some(request);
 
@@ -6338,7 +6752,7 @@ async fn save_prepared_release_artifact(
 		return Ok(());
 	};
 
-	let save_result = save_prepared_release_execution(
+	let save_result = save_prepared_release_execution_with_cut_base(
 		root,
 		configuration,
 		prepared_release,
@@ -6348,6 +6762,7 @@ async fn save_prepared_release_artifact(
 			.originating_command
 			.as_deref()
 			.unwrap_or(&cli_command.name),
+		context.cut_context.cut_base_commit.as_deref(),
 	)
 	.await;
 
@@ -6442,10 +6857,17 @@ fn resolve_command_output(
 
 	if let Some(report) = &context.sync_report {
 		let format = context.output_format;
+		let is_sync_request_command = cli_command
+			.steps
+			.iter()
+			.any(|step| matches!(step, CliStepDefinition::OpenSyncRequest { .. }));
 
 		let rendered = match format {
 			OutputFormat::Json | OutputFormat::JsonMin => {
-				if context.release_request.is_some() || context.release_request_result.is_some() {
+				if is_sync_request_command
+					|| context.release_request.is_some()
+					|| context.release_request_result.is_some()
+				{
 					format.render_json_value(
 						&json!({
 							"sync": report,
@@ -6506,6 +6928,30 @@ fn resolve_command_output(
 		};
 
 		return Ok(rendered);
+	}
+
+	if context.release_request.is_some()
+		|| context.release_request_result.is_some()
+		|| context.cut_context.sticky_banner_body.is_some()
+	{
+		let format = context.output_format;
+		return match format {
+			OutputFormat::Json | OutputFormat::JsonMin => {
+				format.render_json_value(
+					&json!({
+						"command": cli_command.name,
+						"dry_run": dry_run,
+						"release_request": context.release_request,
+						"release_request_result": context.release_request_result,
+						"active_cut_pr": context.cut_context.active_cut_pr,
+						"command_logs": context.command_logs,
+					}),
+					"release request result",
+				)
+			}
+			OutputFormat::Markdown => Ok(render_cli_command_markdown_result(cli_command, context)),
+			OutputFormat::Text => Ok(render_cli_command_result(cli_command, context)),
+		};
 	}
 
 	if has_release_automation_results(context) {

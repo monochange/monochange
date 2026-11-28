@@ -9,6 +9,8 @@ When `sync.mode = "merge_pr"`, `OpenSyncRequest` constructs a multi-parent bridg
 ## Inputs
 
 - `format`: `text`, `markdown`, `json`, or `json-min`
+- `from`: optional release tag or commit SHA to sync explicitly when `OpenSyncRequest` runs standalone without a prior `SyncRelease` step
+- `mode`: optional override for `[source.pull_requests.sync].mode` (`semantic_pr`, `bookkeeping_only`, `merge_pr`, or `none`)
 - `no_verify`: skip local git hooks when committing and pushing
 - `stage_all`: include files modified by intermediate `Command` steps (such as regenerated lockfiles)
 - `backend`: `local` or `hosted`
@@ -17,6 +19,14 @@ When `sync.mode = "merge_pr"`, `OpenSyncRequest` constructs a multi-parent bridg
 - `oidc_audience`: optional GitHub Actions OIDC audience override
 
 ## Example
+
+Single-invocation CLI usage (recommended for CI actions when no intermediate lockfile command is needed):
+
+```bash
+monochange step open-sync-request --from v0.22.0 --mode semantic_pr --format json
+```
+
+Multi-step workflow with intermediate lockfile regeneration:
 
 ```toml
 [cli.sync-release]

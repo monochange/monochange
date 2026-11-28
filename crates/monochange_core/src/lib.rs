@@ -4551,6 +4551,8 @@ impl CliStepDefinition {
 			Self::OpenSyncRequest { .. } => {
 				Some(&[
 					"format",
+					"from",
+					"mode",
 					"no_verify",
 					"stage_all",
 					"backend",
@@ -4614,9 +4616,18 @@ impl CliStepDefinition {
 					_ => None,
 				}
 			}
-			Self::OpenReleaseRequest { .. } | Self::OpenSyncRequest { .. } => {
+			Self::OpenReleaseRequest { .. } => {
 				match name {
 					"format" => Some(&["text", "json", "json-min", "md"]),
+					"backend" => Some(&["local", "hosted"]),
+					"hosted_auth" => Some(&["auto", "oidc", "token"]),
+					_ => None,
+				}
+			}
+			Self::OpenSyncRequest { .. } => {
+				match name {
+					"format" => Some(&["text", "json", "json-min", "md"]),
+					"mode" => Some(&["semantic_pr", "bookkeeping_only", "merge_pr", "none"]),
 					"backend" => Some(&["local", "hosted"]),
 					"hosted_auth" => Some(&["auto", "oidc", "token"]),
 					_ => None,
@@ -4690,9 +4701,9 @@ impl CliStepDefinition {
 			}
 			Self::OpenSyncRequest { .. } => {
 				match name {
-					"format" | "backend" | "hosted_auth" => Some(CliInputKind::Choice),
+					"format" | "mode" | "backend" | "hosted_auth" => Some(CliInputKind::Choice),
 					"no_verify" | "stage_all" => Some(CliInputKind::Boolean),
-					"hosted_url" | "oidc_audience" => Some(CliInputKind::String),
+					"from" | "hosted_url" | "oidc_audience" => Some(CliInputKind::String),
 					_ => None,
 				}
 			}
