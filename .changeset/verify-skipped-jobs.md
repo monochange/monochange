@@ -1,5 +1,6 @@
 ---
 monochange: fix
+monochange_app: patch
 ---
 
 # Reject skipped jobs as verification evidence
