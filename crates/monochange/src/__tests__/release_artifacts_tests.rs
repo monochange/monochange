@@ -2896,6 +2896,32 @@ fn hosted_oidc_token_retries_server_errors() {
 }
 
 #[test]
+fn hosted_oidc_token_retries_rate_limits() {
+	let server = MockServer::start();
+	let limited = server.mock(|when, then| {
+		when.method(httpmock::Method::GET).path("/oidc");
+		then.status(429);
+	});
+	let error = crate::tests::block_on_in_context(request_github_actions_oidc_token(
+		&server.url("/oidc"),
+		"runner-token",
+		&[std::time::Duration::ZERO],
+		"CommitRelease",
+	))
+	.expect_err("an endpoint that stays rate limited must fail");
+	limited.assert_calls(2);
+	let message = error.to_string();
+	assert!(
+		message.contains("was still rate limited after 2 attempts"),
+		"error should say the request was rate limited: {message}"
+	);
+	assert!(
+		message.contains("rerun the job in a few minutes"),
+		"error should say what to do: {message}"
+	);
+}
+
+#[test]
 fn hosted_oidc_token_recovers_after_a_server_error() {
 	use std::io::Read;
 	use std::io::Write;

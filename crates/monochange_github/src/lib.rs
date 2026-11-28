@@ -62,11 +62,17 @@ use monochange_core::git::git_stage_all_command;
 use monochange_core::git::git_stage_paths_command;
 use monochange_core::git::run_command;
 use monochange_core::git::run_git_commit_message;
+use monochange_hosting::PROVIDER_HTTP_CONNECT_TIMEOUT;
 use monochange_hosting::ensure_rustls_provider;
 use monochange_hosting::minimal_release_body;
 use monochange_hosting::release_pull_request_body_for_source;
 use monochange_hosting::release_pull_request_branch;
+use monochange_hosting::retry::RetryNotice;
+use monochange_hosting::retry::RetryReason;
+use monochange_hosting::retry::warn_retry;
 use octocrab::Octocrab;
+use octocrab::service::middleware::retry::RateLimitMetrics;
+use octocrab::service::middleware::retry::RetryConfig;
 use regex::Regex;
 use serde::Deserialize;
 use serde::Serialize;
@@ -596,7 +602,9 @@ pub async fn enrich_changeset_context(
 		return;
 	};
 	let api_base_url = env::var("GITHUB_API_URL").ok();
-	let Ok(client) = build_github_client(&token, api_base_url.as_deref()) else {
+	let Ok(client) =
+		build_github_client_with_retries(&token, api_base_url.as_deref(), GitHubRetries::Immediate)
+	else {
 		return;
 	};
 	enrich_changeset_context_with_client(&client, source, changesets).await;
@@ -1821,7 +1829,11 @@ async fn create_release_tree_with_limits(
 		));
 	};
 	let env_api_url = env::var("GITHUB_API_URL").ok();
-	let client = build_github_client(&token, api_url.or(env_api_url.as_deref()))?;
+	let client = build_github_client_with_retries(
+		&token,
+		api_url.or(env_api_url.as_deref()),
+		GitHubRetries::Immediate,
+	)?;
 	let repository = format!("{owner}/{repo}");
 	let commit_path = format!("/repos/{owner}/{repo}/git/commits/{base_commit}");
 	let base: GitHubGitCommitResponse = get_json(&client, &commit_path).await?;
@@ -2008,13 +2020,15 @@ where
 				)));
 			}
 
-			let delay_seconds = delay.as_secs();
-			tracing::warn!(
-				path,
-				status,
-				delay_seconds,
-				"GitHub rate limited a git object write; retrying: {message}"
-			);
+			let operation = format!("POST {path}");
+			warn_retry(&RetryNotice {
+				service: "GitHub",
+				operation: &operation,
+				reason: RetryReason::RateLimited,
+				wait: delay,
+				retry: limits.rate_limit_retry_delays.len() - delays.len(),
+				max_retries: limits.rate_limit_retry_delays.len(),
+			});
 			tokio::time::sleep(delay).await;
 			continue;
 		}
@@ -2500,9 +2514,125 @@ fn github_commit_client_from_env(source: &SourceConfiguration) -> MonochangeResu
 	build_github_client(&token, api_url)
 }
 
+/// How long a GitHub API response may stay silent before the request fails.
+///
+/// GitHub ends API requests that run longer than ten seconds itself, so this
+/// only trips on a stalled connection, which would otherwise hang the command.
+const GITHUB_READ_TIMEOUT: Duration = Duration::from_secs(60);
+
+/// How many times a GitHub API request is retried after a rate limit, a `5xx`
+/// status, or a dropped connection.
+const GITHUB_MAX_RETRIES: usize = 3;
+
+/// The wait after a `429` that names no wait. GitHub asks for at least a
+/// minute; see
+/// <https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api#exceeding-the-rate-limit>.
+const GITHUB_MIN_RATE_LIMIT_WAIT_SECONDS: u64 = 60;
+
+/// How a GitHub client retries.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum GitHubRetries {
+	/// Wait as long as GitHub's rate-limit headers ask, announcing each wait
+	/// as a warning so the command does not look hung.
+	WaitForRateLimits,
+	/// Retry `429`s, `5xx`s, and dropped connections at once, a few times.
+	///
+	/// For callers that handle rate limits themselves
+	/// ([`create_release_tree`]) or would rather skip the work than wait
+	/// (changeset enrichment, which runs under its own timeout).
+	Immediate,
+}
+
+impl GitHubRetries {
+	fn config(self) -> RetryConfig {
+		match self {
+			Self::WaitForRateLimits => {
+				RetryConfig::HandleRateLimits {
+					metrics: std::sync::Arc::new(GitHubRetryNotices),
+					max_retries: GITHUB_MAX_RETRIES,
+					min_wait_seconds: GITHUB_MIN_RATE_LIMIT_WAIT_SECONDS,
+					retry_on_forbidden: false,
+				}
+			}
+			Self::Immediate => RetryConfig::Simple(GITHUB_MAX_RETRIES),
+		}
+	}
+}
+
+/// Announces the GitHub client's retries, so a run waiting out a rate limit
+/// says so instead of looking hung.
+struct GitHubRetryNotices;
+
+impl GitHubRetryNotices {
+	fn announce(
+		request: &http::Request<octocrab::OctoBody>,
+		reason: RetryReason<'_>,
+		wait: Duration,
+		retries_remaining: usize,
+	) {
+		let operation = format!("{} {}", request.method(), request.uri().path());
+		warn_retry(&RetryNotice {
+			service: "GitHub",
+			operation: &operation,
+			reason,
+			wait,
+			retry: GITHUB_MAX_RETRIES.saturating_sub(retries_remaining),
+			max_retries: GITHUB_MAX_RETRIES,
+		});
+	}
+}
+
+impl RateLimitMetrics for GitHubRetryNotices {
+	fn retry_after_error(
+		&self,
+		request: &http::Request<octocrab::OctoBody>,
+		status_code: http::StatusCode,
+		retries_remaining: usize,
+	) {
+		// Octocrab also reports a `403` it will not retry here; only a `5xx`
+		// is retried, and at once.
+		if status_code.is_server_error() {
+			let detail = format!("HTTP {}", status_code.as_u16());
+			Self::announce(
+				request,
+				RetryReason::Failed(&detail),
+				Duration::ZERO,
+				retries_remaining,
+			);
+		}
+	}
+
+	fn rate_limited(
+		&self,
+		request: &http::Request<octocrab::OctoBody>,
+		_status_code: http::StatusCode,
+		retries_remaining: usize,
+		waiting_seconds: u64,
+	) {
+		Self::announce(
+			request,
+			RetryReason::RateLimited,
+			Duration::from_secs(waiting_seconds),
+			retries_remaining,
+		);
+	}
+}
+
 fn build_github_client(token: &str, base_uri: Option<&str>) -> MonochangeResult<Octocrab> {
+	build_github_client_with_retries(token, base_uri, GitHubRetries::WaitForRateLimits)
+}
+
+fn build_github_client_with_retries(
+	token: &str,
+	base_uri: Option<&str>,
+	retries: GitHubRetries,
+) -> MonochangeResult<Octocrab> {
 	ensure_rustls_provider();
-	let builder = Octocrab::builder().personal_token(token.to_string());
+	let builder = Octocrab::builder()
+		.add_retry_config(retries.config())
+		.set_connect_timeout(Some(PROVIDER_HTTP_CONNECT_TIMEOUT))
+		.set_read_timeout(Some(GITHUB_READ_TIMEOUT))
+		.personal_token(token.to_string());
 	let builder = if let Some(base_uri) = base_uri {
 		builder.base_uri(base_uri).map_err(|error| {
 			MonochangeError::Config(format!(
